@@ -7,13 +7,10 @@ export default function Footer() {
   const t = useI18n()
 
   const navigation = {
-    legal: [
-      { name: 'Privacy Policy', href: '/privacy' },
-      { name: 'Terms of Service', href: '/terms' },
-      { name: 'Disclaimers', href: '/disclaimers' },
-    ],
-    contact: [
-      { name: 'Contact', href: '/contact' },
+    about: [
+      { name: 'Personal Trading Journal', href: '#' },
+      { name: 'Free & Open Source', href: '#' },
+      { name: 'Self-Hosted Analytics', href: '#' },
     ],
     social: [
       { name: 'GitHub', href: '#', icon: (props: React.SVGProps<SVGSVGElement>) => (
@@ -58,27 +55,15 @@ export default function Footer() {
               ))}
             </div>
           </div>
-          <div className="mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
+          <div className="mt-16 xl:col-span-2 xl:mt-0">
             <div>
-              <h4 className="text-sm font-semibold leading-6 text-gray-900 dark:text-white">Legal</h4>
+              <h4 className="text-sm font-semibold leading-6 text-gray-900 dark:text-white">About</h4>
               <ul role="list" className="mt-6 space-y-4">
-                {navigation.legal.map((item) => (
+                {navigation.about.map((item) => (
                   <li key={item.name}>
-                    <Link href={item.href} className="text-sm leading-6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                    <span className="text-sm leading-6 text-gray-600 dark:text-gray-400">
                       {item.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold leading-6 text-gray-900 dark:text-white">Contact</h4>
-              <ul role="list" className="mt-6 space-y-4">
-                {navigation.contact.map((item) => (
-                  <li key={item.name}>
-                    <Link href={item.href} className="text-sm leading-6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                      {item.name}
-                    </Link>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -87,14 +72,16 @@ export default function Footer() {
         </div>
         <div className="mt-16 border-t border-gray-200 dark:border-gray-800 pt-8">
           <div className="text-center text-sm text-gray-600 dark:text-gray-400 max-w-4xl mx-auto space-y-4">
-            <p>
-              Trading futures and forex is risky and not for everyone. You can lose part or all of your money. Only trade with money you can afford to lose. Past results don't guarantee future outcomes.
-            </p>
-            <p>
-              Hypothetical results are based on hindsight, not real risk, and often differ from actual trading. Real trading involves losses, discipline, and market factors that can't be fully shown in simulations.
-            </p>
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+            <div className="pb-4">
               © 2025 Deltalytix. All rights reserved.
+            </div>
+            <div className="border-t border-gray-200 dark:border-gray-800 pt-4 space-y-4">
+              <p>
+                Trading futures and forex is risky and not for everyone. You can lose part or all of your money. Only trade with money you can afford to lose. Past results don't guarantee future outcomes.
+              </p>
+              <p>
+                Hypothetical results are based on hindsight, not real risk, and often differ from actual trading. Real trading involves losses, discipline, and market factors that can't be fully shown in simulations.
+              </p>
             </div>
           </div>
 

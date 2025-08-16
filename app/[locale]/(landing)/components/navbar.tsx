@@ -152,11 +152,7 @@ export default function Component() {
                     <AccordionTrigger>{t('landing.navbar.developers')}</AccordionTrigger>
                     <AccordionContent>
                         <ul className="space-y-2 list-none">
-                                                                        <MobileNavItem href="#" onClick={onLinkClick}>{t('landing.navbar.openSource')}</MobileNavItem>
-                                            <MobileNavItem href="#" onClick={onLinkClick}>YouTube</MobileNavItem>
-                            <MobileNavItem href={process.env.NEXT_PUBLIC_DISCORD_INVITATION || ''} onClick={onLinkClick}>{t('landing.navbar.joinCommunity')}</MobileNavItem>
-                            <MobileNavItem href="/docs" onClick={onLinkClick}>{t('landing.navbar.documentation')}</MobileNavItem>
-                            <MobileNavItem href="/api" onClick={onLinkClick}>{t('landing.navbar.api')}</MobileNavItem>
+                            <MobileNavItem href="#" onClick={onLinkClick}>{t('landing.navbar.openSource')}</MobileNavItem>
                         </ul>
                     </AccordionContent>
                 </AccordionItem>
@@ -259,28 +255,10 @@ export default function Component() {
                             <NavigationMenuItem onMouseEnter={() => setHoveredItem('developers')} onMouseLeave={() => setHoveredItem(null)}>
                                 <NavigationMenuTrigger className='bg-transparent'>{t('landing.navbar.developers')}</NavigationMenuTrigger>
                                 <NavigationMenuContent>
-                                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] list-none">
+                                    <ul className="grid gap-3 p-4 w-[400px] list-none">
                                         <ListItem href="#" title={t('landing.navbar.openSource')} icon={<Github className="h-4 w-4" />}>
                                             {t('landing.navbar.openSourceDescription')}
                                         </ListItem>
-                                        <ListItem href="#" title="YouTube" icon={<FileText className="h-4 w-4" />}>
-                                            {t('landing.navbar.youtubeDescription')}
-                                        </ListItem>
-                                        <ListItem href={process.env.NEXT_PUBLIC_DISCORD_INVITATION || ''} title={t('landing.navbar.joinCommunity')} icon={<Users className="h-4 w-4" />}>
-                                            {t('landing.navbar.joinCommunityDescription')}
-                                        </ListItem>
-                                        <li className="row-span-3 md:col-span-2">
-                                            <NavigationMenuLink asChild>
-                                                <a className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md" href="#api">
-                                                    <div className="mb-2 mt-4 text-lg font-medium">
-                                                        {t('landing.navbar.oneApi')}
-                                                    </div>
-                                                    <p className="text-sm leading-tight text-muted-foreground">
-                                                        {t('landing.navbar.oneApiDescription')}
-                                                    </p>
-                                                </a>
-                                            </NavigationMenuLink>
-                                        </li>
                                     </ul>
                                 </NavigationMenuContent>
                             </NavigationMenuItem>
