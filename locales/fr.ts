@@ -36,14 +36,8 @@ export default {
     'footer.copyright': '© {year} Deltalytix. Tous droits réservés.',
     'authentication.title': 'Authentification',
     'authentication.description': 'Entrez votre email, nous vous enverrons un lien magique dans votre boîte de réception et créerons un nouveau compte si vous n\'en avez pas.',
-    'authentication.testimonial': 'Deltalytix m\'a aidé à comprendre mes comportements de trading et à trouver de nouvelles stratégies rentables.',
-    'authentication.testimonialAuthor': 'Hugo DEMENEZ',
-    'authentication.termsAndPrivacy': {
-        'prefix': 'En cliquant sur continuer, vous acceptez nos',
-        'terms': 'Conditions d\'utilisation',
-        'and': 'et',
-        'privacy': 'Politique de confidentialité'
-    },
+
+
     'updates.title': 'Feuille de route du produit Deltalytix',
     'updates.description': 'Nous travaillons constamment à l\'amélioration de Deltalytix pour vous offrir la meilleure plateforme d\'analyse de trading. Voici un aperçu de nos progrès actuels, des fonctionnalités à venir et des mises à jour récentes.',
     'updates.inProgress': 'En cours',

@@ -31,14 +31,8 @@ export default {
     'footer.copyright': '© {year} Deltalytix. All rights reserved.',
     'authentication.title': 'Authentication',
     'authentication.description': 'Enter your email, we will send a magic link to your inbox and create a new account if you don\'t have one.',
-    'authentication.testimonial': 'Deltalytix helped me understand my trading behaviors, and find new strategies I could earn from.',
-    'authentication.testimonialAuthor': 'Hugo DEMENEZ',
-    'authentication.termsAndPrivacy': {
-        'prefix': 'By clicking continue, you agree to our',
-        'terms': 'Terms of Service',
-        'and': 'and',
-        'privacy': 'Privacy Policy'
-    },
+
+
     'updates.title': 'Deltalytix Product Roadmap',
     'updates.description': 'We\'re constantly working to improve Deltalytix and provide you with the best trading analytics platform. Here\'s a look at our current progress, upcoming features, and recent updates.',
     'updates.inProgress': 'In Progress',

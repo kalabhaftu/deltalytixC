@@ -25,14 +25,7 @@ export default function AuthenticationPage() {
               Deltalytix
             </Link>
           </div>
-          <div className="relative z-20 mt-auto">
-            <blockquote className="space-y-2">
-              <p className="text-lg">
-                {t('authentication.testimonial')}
-              </p>
-              <footer className="text-sm">{t('authentication.testimonialAuthor')}</footer>
-            </blockquote>
-          </div>
+
         </div>
         <div className="p-4 lg:p-8">
           <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
@@ -45,23 +38,7 @@ export default function AuthenticationPage() {
               </p>
             </div>
             <UserAuthForm />
-            <p className="px-8 text-center text-sm text-muted-foreground">
-              {t('authentication.termsAndPrivacy.prefix')}{" "}
-              <Link
-                href="/terms"
-                className="underline underline-offset-4 hover:text-primary"
-              >
-                {t('authentication.termsAndPrivacy.terms')}
-              </Link>{" "}
-              {t('authentication.termsAndPrivacy.and')}{" "}
-              <Link
-                href="/privacy"
-                className="underline underline-offset-4 hover:text-primary"
-              >
-                {t('authentication.termsAndPrivacy.privacy')}
-              </Link>
-              .
-            </p>
+
           </div>
         </div>
       </div>

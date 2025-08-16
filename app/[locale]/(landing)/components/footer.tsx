@@ -8,9 +8,9 @@ export default function Footer() {
 
   const navigation = {
     about: [
-      { name: 'Personal Trading Journal', href: '#' },
-      { name: 'Free & Open Source', href: '#' },
-      { name: 'Self-Hosted Analytics', href: '#' },
+      { name: 'Personal Trading Journal', href: '/personal-journal' },
+      { name: 'Free & Open Source', href: '/open-source' },
+      { name: 'Self-Hosted Analytics', href: '/analytics' },
     ],
     social: [
       { name: 'GitHub', href: '#', icon: (props: React.SVGProps<SVGSVGElement>) => (
@@ -74,7 +74,7 @@ export default function Footer() {
           <div className="text-center text-sm text-gray-600 dark:text-gray-400 max-w-4xl mx-auto space-y-4">
             <div className="pb-4">
               © 2025 Deltalytix. All rights reserved.
-            </div>
+          </div>
             <div className="border-t border-gray-200 dark:border-gray-800 pt-4 space-y-4">
               <p>
                 Trading futures and forex is risky and not for everyone. You can lose part or all of your money. Only trade with money you can afford to lose. Past results don't guarantee future outcomes.
@@ -82,7 +82,7 @@ export default function Footer() {
               <p>
                 Hypothetical results are based on hindsight, not real risk, and often differ from actual trading. Real trading involves losses, discipline, and market factors that can't be fully shown in simulations.
               </p>
-            </div>
+          </div>
           </div>
 
         </div>

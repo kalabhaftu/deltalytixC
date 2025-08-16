@@ -83,9 +83,9 @@ export const metadata: Metadata = {
   other:{
     'google': 'notranslate',
   },
-  authors: [{ name: 'Hugo DEMENEZ' }],
-  creator: 'Hugo DEMENEZ',
-  publisher: 'Hugo DEMENEZ',
+  authors: [{ name: 'Deltalytix' }],
+  creator: 'Deltalytix',
+  publisher: 'Deltalytix',
   formatDetection: {
     email: false,
     address: false,
