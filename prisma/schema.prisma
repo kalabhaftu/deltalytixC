@@ -6,7 +6,6 @@ datasource db {
 }
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
 }
 
 model Trade {
@@ -46,21 +45,7 @@ model TickDetails{
   @@schema("public")
 }
 
-model Subscription {
-  id        String    @id @unique @default(uuid())
-  email     String    @unique
-  plan      String
-  createdAt DateTime  @default(now())
-  userId    String    @unique
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status    String    @default("ACTIVE")
-  endDate   DateTime?
-  trialEndsAt DateTime?
-  interval  String?
 
-  @@index([email])
-  @@schema("public")
-}
 
 model Notification {
   id          String   @id @default(cuid())
@@ -80,7 +65,6 @@ model User {
   email           String           @unique
   auth_user_id    String           @unique
   notifications   Notification[]
-  subscriptions   Subscription?
   accounts        Account[]
   groups          Group[]
   dashboardLayout DashboardLayout?
@@ -95,60 +79,16 @@ model User {
   comments        Comment[]
   language        String           @default("en")
   orders          Order[]
-  businesses      Business[]
 
   @@index([email])
   @@schema("public")
 }
 
-model Business {
-  id          String   @id @default(uuid())
-  name        String
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  traderIds   String[] @default([]) // List of trader IDs
-  managers    BusinessManager[] // Relation to managers
-  invitations BusinessInvitation[] // Relation to invitations
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 
-  @@unique([name, userId])
-  @@index([userId])
-  @@schema("public")
-}
 
-model BusinessManager {
-  id          String   @id @default(uuid())
-  businessId  String
-  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  managerId   String
-  access      String   @default("viewer") // "admin" or "viewer"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 
-  @@unique([businessId, managerId]) // Prevent duplicate managers per business
-  @@index([businessId])
-  @@index([managerId]) // This makes querying by manager ID very efficient!
-  @@schema("public")
-}
 
-model BusinessInvitation {
-  id          String   @id @default(uuid())
-  businessId  String
-  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  email       String
-  invitedBy   String   // User ID of the person who sent the invitation
-  status      String   @default("PENDING") // PENDING, ACCEPTED, DECLINED, EXPIRED
-  expiresAt   DateTime @default(dbgenerated("(NOW() + INTERVAL '7 days')"))
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 
-  @@unique([businessId, email]) // Prevent duplicate invitations
-  @@index([businessId])
-  @@index([email])
-  @@index([status])
-  @@schema("public")
-}
 
 model Group {
   id          String    @id @default(uuid())
@@ -206,20 +146,11 @@ model Account {
   maxPayout         String?   // Maximum payout policy
   maxFundedAccounts Int?      // Maximum number of funded accounts
   
-  // Promotional pricing fields
-  promoType         PromoType? // Type of promotional pricing
-  promoPercentage   Float?     // Discount percentage for percentage-based promos
-  
-  // Payment & Renewal fields
-  nextPaymentDate   DateTime?           // Next payment due date
-  paymentFrequency  PaymentFrequency?   // How often payments are due
-  autoRenewal       Boolean   @default(false) // Whether to automatically renew
-  renewalNotice     Int?      // Days before payment to send renewal notice
+
 
   @@unique([number, userId])
   @@index([number])
   @@index([groupId])
-  @@index([nextPaymentDate]) // Index for efficient cron job queries
   @@schema("public")
 }
 
@@ -250,17 +181,7 @@ model DashboardLayout {
   @@schema("public")
 }
 
-model SubscriptionFeedback {
-  id                 String       @id @default(uuid())
-  email             String
-  event             String
-  cancellationReason String?
-  feedback          String?      // For both feedback and comment from Stripe
-  createdAt         DateTime     @default(now())
 
-  @@index([email])
-  @@schema("public")
-}
 
 model Mood {
   id            String   @id @default(uuid())
@@ -425,22 +346,9 @@ enum VoteType {
   @@schema("public")
 }
 
-enum PaymentFrequency {
-  MONTHLY
-  QUARTERLY
-  BIANNUAL
-  ANNUAL
-  CUSTOM
 
-  @@schema("public")
-}
 
-enum PromoType {
-  DIRECT
-  PERCENTAGE
 
-  @@schema("public")
-}
 
 model Order {
   id                String   @id @default(uuid())

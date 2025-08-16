@@ -1,7 +1,7 @@
 'use server'
 
 import { getShared } from './shared'
-import { TickDetails, User, Tag, DashboardLayout, FinancialEvent, Mood, Trade, Subscription } from '@prisma/client'
+import { TickDetails, User, Tag, DashboardLayout, FinancialEvent, Mood, Trade } from '@prisma/client'
 import { GroupWithAccounts } from './groups'
 import { getCurrentLocale } from '@/locales/server'
 import { prisma } from '@/lib/prisma'
@@ -55,7 +55,6 @@ export async function loadSharedData(slug: string): Promise<SharedDataResponse> 
 
 export async function getUserData(): Promise<{
   userData: User | null;
-  subscription: Subscription | null;
   tickDetails: TickDetails[];
   tags: Tag[];
   accounts: Account[];
@@ -74,7 +73,6 @@ export async function getUserData(): Promise<{
       // Run all independent queries in parallel for better performance
       const [
         userData,
-        subscription,
         tickDetails,
         tags,
         accounts,
@@ -85,11 +83,6 @@ export async function getUserData(): Promise<{
         prisma.user.findUnique({
           where: {
             id: userId
-          }
-        }),
-        prisma.subscription.findUnique({
-          where: {
-            userId: userId
           }
         }),
         prisma.tickDetails.findMany(),
@@ -127,7 +120,7 @@ export async function getUserData(): Promise<{
         })
       ])
 
-      return { userData, subscription, tickDetails, tags, accounts, groups, financialEvents, moodHistory }
+      return { userData, tickDetails, tags, accounts, groups, financialEvents, moodHistory }
     },
     [`user-data-${userId}-${locale}`],
     {
