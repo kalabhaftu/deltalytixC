@@ -6,7 +6,7 @@ import dropzone from './fr/dropzone'
 import mindset from './fr/mindset'
 import propfirm from './fr/propfirm'
 import chat from './fr/chat'
-import terms from './fr/terms'
+
 
 
 export default {
@@ -18,7 +18,7 @@ export default {
     ...mindset,
     ...propfirm,
     ...chat,
-    ...terms,
+
 
     'footer.heading': 'Pied de page',
     'footer.description': 'Analyses avancées pour les traders modernes.',
