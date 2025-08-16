@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useTheme } from '@/context/theme-provider'
 import Features from './components/features'
-import GitHubRepoCard from './components/open-source'
+
 import { Skeleton } from '@/components/ui/skeleton'
 import { useI18n } from '@/locales/client'
 
@@ -98,9 +98,7 @@ export default function LandingPage() {
                 <section id="features" className="w-full py-6 md:py-12 lg:py-16 xl:py-24">
                     <Features />
                 </section>
-                <section id="open-source" className="w-full py-6 md:py-12 lg:py-16 xl:py-24">
-                    <GitHubRepoCard />
-                </section>
+
             </main>
         </div>
     )

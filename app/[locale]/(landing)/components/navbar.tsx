@@ -152,8 +152,8 @@ export default function Component() {
                     <AccordionTrigger>{t('landing.navbar.developers')}</AccordionTrigger>
                     <AccordionContent>
                         <ul className="space-y-2 list-none">
-                            <MobileNavItem href="https://github.com/hugodemenez/deltalytix" onClick={onLinkClick}>{t('landing.navbar.openSource')}</MobileNavItem>
-                            <MobileNavItem href="https://www.youtube.com/@hugodemenez" onClick={onLinkClick}>YouTube</MobileNavItem>
+                                                                        <MobileNavItem href="#" onClick={onLinkClick}>{t('landing.navbar.openSource')}</MobileNavItem>
+                                            <MobileNavItem href="#" onClick={onLinkClick}>YouTube</MobileNavItem>
                             <MobileNavItem href={process.env.NEXT_PUBLIC_DISCORD_INVITATION || ''} onClick={onLinkClick}>{t('landing.navbar.joinCommunity')}</MobileNavItem>
                             <MobileNavItem href="/docs" onClick={onLinkClick}>{t('landing.navbar.documentation')}</MobileNavItem>
                             <MobileNavItem href="/api" onClick={onLinkClick}>{t('landing.navbar.api')}</MobileNavItem>
@@ -255,27 +255,15 @@ export default function Component() {
                                 </NavigationMenuContent>
                             </NavigationMenuItem>
 
-                            <NavigationMenuItem onMouseEnter={() => setHoveredItem('updates')} onMouseLeave={() => setHoveredItem(null)}>
-                                <NavigationMenuTrigger className='bg-transparent'>{t('landing.navbar.updates')}</NavigationMenuTrigger>
-                                <NavigationMenuContent>
-                                    <ul className="grid gap-3 p-4 w-[400px] list-none">
-                                        <ListItem href="/updates" title={t('landing.navbar.productUpdates')} icon={<BarChart3 className="h-4 w-4" />}>
-                                            {t('landing.navbar.productUpdatesDescription')}
-                                        </ListItem>
-                                        <ListItem href="/community" title={t('landing.navbar.community')} icon={<Users className="h-4 w-4" />}>
-                                            {t('landing.navbar.communityDescription')}
-                                        </ListItem>
-                                    </ul>
-                                </NavigationMenuContent>
-                            </NavigationMenuItem>
+
                             <NavigationMenuItem onMouseEnter={() => setHoveredItem('developers')} onMouseLeave={() => setHoveredItem(null)}>
                                 <NavigationMenuTrigger className='bg-transparent'>{t('landing.navbar.developers')}</NavigationMenuTrigger>
                                 <NavigationMenuContent>
                                     <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] list-none">
-                                        <ListItem href="https://github.com/hugodemenez/deltalytix" title={t('landing.navbar.openSource')} icon={<Github className="h-4 w-4" />}>
+                                        <ListItem href="#" title={t('landing.navbar.openSource')} icon={<Github className="h-4 w-4" />}>
                                             {t('landing.navbar.openSourceDescription')}
                                         </ListItem>
-                                        <ListItem href="https://www.youtube.com/@hugodemenez" title="YouTube" icon={<FileText className="h-4 w-4" />}>
+                                        <ListItem href="#" title="YouTube" icon={<FileText className="h-4 w-4" />}>
                                             {t('landing.navbar.youtubeDescription')}
                                         </ListItem>
                                         <ListItem href={process.env.NEXT_PUBLIC_DISCORD_INVITATION || ''} title={t('landing.navbar.joinCommunity')} icon={<Users className="h-4 w-4" />}>
