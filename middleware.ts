@@ -156,11 +156,6 @@ export default async function middleware(req: NextRequest) {
         authUrl.searchParams.append("next", encodedSearchParams)
       }
 
-      // Add error context for debugging
-      if (error) {
-        authUrl.searchParams.set("auth_error", "session_invalid")
-      }
-
       return NextResponse.redirect(authUrl)
     }
   } else {
