@@ -11,7 +11,7 @@ const publicRoutes = ["/login", "/signup", "/"]
 const MAINTENANCE_MODE = false
 
 const I18nMiddleware = createI18nMiddleware({
-  locales: ["en", "fr"],
+  locales: ["en"],
   defaultLocale: "en",
   urlMappingStrategy: "rewrite",
 })
