@@ -19,12 +19,11 @@ import {
 } from "@/components/ui/navigation-menu"
 import { useTheme } from '@/context/theme-provider'
 import { cn } from '@/lib/utils'
-import { useChangeLocale, useI18n } from "@/locales/client"
+import { useI18n } from "@/locales/client"
 import { useRouter, usePathname } from "next/navigation"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { useCurrentLocale } from '@/locales/client'
-import { LanguageSelector } from "@/components/ui/language-selector"
+
 
 const ListItem = React.forwardRef<
     React.ElementRef<"a">,
@@ -72,7 +71,7 @@ export default function Component() {
     const t = useI18n()
     const router = useRouter()
     const pathname = usePathname()
-    const currentLocale = useCurrentLocale()
+
 
     const toggleMenu = () => setIsOpen(!isOpen)
     const closeMenu = () => setIsOpen(false)
@@ -103,24 +102,17 @@ export default function Component() {
         }
     }, [lastScrollY])
 
-    const languages = [
-        { value: 'en', label: 'English' },
-        { value: 'fr', label: 'Français' },
-        // Add more languages here
-    ]
+
 
     const [themeOpen, setThemeOpen] = useState(false)
-    const [languageOpen, setLanguageOpen] = useState(false)
+
     const changeLocale = useChangeLocale()
     const handleThemeChange = (value: string) => {
         setTheme(value as "light" | "dark" | "system")
         setThemeOpen(false)
     }
 
-    const handleLanguageChange = (value: string) => {
-        changeLocale(value as "en" | "fr")
-        setLanguageOpen(false)
-    }
+
 
     const getThemeIcon = () => {
         if (theme === 'light') return <Sun className="h-5 w-5" />;
@@ -199,7 +191,7 @@ export default function Component() {
                         </Command>
                     </PopoverContent>
                 </Popover>
-                <LanguageSelector showLabel align="start" />
+
             </div>
         </nav>
     )
@@ -271,7 +263,7 @@ export default function Component() {
                 </div>
 
                 <div className="flex items-center space-x-4">
-                    <LanguageSelector />
+
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button variant="ghost" className="hidden lg:inline-flex h-9 w-9 px-0">

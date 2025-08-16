@@ -21,7 +21,7 @@ import { Logo } from '@/components/logo'
 import Link from 'next/link'
 import ImportButton from './import/import-button'
 import { SubscriptionBadge } from './subscription-badge'
-import { useI18n, useChangeLocale, useCurrentLocale } from "@/locales/client"
+import { useI18n } from "@/locales/client"
 import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts'
 import DateCalendarFilter from './filters/date-calendar-filter'
 import { ActiveFilterTags } from './filters/active-filter-tags'
@@ -41,7 +41,7 @@ import { UsersIcon, type UsersIconHandle } from '@/components/animated-icons/use
 import { useModalStateStore } from '../../../../store/modal-state-store'
 import { useUserStore } from '../../../../store/user-store'
 
-type Locale = 'en' | 'fr'
+
 
 // Add timezone list
 const timezones = [
@@ -59,8 +59,7 @@ const timezones = [
 export default function Navbar() {
   const  user = useUserStore(state => state.supabaseUser)
   const t = useI18n()
-  const changeLocale = useChangeLocale()
-  const currentLocale = useCurrentLocale()
+
   const { theme, setTheme, intensity, setIntensity } = useTheme()
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false)
   const [showAccountNumbers, setShowAccountNumbers] = useState(true)
@@ -82,11 +81,7 @@ export default function Navbar() {
   // Initialize keyboard shortcuts
   useKeyboardShortcuts()
 
-  const languages: { value: Locale; label: string }[] = [
-    { value: 'en', label: 'English' },
-    { value: 'fr', label: 'Français' },
-    // Add more languages here
-  ]
+
 
   const handleThemeChange = (value: string) => {
     setTheme(value as "light" | "dark" | "system")
@@ -275,26 +270,7 @@ export default function Navbar() {
                         <span>{t('dashboard.support')}</span>
                       </DropdownMenuItem>
                     </Link>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="flex items-center">
-                      <Globe className="mr-2 h-4 w-4" />
-                      {t('dashboard.language')}
-                    </DropdownMenuLabel>
-                    <ScrollArea className="h-[64px]">
-                      <DropdownMenuRadioGroup value={currentLocale}>
-                        {languages.map((lang) => (
-                          <DropdownMenuRadioItem 
-                            key={lang.value} 
-                            value={lang.value}
-                            onClick={() => {
-                              changeLocale(lang.value)
-                            }}
-                          >
-                            {lang.label}
-                          </DropdownMenuRadioItem>
-                        ))}
-                      </DropdownMenuRadioGroup>
-                    </ScrollArea>
+
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel className="flex items-center">
                       <Clock className="mr-2 h-4 w-4" />
