@@ -160,11 +160,7 @@ export default function Component() {
                         </ul>
                     </AccordionContent>
                 </AccordionItem>
-                <ul className='list-none'>
-                    <MobileNavItem href="/pricing" onClick={onLinkClick} className={cn(
-                        "flex flex-1 items-center justify-between py-4 font-medium transition-all hover:underline [&[data-state=open]>svg]:rotate-180 border-b",
-                    )}>{t('landing.navbar.pricing')}</MobileNavItem>
-                </ul>
+
                 <AccordionItem value="updates">
                     <AccordionTrigger>{t('landing.navbar.updates')}</AccordionTrigger>
                     <AccordionContent>
@@ -258,13 +254,7 @@ export default function Component() {
                                     </ul>
                                 </NavigationMenuContent>
                             </NavigationMenuItem>
-                            <NavigationMenuItem>
-                                <Link href="/pricing" className={cn(navigationMenuTriggerStyle(), 'bg-transparent')}>
-                                    <NavigationMenuLink>
-                                        {t('landing.navbar.pricing')}
-                                    </NavigationMenuLink>
-                                </Link>
-                            </NavigationMenuItem>
+
                             <NavigationMenuItem onMouseEnter={() => setHoveredItem('updates')} onMouseLeave={() => setHoveredItem(null)}>
                                 <NavigationMenuTrigger className='bg-transparent'>{t('landing.navbar.updates')}</NavigationMenuTrigger>
                                 <NavigationMenuContent>

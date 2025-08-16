@@ -7,13 +7,9 @@ export default function Footer() {
   const t = useI18n()
 
   const navigation = {
-    product: [
+    project: [
       { name: t('footer.product.features'), href: '/#features' },
-      { name: t('footer.product.pricing'), href: '/pricing' },
-      { name: t('footer.product.business'), href: '/business' },
       { name: t('footer.product.support'), href: '/support' },
-    ],
-    company: [
       { name: t('footer.company.about'), href: '/about' },
     ],
     legal: [
@@ -65,31 +61,17 @@ export default function Footer() {
             </div>
           </div>
           <div className="mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
-            <div className="md:grid md:grid-cols-2 md:gap-8">
-              <div>
-                <h4 className="text-sm font-semibold leading-6 text-gray-900 dark:text-white">{t('footer.product.title')}</h4>
-                <ul role="list" className="mt-6 space-y-4">
-                  {navigation.product.map((item) => (
-                    <li key={item.name}>
-                      <Link href={item.href} className="text-sm leading-6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="mt-10 md:mt-0">
-                <h4 className="text-sm font-semibold leading-6 text-gray-900 dark:text-white">{t('footer.company.title')}</h4>
-                <ul role="list" className="mt-6 space-y-4">
-                  {navigation.company.map((item) => (
-                    <li key={item.name}>
-                      <Link href={item.href} className="text-sm leading-6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            <div>
+              <h4 className="text-sm font-semibold leading-6 text-gray-900 dark:text-white">Project</h4>
+              <ul role="list" className="mt-6 space-y-4">
+                {navigation.project.map((item) => (
+                  <li key={item.name}>
+                    <Link href={item.href} className="text-sm leading-6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
             <div>
               <h4 className="text-sm font-semibold leading-6 text-gray-900 dark:text-white">{t('footer.legal.title')}</h4>
@@ -107,7 +89,7 @@ export default function Footer() {
         </div>
         <div className="mt-16 border-t border-gray-200 dark:border-gray-800 pt-8">
           <div className="text-center text-sm text-gray-600 dark:text-gray-400">
-            {t('footer.copyright', { year: new Date().getFullYear() })}
+            © 2025 Deltalytix. All rights reserved.
           </div>
           <div className="mt-4 text-center text-xs text-gray-500 dark:text-gray-500">
             {t('disclaimer.risk.content')}

@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button"
 import { useTheme } from '@/context/theme-provider'
 import Features from './components/features'
 import GitHubRepoCard from './components/open-source'
-import PricingPage from './pricing/page'
-import Partners from './components/partners'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useI18n } from '@/locales/client'
 
@@ -44,14 +42,6 @@ export default function LandingPage() {
                         <div className="flex flex-col w-full gap-y-24">
                             <div className="flex flex-col  justify-center space-y-4 text-center">
                                 <div className="space-y-2">
-                                    <Link href="/updates">
-                                        <Button 
-                                        variant="link"
-                                        className="mx-auto sm:mb-8 box-border flex flex-row justify-center items-center px-4 py-2 h-[26px] bg-[#EAF6F5] dark:bg-[hsl(var(--chart-1)/0.1)] border border-[#BBE2DB] dark:border-[hsl(var(--chart-1)/0.3)] rounded-[26px] text-[10px] font-semibold leading-5 tracking-[0.35px] uppercase text-[rgba(36,36,36,0.8)] dark:text-[hsl(var(--chart-1)/0.8)]"
-                                        >
-                                            {t('landing.updates')}
-                                        </Button>
-                                    </Link>
                                     <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
                                         {t('landing.title')}
                                     </h1>
@@ -105,14 +95,8 @@ export default function LandingPage() {
                         </div>
                     </div>
                 </section>
-                <section id="partners" className="w-full py-6 md:py-12 lg:py-16 xl:py-24">
-                    <Partners />
-                </section>
                 <section id="features" className="w-full py-6 md:py-12 lg:py-16 xl:py-24">
                     <Features />
-                </section>
-                <section id="pricing" className="w-full py-6 md:py-12 lg:py-16 xl:py-24">
-                    <PricingPage />
                 </section>
                 <section id="open-source" className="w-full py-6 md:py-12 lg:py-16 xl:py-24">
                     <GitHubRepoCard />
