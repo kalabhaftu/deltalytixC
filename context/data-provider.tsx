@@ -14,7 +14,7 @@ import {
   Account as PrismaAccount,
   Payout as PrismaPayout,
   DashboardLayout as PrismaDashboardLayout,
-  Subscription as PrismaSubscription,
+
   Tag,
 } from '@prisma/client';
 
@@ -456,7 +456,7 @@ export const DataProvider: React.FC<{
   // Get store values
   const user = useUserStore(state => state.user);
   const setUser = useUserStore(state => state.setUser);
-  const setSubscription = useUserStore(state => state.setSubscription);
+
   const setTags = useUserStore(state => state.setTags);
   const setAccounts = useUserStore(state => state.setAccounts);
   const setGroups = useUserStore(state => state.setGroups);
@@ -467,7 +467,7 @@ export const DataProvider: React.FC<{
   const groups = useUserStore(state => state.groups);
   const accounts = useUserStore(state => state.accounts);
   const setSupabaseUser = useUserStore(state => state.setSupabaseUser);
-  const subscription = useUserStore(state => state.subscription);
+
   const setTickDetails = useTickDetailsStore(state => state.setTickDetails);
   const tickDetails = useTickDetailsStore(state => state.tickDetails);
   const setEvents = useFinancialEventsStore(state => state.setEvents);
@@ -549,7 +549,7 @@ export const DataProvider: React.FC<{
         setTrades(trades as PrismaTrade[]);
         // RESET ALL OTHER STATES
         setUser(null);
-        setSubscription(null);
+
         setTags([]);
         setGroups([]);
         setMoods([]);
@@ -615,7 +615,7 @@ export const DataProvider: React.FC<{
       setUser(data.userData);
       await ensureUserInDatabase(user, locale)
         
-      setSubscription(data.subscription as PrismaSubscription | null);
+
       setTags(data.tags);
       setGroups(data.groups);
       setMoods(data.moodHistory);
@@ -840,7 +840,7 @@ export const DataProvider: React.FC<{
   const calendarData = useMemo(() => formatCalendarData(formattedTrades, accounts), [formattedTrades, accounts]);
 
   const isPlusUser = () => {
-    return Boolean(subscription?.status === 'active' && ['plus', 'pro'].includes(subscription?.plan?.split('_')[0].toLowerCase() || ''));
+    return true; // All users now have full access
   };
 
 

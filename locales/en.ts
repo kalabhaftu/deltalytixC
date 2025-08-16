@@ -1,24 +1,20 @@
 import shared from './en/shared'
 import landing from './en/landing'
-import pricing from './en/pricing'
 import auth from './en/auth'
 import dropzone from './en/dropzone'
 import mindset from './en/mindset'
 import propfirm from './en/propfirm'
 import chat from './en/chat'
 import terms from './en/terms'
-import business from './en/business'
 export default {
     ...shared,
     ...landing,
-    ...pricing,
     ...auth,
     ...dropzone,
     ...mindset,
     ...propfirm,
     ...chat,
     ...terms,
-    ...business,
     'footer.heading': 'Footer',
     'footer.description': 'Advanced analytics for modern traders.',
     'footer.product.title': 'Product',

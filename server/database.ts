@@ -4,7 +4,7 @@ import { revalidatePath, revalidateTag } from 'next/cache'
 import { Widget, Layouts } from '@/app/[locale]/dashboard/types/dashboard'
 import { createClient, getUserId } from './auth'
 import { startOfDay } from 'date-fns'
-import { getSubscriptionDetails } from './subscription'
+
 import { prisma } from '@/lib/prisma'
 import { unstable_cache } from 'next/cache'
 
@@ -160,8 +160,7 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
       throw new Error('User not found')
     }
 
-    const subscriptionDetails = await getSubscriptionDetails()
-    const isSubscribed = subscriptionDetails?.isActive || false
+    const isSubscribed = true // All users now have full access
 
 
     // Get cached trades
