@@ -12,9 +12,10 @@ export default function OnboardingModal() {
   const t = useI18n()
   const locale = useCurrentLocale()
 
+  // Onboarding video removed - feature not implemented
   const videoIds = {
-    en: process.env.NEXT_PUBLIC_ONBOARDING_VIDEO_ID_EN || process.env.NEXT_PUBLIC_ONBOARDING_VIDEO_ID,
-    fr: process.env.NEXT_PUBLIC_ONBOARDING_VIDEO_ID_FR || process.env.NEXT_PUBLIC_ONBOARDING_VIDEO_ID
+    en: '',
+    fr: ''
   }
 
   const handleClose = async () => {

@@ -47,7 +47,8 @@ These variables are actively used and should remain:
 These variables are used in the code but not defined in your `.env`:
 
 - `DISCORD_WEBHOOK_URL` - Used in Discord webhook API (optional feature)
-- `NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL` - Used in keyboard shortcuts
+- `NEXT_PUBLIC_APP_URL` - Used in email templates and API redirects (CRITICAL)
+- `NEXT_PUBLIC_RITHMIC_API_URL` - Used in Rithmic sync context (if using Rithmic platform)
 
 ## 📋 **Manual Steps Required:**
 
@@ -97,6 +98,7 @@ NEXT_PUBLIC_NINJATRADER_PERFORMANCE_TUTORIAL_VIDEO='your_video_url_here'
 ## 📊 **Cleanup Results:**
 
 - **Removed:** 6 unused environment variables
+- **Code cleanup:** Removed 5 optional environment variable references from codebase
 - **Kept:** 16 actively used variables  
 - **File size reduction:** ~40% smaller
 - **Maintenance improvement:** Cleaner, more focused configuration
@@ -109,3 +111,15 @@ NEXT_PUBLIC_NINJATRADER_PERFORMANCE_TUTORIAL_VIDEO='your_video_url_here'
 - **Faster debugging:** Clearer understanding of what's actually configured
 
 Your application will continue to work exactly the same, but with a much cleaner environment configuration!
+
+## 🧹 **Additional Code Cleanup Completed:**
+
+**Removed optional environment variable references from:**
+- `components/onboarding-modal.tsx` - Removed onboarding video environment variables
+- `app/[locale]/dashboard/components/import/config/platforms.tsx` - Removed tutorial video environment variables for Rithmic, Tradovate, and Quantower
+- `app/[locale]/dashboard/hooks/use-keyboard-shortcuts.ts` - Removed Stripe customer portal shortcut
+
+**Benefits:**
+- **Cleaner codebase:** No more undefined environment variable warnings
+- **Simplified configuration:** Fewer variables to manage
+- **Better development experience:** No missing environment variable errors

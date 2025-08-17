@@ -172,7 +172,7 @@ export const platforms: PlatformConfig[] = [
     name: 'import.type.rithmicSync.name',
     description: 'import.type.rithmicSync.description',
     category: 'Direct Account Sync',
-    videoUrl: process.env.NEXT_PUBLIC_RITHMIC_SYNC_TUTORIAL_VIDEO || '',
+    videoUrl: '',
     details: 'import.type.rithmicSync.details',
     logo: {
       path: '/logos/rithmic.png',
@@ -292,7 +292,7 @@ export const platforms: PlatformConfig[] = [
     name: 'import.type.tradovate.name',
     description: 'import.type.tradovate.description',
     category: 'Platform CSV Import',
-    videoUrl: process.env.NEXT_PUBLIC_TRADEOVATE_TUTORIAL_VIDEO || '',
+    videoUrl: '',
     details: '',
     logo: {
       path: '/logos/tradovate.png',
@@ -335,7 +335,7 @@ export const platforms: PlatformConfig[] = [
     name: 'import.type.quantower.name',
     description: 'import.type.quantower.description',
     category: 'Platform CSV Import',
-    videoUrl: process.env.NEXT_PUBLIC_QUANTOWER_TUTORIAL_VIDEO || '',
+    videoUrl: '',
     details: 'import.type.quantower.details',
     logo: {
       path: '/logos/quantower.png',
