@@ -132,11 +132,19 @@ export async function getUserData(): Promise<{
 
 export async function getDashboardLayout(userId: string): Promise<DashboardLayout | null> {
   console.log('getDashboardLayout')
-  return await prisma.dashboardLayout.findUnique({
-    where: {
-      userId: userId
+  try {
+    return await prisma.dashboardLayout.findUnique({
+      where: {
+        userId: userId
+      }
+    })
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('does not exist')) {
+      console.log('[getDashboardLayout] DashboardLayout table does not exist yet, returning null')
+      return null
     }
-  })
+    throw error
+  }
 }
 
 export async function updateIsFirstConnectionAction(isFirstConnection: boolean) {

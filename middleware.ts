@@ -59,7 +59,7 @@ async function updateSession(request: NextRequest) {
   try {
     // Add timeout to prevent hanging requests
     const authPromise = supabase.auth.getUser()
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Auth timeout")), 5000))
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Auth timeout")), 2000))
 
     const result = (await Promise.race([authPromise, timeoutPromise])) as any
     user = result.data?.user || null

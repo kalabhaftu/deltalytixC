@@ -80,15 +80,17 @@ export default function Features() {
                       <Image
                         src={feature.image.light}
                         alt={`${feature.title} visualization`}
-                        layout="fill"
-                        objectFit="contain"
+                        fill
+                        style={{ objectFit: 'contain' }}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="rounded-md dark:hidden"
                       />
                       <Image
                         src={feature.image.dark}
                         alt={`${feature.title} visualization`}
-                        layout="fill"
-                        objectFit="contain"
+                        fill
+                        style={{ objectFit: 'contain' }}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="rounded-md hidden dark:block"
                       />
                     </>

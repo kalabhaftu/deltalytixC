@@ -175,7 +175,16 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
       query.where.entryDate = { gte: oneWeekAgo.toISOString() }
     }
-    const count = await prisma.trade.count(query)
+    let count;
+    try {
+      count = await prisma.trade.count(query)
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('does not exist')) {
+        console.log('[getTradesAction] Trade table does not exist yet, returning empty array')
+        return []
+      }
+      throw error
+    }
     // Split pages by chunks of 1000
     const chunkSize = 1000
     const totalPages = Math.ceil(count / chunkSize)

@@ -1,6 +1,6 @@
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  url       = env("DIRECT_URL")
   directUrl = env("DIRECT_URL")
   schemas   = ["public"]
 }
@@ -9,7 +9,7 @@ generator client {
 }
 
 model Trade {
-  id             String   @id @unique @default(uuid())
+  id             String   @id @default(uuid())
   accountNumber  String
   quantity       Int
   entryId        String? @default("")
@@ -38,7 +38,7 @@ model Trade {
 }
 
 model TickDetails{
-  id String @id @unique @default(uuid())
+  id String @id @default(uuid())
   ticker String
   tickValue Float
   tickSize Float
@@ -105,7 +105,7 @@ model Group {
 }
 
 model Account {
-  id                String    @id @unique @default(uuid())
+  id                String    @id @default(uuid())
   number            String
   propfirm          String    @default("")
   groupId           String?
@@ -151,6 +151,7 @@ model Account {
   @@unique([number, userId])
   @@index([number])
   @@index([groupId])
+  @@index([userId])
   @@schema("public")
 }
 
@@ -165,13 +166,14 @@ model Payout {
   status        String    @default("PENDING")
   
   @@index([accountNumber])
+  @@index([accountId])
   @@schema("public")
 }
 
 model DashboardLayout {
   id        String   @id @default(uuid())
   userId    String   @unique
-  user      User     @relation(fields: [userId], references: [auth_user_id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   desktop   Json     @default("[]")
   mobile    Json     @default("[]")
   createdAt DateTime @default(now())
@@ -259,12 +261,11 @@ model Tag {
 }
 
 model Newsletter {
-  email     String   @unique @id
+  email     String   @id
   firstName String?
   lastName  String?
   isActive  Boolean  @default(true)
 
-  @@index([email])
   @@schema("public")
 }
 
