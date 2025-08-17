@@ -18,19 +18,10 @@ export default function Partners() {
                     </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-center justify-items-center w-full mt-8">
-                    <a className="relative w-full h-[60px] flex items-center justify-center" href="https://account.ninjatrader.com/register?introducingPartner=deltalytix" target="_blank" rel="noopener noreferrer">
-                        <Image
-                            src="/logos/ninjatrader-ob.svg"
-                            alt="NinjaTrader"
-                            fill
-                            className="object-contain filter dark:brightness-0 dark:invert"
-                            priority
-                        />
-                    </a>
                     <a className="relative w-full h-[60px] flex items-center justify-center">
                         <Image
-                            src={effectiveTheme !== 'dark' ? '/logos/etp-b.png' : '/logos/etp-w.png'}
-                            alt="Trade Copier by ETP"
+                            src="/logos/tradezella.png"
+                            alt="TradeZella"
                             fill
                             className="object-contain"
                             priority
@@ -38,8 +29,17 @@ export default function Partners() {
                     </a>
                     <a className="relative w-full h-[60px] flex items-center justify-center">
                         <Image
-                            src={effectiveTheme === 'dark' ? '/logos/rithmic-logo-white.png' : '/logos/rithmic-logo-black.png'}
-                            alt="Rithmic"
+                            src="/logos/topstep.png"
+                            alt="Topstep"
+                            fill
+                            className="object-contain"
+                            priority
+                        />
+                    </a>
+                    <a className="relative w-full h-[60px] flex items-center justify-center">
+                        <Image
+                            src="/logos/ibkr.png"
+                            alt="PDF Import"
                             fill
                             className="object-contain"
                             priority

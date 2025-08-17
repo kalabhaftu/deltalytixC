@@ -19,6 +19,7 @@ import { WIDGET_REGISTRY, getWidgetComponent } from '../config/widget-registry'
 import { useAutoScroll } from '../hooks/use-auto-scroll'
 import { cn } from '@/lib/utils'
 import { Widget, WidgetType, WidgetSize, LayoutItem } from '../types/dashboard'
+import { logger } from '@/lib/logger'
 import { Toolbar } from './toolbar'
 import { useUserStore } from '../../../../store/user-store'
 
@@ -452,7 +453,7 @@ export default function WidgetCanvas() {
         setIsUserAction(false);
       }
     } catch (error) {
-      console.error('Error updating layout:', error);
+      logger.error('Error updating layout', error, 'WidgetCanvas');
       // Revert to previous layout on error
       setLayouts(layouts);
     }

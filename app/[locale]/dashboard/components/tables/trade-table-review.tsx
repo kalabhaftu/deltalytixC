@@ -248,8 +248,7 @@ export function TradeTableReview() {
   const timezone = useUserStore(state => state.timezone)
   const tickDetails = useTickDetailsStore(state => state.tickDetails)
 
-  // Debug: Log tick details
-  console.log('Available tick details:', tickDetails)
+  // Tick details are available for calculations
 
   // Get table configuration from store
   const {

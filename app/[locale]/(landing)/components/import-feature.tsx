@@ -6,6 +6,7 @@ import { Logo } from "@/components/logo";
 
 import { cn } from "@/lib/utils";
 import { AnimatedBeam } from "@/components/magicui/animated-beam";
+import { Sparkles } from "lucide-react";
 
 const Circle = forwardRef<
   HTMLDivElement,
@@ -44,7 +45,7 @@ export function ImportFeature() {
       <div className="flex size-full max-h-[200px] max-w-lg flex-col items-stretch justify-between gap-10">
         <div className="flex flex-row items-center justify-between">
           <Circle ref={div1Ref}>
-            <Image src="/logos/tradovate.png" alt="Tradovate" width={24} height={24} />
+            <Image src="/logos/tradezella.png" alt="TradeZella" width={24} height={24} />
           </Circle>
           <Circle ref={div5Ref}>
             <Image src="/logos/topstep.png" alt="Topstep" width={24} height={24} />
@@ -52,21 +53,21 @@ export function ImportFeature() {
         </div>
         <div className="flex flex-row items-center justify-between">
           <Circle ref={div2Ref}>
-            <Image src="/logos/ninjatrader.png" alt="NinjaTrader" width={24} height={24} />
+            <Image src="/logos/ibkr.png" alt="PDF Import" width={24} height={24} />
           </Circle>
           <Circle ref={div4Ref} className="size-16">
             <Logo className="size-8" />
           </Circle>
           <Circle ref={div6Ref}>
-            <Image src="/logos/quantower.png" alt="Quantower" width={24} height={24} />
+            <Sparkles className="w-6 h-6" />
           </Circle>
         </div>
         <div className="flex flex-row items-center justify-between">
           <Circle ref={div3Ref}>
-            <Image src="/logos/rithmic.png" alt="Rithmic" width={24} height={24} />
+            <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center text-white text-xs font-bold">CSV</div>
           </Circle>
           <Circle ref={div7Ref}>
-            <Image src="/logos/etp.png" alt="Thor" width={24} height={24} />
+            <div className="w-6 h-6 bg-red-500 rounded flex items-center justify-center text-white text-xs font-bold">PDF</div>
           </Circle>
         </div>
       </div>

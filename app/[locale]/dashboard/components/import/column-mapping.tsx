@@ -174,7 +174,7 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
                 <TableCell>
                   <Select 
                     onValueChange={(value) => handleMapping(header, value)} 
-                    value={Object.entries(object || {}).find(([_, value]) => value === header)?.[0]}
+                    value={Object.entries(object || {}).find(([_, value]) => value === header)?.[0] || ""}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select one" />

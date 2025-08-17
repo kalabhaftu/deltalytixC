@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { AuthProvider } from "@/context/auth-provider";
 import { ConsentBanner } from "@/components/consent-banner";
+import { ConsoleFilterWrapper } from "@/components/console-filter-wrapper";
 import Script from "next/script"
 
 const inter = Inter({ subsets: ["latin"] });
@@ -228,12 +229,14 @@ export default async function RootLayout({
 
       </head>
       <body className={inter.className + " min-h-screen overflow-x-hidden w-screen"}>
-        <AuthProvider>
-          <SpeedInsights />
-          <Analytics />
-          <Toaster />
-          {children}
-        </AuthProvider>
+        <ConsoleFilterWrapper>
+          <AuthProvider>
+            <SpeedInsights />
+            <Analytics />
+            <Toaster />
+            {children}
+          </AuthProvider>
+        </ConsoleFilterWrapper>
       </body>
     </html>
   );

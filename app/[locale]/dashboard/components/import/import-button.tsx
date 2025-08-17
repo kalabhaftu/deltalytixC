@@ -24,7 +24,7 @@ import { useTradesStore } from '@/store/trades-store'
 import { usePdfProcessingStore } from '@/store/pdf-processing-store'
 import PdfUpload from './ibkr-pdf/pdf-upload'
 import PdfProcessing from './ibkr-pdf/pdf-processing'
-import AtasFileUpload from './atas/atas-file-upload'
+
 import { generateTradeHash } from '@/lib/utils'
 
 type ColumnConfig = {
@@ -80,13 +80,16 @@ export default function ImportButton() {
 
   const { toast } = useToast()
   const user = useUserStore(state => state.user)
+  const supabaseUser = useUserStore(state => state.supabaseUser)
   const trades = useTradesStore(state => state.trades)
   const { refreshTrades, updateTrades } = useData()
   const t = useI18n()
 
 
   const handleSave = async () => {
-    if (!user) {
+    // Use either the user from our database or the Supabase user as fallback
+    const currentUser = user || supabaseUser
+    if (!currentUser?.id) {
       toast({
         title: t('import.error.auth'),
         description: t('import.error.authDescription'),
@@ -98,7 +101,6 @@ export default function ImportButton() {
     setIsSaving(true)
     try {
       let newTrades: Trade[] = []
-          console.log('[ImportButton] Processing trades:', processedTrades)
           newTrades = processedTrades.map(trade => {
             // Clean up the trade object to remove undefined values
             const cleanTrade = Object.fromEntries(
@@ -108,8 +110,8 @@ export default function ImportButton() {
             return {
               ...cleanTrade,
               accountNumber: cleanTrade.accountNumber || accountNumber || newAccountNumber,
-              userId: user.id,
-              id: generateTradeHash({ ...cleanTrade, userId: user.id }),
+              userId: currentUser.id,
+              id: generateTradeHash({ ...cleanTrade, userId: currentUser.id }),
               // Ensure required fields have default values
               instrument: cleanTrade.instrument || '',
               entryPrice: cleanTrade.entryPrice || '',
@@ -136,13 +138,6 @@ export default function ImportButton() {
           // Filter out empty trades
           newTrades = newTrades.filter(trade => {
             // Check if all required fields are present and not empty
-            !trade.accountNumber && console.log('trade.accountNumber missing', trade)
-            !trade.instrument && console.log('trade.instrument missing', trade)
-            trade.quantity === 0 && console.log('trade.quantity is 0', trade)
-            !trade.entryPrice && console.log('trade.entryPrice missing', trade)
-            !trade.closePrice && console.log('trade.closePrice missing', trade)
-            !trade.entryDate && console.log('trade.entryDate missing', trade)
-            !trade.closeDate && console.log('trade.closeDate missing', trade)
             return trade.accountNumber &&
               trade.instrument &&
               trade.quantity !== 0 &&
@@ -150,7 +145,7 @@ export default function ImportButton() {
               (trade.entryDate || trade.closeDate);
           });
 
-      console.log('[ImportButton] Saving trades:', newTrades)
+      // Remove debug logging - trades are being saved successfully
       const result = await saveTradesAction(newTrades)
       if(result.error){
         if (result.error === "DUPLICATE_TRADES") {
@@ -174,8 +169,12 @@ export default function ImportButton() {
         }
         return
       }
-      // Update the trades
+      // Update the trades and wait for completion
       await refreshTrades()
+      
+      // Force a small delay to ensure state updates propagate
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
       setIsOpen(false)
       toast({
         title: t('import.success'),
@@ -292,18 +291,7 @@ export default function ImportButton() {
       )
     }
 
-    if (Component === AtasFileUpload) {
-      return (
-        <Component
-          importType={importType}
-          setRawCsvData={setRawCsvData}
-          setCsvData={setCsvData}
-          setHeaders={setHeaders}
-          setStep={setStep}
-          setError={setError}
-        />
-      )
-    }
+
 
     if (Component === HeaderSelection) {
       return (
@@ -402,10 +390,7 @@ export default function ImportButton() {
     // PDF upload step
     if (currentStep.component === PdfUpload && text.length === 0) return true
     
-    // Account selection for Tradovate
-    if (currentStep.component === AccountSelection && importType === 'tradovate' && !accountNumber && !newAccountNumber) return true
-    
-    // Account selection for other platforms
+    // Account selection for platforms
     if (currentStep.component === AccountSelection && !accountNumber && !newAccountNumber) return true
 
     return false

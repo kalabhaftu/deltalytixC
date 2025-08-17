@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createI18nMiddleware } from "next-international/middleware"
 import { createServerClient } from "@supabase/ssr"
 import { geolocation } from "@vercel/functions"
+import { logger } from "@/lib/logger"
 
 // Define protected and public routes
 const protectedRoutes = ["/dashboard", "/profile", "/settings"]
@@ -26,7 +27,7 @@ async function updateSession(request: NextRequest) {
 
   // Check if Supabase environment variables are defined
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    console.warn("Supabase environment variables are not defined. Skipping authentication.")
+    logger.warn("Supabase environment variables are not defined. Skipping authentication.", undefined, 'Middleware')
     return { response, user: null, error: "Supabase not configured" }
   }
 
@@ -53,7 +54,7 @@ async function updateSession(request: NextRequest) {
     },
   )
 
-  let user: any = null
+  let user: { id: string; email?: string } | null = null
   let error: unknown = null
 
   try {
@@ -61,11 +62,11 @@ async function updateSession(request: NextRequest) {
     const authPromise = supabase.auth.getUser()
     const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Auth timeout")), 2000))
 
-    const result = (await Promise.race([authPromise, timeoutPromise])) as any
+    const result = await Promise.race([authPromise, timeoutPromise]) as { data?: { user?: { id: string; email?: string } | null }; error?: unknown }
     user = result.data?.user || null
     error = result.error
   } catch (authError) {
-    console.warn("Auth check failed:", authError)
+    logger.authError("Auth check failed", authError)
     // Don't throw - gracefully handle auth failures
     user = null
     error = authError
@@ -79,7 +80,7 @@ async function updateSession(request: NextRequest) {
   } else {
     response.headers.set("x-auth-status", "unauthenticated")
     if (error) {
-      response.headers.set("x-auth-error", (error as any).message || "Unknown error")
+      response.headers.set("x-auth-error", error instanceof Error ? error.message : "Unknown error")
     }
   }
 
@@ -123,7 +124,7 @@ export default async function middleware(req: NextRequest) {
       expires: cookie.expires,
       httpOnly: cookie.httpOnly,
       secure: cookie.secure,
-      sameSite: cookie.sameSite as any,
+      sameSite: cookie.sameSite as 'strict' | 'lax' | 'none' | undefined,
     })
   })
 

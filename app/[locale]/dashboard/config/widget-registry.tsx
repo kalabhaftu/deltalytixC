@@ -28,10 +28,12 @@ import { AccountsOverview } from '../components/accounts/accounts-overview'
 import { TagWidget } from '../components/filters/tag-widget'
 import ProfitFactorCard from '../components/statistics/profit-factor-card'
 import DailyTickTargetChart from '../components/charts/daily-tick-target'
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis } from 'recharts'
 import { MindsetWidget } from '../components/mindset/mindset-widget'
 import ChatWidget from '../components/chat/chat'
 import { useI18n } from '@/locales/client'
+import { WidgetErrorBoundary } from '@/components/error-boundary'
+import { OptimizedChartContainer } from '@/components/ui/optimized-chart'
 // import MarketChart from '../components/market/market-chart'
 
 export interface WidgetConfig {
@@ -111,25 +113,27 @@ function createPropfirmPreview() {
                 <div className="h-4 w-16 bg-muted-foreground/20 rounded" />
               </div>
               <div className="h-20 w-full">
-                <LineChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }} width={200} height={80}>
-                  <XAxis dataKey="name" hide />
-                  <YAxis hide />
-                  <Line
-                    type="monotone"
-                    dataKey="equity"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="drawdown"
-                    stroke="hsl(var(--destructive))"
-                    strokeWidth={2}
-                    strokeDasharray="4 2"
-                    dot={false}
-                  />
-                </LineChart>
+                <OptimizedChartContainer width={200} height={80}>
+                  <LineChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                    <XAxis dataKey="name" hide />
+                    <YAxis hide />
+                    <Line
+                      type="monotone"
+                      dataKey="equity"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="drawdown"
+                      stroke="hsl(var(--destructive))"
+                      strokeWidth={2}
+                      strokeDasharray="4 2"
+                      dot={false}
+                    />
+                  </LineChart>
+                </OptimizedChartContainer>
               </div>
             </div>
           ))}
@@ -593,7 +597,11 @@ export function requiresFullWidth(type: WidgetType): boolean {
 }
 
 export function getWidgetComponent(type: WidgetType, size: WidgetSize): React.ReactElement {
-  return WIDGET_REGISTRY[type].getComponent({ size })
+  return (
+    <WidgetErrorBoundary widgetType={type}>
+      {WIDGET_REGISTRY[type].getComponent({ size })}
+    </WidgetErrorBoundary>
+  )
 }
 
 export function getWidgetPreview(type: WidgetType): React.ReactElement {

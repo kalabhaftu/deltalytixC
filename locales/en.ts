@@ -57,8 +57,8 @@ export default {
     'updates.milestone6.description': 'We\'ve implemented a dark mode option, allowing users to comfortably use Deltalytix in low-light environments and reduce eye strain during extended analysis sessions.',
     'updates.milestone7.title': 'Mobile Optimization and Data Management',
     'updates.milestone7.description': 'We\'re actively working on improving the mobile view for a seamless experience across devices. Additionally, we\'re enhancing imported data management with features like sorting and the ability to move trades to separate accounts. To assist users, we\'re also creating comprehensive import tutorials.',
-    'updates.milestone8.title': 'Automatic Import from Rithmic',
-    'updates.milestone8.description': 'We\'re collaborating closely with Rithmic to implement automatic data import, streamlining the process of getting your trading data into Deltalytix.',
+
+
     'updates.milestone9.title': 'Import from Interactive Broker and AMP',
     'updates.milestone9.description': 'We\'re expanding our import capabilities to include support for Interactive Broker and AMP, giving you more flexibility in how you bring your trading data into Deltalytix.',
     'updates.milestone10.title': 'Reflecting with yourself',
@@ -151,15 +151,15 @@ export default {
     'import.title.connect': 'Connect',
     'import.title.syncSettings': 'Synchronisation Settings',
     'import.title.selectHeader': 'Select Header Row',
-    'import.title.processOrders': 'Process Rithmic Orders',
+
     'import.title.mapColumns': 'Map Columns',
     'import.title.selectAccount': 'Select or Add Account',
     'import.description.selectType': 'Choose how you want to import your trades',
     'import.description.upload': 'Upload your CSV file',
-    'import.description.connect': 'Connect your Rithmic account',
+
     'import.description.syncSettings': 'Configure your sync settings',
     'import.description.selectHeader': 'Select the row containing your column headers',
-    'import.description.processOrders': 'Process your Rithmic orders',
+
     'import.description.mapColumns': 'Map your CSV columns to our fields',
     'import.description.selectAccount': 'Select an existing account or create a new one',
     'import.step.importType': 'Import Type',
@@ -187,7 +187,7 @@ export default {
     'import.successDescription': '{numberOfTradesAdded} trades have been imported.',
     'import.commissionPrompt': 'Please enter commission rates for the following instruments:',
     'import.applyCommissions': 'Apply Commissions',
-    'import.atas.processedTrades': 'Processed {count} trades from ATAS file',
+
     'import.preview.note': 'Review the trades below. Click "Save" to import them to your account.',
 
     'import.table.instrument': 'Instrument',
@@ -204,26 +204,13 @@ export default {
     'import.type.category.directSync': 'Direct Account Sync',
     'import.type.category.intelligentImport': 'Intelligent Import',
     'import.type.category.platformCsv': 'Platform CSV Import',
-    'import.type.rithmicSync.name': 'Rithmic',
-    'import.type.rithmicSync.description': 'Direct account syncing',
-    'import.type.rithmicSync.details': 'Direct sync with your Rithmic account. Requires authentication.',
+
     'import.type.csvAi.name': 'CSV with AI',
     'import.type.csvAi.description': 'CSV file with AI mapping',
-    'import.type.rithmicPerf.name': 'Rithmic Performance',
-    'import.type.rithmicPerf.description': 'Import from Rithmic',
-    'import.type.rithmicPerf.details': 'Remember to expand every row to see the full details during export.',
-    'import.type.rithmicOrders.name': 'Rithmic Orders',
-    'import.type.rithmicOrders.description': 'Import from Rithmic',
-    'import.type.rithmicOrders.details': 'Following fields are mandatory: Account, Buy/Sell, Avg Fill Price, Symbol, Update time, Qty filled, Commission fill rate',
-    'import.type.ninjaTrader.name': 'NinjaTrader Performance',
-    'import.type.ninjaTrader.description': 'Import from NinjaTrader',
+
     'import.type.tradezella.name': 'TradeZella',
     'import.type.tradezella.description': 'Import from TradeZella',
-    'import.type.tradovate.name': 'Tradovate',
-    'import.type.tradovate.description': 'Import from Tradovate',
-    'import.type.quantower.name': 'Quantower',
-    'import.type.quantower.description': 'Import from Quantower',
-    'import.type.quantower.details': 'Select columns to import: Account, Date/Time, Symbol, Description, Symbol type, Expiration date, Strike price, Side, Order type, Quantity, Price, Gross P/L, Fee, Net P/L, Trade value, Trade ID, Order ID, Position ID, Connection name, Comment, Exchange',
+
     'import.type.tutorial.title': 'Tutorial Video',
     'import.type.tutorial.description': 'Watch this tutorial video to learn how to import data from {platform}.',
     'import.type.tutorial.notAvailable': 'Tutorial video for {platform} is not available.',
@@ -233,12 +220,8 @@ export default {
     'import.type.badge.maintenance': 'MAINTENANCE',
     'import.type.badge.comingSoon': 'COMING SOON',
     'import.type.comingSoon': 'This feature is coming soon!',
-    'import.type.plusFeature': 'Rithmic sync is a Plus feature. Please upgrade your account to use this feature.',
-    'import.type.rithmicLogin': 'Rithmic Account Login',
-    'import.type.copyright.rithmic': 'The R | API+™ software is Copyright © 2024 by Rithmic, LLC. All rights reserved.',
-    'import.type.copyright.protocol': 'The R | Protocol API™ software is Copyright © 2024 by Rithmic, LLC. All rights reserved.',
-    'import.type.copyright.platform': 'Trading Platform by Rithmic™ is a trademark of Rithmic, LLC. All rights reserved.',
-    'import.type.copyright.omne': 'The OMNE™ software is Copyright © 2024 by Omnesys, LLC and Omnesys Technologies, Inc. All rights reserved.',
+
+
     'import.type.topstep.name': 'Topstep',
     'import.type.topstep.description': 'Import trades from Topstep funded trader account exports',
     'import.type.topstep.details': 'Make sure to export your trades in CSV format from your Topstep funded trader account dashboard.',
@@ -343,7 +326,7 @@ export default {
     'chat.aiThinking': 'AI is thinking...',
     'chat.writeMessage': 'Write a message...',
     'chat.noTradesAvailable': 'No trades available',
-    'import.type.rithmicWeekendWarning': 'Rithmic services are not available during weekends',
+
     'import.account.selectAccount': 'Select Account',
     'import.account.selectAccountDescription': 'Choose an existing account or add a new one',
     'import.account.tradingAccount': 'Trading Account',
@@ -1101,29 +1084,8 @@ export default {
     'calendar.charts.saving': 'Saving...',
     'calendar.charts.addComment': 'Add Comment',
     'calendar.charts.saveComment': 'Save Comment',
-    'etp': {
-        'title': 'ETP API Token',
-        'description': 'Generate and manage your ETP API token. This token is required to sync your trades from ETP.',
-        'noToken': 'No token generated',
-        'revealToken': 'Reveal API Token',
-        'revealWarning': 'Are you sure you want to reveal your API token? Make sure no one else can see your screen.',
-        'cancel': 'Cancel',
-        'reveal': 'Reveal Token',
-        'copied': 'Token copied to clipboard',
-        'generated': 'Token generated successfully',
-        'error': {
-            'generation': 'Failed to generate token',
-        },
-        'invalidation': 'Note: Generating a new token will invalidate any existing token.',
-        'tutorial': {
-            'title': 'How to Use Your ETP Token',
-            'description': 'Watch this tutorial to learn how to set up and use your ETP token for trade synchronization.',
-            'notAvailable': 'Tutorial video is not yet available.'
-        }
-    },
-    'import.type.etpSync.name': 'ETP',
-    'import.type.etpSync.description': 'Direct account synchronization',
-    'import.type.etpSync.details': 'Direct sync with your ETP account. Requires API token authentication.',
+
+
     'community': {
         'title': 'Community',
         'description': 'Share your ideas, report bugs, and discuss features with the community.',
@@ -1285,32 +1247,9 @@ export default {
     'import.steps.processPdfFileDescription': 'Analyzing and extracting trade data from your PDF',
     'import.title': 'Import Trades',
     'import.description': 'Import your trades from various sources',
-    'thor': {
-        'title': 'Thor API Token',
-        'description': 'Generate and manage your Thor API token. This token is required to sync your trades from Thor.',
-        'noToken': 'No token generated',
-        'revealToken': 'Reveal API Token',
-        'revealWarning': 'Are you sure you want to reveal your API token? Make sure no one else can see your screen.',
-        'cancel': 'Cancel',
-        'reveal': 'Reveal Token',
-        'copied': 'Token copied to clipboard',
-        'generated': 'Token generated successfully',
-        'error': {
-            'generation': 'Failed to generate token',
-        },
-        'invalidation': 'Note: Generating a new token will invalidate any existing token.',
-        'tutorial': {
-            'title': 'How to Use Your Thor Token',
-            'description': 'Watch this tutorial to learn how to set up and use your Thor token for trade synchronization.',
-            'notAvailable': 'Tutorial video is not yet available.'
-        }
-    },
-    'import.type.thorSync.name': 'Thor',
-    'import.type.thorSync.description': 'Direct account synchronization with Thor',
-    'import.type.thorSync.details': 'Direct sync with your Thor account. Requires API token authentication.',
-    'import.type.atas.name': 'ATAS',
-    'import.type.atas.description': 'Import from ATAS Excel files',
-    'import.type.atas.details': 'Import trades from ATAS Excel files. Make sure your file has a "Journal" sheet with the required columns.',
+
+
+
     'calendar.impactFilter.title': 'Impact Filter',
     'calendar.impactFilter.low': 'Low',
     'calendar.impactFilter.medium': 'Medium',

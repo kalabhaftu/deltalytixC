@@ -7,6 +7,7 @@ import { startOfDay } from 'date-fns'
 
 import { prisma } from '@/lib/prisma'
 import { unstable_cache } from 'next/cache'
+import { logger } from '@/lib/logger'
 
 type TradeError = 
   | 'DUPLICATE_TRADES'
@@ -20,20 +21,35 @@ interface TradeResponse {
   details?: unknown
 }
 
+interface TradeQueryWhere {
+  userId: string
+  entryDate?: { gte: string }
+}
+
+interface TradeCountQuery {
+  where: TradeQueryWhere
+}
+
+interface TradeQuery extends TradeCountQuery {
+  orderBy: { entryDate: 'desc' }
+  skip: number
+  take: number
+}
+
 export async function revalidateCache(tags: string[]) {
-  console.log(`[revalidateCache] Starting cache invalidation for tags:`, tags)
+  logger.debug('Starting cache invalidation for tags', tags, 'Cache')
   
   tags.forEach(tag => {
     try {
-      console.log(`[revalidateCache] Revalidating tag: ${tag}`)
+      logger.debug(`Revalidating tag: ${tag}`, undefined, 'Cache')
       revalidateTag(tag)
-      console.log(`[revalidateCache] Successfully revalidated tag: ${tag}`)
+      logger.debug(`Successfully revalidated tag: ${tag}`, undefined, 'Cache')
     } catch (error) {
-      console.error(`[revalidateCache] Error revalidating tag ${tag}:`, error)
+      logger.error(`Error revalidating tag ${tag}`, error, 'Cache')
     }
   })
   
-  console.log(`[revalidateCache] Completed cache invalidation for ${tags.length} tags`)
+  logger.debug(`Completed cache invalidation for ${tags.length} tags`, undefined, 'Cache')
 }
 
 export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
@@ -86,7 +102,7 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
       
       // Log potential duplicates if no trades were added
       if (result.count === 0) {
-        console.log('[saveTrades] No trades added. Checking for duplicates:', { attempted: data.length })
+        logger.debug('No trades added. Checking for duplicates', { attempted: data.length }, 'SaveTrades')
         const tradeIds = data.map(trade => trade.id)
         const existingTrades = await prisma.trade.findMany({
           where: { id: { in: tradeIds } },
@@ -113,7 +129,7 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         numberOfTradesAdded: result.count
       }
     } catch(error) {
-      console.error('[saveTrades] Database error:', error)
+              logger.dbError('saveTrades', error)
       return { 
         error: 'DATABASE_ERROR', 
         numberOfTradesAdded: 0,
@@ -128,7 +144,7 @@ function getCachedTrades(userId: string, isSubscribed: boolean, page: number, ch
     async () => {
       console.log(`[Cache MISS] Fetching trades for user ${userId}, subscribed: ${isSubscribed}`)
       
-      const query: any = {
+      const query: TradeQuery = {
         where: { userId },
         orderBy: { entryDate: 'desc' },
         skip: (page - 1) * chunkSize,
@@ -165,7 +181,7 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
 
     // Get cached trades
     // Per page
-    const query: any = {
+    const query: TradeCountQuery = {
       where: { 
         userId: userId || user?.id,
        }
@@ -285,7 +301,7 @@ export async function loadDashboardLayoutAction(): Promise<Layouts | null> {
     }
 
     // Safely parse JSON with fallback to empty arrays
-    const parseJsonSafely = (jsonString: any): Widget[] => {
+    const parseJsonSafely = (jsonString: string | null): Widget[] => {
       try {
         return typeof jsonString === 'string' ? JSON.parse(jsonString) : []
       } catch (error) {

@@ -568,7 +568,7 @@ export const DataProvider: React.FC<{
         return;
       }
       if(adminView) {
-        console.error('Admin view but reaching this code', adminView)
+        // Admin view logic handled above
       }
 
       // Step 1: Get Supabase user
@@ -640,7 +640,7 @@ export const DataProvider: React.FC<{
     } finally {
       setIsLoading(false);
     }
-  }, [isSharedView, params?.slug, timezone, supabaseUser, isLoading, setIsLoading]);
+  }, [isSharedView, params?.slug, timezone, supabaseUser, isLoading, setIsLoading, user]);
 
   // Load data on mount and when isSharedView changes
   useEffect(() => {
@@ -674,7 +674,6 @@ export const DataProvider: React.FC<{
       // In production, also try to force a cache miss by adding a timestamp
       // This ensures fresh data even if revalidateTag doesn't work properly
       if (process.env.NODE_ENV === 'production') {
-        console.log('[refreshTrades] Production environment - forcing cache miss')
         // Force refetch by clearing any client-side caches if needed
         // The server-side cache should be invalidated by revalidateTag
       }
@@ -682,7 +681,7 @@ export const DataProvider: React.FC<{
       // Reload data
       await loadData()
     } catch (error) {
-      console.error('Error refreshing trades:', error)
+      // Silently handle errors to avoid console spam
       setIsLoading(false)
     }
   }, [user?.id, loadData, setIsLoading, locale])

@@ -7,6 +7,7 @@ import { AnalysisOverview } from './components/analysis/analysis-overview'
 import WidgetCanvas from './components/widget-canvas'
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from "@/locales/client"
+import { DashboardErrorBoundary, ErrorBoundaryWrapper } from '@/components/error-boundary'
 
 export default function Home() {
   const t = useI18n()
@@ -91,8 +92,9 @@ export default function Home() {
   }, [])
 
   return (
-    <main ref={mainRef} className="flex w-full min-h-screen overflow-x-hidden" style={{ paddingTop: `calc(var(--navbar-height, 72px) + var(--tabs-height, 48px))` }}>
-      <div className="flex flex-1 flex-col w-full px-4">
+    <DashboardErrorBoundary>
+      <main ref={mainRef} className="flex w-full min-h-screen overflow-x-hidden" style={{ paddingTop: `calc(var(--navbar-height, 72px) + var(--tabs-height, 48px))` }}>
+        <div className="flex flex-1 flex-col w-full px-4">
         <Tabs defaultValue="widgets" className="w-full h-full flex flex-col">
           {/* Fixed TabsList positioned under navbar */}
           <div 
@@ -116,28 +118,37 @@ export default function Home() {
             value="table" 
             className="flex-1 -mt-16"
           >
-            <TradeTableReview />
+            <ErrorBoundaryWrapper context="TradeTable">
+              <TradeTableReview />
+            </ErrorBoundaryWrapper>
           </TabsContent>
           
           <TabsContent
             value="accounts"
             className="flex-1 -mt-16"
           >
-            <AccountsOverview size="large" />
+            <ErrorBoundaryWrapper context="Accounts">
+              <AccountsOverview size="large" />
+            </ErrorBoundaryWrapper>
           </TabsContent>
           
           <TabsContent
             value="analysis"
             className="flex-1 -mt-16"
           >
-            <AnalysisOverview />
+            <ErrorBoundaryWrapper context="Analysis">
+              <AnalysisOverview />
+            </ErrorBoundaryWrapper>
           </TabsContent>
           
           <TabsContent value="widgets" className="flex-1 -mt-20">
-            <WidgetCanvas />
+            <ErrorBoundaryWrapper context="Widgets">
+              <WidgetCanvas />
+            </ErrorBoundaryWrapper>
           </TabsContent>
         </Tabs>
-      </div>
-    </main>
+        </div>
+      </main>
+    </DashboardErrorBoundary>
   )
 }

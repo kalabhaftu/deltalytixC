@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useData } from '@/context/data-provider'
 import { useI18n, useCurrentLocale } from '@/locales/client'
 import { useUserStore } from '@/store/user-store'
+import { logger } from '@/lib/logger'
 
 export default function OnboardingModal() {
   const { isFirstConnection, changeIsFirstConnection } = useData()
@@ -22,7 +23,7 @@ export default function OnboardingModal() {
     try {
       changeIsFirstConnection(false)
     } catch (error) {
-      console.error('Failed to update onboarding status:', error)
+      logger.error('Failed to update onboarding status', error, 'Onboarding')
     }
   }
 
