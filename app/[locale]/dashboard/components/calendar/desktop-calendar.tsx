@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, getDay, endOfWeek, addDays, isSameDay, getYear } from "date-fns"
 import { formatInTimeZone } from 'date-fns-tz'
-import { fr, enUS } from 'date-fns/locale'
+import { enUS } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Newspaper, Calendar, CalendarDays } from "lucide-react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -207,7 +207,7 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
   const locale = useCurrentLocale()
   const timezone = useUserStore(state => state.timezone)
   const userFinancialEvents = useFinancialEventsStore(state => state.events)
-  const dateLocale = locale === 'fr' ? fr : enUS
+  const dateLocale = enUS
   const [currentDate, setCurrentDate] = useState(new Date())
   const [isLoading, setIsLoading] = useState(false)
   const [monthEvents, setMonthEvents] = useState<FinancialEvent[]>([])

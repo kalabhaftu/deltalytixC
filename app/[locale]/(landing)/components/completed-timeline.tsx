@@ -8,7 +8,7 @@ import { TranslationKeys } from "@/app/[locale]/(landing)/types/translations"
 import Image from 'next/image'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { fr, enUS } from 'date-fns/locale'
+import { enUS } from 'date-fns/locale'
 
 interface TimelineItem {
   id: string
@@ -24,7 +24,7 @@ export default function CompletedTimeline({ milestones }: { milestones: Timeline
   const observerRefs = useRef<(HTMLDivElement | null)[]>([])
   const t = useI18n()
   const locale = useCurrentLocale()
-  const dateLocale = locale === 'fr' ? fr : enUS
+  const dateLocale = enUS
 
   useEffect(() => {
     const observers = observerRefs.current.map((ref, index) => {

@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge"
 import { useData } from "@/context/data-provider"
 import { useI18n } from "@/locales/client"
 import { format } from "date-fns"
-import { fr } from 'date-fns/locale'
 import { useParams } from "next/navigation"
 import { useRef, useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
@@ -15,7 +14,7 @@ export function ActiveFilterTags({ showAccountNumbers }: { showAccountNumbers: b
   const t = useI18n()
   const params = useParams()
   const locale = params.locale as string
-  const dateLocale = locale === 'fr' ? fr : undefined
+  const dateLocale = undefined
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScroll, setCanScroll] = useState(false)
 

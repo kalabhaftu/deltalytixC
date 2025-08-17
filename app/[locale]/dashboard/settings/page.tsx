@@ -30,7 +30,6 @@ import {
 } from "lucide-react"
 import { signOut } from "@/server/auth"
 import Link from 'next/link'
-import { useChangeLocale, useCurrentLocale } from "@/locales/client"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   DropdownMenu,
@@ -58,7 +57,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { LinkedAccounts } from "@/components/linked-accounts"
 
-type Locale = 'en' | 'fr'
+
 
 // Add timezone list
 const timezones = [
@@ -75,8 +74,7 @@ const timezones = [
 
 export default function SettingsPage() {
   const t = useI18n()
-  const changeLocale = useChangeLocale()
-  const currentLocale = useCurrentLocale()
+
   const { theme, setTheme, intensity, setIntensity } = useTheme()
   const user = useUserStore(state => state.supabaseUser)
   const timezone = useUserStore(state => state.timezone)
@@ -93,10 +91,7 @@ export default function SettingsPage() {
     joinedBusinesses: any[]
   }>({ ownedBusinesses: [], joinedBusinesses: [] })
 
-  const languages: { value: Locale; label: string }[] = [
-    { value: 'en', label: 'English' },
-    { value: 'fr', label: 'Français' },
-  ]
+
 
   const handleThemeChange = (value: string) => {
     setTheme(value as "light" | "dark" | "system")
@@ -262,38 +257,7 @@ export default function SettingsPage() {
 
             <Separator />
 
-            {/* Language Settings */}
-            <div>
-              <Label className="text-base font-medium flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                Language
-              </Label>
-              <div className="mt-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-[200px] justify-start">
-                      <Globe className="mr-2 h-4 w-4" />
-                      {languages.find(lang => lang.value === currentLocale)?.label}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuRadioGroup value={currentLocale}>
-                      {languages.map((lang) => (
-                        <DropdownMenuRadioItem 
-                          key={lang.value} 
-                          value={lang.value}
-                          onClick={() => changeLocale(lang.value)}
-                        >
-                          {lang.label}
-                        </DropdownMenuRadioItem>
-                      ))}
-                    </DropdownMenuRadioGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
 
-            <Separator />
 
             {/* Timezone Settings */}
             <div>

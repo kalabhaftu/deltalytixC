@@ -13,7 +13,7 @@ import { Loader2, ChevronDown } from "lucide-react"
 import { useEffect, useState } from "react"
 import { SharedParams } from "@/server/shared"
 import { Trade } from "@prisma/client"
-import { LanguageSelector } from "@/components/ui/language-selector"
+
 
 interface SharedPageClientProps {
   params: {
@@ -110,10 +110,7 @@ function AccountsSelector({ accounts }: { accounts: string[] }) {
 }
 
 function TopBanner({ t }: { t: any }) {
-  const languages = [
-    { value: 'en', label: 'English' },
-    { value: 'fr', label: 'Français' },
-  ]
+
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b shadow-sm">
@@ -127,7 +124,7 @@ function TopBanner({ t }: { t: any }) {
             </div>
           </div>
           <div className="flex items-center gap-x-2 sm:gap-x-4 pb-2 sm:pb-0">
-            <LanguageSelector languages={languages} />
+
             <Link href="/authentication" className="flex-1 sm:flex-none">
               <Button size="sm" className="bg-primary hover:bg-primary/90 w-full">
                 {t('shared.createAccount')}

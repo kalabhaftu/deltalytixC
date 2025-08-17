@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { format, startOfWeek, endOfWeek } from "date-fns"
-import { fr, enUS } from 'date-fns/locale'
+import { enUS } from 'date-fns/locale'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -27,7 +27,7 @@ export function WeeklyModal({
 }: WeeklyModalProps) {
   const t = useI18n()
   const locale = useCurrentLocale()
-  const dateLocale = locale === 'fr' ? fr : enUS
+  const dateLocale = enUS
   const [activeTab, setActiveTab] = useState("charts")
 
   // Aggregate weekly data

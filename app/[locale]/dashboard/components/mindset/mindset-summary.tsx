@@ -3,7 +3,7 @@
 import { useI18n } from "@/locales/client"
 import { format } from "date-fns"
 import { formatInTimeZone } from "date-fns-tz"
-import { fr, enUS } from "date-fns/locale"
+import { enUS } from "date-fns/locale"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Pencil } from "lucide-react"
@@ -36,7 +36,7 @@ export function MindsetSummary({
 }: MindsetSummaryProps) {
   const t = useI18n()
   const { locale } = useParams()
-  const dateLocale = locale === 'fr' ? fr : enUS
+  const dateLocale = enUS
   const trades = useTradesStore(state => state.trades)
   const financialEvents = useFinancialEventsStore(state => state.events)
   const timezone = useUserStore(state => state.timezone)

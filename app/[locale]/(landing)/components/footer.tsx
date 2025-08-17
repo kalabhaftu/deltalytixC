@@ -77,10 +77,10 @@ export default function Footer() {
           </div>
             <div className="border-t border-gray-200 dark:border-gray-800 pt-4 space-y-4">
               <p>
-                Trading futures and forex is risky and not for everyone. You can lose part or all of your money. Only trade with money you can afford to lose. Past results don't guarantee future outcomes.
+                Trading futures and forex is risky and not for everyone. You can lose part or all of your money. Only trade with money you can afford to lose. Past results don&apos;t guarantee future outcomes.
               </p>
               <p>
-                Hypothetical results are based on hindsight, not real risk, and often differ from actual trading. Real trading involves losses, discipline, and market factors that can't be fully shown in simulations.
+                Hypothetical results are based on hindsight, not real risk, and often differ from actual trading. Real trading involves losses, discipline, and market factors that can&apos;t be fully shown in simulations.
               </p>
           </div>
           </div>

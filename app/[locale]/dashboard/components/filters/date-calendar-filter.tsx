@@ -8,7 +8,7 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 import { DateRange, SelectRangeEventHandler, SelectSingleEventHandler } from "react-day-picker"
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths } from "date-fns"
-import { fr } from 'date-fns/locale'
+
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useI18n } from "@/locales/client"
 import { useParams } from "next/navigation"
@@ -26,7 +26,7 @@ export default function DateCalendarFilter() {
   const locale = params.locale as string
   const calendarIconRef = useRef<CalendarDaysIconHandle>(null)
   
-  const dateLocale = locale === 'fr' ? fr : undefined
+  const dateLocale = undefined
 
   const handleRangeSelect: SelectRangeEventHandler = (range) => {
     setDateRange(range ? { from: range.from as Date, to: range.to as Date } : undefined);

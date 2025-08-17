@@ -20,7 +20,7 @@ import { signOut } from "@/server/auth"
 import { Logo } from '@/components/logo'
 import Link from 'next/link'
 import ImportButton from './import/import-button'
-import { SubscriptionBadge } from './subscription-badge'
+
 import { useI18n } from "@/locales/client"
 import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts'
 import DateCalendarFilter from './filters/date-calendar-filter'
@@ -139,9 +139,7 @@ export default function Navbar() {
                   </div>
                 </PopoverContent>
               </Popover>
-              <div className="mt-[-8px]">
-                <SubscriptionBadge />
-              </div>
+
             </div>
           </div>
           <div className="flex items-center space-x-4">

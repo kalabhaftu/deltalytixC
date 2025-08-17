@@ -37,7 +37,7 @@ import { Input } from "@/components/ui/input"
 import { SharedLayoutsManager } from "./shared-layouts-manager"
 import { cn } from "@/lib/utils"
 import confetti from 'canvas-confetti'
-import { fr } from 'date-fns/locale'
+
 import { Switch } from "@/components/ui/switch"
 import { useTradesStore } from "../../../../store/trades-store"
 import { useUserStore } from "../../../../store/user-store"
@@ -114,7 +114,7 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
   ({ variant = "ghost", size = "icon", currentLayout }, ref) => {
     const t = useI18n()
     const locale = useCurrentLocale()
-    const dateLocale = locale === 'fr' ? fr : undefined
+    const dateLocale = undefined
     const isMobile = useIsMobile()
     const { toast } = useToast()
     const user = useUserStore(state => state.user)

@@ -151,7 +151,7 @@ export default function OpenSourcePage() {
                 <GitBranch className="h-8 w-8 text-primary" />
                 <CardTitle>Transparent Development</CardTitle>
                 <CardDescription>
-                  See exactly what's being built, track progress, and contribute to the roadmap.
+                  See exactly what&apos;s being built, track progress, and contribute to the roadmap.
                 </CardDescription>
               </CardHeader>
               <CardContent>

@@ -2,7 +2,7 @@
 
 import { Post, PostStatus, PostType, Vote, VoteType } from '@prisma/client'
 import { formatDistanceToNow } from 'date-fns'
-import { fr, enUS } from 'date-fns/locale'
+import { enUS } from 'date-fns/locale'
 import { ArrowBigDown, ArrowBigUp, MessageSquare, ImageIcon, Pencil, ExternalLink, Link as LinkIcon, Copy, Check, MoreHorizontal, Settings2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -65,7 +65,7 @@ export function PostCard({ post, isExpanded = false, isAuthor }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const isPostPage = pathname === `/${locale}/community/post/${post.id}`
-  const dateLocale = locale === 'fr' ? fr : enUS
+  const dateLocale = enUS
   const [optimisticVotes, setOptimisticVotes] = useState(post.votes)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)

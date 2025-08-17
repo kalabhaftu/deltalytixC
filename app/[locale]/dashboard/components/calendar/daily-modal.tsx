@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { format } from "date-fns"
-import { fr, enUS } from 'date-fns/locale'
+import { enUS } from 'date-fns/locale'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -49,7 +49,7 @@ export function CalendarModal({
   const t = useI18n()
   const locale = useCurrentLocale()
   const timezone = useUserStore(state => state.timezone)
-  const dateLocale = locale === 'fr' ? fr : enUS
+  const dateLocale = enUS
   const [activeTab, setActiveTab] = useState("analysis")
   const [formattedDate, setFormattedDate] = useState<string>("")
 

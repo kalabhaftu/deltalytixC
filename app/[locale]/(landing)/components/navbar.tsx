@@ -106,7 +106,7 @@ export default function Component() {
 
     const [themeOpen, setThemeOpen] = useState(false)
 
-    const changeLocale = useChangeLocale()
+
     const handleThemeChange = (value: string) => {
         setTheme(value as "light" | "dark" | "system")
         setThemeOpen(false)

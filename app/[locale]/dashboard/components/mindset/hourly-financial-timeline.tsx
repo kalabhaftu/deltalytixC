@@ -3,7 +3,7 @@
 import { useMemo, useRef, useEffect, useState } from "react"
 import { format } from "date-fns"
 import { formatInTimeZone } from "date-fns-tz"
-import { fr, enUS } from "date-fns/locale"
+import { enUS } from "date-fns/locale"
 import { useCurrentLocale, useI18n } from "@/locales/client"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -145,7 +145,7 @@ export function HourlyFinancialTimeline({
 }: HourlyFinancialTimelineProps) {
   const timezone = useUserStore(state => state.timezone)
   const locale = useCurrentLocale()
-  const dateLocale = locale === "fr" ? fr : enUS
+  const dateLocale = enUS
   const t = useI18n()
   const containerRef = useRef<HTMLDivElement>(null)
   const [hourElements, setHourElements] = useState<HTMLDivElement[]>([])

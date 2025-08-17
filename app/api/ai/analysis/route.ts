@@ -67,12 +67,9 @@ function getToolsForSection(section: string) {
 }
 
 function getLanguageInstructions(locale: string) {
-  if (locale === 'fr') {
-    return `- You MUST respond in French (français)
-- All content must be in French except for the specific trading terms listed below
-- Use French grammar, vocabulary, and sentence structure throughout your response`;
-  }
-  return `- You MUST respond in ${locale} language`;
+  return `- You MUST respond in English
+- All content must be in English
+- Use clear, professional English throughout your response`;
 }
 
 function getBaseSystemPrompt(locale: string) {
@@ -88,21 +85,21 @@ ${getLanguageInstructions(locale)}
 Return ONLY valid JSON in the following format:
 
 {
-  "title": "Section Title${locale === 'fr' ? ' (in French)' : ''}",
-  "description": "Brief description of what this analysis covers${locale === 'fr' ? ' (in French)' : ''}",
+  "title": "Section Title",
+  "description": "Brief description of what this analysis covers",
   "insights": [
     {
       "type": "positive|negative|neutral",
-      "message": "Detailed insight message${locale === 'fr' ? ' (in French)' : ''}",
+      "message": "Detailed insight message",
       "metric": "Optional metric value"
     }
   ],
   "score": 85,
   "trend": "up|down|neutral",
   "recommendations": [
-    "Specific actionable recommendation 1${locale === 'fr' ? ' (in French)' : ''}",
-    "Specific actionable recommendation 2${locale === 'fr' ? ' (in French)' : ''}",
-    "Specific actionable recommendation 3${locale === 'fr' ? ' (in French)' : ''}"
+    "Specific actionable recommendation 1",
+    "Specific actionable recommendation 2",
+    "Specific actionable recommendation 3"
   ]
 }
 

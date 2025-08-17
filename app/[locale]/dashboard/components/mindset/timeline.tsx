@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/locales/client"
 import { format, isToday, compareDesc } from "date-fns"
-import { fr, enUS } from "date-fns/locale"
+import { enUS } from "date-fns/locale"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Calendar, Trash2, Plus } from "lucide-react"
@@ -37,7 +37,7 @@ interface TimelineProps {
 export function Timeline({ onSelectDate, selectedDate, moodHistory, className, onDeleteEntry }: TimelineProps) {
   const t = useI18n()
   const { locale } = useParams()
-  const dateLocale = locale === 'fr' ? fr : enUS
+  const dateLocale = enUS
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [entryToDelete, setEntryToDelete] = useState<Date | null>(null)
   const [datePickerOpen, setDatePickerOpen] = useState(false)

@@ -32,17 +32,12 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
 
   // Number formatter for currency with thousands separators based on locale
   const formatCurrency = (value: number) => {
-    const formatted = new Intl.NumberFormat(locale === 'fr' ? 'fr-FR' : 'en-US', {
+    const formatted = new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(value)
     
-    // Always use $ symbol with proper spacing for French
-    if (locale === 'fr') {
-      return `${formatted} $`
-    } else {
-      return `$${formatted}`
-    }
+    return `$${formatted}`
   }
 
   // Calculate statistics

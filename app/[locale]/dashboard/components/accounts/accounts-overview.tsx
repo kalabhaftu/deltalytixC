@@ -85,7 +85,7 @@ function PayoutDialog({
 }: PayoutDialogProps) {
   const params = useParams()
   const locale = params.locale as string
-  const dateLocale = locale === 'fr' ? fr : undefined
+  const dateLocale = undefined
   const [date, setDate] = useState<Date>(existingPayout?.date ?? new Date())
   const [amount, setAmount] = useState<number>(existingPayout?.amount ?? 0)
   const [inputValue, setInputValue] = useState<string>(existingPayout?.amount?.toString() ?? "")

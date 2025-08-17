@@ -2,7 +2,7 @@
 
 import React from "react"
 import { format, eachWeekOfInterval, getWeek, getMonth, getYear, addDays, startOfYear, endOfYear } from "date-fns"
-import { fr, enUS } from 'date-fns/locale'
+import { enUS } from 'date-fns/locale'
 import { cn } from "@/lib/utils"
 import { Trade } from "@prisma/client"
 import { CalendarData } from "@/app/[locale]/dashboard/types/calendar"
@@ -34,7 +34,7 @@ interface WeeklyCalendarPnlProps {
 export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendarPnlProps) {
   const t = useI18n()
   const locale = useCurrentLocale()
-  const dateLocale = locale === 'fr' ? fr : enUS
+  const dateLocale = enUS
 
   const yearStartDate = startOfYear(new Date(year, 0, 1));
   const yearEndDate = endOfYear(new Date(year, 0, 1));
