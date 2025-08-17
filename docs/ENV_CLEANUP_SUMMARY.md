@@ -46,9 +46,16 @@ These variables are actively used and should remain:
 
 These variables are used in the code but not defined in your `.env`:
 
-- `DISCORD_WEBHOOK_URL` - Used in Discord webhook API (optional feature)
 - `NEXT_PUBLIC_APP_URL` - Used in email templates and API redirects (CRITICAL)
 - `NEXT_PUBLIC_RITHMIC_API_URL` - Used in Rithmic sync context (if using Rithmic platform)
+
+## ✅ **NEWLY ADDED (Discord OAuth):**
+
+These variables have been added for Discord authentication:
+
+- `DISCORD_CLIENT_ID` - Discord OAuth client ID (configure in Discord Developer Portal)
+- `DISCORD_CLIENT_SECRET` - Discord OAuth client secret (configure in Discord Developer Portal)
+- `DISCORD_REDIRECT_URI` - Discord OAuth redirect URI (configure in Discord Developer Portal)
 
 ## 📋 **Manual Steps Required:**
 
@@ -90,6 +97,11 @@ SUPPORT_EMAIL='support@example.com'
 NEXT_PUBLIC_RITHMIC_PERFORMANCE_TUTORIAL_VIDEO='your_video_url_here'
 NEXT_PUBLIC_RITHMIC_ORDER_TUTORIAL_VIDEO='your_video_url_here' 
 NEXT_PUBLIC_NINJATRADER_PERFORMANCE_TUTORIAL_VIDEO='your_video_url_here'
+
+# Discord OAuth Configuration
+DISCORD_CLIENT_ID=your_discord_client_id_here
+DISCORD_CLIENT_SECRET=your_discord_client_secret_here
+DISCORD_REDIRECT_URI=http://localhost:3000/api/auth/callback
 
 # Discord Integration (Optional - for support webhooks)
 # DISCORD_WEBHOOK_URL=your_discord_webhook_url_here
