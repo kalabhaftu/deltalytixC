@@ -7,10 +7,10 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   errorFormat: 'pretty',
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  // Use modified connection string that disables prepared statements for transaction pooler
+  // Use session pooler for better connection handling and no prepared statement issues
   datasources: {
     db: {
-      url: process.env.DATABASE_URL + '?pgbouncer=true&connection_limit=10&pool_timeout=20'
+      url: process.env.DIRECT_URL // Use session pooler instead of transaction pooler
     }
   }
 })
