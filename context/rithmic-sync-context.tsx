@@ -798,6 +798,14 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
     setIsAutoSyncing(true)
 
+    // Skip sync if Rithmic API URL is not configured (development mode)
+    if (!process.env.NEXT_PUBLIC_RITHMIC_API_URL) {
+      console.warn('NEXT_PUBLIC_RITHMIC_API_URL is not configured. Skipping auto sync.')
+      activeSyncRequestsRef.current.delete(credentialId)
+      setIsAutoSyncing(false)
+      return
+    }
+
     try {
       const { http } = getProtocols()
       const response = await Promise.race([
@@ -1051,6 +1059,12 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
   // Add fetchServerConfigs function
   const fetchServerConfigs = useCallback(async () => {
+    // Skip fetch if Rithmic API URL is not configured (development mode)
+    if (!process.env.NEXT_PUBLIC_RITHMIC_API_URL) {
+      console.warn('NEXT_PUBLIC_RITHMIC_API_URL is not configured. Skipping server config fetch.')
+      return
+    }
+
     try {
       const { http } = getProtocols()
       const response = await fetch(`${http}//${process.env.NEXT_PUBLIC_RITHMIC_API_URL}/servers`)
@@ -1073,6 +1087,15 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
   // Update authenticateAndGetAccounts to return a rate limit response object
   const authenticateAndGetAccounts = useCallback(async (credentials: RithmicCredentials) => {
+    // Skip authentication if Rithmic API URL is not configured (development mode)
+    if (!process.env.NEXT_PUBLIC_RITHMIC_API_URL) {
+      return {
+        success: false,
+        rateLimited: false,
+        message: 'NEXT_PUBLIC_RITHMIC_API_URL is not configured'
+      } as const
+    }
+
     const { http } = getProtocols()
     const response = await fetch(`${http}//${process.env.NEXT_PUBLIC_RITHMIC_API_URL}/accounts`, {
       method: 'POST',

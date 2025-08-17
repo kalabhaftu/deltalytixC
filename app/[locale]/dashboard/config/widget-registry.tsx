@@ -111,27 +111,25 @@ function createPropfirmPreview() {
                 <div className="h-4 w-16 bg-muted-foreground/20 rounded" />
               </div>
               <div className="h-20 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                    <XAxis dataKey="name" hide />
-                    <YAxis hide />
-                    <Line
-                      type="monotone"
-                      dataKey="equity"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="drawdown"
-                      stroke="hsl(var(--destructive))"
-                      strokeWidth={2}
-                      strokeDasharray="4 2"
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                <LineChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }} width={200} height={80}>
+                  <XAxis dataKey="name" hide />
+                  <YAxis hide />
+                  <Line
+                    type="monotone"
+                    dataKey="equity"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="drawdown"
+                    stroke="hsl(var(--destructive))"
+                    strokeWidth={2}
+                    strokeDasharray="4 2"
+                    dot={false}
+                  />
+                </LineChart>
               </div>
             </div>
           ))}

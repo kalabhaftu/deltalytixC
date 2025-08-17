@@ -689,6 +689,7 @@ export function RithmicSyncWrapper({ setIsOpen }: RithmicSyncWrapperProps) {
             width={120}
             height={40}
             className="dark:hidden"
+            style={{ width: 'auto', height: 'auto' }}
           />
           <Image 
             src="/logos/TradingPlatformByRithmic-Green.png"
@@ -696,12 +697,14 @@ export function RithmicSyncWrapper({ setIsOpen }: RithmicSyncWrapperProps) {
             width={120}
             height={40}
             className="hidden dark:block"
+            style={{ width: 'auto', height: 'auto' }}
           />
           <Image 
             src="/logos/Powered_by_Omne.png"
             alt="Powered by OMNE"
             width={120}
             height={40}
+            style={{ width: 'auto', height: 'auto' }}
           />
         </div>
         <p>{t('import.type.copyright.rithmic')}</p>

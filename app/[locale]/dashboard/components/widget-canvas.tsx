@@ -723,6 +723,7 @@ export default function WidgetCanvas() {
                     width: dimensions.width,
                     height: dimensions.height
                   }}
+                  data-grid-dimensions={`${dimensions.w}x${dimensions.h}`}
                 >
                   <WidgetWrapper
                     onRemove={() => removeWidget(typedWidget.i)}
