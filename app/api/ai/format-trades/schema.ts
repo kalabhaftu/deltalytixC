@@ -9,7 +9,7 @@ export const tradeSchema = z.object({
   entryDate: z.string().describe("The ISO string date when the entry transaction occurred"),
   closeDate: z.string().describe("The ISO string date when the close transaction occurred"),
   instrument: z.string().describe("The trading instrument (e.g. MES, ES, NG, ZN, ZB, etc.)"),
-  accountNumber: z.string().describe("The account number associated with the trade"),
+  accountNumber: z.string().optional().describe("The account number associated with the trade - leave empty if not clearly identifiable"),
   entryPrice: z.string().describe("The price at which the instrument was bought"),
   closePrice: z.string().describe("The price at which the instrument was sold"),
   entryId: z.string().optional().describe("The unique identifier for the entry transaction"),

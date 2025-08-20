@@ -31,7 +31,11 @@ export async function POST(req: NextRequest) {
         - Remove exchange (e.g. MESH5@CME becomes MES, MESH5@CME becomes ES, ZN@CME becomes ZN, etc.)
       2. Convert all numeric values to numbers (remove currency symbols, commas)
       3. Convert dates to ISO strings
-      4. If accountNumber is provided, use it as the accountNumber
+      4. IMPORTANT - Account Number handling:
+         - NEVER use trade IDs, order IDs, or ticket numbers as account numbers
+         - Look for actual account names/numbers (usually short alphanumeric codes)
+         - If no clear account identifier exists, leave accountNumber empty - it will be set during import
+         - Trade IDs starting with letters like "W", "M" followed by long numbers are NOT account numbers
       5. Determine trade side based on:
          - If side is provided: use it directly (normalize 'buy'/'long'/'b' to 'long', 'sell'/'short'/'s' to 'short')
          - If not provided: determine from entry/close dates and prices when available
@@ -48,7 +52,7 @@ export async function POST(req: NextRequest) {
         - entryDate (ISO string)
         - closeDate (ISO string)
         - instrument (string)
-        - accountNumber (string)
+        - accountNumber (string, optional - only if clearly identifiable)
       `,
       prompt:  `
       Format the following ${rows.length} trades data.

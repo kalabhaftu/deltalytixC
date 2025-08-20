@@ -54,6 +54,8 @@ const MatchTraderProcessor = ({
         const side = row[headers.indexOf('Side')] || ''
         const tradeId = row[headers.indexOf('ID')] || ''
         const reason = row[headers.indexOf('Reason')] || ''
+        
+        // Don't use trade ID as account - account number comes from selection step
 
         return {
           id: uuidv4(),
