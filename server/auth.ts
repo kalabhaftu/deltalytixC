@@ -215,7 +215,20 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
 
     console.error('[ensureUserInDatabase] ERROR: Unexpected error in main catch block:', error);
 
-    // Handle Prisma validation errors
+    // Handle database connection errors gracefully - DON'T sign out user
+    if (error instanceof Error && (
+      error.message.includes("Can't reach database server") ||
+      error.message.includes('P1001') ||
+      error.message.includes('Connection timeout') ||
+      error.message.includes('ECONNREFUSED') ||
+      error.message.includes('ENOTFOUND')
+    )) {
+      console.log('[ensureUserInDatabase] Database connection error - allowing graceful degradation');
+      // Return without signing out - let the middleware handle the auth state
+      return null;
+    }
+
+    // Handle Prisma validation errors (these require sign out)
     if (error instanceof Error) {
       if (error.message.includes('Argument `where` of type UserWhereUniqueInput needs')) {
         console.log('[ensureUserInDatabase] ERROR: Invalid user identification provided');
@@ -236,10 +249,21 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
       }
     }
 
-    // For any other unexpected errors, log out the user
-    console.log('[ensureUserInDatabase] ERROR: Critical database error - signing out user');
-    await signOut();
-    throw new Error('Critical database error occurred. Please try logging in again.');
+    // For authentication-related errors, sign out the user
+    if (error instanceof Error && (
+      error.message.includes('User not authenticated') ||
+      error.message.includes('Invalid authentication') ||
+      error.message.includes('Token expired') ||
+      error.message.includes('Invalid token')
+    )) {
+      console.log('[ensureUserInDatabase] ERROR: Authentication error - signing out user');
+      await signOut();
+      throw new Error('Authentication error occurred. Please log in again.');
+    }
+
+    // For other unexpected errors, don't sign out - just log and continue
+    console.log('[ensureUserInDatabase] ERROR: Unexpected error - allowing graceful degradation:', error);
+    return null;
   }
 }
 
