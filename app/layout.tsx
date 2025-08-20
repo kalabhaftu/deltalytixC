@@ -9,7 +9,11 @@ import { ConsentBanner } from "@/components/consent-banner";
 import { ConsoleFilterWrapper } from "@/components/console-filter-wrapper";
 import Script from "next/script"
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter"
+});
 
 export const metadata: Metadata = {
   title: "Deltalytix",
@@ -228,7 +232,7 @@ export default async function RootLayout({
         </style>
 
       </head>
-      <body className={inter.className + " min-h-screen overflow-x-hidden w-screen"}>
+      <body className={`${inter.className} min-h-screen overflow-x-hidden w-screen`}>
         <ConsoleFilterWrapper>
           <AuthProvider>
             <SpeedInsights />
