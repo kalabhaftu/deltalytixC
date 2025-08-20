@@ -144,20 +144,40 @@ function getCachedTrades(userId: string, isSubscribed: boolean, page: number, ch
     async () => {
       console.log(`[Cache MISS] Fetching trades for user ${userId}, subscribed: ${isSubscribed}`)
       
-      const query: TradeQuery = {
-        where: { userId },
-        orderBy: { entryDate: 'desc' },
-        skip: (page - 1) * chunkSize,
-        take: chunkSize
-      }
+      try {
+        const query: TradeQuery = {
+          where: { userId },
+          orderBy: { entryDate: 'desc' },
+          skip: (page - 1) * chunkSize,
+          take: chunkSize
+        }
 
-      if (!isSubscribed) {
-        const oneWeekAgo = startOfDay(new Date())
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-        query.where.entryDate = { gte: oneWeekAgo.toISOString() }
-      }
+        if (!isSubscribed) {
+          const oneWeekAgo = startOfDay(new Date())
+          oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+          query.where.entryDate = { gte: oneWeekAgo.toISOString() }
+        }
 
-      return await prisma.trade.findMany(query)
+        return await prisma.trade.findMany(query)
+      } catch (error) {
+        if (error instanceof Error) {
+          // Handle table doesn't exist error
+          if (error.message.includes('does not exist')) {
+            console.log('[getCachedTrades] Trade table does not exist yet, returning empty array')
+            return []
+          }
+          // Handle database connection errors
+          if (error.message.includes("Can't reach database server") || 
+              error.message.includes('P1001') ||
+              error.message.includes('connection') ||
+              error.message.includes('timeout')) {
+            console.log('[getCachedTrades] Database connection error, returning empty array')
+            return []
+          }
+        }
+        console.error('[getCachedTrades] Unexpected error:', error)
+        return [] // Return empty array instead of throwing
+      }
     },
     // Static string array - this is the cache key
     [`trades-${userId}-${isSubscribed}-${page}`],
@@ -181,9 +201,15 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
 
     // Get cached trades
     // Per page
+    const actualUserId = userId || user?.id
+    if (!actualUserId) {
+      console.log('[getTradesAction] No user ID available, returning empty array')
+      return []
+    }
+    
     const query: TradeCountQuery = {
       where: { 
-        userId: userId || user?.id,
+        userId: actualUserId,
        }
     }
     if (!isSubscribed) {
@@ -195,18 +221,30 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
     try {
       count = await prisma.trade.count(query)
     } catch (error) {
-      if (error instanceof Error && error.message.includes('does not exist')) {
-        console.log('[getTradesAction] Trade table does not exist yet, returning empty array')
-        return []
+      if (error instanceof Error) {
+        // Handle table doesn't exist error
+        if (error.message.includes('does not exist')) {
+          console.log('[getTradesAction] Trade table does not exist yet, returning empty array')
+          return []
+        }
+        // Handle database connection errors
+        if (error.message.includes("Can't reach database server") || 
+            error.message.includes('P1001') ||
+            error.message.includes('connection') ||
+            error.message.includes('timeout')) {
+          console.log('[getTradesAction] Database connection error, returning empty array')
+          return []
+        }
       }
-      throw error
+      console.error('[getTradesAction] Unexpected error:', error)
+      return [] // Return empty array instead of throwing
     }
     // Split pages by chunks of 1000
     const chunkSize = 1000
     const totalPages = Math.ceil(count / chunkSize)
     const trades: Trade[] = []
     for (let page = 1; page <= totalPages; page++) {
-      const pageTrades = await getCachedTrades(userId || user?.id || '', isSubscribed, page, chunkSize)
+      const pageTrades = await getCachedTrades(actualUserId, isSubscribed, page, chunkSize)
       trades.push(...pageTrades)
     }
     console.log(`[getTrades] Found ${count} trades fetched ${trades.length}`)
@@ -301,9 +339,18 @@ export async function loadDashboardLayoutAction(): Promise<Layouts | null> {
     }
 
     // Safely parse JSON with fallback to empty arrays
-    const parseJsonSafely = (jsonString: string | null): Widget[] => {
+    const parseJsonSafely = (jsonData: Prisma.JsonValue): Widget[] => {
       try {
-        return typeof jsonString === 'string' ? JSON.parse(jsonString) : []
+        // If it's already an array, return it (we trust it's valid Widget data)
+        if (Array.isArray(jsonData)) {
+          return (jsonData as unknown) as Widget[]
+        }
+        // If it's a string, parse it
+        if (typeof jsonData === 'string') {
+          return JSON.parse(jsonData)
+        }
+        // Otherwise return empty array
+        return []
       } catch (error) {
         console.error('[loadDashboardLayout] JSON parse error:', error)
         return []

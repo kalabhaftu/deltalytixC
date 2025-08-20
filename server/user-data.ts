@@ -70,57 +70,71 @@ export async function getUserData(): Promise<{
     async () => {
       console.log(`[Cache MISS] Fetching user data for user ${userId}`)
       
-      // Run all independent queries in parallel for better performance
-      const [
-        userData,
-        tickDetails,
-        tags,
-        accounts,
-        groups,
-        financialEvents,
-        moodHistory
-      ] = await Promise.all([
-        prisma.user.findUnique({
-          where: {
-            id: userId
-          }
-        }),
-        prisma.tickDetails.findMany(),
-        prisma.tag.findMany({
-          where: {
-            userId: userId
-          }
-        }),
-        prisma.account.findMany({
-          where: {
-            userId: userId
-          },
-          include: {
-            payouts: true,
-            group: true
-          }
-        }),
-        prisma.group.findMany({
-          where: {
-            userId: userId
-          },
-          include: {
-            accounts: true
-          }
-        }),
-        prisma.financialEvent.findMany({
-          where: {
-            lang: locale
-          }
-        }),
-        prisma.mood.findMany({
-          where: {
-            userId: userId
-          }
-        })
-      ])
+      try {
+        // Run all independent queries in parallel for better performance
+        const [
+          userData,
+          tickDetails,
+          tags,
+          accounts,
+          groups,
+          financialEvents,
+          moodHistory
+        ] = await Promise.all([
+          prisma.user.findUnique({
+            where: {
+              id: userId
+            }
+          }),
+          prisma.tickDetails.findMany(),
+          prisma.tag.findMany({
+            where: {
+              userId: userId
+            }
+          }),
+          prisma.account.findMany({
+            where: {
+              userId: userId
+            },
+            include: {
+              payouts: true,
+              group: true
+            }
+          }),
+          prisma.group.findMany({
+            where: {
+              userId: userId
+            },
+            include: {
+              accounts: true
+            }
+          }),
+          prisma.financialEvent.findMany({
+            where: {
+              lang: locale
+            }
+          }),
+          prisma.mood.findMany({
+            where: {
+              userId: userId
+            }
+          })
+        ])
 
-      return { userData, tickDetails, tags, accounts, groups, financialEvents, moodHistory }
+        return { userData, tickDetails, tags, accounts, groups, financialEvents, moodHistory }
+      } catch (error) {
+        console.error('[getUserData] Database error:', error)
+        // Return empty data structure if database is unavailable
+        return {
+          userData: null,
+          tickDetails: [],
+          tags: [],
+          accounts: [],
+          groups: [],
+          financialEvents: [],
+          moodHistory: []
+        }
+      }
     },
     [`user-data-${userId}-${locale}`],
     {
@@ -139,10 +153,22 @@ export async function getDashboardLayout(userId: string): Promise<DashboardLayou
       }
     })
   } catch (error) {
-    if (error instanceof Error && error.message.includes('does not exist')) {
-      console.log('[getDashboardLayout] DashboardLayout table does not exist yet, returning null')
-      return null
+    if (error instanceof Error) {
+      // Handle table doesn't exist error
+      if (error.message.includes('does not exist')) {
+        console.log('[getDashboardLayout] DashboardLayout table does not exist yet, returning null')
+        return null
+      }
+      // Handle database connection errors
+      if (error.message.includes("Can't reach database server") || 
+          error.message.includes('P1001') ||
+          error.message.includes('connection') ||
+          error.message.includes('timeout')) {
+        console.log('[getDashboardLayout] Database connection error, returning null')
+        return null
+      }
     }
+    console.error('[getDashboardLayout] Unexpected error:', error)
     throw error
   }
 }

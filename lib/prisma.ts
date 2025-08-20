@@ -10,7 +10,7 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   // Use session pooler for better connection handling and no prepared statement issues
   datasources: {
     db: {
-      url: process.env.DIRECT_URL // Use session pooler instead of transaction pooler
+      url: process.env.DIRECT_URL || process.env.DATABASE_URL // Fallback to DATABASE_URL if DIRECT_URL is not set
     }
   }
 })

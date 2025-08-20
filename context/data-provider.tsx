@@ -632,6 +632,28 @@ export const DataProvider: React.FC<{
       setAccounts(accountsWithBalance);
 
     } catch (error) {
+      // Handle Next.js redirect errors (these are normal and expected)
+      if (error instanceof Error && (
+        error.message === 'NEXT_REDIRECT' || 
+        error.message.includes('NEXT_REDIRECT') ||
+        ('digest' in error && typeof error.digest === 'string' && error.digest.startsWith('NEXT_REDIRECT'))
+      )) {
+        // Don't log redirect errors as they are expected behavior
+        console.log('[DataProvider] Redirect detected, letting it proceed');
+        throw error; // Re-throw to let Next.js handle the redirect
+      }
+
+      // Handle authentication errors by redirecting to auth page
+      if (error instanceof Error && (
+        error.message.includes('User not authenticated') ||
+        error.message.includes('User not found') ||
+        error.message.includes('Unauthorized')
+      )) {
+        console.log('[DataProvider] Authentication error detected, redirecting to auth');
+        await signOut();
+        return;
+      }
+
       console.error('Error loading data:', error);
       // Optionally handle specific error cases here
       if (error instanceof Error) {
@@ -648,7 +670,32 @@ export const DataProvider: React.FC<{
 
     const loadDataIfMounted = async () => {
       if (!mounted) return;
-      await loadData();
+      try {
+        await loadData();
+      } catch (error) {
+        // Handle Next.js redirect errors (these are normal and expected)
+        if (error instanceof Error && (
+          error.message === 'NEXT_REDIRECT' || 
+          error.message.includes('NEXT_REDIRECT') ||
+          ('digest' in error && typeof error.digest === 'string' && error.digest.startsWith('NEXT_REDIRECT'))
+        )) {
+          // Let the redirect proceed - these are handled by Next.js router
+          return;
+        }
+
+        // Handle authentication errors
+        if (error instanceof Error && (
+          error.message.includes('User not authenticated') ||
+          error.message.includes('User not found') ||
+          error.message.includes('Unauthorized')
+        )) {
+          console.log('[DataProvider] Authentication error in useEffect, will handle via middleware');
+          return;
+        }
+        
+        // Log other errors but don't throw to prevent unhandled promise rejections
+        console.error('[DataProvider] Error in useEffect loadData:', error);
+      }
     };
 
     loadDataIfMounted();
@@ -681,7 +728,30 @@ export const DataProvider: React.FC<{
       // Reload data
       await loadData()
     } catch (error) {
-      // Silently handle errors to avoid console spam
+      // Handle Next.js redirect errors (these are normal and expected)
+      if (error instanceof Error && (
+        error.message === 'NEXT_REDIRECT' || 
+        error.message.includes('NEXT_REDIRECT') ||
+        ('digest' in error && typeof error.digest === 'string' && error.digest.startsWith('NEXT_REDIRECT'))
+      )) {
+        // Don't log redirect errors as they are expected behavior
+        console.log('[DataProvider] Redirect detected in refreshTrades, letting it proceed');
+        throw error; // Re-throw to let Next.js handle the redirect
+      }
+
+      // Handle authentication errors
+      if (error instanceof Error && (
+        error.message.includes('User not authenticated') ||
+        error.message.includes('User not found') ||
+        error.message.includes('Unauthorized')
+      )) {
+        console.log('[DataProvider] Authentication error in refreshTrades');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Silently handle other errors to avoid console spam
+      console.log('[DataProvider] Error in refreshTrades:', error instanceof Error ? error.message : 'Unknown error');
       setIsLoading(false)
     }
   }, [user?.id, loadData, setIsLoading, locale])

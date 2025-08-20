@@ -58,15 +58,22 @@ async function updateSession(request: NextRequest) {
   let error: unknown = null
 
   try {
-    // Add timeout to prevent hanging requests
+    // Add timeout to prevent hanging requests - increased from 2s to 5s for better reliability
     const authPromise = supabase.auth.getUser()
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Auth timeout")), 2000))
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Auth timeout")), 5000)
+    )
 
     const result = await Promise.race([authPromise, timeoutPromise]) as { data?: { user?: { id: string; email?: string } | null }; error?: unknown }
     user = result.data?.user || null
     error = result.error
   } catch (authError) {
-    logger.authError("Auth check failed", authError)
+    // Handle timeout errors more gracefully - don't log every timeout as an error
+    if (authError instanceof Error && authError.message === "Auth timeout") {
+      console.log("[Auth] Auth timeout - treating as unauthenticated")
+    } else {
+      logger.authError("Auth check failed", authError)
+    }
     // Don't throw - gracefully handle auth failures
     user = null
     error = authError
