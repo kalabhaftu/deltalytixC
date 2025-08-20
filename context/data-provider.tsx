@@ -575,7 +575,11 @@ export const DataProvider: React.FC<{
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user?.id) {
-        await signOut();
+        try {
+          await signOut();
+        } catch (error) {
+          console.log('[DataProvider] Error during signOut, will handle via middleware');
+        }
         setIsLoading(false)
         return;
       }
@@ -607,7 +611,11 @@ export const DataProvider: React.FC<{
 
 
       if (!data) {
-        await signOut();
+        try {
+          await signOut();
+        } catch (error) {
+          console.log('[DataProvider] Error during signOut for no data, will handle via middleware');
+        }
         setIsLoading(false)
         return;
       }
@@ -650,7 +658,11 @@ export const DataProvider: React.FC<{
         error.message.includes('Unauthorized')
       )) {
         console.log('[DataProvider] Authentication error detected, redirecting to auth');
-        await signOut();
+        try {
+          await signOut();
+        } catch (signOutError) {
+          console.log('[DataProvider] Error during signOut for auth error, will handle via middleware');
+        }
         return;
       }
 

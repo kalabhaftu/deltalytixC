@@ -190,11 +190,13 @@ function getCachedTrades(userId: string, isSubscribed: boolean, page: number, ch
 
 
 export async function getTradesAction(userId: string | null = null): Promise<Trade[]> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user && !userId) {
-      throw new Error('User not found')
-    }
+    try {
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user && !userId) {
+        console.log('[getTradesAction] No user found, returning empty array')
+        return []
+      }
 
     const isSubscribed = true // All users now have full access
 
@@ -256,6 +258,11 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
       entryDate: new Date(trade.entryDate).toISOString(),
       exitDate: trade.closeDate ? new Date(trade.closeDate).toISOString() : null
     }))
+  } catch (error) {
+    console.error('[getTradesAction] Error in main function:', error)
+    // Return empty array if there's any error
+    return []
+  }
 }
 
 export async function updateTradesAction(tradesIds: string[], update: Partial<Trade>): Promise<number> {

@@ -62,8 +62,9 @@ export async function getUserData(): Promise<{
   financialEvents: FinancialEvent[];
   moodHistory: Mood[];
 }> {
-  const userId = await getUserId()
-  const locale = await getCurrentLocale()
+  try {
+    const userId = await getUserId()
+    const locale = await getCurrentLocale()
 
 
   return unstable_cache(
@@ -142,6 +143,19 @@ export async function getUserData(): Promise<{
       revalidate: 86400 // 24 hours in seconds
     }
   )()
+  } catch (error) {
+    console.error('[getUserData] Error getting user ID or locale:', error)
+    // Return empty data structure if we can't get user information
+    return {
+      userData: null,
+      tickDetails: [],
+      tags: [],
+      accounts: [],
+      groups: [],
+      financialEvents: [],
+      moodHistory: []
+    }
+  }
 }
 
 export async function getDashboardLayout(userId: string): Promise<DashboardLayout | null> {
