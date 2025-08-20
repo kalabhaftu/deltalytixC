@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { inter } from "@/lib/fonts";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@vercel/analytics/react"
@@ -9,11 +9,7 @@ import { ConsentBanner } from "@/components/consent-banner";
 import { ConsoleFilterWrapper } from "@/components/console-filter-wrapper";
 import Script from "next/script"
 
-const inter = Inter({ 
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter"
-});
+// Font configuration now imported from lib/fonts.ts
 
 export const metadata: Metadata = {
   title: "Deltalytix",
@@ -104,7 +100,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="bg-background" translate="no">
+    <html lang="en" className={`${inter.variable} bg-background`} translate="no">
       <head>
         {/* Prevent Google Translate */}
         <meta name="google" content="notranslate" />
@@ -232,7 +228,7 @@ export default async function RootLayout({
         </style>
 
       </head>
-      <body className={`${inter.className} min-h-screen overflow-x-hidden w-screen`}>
+      <body className={`${inter.variable} font-sans min-h-screen overflow-x-hidden w-screen`}>
         <ConsoleFilterWrapper>
           <AuthProvider>
             <SpeedInsights />
