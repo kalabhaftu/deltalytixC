@@ -129,7 +129,25 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         numberOfTradesAdded: result.count
       }
     } catch(error) {
-              logger.dbError('saveTrades', error)
+      logger.dbError('saveTrades', error)
+      
+      // Handle database connection errors more gracefully
+      if (error instanceof Error && (
+        error.message.includes("Can't reach database server") ||
+        error.message.includes('P1001') ||
+        error.message.includes('Connection timeout') ||
+        error.message.includes('ECONNREFUSED') ||
+        error.message.includes('ENOTFOUND')
+      )) {
+        console.log('[saveTradesAction] Database connection error - returning specific error')
+        return { 
+          error: 'DATABASE_CONNECTION_ERROR', 
+          numberOfTradesAdded: 0,
+          details: 'Database is temporarily unavailable. Please check your database connection and try again.'
+        }
+      }
+      
+      // Handle other database errors
       return { 
         error: 'DATABASE_ERROR', 
         numberOfTradesAdded: 0,

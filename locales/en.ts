@@ -388,6 +388,8 @@ export default {
     'import.error.duplicateTradesDescription': 'These trades appear to have already been imported. Please check your existing trades or try importing different data.',
     'import.error.noTradesAdded': 'No Trades Added',
     'import.error.noTradesAddedDescription': 'No trades were added. Please check your data and try again.',
+    'import.error.databaseConnectionError': 'Database Connection Error',
+    'import.error.databaseConnectionErrorDescription': 'Unable to connect to the database. Please check your internet connection and try again, or contact support if the issue persists.',
     'widgets.addWidget': 'Add',
     'widgets.removeWidget': 'Remove',
     'widgets.removeWidgetConfirm': 'Are you sure?',

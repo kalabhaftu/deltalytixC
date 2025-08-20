@@ -160,6 +160,12 @@ export default function ImportButton() {
             description: t('import.error.noTradesAddedDescription'),
             variant: "destructive",
           })
+        } else if (result.error === "DATABASE_CONNECTION_ERROR") {
+          toast({
+            title: t('import.error.databaseConnectionError'),
+            description: result.details || t('import.error.databaseConnectionErrorDescription'),
+            variant: "destructive",
+          })
         } else {
           toast({
             title: t('import.error.failed'),
