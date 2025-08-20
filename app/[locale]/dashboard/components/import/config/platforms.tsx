@@ -10,10 +10,11 @@ import TradezellaProcessor from '../tradezella/tradezella-processor'
 import TopstepProcessor from '../topstep/topstep-processor'
 import PdfUpload from '../ibkr-pdf/pdf-upload'
 import PdfProcessing from '../ibkr-pdf/pdf-processing'
+import MatchTraderProcessor from '../match-trader/match-trader-processor'
 import { Step } from '../import-button'
 import { Sparkles } from 'lucide-react'
 
-type TranslationKey = 
+type TranslationKey =
   | 'import.steps.selectPlatform'
   | 'import.steps.selectPlatformDescription'
   | 'import.steps.uploadFile'
@@ -49,6 +50,7 @@ type StepComponent =
   | typeof TopstepProcessor
   | typeof PdfUpload
   | typeof PdfProcessing
+  | typeof MatchTraderProcessor
 
 export interface PlatformConfig {
   platformName: string
@@ -94,6 +96,27 @@ const processStandardCsv = (data: string[][]): ProcessedData => {
     throw new Error("The CSV file appears to be empty or invalid.")
   }
   const headers = data[0].filter(header => header && header.trim() !== '')
+  return { headers, processedData: data.slice(1) };
+}
+
+const processMatchTraderCsv = (data: string[][]): ProcessedData => {
+  if (data.length === 0) {
+    throw new Error("The CSV file appears to be empty or invalid.")
+  }
+  
+  // Match Trader CSV has a known header format
+  const expectedHeaders = ['ID', 'Symbol', 'Open time', 'Volume', 'Side', 'Close time', 'Open price', 'Close Price', 'Stop loss', 'Take profit', 'Swap', 'Commission', 'Profit', 'Reason']
+  const headers = data[0].filter(header => header && header.trim() !== '')
+  
+  // Verify this is a Match Trader CSV by checking for key columns
+  const hasRequiredHeaders = ['Symbol', 'Open time', 'Close time', 'Volume', 'Side', 'Profit'].every(
+    requiredHeader => headers.some(header => header.includes(requiredHeader))
+  )
+  
+  if (!hasRequiredHeaders) {
+    throw new Error("This doesn't appear to be a valid Match Trader CSV file. Please ensure it contains the expected columns.")
+  }
+  
   return { headers, processedData: data.slice(1) };
 };
 
@@ -233,6 +256,48 @@ export const platforms: PlatformConfig[] = [
         title: 'import.steps.processTrades',
         description: 'import.steps.processTradesDescription',
         component: TopstepProcessor,
+        isLastStep: true
+      }
+    ]
+  },
+  {
+    platformName: 'match-trader',
+    type: 'match-trader',
+    name: 'import.type.matchTrader.name',
+    description: 'import.type.matchTrader.description',
+    category: 'Platform CSV Import',
+    details: 'import.type.matchTrader.details',
+    logo: {
+      path: '/logos/match-trader.png',
+      alt: 'Match Trader Logo'
+    },
+    requiresAccountSelection: true,
+    processFile: processMatchTraderCsv, // Use specialized processor
+    processorComponent: MatchTraderProcessor,
+    steps: [
+      {
+        id: 'select-import-type',
+        title: 'import.steps.selectPlatform',
+        description: 'import.steps.selectPlatformDescription',
+        component: ImportTypeSelection
+      },
+      {
+        id: 'upload-file',
+        title: 'import.steps.uploadFile',
+        description: 'import.steps.uploadFileDescription',
+        component: FileUpload
+      },
+      {
+        id: 'select-account',
+        title: 'import.steps.selectAccount',
+        description: 'import.steps.selectAccountDescription',
+        component: AccountSelection
+      },
+      {
+        id: 'preview-trades',
+        title: 'import.steps.processTrades',
+        description: 'import.steps.processTradesDescription',
+        component: MatchTraderProcessor,
         isLastStep: true
       }
     ]

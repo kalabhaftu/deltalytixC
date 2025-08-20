@@ -27,7 +27,7 @@ export default function TradeTable() {
   const { toast } = useToast()
   const [selectAll, setSelectAll] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const tradesPerPage = 10
+  const [tradesPerPage, setTradesPerPage] = useState(50) // Increased default from 10 to 50
 
   const filteredAndSortedTrades = useMemo(() => {
     return formattedTrades
@@ -216,9 +216,29 @@ export default function TradeTable() {
       </Table>
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">
-          Showing {((currentPage - 1) * tradesPerPage) + 1} to {Math.min(currentPage * tradesPerPage, filteredAndSortedTrades.length)} of {filteredAndSortedTrades.length} trades
-        </p>
+        <div className="flex items-center space-x-4">
+          <p className="text-sm text-gray-500">
+            Showing {((currentPage - 1) * tradesPerPage) + 1} to {Math.min(currentPage * tradesPerPage, filteredAndSortedTrades.length)} of {filteredAndSortedTrades.length} trades
+          </p>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-500">Show:</span>
+            <select 
+              value={tradesPerPage} 
+              onChange={(e) => {
+                setTradesPerPage(Number(e.target.value))
+                setCurrentPage(1) // Reset to first page when changing page size
+              }}
+              className="text-sm border rounded px-2 py-1"
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value={250}>250</option>
+              <option value={500}>500</option>
+              <option value={filteredAndSortedTrades.length}>All ({filteredAndSortedTrades.length})</option>
+            </select>
+          </div>
+        </div>
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
