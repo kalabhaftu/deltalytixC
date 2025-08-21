@@ -30,7 +30,7 @@ export default function Home() {
       timeoutId = setTimeout(() => {
         // Get navbar height - it's fixed at the top
         const navbar = document.querySelector('nav[class*="fixed"]') as HTMLElement
-        const navbarHeight = navbar?.offsetHeight || 96 // fallback to 96px
+        const navbarHeight = navbar?.offsetHeight || 56 // fallback to 56px
 
         // Set CSS custom property for navbar height
         document.documentElement.style.setProperty('--navbar-height', `${navbarHeight}px`)
@@ -99,10 +99,15 @@ export default function Home() {
     checkMobile()
     window.addEventListener('resize', checkMobile)
 
-    // Load sidebar state from localStorage
+    // Load sidebar state from localStorage after hydration
     const savedCollapsed = localStorage.getItem('dashboard-sidebar-collapsed')
     if (savedCollapsed) {
-      setSidebarCollapsed(JSON.parse(savedCollapsed))
+      try {
+        setSidebarCollapsed(JSON.parse(savedCollapsed))
+      } catch (error) {
+        console.warn('Failed to parse sidebar state:', error)
+        setSidebarCollapsed(false)
+      }
     }
     
     return () => window.removeEventListener('resize', checkMobile)
@@ -156,8 +161,8 @@ export default function Home() {
             isMobile ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-64"
           )}
           style={{ 
-            paddingTop: `var(--navbar-height, 72px)`,
-            minHeight: `calc(100vh - var(--navbar-height, 72px))`
+            paddingTop: `var(--navbar-height, 56px)`,
+            minHeight: `calc(100vh - var(--navbar-height, 56px))`
           }}
         >
           <div className="flex flex-1 flex-col w-full px-4 py-6">

@@ -246,40 +246,86 @@ function getSystemPromptForSection(section: string, locale: string, timezone: st
 
 export async function POST(req: NextRequest) {
   try {
-    const { section, username, locale, timezone } = await req.json();
-    
-    // Add debugging to see what locale is being received
-    console.log('Analysis API received:', { section, username, locale, timezone });
-    
-    // Validate the request
-    const validatedData = analysisSchema.parse({ section, username, locale, timezone });
-    console.log('Validated data:', validatedData);
+    // Add request timeout handling
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 second timeout (less than maxDuration)
 
-    const result = streamText({
-      model: openai("gpt-4o-mini"),
-      system: getSystemPromptForSection(validatedData.section, validatedData.locale, validatedData.timezone),
-      toolCallStreaming: true,
-      messages: [
-        {
-          role: "user",
-          content: `Analyze my ${validatedData.section} trading performance and provide detailed insights in ${validatedData.locale} language.`
-        }
-      ],
-      maxSteps: 5,
-      tools: getToolsForSection(validatedData.section),
-    });
+    try {
+      const { section, username, locale, timezone } = await req.json();
+      
+      // Add debugging to see what locale is being received
+      console.log('Analysis API received:', { section, username, locale, timezone });
+      
+      // Validate the request
+      const validatedData = analysisSchema.parse({ section, username, locale, timezone });
+      console.log('Validated data:', validatedData);
 
-    return result.toDataStreamResponse();
+      const result = streamText({
+        model: openai("gpt-4o-mini"),
+        system: getSystemPromptForSection(validatedData.section, validatedData.locale, validatedData.timezone),
+        toolCallStreaming: true,
+        messages: [
+          {
+            role: "user",
+            content: `Analyze my ${validatedData.section} trading performance and provide detailed insights in ${validatedData.locale} language.`
+          }
+        ],
+        maxSteps: 5,
+        tools: getToolsForSection(validatedData.section),
+        abortSignal: controller.signal,
+      });
+
+      clearTimeout(timeoutId)
+      return result.toDataStreamResponse();
+    } catch (timeoutError) {
+      clearTimeout(timeoutId)
+      if (timeoutError.name === 'AbortError') {
+        console.error("Analysis request timed out");
+        return new Response(JSON.stringify({ 
+          error: "Request timed out. Please try again.",
+          code: "TIMEOUT"
+        }), {
+          status: 408,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      throw timeoutError
+    }
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return new Response(JSON.stringify({ error: error.errors }), {
+      console.error("Validation error:", error.errors);
+      return new Response(JSON.stringify({ 
+        error: "Invalid request parameters", 
+        details: error.errors,
+        code: "VALIDATION_ERROR"
+      }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
+    
     console.error("Error in analysis route:", error);
-    return new Response(JSON.stringify({ error: "Failed to process analysis" }), {
-      status: 500,
+    
+    // Provide more specific error messages
+    let errorMessage = "Failed to process analysis"
+    let statusCode = 500
+    
+    if (error.message?.includes('OpenAI')) {
+      errorMessage = "AI service temporarily unavailable. Please try again."
+      statusCode = 503
+    } else if (error.message?.includes('rate limit')) {
+      errorMessage = "Too many requests. Please wait a moment and try again."
+      statusCode = 429
+    } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+      errorMessage = "Network error. Please check your connection and try again."
+      statusCode = 502
+    }
+    
+    return new Response(JSON.stringify({ 
+      error: errorMessage,
+      code: "SERVER_ERROR"
+    }), {
+      status: statusCode,
       headers: { "Content-Type": "application/json" },
     });
   }

@@ -134,7 +134,7 @@ export function AnalysisOverview() {
     clearCache()
   }, [hasAnyLoading, clearCache])
 
-  const handleAnalyzeAllSections = useCallback(() => {
+  const handleAnalyzeAllSections = useCallback(async () => {
     if (checkRateLimit()) {
       setIsRateLimited(true)
       return
@@ -143,9 +143,20 @@ export function AnalysisOverview() {
     console.log('Starting analysis for all sections')
     setLastRequestTime(Date.now())
     
-    // Use the analyzeAllSections function from the hook
-    analyzeAllSections(currentLocale, timezone)
-  }, [checkRateLimit, currentLocale, analyzeAllSections, timezone])
+    // Use direct API calls for better error handling
+    const sections: ('global' | 'instrument' | 'accounts' | 'timeOfDay')[] = ['global', 'instrument', 'accounts', 'timeOfDay']
+    
+    for (const section of sections) {
+      await analyzeSectionDirect(section, currentLocale, timezone)
+      // Small delay between requests to avoid overwhelming the API
+      await new Promise(resolve => setTimeout(resolve, 1000))
+    }
+  }, [checkRateLimit, analyzeSectionDirect, currentLocale, timezone])
+
+  const handleRetrySection = useCallback(async (sectionKey: 'global' | 'instrument' | 'accounts' | 'timeOfDay') => {
+    console.log(`Retrying analysis for ${sectionKey}`)
+    await analyzeSectionDirect(sectionKey, currentLocale, timezone)
+  }, [analyzeSectionDirect, currentLocale, timezone])
   
 
 
@@ -299,6 +310,18 @@ export function AnalysisOverview() {
                     <p className="text-muted-foreground mb-4">
                       {error[config.key] || t('analysis.noData')}
                     </p>
+                    {error[config.key] && (
+                      <Button 
+                        onClick={() => handleRetrySection(config.key)}
+                        variant="outline"
+                        size="sm"
+                        disabled={isCurrentlyLoading}
+                        className="mt-2"
+                      >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${isCurrentlyLoading ? 'animate-spin' : ''}`} />
+                        {t('analysis.retry')}
+                      </Button>
+                    )}
                   </div>
                 )}
               </CardContent>

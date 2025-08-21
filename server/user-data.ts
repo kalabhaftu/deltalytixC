@@ -168,6 +168,22 @@ export async function getDashboardLayout(userId: string): Promise<DashboardLayou
     })
   } catch (error) {
     if (error instanceof Error) {
+      // Handle prepared statement errors (common with Turbopack)
+      if (error.message.includes('prepared statement') && error.message.includes('already exists')) {
+        console.log('[getDashboardLayout] Prepared statement error (Turbopack), retrying...')
+        // Disconnect and reconnect to clear prepared statements
+        await prisma.$disconnect()
+        try {
+          return await prisma.dashboardLayout.findUnique({
+            where: {
+              userId: userId
+            }
+          })
+        } catch (retryError) {
+          console.error('[getDashboardLayout] Retry failed:', retryError)
+          return null
+        }
+      }
       // Handle table doesn't exist error
       if (error.message.includes('does not exist')) {
         console.log('[getDashboardLayout] DashboardLayout table does not exist yet, returning null')

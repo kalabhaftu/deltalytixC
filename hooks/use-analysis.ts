@@ -42,7 +42,7 @@ export function useAnalysis() {
       } catch (parseError) {
         console.error('Failed to parse analysis response:', parseError)
         const section = currentSectionRef.current || 'global'
-        setError(section, 'Failed to parse analysis response')
+        setError(section, 'Failed to parse analysis response. Please try again.')
         setLoading(section, false)
         currentSectionRef.current = null
       }
@@ -50,7 +50,23 @@ export function useAnalysis() {
     onError: (error) => {
       console.error('Analysis completion error:', error)
       const section = currentSectionRef.current || 'global'
-      setError(section, error.message || 'Analysis failed')
+      
+      // Provide more user-friendly error messages
+      let errorMessage = 'Network error occurred. Please check your connection and try again.'
+      
+      if (error.message.includes('fetch')) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection.'
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Request timed out. Please try again.'
+      } else if (error.message.includes('400')) {
+        errorMessage = 'Invalid request. Please refresh the page and try again.'
+      } else if (error.message.includes('500')) {
+        errorMessage = 'Server error. Please try again in a few moments.'
+      } else if (error.message.includes('TypeError')) {
+        errorMessage = 'Connection error. Please refresh the page and try again.'
+      }
+      
+      setError(section, errorMessage)
       setLoading(section, false)
       currentSectionRef.current = null
     }
@@ -95,13 +111,20 @@ export function useAnalysis() {
     }
   }, [complete, setLoading, setError, getSectionData])
 
-  // New function for parallel analysis using direct API calls
-  const analyzeSectionDirect = useCallback(async (section: AnalysisSection, locale: string = 'en', timezone: string = 'UTC') => {
+  // Enhanced function with retry logic and better error handling
+  const analyzeSectionDirect = useCallback(async (section: AnalysisSection, locale: string = 'en', timezone: string = 'UTC', retryCount = 0) => {
+    const maxRetries = 3
+    const retryDelay = (attempt: number) => Math.min(1000 * Math.pow(2, attempt), 10000) // Exponential backoff
+
     // Set loading state first
     setLoading(section, true)
     setError(section, null)
 
     try {
+      // Create AbortController for timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
       // Make direct API call instead of using useCompletion
       const response = await fetch('/api/ai/analysis', {
         method: 'POST',
@@ -112,40 +135,97 @@ export function useAnalysis() {
           section,
           locale,
           timezone
-        })
+        }),
+        signal: controller.signal
       })
 
+      clearTimeout(timeoutId)
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        let errorMessage = `HTTP error! status: ${response.status}`
+        
+        if (response.status === 400) {
+          errorMessage = 'Invalid request parameters. Please refresh and try again.'
+        } else if (response.status === 401) {
+          errorMessage = 'Authentication required. Please log in again.'
+        } else if (response.status === 403) {
+          errorMessage = 'Access denied. Please check your permissions.'
+        } else if (response.status === 429) {
+          errorMessage = 'Too many requests. Please wait a moment and try again.'
+        } else if (response.status >= 500) {
+          errorMessage = 'Server error. Please try again in a few moments.'
+        }
+        
+        throw new Error(errorMessage)
       }
 
       const reader = response.body?.getReader()
       if (!reader) {
-        throw new Error('No response body')
+        throw new Error('No response body received from server')
       }
 
       let result = ''
       const decoder = new TextDecoder()
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        
-        const chunk = decoder.decode(value)
-        result += chunk
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          
+          const chunk = decoder.decode(value, { stream: true })
+          result += chunk
+        }
+      } catch (streamError) {
+        throw new Error('Error reading response stream')
       }
 
       // Parse the result
       try {
-        const parsedData = JSON.parse(result)
+        // Clean the result - sometimes streaming responses have extra data
+        const cleanResult = result.replace(/^data: /, '').trim()
+        const parsedData = JSON.parse(cleanResult)
         setSectionData(section, parsedData)
       } catch (parseError) {
         console.error(`Failed to parse analysis response for ${section}:`, parseError)
-        setError(section, 'Failed to parse analysis response')
+        console.error('Raw response:', result)
+        throw new Error('Failed to parse server response. Please try again.')
       }
     } catch (error) {
-      console.error(`Error analyzing ${section}:`, error)
-      setError(section, error instanceof Error ? error.message : 'Analysis failed')
+      console.error(`Error analyzing ${section} (attempt ${retryCount + 1}):`, error)
+      
+      // Handle different error types
+      let errorMessage = 'Analysis failed. Please try again.'
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timed out. Please try again.'
+        } else if (error.message.includes('fetch')) {
+          errorMessage = 'Network connection error. Please check your internet connection.'
+        } else if (error.message.includes('TypeError')) {
+          errorMessage = 'Connection error. Please refresh the page and try again.'
+        } else {
+          errorMessage = error.message
+        }
+      }
+
+      // Retry logic for network errors
+      if (retryCount < maxRetries && 
+          (error instanceof Error && 
+           (error.name === 'AbortError' || 
+            error.message.includes('fetch') || 
+            error.message.includes('Network') ||
+            error.message.includes('HTTP error! status: 5')))) {
+        
+        console.log(`Retrying ${section} analysis in ${retryDelay(retryCount)}ms...`)
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryDelay(retryCount)))
+        
+        // Recursive retry
+        return analyzeSectionDirect(section, locale, timezone, retryCount + 1)
+      }
+      
+      setError(section, errorMessage)
     } finally {
       setLoading(section, false)
     }

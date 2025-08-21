@@ -22,11 +22,8 @@ import {
   Sun, 
   Laptop,
   Clock,
-  CreditCard,
   Database,
-  LifeBuoy,
-  LogOut,
-  Building2
+  LogOut
 } from "lucide-react"
 import { signOut } from "@/server/auth"
 import Link from 'next/link'
@@ -42,19 +39,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Slider } from "@/components/ui/slider"
-import { createBusiness, joinBusiness, leaveBusiness, getUserBusinesses } from './actions'
-import { toast } from "sonner"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { LinkedAccounts } from "@/components/linked-accounts"
 
 
@@ -85,11 +69,7 @@ export default function SettingsPage() {
   const [tradingAlerts, setTradingAlerts] = useState(true)
   const [weeklyReports, setWeeklyReports] = useState(true)
   
-  // Business state
-  const [userBusinesses, setUserBusinesses] = useState<{
-    ownedBusinesses: any[]
-    joinedBusinesses: any[]
-  }>({ ownedBusinesses: [], joinedBusinesses: [] })
+
 
 
 
@@ -107,38 +87,7 @@ export default function SettingsPage() {
     return <Laptop className="h-4 w-4" />;
   };
 
-  // Load user businesses on component mount
-  useEffect(() => {
-    const loadBusinesses = async () => {
-      const result = await getUserBusinesses()
-      if (result.success && result.ownedBusinesses && result.joinedBusinesses) {
-        setUserBusinesses({
-          ownedBusinesses: result.ownedBusinesses,
-          joinedBusinesses: result.joinedBusinesses,
-        })
-      }
-    }
-    loadBusinesses()
-  }, [])
 
-
-
-  const handleLeaveBusiness = async (businessId: string) => {
-    const result = await leaveBusiness(businessId)
-    if (result.success) {
-      toast.success(t('dashboard.business.leaveSuccess'))
-      // Reload businesses
-      const updatedBusinesses = await getUserBusinesses()
-      if (updatedBusinesses.success && updatedBusinesses.ownedBusinesses && updatedBusinesses.joinedBusinesses) {
-        setUserBusinesses({
-          ownedBusinesses: updatedBusinesses.ownedBusinesses,
-          joinedBusinesses: updatedBusinesses.joinedBusinesses,
-        })
-      }
-    } else {
-      toast.error(result.error || t('dashboard.business.error'))
-    }
-  }
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -360,105 +309,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Business Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Business
-            </CardTitle>
-            <CardDescription>
-              Manage your business connections
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
 
-            {/* Current Businesses */}
-            {(userBusinesses.ownedBusinesses.length > 0 || userBusinesses.joinedBusinesses.length > 0) && (
-              <div>
-                <Label className="text-base font-medium">Current Businesses</Label>
-                <div className="mt-2 space-y-2">
-                  {/* Owned Businesses */}
-                  {userBusinesses.ownedBusinesses.map((business) => (
-                    <div key={business.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{business.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {business.traderIds.length} traders
-                        </p>
-                      </div>
-                      <Badge variant="secondary">Owner</Badge>
-                    </div>
-                  ))}
-                  
-                  {/* Joined Businesses */}
-                  {userBusinesses.joinedBusinesses.map((business) => (
-                    <div key={business.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{business.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {business.traderIds.length} traders
-                        </p>
-                      </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            Leave Business
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Leave Business</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to leave this business?
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleLeaveBusiness(business.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Leave Business
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* No Businesses */}
-            {userBusinesses.ownedBusinesses.length === 0 && userBusinesses.joinedBusinesses.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>No business linked</p>
-                <p className="text-sm mt-2">Contact your business administrator to get an invitation to join a business.</p>
-                <div className="mt-4">
-                  <Link href="/business/manage">
-                    <Button>
-                      <Building2 className="mr-2 h-4 w-4" />
-                      Manage Businesses
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            {/* Business Management Link */}
-            {(userBusinesses.ownedBusinesses.length > 0 || userBusinesses.joinedBusinesses.length > 0) && (
-              <div className="mt-4">
-                <Link href="/business/manage">
-                  <Button variant="outline" className="w-full">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Manage Businesses
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Linked Accounts Section */}
         <LinkedAccounts />
@@ -476,24 +327,14 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4">
-              <Link href="/dashboard/billing">
-                <Button variant="outline" className="w-full justify-start">
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Billing & Subscription
-                </Button>
-              </Link>
+
               <Link href="/dashboard/data">
                 <Button variant="outline" className="w-full justify-start">
                   <Database className="mr-2 h-4 w-4" />
                   Data Management
                 </Button>
               </Link>
-              <Link href="/support">
-                <Button variant="outline" className="w-full justify-start">
-                  <LifeBuoy className="mr-2 h-4 w-4" />
-                  Support & Help
-                </Button>
-              </Link>
+
               <Separator />
               <Button 
                 variant="destructive" 

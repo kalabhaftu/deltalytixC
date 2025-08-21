@@ -81,6 +81,15 @@ export default function TradeDistributionChart({ size = 'medium' }: TradeDistrib
     ]
   }, [nbWin, nbLoss, nbBe, nbTrades, t])
 
+  // Calculate dynamic radius based on container size
+  const getRadius = React.useMemo(() => {
+    // Always use percentage-based sizing for better containment
+    return {
+      inner: size === 'small-long' ? '45%' : '50%',
+      outer: size === 'small-long' ? '65%' : '70%'
+    }
+  }, [size])
+
   const renderColorfulLegendText = (value: string, entry: any) => {
     return <span className="text-xs text-muted-foreground">{value}</span>;
   }
@@ -125,15 +134,15 @@ export default function TradeDistributionChart({ size = 'medium' }: TradeDistrib
           size === 'small-long' ? "p-1" : "p-2 sm:p-4"
         )}
       >
-        <div className="w-full h-full">
+        <div className="w-full h-full min-h-[240px]">
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
+            <PieChart margin={{ top: 20, right: 20, bottom: 40, left: 20 }}>
               <Pie
                 data={chartData}
                 cx="50%"
                 cy="45%"
-                innerRadius={size === 'small-long' ? "60%" : "65%"}
-                outerRadius={size === 'small-long' ? "80%" : "85%"}
+                innerRadius={getRadius.inner}
+                outerRadius={getRadius.outer}
                 paddingAngle={2}
                 dataKey="value"
                 startAngle={90}
@@ -157,8 +166,8 @@ export default function TradeDistributionChart({ size = 'medium' }: TradeDistrib
                     const cx = viewBox.cx;
                     const cy = viewBox.cy;
 
-                    // Use a percentage of the distance from center to edge for label positioning
-                    const labelRadius = Math.min(cx, cy) * (size === 'small-long' ? 0.95 : 1.1); // Position labels at 95% or 100% of available space
+                    // Use percentage-based label positioning
+                    const labelRadius = Math.min(cx, cy) * 0.85; // Position labels at 85% of available radius
 
                     return chartData.map((entry, index) => {
                       const angle = -90 + (360 * (entry.value / 100) / 2) + (360 * chartData.slice(0, index).reduce((acc, curr) => acc + curr.value, 0) / 100);

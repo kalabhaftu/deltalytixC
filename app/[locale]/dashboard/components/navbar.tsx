@@ -3,15 +3,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useData } from "@/context/data-provider"
-import { LifeBuoy, CreditCard, Database, LogOut, Globe, LayoutDashboard, HelpCircle, Clock, RefreshCw, Home, Moon, Sun, Laptop, Settings } from "lucide-react"
+import { Database, LogOut, Globe, LayoutDashboard, HelpCircle, Clock, RefreshCw, Home, Moon, Sun, Laptop, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
@@ -26,7 +24,7 @@ import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts'
 import DateCalendarFilter from './filters/date-calendar-filter'
 import { ActiveFilterTags } from './filters/active-filter-tags'
 import { AnimatePresence } from 'framer-motion'
-import { ScrollArea } from "@/components/ui/scroll-area"
+
 import {
   Popover,
   PopoverContent,
@@ -43,18 +41,7 @@ import { useUserStore } from '../../../../store/user-store'
 
 
 
-// Add timezone list
-const timezones = [
-  'UTC',
-  'Europe/Paris',
-  'America/New_York',
-  'America/Chicago',
-  'America/Los_Angeles',
-  'Asia/Tokyo',
-  'Asia/Shanghai',
-  'Australia/Sydney',
-  // Add more common timezones as needed
-];
+
 
 export default function Navbar() {
   const  user = useUserStore(state => state.supabaseUser)
@@ -67,8 +54,7 @@ export default function Navbar() {
   const usersIconRef = useRef<UsersIconHandle>(null)
   const { accountGroupBoardOpen } = useModalStateStore()
   const [accountFilterOpen, setAccountFilterOpen] = useState(false)
-  const timezone = useUserStore(state => state.timezone)
-  const setTimezone = useUserStore(state => state.setTimezone)
+
   const {refreshTrades} = useData()
 
   // Close account filter when account board is open
@@ -101,8 +87,8 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="fixed py-2 top-0 left-0 right-0 z-50 flex flex-col text-primary bg-background/80 backdrop-blur-md border-b shadow-sm w-screen">
-        <div className="flex items-center justify-between px-10 h-16">
+      <nav className="fixed py-1 top-0 left-0 right-0 z-50 flex flex-col text-primary bg-background/80 backdrop-blur-md border-b shadow-sm w-screen">
+        <div className="flex items-center justify-between px-6 h-12">
           <div className="flex items-center gap-x-2">
             <div className="flex flex-col items-center">
               <Popover open={isLogoPopoverOpen} onOpenChange={setIsLogoPopoverOpen}>
@@ -240,15 +226,7 @@ export default function Navbar() {
                         </div>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard/billing">
-                        <div className="flex w-full">
-                          <CreditCard className="mr-2 h-4 w-4" />
-                          <span>{t('dashboard.billing')}</span>
-                          <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
+
                     <Link href={"/dashboard/data"}>
                       <DropdownMenuItem>
                         <Database className="mr-2 h-4 w-4" />
@@ -261,28 +239,6 @@ export default function Navbar() {
                       <span>{t('dashboard.refreshData')}</span>
                       <DropdownMenuShortcut>⌘R</DropdownMenuShortcut>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <Link href="/support">
-                      <DropdownMenuItem>
-                        <LifeBuoy className="mr-2 h-4 w-4" />
-                        <span>{t('dashboard.support')}</span>
-                      </DropdownMenuItem>
-                    </Link>
-
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="flex items-center">
-                      <Clock className="mr-2 h-4 w-4" />
-                      {t('dashboard.timezone')}
-                    </DropdownMenuLabel>
-                    <ScrollArea className="h-[40px] sm:h-[120px]">
-                      <DropdownMenuRadioGroup value={timezone} onValueChange={setTimezone}>
-                        {timezones.map((tz) => (
-                          <DropdownMenuRadioItem key={tz} value={tz}>
-                            {tz.replace('_', ' ')}
-                          </DropdownMenuRadioItem>
-                        ))}
-                      </DropdownMenuRadioGroup>
-                    </ScrollArea>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => {
                       localStorage.removeItem('deltalytix_user_data')

@@ -61,20 +61,24 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
   const t = useI18n()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [isHydrated, setIsHydrated] = useState(false)
 
-  // Load saved state from localStorage
+  // Load saved state from localStorage after hydration
   useEffect(() => {
     const savedState = localStorage.getItem('dashboard-sidebar-collapsed')
     if (savedState) {
       setIsCollapsed(JSON.parse(savedState))
     }
+    setIsHydrated(true)
   }, [])
 
-  // Save state to localStorage and notify parent
+  // Save state to localStorage and notify parent (only after hydration)
   useEffect(() => {
-    localStorage.setItem('dashboard-sidebar-collapsed', JSON.stringify(isCollapsed))
-    onCollapsedChange?.(isCollapsed)
-  }, [isCollapsed, onCollapsedChange])
+    if (isHydrated) {
+      localStorage.setItem('dashboard-sidebar-collapsed', JSON.stringify(isCollapsed))
+      onCollapsedChange?.(isCollapsed)
+    }
+  }, [isCollapsed, onCollapsedChange, isHydrated])
 
   // Check if mobile
   useEffect(() => {
@@ -183,12 +187,13 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
     <div
       className={cn(
         "fixed left-0 top-0 z-30 h-full bg-background border-r transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-16" : "w-64",
+        // Prevent layout shift during hydration
+        !isHydrated ? "w-64" : isCollapsed ? "w-16" : "w-64",
         className
       )}
       style={{ 
-        top: 'var(--navbar-height, 72px)',
-        height: 'calc(100vh - var(--navbar-height, 72px))'
+        top: 'var(--navbar-height, 56px)',
+        height: 'calc(100vh - var(--navbar-height, 56px))'
       }}
     >
       <NavigationContent />
