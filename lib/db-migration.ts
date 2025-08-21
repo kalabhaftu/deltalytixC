@@ -21,11 +21,8 @@ export async function ensureDatabaseSchema() {
       console.log('[DB Migration] Adding missing image columns...')
       
       try {
-        await prisma.$executeRaw`
-          ALTER TABLE "Trade" 
-          ADD COLUMN IF NOT EXISTS "imageBase64Third" TEXT,
-          ADD COLUMN IF NOT EXISTS "imageBase64Fourth" TEXT;
-        `
+              await prisma.$executeRaw`ALTER TABLE "Trade" ADD COLUMN IF NOT EXISTS "imageBase64Third" TEXT`
+      await prisma.$executeRaw`ALTER TABLE "Trade" ADD COLUMN IF NOT EXISTS "imageBase64Fourth" TEXT`
         console.log('[DB Migration] Successfully added image columns')
       } catch (alterError) {
         console.warn('[DB Migration] Failed to add columns, but continuing:', alterError)
@@ -71,13 +68,11 @@ async function ensureAuditTables() {
         );
       `
       
-      // Add indexes
-      await prisma.$executeRaw`
-        CREATE INDEX IF NOT EXISTS "AuditLog_userId_idx" ON "AuditLog"("userId");
-        CREATE INDEX IF NOT EXISTS "AuditLog_action_idx" ON "AuditLog"("action");
-        CREATE INDEX IF NOT EXISTS "AuditLog_timestamp_idx" ON "AuditLog"("timestamp");
-        CREATE INDEX IF NOT EXISTS "AuditLog_riskLevel_idx" ON "AuditLog"("riskLevel");
-      `
+      // Add indexes one by one
+      await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "AuditLog_userId_idx" ON "AuditLog"("userId")`
+      await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "AuditLog_action_idx" ON "AuditLog"("action")`
+      await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "AuditLog_timestamp_idx" ON "AuditLog"("timestamp")`
+      await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "AuditLog_riskLevel_idx" ON "AuditLog"("riskLevel")`
     }
 
     // Check if SecurityEvent table exists
@@ -104,14 +99,12 @@ async function ensureAuditTables() {
         );
       `
       
-      // Add indexes
-      await prisma.$executeRaw`
-        CREATE INDEX IF NOT EXISTS "SecurityEvent_type_idx" ON "SecurityEvent"("type");
-        CREATE INDEX IF NOT EXISTS "SecurityEvent_severity_idx" ON "SecurityEvent"("severity");
-        CREATE INDEX IF NOT EXISTS "SecurityEvent_source_idx" ON "SecurityEvent"("source");
-        CREATE INDEX IF NOT EXISTS "SecurityEvent_createdAt_idx" ON "SecurityEvent"("createdAt");
-        CREATE INDEX IF NOT EXISTS "SecurityEvent_resolved_idx" ON "SecurityEvent"("resolved");
-      `
+      // Add indexes one by one
+      await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "SecurityEvent_type_idx" ON "SecurityEvent"("type")`
+      await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "SecurityEvent_severity_idx" ON "SecurityEvent"("severity")`
+      await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "SecurityEvent_source_idx" ON "SecurityEvent"("source")`
+      await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "SecurityEvent_createdAt_idx" ON "SecurityEvent"("createdAt")`
+      await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "SecurityEvent_resolved_idx" ON "SecurityEvent"("resolved")`
     }
 
     // Check and add 2FA columns to User table
@@ -124,16 +117,13 @@ async function ensureAuditTables() {
 
     if (userColumns.length < 5) {
       console.log('[DB Migration] Adding 2FA columns to User table...')
-      await prisma.$executeRaw`
-        ALTER TABLE "User" 
-        ADD COLUMN IF NOT EXISTS "twoFactorSecret" TEXT,
-        ADD COLUMN IF NOT EXISTS "twoFactorEnabled" BOOLEAN DEFAULT false,
-        ADD COLUMN IF NOT EXISTS "lastLoginAt" TIMESTAMP,
-        ADD COLUMN IF NOT EXISTS "loginAttempts" INTEGER DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS "lockedUntil" TIMESTAMP,
-        ADD COLUMN IF NOT EXISTS "timezone" TEXT DEFAULT 'UTC',
-        ADD COLUMN IF NOT EXISTS "theme" TEXT DEFAULT 'system';
-      `
+      await prisma.$executeRaw`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "twoFactorSecret" TEXT`
+      await prisma.$executeRaw`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "twoFactorEnabled" BOOLEAN DEFAULT false`
+      await prisma.$executeRaw`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lastLoginAt" TIMESTAMP`
+      await prisma.$executeRaw`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "loginAttempts" INTEGER DEFAULT 0`
+      await prisma.$executeRaw`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lockedUntil" TIMESTAMP`
+      await prisma.$executeRaw`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "timezone" TEXT DEFAULT 'UTC'`
+      await prisma.$executeRaw`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "theme" TEXT DEFAULT 'system'`
     }
 
     console.log('[DB Migration] Audit tables ensured')

@@ -90,8 +90,8 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
           tags: cleanTrade.tags || [],
                   imageBase64: cleanTrade.imageBase64 || null,
         imageBase64Second: cleanTrade.imageBase64Second || null,
-        // Temporarily omitting imageBase64Third and imageBase64Fourth
-        // These will be automatically added by the database migration system
+        imageBase64Third: (cleanTrade as any).imageBase64Third || null,
+        imageBase64Fourth: (cleanTrade as any).imageBase64Fourth || null,
           groupId: cleanTrade.groupId || null,
           createdAt: cleanTrade.createdAt || new Date(),
         } as Trade
