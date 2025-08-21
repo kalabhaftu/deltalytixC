@@ -216,7 +216,7 @@ export default function FileUpload({
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{file.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {t('import.upload.fileSize', { size: (file.size / 1024).toFixed(1) })}
+                    {`${(file.size / 1024).toFixed(1)} KB`}
                   </span>
                 </div>
               </div>

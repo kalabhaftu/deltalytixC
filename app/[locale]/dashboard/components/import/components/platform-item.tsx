@@ -79,7 +79,7 @@ export function PlatformItem({
             {!platform.isDisabled && platform.isRithmic && isWeekend && (
               <div className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-500/20 gap-1.5 ml-2">
                 <AlertTriangle className="h-3 w-3" />
-                {t('import.type.rithmicWeekendWarning')}
+                Weekend Data Warning
               </div>
             )}
           </div>

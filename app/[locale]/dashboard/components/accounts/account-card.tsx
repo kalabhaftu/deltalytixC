@@ -132,7 +132,7 @@ export function AccountCard({ account, trades, allTrades, metrics, onClick, size
 
                 <div className="flex w-full justify-between min-w-0">
                   <span className="truncate">{account.propfirm || t('propFirm.card.unnamedAccount')}</span>
-                  {
+                  {/* TODO: Add nextPaymentDate field to Account model when payment scheduling is implemented
                     account.nextPaymentDate && (
                       <div className={cn(
                         "self-center ml-2 flex-shrink-0",
@@ -143,7 +143,7 @@ export function AccountCard({ account, trades, allTrades, metrics, onClick, size
                         {t('propFirm.card.daysBeforeNextPayment')}
                       </div>
                     )
-                  }
+                  */}
                 </div>
               </CardTitle>
               <p className={cn(

@@ -160,10 +160,10 @@ export default function ImportButton() {
             description: t('import.error.noTradesAddedDescription'),
             variant: "destructive",
           })
-        } else if (result.error === "DATABASE_CONNECTION_ERROR") {
+        } else if (result.error === "DATABASE_ERROR") {
           toast({
-            title: t('import.error.databaseConnectionError'),
-            description: result.details || t('import.error.databaseConnectionErrorDescription'),
+            title: "Database Error",
+            description: (result.details as string) || "A database error occurred during import",
             variant: "destructive",
           })
         } else {
@@ -184,7 +184,7 @@ export default function ImportButton() {
       setIsOpen(false)
       toast({
         title: t('import.success'),
-        description: t('import.successDescription', { numberOfTradesAdded: result.numberOfTradesAdded }),
+        description: `Successfully imported ${result.numberOfTradesAdded} trades`,
       })
       // Reset the import process
       resetImportState()
@@ -419,10 +419,10 @@ export default function ImportButton() {
       </Button>
       
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="flex flex-col max-w-[80vw] h-[80vh] p-0">
+        <DialogContent className="flex flex-col max-w-[85vw] h-[85vh] p-0">
           <ImportDialogHeader step={step} importType={importType} />
           
-          <div className="flex-1 overflow-hidden p-6">
+          <div className="flex-1 overflow-hidden">
             {renderStep()}
           </div>
 

@@ -104,7 +104,7 @@ export async function deleteTagFromAllTrades(tag: string) {
 export async function updateTradeImage(
   tradeIds: string[], 
   imageData: string | null, 
-  field: 'imageBase64' | 'imageBase64Second' = 'imageBase64'
+  field: 'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth' = 'imageBase64'
 ) {
   console.log('Updating trade image:', tradeIds)
   try {

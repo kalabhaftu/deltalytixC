@@ -397,6 +397,7 @@ export function AccountConfigurator({
 
               {/* Payment & Renewal Section */}
               <div className="flex flex-col gap-4">
+                {/* TODO: Uncomment when nextPaymentDate field is added to Account model
                 <div className="flex flex-col gap-2">
                   <Label className="text-sm text-muted-foreground">{t('propFirm.configurator.fields.nextPaymentDate')}</Label>
                   <Dialog open={paymentCalendarOpen} onOpenChange={setPaymentCalendarOpen}>
@@ -481,7 +482,9 @@ export function AccountConfigurator({
                     </p>
                   )}
                 </div>
+                */}
 
+                {/* TODO: Uncomment when paymentFrequency field is added to Account model
                 <div className="flex flex-col gap-2">
                   <Label className="text-sm text-muted-foreground">{t('propFirm.configurator.fields.paymentFrequency')}</Label>
                   <Select
@@ -500,7 +503,9 @@ export function AccountConfigurator({
                     </SelectContent>
                   </Select>
                 </div>
+                */}
 
+                {/* TODO: Uncomment when autoRenewal and renewalNotification fields are added to Account model
                 <div className="flex flex-col gap-2">
                   <Label className="text-sm text-muted-foreground">{t('propFirm.configurator.fields.renewalNotification')}</Label>
                   <div className="flex items-center space-x-2">
@@ -525,6 +530,7 @@ export function AccountConfigurator({
                     </p>
                   )}
                 </div>
+                */}
               </div>
 
               {/* Payout Section */}

@@ -5,6 +5,7 @@ import { Trade } from '@prisma/client'
 import { Button } from "@/components/ui/button"
 import { formatInTimeZone } from 'date-fns-tz'
 import { useUserStore } from '../../../../../../store/user-store'
+import { v4 as uuidv4 } from 'uuid'
 
 interface TopstepProcessorProps {
     headers: string[];
@@ -29,6 +30,8 @@ const mappings: { [key: string]: string } = {
 export default function TopstepProcessor({ headers, csvData, setProcessedTrades, accountNumber }: TopstepProcessorProps) {
     const [trades, setTrades] = useState<Trade[]>([])
     const timezone = useUserStore(state => state.timezone)
+    const user = useUserStore(state => state.user)
+    const supabaseUser = useUserStore(state => state.supabaseUser)
 
     const processTrades = useCallback(() => {
         const newTrades: Trade[] = [];
@@ -156,10 +159,40 @@ export default function TopstepProcessor({ headers, csvData, setProcessedTrades,
 
             // Only add valid trades
             if (isValidTrade) {
-                item.userId = '';
-                item.accountNumber = accountNumber;
-                item.id = `${item.entryId}-${item.closeId}`;
-                newTrades.push(item as Trade);
+                const currentUser = user || supabaseUser
+                if (!currentUser?.id) {
+                    return
+                }
+
+                // Create complete Trade object with all required fields
+                const completeTrade: Trade = {
+                    id: uuidv4(),
+                    accountNumber,
+                    quantity: item.quantity || 0,
+                    entryId: item.entryId || null,
+                    closeId: item.closeId || null,
+                    instrument: item.instrument || '',
+                    entryPrice: item.entryPrice || '',
+                    closePrice: item.closePrice || '',
+                    entryDate: item.entryDate || '',
+                    closeDate: item.closeDate || '',
+                    pnl: item.pnl || 0,
+                    timeInPosition: item.timeInPosition || 0,
+                    userId: currentUser.id,
+                    side: item.side || '',
+                    commission: item.commission || 0,
+                    createdAt: new Date(),
+                    comment: null,
+                    videoUrl: null,
+                    tags: [],
+                    imageBase64: null,
+                    imageBase64Second: null,
+                    imageBase64Third: null,
+                    imageBase64Fourth: null,
+                    groupId: null,
+                }
+                
+                newTrades.push(completeTrade);
             }
         });
 
@@ -173,7 +206,7 @@ export default function TopstepProcessor({ headers, csvData, setProcessedTrades,
 
         setTrades(newTrades);
         setProcessedTrades(newTrades);
-    }, [csvData, headers, setProcessedTrades, accountNumber]);
+    }, [csvData, headers, setProcessedTrades, accountNumber, user, supabaseUser]);
 
     useEffect(() => {
         processTrades();

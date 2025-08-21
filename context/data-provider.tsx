@@ -868,7 +868,7 @@ export const DataProvider: React.FC<{
     } finally {
       setIsLoading(false);
     }
-  }, [isSharedView, params?.slug, timezone, supabaseUser, isLoading, setIsLoading, user]);
+  }, [isSharedView, adminView?.userId]); // Simplified dependencies to prevent unnecessary re-renders
 
   // Load data on mount and when isSharedView changes
   useEffect(() => {

@@ -2,7 +2,7 @@ import { Inter } from 'next/font/google'
 
 export const inter = Inter({
   subsets: ['latin'],
-  display: 'swap',
+  display: 'optional', // Changed from 'swap' to 'optional' for better fallback handling
   variable: '--font-inter',
   // Fallback fonts for when Google Fonts fails to load
   fallback: [
@@ -19,7 +19,7 @@ export const inter = Inter({
     'sans-serif'
   ],
   // Preload for better performance
-  preload: true,
+  preload: false, // Changed to false to reduce connection attempts
   // Adjust for better rendering
   adjustFontFallback: true,
 })

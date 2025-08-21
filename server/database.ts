@@ -90,6 +90,8 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
           tags: cleanTrade.tags || [],
           imageBase64: cleanTrade.imageBase64 || null,
           imageBase64Second: cleanTrade.imageBase64Second || null,
+          imageBase64Third: (cleanTrade as any).imageBase64Third || null,
+          imageBase64Fourth: (cleanTrade as any).imageBase64Fourth || null,
           groupId: cleanTrade.groupId || null,
           createdAt: cleanTrade.createdAt || new Date(),
         } as Trade
@@ -223,7 +225,9 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
     // Per page
     const actualUserId = userId || user?.id
     if (!actualUserId) {
-      console.log('[getTradesAction] No user ID available, returning empty array')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[getTradesAction] No user ID available, returning empty array')
+      }
       return []
     }
     

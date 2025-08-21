@@ -79,6 +79,8 @@ const MatchTraderProcessor = ({
           tags: [],
           imageBase64: null,
           imageBase64Second: null,
+          imageBase64Third: null,
+          imageBase64Fourth: null,
           groupId: null,
         } as Trade
       }).filter(trade => trade !== null) // Remove invalid trades

@@ -228,6 +228,8 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
         videoUrl: null,
         imageBase64: null,
         imageBase64Second: null,
+        imageBase64Third: null,
+        imageBase64Fourth: null,
         groupId: null,
       }
 
@@ -283,21 +285,22 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
   }
 
   return (
-    <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-      <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold">Add Single Trade</h3>
-        <p className="text-sm text-muted-foreground">
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="text-center mb-3 px-6 pt-1">
+        <h3 className="text-base font-semibold">Add Single Trade</h3>
+        <p className="text-xs text-muted-foreground">
           Manually enter a single trade with complete details and analysis
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="flex-1 overflow-y-auto px-6 pb-4">
+        <form id="manual-trade-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Basic Trade Information */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="text-base">Trade Execution</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-0">
             <div className="space-y-2">
               <Label htmlFor="instrument">Instrument *</Label>
               <Controller
@@ -431,10 +434,10 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
 
         {/* Date & Time */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="text-base">Timing</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-0">
             <div className="space-y-2">
               <Label htmlFor="entryDate">Entry Date *</Label>
               <Input
@@ -483,13 +486,13 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
 
         {/* P&L and Commission */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center">
               <Calculator className="w-4 h-4 mr-2" />
               Financial Results
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-0">
             <div className="space-y-2">
               <Label htmlFor="pnl">P&L</Label>
               <Input
@@ -525,10 +528,10 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
 
         {/* Analysis & Context (Optional) */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="text-base">Analysis & Context (Optional)</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-0">
             <div className="space-y-2">
               <Label htmlFor="session">Trading Session</Label>
               <Controller
@@ -617,34 +620,37 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
               />
             </div>
 
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2 md:col-span-2 lg:col-span-4">
               <Label htmlFor="comment">Trade Notes</Label>
               <Textarea
                 placeholder="Analysis, confluence factors, market conditions, lessons learned..."
-                className="min-h-[80px]"
+                className="min-h-[60px]"
                 {...register('comment')}
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Form Actions */}
-        <div className="flex justify-end space-x-3 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setIsOpen(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Adding Trade...' : 'Add Trade'}
-          </Button>
-        </div>
-      </form>
+        </form>
+      </div>
+      
+      {/* Form Actions - Outside form but inside main container */}
+      <div className="flex justify-end space-x-3 bg-background border-t px-6 py-3 mt-auto">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setIsOpen(false)}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          form="manual-trade-form"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Adding Trade...' : 'Add Trade'}
+        </Button>
+      </div>
     </div>
   )
 }

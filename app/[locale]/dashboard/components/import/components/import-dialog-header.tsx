@@ -22,21 +22,21 @@ export function ImportDialogHeader({ step, importType }: ImportDialogHeaderProps
   const totalSteps = platform.steps.length
 
   return (
-    <DialogHeader className="flex-none p-6 border-b space-y-4">
-      <DialogTitle>{t((currentStep?.title || 'import.title') as any, { count: 1 })}</DialogTitle>
-      <DialogDescription className="text-sm text-muted-foreground">
+    <DialogHeader className="flex-none p-4 pb-2 border-b space-y-2">
+      <DialogTitle className="text-base">{t((currentStep?.title || 'import.title') as any, { count: 1 })}</DialogTitle>
+      <DialogDescription className="text-xs text-muted-foreground">
         {t((currentStep?.description || 'import.description') as any, { count: 1 })}
       </DialogDescription>
-      <div className="space-y-2">
-        <div className="w-full bg-secondary h-2 rounded-full">
+      <div className="space-y-1 pt-1">
+        <div className="w-full bg-secondary h-1.5 rounded-full">
           <div 
-            className="bg-primary h-2 rounded-full transition-all duration-300 ease-in-out"
+            className="bg-primary h-1.5 rounded-full transition-all duration-300 ease-in-out"
             style={{ 
               width: `${(currentStepIndex / (totalSteps - 1)) * 100}%`
             }}
           />
         </div>
-        <div className="flex justify-between text-xs text-muted-foreground px-1">
+        <div className="flex justify-between text-[10px] text-muted-foreground px-1">
           {platform.steps.map((s, index) => (
             <div 
               key={s.id}

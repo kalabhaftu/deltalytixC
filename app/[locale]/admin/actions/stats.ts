@@ -100,9 +100,11 @@ export async function getFreeUsers(){
 
   // Get all users who have subscriptions
   console.log('Fetching subscriptions...')
-  const subscribedUsers = await prisma.subscription.findMany({
-    select: { userId: true }
-  })
+  // TODO: Add subscription model to schema when subscription feature is implemented
+  // const subscribedUsers = await prisma.subscription.findMany({
+  //   select: { userId: true }
+  // })
+  const subscribedUsers: { userId: string }[] = [] // Temporary empty array until subscription model is added
   console.log(`Found ${subscribedUsers.length} subscribed users`)
   const subscribedUserIds = new Set(subscribedUsers.map(sub => sub.userId))
 

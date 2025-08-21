@@ -175,11 +175,24 @@ export async function renameAccountAction(oldAccountNumber: string, newAccountNu
 }
 
 export async function deleteTradesByIdsAction(tradeIds: string[]): Promise<void> {
-  await prisma.trade.deleteMany({
-    where: {
-      id: { in: tradeIds }
-    }
-  })
+  try {
+    const userId = await getUserId()
+    const result = await prisma.trade.deleteMany({
+      where: {
+        id: { in: tradeIds },
+        userId: userId // Ensure user can only delete their own trades
+      }
+    })
+    
+    // Invalidate cache to ensure immediate UI updates
+    const { revalidateCache } = await import('@/server/database')
+    await revalidateCache([`trades-${userId}`])
+    
+    console.log(`[deleteTradesByIds] Deleted ${result.count} trades for user ${userId}`)
+  } catch (error) {
+    console.error('[deleteTradesByIds] Error deleting trades:', error)
+    throw error
+  }
 }
 
 export async function setupAccountAction(account: Account) {

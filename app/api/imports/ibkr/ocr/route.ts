@@ -1,4 +1,5 @@
 import { openai } from "@ai-sdk/openai"
+import { getUserId } from "@/server/auth"
 
 export const maxDuration = 60 // Allow up to 60 seconds for AI processing
 
@@ -52,6 +53,15 @@ async function extractTextFromPdf(pdfBuffer: Buffer): Promise<string> {
 
 export async function POST(request: Request) {
   try {
+    // Verify user authentication
+    const userId = await getUserId()
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const json = await request.json()
     const attachment = json.attachments?.[0]
 

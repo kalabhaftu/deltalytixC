@@ -289,12 +289,16 @@ export async function getUserId(): Promise<string> {
   const userIdFromMiddleware = headersList.get("x-user-id")
 
   if (userIdFromMiddleware) {
-    console.log("[Auth] Using user ID from middleware")
+    if (process.env.NODE_ENV === 'development') {
+      console.log("[Auth] Using user ID from middleware")
+    }
     return userIdFromMiddleware
   }
 
   // Fallback to Supabase call (for API routes or edge cases)
-  console.log("[Auth] Fallback to Supabase call")
+  if (process.env.NODE_ENV === 'development') {
+    console.log("[Auth] Fallback to Supabase call")
+  }
   const supabase = await createClient()
   const {
     data: { user },
@@ -311,7 +315,9 @@ export async function getUserId(): Promise<string> {
 export async function getUserEmail(): Promise<string> {
   const headersList = await headers()
   const userEmail = headersList.get("x-user-email")
-  console.log("[Auth] getUserEmail FROM HEADERS", userEmail)
+  if (process.env.NODE_ENV === 'development') {
+    console.log("[Auth] getUserEmail FROM HEADERS", userEmail)
+  }
   return userEmail || ""
 }
 

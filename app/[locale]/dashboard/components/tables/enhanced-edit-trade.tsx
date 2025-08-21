@@ -18,14 +18,15 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { Trade } from '@prisma/client'
-import { Edit, Camera, Plus, X, ExternalLink } from 'lucide-react'
+import { Edit, Camera, X } from 'lucide-react'
 
 // Schema for limited editing (only notes, screenshots, links)
 const editTradeSchema = z.object({
   comment: z.string().optional(),
   imageBase64: z.string().optional(),
   imageBase64Second: z.string().optional(),
-  videoUrl: z.string().url().optional().or(z.literal('')),
+  imageBase64Third: z.string().optional(),
+  imageBase64Fourth: z.string().optional(),
   links: z.array(z.string().url()).optional(),
 })
 
@@ -70,7 +71,6 @@ export default function EnhancedEditTrade({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null)
   const [additionalLinks, setAdditionalLinks] = useState<string[]>([])
-  
   const { toast } = useToast()
 
   const {
@@ -86,7 +86,8 @@ export default function EnhancedEditTrade({
       comment: '',
       imageBase64: '',
       imageBase64Second: '',
-      videoUrl: '',
+      imageBase64Third: '',
+      imageBase64Fourth: '',
     }
   })
 
@@ -99,15 +100,14 @@ export default function EnhancedEditTrade({
         comment: trade.comment || '',
         imageBase64: trade.imageBase64 || '',
         imageBase64Second: trade.imageBase64Second || '',
-        videoUrl: trade.videoUrl || '',
+        imageBase64Third: (trade as any).imageBase64Third || '',
+        imageBase64Fourth: (trade as any).imageBase64Fourth || '',
       })
-      
-      // Initialize additional links if videoUrl exists and we want to add more
-      setAdditionalLinks([])
+
     }
   }, [trade, isOpen, reset])
 
-  const handleImageUpload = async (field: 'imageBase64' | 'imageBase64Second', file: File) => {
+  const handleImageUpload = async (field: 'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth', file: File) => {
     try {
       validateImageFile(file)
       const base64 = await fileToBase64(file)
@@ -126,7 +126,7 @@ export default function EnhancedEditTrade({
     }
   }
 
-  const removeImage = (field: 'imageBase64' | 'imageBase64Second') => {
+  const removeImage = (field: 'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth') => {
     setValue(field, '')
   }
 
@@ -156,7 +156,8 @@ export default function EnhancedEditTrade({
         comment: data.comment || null,
         imageBase64: data.imageBase64 || null,
         imageBase64Second: data.imageBase64Second || null,
-        videoUrl: data.videoUrl || null,
+        ...(data.imageBase64Third && { imageBase64Third: data.imageBase64Third }),
+        ...(data.imageBase64Fourth && { imageBase64Fourth: data.imageBase64Fourth }),
       }
 
       // Call the save function
@@ -182,7 +183,6 @@ export default function EnhancedEditTrade({
 
   const handleClose = () => {
     reset()
-    setAdditionalLinks([])
     onClose()
   }
 
@@ -198,7 +198,7 @@ export default function EnhancedEditTrade({
               Edit Trade - {trade.instrument} {trade.side}
             </DialogTitle>
             <DialogDescription>
-              Add notes, screenshots, and links to enhance your trade analysis.
+              Add notes and screenshots to enhance your trade analysis.
               Trade execution details cannot be modified.
             </DialogDescription>
           </DialogHeader>
@@ -257,7 +257,7 @@ export default function EnhancedEditTrade({
               <CardHeader>
                 <CardTitle className="text-base flex items-center">
                   <Camera className="w-5 h-5 mr-2" />
-                  Screenshots (Up to 2)
+                  Screenshots (Up to 4)
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -375,6 +375,120 @@ export default function EnhancedEditTrade({
                       </div>
                     </div>
                   </div>
+
+                  {/* Third Screenshot */}
+                  <div className="space-y-2">
+                    <Label>Screenshot 3</Label>
+                    <div className="relative">
+                      <div className="border-2 border-dashed rounded-lg p-4 text-center aspect-video flex items-center justify-center min-h-[200px]">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          id="screenshot-3"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleImageUpload('imageBase64Third', file)
+                          }}
+                        />
+                        
+                        {watchedValues.imageBase64Third ? (
+                          <div className="relative w-full h-full group">
+                            <img
+                              src={watchedValues.imageBase64Third}
+                              alt="Screenshot 3"
+                              className="w-full h-full object-cover rounded cursor-pointer"
+                              onClick={() => setFullscreenImage(watchedValues.imageBase64Third!)}
+                            />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => removeImage('imageBase64Third')}
+                                className="mr-2"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setFullscreenImage(watchedValues.imageBase64Third!)}
+                              >
+                                View
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label
+                            htmlFor="screenshot-3"
+                            className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <Camera className="w-8 h-8 mb-2" />
+                            <span className="text-sm">Upload Screenshot 3</span>
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fourth Screenshot */}
+                  <div className="space-y-2">
+                    <Label>Screenshot 4</Label>
+                    <div className="relative">
+                      <div className="border-2 border-dashed rounded-lg p-4 text-center aspect-video flex items-center justify-center min-h-[200px]">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          id="screenshot-4"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleImageUpload('imageBase64Fourth', file)
+                          }}
+                        />
+                        
+                        {watchedValues.imageBase64Fourth ? (
+                          <div className="relative w-full h-full group">
+                            <img
+                              src={watchedValues.imageBase64Fourth}
+                              alt="Screenshot 4"
+                              className="w-full h-full object-cover rounded cursor-pointer"
+                              onClick={() => setFullscreenImage(watchedValues.imageBase64Fourth!)}
+                            />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => removeImage('imageBase64Fourth')}
+                                className="mr-2"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setFullscreenImage(watchedValues.imageBase64Fourth!)}
+                              >
+                                View
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label
+                            htmlFor="screenshot-4"
+                            className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <Camera className="w-8 h-8 mb-2" />
+                            <span className="text-sm">Upload Screenshot 4</span>
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
                   Upload chart screenshots, trade setups, or market analysis images (JPG, PNG, max 5MB each).
@@ -382,89 +496,7 @@ export default function EnhancedEditTrade({
               </CardContent>
             </Card>
 
-            {/* Links */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center">
-                  <ExternalLink className="w-5 h-5 mr-2" />
-                  Reference Links
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {/* Primary video/link field */}
-                  <div className="space-y-2">
-                    <Label htmlFor="videoUrl">Primary Link (TradingView, Video, etc.)</Label>
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        type="url"
-                        placeholder="https://tradingview.com/chart/..."
-                        {...register('videoUrl')}
-                        className="flex-1"
-                      />
-                      {watchedValues.videoUrl && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => window.open(watchedValues.videoUrl, '_blank')}
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                    {errors.videoUrl && (
-                      <p className="text-sm text-red-500">{errors.videoUrl.message}</p>
-                    )}
-                  </div>
 
-                  {/* Additional links */}
-                  {additionalLinks.map((link, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <Input
-                        type="url"
-                        placeholder="https://..."
-                        value={link}
-                        onChange={(e) => updateLink(index, e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => removeLink(index)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                      {link && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => window.open(link, '_blank')}
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                  
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addLink}
-                    className="mt-2"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Additional Link
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Add links to TradingView charts, news articles, videos, or other relevant resources.
-                </p>
-              </CardContent>
-            </Card>
 
             {/* Form Actions */}
             <div className="flex justify-end space-x-2">

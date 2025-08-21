@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { toast } from '@/hooks/use-toast'
 import { Trade } from '@prisma/client'
 import { generateTradeHash } from '@/lib/utils'
+import { useUserStore } from '@/store/user-store'
+import { v4 as uuidv4 } from 'uuid'
 
 interface TradezellaProcessorProps {
   headers: string[];
@@ -37,6 +39,8 @@ const newMappings: { [key: string]: string } = {
 
 export default function TradezellaProcessor({ headers, csvData, setProcessedTrades }: TradezellaProcessorProps) {
   const [trades, setTrades] = useState<Trade[]>([])
+  const user = useUserStore(state => state.user)
+  const supabaseUser = useUserStore(state => state.supabaseUser)
 
 
 
@@ -56,6 +60,11 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
   // Adjusted Cost: "entryId"
   // Adjusted Proceeds: "closeId"
   const processTrades = useCallback(() => {
+    const currentUser = user || supabaseUser
+    if (!currentUser?.id) {
+      return
+    }
+
     const newTrades: Trade[] = [];
     //TODO: Ask user for account number using account selection component
     const accountNumber = 'default-account';
@@ -105,16 +114,40 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
         item.closeDate = new Date(`${item.closeDate} ${closeTime.slice(0, 8)}`).toISOString();
       }
 
-      if (!item.accountNumber) {
-        item.accountNumber = accountNumber;
+      // Create complete Trade object with all required fields
+      const completeTrade: Trade = {
+        id: uuidv4(),
+        accountNumber: item.accountNumber || accountNumber,
+        quantity: item.quantity || 0,
+        entryId: item.entryId || null,
+        closeId: item.closeId || null,
+        instrument: item.instrument || '',
+        entryPrice: item.entryPrice || '',
+        closePrice: item.closePrice || '',
+        entryDate: item.entryDate || '',
+        closeDate: item.closeDate || '',
+        pnl: item.pnl || 0,
+        timeInPosition: item.timeInPosition || 0,
+        userId: currentUser.id,
+        side: item.side || '',
+        commission: item.commission || 0,
+        createdAt: new Date(),
+        comment: null,
+        videoUrl: null,
+        tags: [],
+        imageBase64: null,
+        imageBase64Second: null,
+        imageBase64Third: null,
+        imageBase64Fourth: null,
+        groupId: null,
       }
-      item.id = generateTradeHash(item as Trade).toString();
-      newTrades.push(item as Trade);
+      
+      newTrades.push(completeTrade);
     })
 
     setTrades(newTrades);
     setProcessedTrades(newTrades);
-  }, [csvData, headers, setProcessedTrades]);
+  }, [csvData, headers, setProcessedTrades, user, supabaseUser]);
 
   useEffect(() => {
     processTrades();

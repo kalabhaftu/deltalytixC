@@ -213,8 +213,8 @@ export const AddWidgetSheet = forwardRef<HTMLButtonElement, AddWidgetSheetProps>
             ref={ref}
             variant="ghost"
             className={cn(
-              "h-10 rounded-full flex items-center justify-center transition-transform active:scale-95",
-              isMobile ? "w-10 p-0" : "min-w-[120px] gap-3 px-4"
+              "h-8 rounded-full flex items-center justify-center transition-transform active:scale-95",
+              isMobile ? "w-8 p-0" : "min-w-[100px] gap-2 px-3"
             )}
           >
             <Plus className="h-4 w-4 shrink-0" />

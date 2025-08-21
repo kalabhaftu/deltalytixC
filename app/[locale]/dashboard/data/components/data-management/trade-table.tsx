@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowUpDown, Trash, ChevronLeft, ChevronRight } from "lucide-react"
+import { ArrowUpDown, Trash, ChevronLeft, ChevronRight, Edit } from "lucide-react"
 import { saveTradesAction } from '@/server/database'
 import { useToast } from "@/hooks/use-toast"
 import { deleteTradesByIdsAction } from '@/server/accounts'
 import { useData } from '@/context/data-provider'
+import EnhancedEditTrade from '@/app/[locale]/dashboard/components/tables/enhanced-edit-trade'
 
 type SortConfig = {
   key: keyof Trade
@@ -28,6 +29,8 @@ export default function TradeTable() {
   const [selectAll, setSelectAll] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [tradesPerPage, setTradesPerPage] = useState(50) // Increased default from 10 to 50
+  const [selectedTradeForEdit, setSelectedTradeForEdit] = useState<Trade | null>(null)
+  const [isEnhancedEditOpen, setIsEnhancedEditOpen] = useState(false)
 
   const filteredAndSortedTrades = useMemo(() => {
     return formattedTrades
@@ -49,7 +52,7 @@ export default function TradeTable() {
   const paginatedTrades = useMemo(() => {
     const startIndex = (currentPage - 1) * tradesPerPage
     return filteredAndSortedTrades.slice(startIndex, startIndex + tradesPerPage)
-  }, [filteredAndSortedTrades, currentPage])
+  }, [filteredAndSortedTrades, currentPage, tradesPerPage])
 
   const totalPages = Math.ceil(filteredAndSortedTrades.length / tradesPerPage)
 
@@ -61,13 +64,37 @@ export default function TradeTable() {
   }
 
   const handleDelete = async (ids: string[]) => {
-    await deleteTradesByIdsAction(ids)
-    setSelectedTrades(new Set())
-    refreshTrades()
-    toast({
-      title: "Trades Deleted",
-      description: `${ids.length} trade(s) have been deleted.`,
-    })
+    if (ids.length === 0) return
+    
+    try {
+      // Show loading toast
+      toast({
+        title: "Deleting Trades",
+        description: `Deleting ${ids.length} trade(s)...`,
+      })
+      
+      await deleteTradesByIdsAction(ids)
+      
+      // Clear selection immediately
+      setSelectedTrades(new Set())
+      setSelectAll(false)
+      
+      // Refresh trades data
+      await refreshTrades()
+      
+      // Show success toast
+      toast({
+        title: "Trades Deleted",
+        description: `Successfully deleted ${ids.length} trade(s).`,
+      })
+    } catch (error) {
+      console.error('Error deleting trades:', error)
+      toast({
+        title: "Error",
+        description: "Failed to delete trades. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
   const toggleSelectAll = () => {
@@ -97,6 +124,33 @@ export default function TradeTable() {
 
   const handleNextPage = () => {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+  }
+
+  const handleSaveTrade = async (updatedTrade: Partial<Trade>) => {
+    if (!selectedTradeForEdit) return
+    
+    try {
+      // Update the trade with new data
+      await saveTradesAction([{
+        ...selectedTradeForEdit,
+        ...updatedTrade
+      }])
+      
+      // Refresh trades data
+      await refreshTrades()
+      
+      toast({
+        title: "Trade Updated",
+        description: "Trade has been successfully updated.",
+      })
+    } catch (error) {
+      console.error('Error updating trade:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update trade. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
   return (
@@ -190,6 +244,7 @@ export default function TradeTable() {
                 {sortConfig.key === 'pnl' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -210,6 +265,19 @@ export default function TradeTable() {
               <TableCell>{new Date(trade.entryDate).toLocaleString()}</TableCell>
               <TableCell>{new Date(trade.closeDate).toLocaleString()}</TableCell>
               <TableCell>{trade.pnl.toFixed(2)}</TableCell>
+              <TableCell>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedTradeForEdit(trade)
+                    setIsEnhancedEditOpen(true)
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -263,6 +331,17 @@ export default function TradeTable() {
           </Button>
         </div>
       </div>
+      
+      {/* Enhanced Edit Trade Dialog */}
+      <EnhancedEditTrade
+        isOpen={isEnhancedEditOpen}
+        onClose={() => {
+          setIsEnhancedEditOpen(false)
+          setSelectedTradeForEdit(null)
+        }}
+        trade={selectedTradeForEdit}
+        onSave={handleSaveTrade}
+      />
     </div>
   )
 }

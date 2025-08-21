@@ -178,19 +178,23 @@ function RenewalBadge({ renewals }: { renewals: Account[] }) {
                   <div className="font-medium text-sm">
                     {account.propfirm || account.number}
                   </div>
+                  {/* TODO: Uncomment when paymentFrequency field is added to Account model
                   <div className="text-xs text-muted-foreground">
                     {account.paymentFrequency?.toLowerCase()} {t('propFirm.renewal.frequency')}
                   </div>
+                  */}
                 </div>
                 <div className="text-right">
                   <div className="font-semibold text-sm text-blue-600 dark:text-blue-400">
                     {account.price != null && formatCurrency(account.price, { maximumFractionDigits: 2 })}
                   </div>
+                  {/* TODO: Uncomment when autoRenewal field is added to Account model
                   {account.autoRenewal && (
                     <div className="text-xs text-muted-foreground">
                       {t('propFirm.renewal.notification')}
                     </div>
                   )}
+                  */}
                 </div>
               </div>
             </div>
@@ -309,28 +313,30 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
     })
   }, [monthEvents, timezone])
 
+  // TODO: Uncomment when nextPaymentDate field is added to Account model
   const getRenewalsForDate = React.useCallback((date: Date) => {
-    return accounts.filter(account => {
-      if (!account.nextPaymentDate) return false;
-      try {
-        // Create new Date objects to avoid modifying the originals
-        const renewalDateObj = new Date(account.nextPaymentDate)
-        const compareDateObj = new Date(date)
+    // return accounts.filter(account => {
+    //   if (!account.nextPaymentDate) return false;
+    //   try {
+    //     // Create new Date objects to avoid modifying the originals
+    //     const renewalDateObj = new Date(account.nextPaymentDate)
+    //     const compareDateObj = new Date(date)
 
-        // Set hours to start of day
-        renewalDateObj.setHours(0, 0, 0, 0)
-        compareDateObj.setHours(0, 0, 0, 0)
+    //     // Set hours to start of day
+    //     renewalDateObj.setHours(0, 0, 0, 0)
+    //     compareDateObj.setHours(0, 0, 0, 0)
 
-        // Format dates in the user's timezone
-        const renewalDate = formatInTimeZone(renewalDateObj, timezone, 'yyyy-MM-dd')
-        const compareDate = formatInTimeZone(compareDateObj, timezone, 'yyyy-MM-dd')
+    //     // Format dates in the user's timezone
+    //     const renewalDate = formatInTimeZone(renewalDateObj, timezone, 'yyyy-MM-dd')
+    //     const compareDate = formatInTimeZone(compareDateObj, timezone, 'yyyy-MM-dd')
 
-        return renewalDate === compareDate
-      } catch (error) {
-        console.error('Error parsing renewal date:', error)
-        return false
-      }
-    })
+    //     return renewalDate === compareDate
+    //   } catch (error) {
+    //     console.error('Error parsing renewal date:', error)
+    //     return false
+    //   }
+    // })
+    return [] // Temporary return empty array until nextPaymentDate field is added
   }, [accounts, timezone])
 
   const calculateWeeklyTotal = React.useCallback((index: number, calendarDays: Date[], calendarData: CalendarData) => {

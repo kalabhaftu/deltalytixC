@@ -97,8 +97,8 @@ export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutori
         </div>
         <p className="text-sm text-muted-foreground">
           {selectedPlatform.videoUrl 
-            ? t('import.type.tutorial.description', { platform: selectedPlatform.type.split('-').join(' ') })
-            : t('import.type.tutorial.notAvailable', { platform: selectedPlatform.type.split('-').join(' ') })
+            ? `Watch this tutorial video to learn how to import data from ${selectedPlatform.type.split('-').join(' ')}.`
+            : `Tutorial video for ${selectedPlatform.type.split('-').join(' ')} is not available.`
           }
         </p>
       </div>
@@ -135,8 +135,8 @@ export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutori
               height={40}
             />
           </div>
-          <p>{t('import.type.copyright.platform')}</p>
-          <p>{t('import.type.copyright.omne')}</p>
+          <p>Platform specific tutorial content</p>
+          <p>© Omne Trading Platform</p>
         </div>
       )}
     </div>

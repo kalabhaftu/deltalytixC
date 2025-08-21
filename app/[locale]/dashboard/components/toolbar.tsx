@@ -225,14 +225,14 @@ export function Toolbar({
             <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/40 to-transparent h-4 rounded-t-full pointer-events-none" />
           )}
           <motion.div 
-            className="flex items-center justify-center gap-4 p-3 bg-background/95 border rounded-full shadow-lg relative"
+            className="flex items-center justify-center gap-2 p-2 bg-background/95 border rounded-full shadow-lg relative"
           >
                 <Button
                   variant={isCustomizing ? "default" : "ghost"}
                   onClick={onEditToggle}
                   className={cn(
-                    "h-10 rounded-full flex items-center justify-center transition-transform active:scale-95",
-                    isMobile ? "w-10 p-0" : "min-w-[120px] gap-3 px-4"
+                    "h-8 rounded-full flex items-center justify-center transition-transform active:scale-95",
+                    isMobile ? "w-8 p-0" : "min-w-[100px] gap-2 px-3"
                   )}
                 >
                   <Pencil className={cn(
@@ -261,8 +261,8 @@ export function Toolbar({
                     variant="outline"
                     onClick={onAutoArrange}
                     className={cn(
-                      "h-10 rounded-full flex items-center justify-center transition-transform active:scale-95",
-                      isMobile ? "w-10 p-0" : "min-w-[130px] gap-2 px-4"
+                      "h-8 rounded-full flex items-center justify-center transition-transform active:scale-95",
+                      isMobile ? "w-8 p-0" : "min-w-[110px] gap-2 px-3"
                     )}
                   >
                     <LayoutGrid className="h-4 w-4 shrink-0" />

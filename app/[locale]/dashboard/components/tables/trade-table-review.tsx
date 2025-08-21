@@ -29,8 +29,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn, parsePositionTime } from '@/lib/utils'
 import { Checkbox } from "@/components/ui/checkbox"
 import { useI18n } from '@/locales/client'
-import { TradeComment } from './trade-comment'
-import { TradeVideoUrl } from './trade-video-url'
+
 import { TradeTag } from './trade-tag'
 import { formatInTimeZone } from 'date-fns-tz'
 import {
@@ -716,140 +715,10 @@ export function TradeTableReview() {
       sortingFn: "basic",
       size: 100,
     },
-    {
-      id: "ticksAndPoints",
-      header: ({ column }) => (
-        <DataTableColumnHeader 
-          column={column} 
-          title={showPoints ? t('trade-table.points') : t('trade-table.ticks')} 
-          tableId="trade-table" 
-          showFilter={true}
-          showToggle={true}
-          toggleLabel={t('table.showPoints')}
-          toggleValue={showPoints}
-          onToggleChange={setShowPoints}
-        />
-      ),
-      accessorFn: (row) => {
-        const calculation = calculateTicksAndPointsForGroupedTrade(row, tickDetails)
-        return showPoints ? calculation.points : calculation.ticks
-      },
-      cell: ({ row }) => {
-        const calculation = calculateTicksAndPointsForGroupedTrade(row.original, tickDetails)
-        const value = showPoints ? calculation.points : calculation.ticks
-        return (
-          <div className="text-right font-medium">
-            <span className={cn(
-              value >= 0 ? 'text-green-600' : 'text-red-600'
-            )}>
-              {showPoints ? value.toFixed(2) : value}
-            </span>
-          </div>
-        )
-      },
-      sortingFn: "basic",
-      size: 100,
-      filterFn: (row, columnId, filterValue) => {
-        const value = row.getValue(columnId) as number
-        const { min, max } = filterValue as { min?: number; max?: number }
-        
-        if (min !== undefined && value < min) return false
-        if (max !== undefined && value > max) return false
-        return true
-      },
-    },
-    {
-      id: "image",
-      header: ({ column }) => (
-        <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-3 h-8 data-[state=open]:bg-accent"
-          >
-          {t('trade-table.image')}
-        </Button>
-      ),
-      cell: ({ row }) => {
-        const trade = row.original
-        const tradeIds = trade.trades.length > 0
-          ? trade.trades.map(t => t.id)
-          : [trade.id]
-        return (
-          <div className="flex gap-2">
-            <div className="relative h-10 w-10">
-              <TradeImageEditor
-                trade={trade}
-                tradeIds={tradeIds}
-              />
-            </div>
-          </div>
-        )
-      },
-    },
-    {
-      id: "tags",
-      header: () => <TagsColumnHeader />,
-      cell: ({ row }) => {
-        const trade = row.original
-        const tradeIds = trade.trades.length > 0
-          ? trade.trades.map(t => t.id)
-          : [trade.id]
-        return (
-          <div className="min-w-[200px]">
-            <TradeTag
-              trade={trade}
-              tradeIds={tradeIds}
-            />
-          </div>
-        )
-      },
-      size: 200,
-    },
-    {
-      accessorKey: "comment",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.comment')} tableId="trade-table" />
-      ),
-      cell: ({ row }) => {
-        const trade = row.original
-        const tradeIds = trade.trades.length > 0
-          ? trade.trades.map(t => t.id)
-          : [trade.id]
-        return (
-          <div className="min-w-[200px]">
-            <TradeComment
-              tradeIds={tradeIds}
-              comment={trade.trades.length > 0 ? trade.trades[0].comment : trade.comment}
-            />
-          </div>
-        )
-      },
-      size: 200,
-    },
-    {
-      accessorKey: "videoUrl",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.videoUrl')} tableId="trade-table" />
-      ),
-      cell: ({ row }) => {
-        const trade = row.original
-        const tradeIds = trade.trades.length > 0
-          ? trade.trades.map(t => t.id)
-          : [trade.id]
-        return (
-          <div className="min-w-[200px]">
-            <TradeVideoUrl
-              tradeIds={tradeIds}
-              videoUrl={trade.trades.length > 0 ? trade.trades[0].videoUrl : trade.videoUrl}
-              onVideoUrlChange={async (videoUrl) => {
-                await updateTrades(tradeIds, { videoUrl })
-              }}
-            />
-          </div>
-        )
-      },
-      size: 200,
-    },
+
+
+
+
     {
       id: "actions",
       header: "Actions",

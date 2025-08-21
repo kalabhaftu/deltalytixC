@@ -7,10 +7,48 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 })
 
 const nextConfig = {
+  // Allow external network connections
+  async rewrites() {
+    return []
+  },
+  
+  // Configure hostname and port for external access
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization',
+          },
+        ],
+      },
+    ]
+  },
+
   images: {
     remotePatterns: [
       {
         hostname: 'fhvmtnvjiotzztimdxbi.supabase.co',
+      },
+      {
+        protocol: 'http',
+        hostname: '192.168.188.101',
+        port: '3000',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3000',
       },
     ],
   },
