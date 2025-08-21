@@ -1,0 +1,11 @@
+# Performance Optimization Environment Variables
+# Copy these to your .env.development.local file
+
+NEXT_TELEMETRY_DISABLED=1
+DISABLE_ESLINT_PLUGIN=true
+FAST_REFRESH=true
+NODE_OPTIONS="--max-old-space-size=4096"
+TURBOPACK=true
+
+# Optional: Disable source maps in development for faster builds
+# GENERATE_SOURCEMAP=false

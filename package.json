@@ -3,13 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:turbo": "next dev --turbo",
-    "dev:no-turbo": "next dev",
+    "dev": "NEXT_TELEMETRY_DISABLED=1 next dev --turbo",
+    "dev:turbo": "NEXT_TELEMETRY_DISABLED=1 next dev --turbo",
+    "dev:fast": "NODE_OPTIONS='--max-old-space-size=4096' NEXT_TELEMETRY_DISABLED=1 next dev --turbo",
+    "dev:no-turbo": "NEXT_TELEMETRY_DISABLED=1 next dev",
     "build": "next build",
+    "build:analyze": "ANALYZE=true next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "lint:fix": "next lint --fix",
+    "postinstall": "prisma generate",
+    "clean": "rm -rf .next node_modules/.cache",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.54",
@@ -162,6 +167,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.5.0",
     "@types/ms": "^2.1.0",
     "@types/node": "^20",
     "@types/react": "^19.0.0-rc-69d4b800-20241021",

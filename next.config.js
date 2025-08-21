@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const SuppressPreloadWarningsPlugin = require('./lib/suppress-preload-warnings.js')
 
+// Bundle analyzer for optimization
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
+
 const nextConfig = {
   images: {
     remotePatterns: [
@@ -10,17 +15,43 @@ const nextConfig = {
     ],
   },
   pageExtensions: ['js', 'jsx', 'mdx', 'ts', 'tsx'],
+  
+  // Performance optimizations
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+  
   experimental: {
     mdxRs: true,
     serverActions: {
       bodySizeLimit: '10mb',
     },
     // Optimize preloading to reduce warnings
-    optimizePackageImports: ['@ai-sdk/openai', '@ai-sdk/react'],
+    optimizePackageImports: [
+      '@ai-sdk/openai', 
+      '@ai-sdk/react',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@tanstack/react-table',
+      'recharts',
+      'lucide-react'
+    ],
     // Reduce preload warnings
     optimisticClientCache: false,
-    // Disable aggressive preloading
-    forceSwcTransforms: false,
+    // Use SWC for faster transforms
+    forceSwcTransforms: true,
+    // Optimize CSS
+    optimizeCss: true,
+    // Faster rebuilds
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
   webpack: (config, { dev, isServer }) => {
     // Fix webpack cache serialization warning
@@ -98,4 +129,4 @@ const withMDX = require('@next/mdx')({
   },
 })
 
-module.exports = withMDX(nextConfig) 
+module.exports = withBundleAnalyzer(withMDX(nextConfig)) 
