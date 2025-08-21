@@ -22,19 +22,19 @@ const nextConfig = {
   },
   
   // Turbopack configuration (stable in Next.js 15)
-  turbo: {
-    rules: {
-      '*.svg': {
-        loaders: ['@svgr/webpack'],
-        as: '*.js',
-      },
-    },
-  },
-  
   experimental: {
     mdxRs: true,
     serverActions: {
       bodySizeLimit: '10mb',
+    },
+    // Turbopack configuration
+    turbopack: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
     },
     // Optimize preloading to reduce warnings
     optimizePackageImports: [
