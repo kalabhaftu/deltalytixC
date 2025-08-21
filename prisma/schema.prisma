@@ -466,3 +466,21 @@ model SecurityEvent {
   @@index([resolved])
   @@schema("public")
 }
+
+model FilterPreset {
+  id          String    @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  filters     Json      // Store filter configuration
+  isDefault   Boolean   @default(false)
+  isPublic    Boolean   @default(false)
+  category    String    @default("custom") // trades, analytics, accounts, etc.
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([category])
+  @@index([isPublic])
+  @@schema("public")
+}

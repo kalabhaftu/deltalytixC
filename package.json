@@ -173,7 +173,12 @@
     "helmet": "^8.0.0",
     "compression": "^1.7.4",
     "sharp": "^0.33.5",
-    "browser-image-compression": "^2.0.2"
+    "browser-image-compression": "^2.0.2",
+    "jspdf": "^2.5.2",
+    "jspdf-autotable": "^3.8.4",
+    "html2canvas": "^1.4.1",
+    "exceljs": "^4.4.0",
+    "file-saver": "^2.0.5"
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^15.5.0",
@@ -188,6 +193,7 @@
     "@types/validator": "^13.12.2",
     "@types/compression": "^1.7.5",
     "@types/sharp": "^0.32.0",
+    "@types/file-saver": "^2.0.7",
     "cross-env": "^10.0.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.7",
