@@ -44,9 +44,9 @@ export default function ImportTypeSelection({ selectedType, setSelectedType, set
   const [hoveredCategory, setHoveredCategory] = useState<PlatformConfig['category'] | null>(null)
   const t = useI18n()
   
-  // Set default selection to Rithmic sync
+  // Set default selection to Manual Trade Entry
   useEffect(() => {
-    setSelectedType('rithmic-sync')
+    setSelectedType('manual-trade-entry')
   }, [setSelectedType])
 
   const getTranslatedCategory = (category: PlatformConfig['category']) => {

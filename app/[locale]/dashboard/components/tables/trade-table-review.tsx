@@ -70,6 +70,7 @@ import { TradeImageEditor } from './trade-image-editor'
 import { ColumnConfigDialog } from '@/components/ui/column-config-dialog'
 import { calculateTicksAndPointsForTrades, calculateTicksAndPointsForGroupedTrade } from '@/lib/tick-calculations'
 import { Input } from '@/components/ui/input'
+import EnhancedEditTrade from './enhanced-edit-trade'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -269,6 +270,8 @@ export function TradeTableReview() {
   const [groupingGranularity, setGroupingGranularity] = useState<number>(tableConfig?.groupingGranularity || 0)
   const [selectedTrades, setSelectedTrades] = useState<string[]>([])
   const [showPoints, setShowPoints] = useState(false)
+  const [isEnhancedEditOpen, setIsEnhancedEditOpen] = useState(false)
+  const [selectedTradeForEdit, setSelectedTradeForEdit] = useState<Trade | null>(null)
 
   // Sync local state with store
   React.useEffect(() => {
@@ -335,6 +338,12 @@ export function TradeTableReview() {
     // Reset table selection
     table.resetRowSelection()
     setSelectedTrades([])
+  }
+
+  const handleEnhancedEditSave = async (updatedData: Partial<Trade>) => {
+    if (!selectedTradeForEdit) return
+
+    await updateTrades([selectedTradeForEdit.id], updatedData)
   }
 
   // Group trades by instrument, entry date, and close date with granularity
@@ -840,6 +849,33 @@ export function TradeTableReview() {
         )
       },
       size: 200,
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const trade = row.original
+        // For grouped trades, edit the first trade only (or allow editing any)
+        const tradeToEdit = trade.trades.length > 0 ? trade.trades[0] : trade
+        
+        return (
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedTradeForEdit(tradeToEdit)
+                setIsEnhancedEditOpen(true)
+              }}
+            >
+              Edit
+            </Button>
+          </div>
+        )
+      },
+      enableSorting: false,
+      enableHiding: false,
+      size: 100,
     }
   ], [t, timezone, tags, expanded, tickDetails, showPoints])
 
@@ -1065,6 +1101,16 @@ export function TradeTableReview() {
           </Button>
         </div>
       </CardFooter>
+      
+      <EnhancedEditTrade
+        isOpen={isEnhancedEditOpen}
+        onClose={() => {
+          setIsEnhancedEditOpen(false)
+          setSelectedTradeForEdit(null)
+        }}
+        trade={selectedTradeForEdit}
+        onSave={handleEnhancedEditSave}
+      />
     </Card>
   )
 }

@@ -24,6 +24,11 @@ export default {
         description: 'Import trades from Match Trader CSV file',
         details: 'Fast import for Match Trader CSV files with auto-detection',
       },
+      manualTradeEntry: {
+        name: 'Manual Trade Entry',
+        description: 'Add a single trade manually with complete details',
+        details: 'Perfect for manual journal entries with all trade context and analysis',
+      },
     },
     steps: {
       selectPlatform: 'Select Platform',

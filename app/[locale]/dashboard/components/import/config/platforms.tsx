@@ -11,8 +11,9 @@ import TopstepProcessor from '../topstep/topstep-processor'
 import PdfUpload from '../ibkr-pdf/pdf-upload'
 import PdfProcessing from '../ibkr-pdf/pdf-processing'
 import MatchTraderProcessor from '../match-trader/match-trader-processor'
+import ManualTradeForm from '../manual-trade-entry/manual-trade-form'
 import { Step } from '../import-button'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Plus } from 'lucide-react'
 
 type TranslationKey =
   | 'import.steps.selectPlatform'
@@ -51,6 +52,7 @@ type StepComponent =
   | typeof PdfUpload
   | typeof PdfProcessing
   | typeof MatchTraderProcessor
+  | typeof ManualTradeForm
 
 export interface PlatformConfig {
   platformName: string
@@ -121,6 +123,27 @@ const processMatchTraderCsv = (data: string[][]): ProcessedData => {
 };
 
 export const platforms: PlatformConfig[] = [
+  {
+    platformName: 'manual-trade-entry',
+    type: 'manual-trade-entry',
+    name: 'import.type.manualTradeEntry.name',
+    description: 'import.type.manualTradeEntry.description',
+    category: 'Intelligent Import',
+    videoUrl: '',
+    details: 'import.type.manualTradeEntry.details',
+    logo: {
+      component: () => <Plus className="w-4 h-4" />,
+    },
+    customComponent: ManualTradeForm,
+    steps: [
+      {
+        id: 'select-import-type',
+        title: 'import.steps.selectPlatform',
+        description: 'import.steps.selectPlatformDescription',
+        component: ImportTypeSelection
+      }
+    ]
+  },
   {
     platformName: 'csv-ai',
     type: '',
