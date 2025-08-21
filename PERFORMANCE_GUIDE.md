@@ -4,11 +4,11 @@
 
 ### Quick Commands
 ```bash
-# Fastest development mode (recommended)
-npm run dev:fast
-
-# Standard development with turbo
+# Standard development with turbo (recommended)
 npm run dev
+
+# Fastest development mode with memory optimization
+npm run dev:fast
 
 # Clean cache if having issues
 npm run clean
@@ -18,6 +18,9 @@ npm run type-check
 
 # Analyze bundle size
 npm run build:analyze
+
+# Development without turbo (fallback)
+npm run dev:no-turbo
 ```
 
 ### Environment Variables
@@ -31,10 +34,10 @@ TURBOPACK=true
 ```
 
 ### CPU Usage Reduction
-1. **Use `npm run dev:fast`** - Uses optimized memory settings
-2. **Close unused browser tabs** - Reduces memory pressure
-3. **Use Turbopack** - Faster bundling (enabled by default)
-4. **Disable telemetry** - Less background processing
+1. **Use `npm run dev`** - Uses Turbopack for faster bundling
+2. **Use `npm run dev:fast`** - For high memory optimization
+3. **Close unused browser tabs** - Reduces memory pressure
+4. **Disable telemetry** - Less background processing (via environment variables)
 
 ### Memory Optimization
 - Increased Node.js memory limit to 4GB
@@ -51,9 +54,9 @@ TURBOPACK=true
 ## 🛠️ Troubleshooting
 
 ### High CPU Usage
-1. Stop dev server: `Ctrl+C`
+1. Stop dev server: `Ctrl+C` in terminal
 2. Clear cache: `npm run clean`
-3. Restart with: `npm run dev:fast`
+3. Restart with: `npm run dev` (or `npm run dev:fast` for extra memory)
 
 ### Memory Issues
 1. Check Task Manager for memory usage
