@@ -21,20 +21,11 @@ const nextConfig = {
     removeConsole: process.env.NODE_ENV === 'production',
   },
   
-  // Turbopack configuration (stable in Next.js 15)
+  // Experimental features and optimizations
   experimental: {
     mdxRs: true,
     serverActions: {
       bodySizeLimit: '10mb',
-    },
-    // Turbopack configuration
-    turbopack: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
     },
     // Optimize preloading to reduce warnings
     optimizePackageImports: [
@@ -57,7 +48,12 @@ const nextConfig = {
   // Disable source maps in production for better performance
   productionBrowserSourceMaps: false,
   webpack: (config, { dev, isServer }) => {
-    // Simplified webpack config for better Turbopack compatibility
+    // Handle SVG files with SVGR
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: ['@svgr/webpack'],
+    })
+
     if (dev) {
       // Reduce console noise in development
       config.infrastructureLogging = {
@@ -65,7 +61,7 @@ const nextConfig = {
       }
     }
 
-    // Only apply optimizations for production webpack builds (not Turbopack)
+    // Only apply optimizations for production webpack builds
     if (!dev && !isServer) {
       config.optimization = {
         ...config.optimization,
