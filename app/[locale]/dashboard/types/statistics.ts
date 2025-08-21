@@ -12,6 +12,9 @@ export interface StatisticsProps {
   profitFactor: number;
   grossLosses: number;
   grossWin: number;
+  // New metrics for enhanced statistics
+  biggestWin: number;
+  biggestLoss: number;
   // Payout statistics
   totalPayouts: number;
   nbPayouts: number;

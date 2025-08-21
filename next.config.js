@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const SuppressPreloadWarningsPlugin = require('./lib/suppress-preload-warnings.js')
+
 const nextConfig = {
   images: {
     remotePatterns: [
@@ -13,6 +15,12 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    // Optimize preloading to reduce warnings
+    optimizePackageImports: ['@ai-sdk/openai', '@ai-sdk/react'],
+    // Reduce preload warnings
+    optimisticClientCache: false,
+    // Disable aggressive preloading
+    forceSwcTransforms: false,
   },
   webpack: (config, { dev, isServer }) => {
     // Fix webpack cache serialization warning
@@ -28,6 +36,19 @@ const nextConfig = {
       if (config.optimization) {
         config.optimization.concatenateModules = false
       }
+
+      // Reduce preload warnings by optimizing chunk loading
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@ai-sdk/openai': require.resolve('@ai-sdk/openai'),
+        '@ai-sdk/react': require.resolve('@ai-sdk/react'),
+      }
+
+      // Disable aggressive preloading in development
+      config.optimization.splitChunks = {
+        ...config.optimization.splitChunks,
+        chunks: 'async', // Only split async chunks to reduce preloading
+      }
     }
 
     // Simple bundle optimization without aggressive splitting
@@ -37,7 +58,7 @@ const nextConfig = {
         splitChunks: {
           ...config.optimization.splitChunks,
           chunks: 'all',
-          maxSize: 300000, // Larger chunks to prevent CSS/JS parsing errors
+          maxSize: 250000, // Smaller chunks to reduce preload warnings
           cacheGroups: {
             ...config.optimization.splitChunks.cacheGroups,
             vendor: {
@@ -45,17 +66,23 @@ const nextConfig = {
               name: 'vendors',
               chunks: 'all',
               priority: 10,
+              maxSize: 200000, // Limit vendor chunk size
             },
             common: {
               name: 'common',
               minChunks: 2,
               priority: -10,
               reuseExistingChunk: true,
+              maxSize: 150000, // Limit common chunk size
             },
           },
         },
       }
     }
+
+    // Add the preload warning suppression plugin
+    config.plugins = config.plugins || []
+    config.plugins.push(new SuppressPreloadWarningsPlugin())
 
     return config
   },

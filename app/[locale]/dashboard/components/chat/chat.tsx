@@ -228,13 +228,22 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
 
     const { messages, input, handleInputChange, handleSubmit, status, stop, setMessages, addToolResult, error, reload, append } =
         useChat({
-            api: "/api/ai/chat",
+            api: "/api/ai/chat-working",
             body: {
                 username: user?.user_metadata?.full_name || user?.email?.split('@')[0] || "User",
                 locale: locale,
                 timezone,
             },
             initialMessages: storedMessages,
+            onError: (error) => {
+                console.error('[Chat] useChat error:', error)
+                console.error('[Chat] Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name,
+                    cause: error.cause
+                })
+            },
             onFinish: async (message: Message) => {
                 if (!user?.id) return
                 const updatedMood = await saveChat(user.id, [...storedMessages, message])
@@ -327,7 +336,27 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
                                     exit={{ opacity: 0, y: -10 }}
                                 >
                                     <div className="flex items-center justify-between">
-                                        <span>An error occurred while processing your message.</span>
+                                        <div className="flex-1 mr-2">
+                                            <div className="font-medium text-sm">Chat Error</div>
+                                            <div className="text-xs opacity-90 mt-1">
+                                                {error.message?.includes('Rate limit reached for gpt-4o-mini')
+                                                  ? "Rate limit reached for gpt-4o-mini model." 
+                                                  : error.message?.includes('rate limit') || error.message?.includes('Rate limit') 
+                                                  ? "Rate limit reached. Please wait and try again." 
+                                                  : error.message?.includes('quota') || error.message?.includes('exceeded your current quota')
+                                                  ? "API quota exceeded."
+                                                  : error.message || "An error occurred while processing your message."}
+                                            </div>
+                                            <div className="text-xs opacity-75 mt-1">
+                                                {error.message?.includes('Rate limit reached for gpt-4o-mini')
+                                                  ? "Wait 20 seconds and try again, or upgrade your account to access other models."
+                                                  : error.message?.includes('rate limit') || error.message?.includes('Rate limit')
+                                                  ? "Wait a few minutes and try again."
+                                                  : error.message?.includes('quota') || error.message?.includes('exceeded your current quota')
+                                                  ? "Upgrade your OpenAI account to access additional models and higher limits."
+                                                  : "Please check the browser console for details and try again."}
+                                            </div>
+                                        </div>
                                         <Button type="button" onClick={() => reload()} size="sm" variant="outline">
                                             <RotateCcw className="h-3 w-3 mr-1" />
                                             Retry

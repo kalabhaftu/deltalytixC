@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/locales/client"
 import { useData } from "@/context/data-provider"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2, LayoutGrid, RotateCcw } from "lucide-react"
 import { ShareButton } from "./share-button"
 import { AddWidgetSheet } from "./add-widget-sheet"
 import FilterLeftPane from "./filters/filter-left-pane"
@@ -41,6 +41,8 @@ interface ToolbarProps {
     mobile: any[]
   }
   onRemoveAll: () => void
+  onAutoArrange?: () => void
+  onReset?: () => void
 }
 
 export function Toolbar({
@@ -48,7 +50,9 @@ export function Toolbar({
   isCustomizing,
   onEditToggle,
   currentLayout,
-  onRemoveAll
+  onRemoveAll,
+  onAutoArrange,
+  onReset
 }: ToolbarProps) {
   const t = useI18n()
   const { isMobile } = useData()
@@ -250,6 +254,42 @@ export function Toolbar({
                   <FilterLeftPane />
                 ) : (
                   <FilterDropdown />
+                )}
+                
+                {isCustomizing && onAutoArrange && (
+                  <Button
+                    variant="outline"
+                    onClick={onAutoArrange}
+                    className={cn(
+                      "h-10 rounded-full flex items-center justify-center transition-transform active:scale-95",
+                      isMobile ? "w-10 p-0" : "min-w-[130px] gap-2 px-4"
+                    )}
+                  >
+                    <LayoutGrid className="h-4 w-4 shrink-0" />
+                    {!isMobile && (
+                      <span className="text-sm font-medium">
+                        {t('widgets.autoArrange')}
+                      </span>
+                    )}
+                  </Button>
+                )}
+
+                {isCustomizing && onReset && (
+                  <Button
+                    variant="outline"
+                    onClick={onReset}
+                    className={cn(
+                      "h-10 rounded-full flex items-center justify-center transition-transform active:scale-95",
+                      isMobile ? "w-10 p-0" : "min-w-[100px] gap-2 px-4"
+                    )}
+                  >
+                    <RotateCcw className="h-4 w-4 shrink-0" />
+                    {!isMobile && (
+                      <span className="text-sm font-medium">
+                        {t('widgets.reset')}
+                      </span>
+                    )}
+                  </Button>
                 )}
                 
                 {isCustomizing && (

@@ -2,6 +2,7 @@ import { streamText } from "ai";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
+import { executeWithModelFallback, ModelConfig } from "@/lib/ai-model-fallback";
 import { getFinancialNews } from "./tools/get-financial-news";
 import { getJournalEntries } from "./tools/get-journal-entries";
 import { getMostTradedInstruments } from "./tools/get-most-traded-instruments";
@@ -18,7 +19,54 @@ export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   try {
-      const { messages, username, locale, timezone } = await req.json();
+    console.log('[Chat API] Request received')
+    
+    // Check if OPENAI_API_KEY exists
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('[Chat API] Missing OPENAI_API_KEY environment variable')
+      return new Response(JSON.stringify({ 
+        error: 'AI service not configured',
+        code: 'CONFIG_ERROR'
+      }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+    
+    // Add request body validation
+    let body
+    try {
+      body = await req.json()
+    } catch (parseError) {
+      console.error('[Chat API] Failed to parse request body:', parseError)
+      return new Response(JSON.stringify({ 
+        error: 'Invalid request body',
+        code: 'PARSE_ERROR'
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+    
+    const { messages, username, locale, timezone } = body
+    
+    // Validate required fields
+    if (!messages || !Array.isArray(messages)) {
+      return new Response(JSON.stringify({ 
+        error: 'Messages array is required',
+        code: 'VALIDATION_ERROR'
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+    
+    console.log('[Chat API] Request validated:', { 
+      messageCount: messages.length, 
+      username, 
+      locale, 
+      timezone 
+    })
 
     // Calculate current week and previous week boundaries in user's timezone
     const now = new Date();
@@ -27,10 +75,19 @@ export async function POST(req: NextRequest) {
     const previousWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
     const previousWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
 
-    const result = streamText({
-      model: openai("gpt-4o-mini"),
-      
-      system: `# ROLE & PERSONA
+    console.log('[Chat API] Starting model fallback execution')
+    
+    const result = await executeWithModelFallback(
+      async (modelConfig: ModelConfig) => {
+        console.log(`[Chat] Using model: ${modelConfig.displayName}`)
+        
+        try {
+          return streamText({
+            model: openai(modelConfig.name),
+            maxTokens: modelConfig.maxTokens,
+            temperature: modelConfig.temperature,
+            
+            system: `# ROLE & PERSONA
 You are a supportive trading psychology coach with expertise in behavioral finance and trader development. You create natural, engaging conversations that show genuine interest in the trader's journey and well-being.
 
 ## COMMUNICATION LANGUAGE
@@ -132,7 +189,7 @@ Always structure responses with:
 Remember: Clarity and structure create better conversations. Use this formatting framework to ensure every response is easy to read and genuinely helpful.`,
       toolCallStreaming: true,
       messages: messages,
-      maxSteps: 10,
+      maxSteps: 5, // Reduced from 10 to prevent complexity issues
       tools: {
         // server-side tool with execute function
         getJournalEntries,
@@ -149,19 +206,98 @@ Remember: Clarity and structure create better conversations. Use this formatting
         // askForConfirmation,
         // askForLocation,
       },
-    });
-    return result.toDataStreamResponse();
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return new Response(JSON.stringify({ error: error.errors }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
+          })
+        } catch (modelError) {
+          console.error(`[Chat] Model ${modelConfig.displayName} failed:`, modelError)
+          throw modelError
+        }
+      },
+      ['chat', 'reasoning'], // Required capabilities
+      3 // Max attempts with different models
+    )
+    
+    console.log('[Chat API] Successfully created stream response')
+    
+    // Add error handling for streaming response
+    try {
+      return result.toDataStreamResponse();
+    } catch (streamError) {
+      console.error('[Chat API] Error creating data stream response:', streamError)
+      return new Response(JSON.stringify({ 
+        error: "Failed to create streaming response",
+        code: "STREAM_ERROR"
+      }), {
+        status: 500,
+        headers: { 
+          "Content-Type": "application/json",
+          "Connection": "close"
+        },
       });
     }
-    console.error("Error in chat route:", error);
-    return new Response(JSON.stringify({ error: "Failed to process chat" }), {
+  } catch (error: any) {
+    console.error('[Chat API] Error occurred:', error)
+    
+    // Handle timeout and other errors gracefully
+    if (error?.name === 'AbortError') {
+      console.error("[Chat API] Request timed out");
+      return new Response(JSON.stringify({ 
+        error: "Request timed out. Please try again.",
+        code: "TIMEOUT"
+      }), {
+        status: 408,
+        headers: { 
+          "Content-Type": "application/json",
+          "Connection": "close" // Prevent connection reuse
+        },
+      });
+    }
+    
+    if (error instanceof z.ZodError) {
+      console.error("[Chat API] Validation error:", error.errors);
+      return new Response(JSON.stringify({ 
+        error: "Validation failed",
+        details: error.errors,
+        code: "VALIDATION_ERROR"
+      }), {
+        status: 400,
+        headers: { 
+          "Content-Type": "application/json",
+          "Connection": "close"
+        },
+      });
+    }
+    
+    // Handle AI SDK specific errors
+    if (error?.status || error?.statusCode) {
+      console.error("[Chat API] AI SDK error:", {
+        status: error.status || error.statusCode,
+        message: error.message,
+        code: error.code
+      });
+      
+      return new Response(JSON.stringify({ 
+        error: "AI service error. Please try again.",
+        code: "AI_ERROR"
+      }), {
+        status: 503,
+        headers: { 
+          "Content-Type": "application/json",
+          "Connection": "close"
+        },
+      });
+    }
+    
+    // Generic error handler
+    console.error("[Chat API] Unexpected error:", error);
+    return new Response(JSON.stringify({ 
+      error: "An unexpected error occurred. Please try again.",
+      code: "INTERNAL_ERROR"
+    }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Connection": "close"
+      },
     });
   }
 } 

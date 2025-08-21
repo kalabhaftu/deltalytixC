@@ -44,6 +44,9 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
       profitFactor: 1,
       grossLosses: 0,
       grossWin: 0,
+      // New metrics for enhanced statistics
+      biggestWin: 0,
+      biggestLoss: 0,
       // Payout statistics
       totalPayouts: 0,
       nbPayouts: 0,
@@ -79,6 +82,9 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
       profitFactor: 1,
       grossLosses: 0,
       grossWin: 0,
+      // New metrics for enhanced statistics
+      biggestWin: 0,
+      biggestLoss: 0,
       // Payout statistics
       totalPayouts: 0,
       nbPayouts: 0,
@@ -99,6 +105,9 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
     profitFactor: 1,
     grossLosses: 0,
     grossWin: 0,
+    // New metrics for enhanced statistics
+    biggestWin: 0,
+    biggestLoss: 0,
     // Payout statistics
     totalPayouts: 0,
     nbPayouts: 0,
@@ -111,6 +120,14 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
     acc.cumulativePnl += pnl;
     acc.cumulativeFees += trade.commission;
     acc.totalPositionTime += trade.timeInPosition;
+
+    // Track biggest win and loss
+    if (pnl > acc.biggestWin) {
+      acc.biggestWin = pnl;
+    }
+    if (pnl < acc.biggestLoss) {
+      acc.biggestLoss = pnl;
+    }
 
     if (pnl === 0) {
       acc.nbBe++;
@@ -150,6 +167,11 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
 
   const averageTimeInSeconds = Math.round(statistics.totalPositionTime / filteredTrades.length);
   statistics.averagePositionTime = parsePositionTime(averageTimeInSeconds);
+
+  // Calculate improved profit factor
+  const avgWin = statistics.nbWin > 0 ? statistics.grossWin / statistics.nbWin : 0;
+  const avgLoss = statistics.nbLoss > 0 ? statistics.grossLosses / statistics.nbLoss : 0;
+  statistics.profitFactor = avgLoss > 0 ? avgWin / avgLoss : (statistics.grossWin > 0 ? 999 : 1);
 
   return statistics;
 }

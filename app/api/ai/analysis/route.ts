@@ -2,6 +2,7 @@ import { streamText } from "ai";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
+import { executeWithModelFallback, ModelConfig } from "@/lib/ai-model-fallback";
 
 // Global Analysis Tools
 import { getOverallPerformanceMetrics } from "../chat/tools/get-overall-performance-metrics";
@@ -260,20 +261,30 @@ export async function POST(req: NextRequest) {
       const validatedData = analysisSchema.parse({ section, username, locale, timezone });
       console.log('Validated data:', validatedData);
 
-      const result = streamText({
-        model: openai("gpt-4o-mini"),
-        system: getSystemPromptForSection(validatedData.section, validatedData.locale, validatedData.timezone),
-        toolCallStreaming: true,
-        messages: [
-          {
-            role: "user",
-            content: `Analyze my ${validatedData.section} trading performance and provide detailed insights in ${validatedData.locale} language.`
-          }
-        ],
-        maxSteps: 5,
-        tools: getToolsForSection(validatedData.section),
-        abortSignal: controller.signal,
-      });
+      const result = await executeWithModelFallback(
+        async (modelConfig: ModelConfig) => {
+          console.log(`[Analysis] Using model: ${modelConfig.displayName} for ${validatedData.section}`)
+          
+          return streamText({
+            model: openai(modelConfig.name),
+            maxTokens: modelConfig.maxTokens,
+            temperature: modelConfig.temperature,
+            system: getSystemPromptForSection(validatedData.section, validatedData.locale, validatedData.timezone),
+            toolCallStreaming: true,
+            messages: [
+              {
+                role: "user",
+                content: `Analyze my ${validatedData.section} trading performance and provide detailed insights in ${validatedData.locale} language.`
+              }
+            ],
+            maxSteps: 5,
+            tools: getToolsForSection(validatedData.section),
+            abortSignal: controller.signal,
+          })
+        },
+        ['analysis', 'reasoning'], // Required capabilities for analysis
+        3 // Max attempts with different models
+      );
 
       clearTimeout(timeoutId)
       return result.toDataStreamResponse();

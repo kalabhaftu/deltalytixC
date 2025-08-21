@@ -507,7 +507,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
   },
   calendarWidget: {
     type: 'calendarWidget',
-    defaultSize: 'large',
+    defaultSize: 'extra-large',
     allowedSizes: ['large', 'extra-large'],
     category: 'other',
     previewHeight: 500,

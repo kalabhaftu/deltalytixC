@@ -22,6 +22,8 @@ import { Widget, WidgetType, WidgetSize, LayoutItem } from '../types/dashboard'
 import { logger } from '@/lib/logger'
 import { Toolbar } from './toolbar'
 import { useUserStore } from '../../../../store/user-store'
+import { toast } from 'sonner'
+import { defaultLayouts } from '@/context/data-provider'
 
 
 // Update sizeToGrid to handle responsive sizes
@@ -368,6 +370,7 @@ export default function WidgetCanvas() {
   const { saveDashboardLayout } = useData()
   const [isCustomizing, setIsCustomizing] = useState(false)
   const [isUserAction, setIsUserAction] = useState(false)
+  const t = useI18n()
 
   // Add this state to track if the layout change is from user interaction
   const activeLayout = useMemo(() => isMobile ? 'mobile' : 'desktop', [isMobile])
@@ -463,10 +466,19 @@ export default function WidgetCanvas() {
   const addWidget = useCallback(async (type: WidgetType, size: WidgetSize = 'medium') => {
     if (!user?.id || !layouts) return
     
+    const currentLayout = Array.isArray(layouts[activeLayout]) ? layouts[activeLayout] : []
+    
+    // Check if widget type already exists
+    const existingWidget = currentLayout.find(widget => widget.type === type)
+    if (existingWidget) {
+      toast.error(t('widgets.alreadyExists'), {
+        duration: 3000,
+      })
+      return
+    }
+    
     // Determine default size based on widget type
     let effectiveSize = size
-
-    const currentLayout = Array.isArray(layouts[activeLayout]) ? layouts[activeLayout] : []
     const grid = sizeToGrid(effectiveSize, activeLayout === 'mobile')
     
     // Initialize variables for finding the best position
@@ -643,6 +655,130 @@ export default function WidgetCanvas() {
     await saveDashboardLayout(newLayouts)
   }, [user?.id, layouts, setLayouts, saveDashboardLayout]);
 
+  // Auto-arrangement function
+  const autoArrangeWidgets = useCallback(async () => {
+    if (!user?.id || !layouts || !isCustomizing) return;
+
+    const currentLayout = Array.isArray(layouts[activeLayout]) ? layouts[activeLayout] : [];
+    if (currentLayout.length === 0) return;
+
+    // Sort widgets by priority (calendar, statistics, then others by size)
+    const sortedWidgets = [...currentLayout].sort((a, b) => {
+      // Calendar widget has highest priority
+      if (a.type === 'calendarWidget') return -1;
+      if (b.type === 'calendarWidget') return 1;
+      
+      // Statistics widget comes second
+      if (a.type === 'statisticsWidget') return -1;
+      if (b.type === 'statisticsWidget') return 1;
+      
+      // Sort by size (larger widgets first)
+      const sizeOrder = { 'extra-large': 4, 'large': 3, 'medium': 2, 'small': 1, 'small-long': 1, 'tiny': 0 };
+      const aSize = sizeOrder[a.size as keyof typeof sizeOrder] || 2;
+      const bSize = sizeOrder[b.size as keyof typeof sizeOrder] || 2;
+      
+      return bSize - aSize;
+    });
+
+    // Create a 2D grid to track occupied spaces
+    const grid: boolean[][] = [];
+    const maxRows = 50; // Reasonable max
+    const cols = 12;
+    
+    // Initialize grid
+    for (let y = 0; y < maxRows; y++) {
+      grid[y] = new Array(cols).fill(false);
+    }
+
+    const arrangedWidgets = [];
+
+    for (const widget of sortedWidgets) {
+      const widgetGrid = sizeToGrid(widget.size as WidgetSize, activeLayout === 'mobile');
+      let bestX = 0;
+      let bestY = 0;
+      let found = false;
+
+      // Find the first available position row by row
+      outerLoop: for (let y = 0; y <= maxRows - widgetGrid.h; y++) {
+        for (let x = 0; x <= cols - widgetGrid.w; x++) {
+          // Check if this position is available
+          let canPlace = true;
+          for (let dy = 0; dy < widgetGrid.h; dy++) {
+            for (let dx = 0; dx < widgetGrid.w; dx++) {
+              if (grid[y + dy] && grid[y + dy][x + dx]) {
+                canPlace = false;
+                break;
+              }
+            }
+            if (!canPlace) break;
+          }
+
+          if (canPlace) {
+            bestX = x;
+            bestY = y;
+            found = true;
+            break outerLoop;
+          }
+        }
+      }
+
+      if (found) {
+        // Mark the grid spaces as occupied
+        for (let dy = 0; dy < widgetGrid.h; dy++) {
+          for (let dx = 0; dx < widgetGrid.w; dx++) {
+            if (grid[bestY + dy]) {
+              grid[bestY + dy][bestX + dx] = true;
+            }
+          }
+        }
+
+        const arrangedWidget = {
+          ...widget,
+          x: bestX,
+          y: bestY,
+          w: widgetGrid.w,
+          h: widgetGrid.h
+        };
+
+        arrangedWidgets.push(arrangedWidget);
+      }
+    }
+
+    // Update layouts with arranged widgets
+    const newLayouts = {
+      ...layouts,
+      [activeLayout]: arrangedWidgets,
+      updatedAt: new Date()
+    };
+
+    setLayouts(newLayouts);
+    await saveDashboardLayout(newLayouts);
+    
+    // Show success toast
+    toast.success(t('widgets.autoArrangeSuccess'), {
+      duration: 2000,
+    });
+  }, [user?.id, layouts, activeLayout, isCustomizing, setLayouts, saveDashboardLayout, t]);
+
+  // Reset layout function - restore to default widgets
+  const resetLayout = useCallback(async () => {
+    if (!user?.id || !layouts || !isCustomizing) return;
+
+    const resetLayouts = {
+      ...layouts,
+      [activeLayout]: [...defaultLayouts[activeLayout]], // Create a fresh copy
+      updatedAt: new Date()
+    };
+
+    setLayouts(resetLayouts);
+    await saveDashboardLayout(resetLayouts);
+    
+    // Show success toast
+    toast.success(t('widgets.resetToDefaults'), {
+      duration: 2000,
+    });
+  }, [user?.id, layouts, activeLayout, isCustomizing, setLayouts, saveDashboardLayout, t]);
+
   // Define renderWidget with all dependencies
   const renderWidget = useCallback((widget: Widget) => {
     // Ensure widget.type is a valid WidgetType
@@ -693,6 +829,8 @@ export default function WidgetCanvas() {
         }}
         currentLayout={layouts || { desktop: [], mobile: [] }}
         onRemoveAll={removeAllWidgets}
+        onAutoArrange={autoArrangeWidgets}
+        onReset={resetLayout}
       />
       {layouts && (
         <div className="relative">
@@ -709,6 +847,8 @@ export default function WidgetCanvas() {
             onLayoutChange={handleLayoutChange}
             margin={[16, 16]}
             containerPadding={[0, 0]}
+            compactType="vertical"
+            preventCollision={false}
             useCSSTransforms={true}
           >
             {currentLayout.map((widget) => {

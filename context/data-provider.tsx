@@ -160,48 +160,33 @@ export const defaultLayouts: PrismaDashboardLayout = {
   createdAt: new Date(),
   updatedAt: new Date(),
   desktop: [
+    // Row 1 - Statistics and Distribution
     {
-      "i": "widget1751403095730",
-      "type": "calendarWidget",
-      "size": "large",
+      "i": "widget1752135396857",
+      "type": "statisticsWidget",
+      "size": "medium",
       "x": 0,
-      "y": 8,
+      "y": 0,
       "w": 6,
-      "h": 8
+      "h": 4
     },
     {
       "i": "widget1751715494609",
       "type": "tradeDistribution",
-      "size": "small",
+      "size": "medium",
       "x": 6,
       "y": 0,
-      "w": 3,
-      "h": 4
-    },
-    {
-      "i": "widget1751741589330",
-      "type": "pnlChart",
-      "size": "medium",
-      "x": 0,
-      "y": 16,
       "w": 6,
       "h": 4
     },
+    
+    // Row 2 - Chart widgets
     {
       "i": "widget1752135357688",
       "type": "weekdayPnlChart",
       "size": "medium",
       "x": 0,
       "y": 4,
-      "w": 6,
-      "h": 4
-    },
-    {
-      "i": "widget1752135359621",
-      "type": "timeOfDayChart",
-      "size": "medium",
-      "x": 0,
-      "y": 20,
       "w": 6,
       "h": 4
     },
@@ -214,21 +199,56 @@ export const defaultLayouts: PrismaDashboardLayout = {
       "w": 6,
       "h": 4
     },
+    
+    // Row 3 - Calendar (full width)
+    {
+      "i": "widget1751403095730",
+      "type": "calendarWidget",
+      "size": "extra-large",
+      "x": 0,
+      "y": 8,
+      "w": 12,
+      "h": 6
+    },
+    
+    // Row 4 - Equity Chart and P&L Chart
     {
       "i": "widget1752135363430",
       "type": "equityChart",
       "size": "large",
-      "x": 6,
-      "y": 8,
+      "x": 0,
+      "y": 14,
       "w": 6,
       "h": 8
     },
     {
+      "i": "widget1751741589330",
+      "type": "pnlChart",
+      "size": "medium",
+      "x": 6,
+      "y": 14,
+      "w": 6,
+      "h": 4
+    },
+    
+    // Row 5 - Time charts
+    {
+      "i": "widget1752135359621",
+      "type": "timeOfDayChart",
+      "size": "medium",
+      "x": 6,
+      "y": 18,
+      "w": 6,
+      "h": 4
+    },
+    
+    // Row 6 - Side charts
+    {
       "i": "widget1752135365730",
       "type": "pnlBySideChart",
       "size": "medium",
-      "x": 6,
-      "y": 16,
+      "x": 0,
+      "y": 22,
       "w": 6,
       "h": 4
     },
@@ -237,16 +257,18 @@ export const defaultLayouts: PrismaDashboardLayout = {
       "type": "tickDistribution",
       "size": "medium",
       "x": 6,
-      "y": 20,
+      "y": 22,
       "w": 6,
       "h": 4
     },
+    
+    // Row 7 - Commission and Time Range
     {
       "i": "widget1752135370579",
       "type": "commissionsPnl",
       "size": "medium",
-      "x": 6,
-      "y": 24,
+      "x": 0,
+      "y": 26,
       "w": 6,
       "h": 4
     },
@@ -254,55 +276,158 @@ export const defaultLayouts: PrismaDashboardLayout = {
       "i": "widget1752135378584",
       "type": "timeRangePerformance",
       "size": "medium",
-      "x": 0,
-      "y": 24,
+      "x": 6,
+      "y": 26,
       "w": 6,
       "h": 4
     },
+    
+    // Row 8 - Small widgets (tiny sizes)
     {
-      "i": "widget1752135395916",
+      "i": "widget1752135435916",
       "type": "riskRewardRatio",
       "size": "tiny",
-      "x": 9,
-      "y": 0,
+      "x": 0,
+      "y": 30,
       "w": 3,
       "h": 1
     },
     {
-      "i": "widget1752135396857",
-      "type": "statisticsWidget",
-      "size": "medium",
-      "x": 0,
-      "y": 0,
-      "w": 6,
-      "h": 4
-    },
-    {
-      "i": "widget1752135397611",
+      "i": "widget1752135437611",
       "type": "profitFactor",
       "size": "tiny",
-      "x": 9,
-      "y": 1,
+      "x": 3,
+      "y": 30,
       "w": 3,
       "h": 1
     },
     {
-      "i": "widget1752135401717",
+      "i": "widget1752135441717",
       "type": "cumulativePnl",
       "size": "tiny",
-      "x": 9,
-      "y": 2,
+      "x": 6,
+      "y": 30,
       "w": 3,
       "h": 1
+    },
+    {
+      "i": "widget1752135443857",
+      "type": "tradePerformance",
+      "size": "tiny",
+      "x": 9,
+      "y": 30,
+      "w": 3,
+      "h": 1
+    },
+    
+    // Row 9 - More small widgets
+    {
+      "i": "widget1752135445916",
+      "type": "winningStreak",
+      "size": "tiny",
+      "x": 0,
+      "y": 31,
+      "w": 3,
+      "h": 1
+    },
+    {
+      "i": "widget1752135447611",
+      "type": "dailyTickTarget",
+      "size": "tiny",
+      "x": 3,
+      "y": 31,
+      "w": 3,
+      "h": 1
+    },
+    {
+      "i": "widget1752135449717",
+      "type": "averagePositionTime",
+      "size": "tiny",
+      "x": 6,
+      "y": 31,
+      "w": 3,
+      "h": 1
+    },
+    {
+      "i": "widget1752135451857",
+      "type": "longShortPerformance",
+      "size": "tiny",
+      "x": 9,
+      "y": 31,
+      "w": 3,
+      "h": 1
+    },
+    
+    // Row 10 - Large widgets
+    {
+      "i": "widget1752135453916",
+      "type": "tradeTableReview",
+      "size": "extra-large",
+      "x": 0,
+      "y": 32,
+      "w": 12,
+      "h": 8
+    },
+    
+    // Row 11 - PropFirm (full width)
+    {
+      "i": "widget1752135455611",
+      "type": "propFirm",
+      "size": "extra-large",
+      "x": 0,
+      "y": 40,
+      "w": 12,
+      "h": 8
+    },
+    
+    // Row 12 - Other widgets
+    {
+      "i": "widget1752135457717",
+      "type": "mindsetWidget",
+      "size": "large",
+      "x": 0,
+      "y": 48,
+      "w": 6,
+      "h": 8
+    },
+    {
+      "i": "widget1752135459857",
+      "type": "chatWidget",
+      "size": "large",
+      "x": 6,
+      "y": 48,
+      "w": 6,
+      "h": 8
+    },
+    
+    // Row 13 - Tag widget
+    {
+      "i": "widget1752135461916",
+      "type": "tagWidget",
+      "size": "medium",
+      "x": 0,
+      "y": 56,
+      "w": 6,
+      "h": 4
     }
   ],
   mobile: [
+    // Core widgets first
+    {
+      i: "statisticsWidget",
+      type: "statisticsWidget" as WidgetType,
+      size: "medium" as WidgetSize,
+      x: 0,
+      y: 0,
+      w: 12,
+      h: 4
+    },
     {
       i: "calendarWidget",
       type: "calendarWidget" as WidgetType,
-      size: "large" as WidgetSize,
+      size: "extra-large" as WidgetSize,
       x: 0,
-      y: 2,
+      y: 4,
       w: 12,
       h: 6
     },
@@ -311,16 +436,18 @@ export const defaultLayouts: PrismaDashboardLayout = {
       type: "equityChart" as WidgetType,
       size: "medium" as WidgetSize,
       x: 0,
-      y: 8,
+      y: 10,
       w: 12,
       h: 6
     },
+    
+    // Important small widgets
     {
       i: "cumulativePnl",
       type: "cumulativePnl" as WidgetType,
       size: "tiny" as WidgetSize,
       x: 0,
-      y: 0,
+      y: 16,
       w: 12,
       h: 1
     },
@@ -329,9 +456,76 @@ export const defaultLayouts: PrismaDashboardLayout = {
       type: "tradePerformance" as WidgetType,
       size: "tiny" as WidgetSize,
       x: 0,
-      y: 1,
+      y: 17,
       w: 12,
       h: 1
+    },
+    {
+      i: "profitFactor",
+      type: "profitFactor" as WidgetType,
+      size: "tiny" as WidgetSize,
+      x: 0,
+      y: 18,
+      w: 12,
+      h: 1
+    },
+    
+    // Chart widgets
+    {
+      i: "pnlChart",
+      type: "pnlChart" as WidgetType,
+      size: "medium" as WidgetSize,
+      x: 0,
+      y: 19,
+      w: 12,
+      h: 4
+    },
+    {
+      i: "weekdayPnlChart",
+      type: "weekdayPnlChart" as WidgetType,
+      size: "medium" as WidgetSize,
+      x: 0,
+      y: 23,
+      w: 12,
+      h: 4
+    },
+    {
+      i: "timeOfDayChart",
+      type: "timeOfDayChart" as WidgetType,
+      size: "medium" as WidgetSize,
+      x: 0,
+      y: 27,
+      w: 12,
+      h: 4
+    },
+    
+    // Other essential widgets
+    {
+      i: "tradeDistribution",
+      type: "tradeDistribution" as WidgetType,
+      size: "medium" as WidgetSize,
+      x: 0,
+      y: 31,
+      w: 12,
+      h: 4
+    },
+    {
+      i: "propFirm",
+      type: "propFirm" as WidgetType,
+      size: "medium" as WidgetSize,
+      x: 0,
+      y: 35,
+      w: 12,
+      h: 6
+    },
+    {
+      i: "mindsetWidget",
+      type: "mindsetWidget" as WidgetType,
+      size: "medium" as WidgetSize,
+      x: 0,
+      y: 41,
+      w: 12,
+      h: 6
     }
   ]
 };

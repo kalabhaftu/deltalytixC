@@ -81,12 +81,19 @@ export default function TradeDistributionChart({ size = 'medium' }: TradeDistrib
     ]
   }, [nbWin, nbLoss, nbBe, nbTrades, t])
 
-  // Calculate dynamic radius based on container size
+  // Calculate responsive radius based on size and screen
   const getRadius = React.useMemo(() => {
-    // Always use percentage-based sizing for better containment
+    if (size === 'small-long') {
+      return {
+        inner: '45%',
+        outer: '65%'
+      }
+    }
+    
+    // For regular sizes, use slightly smaller radius to ensure proper containment
     return {
-      inner: size === 'small-long' ? '45%' : '50%',
-      outer: size === 'small-long' ? '65%' : '70%'
+      inner: '48%',
+      outer: '68%'
     }
   }, [size])
 
@@ -134,13 +141,26 @@ export default function TradeDistributionChart({ size = 'medium' }: TradeDistrib
           size === 'small-long' ? "p-1" : "p-2 sm:p-4"
         )}
       >
-        <div className="w-full h-full min-h-[240px]">
+        <div className={cn(
+          "w-full",
+          // Responsive height based on screen size
+          size === 'small-long' 
+            ? "h-[180px] min-h-[180px]" 
+            : "h-[220px] min-h-[220px] sm:h-[260px] sm:min-h-[260px] md:h-[280px] md:min-h-[280px] lg:h-[300px] lg:min-h-[300px]"
+        )}>
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart margin={{ top: 20, right: 20, bottom: 40, left: 20 }}>
+            <PieChart 
+              margin={{ 
+                top: size === 'small-long' ? 10 : 15, 
+                right: size === 'small-long' ? 10 : 15, 
+                bottom: size === 'small-long' ? 20 : 30, 
+                left: size === 'small-long' ? 10 : 15 
+              }}
+            >
               <Pie
                 data={chartData}
                 cx="50%"
-                cy="45%"
+                cy="42%"
                 innerRadius={getRadius.inner}
                 outerRadius={getRadius.outer}
                 paddingAngle={2}
@@ -166,8 +186,8 @@ export default function TradeDistributionChart({ size = 'medium' }: TradeDistrib
                     const cx = viewBox.cx;
                     const cy = viewBox.cy;
 
-                    // Use percentage-based label positioning
-                    const labelRadius = Math.min(cx, cy) * 0.85; // Position labels at 85% of available radius
+                    // Use conservative label positioning to prevent overflow
+                    const labelRadius = Math.min(cx, cy) * 0.80; // Position labels at 80% of available radius
 
                     return chartData.map((entry, index) => {
                       const angle = -90 + (360 * (entry.value / 100) / 2) + (360 * chartData.slice(0, index).reduce((acc, curr) => acc + curr.value, 0) / 100);
@@ -195,11 +215,12 @@ export default function TradeDistributionChart({ size = 'medium' }: TradeDistrib
               <Legend 
                 verticalAlign="bottom"
                 align="center"
-                iconSize={8}
+                iconSize={size === 'small-long' ? 6 : 8}
                 iconType="circle"
                 formatter={renderColorfulLegendText}
                 wrapperStyle={{
-                  paddingTop: size === 'small-long' ? 0 : 16
+                  paddingTop: size === 'small-long' ? 0 : 8,
+                  fontSize: size === 'small-long' ? '10px' : '11px'
                 }}
               />
               <Tooltip 

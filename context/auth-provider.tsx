@@ -56,7 +56,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session)
-        router.refresh()
+        
+        // Add error handling for router refresh
+        try {
+          router.refresh()
+        } catch (refreshError) {
+          console.warn('Router refresh failed, continuing without refresh:', refreshError)
+          // Don't throw - let the app continue working
+        }
       }
     )
 

@@ -48,6 +48,8 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
     winningStreak,
     grossLosses,
     grossWin,
+    biggestWin,
+    biggestLoss,
     totalPayouts,
     nbPayouts
   } = statistics
@@ -156,18 +158,18 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
         </div>
       </CardHeader>
       <CardContent className="flex-1 p-0">
-        <div className="grid h-full grid-cols-2">
+        <div className="grid h-full grid-cols-2 overflow-hidden">
           {/* Profit/Loss Section */}
           <div className={cn(
-            "flex flex-col border-r border-b",
-            size === 'tiny' ? "p-1.5" : "p-3"
+            "flex flex-col border-r border-b overflow-hidden",
+            size === 'tiny' ? "p-1.5" : "p-2"
           )}>
-            <h3 className="text-xs font-medium mb-1.5">{t('statistics.profitLoss.title')}</h3>
-            <div className="flex-1 flex flex-col justify-center gap-0.5">
+            <h3 className="text-xs font-medium mb-1">{t('statistics.profitLoss.title')}</h3>
+            <div className="flex-1 flex flex-col justify-center gap-0.5 min-h-0 overflow-auto">
               {/* Profits */}
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground text-xs">{t('statistics.profitLoss.profits')}</span>
-                <span className="text-xs font-medium text font-mono">{formatCurrency(grossWin)}</span>
+                <span className="text-muted-foreground text-xs">+ {t('statistics.profitLoss.profits')}</span>
+                <span className="text-xs font-medium text-green-500 font-mono">{formatCurrency(grossWin)}</span>
               </div>
               
               {/* Losses */}
@@ -176,26 +178,42 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
                 <span className="text-xs font-medium text-red-500 font-mono">{formatCurrency(grossLosses)}</span>
               </div>
               
-              {/* Fees */}
+              {/* Fees - Only show if size is not tiny */}
+              {size !== 'tiny' && (
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-xs">- {t('statistics.profitLoss.fees')}</span>
+                  <span className="text-xs font-medium text-red-500 font-mono">{formatCurrency(cumulativeFees)}</span>
+                </div>
+              )}
+              
+              {/* Biggest Win */}
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground text-xs">- {t('statistics.profitLoss.fees')}</span>
-                <span className="text-xs font-medium text-red-500 font-mono">{formatCurrency(cumulativeFees)}</span>
+                <span className="text-muted-foreground text-xs">+ {t('statistics.performance.bestTrade')}</span>
+                <span className="text-xs font-medium text-green-500 font-mono">{formatCurrency(biggestWin)}</span>
               </div>
               
-              {/* Payouts */}
+              {/* Biggest Loss */}
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground text-xs">- {t('statistics.profitLoss.payouts')} ({nbPayouts})</span>
-                <span className="text-xs font-medium text-red-500 font-mono">{formatCurrency(totalPayouts)}</span>
+                <span className="text-muted-foreground text-xs">- {t('statistics.performance.worstTrade')}</span>
+                <span className="text-xs font-medium text-red-500 font-mono">{formatCurrency(Math.abs(biggestLoss))}</span>
               </div>
+              
+              {/* Payouts - Only show if there are payouts and size is not tiny */}
+              {totalPayouts > 0 && size !== 'tiny' && (
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-xs">- {t('statistics.profitLoss.payouts')}</span>
+                  <span className="text-xs font-medium text-red-500 font-mono">{formatCurrency(totalPayouts)}</span>
+                </div>
+              )}
               
               {/* Divider */}
-              <div className="border-t border-dashed my-1"></div>
+              <div className="border-t border-dashed my-0.5"></div>
               
               {/* Net Result */}
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground text-xs font-medium">{t('statistics.profitLoss.net')}</span>
                 <span className={cn(
-                  "text-sm font-bold font-mono",
+                  "text-xs font-bold font-mono",
                   netPnlWithPayouts > 0 ? "text-green-500" : "text-red-500"
                 )}>
                   {formatCurrency(netPnlWithPayouts)}
@@ -206,23 +224,23 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
 
           {/* Performance Section */}
           <div className={cn(
-            "flex flex-col border-b",
-            size === 'tiny' ? "p-1.5" : "p-3"
+            "flex flex-col border-b overflow-hidden",
+            size === 'tiny' ? "p-1.5" : "p-2"
           )}>
-            <h3 className="text-xs font-medium mb-1.5">{t('statistics.performance.title')}</h3>
-            <div className="flex-1 flex flex-col justify-center gap-1.5">
+            <h3 className="text-xs font-medium mb-1">{t('statistics.performance.title')}</h3>
+            <div className="flex-1 flex flex-col justify-center gap-0.5 min-h-0 overflow-auto">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground text-xs">{t('statistics.performance.winRate')}</span>
-                <span className="text-sm font-medium">{winRate}%</span>
+                <span className="text-xs font-medium">{winRate}%</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground text-xs">{t('statistics.performance.avgWin')}</span>
-                <span className="text-sm font-medium text-green-500 font-mono">{formatCurrency(grossWin / nbWin)}</span>
+                <span className="text-xs font-medium text-green-500 font-mono">{formatCurrency(grossWin / nbWin || 0)}</span>
               </div>
               {size !== 'tiny' && (
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground text-xs">{t('statistics.performance.avgLoss')}</span>
-                  <span className="text-sm font-medium text-red-500 font-mono">-{formatCurrency(grossLosses / nbLoss)}</span>
+                  <span className="text-xs font-medium text-red-500 font-mono">{formatCurrency(grossLosses / nbLoss || 0)}</span>
                 </div>
               )}
             </div>
@@ -230,23 +248,23 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
 
           {/* Activity Section */}
           <div className={cn(
-            "flex flex-col border-r",
-            size === 'tiny' ? "p-1.5" : "p-3"
+            "flex flex-col border-r overflow-hidden",
+            size === 'tiny' ? "p-1.5" : "p-2"
           )}>
-            <h3 className="text-xs font-medium mb-1.5">{t('statistics.activity.title')}</h3>
-            <div className="flex-1 flex flex-col justify-center gap-1.5">
+            <h3 className="text-xs font-medium mb-1">{t('statistics.activity.title')}</h3>
+            <div className="flex-1 flex flex-col justify-center gap-0.5 min-h-0 overflow-auto">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground text-xs">{t('statistics.activity.totalTrades')}</span>
-                <span className="text-sm font-medium">{nbTrades}</span>
+                <span className="text-xs font-medium">{nbTrades}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground text-xs">{t('statistics.activity.winningTrades')}</span>
-                <span className="text-sm font-medium text-green-500">{nbWin}</span>
+                <span className="text-xs font-medium text-green-500">{nbWin}</span>
               </div>
               {size !== 'tiny' && (
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground text-xs">{t('statistics.activity.avgDuration')}</span>
-                  <span className="text-sm font-medium">{averagePositionTime}</span>
+                  <span className="text-xs font-medium">{averagePositionTime}</span>
                 </div>
               )}
             </div>
@@ -254,10 +272,10 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
 
           {/* Distribution Section */}
           <div className={cn(
-            "flex flex-col",
-            size === 'tiny' ? "p-1.5" : "p-3"
+            "flex flex-col overflow-hidden",
+            size === 'tiny' ? "p-1.5" : "p-2"
           )}>
-            <h3 className="text-xs font-medium mb-1.5">{t('statistics.distribution.title')}</h3>
+            <h3 className="text-xs font-medium mb-1">{t('statistics.distribution.title')}</h3>
             <div className="flex-1 flex flex-col justify-center gap-1.5">
               <div className="space-y-1">
                 <div className="flex justify-between items-center">
