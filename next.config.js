@@ -16,10 +16,19 @@ const nextConfig = {
   },
   pageExtensions: ['js', 'jsx', 'mdx', 'ts', 'tsx'],
   
-  // Performance optimizations
-  swcMinify: true,
+  // Performance optimizations (swcMinify is deprecated in Next.js 15)
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
+  },
+  
+  // Turbopack configuration (stable in Next.js 15)
+  turbo: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
   },
   
   experimental: {
@@ -39,81 +48,47 @@ const nextConfig = {
     ],
     // Reduce preload warnings
     optimisticClientCache: false,
-    // Use SWC for faster transforms
-    forceSwcTransforms: true,
     // Optimize CSS
     optimizeCss: true,
-    // Faster rebuilds
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
+    // Memory optimizations for Next.js 15
+    webpackMemoryOptimizations: true,
   },
+  
+  // Disable source maps in production for better performance
+  productionBrowserSourceMaps: false,
   webpack: (config, { dev, isServer }) => {
-    // Fix webpack cache serialization warning
+    // Simplified webpack config for better Turbopack compatibility
     if (dev) {
-      // Suppress the specific warning about big strings
+      // Reduce console noise in development
       config.infrastructureLogging = {
-        ...config.infrastructureLogging,
         level: 'error',
-        debug: false,
-      }
-      
-      // Reduce module concatenation to prevent large strings
-      if (config.optimization) {
-        config.optimization.concatenateModules = false
-      }
-
-      // Reduce preload warnings by optimizing chunk loading
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        '@ai-sdk/openai': require.resolve('@ai-sdk/openai'),
-        '@ai-sdk/react': require.resolve('@ai-sdk/react'),
-      }
-
-      // Disable aggressive preloading in development
-      config.optimization.splitChunks = {
-        ...config.optimization.splitChunks,
-        chunks: 'async', // Only split async chunks to reduce preloading
       }
     }
 
-    // Simple bundle optimization without aggressive splitting
-    if (!isServer) {
+    // Only apply optimizations for production webpack builds (not Turbopack)
+    if (!dev && !isServer) {
       config.optimization = {
         ...config.optimization,
         splitChunks: {
-          ...config.optimization.splitChunks,
           chunks: 'all',
-          maxSize: 250000, // Smaller chunks to reduce preload warnings
+          maxSize: 250000,
           cacheGroups: {
-            ...config.optimization.splitChunks.cacheGroups,
             vendor: {
               test: /[\\/]node_modules[\\/]/,
               name: 'vendors',
               chunks: 'all',
               priority: 10,
-              maxSize: 200000, // Limit vendor chunk size
-            },
-            common: {
-              name: 'common',
-              minChunks: 2,
-              priority: -10,
-              reuseExistingChunk: true,
-              maxSize: 150000, // Limit common chunk size
             },
           },
         },
       }
     }
 
-    // Add the preload warning suppression plugin
-    config.plugins = config.plugins || []
-    config.plugins.push(new SuppressPreloadWarningsPlugin())
+    // Add the preload warning suppression plugin (only for webpack, not Turbopack)
+    if (!dev) {
+      config.plugins = config.plugins || []
+      config.plugins.push(new SuppressPreloadWarningsPlugin())
+    }
 
     return config
   },
