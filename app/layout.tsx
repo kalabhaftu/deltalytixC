@@ -7,6 +7,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import { AuthProvider } from "@/context/auth-provider";
 import { ConsentBanner } from "@/components/consent-banner";
 import { ConsoleFilterWrapper } from "@/components/console-filter-wrapper";
+import { DatabaseInit } from "@/components/database-init";
 import Script from "next/script"
 
 // Font configuration now imported from lib/fonts.ts
@@ -230,6 +231,7 @@ export default async function RootLayout({
       </head>
       <body className={`${inter.variable} font-sans min-h-screen overflow-x-hidden w-screen`}>
         <ConsoleFilterWrapper>
+          <DatabaseInit />
           <AuthProvider>
             <SpeedInsights />
             <Analytics />

@@ -29,8 +29,8 @@ model Trade {
   tags           String[] @default([])
   imageBase64    String?  @db.Text
   imageBase64Second String? @db.Text
-  imageBase64Third String? @db.Text
-  imageBase64Fourth String? @db.Text
+  // imageBase64Third String? @db.Text
+  // imageBase64Fourth String? @db.Text
   groupId        String?  @default("")
 
   @@index([accountNumber])

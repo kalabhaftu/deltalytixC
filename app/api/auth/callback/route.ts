@@ -34,12 +34,14 @@ export async function GET(request: Request) {
 
       const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
       const isLocalEnv = process.env.NODE_ENV === 'development'
+      
+      // Always use localhost:3000 in development
       if (isLocalEnv) {
-        // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
+        const baseUrl = 'http://localhost:3000'
         if (decodedNext) {
-          return NextResponse.redirect(new URL(decodedNext, origin))
+          return NextResponse.redirect(new URL(decodedNext, baseUrl))
         }
-        return NextResponse.redirect(`${origin}${next ?? '/dashboard'}`)
+        return NextResponse.redirect(`${baseUrl}${next ?? '/dashboard'}`)
       } else if (forwardedHost) {
         if (decodedNext) {
           return NextResponse.redirect(new URL(decodedNext, `https://${forwardedHost}`))
