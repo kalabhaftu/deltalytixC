@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
 import { executeWithModelFallback, ModelConfig } from "@/lib/ai-model-fallback";
+import { withRateLimit } from "@/lib/rate-limiting";
 import { getFinancialNews } from "./tools/get-financial-news";
 import { getJournalEntries } from "./tools/get-journal-entries";
 import { getMostTradedInstruments } from "./tools/get-most-traded-instruments";
@@ -17,7 +18,7 @@ import { startOfWeek, endOfWeek, subWeeks, format } from "date-fns";
 
 export const maxDuration = 30;
 
-export async function POST(req: NextRequest) {
+export const POST = withRateLimit(async (req: NextRequest) => {
   try {
     console.log('[Chat API] Request received')
     
@@ -300,4 +301,4 @@ Remember: Clarity and structure create better conversations. Use this formatting
       },
     });
   }
-} 
+}, 'ai') 

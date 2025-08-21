@@ -80,6 +80,19 @@ model User {
   comments        Comment[]
   language        String           @default("en")
   orders          Order[]
+  
+  // Two-Factor Authentication
+  twoFactorSecret String?
+  twoFactorEnabled Boolean         @default(false)
+  
+  // Security and Audit
+  lastLoginAt    DateTime?
+  loginAttempts  Int              @default(0)
+  lockedUntil    DateTime?
+  
+  // Preferences
+  timezone       String           @default("UTC")
+  theme          String           @default("system")
 
   @@index([email])
   @@schema("public")
@@ -407,5 +420,49 @@ model HistoricalData {
   @@index([symbol])
   @@index([databentSymbol])
   @@index([timestamp])
+  @@schema("public")
+}
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  userId      String?   // Can be null for anonymous actions
+  action      String    // Action performed (LOGIN, LOGOUT, CREATE_TRADE, etc.)
+  resource    String?   // Resource affected (trade, account, etc.)
+  resourceId  String?   // ID of the affected resource
+  details     Json?     // Additional details about the action
+  ipAddress   String?   // IP address of the user
+  userAgent   String?   // User agent string
+  success     Boolean   @default(true) // Whether the action was successful
+  errorMessage String?  // Error message if action failed
+  timestamp   DateTime  @default(now())
+  
+  // Security fields
+  riskLevel   String    @default("LOW") // LOW, MEDIUM, HIGH, CRITICAL
+  flags       String[]  @default([]) // Security flags (SUSPICIOUS_IP, RATE_LIMITED, etc.)
+  
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+  @@index([riskLevel])
+  @@schema("public")
+}
+
+model SecurityEvent {
+  id          String    @id @default(uuid())
+  type        String    // FAILED_LOGIN, RATE_LIMIT_EXCEEDED, SUSPICIOUS_ACTIVITY, etc.
+  severity    String    // LOW, MEDIUM, HIGH, CRITICAL
+  source      String    // IP address or user ID
+  description String
+  details     Json?     // Additional event details
+  resolved    Boolean   @default(false)
+  resolvedAt  DateTime?
+  resolvedBy  String?   // User ID who resolved the event
+  createdAt   DateTime  @default(now())
+  
+  @@index([type])
+  @@index([severity])
+  @@index([source])
+  @@index([createdAt])
+  @@index([resolved])
   @@schema("public")
 }

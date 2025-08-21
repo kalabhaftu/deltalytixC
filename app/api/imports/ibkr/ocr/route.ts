@@ -1,5 +1,6 @@
 import { openai } from "@ai-sdk/openai"
 import { getUserId } from "@/server/auth"
+import { withRateLimit } from "@/lib/rate-limiting"
 
 export const maxDuration = 60 // Allow up to 60 seconds for AI processing
 
@@ -51,7 +52,7 @@ async function extractTextFromPdf(pdfBuffer: Buffer): Promise<string> {
   })
 }
 
-export async function POST(request: Request) {
+export const POST = withRateLimit(async (request: Request) => {
   try {
     // Verify user authentication
     const userId = await getUserId()
@@ -116,4 +117,4 @@ export async function POST(request: Request) {
       headers: { "Content-Type": "application/json" },
     });
   }
-} 
+}, 'upload') 
