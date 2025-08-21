@@ -1,6 +1,5 @@
 'use client'
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TradeTableReview } from './components/tables/trade-table-review'
 import { AccountsOverview } from './components/accounts/accounts-overview'
 import { AnalysisOverview } from './components/analysis/analysis-overview'
@@ -8,11 +7,15 @@ import WidgetCanvas from './components/widget-canvas'
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from "@/locales/client"
 import { DashboardErrorBoundary, ErrorBoundaryWrapper } from '@/components/error-boundary'
+import { DashboardSidebar } from './components/sidebar/dashboard-sidebar'
+import { cn } from "@/lib/utils"
 
 export default function Home() {
   const t = useI18n()
   const mainRef = useRef<HTMLElement>(null)
-  const tabsListRef = useRef<HTMLDivElement>(null)
+  const [activeTab, setActiveTab] = useState('widgets')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
@@ -29,13 +32,8 @@ export default function Home() {
         const navbar = document.querySelector('nav[class*="fixed"]') as HTMLElement
         const navbarHeight = navbar?.offsetHeight || 96 // fallback to 96px
 
-        // Get tabs list height
-        const tabsList = tabsListRef.current
-        const tabsListHeight = tabsList?.offsetHeight || 0
-
         // Set CSS custom property for navbar height
         document.documentElement.style.setProperty('--navbar-height', `${navbarHeight}px`)
-        document.documentElement.style.setProperty('--tabs-height', `${tabsListHeight}px`)
       }, 100) // Small delay to account for animation
     }
 
@@ -48,6 +46,7 @@ export default function Home() {
     // Create a ResizeObserver to watch for navbar height changes (when filters appear/disappear)
     const resizeObserver = new ResizeObserver(calculateHeight)
     const navbar = document.querySelector('nav[class*="fixed"]')
+    
     if (navbar) {
       resizeObserver.observe(navbar)
     }
@@ -91,64 +90,81 @@ export default function Home() {
     }
   }, [])
 
+  // Check if mobile and load sidebar state
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+
+    // Load sidebar state from localStorage
+    const savedCollapsed = localStorage.getItem('dashboard-sidebar-collapsed')
+    if (savedCollapsed) {
+      setSidebarCollapsed(JSON.parse(savedCollapsed))
+    }
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'table':
+        return (
+          <ErrorBoundaryWrapper context="TradeTable">
+            <TradeTableReview />
+          </ErrorBoundaryWrapper>
+        )
+      case 'accounts':
+        return (
+          <ErrorBoundaryWrapper context="Accounts">
+            <AccountsOverview size="large" />
+          </ErrorBoundaryWrapper>
+        )
+      case 'analysis':
+        return (
+          <ErrorBoundaryWrapper context="Analysis">
+            <AnalysisOverview />
+          </ErrorBoundaryWrapper>
+        )
+      case 'widgets':
+      default:
+        return (
+          <ErrorBoundaryWrapper context="Widgets">
+            <WidgetCanvas />
+          </ErrorBoundaryWrapper>
+        )
+    }
+  }
+
   return (
     <DashboardErrorBoundary>
-      <main ref={mainRef} className="flex w-full min-h-screen overflow-x-hidden" style={{ paddingTop: `calc(var(--navbar-height, 72px) + var(--tabs-height, 48px))` }}>
-        <div className="flex flex-1 flex-col w-full px-4">
-        <Tabs defaultValue="widgets" className="w-full h-full flex flex-col">
-          {/* Fixed TabsList positioned under navbar */}
-          <div 
-            ref={tabsListRef}
-            className="fixed top-0 left-0 right-0 z-40 bg-background border-b px-4 py-2"
-            style={{ 
-              top: 'var(--navbar-height, 72px)',
-              paddingLeft: '1rem',
-              paddingRight: '1rem'
-            }}
-          >
-            <TabsList className="w-full max-w-none">
-              <TabsTrigger value="widgets">{t('dashboard.tabs.widgets')}</TabsTrigger>
-              <TabsTrigger value="table">{t('dashboard.tabs.table')}</TabsTrigger>
-              <TabsTrigger value="accounts">{t('dashboard.tabs.accounts')}</TabsTrigger>
-              <TabsTrigger value="analysis">{t('dashboard.tabs.analysis')}</TabsTrigger>
-            </TabsList>
+      <div className="flex w-full min-h-screen overflow-x-hidden">
+        {/* Sidebar */}
+        <DashboardSidebar 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab}
+          onCollapsedChange={setSidebarCollapsed}
+        />
+        
+        {/* Main Content */}
+        <main 
+          ref={mainRef} 
+          className={cn(
+            "flex-1 transition-all duration-300 ease-in-out",
+            isMobile ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-64"
+          )}
+          style={{ 
+            paddingTop: `var(--navbar-height, 72px)`,
+            minHeight: `calc(100vh - var(--navbar-height, 72px))`
+          }}
+        >
+          <div className="flex flex-1 flex-col w-full px-4 py-6">
+            {renderContent()}
           </div>
-          
-          <TabsContent 
-            value="table" 
-            className="flex-1 -mt-16"
-          >
-            <ErrorBoundaryWrapper context="TradeTable">
-              <TradeTableReview />
-            </ErrorBoundaryWrapper>
-          </TabsContent>
-          
-          <TabsContent
-            value="accounts"
-            className="flex-1 -mt-16"
-          >
-            <ErrorBoundaryWrapper context="Accounts">
-              <AccountsOverview size="large" />
-            </ErrorBoundaryWrapper>
-          </TabsContent>
-          
-          <TabsContent
-            value="analysis"
-            className="flex-1 -mt-16"
-          >
-            <ErrorBoundaryWrapper context="Analysis">
-              <AnalysisOverview />
-            </ErrorBoundaryWrapper>
-          </TabsContent>
-          
-          <TabsContent value="widgets" className="flex-1 -mt-20">
-            <ErrorBoundaryWrapper context="Widgets">
-              <WidgetCanvas />
-            </ErrorBoundaryWrapper>
-          </TabsContent>
-        </Tabs>
-        </div>
-      </main>
+        </main>
+      </div>
     </DashboardErrorBoundary>
   )
 }
