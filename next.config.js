@@ -8,24 +8,6 @@ const nextConfig = {
       },
     ],
   },
-  webpack: (config, { isServer }) => {
-    // Fix for memory leak warnings
-    if (isServer) {
-      config.externals = config.externals || []
-      config.externals.push({
-        'utf-8-validate': 'commonjs utf-8-validate',
-        'bufferutil': 'commonjs bufferutil',
-      })
-    }
-
-    // Fix for punycode deprecation warning
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      punycode: false,
-    }
-
-    return config
-  },
   // Disable source maps in development to reduce memory usage
   productionBrowserSourceMaps: false,
 }
