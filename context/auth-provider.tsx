@@ -11,12 +11,14 @@ interface AuthContextType {
   isLoading: boolean
   isAuthenticated: boolean
   session: Session | null
+  user: any | null
 }
 
 const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   isAuthenticated: false,
   session: null,
+  user: null,
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -78,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!session,
         session,
+        user: session?.user || null,
       }}
     >
       {children}

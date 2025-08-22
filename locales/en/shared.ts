@@ -28,5 +28,21 @@ export default {
     showMore: 'Show more',
     showLess: 'Show less',
     showAll: 'Show all',
+  },
+  common: {
+    refresh: 'Refresh',
+    view: 'View',
+    edit: 'Edit',
+    delete: 'Delete',
+    cancel: 'Cancel',
+    save: 'Save',
+    loading: 'Loading...',
+    previous: 'Previous',
+    next: 'Next',
+    actions: 'Actions',
+    view: {
+      cards: 'Cards',
+      table: 'Table'
+    }
   }
 } as const;

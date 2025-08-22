@@ -10,6 +10,7 @@ import {
   Table, 
   Users, 
   BarChart3, 
+  Shield,
   ChevronLeft, 
   ChevronRight,
   Menu
@@ -48,6 +49,12 @@ const navigationItems: NavigationItem[] = [
     label: 'Accounts',
     icon: Users,
     translationKey: 'dashboard.tabs.accounts'
+  },
+  {
+    id: 'prop-firm',
+    label: 'Prop Firm',
+    icon: Shield,
+    translationKey: 'propFirm.title'
   },
   {
     id: 'analysis',

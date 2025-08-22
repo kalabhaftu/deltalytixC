@@ -1,10 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    turbo: {
-      useSwcLoader: true,
-    },
-  },
   images: {
     remotePatterns: [
       {
@@ -30,10 +25,6 @@ const nextConfig = {
     }
 
     return config
-  },
-  // Reduce memory usage
-  env: {
-    NODE_OPTIONS: '--max-old-space-size=4096',
   },
   // Disable source maps in development to reduce memory usage
   productionBrowserSourceMaps: false,

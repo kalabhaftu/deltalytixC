@@ -293,5 +293,153 @@ export default {
             delete: 'Delete',
             deleting: 'Deleting...'
         },
+        reset: {
+            title: 'Reset Account',
+            reasonPrompt: 'Please provide a reason for resetting this account:',
+            success: 'Account Reset Successful',
+            successDescription: 'The account has been reset successfully',
+            error: 'Reset Failed',
+            errorDescription: 'Failed to reset the account. Please try again.',
+            confirmation: 'Are you sure you want to reset this account? This action cannot be undone.',
+            confirm: 'Yes, Reset Account',
+            cancel: 'Cancel'
+        },
+        breach: {
+            title: 'Rule Breach Detected',
+            dailyDrawdown: 'Daily drawdown limit exceeded',
+            maxDrawdown: 'Maximum drawdown limit exceeded',
+            description: 'This account has violated the {breachType} rules and has been marked as failed.',
+            amount: 'Breach amount: {amount}',
+            threshold: 'Limit was: {threshold}',
+            timestamp: 'Occurred at: {timestamp}'
+        },
+        // New Evaluation System Translations
+        dashboard: {
+            title: 'Prop Firm Dashboard',
+            subtitle: 'Manage your evaluation accounts and track progress'
+        },
+        metrics: {
+            totalAccounts: 'Total Accounts',
+            totalEquity: 'Total Equity',
+            fundedAccounts: 'Funded Accounts',
+            accountsAtRisk: 'Accounts at Risk',
+            acrossAllAccounts: 'across all accounts',
+            successRate: 'success rate',
+            needsAttention: 'need attention',
+            balance: 'Balance',
+            equity: 'Equity',
+            unrealizedPnl: 'Unrealized P&L',
+            profitTarget: 'Profit Target',
+            dailyDrawdown: 'Daily DD Remaining',
+            maxDrawdown: 'Max DD Remaining',
+            trades: 'trades',
+            payouts: 'payouts'
+        },
+        status: {
+            active: 'Active',
+            failed: 'Failed',
+            passed: 'Passed',
+            funded: 'Funded'
+        },
+        phase: {
+            phase_1: 'Phase 1',
+            phase_2: 'Phase 2',
+            funded: 'Funded'
+        },
+        tabs: {
+            all: 'All',
+            active: 'Active',
+            funded: 'Funded',
+            failed: 'Failed'
+        },
+        accounts: {
+            title: 'Accounts',
+            empty: {
+                title: 'No Accounts Yet',
+                description: 'Create your first prop firm evaluation account to start tracking your progress.'
+            }
+        },
+        account: {
+            create: 'Create Account',
+            number: 'Account Number',
+            name: 'Account Name',
+            namePlaceholder: 'Optional display name',
+            numberDescription: 'Your prop firm account number',
+            nameDescription: 'Optional friendly name for the account',
+            propfirm: 'Prop Firm',
+            selectPropfirm: 'Select prop firm',
+            startingBalance: 'Starting Balance',
+            startingBalanceDescription: 'Initial account balance in USD',
+            timezone: 'Timezone',
+            dailyResetTime: 'Daily Reset Time',
+            dailyResetTimeDescription: 'Time when daily drawdown resets',
+            reset: 'Reset Account',
+            basicInfo: 'Basic Information',
+            drawdownLimits: 'Drawdown Limits',
+            evaluationSettings: 'Evaluation Settings',
+            steps: {
+                basic: 'Basic Info',
+                basicDescription: 'Account details and prop firm information',
+                drawdown: 'Drawdown Rules',
+                drawdownDescription: 'Configure daily and maximum drawdown limits',
+                evaluation: 'Evaluation',
+                evaluationDescription: 'Set evaluation type and profit targets',
+                review: 'Review',
+                reviewDescription: 'Review and confirm account configuration'
+            }
+        },
+        drawdown: {
+            daily: {
+                title: 'Daily Drawdown'
+            },
+            max: {
+                title: 'Maximum Drawdown'
+            },
+            type: 'Type',
+            percent: 'Percentage',
+            absolute: 'Fixed Amount',
+            percentage: 'Percentage (%)',
+            amount: 'Amount ($)',
+            calculated: 'Calculated',
+            mode: 'Mode',
+            static: 'Static',
+            trailing: 'Trailing',
+            staticDescription: 'Fixed from starting balance',
+            trailingDescription: 'Follows highest equity achieved'
+        },
+        evaluation: {
+            type: 'Evaluation Type',
+            oneStep: 'One Step',
+            twoStep: 'Two Step',
+            oneStepDescription: 'Direct to funded after reaching profit target',
+            twoStepDescription: 'Phase 1, then Phase 2, then funded',
+            profitTarget: 'Phase 1 Profit Target',
+            profitTargetDescription: 'Target profit for Phase 1 (USD)',
+            phase1Target: 'Phase 1 Target'
+        },
+        trade: {
+            add: 'Add Trade'
+        },
+        payout: {
+            request: 'Request Payout',
+            nextEligible: 'Next payout eligible'
+        },
+        warnings: {
+            approachingLimits: 'Approaching drawdown limits'
+        },
+        alerts: {
+            accountsAtRisk: '{count} account(s) are approaching drawdown limits'
+        },
+        table: {
+            account: 'Account',
+            status: 'Status',
+            phase: 'Phase',
+            balance: 'Balance',
+            equity: 'Equity',
+            progress: 'Progress',
+            dailyDD: 'Daily DD',
+            maxDD: 'Max DD',
+            noAccounts: 'No accounts found'
+        }
     }
 } as const;

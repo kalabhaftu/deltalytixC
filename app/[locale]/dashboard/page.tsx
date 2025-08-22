@@ -4,6 +4,17 @@ import { TradeTableReview } from './components/tables/trade-table-review'
 import { AccountsOverview } from './components/accounts/accounts-overview'
 import { AnalysisOverview } from './components/analysis/analysis-overview'
 import WidgetCanvas from './components/widget-canvas'
+import dynamic from 'next/dynamic'
+
+// Dynamically import prop firm dashboard for better performance
+const PropFirmDashboardPage = dynamic(() => import('./prop-firm/page'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+  )
+})
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from "@/locales/client"
 import { DashboardErrorBoundary, ErrorBoundaryWrapper } from '@/components/error-boundary'
@@ -125,6 +136,12 @@ export default function Home() {
         return (
           <ErrorBoundaryWrapper context="Accounts">
             <AccountsOverview size="large" />
+          </ErrorBoundaryWrapper>
+        )
+      case 'prop-firm':
+        return (
+          <ErrorBoundaryWrapper context="PropFirm">
+            <PropFirmDashboardPage />
           </ErrorBoundaryWrapper>
         )
       case 'analysis':
