@@ -196,8 +196,8 @@ export async function POST(request: NextRequest) {
       : daysSinceFunded
 
     const netProfitSinceLastPayout = lastPayout
-      ? currentPhase.netProfitSincePhaseStart - (lastPayout.amountPaid || lastPayout.amount || 0)
-      : currentPhase.netProfitSincePhaseStart
+      ? Math.max(0, currentPhase.netProfitSincePhaseStart - (lastPayout.amountPaid || lastPayout.amount || 0))
+      : Math.max(0, currentPhase.netProfitSincePhaseStart || 0)
 
     const hasActiveBreaches = account.breaches.length > 0
 
@@ -222,9 +222,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate payout amount doesn't exceed available profit
+    const profitSplitPercent = Math.min(100, Math.max(0, account.profitSplitPercent || 80))
     const maxPayoutAmount = Math.min(
       eligibility.maxPayoutAmount,
-      netProfitSinceLastPayout * ((account.profitSplitPercent || 80) / 100)
+      netProfitSinceLastPayout * (profitSplitPercent / 100)
     )
     
     if (payoutData.amountRequested > maxPayoutAmount) {

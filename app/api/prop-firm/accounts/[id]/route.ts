@@ -75,15 +75,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Calculate current equity and metrics
+    // Calculate current equity and metrics with safe defaults
     const latestSnapshot = account.equitySnapshots[0]
-    const currentEquity = latestSnapshot?.equity || account.startingBalance
-    const currentBalance = latestSnapshot?.balance || account.startingBalance
+    const currentEquity = Math.max(0, latestSnapshot?.equity || account.startingBalance)
+    const currentBalance = Math.max(0, latestSnapshot?.balance || account.startingBalance)
     const openPnl = latestSnapshot?.openPnl || 0
 
     // Get latest daily anchor for drawdown calculation
     const latestAnchor = account.dailyAnchors[0]
-    const dailyStartBalance = latestAnchor?.anchorEquity || account.startingBalance
+    const dailyStartBalance = Math.max(0, latestAnchor?.anchorEquity || account.startingBalance)
 
     // Calculate drawdown status
     const drawdown = PropFirmBusinessRules.calculateDrawdown(
@@ -115,8 +115,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         : daysSinceFunded
 
       const netProfitSinceLastPayout = lastPayout
-        ? currentPhase.netProfitSincePhaseStart - (lastPayout.amountPaid || lastPayout.amount)
-        : currentPhase.netProfitSincePhaseStart
+        ? Math.max(0, currentPhase.netProfitSincePhaseStart - (lastPayout.amountPaid || lastPayout.amount || 0))
+        : Math.max(0, currentPhase.netProfitSincePhaseStart || 0)
 
       const hasActiveBreaches = account.breaches.some(
         b => b.breachTime >= new Date(Date.now() - 24 * 60 * 60 * 1000)

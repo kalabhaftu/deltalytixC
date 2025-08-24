@@ -145,15 +145,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       prisma.trade.count({ where })
     ])
 
-    // Transform trades to ensure consistent data structure
+    // Transform trades to ensure consistent data structure with safe defaults
     const transformedTrades = trades.map(trade => ({
       id: trade.id,
       symbol: trade.symbol || trade.instrument || '',
       side: trade.side || '',
-      quantity: trade.quantity || 0,
-      entryPrice: trade.entryPrice ? parseFloat(trade.entryPrice) || 0 : 0,
-      exitPrice: trade.closePrice ? parseFloat(trade.closePrice) || 0 : 0,
-      entryTime: trade.entryTime?.toISOString() || trade.entryDate || '',
+      quantity: Math.max(1, trade.quantity || 1),
+      entryPrice: trade.entryPrice ? Math.max(0.0001, parseFloat(trade.entryPrice) || 0.0001) : 0.0001,
+      exitPrice: trade.closePrice ? Math.max(0.0001, parseFloat(trade.closePrice) || 0.0001) : 0,
+      entryTime: trade.entryTime?.toISOString() || trade.entryDate || new Date().toISOString(),
       exitTime: trade.exitTime?.toISOString() || trade.closeDate || '',
       pnl: trade.realizedPnl || trade.pnl || 0,
       fees: trade.fees || trade.commission || 0,
@@ -246,9 +246,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Calculate trade PnL and fees with safe defaults
-    const quantity = Math.max(0, tradeData.quantity || 0)
-    const entryPrice = Math.max(0, tradeData.entryPrice || 0)
-    const exitPrice = tradeData.exitPrice ? Math.max(0, tradeData.exitPrice) : null
+    const quantity = Math.max(1, tradeData.quantity || 1)
+    const entryPrice = Math.max(0.0001, tradeData.entryPrice || 0.0001)
+    const exitPrice = tradeData.exitPrice ? Math.max(0.0001, tradeData.exitPrice) : null
     const fees = Math.max(0, tradeData.fees || 0)
     const commission = Math.max(0, tradeData.commission || 0)
     const totalFees = fees + commission
@@ -303,9 +303,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           }
         })
 
-        // Calculate new equity
-        const newEquity = updatedPhase.currentEquity + realizedPnl
-        const newHighestEquity = Math.max(newEquity, updatedPhase.highestEquitySincePhaseStart)
+        // Calculate new equity with safe defaults
+        const safeCurrentEquity = Math.max(0, updatedPhase.currentEquity || 0)
+        const safeHighestEquity = Math.max(0, updatedPhase.highestEquitySincePhaseStart || 0)
+        const newEquity = Math.max(0, safeCurrentEquity + realizedPnl)
+        const newHighestEquity = Math.max(newEquity, safeHighestEquity)
 
         // Update phase with new equity values
         await tx.accountPhase.update({
@@ -322,7 +324,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           account as any,
           updatedPhase as any,
           newEquity,
-          updatedPhase.currentBalance, // Using current balance as daily anchor
+          Math.max(0, updatedPhase.currentBalance || account.startingBalance), // Using current balance as daily anchor
           newHighestEquity
         )
 
@@ -414,13 +416,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
       }
 
-      // Create equity snapshot
+      // Create equity snapshot with safe defaults
+      const safeCurrentEquity = Math.max(0, currentPhase.currentEquity || 0)
+      const safeCurrentBalance = Math.max(0, currentPhase.currentBalance || 0)
+      
       await tx.equitySnapshot.create({
         data: {
           accountId: account.id,
           phaseId: currentPhase.id,
-          equity: exitPrice ? (currentPhase.currentEquity + realizedPnl) : currentPhase.currentEquity,
-          balance: exitPrice ? (currentPhase.currentBalance + realizedPnl) : currentPhase.currentBalance,
+          equity: exitPrice ? Math.max(0, safeCurrentEquity + realizedPnl) : safeCurrentEquity,
+          balance: exitPrice ? Math.max(0, safeCurrentBalance + realizedPnl) : safeCurrentBalance,
           openPnl: exitPrice ? 0 : realizedPnl,
         }
       })
@@ -434,10 +439,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         id: result.id,
         symbol: result.symbol || result.instrument || '',
         side: result.side || '',
-        quantity: result.quantity || 0,
-        entryPrice: result.entryPrice ? parseFloat(result.entryPrice) || 0 : 0,
-        exitPrice: result.closePrice ? parseFloat(result.closePrice) || 0 : 0,
-        entryTime: result.entryTime?.toISOString() || result.entryDate || '',
+        quantity: Math.max(1, result.quantity || 1),
+        entryPrice: result.entryPrice ? Math.max(0.0001, parseFloat(result.entryPrice) || 0.0001) : 0.0001,
+        exitPrice: result.closePrice ? Math.max(0.0001, parseFloat(result.closePrice) || 0.0001) : 0,
+        entryTime: result.entryTime?.toISOString() || result.entryDate || new Date().toISOString(),
         exitTime: result.exitTime?.toISOString() || result.closeDate || '',
         pnl: result.realizedPnl || result.pnl || 0,
         fees: result.fees || result.commission || 0,

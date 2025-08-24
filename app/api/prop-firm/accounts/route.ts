@@ -105,9 +105,9 @@ export async function GET(request: NextRequest) {
       const latestEquity = account.equitySnapshots[0]
       const hasRecentBreach = account.breaches.length > 0
 
-      // Calculate basic metrics
-      const currentEquity = latestEquity?.equity || account.startingBalance
-      const currentBalance = latestEquity?.balance || account.startingBalance
+      // Calculate basic metrics with safe defaults
+      const currentEquity = Math.max(0, latestEquity?.equity || account.startingBalance)
+      const currentBalance = Math.max(0, latestEquity?.balance || account.startingBalance)
 
       // Calculate drawdown
       const drawdown = currentPhase ? PropFirmBusinessRules.calculateDrawdown(
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
         currentPhase as any,
         currentEquity,
         currentBalance, // Using current balance as daily start for now
-        currentPhase.highestEquitySincePhaseStart || account.startingBalance
+        Math.max(0, currentPhase.highestEquitySincePhaseStart || account.startingBalance)
       ) : null
 
       return {
@@ -129,8 +129,8 @@ export async function GET(request: NextRequest) {
         currentBalance,
         dailyDrawdownRemaining: drawdown?.dailyDrawdownRemaining || 0,
         maxDrawdownRemaining: drawdown?.maxDrawdownRemaining || 0,
-        profitTargetProgress: currentPhase?.profitTarget 
-          ? (currentPhase.netProfitSincePhaseStart / currentPhase.profitTarget) * 100 
+        profitTargetProgress: currentPhase?.profitTarget && currentPhase.profitTarget > 0
+          ? Math.min(100, Math.max(0, (currentPhase.netProfitSincePhaseStart / currentPhase.profitTarget) * 100))
           : 0,
         totalTrades: account._count.trades,
         totalPayouts: account._count.payouts,

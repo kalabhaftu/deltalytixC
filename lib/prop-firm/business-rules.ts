@@ -29,7 +29,7 @@ export class PropFirmBusinessRules {
     dailyStartBalance: number,
     highestEquitySincePhaseStart: number
   ): DrawdownCalculation {
-    // Ensure all inputs are valid numbers
+    // Ensure all inputs are valid numbers with proper defaults
     const safeCurrentEquity = this.ensureValidNumber(currentEquity, account.startingBalance)
     const safeDailyStartBalance = this.ensureValidNumber(dailyStartBalance, account.startingBalance)
     const safeHighestEquity = this.ensureValidNumber(highestEquitySincePhaseStart, account.startingBalance)
@@ -49,7 +49,7 @@ export class PropFirmBusinessRules {
         ? safeDailyStartBalance * (account.dailyDrawdownAmount / 100)
         : account.dailyDrawdownAmount
 
-      const dailyDD = safeDailyStartBalance - safeCurrentEquity
+      const dailyDD = Math.max(0, safeDailyStartBalance - safeCurrentEquity)
       result.dailyDrawdownRemaining = Math.max(0, dailyLimit - dailyDD)
 
       if (dailyDD > dailyLimit) {
@@ -69,13 +69,13 @@ export class PropFirmBusinessRules {
         maxLimit = account.maxDrawdownType === 'percent'
           ? account.startingBalance * (account.maxDrawdownAmount / 100)
           : account.maxDrawdownAmount
-        maxDD = account.startingBalance - safeCurrentEquity
+        maxDD = Math.max(0, account.startingBalance - safeCurrentEquity)
       } else {
         // Trailing from highest equity
         maxLimit = account.maxDrawdownType === 'percent'
           ? safeHighestEquity * (account.maxDrawdownAmount / 100)
           : account.maxDrawdownAmount
-        maxDD = safeHighestEquity - safeCurrentEquity
+        maxDD = Math.max(0, safeHighestEquity - safeCurrentEquity)
       }
 
       result.maxDrawdownRemaining = Math.max(0, maxLimit - maxDD)
@@ -100,9 +100,9 @@ export class PropFirmBusinessRules {
   ): PhaseProgress {
     const safeNetProfit = this.ensureValidNumber(netProfitSincePhaseStart, 0)
     
-    const daysInPhase = Math.floor(
+    const daysInPhase = Math.max(0, Math.floor(
       (new Date().getTime() - currentPhase.phaseStartAt.getTime()) / (1000 * 60 * 60 * 24)
-    )
+    ))
 
     const result: PhaseProgress = {
       currentPhase,
@@ -114,7 +114,7 @@ export class PropFirmBusinessRules {
 
     // Calculate profit progress
     if (currentPhase.profitTarget && currentPhase.profitTarget > 0) {
-      result.profitProgress = (safeNetProfit / currentPhase.profitTarget) * 100
+      result.profitProgress = Math.min(100, Math.max(0, (safeNetProfit / currentPhase.profitTarget) * 100))
       
       if (safeNetProfit >= currentPhase.profitTarget) {
         result.canProgress = true
@@ -154,6 +154,8 @@ export class PropFirmBusinessRules {
     hasActiveBreaches: boolean
   ): PayoutEligibility {
     const safeNetProfit = this.ensureValidNumber(netProfitSinceLastPayout, 0)
+    const safeDaysSinceFunded = Math.max(0, daysSinceFunded)
+    const safeDaysSinceLastPayout = Math.max(0, daysSinceLastPayout)
     
     const result: PayoutEligibility = {
       isEligible: false,
@@ -171,18 +173,18 @@ export class PropFirmBusinessRules {
 
     // Check minimum days since funded
     const minDaysToFirstPayout = account.minDaysToFirstPayout || 4
-    if (daysSinceFunded < minDaysToFirstPayout) {
-      result.blockers.push(`Must wait ${minDaysToFirstPayout - daysSinceFunded} more days since funded`)
+    if (safeDaysSinceFunded < minDaysToFirstPayout) {
+      result.blockers.push(`Must wait ${minDaysToFirstPayout - safeDaysSinceFunded} more days since funded`)
       return result
     }
 
     // Check payout cycle
     const payoutCycleDays = account.payoutCycleDays || 14
-    if (daysSinceLastPayout < payoutCycleDays) {
+    if (safeDaysSinceLastPayout < payoutCycleDays) {
       const nextEligible = new Date()
-      nextEligible.setDate(nextEligible.getDate() + (payoutCycleDays - daysSinceLastPayout))
+      nextEligible.setDate(nextEligible.getDate() + (payoutCycleDays - safeDaysSinceLastPayout))
       result.nextEligibleDate = nextEligible
-      result.blockers.push(`Must wait ${payoutCycleDays - daysSinceLastPayout} more days since last payout`)
+      result.blockers.push(`Must wait ${payoutCycleDays - safeDaysSinceLastPayout} more days since last payout`)
       return result
     }
 
@@ -194,7 +196,7 @@ export class PropFirmBusinessRules {
     }
 
     // Calculate payout amounts
-    const profitSplitPercent = account.profitSplitPercent || 80
+    const profitSplitPercent = Math.min(100, Math.max(0, account.profitSplitPercent || 80))
     result.profitSplitAmount = safeNetProfit * (profitSplitPercent / 100)
     result.maxPayoutAmount = result.profitSplitAmount
 
