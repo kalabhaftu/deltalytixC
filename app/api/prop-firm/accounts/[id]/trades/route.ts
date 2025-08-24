@@ -8,7 +8,6 @@ import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
 import { PropFirmSchemas } from '@/lib/validation/prop-firm-schemas'
 import { PropFirmBusinessRules } from '@/lib/prop-firm/business-rules'
-// Removed heavy validation import - using Zod directly
 
 interface RouteParams {
   params: {
@@ -23,7 +22,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const accountId = params.id
     const { searchParams } = new URL(request.url)
 
-    // Parse filter parameters
+    // Parse filter parameters with safe defaults
     const filterData = {
       accountId,
       phaseId: searchParams.get('phaseId') || undefined,
@@ -35,11 +34,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         end: new Date(searchParams.get('dateTo')!)
       } : undefined,
       pnlRange: searchParams.get('minPnl') || searchParams.get('maxPnl') ? {
-        min: searchParams.get('minPnl') ? parseFloat(searchParams.get('minPnl')!) : undefined,
-        max: searchParams.get('maxPnl') ? parseFloat(searchParams.get('maxPnl')!) : undefined
+        min: searchParams.get('minPnl') ? parseFloat(searchParams.get('minPnl')!) || 0 : undefined,
+        max: searchParams.get('maxPnl') ? parseFloat(searchParams.get('maxPnl')!) || 0 : undefined
       } : undefined,
-      page: parseInt(searchParams.get('page') || '1'),
-      limit: parseInt(searchParams.get('limit') || '50'),
+      page: Math.max(1, parseInt(searchParams.get('page') || '1') || 1),
+      limit: Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50') || 50)),
     }
 
     // Validate filters
@@ -110,71 +109,67 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     if (filters.pnlRange) {
-      const pnlConditions: any = {}
+      const pnlWhere: any = {}
       if (filters.pnlRange.min !== undefined) {
-        pnlConditions.gte = filters.pnlRange.min
+        pnlWhere.gte = filters.pnlRange.min
       }
       if (filters.pnlRange.max !== undefined) {
-        pnlConditions.lte = filters.pnlRange.max
+        pnlWhere.lte = filters.pnlRange.max
       }
-      
       where.OR = [
-        { realizedPnl: pnlConditions },
-        { 
-          AND: [
-            { realizedPnl: null },
-            { pnl: pnlConditions }
-          ]
-        }
+        { realizedPnl: pnlWhere },
+        { pnl: pnlWhere }
       ]
     }
 
+    // Calculate pagination
     const offset = (filters.page - 1) * filters.limit
 
-    // Get trades with phase information
+    // Get trades with pagination
     const [trades, total] = await Promise.all([
       prisma.trade.findMany({
         where,
+        orderBy: { entryTime: 'desc' },
+        skip: offset,
+        take: filters.limit,
         include: {
           phase: {
             select: {
               id: true,
               phaseType: true,
-              phaseStatus: true,
-              phaseStartAt: true,
-              phaseEndAt: true
+              phaseStatus: true
             }
           }
-        },
-        orderBy: [
-          { entryTime: 'desc' },
-          { createdAt: 'desc' }
-        ],
-        skip: offset,
-        take: filters.limit,
+        }
       }),
       prisma.trade.count({ where })
     ])
 
-    // Calculate running totals
-    let runningPnl = 0
-    const tradesWithRunningTotals = trades.map(trade => {
-      const tradePnl = trade.realizedPnl || trade.pnl
-      runningPnl += tradePnl
-      
-      return {
-        ...trade,
-        displayPnl: tradePnl,
-        runningPnl,
-        symbol: trade.symbol || trade.instrument,
-        entryDateTime: trade.entryTime || trade.entryDate,
-        exitDateTime: trade.exitTime || trade.closeDate,
-      }
-    })
+    // Transform trades to ensure consistent data structure
+    const transformedTrades = trades.map(trade => ({
+      id: trade.id,
+      symbol: trade.symbol || trade.instrument || '',
+      side: trade.side || '',
+      quantity: trade.quantity || 0,
+      entryPrice: trade.entryPrice ? parseFloat(trade.entryPrice) || 0 : 0,
+      exitPrice: trade.closePrice ? parseFloat(trade.closePrice) || 0 : 0,
+      entryTime: trade.entryTime?.toISOString() || trade.entryDate || '',
+      exitTime: trade.exitTime?.toISOString() || trade.closeDate || '',
+      pnl: trade.realizedPnl || trade.pnl || 0,
+      fees: trade.fees || trade.commission || 0,
+      strategy: trade.strategy || '',
+      notes: trade.comment || '',
+      phase: trade.phase ? {
+        id: trade.phase.id,
+        type: trade.phase.phaseType,
+        status: trade.phase.phaseStatus
+      } : null,
+      createdAt: trade.createdAt.toISOString()
+    }))
 
     return NextResponse.json({
       success: true,
-      data: tradesWithRunningTotals,
+      data: transformedTrades,
       pagination: {
         page: filters.page,
         limit: filters.limit,
@@ -183,17 +178,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         hasNext: offset + filters.limit < total,
         hasPrevious: filters.page > 1,
       },
-      summary: {
-        totalTrades: total,
-        totalPnl: trades.reduce((sum, t) => sum + (t.realizedPnl || t.pnl), 0),
-        totalFees: trades.reduce((sum, t) => sum + (t.fees || t.commission), 0),
-        winningTrades: trades.filter(t => (t.realizedPnl || t.pnl) > 0).length,
-        losingTrades: trades.filter(t => (t.realizedPnl || t.pnl) < 0).length,
-      }
     })
 
   } catch (error) {
-    console.error('Error fetching account trades:', error)
+    console.error('Error fetching trades:', error)
     return NextResponse.json(
       { error: 'Failed to fetch trades' },
       { status: 500 }
@@ -257,16 +245,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Calculate trade PnL and fees
-    const quantity = tradeData.quantity
-    const entryPrice = tradeData.entryPrice
-    const exitPrice = tradeData.exitPrice
-    const fees = tradeData.fees || 0
-    const commission = tradeData.commission || 0
+    // Calculate trade PnL and fees with safe defaults
+    const quantity = Math.max(0, tradeData.quantity || 0)
+    const entryPrice = Math.max(0, tradeData.entryPrice || 0)
+    const exitPrice = tradeData.exitPrice ? Math.max(0, tradeData.exitPrice) : null
+    const fees = Math.max(0, tradeData.fees || 0)
+    const commission = Math.max(0, tradeData.commission || 0)
     const totalFees = fees + commission
 
     let realizedPnl = 0
-    if (exitPrice && exitPrice > 0) {
+    if (exitPrice && exitPrice > 0 && entryPrice > 0 && quantity > 0) {
       // Calculate PnL based on side
       if (tradeData.side === 'long') {
         realizedPnl = (exitPrice - entryPrice) * quantity
@@ -274,6 +262,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         realizedPnl = (entryPrice - exitPrice) * quantity
       }
       realizedPnl -= totalFees
+    }
+
+    // Ensure PnL is a valid number
+    if (isNaN(realizedPnl) || !isFinite(realizedPnl)) {
+      realizedPnl = 0
     }
 
     // Create trade and update account metrics in transaction
@@ -299,115 +292,114 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       })
 
       // Update phase statistics if trade is closed
-      if (exitPrice && realizedPnl !== 0) {
-        const isWinningTrade = realizedPnl > 0
-        
-        await tx.accountPhase.update({
+      if (exitPrice) {
+        const updatedPhase = await tx.accountPhase.update({
           where: { id: currentPhase.id },
           data: {
             totalTrades: { increment: 1 },
-            winningTrades: isWinningTrade ? { increment: 1 } : undefined,
-            netProfitSincePhaseStart: { increment: realizedPnl },
+            winningTrades: { increment: realizedPnl > 0 ? 1 : 0 },
             totalCommission: { increment: totalFees },
-            // Update highest equity if this trade increased it
-            highestEquitySincePhaseStart: realizedPnl > 0 ? {
-              increment: realizedPnl
-            } : undefined,
+            netProfitSincePhaseStart: { increment: realizedPnl },
           }
         })
 
-        // Check for breaches and phase progression
-        const updatedPhase = await tx.accountPhase.findUnique({
-          where: { id: currentPhase.id }
+        // Calculate new equity
+        const newEquity = updatedPhase.currentEquity + realizedPnl
+        const newHighestEquity = Math.max(newEquity, updatedPhase.highestEquitySincePhaseStart)
+
+        // Update phase with new equity values
+        await tx.accountPhase.update({
+          where: { id: currentPhase.id },
+          data: {
+            currentEquity: newEquity,
+            currentBalance: newEquity,
+            highestEquitySincePhaseStart: newHighestEquity,
+          }
         })
 
-        if (updatedPhase) {
-          const newEquity = updatedPhase.currentEquity + realizedPnl
+        // Check for drawdown breaches
+        const drawdown = PropFirmBusinessRules.calculateDrawdown(
+          account as any,
+          updatedPhase as any,
+          newEquity,
+          updatedPhase.currentBalance, // Using current balance as daily anchor
+          newHighestEquity
+        )
 
-          // Check for drawdown breaches
-          const drawdown = PropFirmBusinessRules.calculateDrawdown(
+        if (drawdown.isBreached) {
+          // Create breach record
+          await tx.breach.create({
+            data: {
+              accountId: account.id,
+              phaseId: currentPhase.id,
+              breachType: drawdown.breachType!,
+              breachAmount: drawdown.breachAmount!,
+              breachThreshold: drawdown.breachType === 'daily_drawdown' 
+                ? (account.dailyDrawdownAmount || 0)
+                : (account.maxDrawdownAmount || 0),
+              equity: newEquity,
+              description: `${drawdown.breachType} breach on trade ${trade.id}`
+            }
+          })
+
+          // Mark account and phase as failed
+          await tx.account.update({
+            where: { id: account.id },
+            data: { status: 'failed' }
+          })
+
+          await tx.accountPhase.update({
+            where: { id: currentPhase.id },
+            data: { 
+              phaseStatus: 'failed',
+              phaseEndAt: new Date()
+            }
+          })
+        } else {
+          // Check for phase progression
+          const progress = PropFirmBusinessRules.calculatePhaseProgress(
             account as any,
             updatedPhase as any,
-            newEquity,
-            updatedPhase.currentBalance, // Using current balance as daily anchor
-            updatedPhase.highestEquitySincePhaseStart
+            updatedPhase.netProfitSincePhaseStart
           )
 
-          if (drawdown.isBreached) {
-            // Create breach record
-            await tx.breach.create({
-              data: {
-                accountId: account.id,
-                phaseId: currentPhase.id,
-                breachType: drawdown.breachType!,
-                breachAmount: drawdown.breachAmount!,
-                breachThreshold: drawdown.breachType === 'daily_drawdown' 
-                  ? (account.dailyDrawdownAmount || 0)
-                  : (account.maxDrawdownAmount || 0),
-                equity: newEquity,
-                description: `${drawdown.breachType} breach on trade ${trade.id}`
-              }
-            })
-
-            // Mark account and phase as failed
-            await tx.account.update({
-              where: { id: account.id },
-              data: { status: 'failed' }
-            })
-
+          if (progress.canProgress && progress.nextPhaseType) {
+            // Mark current phase as passed
             await tx.accountPhase.update({
               where: { id: currentPhase.id },
-              data: { 
-                phaseStatus: 'failed',
+              data: {
+                phaseStatus: 'passed',
                 phaseEndAt: new Date()
               }
             })
-          } else {
-            // Check for phase progression
-            const progress = PropFirmBusinessRules.calculatePhaseProgress(
-              account as any,
-              updatedPhase as any,
-              updatedPhase.netProfitSincePhaseStart
-            )
 
-            if (progress.canProgress && progress.nextPhaseType) {
-              // Mark current phase as passed
-              await tx.accountPhase.update({
-                where: { id: currentPhase.id },
-                data: {
-                  phaseStatus: 'passed',
-                  phaseEndAt: new Date()
-                }
-              })
+            // Create next phase
+            const nextProfitTarget = progress.nextPhaseType === 'funded' 
+              ? undefined 
+              : PropFirmBusinessRules.getDefaultProfitTarget(
+                  progress.nextPhaseType,
+                  account.startingBalance,
+                  account.evaluationType
+                )
 
-              // Create next phase
-              const nextProfitTarget = progress.nextPhaseType === 'funded' 
-                ? undefined 
-                : PropFirmBusinessRules.getDefaultProfitTarget(
-                    progress.nextPhaseType,
-                    account.startingBalance,
-                    account.evaluationType
-                  )
-
-              await tx.accountPhase.create({
-                data: {
-                  accountId: account.id,
-                  phaseType: progress.nextPhaseType,
-                  phaseStatus: 'active',
-                  profitTarget: nextProfitTarget,
-                  currentEquity: newEquity,
-                  currentBalance: newEquity,
-                  highestEquitySincePhaseStart: newEquity,
-                }
-              })
-
-              // Update account status if reaching funded
-              if (progress.nextPhaseType === 'funded') {
-                await tx.account.update({
-                  where: { id: account.id },
-                  data: { status: 'funded' }
-                })
+            await tx.accountPhase.create({
+              data: {
+                accountId: account.id,
+                phaseType: progress.nextPhaseType,
+                phaseStatus: 'active',
+                profitTarget: nextProfitTarget,
+                currentEquity: newEquity,
+                currentBalance: newEquity,
+                highestEquitySincePhaseStart: newEquity,
               }
+            })
+
+            // Update account status if reaching funded
+            if (progress.nextPhaseType === 'funded') {
+              await tx.account.update({
+                where: { id: account.id },
+                data: { status: 'funded' }
+              })
             }
           }
 
@@ -427,9 +419,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         data: {
           accountId: account.id,
           phaseId: currentPhase.id,
-          equity: currentPhase.currentEquity + (realizedPnl || 0),
-          balance: currentPhase.currentBalance + (realizedPnl || 0),
-          openPnl: 0,
+          equity: exitPrice ? (currentPhase.currentEquity + realizedPnl) : currentPhase.currentEquity,
+          balance: exitPrice ? (currentPhase.currentBalance + realizedPnl) : currentPhase.currentBalance,
+          openPnl: exitPrice ? 0 : realizedPnl,
         }
       })
 
@@ -438,9 +430,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       success: true,
-      data: result,
-      message: 'Trade created successfully'
-    }, { status: 201 })
+      data: {
+        id: result.id,
+        symbol: result.symbol || result.instrument || '',
+        side: result.side || '',
+        quantity: result.quantity || 0,
+        entryPrice: result.entryPrice ? parseFloat(result.entryPrice) || 0 : 0,
+        exitPrice: result.closePrice ? parseFloat(result.closePrice) || 0 : 0,
+        entryTime: result.entryTime?.toISOString() || result.entryDate || '',
+        exitTime: result.exitTime?.toISOString() || result.closeDate || '',
+        pnl: result.realizedPnl || result.pnl || 0,
+        fees: result.fees || result.commission || 0,
+        strategy: result.strategy || '',
+        notes: result.comment || '',
+        createdAt: result.createdAt.toISOString()
+      }
+    })
 
   } catch (error) {
     console.error('Error creating trade:', error)

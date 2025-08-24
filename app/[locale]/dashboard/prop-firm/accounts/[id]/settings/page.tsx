@@ -465,7 +465,7 @@ export default function AccountSettingsPage() {
                 <div className="text-center py-8">
                   <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No phases found</h3>
-                  <p className="text-muted-foreground">This account doesn't have any phases yet.</p>
+                  <p className="text-muted-foreground">This account doesn&apos;t have any phases yet.</p>
                 </div>
               ) : (
                 <div className="space-y-4">

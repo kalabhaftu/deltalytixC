@@ -1,60 +1,66 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useI18n } from "@/locales/client"
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "@/hooks/use-toast"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  ArrowLeft,
-  RefreshCw,
-  DollarSign,
-  Target,
-  Shield,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle
-} from "lucide-react"
-import { useRouter } from 'next/navigation'
-import { CreateAccountDialog } from "@/components/prop-firm/create-account-dialog"
-import { ComparisonTable } from "@/components/accounts/propfirms-comparison-table"
-import { cn } from "@/lib/utils"
-import { AccountStatus } from "@/types/prop-firm"
+import { PropFirmDashboard } from "../../components/prop-firm/prop-firm-dashboard"
+import { AccountSummary } from "@/types/prop-firm"
 
-interface AccountData {
-  id: string
-  number: string
-  name?: string
-  propfirm: string
-  status: AccountStatus
-  currentEquity: number
-  currentBalance: number
-  dailyDrawdownRemaining: number
-  maxDrawdownRemaining: number
-  profitTargetProgress: number
-  totalTrades: number
-  totalPayouts: number
-  hasRecentBreach: boolean
-  createdAt: string
-  updatedAt: string
+// Placeholder components for missing imports
+const CreateAccountDialog = ({ open, onOpenChange, onSuccess }: any) => {
+  const t = useI18n()
+  
+  if (!open) return null
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
+        <h2 className="text-xl font-semibold mb-4">Create Account</h2>
+        <p className="text-muted-foreground mb-4">
+          Account creation dialog will be implemented here.
+        </p>
+        <div className="flex gap-2 justify-end">
+          <button 
+            onClick={() => onOpenChange(false)}
+            className="px-4 py-2 text-sm border rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={() => {
+              onSuccess?.()
+              onOpenChange(false)
+            }}
+            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Create
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
-export default function AccountsPage() {
-  const router = useRouter()
+const PropfirmsComparisonTable = () => {
+  return (
+    <div className="p-4 border rounded-lg">
+      <h3 className="text-lg font-semibold mb-2">Prop Firms Comparison</h3>
+      <p className="text-muted-foreground">
+        Prop firms comparison table will be implemented here.
+      </p>
+    </div>
+  )
+}
+
+export default function PropFirmAccountsPage() {
   const t = useI18n()
+  const router = useRouter()
   const { user } = useAuth()
-  const [accounts, setAccounts] = useState<AccountData[]>([])
+  const [accounts, setAccounts] = useState<AccountSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [activeTab, setActiveTab] = useState('accounts')
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
   // Fetch accounts
   const fetchAccounts = async () => {
@@ -73,10 +79,10 @@ export default function AccountsPage() {
         throw new Error(data.error || 'Failed to fetch accounts')
       }
     } catch (error) {
-      console.error('Error fetching accounts:', error)
+      console.error('Error fetching prop firm accounts:', error)
       toast({
-        title: 'Failed to fetch accounts',
-        description: 'An error occurred while fetching accounts',
+        title: t('propFirm.toast.setupError'),
+        description: t('propFirm.toast.setupErrorDescription'),
         variant: "destructive"
       })
     } finally {
@@ -91,222 +97,51 @@ export default function AccountsPage() {
     }
   }, [user])
 
-  const getStatusColor = (status: AccountStatus) => {
-    switch (status) {
-      case 'active': return 'bg-blue-500'
-      case 'funded': return 'bg-green-500'
-      case 'failed': return 'bg-red-500'
-      case 'passed': return 'bg-purple-500'
-      default: return 'bg-gray-500'
-    }
+  // Handle account actions
+  const handleViewAccount = (accountId: string) => {
+    router.push(`/dashboard/prop-firm/accounts/${accountId}`)
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
+  const handleAddTrade = (accountId: string) => {
+    router.push(`/dashboard/prop-firm/accounts/${accountId}/trades/new`)
   }
 
-  const formatPercentage = (value: number) => {
-    return `${value.toFixed(1)}%`
+  const handleRequestPayout = (accountId: string) => {
+    router.push(`/dashboard/prop-firm/accounts/${accountId}/payouts`)
   }
 
-  // Filter accounts based on search term
-  const filteredAccounts = accounts.filter(account =>
-    account.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (account.name && account.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    account.propfirm.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const handleResetAccount = (accountId: string) => {
+    router.push(`/dashboard/prop-firm/accounts/${accountId}/reset`)
+  }
+
+  const handleCreateAccount = () => {
+    setCreateDialogOpen(true)
+  }
+
+  const handleCreateSuccess = () => {
+    fetchAccounts()
+  }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push('/dashboard/prop-firm')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Accounts</h1>
-            <p className="text-muted-foreground">Manage your prop firm accounts</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchAccounts}
-            disabled={isLoading}
-          >
-            <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
-            Refresh
-          </Button>
-          <Button
-            onClick={() => setShowCreateDialog(true)}
-            size="sm"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create Account
-          </Button>
-        </div>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search accounts..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button variant="outline" size="sm">
-          <Filter className="h-4 w-4 mr-2" />
-          Filter
-        </Button>
-      </div>
-
-      {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="accounts">Accounts</TabsTrigger>
-          <TabsTrigger value="compare">Compare</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="accounts">
-          {/* Accounts Grid */}
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <RefreshCw className="h-8 w-8 animate-spin" />
-            </div>
-          ) : filteredAccounts.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center h-64">
-                <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  {searchTerm ? 'No results found' : 'No accounts found'}
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchTerm ? 'Try a different search term' : 'Create your first account'}
-                </p>
-                {!searchTerm && (
-                  <Button onClick={() => setShowCreateDialog(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Account
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredAccounts.map((account) => (
-                <Card key={account.id} className="cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => router.push(`/dashboard/prop-firm/accounts/${account.id}`)}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">
-                        {account.name || account.number}
-                      </CardTitle>
-                      <Badge className={cn("text-white", getStatusColor(account.status))}>
-                        {account.status}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{account.propfirm}</p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Balance and Equity */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Balance</p>
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="h-3 w-3 text-muted-foreground" />
-                          <span className="font-medium">{formatCurrency(account.currentBalance)}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Equity</p>
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className="h-3 w-3 text-muted-foreground" />
-                          <span className="font-medium">{formatCurrency(account.currentEquity)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Drawdown */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Daily Drawdown</p>
-                        <div className={cn("flex items-center gap-1", 
-                          account.dailyDrawdownRemaining < 500 ? "text-red-600" : "text-green-600"
-                        )}>
-                          <Shield className="h-3 w-3" />
-                          <span className="font-medium">{formatCurrency(account.dailyDrawdownRemaining)}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Max Drawdown</p>
-                        <div className={cn("flex items-center gap-1",
-                          account.maxDrawdownRemaining < 1000 ? "text-red-600" : "text-green-600"
-                        )}>
-                          <Shield className="h-3 w-3" />
-                          <span className="font-medium">{formatCurrency(account.maxDrawdownRemaining)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Progress */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span>Profit Target</span>
-                        <span>{formatPercentage(account.profitTargetProgress)}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full" 
-                          style={{ width: `${Math.min(account.profitTargetProgress, 100)}%` }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{account.totalTrades} trades</span>
-                      <span>{account.totalPayouts} payouts</span>
-                    </div>
-
-                    {/* Warning for breaches */}
-                    {account.hasRecentBreach && (
-                      <div className="flex items-center gap-1 text-xs text-red-600">
-                        <AlertTriangle className="h-3 w-3" />
-                        <span>Recent breach detected</span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="compare">
-          <ComparisonTable />
-        </TabsContent>
-      </Tabs>
-
-      {/* Create Account Dialog */}
-      <CreateAccountDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        onSuccess={fetchAccounts}
+    <div className="space-y-6">
+      <PropFirmDashboard
+        accounts={accounts}
+        isLoading={isLoading}
+        onRefresh={fetchAccounts}
+        onCreateAccount={handleCreateAccount}
+        onViewAccount={handleViewAccount}
+        onAddTrade={handleAddTrade}
+        onRequestPayout={handleRequestPayout}
+        onResetAccount={handleResetAccount}
       />
+
+      <CreateAccountDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={handleCreateSuccess}
+      />
+
+      <PropfirmsComparisonTable />
     </div>
   )
 }

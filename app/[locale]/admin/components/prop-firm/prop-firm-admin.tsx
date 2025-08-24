@@ -414,7 +414,7 @@ export function PropFirmAdmin({ className }: PropFirmAdminProps) {
                     <div className="font-medium">{systemStats?.anchors.total || 0}</div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Today's Anchors</span>
+                    <span className="text-muted-foreground">Today&apos;s Anchors</span>
                     <div className="font-medium">{systemStats?.anchors.today || 0}</div>
                   </div>
                 </div>

@@ -29,22 +29,27 @@ export class PropFirmBusinessRules {
     dailyStartBalance: number,
     highestEquitySincePhaseStart: number
   ): DrawdownCalculation {
+    // Ensure all inputs are valid numbers
+    const safeCurrentEquity = this.ensureValidNumber(currentEquity, account.startingBalance)
+    const safeDailyStartBalance = this.ensureValidNumber(dailyStartBalance, account.startingBalance)
+    const safeHighestEquity = this.ensureValidNumber(highestEquitySincePhaseStart, account.startingBalance)
+
     const result: DrawdownCalculation = {
       dailyDrawdownRemaining: 0,
       maxDrawdownRemaining: 0,
-      currentEquity,
-      dailyStartBalance,
-      highestEquity: highestEquitySincePhaseStart,
+      currentEquity: safeCurrentEquity,
+      dailyStartBalance: safeDailyStartBalance,
+      highestEquity: safeHighestEquity,
       isBreached: false,
     }
 
     // Calculate daily drawdown
     if (account.dailyDrawdownAmount && account.dailyDrawdownAmount > 0) {
       const dailyLimit = account.dailyDrawdownType === 'percent' 
-        ? dailyStartBalance * (account.dailyDrawdownAmount / 100)
+        ? safeDailyStartBalance * (account.dailyDrawdownAmount / 100)
         : account.dailyDrawdownAmount
 
-      const dailyDD = dailyStartBalance - currentEquity
+      const dailyDD = safeDailyStartBalance - safeCurrentEquity
       result.dailyDrawdownRemaining = Math.max(0, dailyLimit - dailyDD)
 
       if (dailyDD > dailyLimit) {
@@ -64,13 +69,13 @@ export class PropFirmBusinessRules {
         maxLimit = account.maxDrawdownType === 'percent'
           ? account.startingBalance * (account.maxDrawdownAmount / 100)
           : account.maxDrawdownAmount
-        maxDD = account.startingBalance - currentEquity
+        maxDD = account.startingBalance - safeCurrentEquity
       } else {
         // Trailing from highest equity
         maxLimit = account.maxDrawdownType === 'percent'
-          ? highestEquitySincePhaseStart * (account.maxDrawdownAmount / 100)
+          ? safeHighestEquity * (account.maxDrawdownAmount / 100)
           : account.maxDrawdownAmount
-        maxDD = highestEquitySincePhaseStart - currentEquity
+        maxDD = safeHighestEquity - safeCurrentEquity
       }
 
       result.maxDrawdownRemaining = Math.max(0, maxLimit - maxDD)
@@ -93,6 +98,8 @@ export class PropFirmBusinessRules {
     currentPhase: AccountPhase,
     netProfitSincePhaseStart: number
   ): PhaseProgress {
+    const safeNetProfit = this.ensureValidNumber(netProfitSincePhaseStart, 0)
+    
     const daysInPhase = Math.floor(
       (new Date().getTime() - currentPhase.phaseStartAt.getTime()) / (1000 * 60 * 60 * 24)
     )
@@ -100,16 +107,16 @@ export class PropFirmBusinessRules {
     const result: PhaseProgress = {
       currentPhase,
       profitProgress: 0,
-      profitTarget: currentPhase.profitTarget,
+      profitTarget: currentPhase.profitTarget || 0,
       daysInPhase,
       canProgress: false,
     }
 
     // Calculate profit progress
     if (currentPhase.profitTarget && currentPhase.profitTarget > 0) {
-      result.profitProgress = (netProfitSincePhaseStart / currentPhase.profitTarget) * 100
+      result.profitProgress = (safeNetProfit / currentPhase.profitTarget) * 100
       
-      if (netProfitSincePhaseStart >= currentPhase.profitTarget) {
+      if (safeNetProfit >= currentPhase.profitTarget) {
         result.canProgress = true
         
         // Determine next phase
@@ -146,45 +153,53 @@ export class PropFirmBusinessRules {
     netProfitSinceLastPayout: number,
     hasActiveBreaches: boolean
   ): PayoutEligibility {
+    const safeNetProfit = this.ensureValidNumber(netProfitSinceLastPayout, 0)
+    
     const result: PayoutEligibility = {
       isEligible: false,
-      daysSinceFunded,
-      daysSinceLastPayout,
-      netProfitSinceLastPayout,
-      minDaysRequired: account.minDaysToFirstPayout || 4,
-      minProfitRequired: account.payoutEligibilityMinProfit,
       blockers: [],
-    }
-
-    // Only funded accounts can request payouts
-    if (currentPhase.phaseType !== 'funded') {
-      result.blockers.push('Account must be in funded phase')
-      return result
-    }
-
-    // Check minimum days since funded
-    if (daysSinceFunded < (account.minDaysToFirstPayout || 4)) {
-      result.blockers.push(`Must wait ${account.minDaysToFirstPayout || 4} days since funding`)
-    }
-
-    // Check minimum days since last payout
-    const payoutCycle = account.payoutCycleDays || 14
-    if (daysSinceLastPayout < payoutCycle) {
-      result.blockers.push(`Must wait ${payoutCycle} days since last payout`)
-    }
-
-    // Check minimum profit requirement
-    if (account.payoutEligibilityMinProfit && netProfitSinceLastPayout < account.payoutEligibilityMinProfit) {
-      result.blockers.push(`Must have at least $${account.payoutEligibilityMinProfit} profit since last payout`)
+      maxPayoutAmount: 0,
+      profitSplitAmount: 0,
+      nextEligibleDate: null,
     }
 
     // Check for active breaches
     if (hasActiveBreaches) {
-      result.blockers.push('Cannot request payout with active rule violations')
+      result.blockers.push('Active rule violations prevent payout')
+      return result
     }
 
-    result.isEligible = result.blockers.length === 0
+    // Check minimum days since funded
+    const minDaysToFirstPayout = account.minDaysToFirstPayout || 4
+    if (daysSinceFunded < minDaysToFirstPayout) {
+      result.blockers.push(`Must wait ${minDaysToFirstPayout - daysSinceFunded} more days since funded`)
+      return result
+    }
 
+    // Check payout cycle
+    const payoutCycleDays = account.payoutCycleDays || 14
+    if (daysSinceLastPayout < payoutCycleDays) {
+      const nextEligible = new Date()
+      nextEligible.setDate(nextEligible.getDate() + (payoutCycleDays - daysSinceLastPayout))
+      result.nextEligibleDate = nextEligible
+      result.blockers.push(`Must wait ${payoutCycleDays - daysSinceLastPayout} more days since last payout`)
+      return result
+    }
+
+    // Check minimum profit requirement
+    const minProfit = account.payoutEligibilityMinProfit || 0
+    if (safeNetProfit < minProfit) {
+      result.blockers.push(`Minimum profit requirement not met (${minProfit} needed, ${safeNetProfit} available)`)
+      return result
+    }
+
+    // Calculate payout amounts
+    const profitSplitPercent = account.profitSplitPercent || 80
+    result.profitSplitAmount = safeNetProfit * (profitSplitPercent / 100)
+    result.maxPayoutAmount = result.profitSplitAmount
+
+    // All checks passed
+    result.isEligible = true
     return result
   }
 
@@ -214,7 +229,7 @@ export class PropFirmBusinessRules {
   }
 
   /**
-   * Validate phase transition rules
+   * Validate phase transition
    */
   static validatePhaseTransition(
     account: PropFirmAccount,
@@ -222,35 +237,16 @@ export class PropFirmBusinessRules {
     toPhaseType: PhaseType,
     netProfit: number
   ): { valid: boolean; reason?: string } {
-    // Can't transition if account is failed
-    if (account.status === 'failed') {
-      return { valid: false, reason: 'Account is in failed status' }
+    const safeNetProfit = this.ensureValidNumber(netProfit, 0)
+
+    // Check if transition is allowed
+    if (fromPhase.phaseType === 'funded' && toPhaseType !== 'funded') {
+      return { valid: false, reason: 'Cannot transition from funded phase' }
     }
 
-    // Validate profit target requirements
-    if (fromPhase.profitTarget && netProfit < fromPhase.profitTarget) {
-      return { valid: false, reason: 'Profit target not reached' }
-    }
-
-    // Validate evaluation type progression
-    if (account.evaluationType === 'one_step') {
-      if (fromPhase.phaseType === 'phase_1' && toPhaseType !== 'funded') {
-        return { valid: false, reason: 'One-step evaluation must go directly to funded' }
-      }
-    } else {
-      // two_step
-      if (fromPhase.phaseType === 'phase_1' && toPhaseType !== 'phase_2') {
-        return { valid: false, reason: 'Phase 1 must progress to Phase 2' }
-      }
-      if (fromPhase.phaseType === 'phase_2' && toPhaseType !== 'funded') {
-        return { valid: false, reason: 'Phase 2 must progress to funded' }
-      }
-    }
-
-    // Can't go backwards
-    const phaseOrder = { 'phase_1': 1, 'phase_2': 2, 'funded': 3 }
-    if (phaseOrder[fromPhase.phaseType] >= phaseOrder[toPhaseType]) {
-      return { valid: false, reason: 'Cannot move to previous phase' }
+    // Check profit target for non-funded phases
+    if (toPhaseType !== 'funded' && fromPhase.profitTarget && safeNetProfit < fromPhase.profitTarget) {
+      return { valid: false, reason: 'Profit target not met' }
     }
 
     return { valid: true }
@@ -269,19 +265,22 @@ export class PropFirmBusinessRules {
     newResetBalance?: number
     resetAnchors: boolean
   } {
+    const safeCurrentBalance = this.ensureValidNumber(currentBalance, account.startingBalance)
+    const safePayoutAmount = this.ensureValidNumber(payoutAmount, 0)
+    
     const result = {
-      newBalance: currentBalance,
-      shouldReset: account.resetOnPayout,
+      newBalance: safeCurrentBalance,
+      shouldReset: account.resetOnPayout || false,
       resetAnchors: false,
     }
 
     if (account.resetOnPayout) {
       // Reset to starting balance or configured reset balance
-      result.newBalance = account.fundedResetBalance || account.startingBalance
+      result.newBalance = this.ensureValidNumber(account.fundedResetBalance || account.startingBalance, account.startingBalance)
       result.resetAnchors = true
     } else if (account.reduceBalanceByPayout) {
       // Reduce balance by payout amount
-      result.newBalance = currentBalance - payoutAmount
+      result.newBalance = Math.max(0, safeCurrentBalance - safePayoutAmount)
     }
 
     return result
@@ -295,21 +294,25 @@ export class PropFirmBusinessRules {
     startingBalance: number,
     evaluationType: string
   ): number | undefined {
-    // Default profit targets as percentage of starting balance
-    const defaultTargets = {
-      'one_step': { 'phase_1': 0.10 }, // 10% for single phase
-      'two_step': { 
-        'phase_1': 0.08, // 8% for phase 1
-        'phase_2': 0.05  // 5% for phase 2
+    const safeStartingBalance = this.ensureValidNumber(startingBalance, 0)
+    
+    if (phaseType === 'funded') {
+      return undefined // Funded accounts have no profit target
+    }
+
+    // Default profit targets based on common prop firm standards
+    if (evaluationType === 'one_step') {
+      return safeStartingBalance * 0.08 // 8% for one-step
+    } else {
+      // two_step
+      if (phaseType === 'phase_1') {
+        return safeStartingBalance * 0.08 // 8% for Phase 1
+      } else if (phaseType === 'phase_2') {
+        return safeStartingBalance * 0.05 // 5% for Phase 2
       }
     }
 
-    const targets = defaultTargets[evaluationType as keyof typeof defaultTargets]
-    if (targets && phaseType in targets) {
-      return startingBalance * targets[phaseType as keyof typeof targets]
-    }
-
-    return undefined
+    return safeStartingBalance * 0.08 // Default fallback
   }
 
   /**
@@ -321,32 +324,35 @@ export class PropFirmBusinessRules {
   } {
     const errors: string[] = []
 
-    // Validate drawdown configuration
-    if (account.dailyDrawdownType === 'percent' && account.dailyDrawdownAmount) {
-      if (account.dailyDrawdownAmount > 100) {
-        errors.push('Daily drawdown percentage cannot exceed 100%')
-      }
+    // Check required fields
+    if (!account.number || account.number.trim() === '') {
+      errors.push('Account number is required')
     }
 
-    if (account.maxDrawdownType === 'percent' && account.maxDrawdownAmount) {
-      if (account.maxDrawdownAmount > 100) {
-        errors.push('Max drawdown percentage cannot exceed 100%')
-      }
+    if (!account.startingBalance || account.startingBalance <= 0) {
+      errors.push('Starting balance must be greater than 0')
     }
 
-    // Validate profit split
-    if (account.profitSplitPercent && account.profitSplitPercent > 100) {
-      errors.push('Profit split percentage cannot exceed 100%')
+    if (!account.propfirm || account.propfirm.trim() === '') {
+      errors.push('Prop firm name is required')
     }
 
-    // Validate payout cycle
-    if (account.payoutCycleDays && account.payoutCycleDays < 1) {
-      errors.push('Payout cycle must be at least 1 day')
+    // Check drawdown configuration
+    if (account.dailyDrawdownAmount && account.dailyDrawdownAmount <= 0) {
+      errors.push('Daily drawdown amount must be greater than 0')
     }
 
-    // Validate minimum days to first payout
-    if (account.minDaysToFirstPayout && account.minDaysToFirstPayout < 0) {
-      errors.push('Minimum days to first payout cannot be negative')
+    if (account.maxDrawdownAmount && account.maxDrawdownAmount <= 0) {
+      errors.push('Maximum drawdown amount must be greater than 0')
+    }
+
+    // Check percentage limits
+    if (account.dailyDrawdownType === 'percent' && account.dailyDrawdownAmount && account.dailyDrawdownAmount > 100) {
+      errors.push('Daily drawdown percentage cannot exceed 100%')
+    }
+
+    if (account.maxDrawdownType === 'percent' && account.maxDrawdownAmount && account.maxDrawdownAmount > 100) {
+      errors.push('Maximum drawdown percentage cannot exceed 100%')
     }
 
     return {
@@ -372,30 +378,51 @@ export class PropFirmBusinessRules {
     currentStreak: number
     riskOfRuin: number
   } {
-    const winners = trades.filter(t => (t.realizedPnl || t.pnl) > 0)
-    const losers = trades.filter(t => (t.realizedPnl || t.pnl) < 0)
+    const safeCurrentEquity = this.ensureValidNumber(currentEquity, account.startingBalance)
+    
+    if (!trades || trades.length === 0) {
+      return {
+        totalTrades: 0,
+        winRate: 0,
+        avgWin: 0,
+        avgLoss: 0,
+        profitFactor: 0,
+        maxDrawdownEncountered: 0,
+        currentStreak: 0,
+        riskOfRuin: 1
+      }
+    }
+
+    // Calculate trade PnL safely
+    const tradePnLs = trades.map(trade => {
+      const pnl = trade.realizedPnl || trade.pnl || 0
+      return this.ensureValidNumber(pnl, 0)
+    })
+
+    const winners = tradePnLs.filter(pnl => pnl > 0)
+    const losers = tradePnLs.filter(pnl => pnl < 0)
     
     const avgWin = winners.length > 0 
-      ? winners.reduce((sum, t) => sum + (t.realizedPnl || t.pnl), 0) / winners.length 
+      ? winners.reduce((sum, pnl) => sum + pnl, 0) / winners.length 
       : 0
     
     const avgLoss = losers.length > 0 
-      ? Math.abs(losers.reduce((sum, t) => sum + (t.realizedPnl || t.pnl), 0) / losers.length)
+      ? Math.abs(losers.reduce((sum, pnl) => sum + pnl, 0) / losers.length)
       : 0
 
-    const grossProfit = winners.reduce((sum, t) => sum + (t.realizedPnl || t.pnl), 0)
-    const grossLoss = Math.abs(losers.reduce((sum, t) => sum + (t.realizedPnl || t.pnl), 0))
+    const grossProfit = winners.reduce((sum, pnl) => sum + pnl, 0)
+    const grossLoss = Math.abs(losers.reduce((sum, pnl) => sum + pnl, 0))
     
     const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0
 
     // Calculate current streak
     let currentStreak = 0
-    if (trades.length > 0) {
-      const lastTrade = trades[trades.length - 1]
-      const isWin = (lastTrade.realizedPnl || lastTrade.pnl) > 0
+    if (tradePnLs.length > 0) {
+      const lastTradePnL = tradePnLs[tradePnLs.length - 1]
+      const isWin = lastTradePnL > 0
       
-      for (let i = trades.length - 1; i >= 0; i--) {
-        const tradeIsWin = (trades[i].realizedPnl || trades[i].pnl) > 0
+      for (let i = tradePnLs.length - 1; i >= 0; i--) {
+        const tradeIsWin = tradePnLs[i] > 0
         if (tradeIsWin === isWin) {
           currentStreak++
         } else {
@@ -406,22 +433,44 @@ export class PropFirmBusinessRules {
       if (!isWin) currentStreak = -currentStreak
     }
 
+    // Calculate max drawdown encountered
+    let runningEquity = account.startingBalance
+    let peakEquity = account.startingBalance
+    let maxDrawdownEncountered = 0
+
+    tradePnLs.forEach(pnl => {
+      runningEquity += pnl
+      peakEquity = Math.max(peakEquity, runningEquity)
+      const currentDrawdown = peakEquity - runningEquity
+      maxDrawdownEncountered = Math.max(maxDrawdownEncountered, currentDrawdown)
+    })
+
     // Simple risk of ruin calculation (Kelly criterion based)
-    const winRate = trades.length > 0 ? winners.length / trades.length : 0
+    const winRate = tradePnLs.length > 0 ? winners.length / tradePnLs.length : 0
     const b = avgLoss > 0 ? avgWin / avgLoss : 0
     const q = 1 - winRate
     const riskOfRuin = winRate > 0 && b > 0 ? Math.pow(q / (winRate * b), 1) : 1
 
     return {
-      totalTrades: trades.length,
+      totalTrades: tradePnLs.length,
       winRate: winRate * 100,
       avgWin,
       avgLoss,
       profitFactor,
-      maxDrawdownEncountered: account.startingBalance - Math.min(...[account.startingBalance, currentEquity]),
+      maxDrawdownEncountered,
       currentStreak,
-      riskOfRuin: Math.min(riskOfRuin, 1) * 100
+      riskOfRuin
     }
+  }
+
+  /**
+   * Ensure a number is valid (not NaN, null, or undefined)
+   */
+  private static ensureValidNumber(value: number | null | undefined, defaultValue: number): number {
+    if (value === null || value === undefined || isNaN(value) || !isFinite(value)) {
+      return defaultValue
+    }
+    return value
   }
 }
 

@@ -36,9 +36,12 @@ export default {
     delete: 'Delete',
     cancel: 'Cancel',
     save: 'Save',
+    saving: 'Saving...',
     loading: 'Loading...',
     previous: 'Previous',
     next: 'Next',
+    back: 'Back',
+    send: 'Send',
     actions: 'Actions',
     viewMode: {
       cards: 'Cards',

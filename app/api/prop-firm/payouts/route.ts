@@ -1,6 +1,6 @@
 /**
- * Payouts API
- * Handles payout requests and management for funded accounts
+ * Payout Management API
+ * Handles payout requests and processing for funded accounts
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -8,66 +8,110 @@ import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
 import { PropFirmSchemas } from '@/lib/validation/prop-firm-schemas'
 import { PropFirmBusinessRules } from '@/lib/prop-firm/business-rules'
-// Removed heavy validation import - using Zod directly
 
-// GET /api/prop-firm/payouts - List payouts with filtering
+// GET /api/prop-firm/payouts - List payouts
 export async function GET(request: NextRequest) {
   try {
     const userId = await getUserId()
     const { searchParams } = new URL(request.url)
-    
-    const accountId = searchParams.get('accountId')
-    const status = searchParams.getAll('status')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+
+    // Parse filter parameters
+    const filterData = {
+      accountId: searchParams.get('accountId') || undefined,
+      status: searchParams.getAll('status'),
+      dateRange: searchParams.get('dateFrom') && searchParams.get('dateTo') ? {
+        start: new Date(searchParams.get('dateFrom')!),
+        end: new Date(searchParams.get('dateTo')!)
+      } : undefined,
+      page: Math.max(1, parseInt(searchParams.get('page') || '1') || 1),
+      limit: Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50') || 50)),
+    }
+
+    // Validate filters
+    const parseResult = PropFirmSchemas.PayoutFilter.safeParse(filterData)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid filter parameters', details: parseResult.error.errors },
+        { status: 400 }
+      )
+    }
+
+    const filters = parseResult.data
 
     // Build where clause
     const where: any = {
       account: { userId }
     }
 
-    if (accountId) {
-      where.accountId = accountId
+    if (filters.accountId) {
+      where.accountId = filters.accountId
     }
 
-    if (status.length > 0) {
-      where.status = { in: status }
+    if (filters.status && filters.status.length > 0) {
+      where.status = { in: filters.status }
     }
 
-    const offset = (page - 1) * limit
+    if (filters.dateRange) {
+      where.requestedAt = {
+        gte: filters.dateRange.start,
+        lte: filters.dateRange.end
+      }
+    }
 
-    // Get payouts with account info
+    // Calculate pagination
+    const offset = (filters.page - 1) * filters.limit
+
+    // Get payouts with pagination
     const [payouts, total] = await Promise.all([
       prisma.payout.findMany({
         where,
+        orderBy: { requestedAt: 'desc' },
+        skip: offset,
+        take: filters.limit,
         include: {
           account: {
             select: {
               id: true,
               number: true,
               name: true,
-              propfirm: true,
-              status: true
+              propfirm: true
             }
           }
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: offset,
-        take: limit,
+        }
       }),
       prisma.payout.count({ where })
     ])
 
+    // Transform payouts to ensure consistent data structure
+    const transformedPayouts = payouts.map(payout => ({
+      id: payout.id,
+      accountId: payout.accountId,
+      accountNumber: payout.accountNumber,
+      amountRequested: payout.amountRequested || payout.amount || 0,
+      amountPaid: payout.amountPaid || 0,
+      status: payout.status,
+      requestedAt: payout.requestedAt?.toISOString() || payout.date?.toISOString() || '',
+      paidAt: payout.paidAt?.toISOString() || '',
+      notes: payout.notes || '',
+      account: payout.account ? {
+        id: payout.account.id,
+        number: payout.account.number,
+        name: payout.account.name,
+        propfirm: payout.account.propfirm
+      } : null,
+      createdAt: payout.createdAt.toISOString()
+    }))
+
     return NextResponse.json({
       success: true,
-      data: payouts,
+      data: transformedPayouts,
       pagination: {
-        page,
-        limit,
+        page: filters.page,
+        limit: filters.limit,
         total,
-        totalPages: Math.ceil(total / limit),
-        hasNext: offset + limit < total,
-        hasPrevious: page > 1,
+        totalPages: Math.ceil(total / filters.limit),
+        hasNext: offset + filters.limit < total,
+        hasPrevious: filters.page > 1,
       },
     })
 
@@ -132,6 +176,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Only funded accounts can request payouts
+    if (currentPhase.phaseType !== 'funded') {
+      return NextResponse.json(
+        { error: 'Only funded accounts can request payouts' },
+        { status: 400 }
+      )
+    }
+
     // Calculate payout eligibility
     const fundedPhaseStart = account.phases.find(p => p.phaseType === 'funded')?.phaseStartAt
     const daysSinceFunded = fundedPhaseStart 
@@ -144,7 +196,7 @@ export async function POST(request: NextRequest) {
       : daysSinceFunded
 
     const netProfitSinceLastPayout = lastPayout
-      ? currentPhase.netProfitSincePhaseStart - (lastPayout.amountPaid || lastPayout.amount)
+      ? currentPhase.netProfitSincePhaseStart - (lastPayout.amountPaid || lastPayout.amount || 0)
       : currentPhase.netProfitSincePhaseStart
 
     const hasActiveBreaches = account.breaches.length > 0
@@ -170,13 +222,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate payout amount doesn't exceed available profit
-    const maxPayoutAmount = netProfitSinceLastPayout * ((account.profitSplitPercent || 80) / 100)
+    const maxPayoutAmount = Math.min(
+      eligibility.maxPayoutAmount,
+      netProfitSinceLastPayout * ((account.profitSplitPercent || 80) / 100)
+    )
+    
     if (payoutData.amountRequested > maxPayoutAmount) {
       return NextResponse.json(
         { 
           error: `Payout amount exceeds maximum allowed (${maxPayoutAmount.toFixed(2)})`,
-          maxAmount: maxPayoutAmount
+          maxAmount: maxPayoutAmount,
+          availableProfit: netProfitSinceLastPayout,
+          profitSplitPercent: account.profitSplitPercent || 80
         },
+        { status: 400 }
+      )
+    }
+
+    // Ensure payout amount is positive
+    if (payoutData.amountRequested <= 0) {
+      return NextResponse.json(
+        { error: 'Payout amount must be greater than 0' },
         { status: 400 }
       )
     }
@@ -210,29 +276,52 @@ export async function POST(request: NextRequest) {
     await prisma.auditLog.create({
       data: {
         userId,
-        accountId: payoutData.accountId,
         action: 'PAYOUT_REQUESTED',
+        resource: 'payout',
+        resourceId: payout.id,
         entity: 'payout',
         entityId: payout.id,
-        newValues: payout,
+        details: {
+          accountId: account.id,
+          accountNumber: account.number,
+          amountRequested: payoutData.amountRequested,
+          eligibility: eligibility,
+          netProfitSinceLastPayout,
+          daysSinceFunded,
+          daysSinceLastPayout
+        },
         metadata: {
-          eligibility,
-          maxPayoutAmount,
-          netProfitSinceLastPayout
+          payoutId: payout.id,
+          accountId: account.id,
+          amount: payoutData.amountRequested
         }
       }
     })
 
     return NextResponse.json({
       success: true,
-      data: payout,
-      message: 'Payout request submitted successfully'
-    }, { status: 201 })
+      data: {
+        id: payout.id,
+        accountId: payout.accountId,
+        accountNumber: payout.accountNumber,
+        amountRequested: payout.amountRequested,
+        status: payout.status,
+        requestedAt: payout.requestedAt?.toISOString() || '',
+        notes: payout.notes || '',
+        account: payout.account ? {
+          id: payout.account.id,
+          number: payout.account.number,
+          name: payout.account.name,
+          propfirm: payout.account.propfirm
+        } : null,
+        createdAt: payout.createdAt.toISOString()
+      }
+    })
 
   } catch (error) {
-    console.error('Error creating payout request:', error)
+    console.error('Error creating payout:', error)
     return NextResponse.json(
-      { error: 'Failed to create payout request' },
+      { error: 'Failed to create payout' },
       { status: 500 }
     )
   }

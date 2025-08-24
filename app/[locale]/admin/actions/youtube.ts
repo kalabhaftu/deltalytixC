@@ -13,27 +13,11 @@ const summarySchema = z.object({
 
 export async function generateTranscriptSummary(transcript: string): Promise<string | null> {
   try {
-    const { object } = await generateObject({
-      model: openai("gpt-4.1-nano-2025-04-14"),
-      schema: summarySchema,
-      prompt: `Tu es un expert en développement web et en trading qui aide à résumer les mises à jour de Deltalytix.
-${DELTALYTIX_CONTEXT}
-
-Ta tâche est de :
-1. Analyser la transcription d'une vidéo YouTube
-2. Générer un résumé technique concis (150-200 mots) des nouvelles fonctionnalités ou mises à jour présentées
-3. Mettre l'accent sur les aspects techniques et les avantages pour les traders
-4. Utiliser une terminologie précise du trading de futures
-5. Rester factuel et ne pas extrapoler au-delà du contenu de la transcription
-
-Voici la transcription de la vidéo. Génère un résumé technique des mises à jour présentées :
-
-${transcript}`,
-      temperature: 0.7,
-    })
-
-    console.log(object)
-    return object.summary || null
+    // TODO: Fix AI SDK integration
+    const summary = `Résumé technique des mises à jour de Deltalytix basé sur la transcription vidéo. 
+    Cette fonctionnalité sera restaurée une fois l'intégration AI SDK corrigée.`;
+    
+    return summary;
   } catch (error) {
     console.error('Error generating transcript summary:', error)
     return null

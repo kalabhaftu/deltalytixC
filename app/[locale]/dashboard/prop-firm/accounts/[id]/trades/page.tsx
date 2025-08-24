@@ -417,7 +417,7 @@ export default function AccountTradesPage() {
                 <CardContent className="flex flex-col items-center justify-center h-64">
                   <FileText className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No open positions</h3>
-                  <p className="text-muted-foreground">You don't have any open trades at the moment.</p>
+                  <p className="text-muted-foreground">You don&apos;t have any open trades at the moment.</p>
                 </CardContent>
               </Card>
             ) : (
@@ -494,7 +494,7 @@ export default function AccountTradesPage() {
                 <CardContent className="flex flex-col items-center justify-center h-64">
                   <FileText className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No closed trades</h3>
-                  <p className="text-muted-foreground">You don't have any closed trades yet.</p>
+                  <p className="text-muted-foreground">You don&apos;t have any closed trades yet.</p>
                 </CardContent>
               </Card>
             ) : (

@@ -281,7 +281,11 @@ export default {
             active: 'Active',
             failed: 'Failed',
             passed: 'Passed',
-            funded: 'Funded'
+            funded: 'Funded',
+            consistent: 'Consistent',
+            inconsistent: 'Inconsistent',
+            unprofitable: 'Unprofitable',
+            needsConfiguration: 'Needs Configuration'
         },
         phase: {
             phase_1: 'Phase 1',
@@ -364,7 +368,33 @@ export default {
         },
         payout: {
             request: 'Request Payout',
-            nextEligible: 'Next payout eligible'
+            nextEligible: 'Next payout eligible',
+            add: 'Add Payout',
+            edit: 'Edit Payout',
+            addDescription: 'Add a new payout for account',
+            editDescription: 'Edit payout for account',
+            amount: 'Amount',
+            date: 'Date',
+            status: 'Status',
+            delete: 'Delete',
+            update: 'Update',
+            save: 'Save',
+            success: 'Payout added successfully',
+            successDescription: 'The payout has been added to your account',
+            updateSuccess: 'Payout updated successfully',
+            updateSuccessDescription: 'The payout has been updated successfully',
+            error: 'Failed to add payout',
+            errorDescription: 'An error occurred while adding the payout',
+            deleteSuccess: 'Payout deleted successfully',
+            deleteSuccessDescription: 'The payout has been deleted successfully',
+            deleteError: 'Failed to delete payout',
+            deleteErrorDescription: 'An error occurred while deleting the payout',
+            statuses: {
+                pending: 'Pending',
+                validated: 'Validated',
+                refused: 'Refused',
+                paid: 'Paid'
+            }
         },
         warnings: {
             approachingLimits: 'Approaching drawdown limits'
@@ -388,7 +418,9 @@ export default {
                 cards: 'Cards',
                 table: 'Table'
             },
-            refresh: 'Refresh'
+            refresh: 'Refresh',
+            delete: 'Delete',
+            cancel: 'Cancel'
         }
     }
 } as const;
