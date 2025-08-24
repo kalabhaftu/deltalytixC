@@ -218,3 +218,4 @@ CREATE INDEX "AuditLog_entity_entityId_idx" ON "public"."AuditLog"("entity", "en
 CREATE INDEX "Account_status_idx" ON "public"."Account"("status");
 CREATE INDEX "Account_evaluation_type_idx" ON "public"."Account"("evaluation_type");
 
+

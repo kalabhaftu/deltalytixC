@@ -76,7 +76,7 @@ export function ComparisonTable() {
         <div className="flex gap-4 mb-6">
           <div className="flex-1">
             <Select
-              value={firstSelection?.propFirm}
+              value={firstSelection?.propFirm || ''}
               onValueChange={(value) =>
                 setFirstSelection({ propFirm: value, account: '' })
               }
@@ -94,7 +94,7 @@ export function ComparisonTable() {
             </Select>
             {firstSelection?.propFirm && (
               <Select
-                value={firstSelection?.account}
+                value={firstSelection?.account || ''}
                 onValueChange={(value) =>
                   setFirstSelection((prev) => ({
                     ...prev!,
@@ -120,7 +120,7 @@ export function ComparisonTable() {
 
           <div className="flex-1">
             <Select
-              value={secondSelection?.propFirm}
+              value={secondSelection?.propFirm || ''}
               onValueChange={(value) =>
                 setSecondSelection({ propFirm: value, account: '' })
               }
@@ -138,7 +138,7 @@ export function ComparisonTable() {
             </Select>
             {secondSelection?.propFirm && (
               <Select
-                value={secondSelection?.account}
+                value={secondSelection?.account || ''}
                 onValueChange={(value) =>
                   setSecondSelection((prev) => ({
                     ...prev!,

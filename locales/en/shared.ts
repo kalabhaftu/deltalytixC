@@ -40,7 +40,7 @@ export default {
     previous: 'Previous',
     next: 'Next',
     actions: 'Actions',
-    view: {
+    viewMode: {
       cards: 'Cards',
       table: 'Table'
     }

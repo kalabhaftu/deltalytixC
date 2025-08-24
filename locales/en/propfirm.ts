@@ -20,10 +20,6 @@ export default {
             totalTrades: 'Total Trades'
         },
         ungrouped: 'Ungrouped',
-        tabs: {
-            overview: 'Overview',
-            consistency: 'Consistency'
-        },
         configurator: {
             title: 'Account Configuration for {accountNumber}',
             description: 'Configure the account settings for your prop firm activity',
@@ -113,7 +109,6 @@ export default {
         },
         balance: 'Balance',
         target: 'Target',
-        drawdown: 'Drawdown',
         accountSize: 'Account Size',
         coherence: 'Coherence',
         startingBalance: 'Starting Balance',
@@ -133,40 +128,6 @@ export default {
         },
         noResetDate: 'No reset date',
         resetDateDescription: 'The date when the account balance will be reset',
-        payout: {
-            add: 'Add Payout',
-            edit: 'Edit Payout',
-            addDescription: 'Add a new payout for the account',
-            editDescription: 'Edit payout for the account',
-            date: 'Payout Date',
-            amount: 'Amount',
-            status: 'Status',
-            statuses: {
-                pending: 'Pending',
-                validated: 'Validated',
-                refused: 'Refused',
-                paid: 'Paid'
-            },
-            delete: 'Delete Payout',
-            save: 'Save Payout',
-            update: 'Update Payout',
-            success: 'Payout saved',
-            successDescription: 'The payout has been saved successfully',
-            error: 'Failed to save payout',
-            errorDescription: 'An error occurred while saving the payout',
-            deleteSuccess: 'Payout deleted',
-            deleteSuccessDescription: 'The payout has been deleted successfully',
-            deleteError: 'Failed to delete payout',
-            deleteErrorDescription: 'An error occurred while deleting the payout',
-            updateSuccess: 'Payout updated',
-            updateSuccessDescription: 'The payout has been updated successfully',
-            updateError: 'Failed to update payout',
-            updateErrorDescription: 'An error occurred while updating the payout',
-            deleteConfirm: 'Delete payout',
-            deleteConfirmDescription: 'Are you sure you want to delete this payout? This action cannot be undone.',
-            deleteConfirmButton: 'Yes, delete',
-            deleteCancel: 'Cancel'
-        },
         dailyStats: {
             title: 'Daily Performance',
             date: 'Date',
@@ -196,13 +157,6 @@ export default {
                 title: 'Save Required',
                 description: 'Please save your changes to see updated statistics.'
             }
-        },
-        status: {
-            unprofitable: 'Unprofitable - No consistency check',
-            insufficient: 'Insufficient data',
-            consistent: 'Consistent trading',
-            inconsistent: 'Inconsistent trading',
-            needsConfiguration: 'Needs Configuration'
         },
         toast: {
             setupSuccess: 'Account setup successful',
@@ -280,18 +234,6 @@ export default {
                 pnl: 'P&L',
                 percentageOfTotal: '% of Total Profit'
             }
-        },
-        table: {
-            title: 'Table',
-            configurator: 'Configurator'
-        },
-        common: {
-            configure: 'Configure',
-            save: 'Save',
-            saving: 'Saving...',
-            cancel: 'Cancel',
-            delete: 'Delete',
-            deleting: 'Deleting...'
         },
         reset: {
             title: 'Reset Account',
@@ -440,6 +382,13 @@ export default {
             dailyDD: 'Daily DD',
             maxDD: 'Max DD',
             noAccounts: 'No accounts found'
+        },
+        common: {
+            viewMode: {
+                cards: 'Cards',
+                table: 'Table'
+            },
+            refresh: 'Refresh'
         }
     }
 } as const;

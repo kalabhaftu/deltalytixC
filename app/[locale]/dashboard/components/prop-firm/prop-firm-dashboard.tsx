@@ -224,14 +224,16 @@ export function PropFirmDashboard({
               size="sm"
               onClick={() => setViewMode('cards')}
             >
-              {t('common.view.cards')}
+              <Activity className="h-4 w-4 mr-2" />
+              {t('common.viewMode.cards')}
             </Button>
             <Button
               variant={viewMode === 'table' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('table')}
             >
-              {t('common.view.table')}
+              <Target className="h-4 w-4 mr-2" />
+              {t('common.viewMode.table')}
             </Button>
           </div>
         </div>

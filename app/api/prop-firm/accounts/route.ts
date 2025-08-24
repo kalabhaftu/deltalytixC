@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
     const parseResult = PropFirmSchemas.CreateAccount.safeParse(body)
     if (!parseResult.success) {
       return NextResponse.json(
-        { error: 'Invalid account data', details: parseResult.error.errors },
+        { error: 'Validation Error', details: parseResult.error.errors },
         { status: 400 }
       )
     }
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
     const configValidation = PropFirmBusinessRules.validateAccountConfiguration(accountData)
     if (!configValidation.valid) {
       return NextResponse.json(
-        { error: 'Invalid account configuration', details: configValidation.errors },
+        { error: 'Business Rule Violation', details: configValidation.errors },
         { status: 400 }
       )
     }
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
 
     if (existingAccount) {
       return NextResponse.json(
-        { error: 'Account number already exists' },
+        { error: 'Duplicate Account Number', message: 'An account with this number already exists for your user.' },
         { status: 409 }
       )
     }
@@ -301,7 +301,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating prop firm account:', error)
     return NextResponse.json(
-      { error: 'Failed to create account' },
+      { error: 'Internal Server Error', message: 'An unexpected error occurred while creating the account.' },
       { status: 500 }
     )
   }

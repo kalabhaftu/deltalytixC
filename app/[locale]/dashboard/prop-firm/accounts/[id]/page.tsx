@@ -29,7 +29,7 @@ import {
   CreditCard
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { AccountDashboardData, AccountSummary, PhaseType, AccountStatus } from "@/types/prop-firm"
+import { AccountDashboardData, AccountSummary, PhaseType, AccountStatus, PropFirmTrade } from "@/types/prop-firm"
 
 interface AccountDetailPageProps {
   params: {
@@ -42,7 +42,7 @@ export default function AccountDetailPage() {
   const router = useRouter()
   const t = useI18n()
   const { user } = useAuth()
-  const [accountData, setAccountData] = useState<AccountDashboardData | null>(null)
+  const [accountData, setAccountData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
 
@@ -390,10 +390,10 @@ export default function AccountDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {accountData.recentTrades.length === 0 ? (
+                  {(!accountData.recentActivity?.trades || accountData.recentActivity.trades.length === 0) ? (
                     <p className="text-muted-foreground text-center py-4">No recent trades</p>
                   ) : (
-                    accountData.recentTrades.slice(0, 5).map((trade) => (
+                    accountData.recentActivity.trades.slice(0, 5).map((trade: PropFirmTrade) => (
                       <div key={trade.id} className="flex justify-between items-center">
                         <div>
                           <div className="font-medium">{trade.symbol || trade.instrument}</div>

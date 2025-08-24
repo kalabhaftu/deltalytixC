@@ -20,7 +20,7 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const { id: accountId } = await params
 
     // Get account with all related data
     const account = await prisma.account.findFirst({
@@ -178,7 +178,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const { id: accountId } = await params
     const body = await request.json()
 
     // Validate input
@@ -261,7 +261,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const { id: accountId } = await params
 
     // Check account exists and belongs to user
     const account = await prisma.account.findFirst({

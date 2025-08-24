@@ -64,6 +64,10 @@ const PROP_FIRMS = [
   'SurgeTrader',
   'FundedNext',
   'TrueForexFunds',
+  'Equity Edge',
+  'Maven',
+  'Funding Pips',
+  'Top Step',
   'Custom'
 ]
 
@@ -79,10 +83,17 @@ export function CreateAccountDialog({
   const form = useForm<CreateAccountInput>({
     resolver: zodResolver(PropFirmSchemas.CreateAccount),
     defaultValues: {
+      number: '',
+      name: '',
+      propfirm: '',
+      startingBalance: 0,
       dailyDrawdownType: 'percent',
+      dailyDrawdownAmount: 0,
       maxDrawdownType: 'percent',
+      maxDrawdownAmount: 0,
       drawdownModeMax: 'static',
       evaluationType: 'two_step',
+      profitTarget: 0,
       timezone: 'UTC',
       dailyResetTime: '00:00',
     }
@@ -116,7 +127,7 @@ export function CreateAccountDialog({
       'two_step': { 'phase_1': 0.08, 'phase_2': 0.05 }
     }
     
-    const target = targets[evaluationType as keyof typeof targets]?.[phase]
+    const target = (targets[evaluationType as keyof typeof targets] as any)?.[phase]
     return target ? balance * target : undefined
   }
 
@@ -132,8 +143,26 @@ export function CreateAccountDialog({
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to create account')
+        const errorData = await response.json()
+        let errorMessage = 'Failed to create account'
+
+        if (errorData.error === 'Validation Error' && errorData.details) {
+          // Zod validation errors
+          errorMessage = errorData.details.map((detail: any) => detail.message).join(', ')
+        } else if (errorData.error === 'Business Rule Violation' && errorData.details) {
+          // Business rule errors
+          errorMessage = errorData.details.map((detail: any) => detail.message).join(', ')
+        } else if (errorData.error === 'Duplicate Account Number' && errorData.message) {
+          // Specific duplicate account error
+          errorMessage = errorData.message
+        } else if (errorData.message) {
+          // Generic error message from backend
+          errorMessage = errorData.message
+        } else if (errorData.error) {
+          // Fallback to error.error if no specific message
+          errorMessage = errorData.error
+        }
+        throw new Error(errorMessage)
       }
 
       const result = await response.json()
@@ -201,13 +230,13 @@ export function CreateAccountDialog({
                 >
                   <div className={cn(
                     "w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm",
-                    index < ['basic', 'drawdown', 'evaluation', 'review'].indexOf(step) ? "border-primary bg-primary text-primary-foreground" :
+                    index < ['basic', 'drawdown', 'evaluation', 'review'].indexOf(step) ? "border-primary bg-primary text-primary-foreground" : "",
                     stepName === step ? "border-primary" : "border-muted"
                   )}>
                     {index + 1}
                   </div>
                   <span className="ml-2 text-sm hidden sm:inline">
-                    {t(`propFirm.account.steps.${stepName}`)}
+                    {t('propFirm.account.steps.basic')}
                   </span>
                   {index < 3 && (
                     <div className={cn(
@@ -274,7 +303,7 @@ export function CreateAccountDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t('propFirm.account.propfirm')}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder={t('propFirm.account.selectPropfirm')} />
@@ -344,7 +373,7 @@ export function CreateAccountDialog({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>{t('propFirm.drawdown.type')}</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value || 'percent'}>
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue />
@@ -379,7 +408,7 @@ export function CreateAccountDialog({
                                 step={watchedValues.dailyDrawdownType === 'percent' ? "0.1" : "100"}
                                 placeholder={watchedValues.dailyDrawdownType === 'percent' ? "5" : "2500"}
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                               />
                             </FormControl>
                             <FormMessage />
@@ -421,7 +450,7 @@ export function CreateAccountDialog({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>{t('propFirm.drawdown.type')}</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value || 'percent'}>
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue />
@@ -456,7 +485,7 @@ export function CreateAccountDialog({
                                 step={watchedValues.maxDrawdownType === 'percent' ? "0.1" : "100"}
                                 placeholder={watchedValues.maxDrawdownType === 'percent' ? "10" : "5000"}
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                               />
                             </FormControl>
                             <FormMessage />
@@ -470,7 +499,7 @@ export function CreateAccountDialog({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>{t('propFirm.drawdown.mode')}</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value || 'static'}>
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue />
@@ -535,7 +564,7 @@ export function CreateAccountDialog({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('propFirm.evaluation.type')}</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value || 'two_step'}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue />
@@ -578,7 +607,7 @@ export function CreateAccountDialog({
                                   : "4000"
                               }
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                              onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                             />
                           </FormControl>
                           <FormDescription>
@@ -599,7 +628,7 @@ export function CreateAccountDialog({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('propFirm.account.timezone')}</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value || 'UTC'}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue />
@@ -709,7 +738,7 @@ export function CreateAccountDialog({
                                 )
                               )}
                               <Badge variant="outline" className="ml-2">
-                                {t(`propFirm.drawdown.${watchedValues.drawdownModeMax}`)}
+                                {t('propFirm.drawdown.static')}
                               </Badge>
                             </span>
                           </div>
@@ -727,7 +756,7 @@ export function CreateAccountDialog({
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">{t('propFirm.evaluation.type')}:</span>
                         <Badge variant="outline">
-                          {t(`propFirm.evaluation.${watchedValues.evaluationType}`)}
+                          {t('propFirm.evaluation.oneStep')}
                         </Badge>
                       </div>
                       {watchedValues.profitTarget && (
