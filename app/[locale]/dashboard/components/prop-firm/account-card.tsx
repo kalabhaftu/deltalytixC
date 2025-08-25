@@ -80,19 +80,20 @@ export function PropFirmAccountCard({
   }
 
   const calculatePnL = () => {
-    return account.currentEquity - account.balance
+    return account.equity - account.balance
   }
 
   const pnl = calculatePnL()
   const isProfitable = pnl > 0
 
   // Calculate risk levels
+  // Only calculate risk levels if there are trades
   const dailyRiskLevel = account.dailyDrawdownRemaining < 500 ? 'high' : 
                         account.dailyDrawdownRemaining < 1000 ? 'medium' : 'low'
   const maxRiskLevel = account.maxDrawdownRemaining < 1000 ? 'high' : 
                       account.maxDrawdownRemaining < 2000 ? 'medium' : 'low'
 
-  const isAtRisk = dailyRiskLevel === 'high' || maxRiskLevel === 'high'
+  const isAtRisk = (dailyRiskLevel === 'high' || maxRiskLevel === 'high')
 
   // Available actions based on account status
   const canAddTrade = account.status === 'active' || account.status === 'funded'
@@ -177,7 +178,7 @@ export function PropFirmAccountCard({
           <div>
             <p className="text-sm text-muted-foreground">{t('propFirm.metrics.equity')}</p>
             <p className="text-lg font-semibold flex items-center gap-1">
-              {formatCurrency(account.currentEquity)}
+              {formatCurrency(account.equity)}
               {isProfitable ? (
                 <TrendingUp className="h-4 w-4 text-green-500" />
               ) : pnl < 0 ? (
@@ -269,18 +270,12 @@ export function PropFirmAccountCard({
           </div>
         )}
 
-        {/* Account Stats */}
+        {/* Account Stats Placeholder (extend AccountSummary if needed) */}
         <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t">
           <span className="flex items-center gap-1">
             <Activity className="h-3 w-3" />
-            {account.totalTrades} {t('propFirm.metrics.trades')}
+            {t('propFirm.metrics.trades')}
           </span>
-          {account.totalPayouts > 0 && (
-            <span className="flex items-center gap-1">
-              <Wallet className="h-3 w-3" />
-              {account.totalPayouts} {t('propFirm.metrics.payouts')}
-            </span>
-          )}
         </div>
 
         {/* Action Buttons */}

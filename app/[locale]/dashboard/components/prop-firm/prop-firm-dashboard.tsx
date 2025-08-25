@@ -359,8 +359,11 @@ function AccountCard({
 }: AccountCardProps) {
   const t = useI18n()
 
-  const isAtRisk = (isFinite(account.dailyDrawdownRemaining) && account.dailyDrawdownRemaining < 500) ||
-                   (isFinite(account.maxDrawdownRemaining) && account.maxDrawdownRemaining < 1000)
+  // Only show risk warning if there are trades and the account is approaching drawdown limits
+  const isAtRisk = account.totalTrades > 0 && (
+    (isFinite(account.dailyDrawdownRemaining) && account.dailyDrawdownRemaining < 500) ||
+    (isFinite(account.maxDrawdownRemaining) && account.maxDrawdownRemaining < 1000)
+  )
 
   return (
     <Card className="hover:shadow-md transition-shadow">

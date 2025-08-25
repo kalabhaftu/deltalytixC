@@ -140,6 +140,17 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
         imageBase64Third: null,
         imageBase64Fourth: null,
         groupId: null,
+        symbol: null,
+        entryTime: null,
+        exitTime: null,
+        fees: 0,
+        realizedPnl: null,
+        equityAtOpen: null,
+        equityAtClose: null,
+        rawBrokerId: null,
+        phaseId: null,
+        accountId: null,
+        strategy: null,
       }
       
       newTrades.push(completeTrade);

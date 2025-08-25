@@ -128,13 +128,13 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
                       isCollapsed && !isMobile ? "mr-0" : "mr-3"
                     )} />
                     {(!isCollapsed || isMobile) && (
-                      <span className="truncate">{t(item.translationKey)}</span>
+                      <span className="truncate">{(t as any)(item.translationKey)}</span>
                     )}
                   </Button>
                 </TooltipTrigger>
                 {isCollapsed && !isMobile && (
                   <TooltipContent side="right" className="font-medium">
-                    {t(item.translationKey)}
+                    {(t as any)(item.translationKey)}
                   </TooltipContent>
                 )}
               </Tooltip>

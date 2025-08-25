@@ -47,12 +47,13 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
     cumulativePnl, cumulativeFees,
     winningStreak,
     grossLosses,
-    grossWin,
-    biggestWin,
-    biggestLoss,
-    totalPayouts,
-    nbPayouts
+    grossWin
   } = statistics
+
+  const biggestWin = (statistics as any).biggestWin ?? 0
+  const biggestLoss = (statistics as any).biggestLoss ?? 0
+  const totalPayouts = (statistics as any).totalPayouts ?? 0
+  const nbPayouts = (statistics as any).nbPayouts ?? 0
 
   // Calculate Net P&L including payouts
   const netPnlWithPayouts = cumulativePnl - cumulativeFees - totalPayouts

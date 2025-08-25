@@ -82,6 +82,18 @@ const MatchTraderProcessor = ({
           imageBase64Third: null,
           imageBase64Fourth: null,
           groupId: null,
+          // Prisma optional fields
+          symbol: null,
+          entryTime: null,
+          exitTime: null,
+          fees: 0,
+          realizedPnl: null,
+          equityAtOpen: null,
+          equityAtClose: null,
+          rawBrokerId: null,
+          phaseId: null,
+          accountId: null,
+          strategy: null,
         } as Trade
       }).filter(trade => trade !== null) // Remove invalid trades
 

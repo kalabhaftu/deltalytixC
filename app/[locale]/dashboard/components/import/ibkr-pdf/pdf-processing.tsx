@@ -156,7 +156,20 @@ export default function PdfProcessing({
         tags: [],
         imageBase64: null,
         imageBase64Second: null,
-        groupId: null
+        imageBase64Third: null,
+        imageBase64Fourth: null,
+        groupId: null,
+        symbol: null,
+        fees: 0,
+        realizedPnl: null,
+        entryTime: null,
+        exitTime: null,
+        equityAtOpen: null,
+        equityAtClose: null,
+        rawBrokerId: null,
+        strategy: null,
+        phaseId: null,
+        accountId: null
       }));
       
       setProcessedTrades(convertedTrades);

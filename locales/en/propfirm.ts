@@ -464,6 +464,8 @@ export default {
             accountsAtRisk: '{count} account(s) are approaching drawdown limits'
         },
         table: {
+            title: 'Table',
+            configurator: 'Configurator',
             account: 'Account',
             status: 'Status',
             phase: 'Phase',
@@ -481,6 +483,7 @@ export default {
             },
             refresh: 'Refresh',
             delete: 'Delete',
+            deleting: 'Deleting...',
             cancel: 'Cancel'
         }
     }

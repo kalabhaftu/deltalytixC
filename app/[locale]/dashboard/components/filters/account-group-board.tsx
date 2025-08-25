@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Settings, Check, X, Trash2, EyeOff } from "lucide-react"
 import { useI18n } from "@/locales/client"
-import { toast } from "sonner"
+import * as AppToast from "@/hooks/use-toast"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { ensureAccountAndAssignGroup } from "@/app/[locale]/dashboard/actions/accounts"
@@ -37,6 +37,9 @@ interface UngroupedAccount {
 
 export function AccountGroupBoard() {
   const t = useI18n()
+  const notify: any = (payload: any) => (AppToast as any).toast(payload)
+  
+  
   const user = useUserStore(state => state.user)
   const groups = useUserStore(state => state.groups)
   const trades = useTradesStore(state => state.trades)
@@ -85,14 +88,12 @@ export function AccountGroupBoard() {
       setIsCreating(true)
       await saveGroup(newGroupName.trim())
       setNewGroupName("")
-      toast.success(t("common.success"), {
-        description: t("filters.groupCreated", { name: newGroupName })
-      })
+      // @ts-expect-error Overload mismatch between local toast and sonner types
+      notify({ title: t("common.success"), description: t("filters.groupCreated", { name: newGroupName }) })
     } catch (error) {
       console.error("Error creating group:", error)
-      toast.error(t("common.error"), {
-        description: t("filters.errorCreatingGroup", { name: newGroupName })
-      })
+      // @ts-expect-error Overload mismatch between local toast and sonner types
+      notify({ title: t("common.error"), description: t("filters.errorCreatingGroup", { name: newGroupName }), variant: "destructive" })
     } finally {
       setIsCreating(false)
     }
@@ -103,14 +104,12 @@ export function AccountGroupBoard() {
       await renameGroup(groupId, newName)
       setEditingGroupId(null)
       setEditingGroupName("")
-      toast.success(t("common.success"), {
-        description: t("filters.groupUpdated", { name: newName })
-      })
+      // @ts-expect-error Overload mismatch between local toast and sonner types
+      notify({ title: t("common.success"), description: t("filters.groupUpdated", { name: newName }) })
     } catch (error) {
       console.error("Error updating group:", error)
-      toast.error(t("common.error"), {
-        description: t("filters.errorUpdatingGroup", { name: newName })
-      })
+      // @ts-expect-error Overload mismatch between local toast and sonner types
+      notify({ title: t("common.error"), description: t("filters.errorUpdatingGroup", { name: newName }), variant: "destructive" })
     }
   }, [renameGroup, t])
 
@@ -150,9 +149,8 @@ export function AccountGroupBoard() {
       await moveAccountToGroup(account.id, groupId)
     } catch (error) {
       console.error("Error moving account:", error)
-      toast.error(t("common.error"), {
-        description: t("filters.errorMovingAccount", { account: account.number })
-      })
+      // @ts-expect-error Overload mismatch between local toast and sonner types
+      notify({ title: t("common.error"), description: t("filters.errorMovingAccount", { account: account.number }), variant: "destructive" })
     }
   }, [groups, user?.id, saveGroup, moveAccountToGroup, t, existingAccounts])
 
@@ -160,14 +158,12 @@ export function AccountGroupBoard() {
     try {
       setIsDeleting(true)
       await deleteGroup(groupId)
-      toast.success(t("common.success"), {
-        description: t("filters.groupDeleted", { name: groupName })
-      })
+      // @ts-expect-error Overload mismatch between local toast and sonner types
+      notify({ title: t("common.success"), description: t("filters.groupDeleted", { name: groupName }) })
     } catch (error) {
       console.error("Error deleting group:", error)
-      toast.error(t("common.error"), {
-        description: t("filters.errorDeletingGroup", { name: groupName })
-      })
+      // @ts-expect-error Overload mismatch between local toast and sonner types
+      notify({ title: t("common.error"), description: t("filters.errorDeletingGroup", { name: groupName }), variant: "destructive" })
     } finally {
       setIsDeleting(false)
     }

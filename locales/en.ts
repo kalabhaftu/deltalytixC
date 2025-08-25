@@ -874,7 +874,9 @@ export default {
     'toolbar.opacity.description': 'Adjust toolbar transparency',
     'toolbar.resetSettings': 'Reset to Default',
     'toolbar.contextMenu': 'Right-click for options',
+    'common.add': 'Add',
     'common.cancel': 'Cancel',
+    'common.clear': 'Clear',
     tradeDistribution: {
         title: "Trade Distribution",
         description: "Distribution of winning, losing, and breakeven trades",

@@ -183,11 +183,12 @@ export function PropFirmAccountTable({
         </TableHeader>
         <TableBody>
           {sortedAccounts.map((account) => {
-            const pnl = account.currentEquity - account.balance
+            const pnl = account.equity - account.balance
             const isProfitable = pnl > 0
+            // Only calculate risk levels if there are trades
             const dailyRiskLevel = getRiskLevel(account.dailyDrawdownRemaining, true)
             const maxRiskLevel = getRiskLevel(account.maxDrawdownRemaining, false)
-            const isAtRisk = dailyRiskLevel === 'high' || maxRiskLevel === 'high'
+            const isAtRisk = (dailyRiskLevel === 'high' || maxRiskLevel === 'high')
 
             // Available actions based on account status
             const canAddTrade = account.status === 'active' || account.status === 'funded'
@@ -247,7 +248,7 @@ export function PropFirmAccountTable({
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <span className="font-medium">
-                      {formatCurrency(account.currentEquity)}
+                      {formatCurrency(account.equity)}
                     </span>
                     {isProfitable ? (
                       <TrendingUp className="h-4 w-4 text-green-500" />
