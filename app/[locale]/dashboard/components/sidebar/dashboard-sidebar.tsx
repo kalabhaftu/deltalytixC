@@ -16,6 +16,7 @@ import {
   Menu
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { motion } from "framer-motion"
 
 interface SidebarProps {
   activeTab: string
@@ -106,7 +107,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
     <div className="flex flex-col h-full">
       {/* Navigation Items */}
       <nav className="flex-1 space-y-2 p-4">
-        {navigationItems.map((item) => {
+        {navigationItems.map((item, index) => {
           const Icon = item.icon
           const isActive = activeTab === item.id
           
@@ -114,26 +115,35 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
             <TooltipProvider key={item.id}>
               <Tooltip delayDuration={0}>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant={isActive ? "secondary" : "ghost"}
-                    className={cn(
-                      "w-full justify-start transition-all duration-200",
-                      isCollapsed && !isMobile ? "px-2" : "px-3",
-                      isActive && "bg-secondary text-secondary-foreground"
-                    )}
-                    onClick={() => onTabChange(item.id)}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1, duration: 0.3 }}
                   >
-                    <Icon className={cn(
-                      "h-5 w-5 shrink-0",
-                      isCollapsed && !isMobile ? "mr-0" : "mr-3"
-                    )} />
-                    {(!isCollapsed || isMobile) && (
-                      <span className="truncate">{(t as any)(item.translationKey)}</span>
-                    )}
-                  </Button>
+                    <Button
+                      variant={isActive ? "default" : "ghost"}
+                      className={cn(
+                        "w-full justify-start transition-all duration-300 ease-out group",
+                        isCollapsed && !isMobile ? "px-2" : "px-3",
+                        isActive 
+                          ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]" 
+                          : "hover:bg-accent/80 hover:shadow-md hover:scale-[1.02] hover:translate-x-1"
+                      )}
+                      onClick={() => onTabChange(item.id)}
+                    >
+                      <Icon className={cn(
+                        "h-5 w-5 shrink-0 transition-all duration-300",
+                        isCollapsed && !isMobile ? "mr-0" : "mr-3",
+                        isActive ? "scale-110" : "group-hover:scale-110"
+                      )} />
+                      {(!isCollapsed || isMobile) && (
+                        <span className="truncate font-medium">{(t as any)(item.translationKey)}</span>
+                      )}
+                    </Button>
+                  </motion.div>
                 </TooltipTrigger>
                 {isCollapsed && !isMobile && (
-                  <TooltipContent side="right" className="font-medium">
+                  <TooltipContent side="right" className="font-medium bg-background/95 backdrop-blur-xl border border-border/50 shadow-xl">
                     {(t as any)(item.translationKey)}
                   </TooltipContent>
                 )}
@@ -145,26 +155,31 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
 
       {/* Collapse Toggle - Desktop Only */}
       {!isMobile && (
-        <div className="p-4 border-t">
+        <motion.div 
+          className="p-4 border-t border-border/50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
           <Button
             variant="ghost"
             size="sm"
             onClick={toggleCollapsed}
             className={cn(
-              "w-full transition-all duration-200",
+              "w-full transition-all duration-300 hover:bg-accent/80 hover:shadow-md",
               isCollapsed ? "px-2" : "px-3"
             )}
           >
             {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4 transition-transform duration-300 hover:scale-110" />
             ) : (
               <>
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                <span className="text-sm">Collapse</span>
+                <ChevronLeft className="h-4 w-4 mr-2 transition-transform duration-300 hover:scale-110" />
+                <span className="text-sm font-medium">Collapse</span>
               </>
             )}
           </Button>
-        </div>
+        </motion.div>
       )}
     </div>
   )
@@ -174,15 +189,21 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
     return (
       <Sheet>
         <SheetTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            className="fixed top-20 left-4 z-50 md:hidden"
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
           >
-            <Menu className="h-4 w-4" />
-          </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="fixed top-20 left-4 z-50 md:hidden bg-background/95 backdrop-blur-xl border-border/50 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200"
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
+          </motion.div>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0">
+        <SheetContent side="left" className="w-64 p-0 bg-background/95 backdrop-blur-xl border-border/50">
           <NavigationContent />
         </SheetContent>
       </Sheet>
@@ -191,9 +212,9 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
 
   // Desktop sidebar
   return (
-    <div
+    <motion.div
       className={cn(
-        "fixed left-0 top-0 z-30 h-full bg-background border-r transition-all duration-300 ease-in-out",
+        "fixed left-0 top-0 z-30 h-full bg-background/95 backdrop-blur-xl border-r border-border/50 shadow-xl transition-all duration-300 ease-in-out",
         // Prevent layout shift during hydration
         !isHydrated ? "w-64" : isCollapsed ? "w-16" : "w-64",
         className
@@ -202,8 +223,11 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
         top: 'var(--navbar-height, 56px)',
         height: 'calc(100vh - var(--navbar-height, 56px))'
       }}
+      initial={{ x: -100, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
     >
       <NavigationContent />
-    </div>
+    </motion.div>
   )
 }

@@ -11,7 +11,7 @@ const PropFirmDashboardPage = dynamic(() => import('./prop-firm/page'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary shadow-lg"></div>
     </div>
   )
 })
@@ -20,6 +20,7 @@ import { useI18n } from "@/locales/client"
 import { DashboardErrorBoundary, ErrorBoundaryWrapper } from '@/components/error-boundary'
 import { DashboardSidebar } from './components/sidebar/dashboard-sidebar'
 import { cn } from "@/lib/utils"
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function Home() {
   const t = useI18n()
@@ -41,7 +42,7 @@ export default function Home() {
       timeoutId = setTimeout(() => {
         // Get navbar height - it's fixed at the top
         const navbar = document.querySelector('nav[class*="fixed"]') as HTMLElement
-        const navbarHeight = navbar?.offsetHeight || 56 // fallback to 56px
+        const navbarHeight = navbar?.offsetHeight || 64 // Updated fallback to match new navbar height
 
         // Set CSS custom property for navbar height
         document.documentElement.style.setProperty('--navbar-height', `${navbarHeight}px`)
@@ -124,37 +125,94 @@ export default function Home() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
+  const pageVariants = {
+    initial: { opacity: 0, y: 20 },
+    in: { opacity: 1, y: 0 },
+    out: { opacity: 0, y: -20 }
+  }
+
+  const pageTransition = {
+    type: 'tween',
+    ease: 'anticipate',
+    duration: 0.4
+  }
+
   const renderContent = () => {
     switch (activeTab) {
       case 'table':
         return (
           <ErrorBoundaryWrapper context="TradeTable">
-            <TradeTableReview />
+            <motion.div
+              key="table"
+              initial="initial"
+              animate="in"
+              exit="out"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <TradeTableReview />
+            </motion.div>
           </ErrorBoundaryWrapper>
         )
       case 'accounts':
         return (
           <ErrorBoundaryWrapper context="Accounts">
-            <AccountsOverview size="large" />
+            <motion.div
+              key="accounts"
+              initial="initial"
+              animate="in"
+              exit="out"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <AccountsOverview size="large" />
+            </motion.div>
           </ErrorBoundaryWrapper>
         )
       case 'prop-firm':
         return (
           <ErrorBoundaryWrapper context="PropFirm">
-            <PropFirmDashboardPage />
+            <motion.div
+              key="prop-firm"
+              initial="initial"
+              animate="in"
+              exit="out"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <PropFirmDashboardPage />
+            </motion.div>
           </ErrorBoundaryWrapper>
         )
       case 'analysis':
         return (
           <ErrorBoundaryWrapper context="Analysis">
-            <AnalysisOverview />
+            <motion.div
+              key="analysis"
+              initial="initial"
+              animate="in"
+              exit="out"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <AnalysisOverview />
+            </motion.div>
           </ErrorBoundaryWrapper>
         )
       case 'widgets':
       default:
         return (
           <ErrorBoundaryWrapper context="Widgets">
-            <WidgetCanvas />
+            <motion.div
+              key="widgets"
+              initial="initial"
+              animate="in"
+              exit="out"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <WidgetCanvas />
+            </motion.div>
           </ErrorBoundaryWrapper>
         )
     }
@@ -162,7 +220,7 @@ export default function Home() {
 
   return (
     <DashboardErrorBoundary>
-      <div className="flex w-full min-h-screen overflow-x-hidden">
+      <div className="flex w-full min-h-screen overflow-x-hidden bg-gradient-to-br from-background via-background to-background/95">
         {/* Sidebar */}
         <DashboardSidebar 
           activeTab={activeTab} 
@@ -171,21 +229,26 @@ export default function Home() {
         />
         
         {/* Main Content */}
-        <main 
+        <motion.main 
           ref={mainRef} 
           className={cn(
-            "flex-1 transition-all duration-300 ease-in-out",
+            "flex-1 transition-all duration-300 ease-in-out relative",
             isMobile ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-64"
           )}
           style={{ 
-            paddingTop: `var(--navbar-height, 56px)`,
-            minHeight: `calc(100vh - var(--navbar-height, 56px))`
+            paddingTop: `var(--navbar-height, 64px)`,
+            minHeight: `calc(100vh - var(--navbar-height, 64px))`
           }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
         >
-          <div className="flex flex-1 flex-col w-full px-4 py-6">
-            {renderContent()}
+          <div className="flex flex-1 flex-col w-full px-4 py-6 backdrop-blur-sm">
+            <AnimatePresence mode="wait">
+              {renderContent()}
+            </AnimatePresence>
           </div>
-        </main>
+        </motion.main>
       </div>
     </DashboardErrorBoundary>
   )

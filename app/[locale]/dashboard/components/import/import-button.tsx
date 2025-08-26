@@ -24,6 +24,7 @@ import { useTradesStore } from '@/store/trades-store'
 import { usePdfProcessingStore } from '@/store/pdf-processing-store'
 import PdfUpload from './ibkr-pdf/pdf-upload'
 import PdfProcessing from './ibkr-pdf/pdf-processing'
+import { motion } from 'framer-motion'
 
 import { generateTradeHash } from '@/lib/utils'
 
@@ -404,22 +405,27 @@ export default function ImportButton() {
 
   return (
     <div>
-      <Button 
-        onClick={() => setIsOpen(true)} 
-        variant="default"
-        className={cn(
-          "justify-start text-left font-normal w-full",
-        )}
-        id="import-data"
-        onMouseEnter={() => uploadIconRef.current?.startAnimation()}
-        onMouseLeave={() => uploadIconRef.current?.stopAnimation()}
+      <motion.div
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
       >
-        <UploadIcon ref={uploadIconRef} className="h-4 w-4 mr-2" /> 
-        <span className='hidden md:block'>{t('import.button')}</span>
-      </Button>
+        <Button 
+          onClick={() => setIsOpen(true)} 
+          variant="default"
+          className={cn(
+            "justify-start text-left font-medium w-full transition-all duration-200 bg-gradient-to-r from-primary to-primary/80 hover:shadow-lg hover:shadow-primary/20 border-border/50 backdrop-blur-sm",
+          )}
+          id="import-data"
+          onMouseEnter={() => uploadIconRef.current?.startAnimation()}
+          onMouseLeave={() => uploadIconRef.current?.stopAnimation()}
+        >
+          <UploadIcon ref={uploadIconRef} className="h-4 w-4 mr-2 transition-transform duration-200" /> 
+          <span className='hidden md:block'>{t('import.button')}</span>
+        </Button>
+      </motion.div>
       
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="flex flex-col max-w-[85vw] h-[85vh] p-0">
+        <DialogContent className="flex flex-col max-w-[85vw] h-[85vh] p-0 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl">
           <ImportDialogHeader step={step} importType={importType} />
           
           <div className="flex-1 overflow-hidden">

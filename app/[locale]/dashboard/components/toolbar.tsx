@@ -180,39 +180,52 @@ export function Toolbar({
   // Animation variants
   const toolbarVariants = {
     visible: {
-      opacity: 1, // Always use full opacity
+      opacity: 1,
       y: 0,
       scale: 1,
       transition: {
         type: "spring",
-        stiffness: 300,
-        damping: 30
+        stiffness: 400,
+        damping: 25,
+        duration: 0.4
       }
     },
     hidden: {
-      opacity: 1, // Always use full opacity
-      y: Math.max(toolbarHeight - 4, 0), // Show just 4px at the bottom
-      scale: 0.9,
+      opacity: 1,
+      y: Math.max(toolbarHeight - 4, 0),
+      scale: 0.95,
       transition: {
         type: "spring",
-        stiffness: 300,
-        damping: 30
+        stiffness: 400,
+        damping: 25,
+        duration: 0.4
       }
+    }
+  }
+
+  const buttonVariants = {
+    hover: { 
+      scale: 1.05, 
+      transition: { duration: 0.2 } 
+    },
+    tap: { 
+      scale: 0.95, 
+      transition: { duration: 0.1 } 
     }
   }
   
   return (
     <ContextMenu>
       <ContextMenuTrigger>
-                <motion.div
+        <motion.div
           ref={toolbarRef}
           className={cn(
             "fixed inset-x-0 mx-auto z-[9999] w-fit",
-            isConsentVisible ? "bottom-36 sm:bottom-20" : "bottom-4"
+            isConsentVisible ? "bottom-36 sm:bottom-20" : "bottom-6"
           )}
           style={{ 
-            transform: 'translateZ(0)', // Force hardware acceleration
-            willChange: 'transform, opacity' // Optimize for animations
+            transform: 'translateZ(0)',
+            willChange: 'transform, opacity'
           }}
           variants={toolbarVariants}
           initial="hidden"
@@ -220,130 +233,181 @@ export function Toolbar({
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          {/* Gradient strip overlay for hidden state */}
+          {/* Enhanced gradient strip overlay for hidden state */}
           {!isVisible && (
-            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/40 to-transparent h-4 rounded-t-full pointer-events-none" />
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/60 to-transparent h-6 rounded-t-2xl pointer-events-none backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            />
           )}
           <motion.div 
-            className="flex items-center justify-center gap-2 p-2 bg-background/95 border rounded-full shadow-lg relative"
+            className="flex items-center justify-center gap-3 p-3 bg-background/98 backdrop-blur-xl border border-border/60 rounded-2xl shadow-2xl shadow-background/20 relative ring-1 ring-white/10"
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.2 }}
           >
+            <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
+              <Button
+                variant={isCustomizing ? "default" : "ghost"}
+                onClick={onEditToggle}
+                className={cn(
+                  "h-10 rounded-xl flex items-center justify-center transition-all duration-200 font-medium",
+                  isMobile ? "w-10 p-0" : "min-w-[100px] gap-2 px-4",
+                  isCustomizing ? "bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20" : "hover:bg-accent/80 hover:shadow-md"
+                )}
+              >
+                <Pencil className={cn(
+                  "h-4 w-4 shrink-0 transition-transform duration-200",
+                  isCustomizing && "text-background"
+                )} />
+                {!isMobile && (
+                  <span className="text-sm font-medium">
+                    {isCustomizing ? t('widgets.done') : t('widgets.edit')}
+                  </span>
+                )}
+              </Button>
+            </motion.div>
+
+            <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
+              <ShareButton currentLayout={currentLayout} />
+            </motion.div>
+
+            <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
+              <AddWidgetSheet onAddWidget={onAddWidget} isCustomizing={isCustomizing} />
+            </motion.div>
+
+            {isMobile ? (
+              <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
+                <FilterLeftPane />
+              </motion.div>
+            ) : (
+              <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
+                <FilterDropdown />
+              </motion.div>
+            )}
+            
+            {isCustomizing && onAutoArrange && (
+              <motion.div 
+                variants={buttonVariants} 
+                whileHover="hover" 
+                whileTap="tap"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2 }}
+              >
                 <Button
-                  variant={isCustomizing ? "default" : "ghost"}
-                  onClick={onEditToggle}
+                  variant="outline"
+                  onClick={onAutoArrange}
                   className={cn(
-                    "h-8 rounded-full flex items-center justify-center transition-transform active:scale-95",
-                    isMobile ? "w-8 p-0" : "min-w-[100px] gap-2 px-3"
+                    "h-10 rounded-xl flex items-center justify-center transition-all duration-200 border-border/50 hover:bg-accent/80 hover:shadow-md hover:border-accent",
+                    isMobile ? "w-10 p-0" : "min-w-[110px] gap-2 px-4"
                   )}
                 >
-                  <Pencil className={cn(
-                    "h-4 w-4 shrink-0",
-                    isCustomizing && "text-background"
-                  )} />
+                  <LayoutGrid className="h-4 w-4 shrink-0" />
                   {!isMobile && (
                     <span className="text-sm font-medium">
-                      {isCustomizing ? t('widgets.done') : t('widgets.edit')}
+                      {t('widgets.autoArrange')}
                     </span>
                   )}
                 </Button>
+              </motion.div>
+            )}
 
-                <ShareButton currentLayout={currentLayout} />
-
-                <AddWidgetSheet onAddWidget={onAddWidget} isCustomizing={isCustomizing} />
-
-                {isMobile ? (
-                  <FilterLeftPane />
-                ) : (
-                  <FilterDropdown />
-                )}
-                
-                {isCustomizing && onAutoArrange && (
-                  <Button
-                    variant="outline"
-                    onClick={onAutoArrange}
-                    className={cn(
-                      "h-8 rounded-full flex items-center justify-center transition-transform active:scale-95",
-                      isMobile ? "w-8 p-0" : "min-w-[110px] gap-2 px-3"
-                    )}
-                  >
-                    <LayoutGrid className="h-4 w-4 shrink-0" />
-                    {!isMobile && (
-                      <span className="text-sm font-medium">
-                        {t('widgets.autoArrange')}
-                      </span>
-                    )}
-                  </Button>
-                )}
-
-                {isCustomizing && onReset && (
-                  <Button
-                    variant="outline"
-                    onClick={onReset}
-                    className={cn(
-                      "h-10 rounded-full flex items-center justify-center transition-transform active:scale-95",
-                      isMobile ? "w-10 p-0" : "min-w-[100px] gap-2 px-4"
-                    )}
-                  >
-                    <RotateCcw className="h-4 w-4 shrink-0" />
-                    {!isMobile && (
-                      <span className="text-sm font-medium">
-                        {t('widgets.reset')}
-                      </span>
-                    )}
-                  </Button>
-                )}
-                
-                {isCustomizing && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
+            {isCustomizing && onReset && (
+              <motion.div 
+                variants={buttonVariants} 
+                whileHover="hover" 
+                whileTap="tap"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2, delay: 0.1 }}
+              >
+                <Button
+                  variant="outline"
+                  onClick={onReset}
+                  className={cn(
+                    "h-10 rounded-xl flex items-center justify-center transition-all duration-200 border-border/50 hover:bg-accent/80 hover:shadow-md hover:border-accent",
+                    isMobile ? "w-10 p-0" : "min-w-[100px] gap-2 px-4"
+                  )}
+                >
+                  <RotateCcw className="h-4 w-4 shrink-0" />
+                  {!isMobile && (
+                    <span className="text-sm font-medium">
+                      {t('widgets.reset')}
+                    </span>
+                  )}
+                </Button>
+              </motion.div>
+            )}
+            
+            {isCustomizing && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2, delay: 0.2 }}
+              >
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
                       <Button
                         variant="destructive"
-                        className={cn(
-                          "h-10 rounded-full flex items-center justify-center transition-transform active:scale-95",
-                        )}
+                        className="h-10 w-10 rounded-xl flex items-center justify-center transition-all duration-200 bg-gradient-to-r from-destructive to-destructive/80 hover:shadow-lg hover:shadow-destructive/20"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t('widgets.deleteAllConfirmTitle')}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t('widgets.deleteAllConfirmDescription')}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={onRemoveAll}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          {t('widgets.confirmDeleteAll')}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
+                    </motion.div>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t('widgets.deleteAllConfirmTitle')}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t('widgets.deleteAllConfirmDescription')}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="hover:bg-accent/80 transition-colors duration-200">{t('common.cancel')}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={onRemoveAll}
+                        className="bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground hover:shadow-lg hover:shadow-destructive/20 transition-all duration-200"
+                      >
+                        {t('widgets.confirmDeleteAll')}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </motion.div>
+            )}
+          </motion.div>
         </motion.div>
       </ContextMenuTrigger>
       
-      <ContextMenuContent className="w-48">
+      <ContextMenuContent className="w-48 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl">
         <ContextMenuItem 
           onClick={handleAutoHideToggle}
+          className="hover:bg-accent/80 transition-colors duration-200"
         >
           <div className="flex items-center gap-2">
             <div className={cn(
-              "w-4 h-4 rounded border-2 flex items-center justify-center",
-              settings.autoHide ? "bg-primary border-primary" : "border-muted-foreground"
+              "w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200",
+              settings.autoHide ? "bg-primary border-primary shadow-lg shadow-primary/20" : "border-muted-foreground hover:border-primary/50"
             )}>
               {settings.autoHide && (
-                <div className="w-2 h-2 bg-background rounded-sm" />
+                <motion.div 
+                  className="w-2 h-2 bg-background rounded-sm" 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                />
               )}
             </div>
-            <span className="text-sm">{t('toolbar.autoHide')}</span>
+            <span className="text-sm font-medium">{t('toolbar.autoHide')}</span>
           </div>
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   )
-} 
+}
