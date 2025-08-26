@@ -38,7 +38,7 @@ export default function OpenSourcePage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" asChild>
-                <Link href="#" className="inline-flex items-center">
+                <Link href="https://github.com/kalabhaftu/deltalytixC.git" className="inline-flex items-center" target="_blank">
                   <Github className="h-4 w-4 mr-2" />
                   View on GitHub
                 </Link>
@@ -323,7 +323,7 @@ export default function OpenSourcePage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" asChild>
-                <Link href="#" className="inline-flex items-center">
+                <Link href="https://github.com/kalabhaftu/deltalytixC.git" className="inline-flex items-center" target="_blank">
                   <Github className="h-4 w-4 mr-2" />
                   Contribute on GitHub
                 </Link>

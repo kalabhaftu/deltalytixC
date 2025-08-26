@@ -54,9 +54,9 @@ const ListItem = React.forwardRef<
 })
 ListItem.displayName = "ListItem"
 
-const MobileNavItem = ({ href, children, onClick, className }: { href: string; children: React.ReactNode; onClick?: () => void, className?: string }) => (
+const MobileNavItem = ({ href, children, onClick, className, target }: { href: string; children: React.ReactNode; onClick?: () => void, className?: string, target?: string }) => (
     <li>
-        <Link href={href} className={cn("block py-2 hover:text-primary transition-colors", className)} onClick={onClick}>
+        <Link href={href} className={cn("block py-2 hover:text-primary transition-colors", className)} onClick={onClick} target={target}>
             {children}
         </Link>
     </li>
@@ -144,7 +144,7 @@ export default function Component() {
                     <AccordionTrigger>{t('landing.navbar.developers')}</AccordionTrigger>
                     <AccordionContent>
                         <ul className="space-y-2 list-none">
-                            <MobileNavItem href="#" onClick={onLinkClick}>{t('landing.navbar.openSource')}</MobileNavItem>
+                            <MobileNavItem href="https://github.com/kalabhaftu/deltalytixC.git" onClick={onLinkClick} target="_blank">{t('landing.navbar.openSource')}</MobileNavItem>
                         </ul>
                     </AccordionContent>
                 </AccordionItem>
@@ -248,7 +248,7 @@ export default function Component() {
                                 <NavigationMenuTrigger className='bg-transparent'>{t('landing.navbar.developers')}</NavigationMenuTrigger>
                                 <NavigationMenuContent>
                                     <ul className="grid gap-3 p-4 w-[400px] list-none">
-                                        <ListItem href="#" title={t('landing.navbar.openSource')} icon={<Github className="h-4 w-4" />}>
+                                        <ListItem href="https://github.com/kalabhaftu/deltalytixC.git" title={t('landing.navbar.openSource')} icon={<Github className="h-4 w-4" />} target="_blank">
                                             {t('landing.navbar.openSourceDescription')}
                                         </ListItem>
                                     </ul>
