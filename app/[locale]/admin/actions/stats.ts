@@ -107,20 +107,9 @@ export async function getFreeUsers(){
   })
   console.log(`Found ${trades.length} total trades`)
 
-  // Get all users who have subscriptions
-  console.log('Fetching subscriptions...')
-  // TODO: Add subscription model to schema when subscription feature is implemented
-  // const subscribedUsers = await prisma.subscription.findMany({
-  //   select: { userId: true }
-  // })
-  const subscribedUsers: { userId: string }[] = [] // Temporary empty array until subscription model is added
-  console.log(`Found ${subscribedUsers.length} subscribed users`)
-  const subscribedUserIds = new Set(subscribedUsers.map(sub => sub.userId))
-
-  // Get unique user IDs who have trades but no subscription
-  const freeUserIds = [...new Set(trades.map(trade => trade.userId))]
-    .filter(userId => !subscribedUserIds.has(userId))
-  console.log(`Found ${freeUserIds.length} free users with trades`)
+  // Get unique user IDs who have trades
+  const userIds = [...new Set(trades.map(trade => trade.userId))]
+  console.log(`Found ${userIds.length} users with trades`)
 
   // Get user emails from Supabase auth
   let allUsers: User[] = []
@@ -153,7 +142,7 @@ export async function getFreeUsers(){
   console.log(`Total users fetched from Supabase: ${allUsers.length}`)
 
   // Map free users to their emails and trades
-  const mappedUsers = freeUserIds.map(userId => {
+  const mappedUsers = userIds.map(userId => {
     const user = allUsers.find(u => u.id === userId)
     const userTrades = trades.filter(trade => trade.userId === userId)
     console.log(`Mapping user ${userId}: Found email: ${!!user?.email}, Trades: ${userTrades.length}`)
