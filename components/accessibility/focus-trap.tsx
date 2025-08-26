@@ -133,13 +133,13 @@ export function AccessibleHeading({
   className, 
   id 
 }: AccessibleHeadingProps) {
-  const Tag = `h${level}` as keyof JSX.IntrinsicElements
+  const Tag = `h${level}` as keyof React.JSX.IntrinsicElements
 
-  return (
-    <Tag className={className} id={id} tabIndex={-1}>
-      {children}
-    </Tag>
-  )
+  return React.createElement(Tag, {
+    className,
+    id,
+    tabIndex: -1
+  }, children)
 }
 
 /**

@@ -1,6 +1,6 @@
 import { streamText } from "ai";
 import { NextRequest } from "next/server";
-import { openai } from "@ai-sdk/openai";
+import { openai } from "@/lib/ai-sdk-wrapper";
 
 export const maxDuration = 30;
 

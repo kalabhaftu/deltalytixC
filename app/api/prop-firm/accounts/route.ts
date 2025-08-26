@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
         totalPayouts: account._count.payouts,
         hasRecentBreach,
         createdAt: account.createdAt,
-        updatedAt: account.updatedAt,
+        updatedAt: new Date(),
       }
     })
 

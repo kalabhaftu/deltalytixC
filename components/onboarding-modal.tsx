@@ -32,10 +32,10 @@ export default function OnboardingModal() {
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">
-            {t('onboarding.welcome')}
+                                                   {t('onboarding.welcome') as any}
           </DialogTitle>
           <DialogDescription>
-            {t('onboarding.description')}
+                                                   {t('onboarding.description') as any}
           </DialogDescription>
         </DialogHeader>
 
@@ -51,7 +51,7 @@ export default function OnboardingModal() {
 
         <div className="mt-6 flex justify-end">
           <Button onClick={handleClose}>
-            {t('onboarding.getStarted')}
+                                                   {t('onboarding.getStarted') as any}
           </Button>
         </div>
       </DialogContent>

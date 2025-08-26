@@ -1,7 +1,7 @@
 import { streamText } from "ai";
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { openai } from "@ai-sdk/openai";
+import { openai } from "@/lib/ai-sdk-wrapper";
 import { executeWithModelFallback, ModelConfig } from "@/lib/ai-model-fallback";
 
 // Global Analysis Tools
@@ -290,7 +290,7 @@ export async function POST(req: NextRequest) {
       return result.toDataStreamResponse();
     } catch (timeoutError) {
       clearTimeout(timeoutId)
-      if (timeoutError.name === 'AbortError') {
+      if ((timeoutError as any)?.name === 'AbortError') {
         console.error("Analysis request timed out");
         return new Response(JSON.stringify({ 
           error: "Request timed out. Please try again.",
@@ -321,13 +321,13 @@ export async function POST(req: NextRequest) {
     let errorMessage = "Failed to process analysis"
     let statusCode = 500
     
-    if (error.message?.includes('OpenAI')) {
+    if ((error as any)?.message?.includes('OpenAI')) {
       errorMessage = "AI service temporarily unavailable. Please try again."
       statusCode = 503
-    } else if (error.message?.includes('rate limit')) {
+    } else if ((error as any)?.message?.includes('rate limit')) {
       errorMessage = "Too many requests. Please wait a moment and try again."
       statusCode = 429
-    } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+    } else if ((error as any)?.message?.includes('network') || (error as any)?.message?.includes('fetch')) {
       errorMessage = "Network error. Please check your connection and try again."
       statusCode = 502
     }

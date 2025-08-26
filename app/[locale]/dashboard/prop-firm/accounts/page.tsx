@@ -6,7 +6,7 @@ import { useI18n } from "@/locales/client"
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "@/hooks/use-toast"
 import { PropFirmDashboard } from "../../components/prop-firm/prop-firm-dashboard"
-import { AccountSummary } from "@/types/prop-firm"
+// Using AccountSummary from prop-firm-dashboard component instead of types file
 
 // Placeholder components for missing imports
 const CreateAccountDialog = ({ open, onOpenChange, onSuccess }: any) => {
@@ -58,7 +58,7 @@ export default function PropFirmAccountsPage() {
   const t = useI18n()
   const router = useRouter()
   const { user } = useAuth()
-  const [accounts, setAccounts] = useState<AccountSummary[]>([])
+  const [accounts, setAccounts] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
 

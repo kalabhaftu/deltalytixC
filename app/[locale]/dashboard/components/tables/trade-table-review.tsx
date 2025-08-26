@@ -234,6 +234,9 @@ interface ExtendedTrade extends Trade {
   comment: string | null
   videoUrl: string | null
   trades: ExtendedTrade[]
+  phaseId: string | null
+  accountId: string | null
+  strategy: string | null
 }
 
 const supabase = createClient()
@@ -377,6 +380,9 @@ export function TradeTableReview() {
           tags: trade.tags,
           imageBase64: trade.imageBase64,
           imageBase64Second: trade.imageBase64Second,
+          phaseId: trade.phaseId ?? null,
+          accountId: trade.accountId ?? null,
+          strategy: trade.strategy ?? null,
           imageBase64Third: trade.imageBase64Third ?? null,
           imageBase64Fourth: trade.imageBase64Fourth ?? null,
           comment: trade.comment,

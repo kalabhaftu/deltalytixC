@@ -245,6 +245,9 @@ export interface PayoutEligibility {
   minDaysRequired: number
   minProfitRequired?: number
   blockers: string[]
+  maxPayoutAmount?: number
+  profitSplitAmount?: number
+  nextEligibleDate?: Date
 }
 
 /**
@@ -271,7 +274,7 @@ export interface AccountSummary {
   equity: number
   dailyDrawdownRemaining: number
   maxDrawdownRemaining: number
-  profitTargetProgress?: number
+  profitTargetProgress: number
   nextPayoutDate?: Date
   actions: string[] // Available actions: 'view', 'addTrade', 'requestPayout', 'reset'
 }

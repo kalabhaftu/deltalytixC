@@ -155,6 +155,7 @@ model User {
   comments        Comment[]
   language        String           @default("en")
   orders          Order[]
+  businesses      Business[]
   
   // Two-Factor Authentication
   twoFactorSecret String?
@@ -212,6 +213,12 @@ model Account {
   resetDate         DateTime?
   payouts           Payout[]
   consistencyPercentage Float? @default(30)
+
+  // Payment and renewal fields
+  nextPaymentDate   DateTime?
+  paymentFrequency  String?  @default("MONTHLY") // MONTHLY, QUARTERLY, BIANNUAL, ANNUAL, CUSTOM
+  autoRenewal       Boolean  @default(false)
+  renewalNotice     Int?     @default(3) // Days before renewal to send notice
 
   // New fields for prop firm configuration
   accountSize       String?   // The account size key (e.g., '50K', '100K')
@@ -732,6 +739,56 @@ model AccountTransition {
 
   @@index([accountId])
   @@index([transitionTime])
+  @@schema("public")
+}
+
+// Business Management Models
+model Business {
+  id          String    @id @default(uuid())
+  name        String
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  traderIds   String[]  @default([])
+  managers    BusinessManager[]
+  invitations BusinessInvitation[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([name, userId])
+  @@index([userId])
+  @@schema("public")
+}
+
+model BusinessManager {
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  managerId  String
+  access     String   @default("viewer")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([businessId, managerId])
+  @@index([businessId])
+  @@index([managerId])
+  @@schema("public")
+}
+
+model BusinessInvitation {
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  email      String
+  invitedBy  String
+  status     String   @default("PENDING")
+  expiresAt  DateTime @default(dbgenerated("(NOW() + INTERVAL '7 days')"))
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([businessId, email])
+  @@index([businessId])
+  @@index([email])
+  @@index([status])
   @@schema("public")
 }
 

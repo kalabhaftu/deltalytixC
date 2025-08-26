@@ -287,6 +287,31 @@ export const PayoutEligibilityJobSchema = z.object({
   checkDate: z.coerce.date(),
 })
 
+// Payout filter schema
+export const PayoutFilterSchema = z.object({
+  accountId: z.string().uuid().optional(),
+  status: z.array(z.enum(['PENDING', 'APPROVED', 'PAID', 'REJECTED'])).optional(),
+  dateRange: z.object({
+    start: z.coerce.date(),
+    end: z.coerce.date(),
+  }).refine(data => data.start <= data.end, {
+    message: "Start date must be before end date",
+  }).optional(),
+  amountRange: z.object({
+    min: z.number().optional(),
+    max: z.number().optional(),
+  }).refine(data => {
+    if (data.min !== undefined && data.max !== undefined) {
+      return data.min <= data.max
+    }
+    return true
+  }, {
+    message: "Min amount must be less than or equal to max amount",
+  }).optional(),
+  page: z.number().int().min(1).default(1),
+  limit: z.number().int().min(1).max(100).default(20),
+})
+
 // Bulk operations schemas
 export const BulkImportTradesSchema = z.object({
   accountId: z.string().uuid(),
@@ -319,6 +344,7 @@ export const PropFirmSchemas = {
   // Payout schemas
   RequestPayout: RequestPayoutSchema,
   UpdatePayout: UpdatePayoutSchema,
+  PayoutFilter: PayoutFilterSchema,
   
   // Breach and tracking schemas
   CreateBreach: CreateBreachSchema,

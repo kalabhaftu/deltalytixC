@@ -11,7 +11,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { fr, enUS } from 'date-fns/locale'
 import CommentNotificationEmail from '@/components/emails/blog/comment-notification'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Resend client will be initialized when needed
 
 // Helper function to check if user is admin
 async function isAdmin(userId: string) {
@@ -397,6 +397,15 @@ async function sendCommentNotificationEmail({
   console.log('Sending comment notification email to:', recipientEmail)
 
   try {
+    const RESEND_API_KEY = process.env.RESEND_API_KEY
+    
+    if (!RESEND_API_KEY) {
+      console.warn('Resend API key not configured, skipping comment notification email')
+      return
+    }
+    
+    const resend = new Resend(RESEND_API_KEY)
+    
     await resend.emails.send({
       from: 'Deltalytix Community <community@eu.updates.deltalytix.app>',
       to: recipientEmail,

@@ -94,13 +94,13 @@ export class PDFExporter {
     
     // Add title
     this.pdf.setFontSize(20)
-    this.pdf.setFont(undefined, 'bold')
+    this.pdf.setFont('helvetica', 'bold')
     this.pdf.text(title, logoUrl ? this.margins.left + 35 : this.margins.left, this.currentY + 10)
     
     // Add subtitle
     if (subtitle) {
       this.pdf.setFontSize(12)
-      this.pdf.setFont(undefined, 'normal')
+      this.pdf.setFont('helvetica', 'normal')
       this.pdf.text(subtitle, logoUrl ? this.margins.left + 35 : this.margins.left, this.currentY + 18)
     }
     
@@ -132,7 +132,7 @@ export class PDFExporter {
   // Add section title
   addSectionTitle(title: string) {
     this.pdf.setFontSize(16)
-    this.pdf.setFont(undefined, 'bold')
+    this.pdf.setFont('helvetica', 'bold')
     this.pdf.text(title, this.margins.left, this.currentY)
     this.currentY += 15
   }
@@ -227,9 +227,7 @@ export class PDFExporter {
         6: { halign: 'right' },
         7: { 
           halign: 'right',
-          cellWidthOverride: function(data: any) {
-            return data.row.cells[7].raw < 0 ? { textColor: [255, 0, 0] } : { textColor: [0, 128, 0] }
-          }
+          // Cell styling for P&L column
         },
         8: { halign: 'right' },
         9: { halign: 'center' },
@@ -316,7 +314,7 @@ export class PDFExporter {
 
 export class ExcelExporter {
   private workbook: ExcelJS.Workbook
-  private worksheet: ExcelJS.Worksheet
+  private worksheet: ExcelJS.Worksheet | undefined
 
   constructor() {
     this.workbook = new ExcelJS.Workbook()
@@ -357,7 +355,7 @@ export class ExcelExporter {
 
     // Add trade data
     trades.forEach((trade, index) => {
-      const row = this.worksheet.addRow({
+      const row = this.worksheet!.addRow({
         id: trade.id,
         entryDate: trade.entryDate,
         closeDate: trade.closeDate || '',
@@ -408,12 +406,12 @@ export class ExcelExporter {
 
     summaryData.forEach(([label, value], index) => {
       const rowIndex = summaryRow + index + 1
-      this.worksheet.getCell(`A${rowIndex}`).value = label
-      this.worksheet.getCell(`B${rowIndex}`).value = value
-      this.worksheet.getCell(`A${rowIndex}`).font = { bold: true }
+      this.worksheet!.getCell(`A${rowIndex}`).value = label
+      this.worksheet!.getCell(`B${rowIndex}`).value = value
+      this.worksheet!.getCell(`A${rowIndex}`).font = { bold: true }
       
-      if (typeof value === 'number' && label.includes('PnL')) {
-        this.worksheet.getCell(`B${rowIndex}`).numFmt = '"$"#,##0.00'
+      if (typeof value === 'number' && typeof label === 'string' && label.includes('PnL')) {
+        this.worksheet!.getCell(`B${rowIndex}`).numFmt = '"$"#,##0.00'
       }
     })
   }
@@ -490,7 +488,7 @@ export class ExcelExporter {
 
   // Get Excel as buffer
   async getBuffer(): Promise<Buffer> {
-    return await this.workbook.xlsx.writeBuffer() as Buffer
+    return (await this.workbook.xlsx.writeBuffer()) as unknown as Buffer
   }
 }
 

@@ -14,6 +14,7 @@ type TradeError =
   | 'NO_TRADES_ADDED'
   | 'DATABASE_ERROR'
   | 'INVALID_DATA'
+  | 'DATABASE_CONNECTION_ERROR'
 
 interface TradeResponse {
   error: TradeError | false

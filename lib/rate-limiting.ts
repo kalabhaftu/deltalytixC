@@ -1,11 +1,33 @@
 import { RateLimiterMemory } from 'rate-limiter-flexible'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Helper function to extract client IP address
+function getClientIP(request: NextRequest): string {
+  // Try various headers in order of preference
+  const forwardedFor = request.headers.get('x-forwarded-for')
+  if (forwardedFor) {
+    // x-forwarded-for can contain multiple IPs, take the first one
+    return forwardedFor.split(',')[0].trim()
+  }
+
+  const realIP = request.headers.get('x-real-ip')
+  if (realIP) {
+    return realIP
+  }
+
+  const cfConnectingIP = request.headers.get('cf-connecting-ip')
+  if (cfConnectingIP) {
+    return cfConnectingIP
+  }
+
+  // Fallback to a default identifier
+  return 'unknown'
+}
+
 // Different rate limiters for different endpoints
 const rateLimiters = {
   // General API rate limiter
   api: new RateLimiterMemory({
-    keyGen: (req: NextRequest) => req.ip || 'anonymous',
     points: 100, // Number of requests
     duration: 900, // Per 15 minutes
     blockDuration: 900, // Block for 15 minutes if exceeded
@@ -13,7 +35,6 @@ const rateLimiters = {
 
   // Authentication endpoints (stricter)
   auth: new RateLimiterMemory({
-    keyGen: (req: NextRequest) => req.ip || 'anonymous',
     points: 5, // Number of requests
     duration: 900, // Per 15 minutes
     blockDuration: 3600, // Block for 1 hour if exceeded
@@ -21,7 +42,6 @@ const rateLimiters = {
 
   // AI/Chat endpoints (moderate)
   ai: new RateLimiterMemory({
-    keyGen: (req: NextRequest) => req.ip || 'anonymous',
     points: 20, // Number of requests
     duration: 60, // Per minute
     blockDuration: 300, // Block for 5 minutes if exceeded
@@ -29,7 +49,6 @@ const rateLimiters = {
 
   // File upload endpoints (very strict)
   upload: new RateLimiterMemory({
-    keyGen: (req: NextRequest) => req.ip || 'anonymous',
     points: 10, // Number of requests
     duration: 3600, // Per hour
     blockDuration: 3600, // Block for 1 hour if exceeded
@@ -37,7 +56,6 @@ const rateLimiters = {
 
   // Data export endpoints
   export: new RateLimiterMemory({
-    keyGen: (req: NextRequest) => req.ip || 'anonymous',
     points: 5, // Number of requests
     duration: 3600, // Per hour
     blockDuration: 3600, // Block for 1 hour if exceeded
@@ -58,13 +76,13 @@ export async function applyRateLimit(
       return null
     }
 
-    await rateLimiter.consume(request)
+    await rateLimiter.consume(getClientIP(request))
     return null // No rate limit exceeded
   } catch (rejRes) {
     // Rate limit exceeded
-    const msBeforeNext = rejRes.msBeforeNext || 60000
-    const totalHits = rejRes.totalHits || 0
-    const remainingPoints = rejRes.remainingPoints || 0
+    const msBeforeNext = (rejRes as any)?.msBeforeNext || 60000
+    const totalHits = (rejRes as any)?.totalHits || 0
+    const remainingPoints = (rejRes as any)?.remainingPoints || 0
 
     return NextResponse.json(
       {
@@ -77,7 +95,7 @@ export async function applyRateLimit(
         status: 429,
         headers: {
           'Retry-After': String(Math.round(msBeforeNext / 1000)),
-          'X-RateLimit-Limit': String(rateLimiter.points),
+          'X-RateLimit-Limit': String(rateLimiters[type].points),
           'X-RateLimit-Remaining': String(remainingPoints),
           'X-RateLimit-Reset': String(new Date(Date.now() + msBeforeNext)),
         },
@@ -88,10 +106,10 @@ export async function applyRateLimit(
 
 // Middleware wrapper for easy use in API routes
 export function withRateLimit(
-  handler: (req: NextRequest) => Promise<NextResponse>,
+  handler: (req: NextRequest) => Promise<Response | NextResponse>,
   type: RateLimiterType = 'api'
 ) {
-  return async (req: NextRequest): Promise<NextResponse> => {
+  return async (req: NextRequest): Promise<Response | NextResponse> => {
     // Apply rate limiting
     const rateLimitResponse = await applyRateLimit(req, type)
     if (rateLimitResponse) {
@@ -114,12 +132,12 @@ export async function checkRateLimit(
 }> {
   try {
     const rateLimiter = rateLimiters[type]
-    const res = await rateLimiter.get(request)
+    const res = await rateLimiter.get(getClientIP(request))
     
     return {
-      allowed: res.remainingPoints > 0,
-      remaining: res.remainingPoints || rateLimiter.points,
-      resetTime: new Date(Date.now() + (res.msBeforeNext || 0)),
+      allowed: res ? res.remainingPoints > 0 : true,
+      remaining: res?.remainingPoints || rateLimiter.points,
+      resetTime: new Date(Date.now() + (res?.msBeforeNext || 0)),
     }
   } catch (error) {
     // If there's an error, assume rate limit not exceeded
@@ -144,7 +162,6 @@ export class UserRateLimiter {
       this.limiters.set(
         userId,
         new RateLimiterMemory({
-          keyGen: () => userId,
           points: config?.points || 200, // Higher limit for authenticated users
           duration: config?.duration || 900, // Per 15 minutes
           blockDuration: config?.blockDuration || 600, // Block for 10 minutes
@@ -169,14 +186,14 @@ export class UserRateLimiter {
       const res = await limiter.get(userId)
       return {
         allowed: true,
-        remaining: res.remainingPoints || 0,
-        resetTime: new Date(Date.now() + (res.msBeforeNext || 0)),
+        remaining: res?.remainingPoints || 0,
+        resetTime: new Date(Date.now() + (res?.msBeforeNext || 0)),
       }
-    } catch (rejRes) {
+    } catch (rejRes: any) {
       return {
         allowed: false,
         remaining: 0,
-        resetTime: new Date(Date.now() + (rejRes.msBeforeNext || 60000)),
+        resetTime: new Date(Date.now() + (rejRes?.msBeforeNext || 60000)),
       }
     }
   }

@@ -177,7 +177,7 @@ export function PropFirmAccountTable({
               {t('propFirm.table.maxDD')}
             </SortableHeader>
             <TableHead className="w-[100px]">
-              {t('common.actions')}
+              {t('common.actions') as any}
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -319,7 +319,7 @@ export function PropFirmAccountTable({
                         onView?.(account.id)
                       }}>
                         <Eye className="h-4 w-4 mr-2" />
-                        {t('common.view')}
+                        {t('common.view') as any}
                       </DropdownMenuItem>
                       {canAddTrade && (
                         <DropdownMenuItem onClick={(e) => {

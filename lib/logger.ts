@@ -73,11 +73,11 @@ class Logger {
 
   // Specialized methods for common use cases
   apiError(endpoint: string, error: unknown, additionalData?: unknown) {
-    this.error(`API Error in ${endpoint}`, { error, ...additionalData }, 'API')
+    this.error(`API Error in ${endpoint}`, { error, ...(additionalData || {}) }, 'API')
   }
 
   dbError(operation: string, error: unknown, additionalData?: unknown) {
-    this.error(`Database Error in ${operation}`, { error, ...additionalData }, 'DB')
+    this.error(`Database Error in ${operation}`, { error, ...(additionalData || {}) }, 'DB')
   }
 
   wsDebug(message: string, data?: unknown) {

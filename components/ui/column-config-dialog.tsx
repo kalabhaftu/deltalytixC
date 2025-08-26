@@ -50,7 +50,7 @@ export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps
 
   const handleReset = () => {
     resetTableConfig(tableId)
-    toast.success(t('trade-table.resetConfigSuccess'))
+    toast.success(t('trade-table.resetConfigSuccess') as any)
   }
 
   const defaultTrigger = (
@@ -67,9 +67,9 @@ export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{t('trade-table.resetConfig')}</DialogTitle>
+                                           <DialogTitle>{t('trade-table.resetConfig') as any}</DialogTitle>
           <DialogDescription>
-            {t('trade-table.resetConfigDescription')}
+                                                   {t('trade-table.resetConfigDescription') as any}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -98,22 +98,22 @@ export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="w-[180px] h-10">
                 <RotateCcw className="h-4 w-4 mr-2" />
-                {t('trade-table.resetConfig')}
+                                                                   {t('trade-table.resetConfig') as any}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>
-                  {t('trade-table.resetConfigConfirmTitle')}
+                                                                           {t('trade-table.resetConfigConfirmTitle') as any}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  {t('trade-table.resetConfigConfirmDescription')}
+                                                                           {t('trade-table.resetConfigConfirmDescription') as any}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                 <AlertDialogAction onClick={handleReset}>
-                  {t('trade-table.confirmReset')}
+                                                                           {t('trade-table.confirmReset') as any}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

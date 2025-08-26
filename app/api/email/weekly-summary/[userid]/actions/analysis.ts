@@ -1,6 +1,6 @@
 'use server'
 
-import { openai } from "@ai-sdk/openai"
+import { openai } from "@/lib/ai-sdk-wrapper"
 import { streamObject } from "ai"
 import { z } from "zod"
 

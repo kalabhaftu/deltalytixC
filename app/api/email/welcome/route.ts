@@ -5,9 +5,19 @@ import WelcomeEmail from '@/components/emails/welcome'
 import { getLatestVideoFromPlaylist } from "@/app/[locale]/admin/actions/youtube"
 
 const prisma = new PrismaClient()
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(req: Request) {
+  const RESEND_API_KEY = process.env.RESEND_API_KEY
+  
+  if (!RESEND_API_KEY) {
+    console.warn('Resend API key not configured')
+    return NextResponse.json(
+      { error: 'Email service not configured' },
+      { status: 503 }
+    )
+  }
+  
+  const resend = new Resend(RESEND_API_KEY)
   const fifteenMinutesFromNow = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
   try {

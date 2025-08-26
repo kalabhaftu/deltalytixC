@@ -1,15 +1,23 @@
 'use server'
 
 import { createClient, User } from '@supabase/supabase-js'
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-})
 import { prisma } from '@/lib/prisma'
 
+function getSupabaseClient() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+    throw new Error('Supabase configuration missing')
+  }
+  
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
+
 export async function getUserStats() {
+  const supabase = getSupabaseClient()
   let allUsers: any[] = []
   let page = 1
   const perPage = 1000
@@ -91,6 +99,7 @@ export async function getTradeStats() {
 
 export async function getFreeUsers(){
   console.log('Starting getFreeUsers function')
+  const supabase = getSupabaseClient()
 
   // Get all trades with their user IDs
   console.log('Fetching trades...')
@@ -160,6 +169,7 @@ export async function getFreeUsers(){
 
 export async function getUserEquityData(page: number = 1, limit: number = 10) {
   console.log('Starting getUserEquityData function')
+  const supabase = getSupabaseClient()
 
   // First, get all unique user IDs that have trades, with pagination
   console.log('Fetching users with trades from database...')
@@ -309,6 +319,7 @@ export async function getUserEquityData(page: number = 1, limit: number = 10) {
 
 export async function getIndividualUserEquityData(userId: string) {
   console.log(`Starting getIndividualUserEquityData for user ${userId}`)
+  const supabase = getSupabaseClient()
 
   // Get user from Supabase auth
   const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId)

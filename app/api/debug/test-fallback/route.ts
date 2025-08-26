@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { executeWithModelFallback, ModelConfig } from '@/lib/ai-model-fallback'
-import { openai } from "@ai-sdk/openai"
+import { openai } from "@/lib/ai-sdk-wrapper"
 import { streamText } from "ai"
 
 export async function GET(req: NextRequest) {

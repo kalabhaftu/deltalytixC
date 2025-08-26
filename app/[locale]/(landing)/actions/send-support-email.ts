@@ -6,8 +6,6 @@ import SubscriptionErrorEmail from '@/components/emails/support-subscription-err
 import { Resend } from 'resend';
 import { createElement } from 'react';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 interface SupportEmailData {
   messages: { role: string; content: string }[];
   contactInfo: {
@@ -19,6 +17,15 @@ interface SupportEmailData {
 
 export async function sendSupportEmail({ messages, contactInfo }: SupportEmailData) {
   try {
+    const RESEND_API_KEY = process.env.RESEND_API_KEY;
+    
+    if (!RESEND_API_KEY) {
+      console.warn('Resend API key not configured');
+      return { success: false, error: 'Email service not configured' };
+    }
+    
+    const resend = new Resend(RESEND_API_KEY);
+    
     const { data, error } = await resend.emails.send({
       from: `Deltalytix Support <${process.env.SUPPORT_EMAIL??''}>`,
       to: [process.env.SUPPORT_TEAM_EMAIL??''],
@@ -47,6 +54,15 @@ interface SubscriptionErrorEmailData {
 
 export async function sendSubscriptionErrorEmail({ contactInfo }: SubscriptionErrorEmailData) {
   try {
+    const RESEND_API_KEY = process.env.RESEND_API_KEY;
+    
+    if (!RESEND_API_KEY) {
+      console.warn('Resend API key not configured');
+      return { success: false, error: 'Email service not configured' };
+    }
+    
+    const resend = new Resend(RESEND_API_KEY);
+    
     const { data, error } = await resend.emails.send({
       from: `Deltalytix Support <${process.env.SUPPORT_EMAIL??''}>`,
       to: [process.env.SUPPORT_TEAM_EMAIL??''],

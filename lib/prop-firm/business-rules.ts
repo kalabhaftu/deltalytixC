@@ -159,10 +159,14 @@ export class PropFirmBusinessRules {
     
     const result: PayoutEligibility = {
       isEligible: false,
+      daysSinceFunded: safeDaysSinceFunded,
+      daysSinceLastPayout: safeDaysSinceLastPayout,
+      netProfitSinceLastPayout: safeNetProfit,
+      minDaysRequired: 30, // Default minimum funded days
       blockers: [],
       maxPayoutAmount: 0,
       profitSplitAmount: 0,
-      nextEligibleDate: null,
+      nextEligibleDate: undefined,
     }
 
     // Check for active breaches

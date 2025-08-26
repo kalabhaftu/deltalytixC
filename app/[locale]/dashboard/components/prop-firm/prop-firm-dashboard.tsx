@@ -21,20 +21,12 @@ import {
   Target
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { AccountStatus, PhaseType } from "@/types/prop-firm"
+import { AccountStatus, PhaseType, AccountSummary as BaseAccountSummary } from "@/types/prop-firm"
 
-interface AccountSummary {
-  id: string
-  number: string
-  name?: string
+interface AccountSummary extends BaseAccountSummary {
   propfirm: string
-  status: AccountStatus
-  currentPhase: PhaseType
   currentEquity: number
   currentBalance: number
-  dailyDrawdownRemaining: number
-  maxDrawdownRemaining: number
-  profitTargetProgress: number
   totalTrades: number
   totalPayouts: number
   hasRecentBreach: boolean

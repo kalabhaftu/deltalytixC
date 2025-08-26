@@ -1,7 +1,7 @@
 import { streamText } from "ai";
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { openai } from "@ai-sdk/openai";
+import { openai } from "@/lib/ai-sdk-wrapper";
 import { executeWithModelFallback, ModelConfig } from "@/lib/ai-model-fallback";
 import { withRateLimit } from "@/lib/rate-limiting";
 import { getFinancialNews } from "./tools/get-financial-news";

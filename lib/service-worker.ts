@@ -166,7 +166,8 @@ class ServiceWorkerManager {
   public async scheduleBackgroundSync(tag: string) {
     if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
       const registration = await navigator.serviceWorker.ready
-      await registration.sync.register(tag)
+      // Type assertion for background sync API
+      await (registration as any).sync?.register(tag)
     }
   }
 
@@ -200,7 +201,8 @@ class ServiceWorkerManager {
       const db = await this.openOfflineDB()
       const transaction = db.transaction(['offlineQueue'], 'readonly')
       const store = transaction.objectStore('offlineQueue')
-      return await store.getAll()
+      const result = await store.getAll()
+      return result as unknown as OfflineQueueItem[]
     } catch (error) {
       console.error('Failed to get offline queue:', error)
       return []
@@ -483,11 +485,11 @@ async function getCachedData<T>(key: string, maxAge?: number): Promise<T | null>
     if (!result) return null
 
     // Check if data is too old
-    if (maxAge && Date.now() - result.timestamp > maxAge) {
+    if (maxAge && result && 'timestamp' in result && Date.now() - (result as any).timestamp > maxAge) {
       return null
     }
 
-    return result.data
+    return result && 'data' in result ? (result as any).data : null
   } catch (error) {
     console.error('Failed to get cached data:', error)
     return null

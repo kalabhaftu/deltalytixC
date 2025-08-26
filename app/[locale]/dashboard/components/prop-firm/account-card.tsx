@@ -131,7 +131,7 @@ export function PropFirmAccountCard({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={onView}>
                 <Eye className="h-4 w-4 mr-2" />
-                {t('common.view')}
+                {t('common.view') as any}
               </DropdownMenuItem>
               {canAddTrade && (
                 <DropdownMenuItem onClick={onAddTrade}>
@@ -282,7 +282,7 @@ export function PropFirmAccountCard({
         <div className="flex gap-2 pt-2">
           <Button variant="outline" size="sm" onClick={onView} className="flex-1">
             <Eye className="h-4 w-4 mr-2" />
-            {t('common.view')}
+            {t('common.view') as any}
           </Button>
           {canAddTrade && (
             <Button size="sm" onClick={onAddTrade} className="flex-1">

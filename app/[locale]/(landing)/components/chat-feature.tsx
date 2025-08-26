@@ -195,7 +195,7 @@ export default function TradingChatAssistant({ className = "", maxMessages = 3 }
     await new Promise((resolve) => setTimeout(resolve, 3000))
     setCurrentIndex((prev) => prev + 1)
     setIsLoopRunning(false)
-  }, [currentIndex, isLoopRunning, addMessage, simulateStreaming, fadeOutAllMessages])
+  }, [currentIndex, isLoopRunning, addMessage, simulateStreaming, fadeOutAllMessages, CONVERSATION_LOOP])
 
   useEffect(() => {
     // Clear any existing timeout
@@ -214,7 +214,7 @@ export default function TradingChatAssistant({ className = "", maxMessages = 3 }
         clearTimeout(timeoutRef.current)
       }
     }
-  }, [currentIndex, isLoopRunning])
+  }, [currentIndex, isLoopRunning, runConversationLoop])
 
   // Cleanup on unmount
   useEffect(() => {

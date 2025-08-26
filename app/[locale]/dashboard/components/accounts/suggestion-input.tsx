@@ -66,7 +66,7 @@ export default function EnhancedInput({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [value, skipNextBlur])
+  }, [value, skipNextBlur]) // validateInput is defined after this useEffect
 
   // Filter suggestions based on input
   useEffect(() => {

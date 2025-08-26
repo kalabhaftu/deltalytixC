@@ -766,7 +766,7 @@ export default function WidgetCanvas() {
 
     const resetLayouts = {
       ...layouts,
-      [activeLayout]: [...defaultLayouts[activeLayout]], // Create a fresh copy
+      [activeLayout]: [...(defaultLayouts[activeLayout] as any[])], // Create a fresh copy
       updatedAt: new Date()
     };
 

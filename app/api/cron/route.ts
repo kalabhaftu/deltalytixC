@@ -7,7 +7,6 @@ import { headers } from 'next/headers'
 export const dynamic = 'force-dynamic'
 
 const prisma = new PrismaClient()
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 // Retry configuration
 const MAX_RETRIES = 3
@@ -30,6 +29,17 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = MAX_R
 // Vercel cron job handler - runs every Sunday at 8 AM UTC+1
 export async function GET(req: Request) {
   try {
+    const RESEND_API_KEY = process.env.RESEND_API_KEY
+    
+    if (!RESEND_API_KEY) {
+      console.warn('Resend API key not configured')
+      return NextResponse.json(
+        { error: 'Email service not configured' },
+        { status: 503 }
+      )
+    }
+    
+    const resend = new Resend(RESEND_API_KEY)
     // Verify that this is a legitimate Vercel cron job request
     const headersList = await headers()
     const authHeader = headersList.get('authorization')

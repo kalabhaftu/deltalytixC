@@ -162,10 +162,10 @@ export default function AccountDetailPage() {
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <Badge className={cn("text-white", getStatusColor(account.status))}>
-                {t(`propFirm.status.${account.status}`)}
+                {t(`propFirm.status.${account.status}` as any, { count: 1 })}
               </Badge>
               <Badge className={cn("text-white", getPhaseColor(currentPhase.phaseType))}>
-                {t(`propFirm.phase.${currentPhase.phaseType}`)}
+                {t(`propFirm.phase.${currentPhase.phaseType}` as any, { count: 1 })}
               </Badge>
               <span className="text-muted-foreground">•</span>
               <span className="text-sm text-muted-foreground">{account.propfirm}</span>
@@ -284,7 +284,7 @@ export default function AccountDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
-              {t('propFirm.metrics.profitTarget')} - {t(`propFirm.phase.${currentPhase.phaseType}`)}
+              {t('propFirm.metrics.profitTarget')} - {t(`propFirm.phase.${currentPhase.phaseType}` as any, { count: 1 })}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -301,7 +301,7 @@ export default function AccountDetailPage() {
               {progress.canProgress && (
                 <div className="flex items-center gap-2 text-green-600 text-sm">
                   <TrendingUp className="h-4 w-4" />
-                  Ready to advance to {progress.nextPhaseType && t(`propFirm.phase.${progress.nextPhaseType}`)}
+                  Ready to advance to {progress.nextPhaseType && t(`propFirm.phase.${progress.nextPhaseType}` as any, { count: 1 })}
                 </div>
               )}
             </div>
@@ -351,7 +351,7 @@ export default function AccountDetailPage() {
               {payoutEligibility.blockers.length > 0 && (
                 <div className="space-y-1">
                   <h4 className="text-sm font-medium text-muted-foreground">Blockers:</h4>
-                  {payoutEligibility.blockers.map((blocker, index) => (
+                  {payoutEligibility.blockers.map((blocker: string, index: number) => (
                     <div key={index} className="text-sm text-red-600 flex items-center gap-2">
                       <AlertTriangle className="h-3 w-3" />
                       {blocker}

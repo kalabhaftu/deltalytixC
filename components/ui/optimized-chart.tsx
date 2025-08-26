@@ -43,9 +43,9 @@ export function OptimizedChartContainer({
         style={{ width, height, minWidth, minHeight }}
       >
         {React.cloneElement(children as React.ReactElement, {
-          width,
-          height
-        })}
+          width: width,
+          height: height
+        } as any)}
       </div>
     )
   }
@@ -60,7 +60,7 @@ export function OptimizedChartContainer({
       minHeight={minHeight}
       className={className}
     >
-      {children}
+      {children as React.ReactElement}
     </ResponsiveContainer>
   )
 }

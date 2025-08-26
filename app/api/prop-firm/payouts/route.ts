@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
     // Validate payout amount doesn't exceed available profit
     const profitSplitPercent = Math.min(100, Math.max(0, account.profitSplitPercent || 80))
     const maxPayoutAmount = Math.min(
-      eligibility.maxPayoutAmount,
+      eligibility.maxPayoutAmount || 0,
       netProfitSinceLastPayout * (profitSplitPercent / 100)
     )
     
@@ -286,7 +286,12 @@ export async function POST(request: NextRequest) {
           accountId: account.id,
           accountNumber: account.number,
           amountRequested: payoutData.amountRequested,
-          eligibility: eligibility,
+          eligibility: {
+            isEligible: eligibility.isEligible,
+            blockers: eligibility.blockers,
+            maxPayoutAmount: eligibility.maxPayoutAmount,
+            profitSplitAmount: eligibility.profitSplitAmount
+          },
           netProfitSinceLastPayout,
           daysSinceFunded,
           daysSinceLastPayout

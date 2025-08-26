@@ -208,8 +208,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (updateData.dailyDrawdownAmount || updateData.maxDrawdownAmount) {
       const configValidation = PropFirmBusinessRules.validateAccountConfiguration({
         ...existingAccount,
-        ...updateData
-      })
+        ...updateData,
+        name: updateData.name || existingAccount.name || ''
+      } as any)
       
       if (!configValidation.valid) {
         return NextResponse.json(
