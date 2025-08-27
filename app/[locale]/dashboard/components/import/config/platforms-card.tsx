@@ -142,6 +142,13 @@ export const platforms: PlatformConfig[] = [
         title: 'import.steps.selectPlatform',
         description: 'import.steps.selectPlatformDescription',
         component: ImportTypeSelection
+      },
+      {
+        id: 'preview-trades',
+        title: 'import.steps.reviewTrades',
+        description: 'import.steps.reviewTradesDescription',
+        component: ManualTradeFormCard,
+        isLastStep: true
       }
     ]
   },

@@ -144,7 +144,20 @@ export async function POST(request: NextRequest) {
     // Get account with current phase and payout history
     const account = await prisma.account.findFirst({
       where: { id: payoutData.accountId, userId },
-      include: {
+      select: {
+        id: true,
+        number: true,
+        name: true,
+        propfirm: true,
+        status: true,
+        startingBalance: true,
+        profitSplitPercent: true,
+        payoutCycleDays: true,
+        minDaysToFirstPayout: true,
+        payoutEligibilityMinProfit: true,
+        resetOnPayout: true,
+        reduceBalanceByPayout: true,
+        fundedResetBalance: true,
         phases: {
           where: { phaseStatus: 'active' },
           orderBy: { createdAt: 'desc' },

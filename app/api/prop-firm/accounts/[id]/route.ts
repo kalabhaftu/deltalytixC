@@ -28,7 +28,35 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         id: accountId,
         userId,
       },
-      include: {
+      select: {
+        id: true,
+        number: true,
+        name: true,
+        propfirm: true,
+        status: true,
+        startingBalance: true,
+        profitTarget: true,
+        drawdownThreshold: true,
+        trailingDrawdown: true,
+        createdAt: true,
+        dailyDrawdownAmount: true,
+        dailyDrawdownType: true,
+        maxDrawdownAmount: true,
+        maxDrawdownType: true,
+        drawdownModeMax: true,
+        evaluationType: true,
+        timezone: true,
+        dailyResetTime: true,
+        ddIncludeOpenPnl: true,
+        progressionIncludeOpenPnl: true,
+        allowManualPhaseOverride: true,
+        profitSplitPercent: true,
+        payoutCycleDays: true,
+        minDaysToFirstPayout: true,
+        payoutEligibilityMinProfit: true,
+        resetOnPayout: true,
+        reduceBalanceByPayout: true,
+        fundedResetBalance: true,
         phases: {
           orderBy: { createdAt: 'desc' },
         },
@@ -194,7 +222,37 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Check account exists and belongs to user
     const existingAccount = await prisma.account.findFirst({
-      where: { id: accountId, userId }
+      where: { id: accountId, userId },
+      select: {
+        id: true,
+        number: true,
+        name: true,
+        propfirm: true,
+        status: true,
+        startingBalance: true,
+        profitTarget: true,
+        drawdownThreshold: true,
+        trailingDrawdown: true,
+        createdAt: true,
+        dailyDrawdownAmount: true,
+        dailyDrawdownType: true,
+        maxDrawdownAmount: true,
+        maxDrawdownType: true,
+        drawdownModeMax: true,
+        evaluationType: true,
+        timezone: true,
+        dailyResetTime: true,
+        ddIncludeOpenPnl: true,
+        progressionIncludeOpenPnl: true,
+        allowManualPhaseOverride: true,
+        profitSplitPercent: true,
+        payoutCycleDays: true,
+        minDaysToFirstPayout: true,
+        payoutEligibilityMinProfit: true,
+        resetOnPayout: true,
+        reduceBalanceByPayout: true,
+        fundedResetBalance: true,
+      }
     })
 
     if (!existingAccount) {
@@ -267,7 +325,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Check account exists and belongs to user
     const account = await prisma.account.findFirst({
       where: { id: accountId, userId },
-      include: {
+      select: {
+        id: true,
+        number: true,
+        name: true,
+        propfirm: true,
+        status: true,
+        startingBalance: true,
+        createdAt: true,
         trades: { take: 1 },
         payouts: { take: 1 },
         phases: { take: 1 }

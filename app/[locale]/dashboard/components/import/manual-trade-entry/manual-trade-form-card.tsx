@@ -289,7 +289,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
   }
 
   return (
-    <Card className="w-full">
+    <Card className="w-full max-h-none">
       <CardHeader>
         <CardTitle className="text-base">Add Single Trade</CardTitle>
       </CardHeader>

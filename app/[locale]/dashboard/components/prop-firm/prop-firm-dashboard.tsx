@@ -18,7 +18,8 @@ import {
   DollarSign,
   BarChart3,
   Users,
-  Target
+  Target,
+  RefreshCw
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AccountStatus, PhaseType, AccountSummary as BaseAccountSummary } from "@/types/prop-firm"
@@ -132,7 +133,7 @@ export function PropFirmDashboard({
             onClick={onRefresh}
             disabled={isLoading}
           >
-            <BarChart3 className="h-4 w-4 mr-2" />
+            <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
             Refresh
           </Button>
           <Button onClick={onCreateAccount}>

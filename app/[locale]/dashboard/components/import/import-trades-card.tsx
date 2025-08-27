@@ -388,7 +388,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     
     // Handle custom card components
     if (platform.customCardComponent && Component === platform.customCardComponent) {
-      return <platform.customCardComponent accountId={accountId} />
+      return <platform.customCardComponent accountId={accountId} accountNumber={accountId} />
     }
 
     return null
@@ -398,11 +398,17 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     if (isLoading) return true
     
     const platform = platforms.find(p => p.type === importType) || platforms.find(p => p.platformName === 'csv-ai')
-    if (!platform) return true
+    if (!platform) {
+      // Only disable if no import type is selected and we're not on the first step
+      return step === 'select-import-type' && !importType
+    }
 
     const currentStep = platform.steps.find(s => s.id === step)
     if (!currentStep) return true
 
+    // For import type selection, require a type to be selected
+    if (currentStep.component === ImportTypeSelection && !importType) return true
+    
     // File upload step
     if (currentStep.component === FileUpload && csvData.length === 0) return true
     
@@ -416,52 +422,38 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
   }
 
   return (
-    <Card className="w-full h-full">
+    <Card className="w-full">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Import Trades</CardTitle>
-            <CardDescription>Choose a method to import your trades</CardDescription>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push(`/dashboard/prop-firm/accounts/${accountId}/trades`)}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Trades
-          </Button>
-        </div>
+        <CardTitle>Import Trades</CardTitle>
+        <CardDescription>Choose a method to import your trades</CardDescription>
       </CardHeader>
-      <CardContent className="p-0 flex-1">
-        <div className="flex flex-col h-[75vh]">
-          <div className="flex-1 overflow-hidden">
-            {renderStep()}
-          </div>
+      <CardContent className="p-0">
+        <div className="p-6">
+          {renderStep()}
+        </div>
 
-          <div className="flex-none p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-[68px]">
-            <div className="flex justify-end items-center gap-4">
-              {step !== 'select-import-type' && (
-                <Button 
-                  variant="outline" 
-                  onClick={handleBackStep}
-                  className="w-fit min-w-[100px]"
-                >
-                  {t('import.button.back')}
-                </Button>
-              )}
-              {step !== 'select-import-type' && (
-                <Button 
-                  onClick={handleNextStep}
-                  className="w-fit min-w-[100px]"
-                  disabled={isNextDisabled()}
-                >
-                  {isSaving ? t('import.button.saving') : 
-                   step === 'preview-trades' || step === 'process-file' ? t('import.button.save') : 
-                   t('import.button.next')}
-                </Button>
-              )}
-            </div>
+        <div className="p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex justify-end items-center gap-4">
+            {step !== 'select-import-type' && (
+              <Button 
+                variant="outline" 
+                onClick={handleBackStep}
+                className="w-fit min-w-[100px]"
+              >
+                {t('import.button.back')}
+              </Button>
+            )}
+            {(step !== 'select-import-type' || (step === 'select-import-type' && importType)) && (
+              <Button 
+                onClick={handleNextStep}
+                className="w-fit min-w-[100px]"
+                disabled={isNextDisabled()}
+              >
+                {isSaving ? t('import.button.saving') : 
+                 step === 'preview-trades' || step === 'process-file' ? t('import.button.save') : 
+                 t('import.button.next')}
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

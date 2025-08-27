@@ -28,7 +28,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Check account access
     const account = await prisma.account.findFirst({
       where: { id: accountId, userId },
-      include: {
+      select: {
+        id: true,
+        number: true,
+        name: true,
+        propfirm: true,
+        status: true,
+        startingBalance: true,
+        profitTarget: true,
+        drawdownThreshold: true,
+        evaluationType: true,
         phases: true,
         equitySnapshots: {
           orderBy: { timestamp: 'desc' },

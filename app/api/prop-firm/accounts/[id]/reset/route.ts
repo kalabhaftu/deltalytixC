@@ -41,7 +41,23 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Get account with current state
     const account = await prisma.account.findFirst({
       where: { id: accountId, userId },
-      include: {
+      select: {
+        id: true,
+        number: true,
+        name: true,
+        propfirm: true,
+        status: true,
+        startingBalance: true,
+        profitTarget: true,
+        drawdownThreshold: true,
+        evaluationType: true,
+        dailyDrawdownAmount: true,
+        dailyDrawdownType: true,
+        maxDrawdownAmount: true,
+        maxDrawdownType: true,
+        drawdownModeMax: true,
+        timezone: true,
+        dailyResetTime: true,
         phases: {
           orderBy: { createdAt: 'desc' }
         },

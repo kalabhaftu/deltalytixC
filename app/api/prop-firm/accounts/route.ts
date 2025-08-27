@@ -70,7 +70,19 @@ export async function GET(request: NextRequest) {
     const [accounts, total] = await Promise.all([
       prisma.account.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          number: true,
+          name: true,
+          propfirm: true,
+          status: true,
+          startingBalance: true,
+          dailyDrawdownAmount: true,
+          dailyDrawdownType: true,
+          maxDrawdownAmount: true,
+          maxDrawdownType: true,
+          drawdownModeMax: true,
+          createdAt: true,
           phases: {
             where: { phaseStatus: 'active' },
             orderBy: { createdAt: 'desc' },
