@@ -20,7 +20,7 @@ import { WidgetSize } from '../../types/dashboard'
 import { enUS, fr } from 'date-fns/locale'
 import { useParams } from 'next/navigation'
 import { AccountCard } from './account-card'
-import { AccountConfigurator } from './account-configurator'
+// Configurator removed - this is now a view-only component
 import { AlertDialogAction, AlertDialogCancel, AlertDialogFooter, AlertDialogDescription, AlertDialogTitle, AlertDialogContent, AlertDialogHeader, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import {
@@ -251,8 +251,7 @@ export function AccountsOverview({ size }: { size: WidgetSize }) {
   } | undefined>()
   const [isDeleting, setIsDeleting] = useState(false)
   const [canDeleteAccount, setCanDeleteAccount] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [pendingChanges, setPendingChanges] = useState<Partial<Account> | null>(null)
+  // Configurator state removed - this is now view-only
 
   // Enable delete button when an account is selected
   useEffect(() => {
@@ -534,61 +533,7 @@ export function AccountsOverview({ size }: { size: WidgetSize }) {
     }
   }
 
-  const handleSave = async () => {
-    if (!user || !selectedAccountForTable || !pendingChanges) return
-
-    try {
-      setIsSaving(true)
-      const accountUpdate = {
-        ...selectedAccountForTable,
-        userId: user.id,
-        ...pendingChanges,
-        startingBalance: pendingChanges?.startingBalance ?? selectedAccountForTable.startingBalance,
-        profitTarget: pendingChanges?.profitTarget ?? selectedAccountForTable.profitTarget,
-        drawdownThreshold: pendingChanges?.drawdownThreshold ?? selectedAccountForTable.drawdownThreshold,
-        consistencyPercentage: pendingChanges?.consistencyPercentage ?? selectedAccountForTable.consistencyPercentage,
-        propfirm: pendingChanges?.propfirm ?? selectedAccountForTable.propfirm,
-        resetDate: pendingChanges?.resetDate instanceof Date ? pendingChanges.resetDate : null,
-        trailingDrawdown: pendingChanges?.trailingDrawdown ?? selectedAccountForTable.trailingDrawdown,
-        trailingStopProfit: pendingChanges?.trailingStopProfit ?? selectedAccountForTable.trailingStopProfit,
-        accountSize: pendingChanges?.accountSize ?? selectedAccountForTable.accountSize,
-        accountSizeName: pendingChanges?.accountSizeName ?? selectedAccountForTable.accountSizeName,
-        price: pendingChanges?.price ?? selectedAccountForTable.price,
-        priceWithPromo: pendingChanges?.priceWithPromo ?? selectedAccountForTable.priceWithPromo,
-        evaluation: pendingChanges?.evaluation ?? selectedAccountForTable.evaluation,
-        minDays: pendingChanges?.minDays ?? selectedAccountForTable.minDays,
-        dailyLoss: pendingChanges?.dailyLoss ?? selectedAccountForTable.dailyLoss,
-        rulesDailyLoss: pendingChanges?.rulesDailyLoss ?? selectedAccountForTable.rulesDailyLoss,
-        trailing: pendingChanges?.trailing ?? selectedAccountForTable.trailing,
-        tradingNewsAllowed: pendingChanges?.tradingNewsAllowed ?? selectedAccountForTable.tradingNewsAllowed,
-        activationFees: pendingChanges?.activationFees ?? selectedAccountForTable.activationFees,
-        isRecursively: pendingChanges?.isRecursively ?? selectedAccountForTable.isRecursively,
-        balanceRequired: pendingChanges?.balanceRequired ?? selectedAccountForTable.balanceRequired,
-        minTradingDaysForPayout: pendingChanges?.minTradingDaysForPayout ?? selectedAccountForTable.minTradingDaysForPayout
-      }
-      await saveAccount(accountUpdate)
-
-      // Update the selected account
-      setSelectedAccountForTable(accountUpdate)
-
-      setPendingChanges(null)
-
-      toast({
-        title: t('propFirm.toast.setupSuccess'),
-        description: t('propFirm.toast.setupSuccessDescription'),
-        variant: "default"
-      })
-    } catch (error) {
-      console.error('Failed to setup account:', error)
-      toast({
-        title: t('propFirm.toast.setupError'),
-        description: t('propFirm.toast.setupErrorDescription'),
-        variant: "destructive"
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
+  // Configurator save functionality removed
 
 
   return (
@@ -839,13 +784,7 @@ export function AccountsOverview({ size }: { size: WidgetSize }) {
                 </div>
                 <div className="flex items-center gap-2 pr-4">
 
-                  <Button
-                    variant="default"
-                    onClick={handleSave}
-                    disabled={pendingChanges === null}
-                  >
-                    {isSaving ? t('common.saving') : t('common.save')}
-                  </Button>
+                  {/* Save button removed - configuration moved to Accounts page */}
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -946,12 +885,9 @@ export function AccountsOverview({ size }: { size: WidgetSize }) {
                     />
                   </TabsContent>
                   <TabsContent value="configurator" className="mt-4">
-                    <AccountConfigurator
-                      account={selectedAccountForTable}
-                      pendingChanges={pendingChanges as Partial<Account> | null}
-                      setPendingChanges={setPendingChanges}
-                      isSaving={isSaving}
-                    />
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">Account configuration has been moved to the dedicated Accounts page.</p>
+                    </div>
                   </TabsContent>
                 </Tabs>
               )}

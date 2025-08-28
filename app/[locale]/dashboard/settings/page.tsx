@@ -40,6 +40,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Slider } from "@/components/ui/slider"
 import { LinkedAccounts } from "@/components/linked-accounts"
+import { useToolbarSettingsStore } from "@/store/toolbar-settings-store"
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { ChevronDown, Layout } from "lucide-react"
 
 
 
@@ -68,6 +75,10 @@ export default function SettingsPage() {
   const [pushNotifications, setPushNotifications] = useState(false)
   const [tradingAlerts, setTradingAlerts] = useState(true)
   const [weeklyReports, setWeeklyReports] = useState(true)
+  const [isUISettingsOpen, setIsUISettingsOpen] = useState(false)
+  
+  // Toolbar settings
+  const { settings, setFixedPosition, setAutoHide, resetSettings } = useToolbarSettingsStore()
   
 
 
@@ -236,6 +247,74 @@ export default function SettingsPage() {
                 </DropdownMenu>
               </div>
             </div>
+
+            <Separator />
+
+            {/* UI Customization Section */}
+            <Collapsible open={isUISettingsOpen} onOpenChange={setIsUISettingsOpen}>
+              <CollapsibleTrigger asChild>
+                <div className="flex items-center justify-between cursor-pointer hover:bg-accent/50 rounded-lg p-2 -m-2 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <Layout className="h-4 w-4" />
+                    <Label className="text-base font-medium cursor-pointer">UI Customization</Label>
+                  </div>
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isUISettingsOpen ? 'rotate-180' : ''}`} />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 mt-4">
+                {/* Toolbar Settings */}
+                <div className="space-y-3 pl-6 border-l-2 border-border/30">
+                  <Label className="text-sm font-medium text-muted-foreground">Toolbar Settings</Label>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="fixed-position">{t('toolbar.fixedPosition')}</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {t('toolbar.fixedPositionDescription')}
+                      </p>
+                    </div>
+                    <Switch
+                      id="fixed-position"
+                      checked={settings.fixedPosition}
+                      onCheckedChange={setFixedPosition}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="auto-hide-toolbar">{t('toolbar.autoHide')}</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {t('toolbar.autoHideDescription')}
+                      </p>
+                    </div>
+                    <Switch
+                      id="auto-hide-toolbar"
+                      checked={settings.autoHide}
+                      onCheckedChange={setAutoHide}
+                    />
+                  </div>
+                  
+                  <div className="pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={resetSettings}
+                      className="text-xs"
+                    >
+                      {t('toolbar.resetSettings')}
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Future UI Settings Placeholder */}
+                <div className="space-y-3 pl-6 border-l-2 border-border/30">
+                  <Label className="text-sm font-medium text-muted-foreground">More UI Settings</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Additional UI customization options will be available here in future updates.
+                  </p>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </CardContent>
         </Card>
 

@@ -11,24 +11,25 @@ export default function DashboardPage() {
   }, [])
 
   return (
-
-    <div className="flex w-full relative  min-h-screen py-8">
-      <div className='flex flex-1 flex-col w-full p-4 '>
+    <div className="container mx-auto px-6 py-6 max-w-full pr-8">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Data Management</h1>
+          <p className="text-muted-foreground">Manage your trading accounts and trades</p>
+        </div>
 
         <Tabs defaultValue="accounts" className="w-full">
           <TabsList>
             <TabsTrigger value="accounts">Accounts</TabsTrigger>
             <TabsTrigger value="trades">Trades</TabsTrigger>
-            {/* <TabsTrigger value="propfirm">Prop Firm</TabsTrigger> */}
           </TabsList>
-          <TabsContent value="accounts">
+          <TabsContent value="accounts" className="mt-6">
             <DataManagementCard />
           </TabsContent>
-          <TabsContent value="trades">
+          <TabsContent value="trades" className="mt-6">
             <TradeTable />
           </TabsContent>
         </Tabs>
-
       </div>
     </div>
   )

@@ -272,6 +272,7 @@ export function TradeTableReview() {
   const [groupingGranularity, setGroupingGranularity] = useState<number>(tableConfig?.groupingGranularity || 0)
   const [selectedTrades, setSelectedTrades] = useState<string[]>([])
   const [showPoints, setShowPoints] = useState(false)
+
   const [isEnhancedEditOpen, setIsEnhancedEditOpen] = useState(false)
   const [selectedTradeForEdit, setSelectedTradeForEdit] = useState<Trade | null>(null)
 
@@ -479,7 +480,6 @@ export function TradeTableReview() {
       ),
       enableSorting: false,
       enableHiding: false,
-      size: 40,
     },
     {
       id: "expand",
@@ -503,7 +503,6 @@ export function TradeTableReview() {
           </Button>
         )
       },
-      size: 40,
     },
     {
       id: "accounts",
@@ -556,7 +555,6 @@ export function TradeTableReview() {
           </div>
         )
       },
-      size: 120,
     },
     {
       accessorKey: "entryDate",
@@ -569,14 +567,13 @@ export function TradeTableReview() {
         const b = new Date(rowB.getValue(columnId)).getTime();
         return a < b ? -1 : a > b ? 1 : 0;
       },
-      size: 120,
     },
     {
       accessorKey: "instrument",
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('trade-table.instrument')} tableId="trade-table" />
       ),
-      size: 120,
+      size: 140,
       cell: ({ row }) => {
         const instrument = row.original.instrument
         return (
@@ -591,7 +588,7 @@ export function TradeTableReview() {
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('trade-table.direction')} tableId="trade-table" />
       ),
-      size: 100,
+      size: 120,
       cell: ({ row }) => {
         return (
           <div className="text-right font-medium">
@@ -624,7 +621,6 @@ export function TradeTableReview() {
           </div>
         )
       },
-      size: 100,
     },
     {
       accessorKey: "closePrice",
@@ -639,7 +635,6 @@ export function TradeTableReview() {
           </div>
         )
       },
-      size: 100,
     },
     {
       accessorKey: "timeInPosition",
@@ -655,7 +650,6 @@ export function TradeTableReview() {
         const b = rowB.original.timeInPosition || 0
         return a - b
       },
-      size: 120,
     },
     {
       accessorKey: "entryTime",
@@ -667,7 +661,6 @@ export function TradeTableReview() {
         const dateStr = row.original.entryDate
         return <div>{formatInTimeZone(new Date(dateStr), timezone, 'HH:mm:ss')}</div>
       },
-      size: 100,
     },
     {
       accessorKey: "closeDate",
@@ -678,7 +671,6 @@ export function TradeTableReview() {
         const dateStr = row.original.closeDate
         return <div>{formatInTimeZone(new Date(dateStr), timezone, 'HH:mm:ss')}</div>
       },
-      size: 100,
     },
     {
       accessorKey: "pnl",
@@ -698,7 +690,6 @@ export function TradeTableReview() {
         )
       },
       sortingFn: "basic",
-      size: 100,
     },
     {
       accessorKey: "commission",
@@ -713,7 +704,6 @@ export function TradeTableReview() {
           </div>
         )
       },
-      size: 100,
     },
     {
       accessorKey: "quantity",
@@ -729,7 +719,6 @@ export function TradeTableReview() {
         )
       },
       sortingFn: "basic",
-      size: 100,
     },
 
 
@@ -760,7 +749,6 @@ export function TradeTableReview() {
       },
       enableSorting: false,
       enableHiding: false,
-      size: 100,
     }
   ], [t, timezone, tags, expanded, tickDetails, showPoints])
 
@@ -790,17 +778,17 @@ export function TradeTableReview() {
     onColumnFiltersChange: handleColumnFiltersChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
     defaultColumn: {
-      size: 400,
       minSize: 100,
+      maxSize: 300,
     },
   })
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="w-full max-w-none sm:max-w-[calc(100vw-14rem)] mx-auto">
       <CardHeader
-        className="flex flex-row items-center justify-between space-y-0 border-b shrink-0 p-3 sm:p-4 h-[56px]"
+        className="flex flex-row items-center justify-between space-y-0 border-b shrink-0 p-4 h-auto min-h-[56px]"
       >
-        <div className="flex items-center justify-between w-full">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
           <div className="flex items-center gap-1.5">
             <CardTitle className="line-clamp-1 text-base">
               {t('trade-table.title')}
@@ -816,7 +804,14 @@ export function TradeTableReview() {
               </Tooltip>
             </TooltipProvider>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant={showPoints ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowPoints(!showPoints)}
+            >
+              {showPoints ? "Show Currency" : "Show Points"}
+            </Button>
             {selectedTrades.length >= 2 && (
               <Button
                 variant="outline"
@@ -839,7 +834,7 @@ export function TradeTableReview() {
               value={groupingGranularity.toString()}
               onValueChange={(value) => handleGroupingGranularityChange(parseInt(value))}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px] min-w-[140px]">
                 <div className="flex items-center w-full">
                   <TooltipProvider>
                     <Tooltip>
@@ -869,18 +864,42 @@ export function TradeTableReview() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 min-h-0 overflow-hidden p-0">
-        <div className="flex h-full flex-col overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table className="w-full">
-              <TableHeader className="sticky top-0 z-10 bg-background shadow-sm">
+      <CardContent className="p-0">
+        {/* 
+          Container with fixed height and internal horizontal scroll:
+          - The card container now has a constrained width
+          - This container handles the horizontal overflow with proper scrolling
+          - Table maintains its natural width without being compressed
+          - Sticky header works within the scrollable container
+        */}
+        <div className="relative">
+          <div className="overflow-x-auto overflow-y-visible border-t">
+            <table className="w-max min-w-full caption-bottom text-sm">
+              <thead className="sticky top-0 z-20 bg-background border-b">
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
+                  <tr key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
-                      <TableHead
+                      <th
                         key={header.id}
-                        className="whitespace-nowrap px-4 py-3 text-left text-sm"
-                        style={{ width: header.getSize() }}
+                        className={cn(
+                          "h-12 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap bg-background",
+                          "[&:has([role=checkbox])]:pr-2"
+                        )}
+                        style={{ 
+                          minWidth: header.column.id === 'select' || header.column.id === 'expand' 
+                            ? '50px' 
+                            : header.column.id === 'accounts' 
+                            ? '140px'
+                            : header.column.id === 'instrument'
+                            ? '120px'
+                            : header.column.id === 'entryDate' || header.column.id === 'closeDate'
+                            ? '160px'
+                            : header.column.id === 'timeInPosition'
+                            ? '120px'
+                            : header.column.id === 'tags'
+                            ? '200px'
+                            : '110px'
+                        }}
                       >
                         {header.isPlaceholder
                           ? null
@@ -888,20 +907,19 @@ export function TradeTableReview() {
                             header.column.columnDef.header,
                             header.getContext()
                           )}
-                      </TableHead>
+                      </th>
                     ))}
-                  </TableRow>
+                  </tr>
                 ))}
-              </TableHeader>
-
-              <TableBody className="flex-1 overflow-auto">
+              </thead>
+              <tbody>
                 {table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
                     <React.Fragment key={row.id}>
-                      <TableRow
+                      <tr
                         data-state={row.getIsSelected() && "selected"}
                         className={cn(
-                          "border-b transition-colors hover:bg-muted",
+                          "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
                           row.getIsExpanded()
                             ? "bg-muted"
                             : row.getCanExpand()
@@ -910,37 +928,54 @@ export function TradeTableReview() {
                         )}
                       >
                         {row.getVisibleCells().map((cell) => (
-                          <TableCell
+                          <td
                             key={cell.id}
-                            className="whitespace-nowrap px-4 py-2.5 text-sm"
-                            style={{ width: cell.column.getSize() }}
+                            className={cn(
+                              "px-4 py-3 align-middle text-sm whitespace-nowrap",
+                              "[&:has([role=checkbox])]:pr-2"
+                            )}
+                            style={{ 
+                              minWidth: cell.column.id === 'select' || cell.column.id === 'expand' 
+                                ? '50px' 
+                                : cell.column.id === 'accounts' 
+                                ? '140px'
+                                : cell.column.id === 'instrument'
+                                ? '120px'
+                                : cell.column.id === 'entryDate' || cell.column.id === 'closeDate'
+                                ? '160px'
+                                : cell.column.id === 'timeInPosition'
+                                ? '120px'
+                                : cell.column.id === 'tags'
+                                ? '200px'
+                                : '110px'
+                            }}
                           >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
+                          </td>
                         ))}
-                      </TableRow>
+                      </tr>
                     </React.Fragment>
                   ))
                 ) : (
-                  <TableRow>
-                    <TableCell
+                  <tr>
+                    <td
                       colSpan={columns.length}
-                      className="h-24 text-center"
+                      className="h-24 text-center px-4 py-3 align-middle"
                     >
                       No results.
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 )}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex items-center justify-between border-t bg-background px-4 py-3">
+      <CardFooter className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-t bg-background px-4 py-3 gap-4">
         <div className="text-sm text-muted-foreground">
           {t('trade-table.totalTrades', { count: groupedTrades.length })}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <Button
             variant="outline"
             size="sm"
@@ -964,27 +999,6 @@ export function TradeTableReview() {
           >
             {t('trade-table.next')}
             <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const newPageSize = pageSize + 10
-              handlePageSizeChange(newPageSize)
-              table.setPageSize(newPageSize)
-            }}
-          >
-            {t('trade-table.pageSize')}
-          </Button>
-          <Button
-            variant="outline"
-            className="w-[180px] h-10"
-            onClick={() => {
-              handlePageSizeChange(10)
-              table.resetPageSize()
-            }}
-          >
-            {t('trade-table.resetPageSize')}
           </Button>
         </div>
       </CardFooter>

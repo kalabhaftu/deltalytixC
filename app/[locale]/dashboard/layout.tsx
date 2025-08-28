@@ -22,7 +22,7 @@ export default async function RootLayout(props: { params: Promise<{ locale: stri
                     <SonnerToaster/>
                     <Toaster />
                     <Navbar />
-                    <div className="flex flex-1 px-2 sm:px-8">
+                    <div className="flex flex-1">
                       {children}
                     </div>
                     <Modals />

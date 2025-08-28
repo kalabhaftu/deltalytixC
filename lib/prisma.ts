@@ -11,15 +11,15 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   ...(process.env.NODE_ENV === 'development' && {
     datasources: {
       db: {
-        url: process.env.DIRECT_URL + (process.env.DIRECT_URL?.includes('?') ? '&' : '?') + 'prepared_statements=false'
+        url: process.env.DIRECT_URL + (process.env.DIRECT_URL?.includes('?') ? '&' : '?') + 'prepared_statements=false&connect_timeout=10&pool_timeout=10'
       }
     }
   }),
-  // Use session pooler for production
+  // Use session pooler for production with timeouts
   ...(process.env.NODE_ENV === 'production' && {
     datasources: {
       db: {
-        url: process.env.DATABASE_URL || process.env.DIRECT_URL
+        url: (process.env.DATABASE_URL || process.env.DIRECT_URL) + (process.env.DATABASE_URL?.includes('?') ? '&' : '?') + 'connect_timeout=10&pool_timeout=10'
       }
     }
   })

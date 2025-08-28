@@ -149,6 +149,7 @@ export default function Home() {
               exit="out"
               variants={pageVariants}
               transition={pageTransition}
+              className="w-full"
             >
               <TradeTableReview />
             </motion.div>
@@ -164,6 +165,7 @@ export default function Home() {
               exit="out"
               variants={pageVariants}
               transition={pageTransition}
+              className="px-4"
             >
               <AccountsOverview size="large" />
             </motion.div>
@@ -179,6 +181,7 @@ export default function Home() {
               exit="out"
               variants={pageVariants}
               transition={pageTransition}
+              className="px-4"
             >
               <PropFirmDashboardPage />
             </motion.div>
@@ -194,6 +197,7 @@ export default function Home() {
               exit="out"
               variants={pageVariants}
               transition={pageTransition}
+              className="px-4"
             >
               <AnalysisOverview />
             </motion.div>
@@ -210,6 +214,7 @@ export default function Home() {
               exit="out"
               variants={pageVariants}
               transition={pageTransition}
+              className="px-4"
             >
               <WidgetCanvas />
             </motion.div>
@@ -220,7 +225,7 @@ export default function Home() {
 
   return (
     <DashboardErrorBoundary>
-      <div className="flex w-full min-h-screen overflow-x-hidden bg-gradient-to-br from-background via-background to-background/95">
+      <div className="flex w-full min-h-screen bg-gradient-to-br from-background via-background to-background/95">
         {/* Sidebar */}
         <DashboardSidebar 
           activeTab={activeTab} 
@@ -243,7 +248,7 @@ export default function Home() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="flex flex-1 flex-col w-full px-4 py-6 backdrop-blur-sm">
+          <div className="flex flex-1 flex-col w-full backdrop-blur-sm">
             <AnimatePresence mode="wait">
               {renderContent()}
             </AnimatePresence>

@@ -56,7 +56,7 @@ export function Toolbar({
 }: ToolbarProps) {
   const t = useI18n()
   const { isMobile } = useData()
-  const { settings, setAutoHide } = useToolbarSettingsStore()
+  const { settings, setAutoHide, setFixedPosition } = useToolbarSettingsStore()
   
   // Handle auto-hide toggle with proper state management
   const handleAutoHideToggle = () => {
@@ -67,6 +67,20 @@ export function Toolbar({
     // Show toast notification
     toast.success(
       newValue ? t('toolbar.autoHideEnabled') : t('toolbar.autoHideDisabled'),
+      {
+        duration: 2000,
+      }
+    )
+  }
+  
+  // Handle fixed position toggle
+  const handleFixedPositionToggle = () => {
+    const newValue = !settings.fixedPosition
+    setFixedPosition(newValue)
+    
+    // Show toast notification
+    toast.success(
+      newValue ? t('toolbar.fixedPositionEnabled') : t('toolbar.fixedPositionDisabled'),
       {
         duration: 2000,
       }
@@ -220,8 +234,9 @@ export function Toolbar({
         <motion.div
           ref={toolbarRef}
           className={cn(
-            "fixed inset-x-0 mx-auto z-[9999] w-fit",
-            isConsentVisible ? "bottom-36 sm:bottom-20" : "bottom-6"
+            "inset-x-0 mx-auto z-[9999] w-fit",
+            settings.fixedPosition ? "fixed" : "relative",
+            settings.fixedPosition && (isConsentVisible ? "bottom-36 sm:bottom-20" : "bottom-6")
           )}
           style={{ 
             transform: 'translateZ(0)',
@@ -385,7 +400,7 @@ export function Toolbar({
         </motion.div>
       </ContextMenuTrigger>
       
-      <ContextMenuContent className="w-48 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl">
+      <ContextMenuContent className="w-52 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl">
         <ContextMenuItem 
           onClick={handleAutoHideToggle}
           className="hover:bg-accent/80 transition-colors duration-200"
@@ -405,6 +420,27 @@ export function Toolbar({
               )}
             </div>
             <span className="text-sm font-medium">{t('toolbar.autoHide')}</span>
+          </div>
+        </ContextMenuItem>
+        <ContextMenuItem 
+          onClick={handleFixedPositionToggle}
+          className="hover:bg-accent/80 transition-colors duration-200"
+        >
+          <div className="flex items-center gap-2">
+            <div className={cn(
+              "w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200",
+              settings.fixedPosition ? "bg-primary border-primary shadow-lg shadow-primary/20" : "border-muted-foreground hover:border-primary/50"
+            )}>
+              {settings.fixedPosition && (
+                <motion.div 
+                  className="w-2 h-2 bg-background rounded-sm" 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                />
+              )}
+            </div>
+            <span className="text-sm font-medium">{t('toolbar.fixedPosition')}</span>
           </div>
         </ContextMenuItem>
       </ContextMenuContent>

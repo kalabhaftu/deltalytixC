@@ -74,7 +74,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
   const [headers, setHeaders] = useState<string[]>([])
   const [mappings, setMappings] = useState<{ [key: string]: string }>({})
   const [accountNumber, setAccountNumber] = useState<string>('')
-  const [newAccountNumber, setNewAccountNumber] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState<boolean>(false)
   const [processedTrades, setProcessedTrades] = useState<Trade[]>([])
@@ -114,7 +113,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
             
             return {
               ...cleanTrade,
-              accountNumber: cleanTrade.accountNumber || accountNumber || newAccountNumber || accountId,
+              accountNumber: cleanTrade.accountNumber || accountNumber || accountId,
               userId: currentUser.id,
               id: generateTradeHash({ ...cleanTrade, userId: currentUser.id }),
               // Ensure required fields have default values
@@ -217,7 +216,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     setHeaders([])
     setMappings({})
     setAccountNumber('')
-    setNewAccountNumber('')
     setProcessedTrades([])
     setError(null)
   }
@@ -321,11 +319,8 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     if (Component === AccountSelection) {
       return (
         <Component
-          accounts={Array.from(new Set(trades.map(trade => trade.accountNumber)))}
           accountNumber={accountNumber}
           setAccountNumber={setAccountNumber}
-          newAccountNumber={newAccountNumber}
-          setNewAccountNumber={setNewAccountNumber}
         />
       )
     }
@@ -376,7 +371,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
           csvData={csvData}
           headers={headers}
           setProcessedTrades={setProcessedTrades}
-          accountNumber={accountNumber || newAccountNumber || accountId}
+          accountNumber={accountNumber || accountId}
         />
       )
     }
@@ -388,7 +383,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     
     // Handle custom card components
     if (platform.customCardComponent && Component === platform.customCardComponent) {
-      return <platform.customCardComponent accountId={accountId} accountNumber={accountId} />
+      return <platform.customCardComponent accountId={accountId} />
     }
 
     return null
@@ -416,7 +411,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     if (currentStep.component === PdfUpload && text.length === 0) return true
     
     // Account selection for platforms
-    if (currentStep.component === AccountSelection && !accountNumber && !newAccountNumber) return true
+    if (currentStep.component === AccountSelection && !accountNumber) return true
 
     return false
   }

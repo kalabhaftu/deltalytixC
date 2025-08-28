@@ -73,6 +73,7 @@ export function NoteEditor({
       }),
     ],
     content: initialContent,
+    immediatelyRender: false,
     onUpdate: ({ editor }) => {
       const content = editor.getHTML()
       debouncedOnChange(content)

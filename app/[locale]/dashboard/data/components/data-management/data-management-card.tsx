@@ -228,16 +228,16 @@ export function DataManagementCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex flex-col md:flex-row gap-y-4 md:gap-y-0 justify-between items-start md:items-center">
-          <span className="text-xl md:text-2xl">{t('dataManagement.title')}</span>
-          <div className="flex flex-wrap gap-2 w-full md:w-auto">
+        <CardTitle className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
+          <span className="text-xl lg:text-2xl">{t('dataManagement.title')}</span>
+          <div className="flex flex-wrap gap-2 w-full lg:w-auto">
             <ExportButton trades={trades} />
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
               <AlertDialogTrigger asChild>
                 <Button
                   variant="destructive"
                   size="sm"
-                  className="flex-1 md:flex-none"
+                  className="flex-1 lg:flex-none min-w-[140px]"
                   disabled={selectedAccounts.length === 0 || deleteLoading}
                   onClick={() => {
                     setDeleteMode('selected')
@@ -274,6 +274,7 @@ export function DataManagementCard() {
                 <Button
                   variant="destructive"
                   size="sm"
+                  className="flex-1 lg:flex-none min-w-[100px]"
                   disabled={deleteLoading}
                   onClick={() => {
                     setDeleteMode('all')
@@ -395,10 +396,10 @@ export function DataManagementCard() {
               {expandedAccounts[accountNumber] && (
                 <div id={`account-${accountNumber}`} className="space-y-4 pl-2 sm:pl-4">
                   {Object.entries(instruments).map(([instrumentGroup, trades]) => (
-                    <div key={instrumentGroup} className="bg-gray-100 dark:bg-white/5 p-3 sm:p-4 rounded-lg">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-md font-medium">
+                    <div key={instrumentGroup} className="bg-gray-100 dark:bg-white/5 p-3 lg:p-4 rounded-lg">
+                      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <h3 className="text-md font-medium truncate">
                             {instrumentGroup}
                           </h3>
                           <Button
@@ -414,8 +415,8 @@ export function DataManagementCard() {
                             <span className="sr-only">{t('dataManagement.renameInstrument.title')}</span>
                           </Button>
                         </div>
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                          <div className="relative w-full sm:w-32">
+                        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 w-full lg:w-auto">
+                          <div className="relative w-full lg:w-32">
                             <Input
                               type="number"
                               placeholder="Commission"
@@ -430,7 +431,7 @@ export function DataManagementCard() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="w-full sm:w-auto whitespace-nowrap"
+                                className="w-full lg:w-auto whitespace-nowrap"
                               >
                                 <TrashIcon className="w-4 h-4 mr-2" />
                                 {t('dataManagement.removeInstrument')}

@@ -293,29 +293,63 @@ export async function getUserId(): Promise<string> {
   // First try to get user ID from middleware headers
   const headersList = await headers()
   const userIdFromMiddleware = headersList.get("x-user-id")
+  const authStatus = headersList.get("x-auth-status")
 
-  if (userIdFromMiddleware) {
+  if (userIdFromMiddleware && authStatus === "authenticated") {
     if (process.env.NODE_ENV === 'development') {
       console.log("[Auth] Using user ID from middleware")
     }
     return userIdFromMiddleware
   }
 
-  // Fallback to Supabase call (for API routes or edge cases)
-  if (process.env.NODE_ENV === 'development') {
-    console.log("[Auth] Fallback to Supabase call")
-  }
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
-
-  if (error || !user) {
+  // Check if middleware already detected auth failure
+  if (authStatus === "unauthenticated") {
+    const authError = headersList.get("x-auth-error")
+    if (authError && authError.includes("timeout")) {
+      throw new Error("Authentication service temporarily unavailable")
+    }
     throw new Error("User not authenticated")
   }
 
-  return user.id
+  // Fallback to Supabase call (for API routes or edge cases) with timeout
+  if (process.env.NODE_ENV === 'development') {
+    console.log("[Auth] Fallback to Supabase call")
+  }
+  
+  try {
+    const supabase = await createClient()
+    
+    // Add timeout to Supabase call to match middleware behavior
+    const authPromise = supabase.auth.getUser()
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Auth timeout")), 3000)
+    )
+
+    const { data: { user }, error } = await Promise.race([authPromise, timeoutPromise]) as any
+
+    if (error) {
+      if (error.message?.includes("timeout")) {
+        throw new Error("Authentication service temporarily unavailable")
+      }
+      throw new Error("User not authenticated")
+    }
+
+    if (!user) {
+      throw new Error("User not authenticated")
+    }
+
+    return user.id
+  } catch (authError) {
+    if (authError instanceof Error) {
+      if (authError.message === "Auth timeout") {
+        throw new Error("Authentication service temporarily unavailable")
+      }
+      if (authError.message.includes("fetch failed") || authError.message.includes("ConnectTimeoutError")) {
+        throw new Error("Authentication service temporarily unavailable")
+      }
+    }
+    throw new Error("User not authenticated")
+  }
 }
 
 export async function getUserEmail(): Promise<string> {

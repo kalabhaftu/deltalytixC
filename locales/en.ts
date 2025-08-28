@@ -6,6 +6,7 @@ import mindset from './en/mindset'
 import propfirm from './en/propfirm'
 import chat from './en/chat'
 import importTranslations from './en/import'
+import accounts from './en/accounts'
 export default {
     ...shared,
     ...landing,
@@ -15,6 +16,7 @@ export default {
     ...propfirm,
     ...chat,
     ...importTranslations,
+    ...accounts,
     'footer.heading': 'Footer',
     'footer.description': 'Advanced analytics for modern traders.',
     'footer.product.title': 'Product',
@@ -129,6 +131,24 @@ export default {
     'analysis.instrument.description': 'Performance breakdown by trading instruments',
     'analysis.accounts.title': 'Account Analysis',
     'analysis.accounts.description': 'Performance analysis across different accounts',
+    
+    // Accounts page translations
+    'accounts.searchPlaceholder': 'Search accounts by name, number, or broker...',
+    'accounts.delete': 'Delete',
+    'accounts.deleteConfirmTitle': 'Delete Account',
+    'accounts.deleteConfirmDescription': 'Are you sure you want to delete this account? This action cannot be undone and will remove all associated data.',
+    'accounts.profitTarget': 'Profit Target',
+    'accounts.noTrades': 'No trades yet',
+    'accounts.toast.deleteSuccess': 'Account deleted successfully',
+    'accounts.toast.deleteSuccessDescription': 'The account has been removed from your dashboard.',
+    'accounts.toast.deleteError': 'Failed to delete account',
+    'accounts.toast.deleteErrorDescription': 'Please try again later.',
+    'accounts.toast.createSuccess': 'Account created successfully',
+    'accounts.toast.createSuccessDescription': 'Your new account has been added to the dashboard.',
+    'accounts.toast.createError': 'Failed to create account',
+    'accounts.toast.createErrorDescription': 'Please check your information and try again.',
+    'accounts.toast.fetchError': 'Failed to load accounts',
+    'accounts.toast.fetchErrorDescription': 'Please refresh the page to try again.',
     'analysis.timeOfDay.title': 'Time of Day Analysis',
     'analysis.timeOfDay.description': 'Trading performance by time periods',
     'analysis.loading': 'Generating analysis...',
@@ -867,6 +887,10 @@ export default {
     'toolbar.autoHideDescription': 'Automatically hide toolbar when not in use (like macOS dock)',
     'toolbar.autoHideEnabled': 'Auto-hide enabled',
     'toolbar.autoHideDisabled': 'Auto-hide disabled',
+    'toolbar.fixedPosition': 'Fixed Position',
+    'toolbar.fixedPositionDescription': 'Keep toolbar fixed at bottom of screen',
+    'toolbar.fixedPositionEnabled': 'Fixed position enabled',
+    'toolbar.fixedPositionDisabled': 'Fixed position disabled',
     'toolbar.position': 'Position',
     'toolbar.position.bottom': 'Bottom',
     'toolbar.position.top': 'Top',

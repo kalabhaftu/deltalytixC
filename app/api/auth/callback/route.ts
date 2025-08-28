@@ -7,20 +7,38 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const error_code = searchParams.get('error_code')
+  const error_description = searchParams.get('error_description')
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get('next')
   const action = searchParams.get('action')
+
+  // Handle OAuth errors from the provider
+  if (error_code) {
+    console.log('OAuth Error:', { error_code, error_description })
+    const isLocalEnv = process.env.NODE_ENV === 'development'
+    const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
+    
+    if (error_code === 'bad_oauth_state') {
+      // OAuth state mismatch - redirect to authentication to retry
+      return NextResponse.redirect(`${baseUrl}/authentication?error=oauth_retry`)
+    }
+    
+    return NextResponse.redirect(`${baseUrl}/authentication?error=oauth_failed`)
+  }
 
    // Redirect to the decoded 'next' URL if it exists, otherwise to the homepage
    let decodedNext: string | null = null;
    if (next) {
     decodedNext = decodeURIComponent(next)
   }
+  
   if (code) {
-    const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    try {
+      const supabase = await createClient()
+      const { error } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (!error) {
+      if (!error) {
       // Handle identity linking redirect
       if (action === 'link') {
         const forwardedHost = request.headers.get('x-forwarded-host')
@@ -53,10 +71,28 @@ export async function GET(request: Request) {
         }
         return NextResponse.redirect(`${origin}${next ?? '/dashboard'}`)
       }
+      }
+      console.log('Auth exchange error:', error)
+      
+      // Handle specific auth errors
+      const isLocalEnv = process.env.NODE_ENV === 'development'
+      const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
+      
+      if (error?.message?.includes('timeout') || error?.message?.includes('fetch failed')) {
+        return NextResponse.redirect(`${baseUrl}/authentication?error=connection_timeout`)
+      }
+      
+      return NextResponse.redirect(`${baseUrl}/authentication?error=auth_failed`)
+    } catch (networkError) {
+      console.log('Network error during auth exchange:', networkError)
+      const isLocalEnv = process.env.NODE_ENV === 'development'
+      const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
+      return NextResponse.redirect(`${baseUrl}/authentication?error=network_error`)
     }
-    console.log('error', error)
   }
 
   // return the user to the authentication page
-  return NextResponse.redirect(`${origin}/authentication`)
+  const isLocalEnv = process.env.NODE_ENV === 'development'
+  const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
+  return NextResponse.redirect(`${baseUrl}/authentication`)
 }

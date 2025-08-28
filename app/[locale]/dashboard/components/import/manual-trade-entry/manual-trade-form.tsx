@@ -182,8 +182,27 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
     }
   }, [watchedValues.entryDate, watchedValues.entryTime, watchedValues.closeDate, watchedValues.closeTime])
 
-  // Get existing account numbers for dropdown
-  const existingAccounts = Array.from(new Set(trades.map(trade => trade.accountNumber))).filter(Boolean)
+  // Get unified accounts for dropdown
+  const [unifiedAccounts, setUnifiedAccounts] = useState<Array<{id: string, number: string, displayName: string, accountType: string}>>([])
+  
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      try {
+        const response = await fetch('/api/accounts')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            setUnifiedAccounts(data.data)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching accounts:', error)
+      }
+    }
+    fetchAccounts()
+  }, [])
+
+  const existingAccounts = unifiedAccounts.map(account => account.number)
 
   const onSubmit = async (data: TradeFormData) => {
     const currentUser = user || supabaseUser
@@ -352,12 +371,13 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
                   </Select>
                 )}
               />
-              <Input
-                placeholder="Or type new account number"
-                {...register('accountNumber')}
-              />
               {errors.accountNumber && (
                 <p className="text-sm text-red-500">{errors.accountNumber.message}</p>
+              )}
+              {existingAccounts.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No accounts found. Please create an account first.
+                </p>
               )}
             </div>
 

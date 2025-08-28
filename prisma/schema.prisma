@@ -244,6 +244,7 @@ model Account {
 
   // New evaluation system fields
   name              String?
+  broker            String?   // Broker name for live accounts
   dailyDrawdownAmount Float?
   dailyDrawdownType DrawdownType @default(percent)
   maxDrawdownAmount Float?

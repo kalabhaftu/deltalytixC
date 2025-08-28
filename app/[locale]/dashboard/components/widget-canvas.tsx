@@ -24,6 +24,7 @@ import { Toolbar } from './toolbar'
 import { useUserStore } from '../../../../store/user-store'
 import { toast } from 'sonner'
 import { defaultLayouts } from '@/context/data-provider'
+import { useToolbarSettingsStore } from '@/store/toolbar-settings-store'
 
 
 // Update sizeToGrid to handle responsive sizes
@@ -368,6 +369,7 @@ type WidgetDimensions = { w: number; h: number; width: string; height: string }
 export default function WidgetCanvas() {
   const { user, isMobile, dashboardLayout:layouts, setDashboardLayout:setLayouts } = useUserStore(state => state)
   const { saveDashboardLayout } = useData()
+  const { settings: toolbarSettings } = useToolbarSettingsStore()
   const [isCustomizing, setIsCustomizing] = useState(false)
   const [isUserAction, setIsUserAction] = useState(false)
   const t = useI18n()
@@ -819,7 +821,8 @@ export default function WidgetCanvas() {
 
   return (
     <div className={cn(
-      "relative mt-6 pb-16 w-full min-h-screen",
+      "relative mt-6 w-full min-h-screen",
+      toolbarSettings.fixedPosition ? "pb-16" : "pb-6"
     )}>
       <Toolbar 
         onAddWidget={addWidget}

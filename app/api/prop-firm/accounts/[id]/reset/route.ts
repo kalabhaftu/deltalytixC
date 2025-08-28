@@ -58,6 +58,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         drawdownModeMax: true,
         timezone: true,
         dailyResetTime: true,
+        allowManualPhaseOverride: true,
+        fundedResetBalance: true,
         phases: {
           orderBy: { createdAt: 'desc' }
         },

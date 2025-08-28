@@ -314,11 +314,8 @@ export default function ImportButton() {
     if (Component === AccountSelection) {
       return (
         <Component
-          accounts={Array.from(new Set(trades.map(trade => trade.accountNumber)))}
           accountNumber={accountNumber}
           setAccountNumber={setAccountNumber}
-          newAccountNumber={newAccountNumber}
-          setNewAccountNumber={setNewAccountNumber}
         />
       )
     }

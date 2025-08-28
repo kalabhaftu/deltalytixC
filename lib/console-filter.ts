@@ -61,7 +61,15 @@ const IMPORTANT_PATTERNS = [
   /exception/i,
   /failed/i,
   /critical/i,
-  /security/i
+  /security/i,
+  /fetch/i,
+  /api/i,
+  /http/i,
+  /500/i,
+  /400/i,
+  /404/i,
+  /network/i,
+  /connection/i
 ]
 
 function shouldSuppressMessage(message: string): boolean {

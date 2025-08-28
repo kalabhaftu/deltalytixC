@@ -72,16 +72,12 @@ export async function getUserData(): Promise<{
       console.log(`[Cache MISS] Fetching user data for user ${userId}`)
       
       try {
-        // Run all independent queries in parallel for better performance
-        const [
-          userData,
-          tickDetails,
-          tags,
-          accounts,
-          groups,
-          financialEvents,
-          moodHistory
-        ] = await Promise.all([
+        // Add timeout for database operations
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Database timeout')), 12000)
+        )
+
+        const dataPromise = Promise.all([
           prisma.user.findUnique({
             where: {
               id: userId
@@ -93,13 +89,38 @@ export async function getUserData(): Promise<{
               userId: userId
             }
           }),
+          // Optimized accounts query - minimal data for performance
           prisma.account.findMany({
             where: {
               userId: userId
             },
-            include: {
-              payouts: true,
-              group: true
+            select: {
+              id: true,
+              number: true,
+              name: true,
+              propfirm: true,
+              startingBalance: true,
+              createdAt: true,
+              groupId: true,
+              group: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              },
+              // Get only recent payouts for performance
+              payouts: {
+                select: {
+                  id: true,
+                  amount: true,
+                  date: true,
+                  status: true
+                },
+                orderBy: {
+                  date: 'desc'
+                },
+                take: 5 // Limit payouts for performance
+              }
             }
           }),
           prisma.group.findMany({
@@ -107,20 +128,46 @@ export async function getUserData(): Promise<{
               userId: userId
             },
             include: {
-              accounts: true
+              accounts: {
+                select: {
+                  id: true,
+                  number: true,
+                  name: true,
+                  propfirm: true,
+                  startingBalance: true
+                }
+              }
             }
           }),
           prisma.financialEvent.findMany({
             where: {
               lang: locale
+            },
+            take: 50, // Limit events for performance
+            orderBy: {
+              date: 'desc'
             }
           }),
           prisma.mood.findMany({
             where: {
               userId: userId
-            }
+            },
+            orderBy: {
+              day: 'desc'
+            },
+            take: 30 // Limit moods for performance
           })
         ])
+
+        const [
+          userData,
+          tickDetails,
+          tags,
+          accounts,
+          groups,
+          financialEvents,
+          moodHistory
+        ] = await Promise.race([dataPromise, timeoutPromise]) as any
 
         return { userData, tickDetails, tags, accounts, groups, financialEvents, moodHistory }
       } catch (error) {
@@ -140,7 +187,7 @@ export async function getUserData(): Promise<{
     [`user-data-${userId}-${locale}`],
     {
       tags: [`user-data-${userId}-${locale}`, `user-data-${userId}`],
-      revalidate: 86400 // 24 hours in seconds
+      revalidate: 300 // 5 minutes instead of 24 hours for better UX
     }
   )()
   } catch (error) {

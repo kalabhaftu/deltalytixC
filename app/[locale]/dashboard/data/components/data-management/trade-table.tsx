@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowUpDown, Trash, ChevronLeft, ChevronRight, Edit } from "lucide-react"
+import { ArrowUpDown, Trash, ChevronLeft, ChevronRight, Edit, Loader2 } from "lucide-react"
 import { saveTradesAction } from '@/server/database'
 import { useToast } from "@/hooks/use-toast"
 import { deleteTradesByIdsAction } from '@/server/accounts'
@@ -31,6 +31,8 @@ export default function TradeTable() {
   const [tradesPerPage, setTradesPerPage] = useState(50) // Increased default from 10 to 50
   const [selectedTradeForEdit, setSelectedTradeForEdit] = useState<Trade | null>(null)
   const [isEnhancedEditOpen, setIsEnhancedEditOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showCovered, setShowCovered] = useState(true)
 
   const filteredAndSortedTrades = useMemo(() => {
     return formattedTrades
@@ -66,6 +68,12 @@ export default function TradeTable() {
   const handleDelete = async (ids: string[]) => {
     if (ids.length === 0) return
     
+    setIsDeleting(true)
+    
+    // Clear selection immediately for responsive UI
+    setSelectedTrades(new Set())
+    setSelectAll(false)
+    
     try {
       // Show loading toast
       toast({
@@ -73,14 +81,11 @@ export default function TradeTable() {
         description: `Deleting ${ids.length} trade(s)...`,
       })
       
+      // Perform deletion
       await deleteTradesByIdsAction(ids)
       
-      // Clear selection immediately
-      setSelectedTrades(new Set())
-      setSelectAll(false)
-      
-      // Refresh trades data
-      await refreshTrades()
+      // Refresh trades data immediately
+      refreshTrades()
       
       // Show success toast
       toast({
@@ -94,6 +99,10 @@ export default function TradeTable() {
         description: "Failed to delete trades. Please try again.",
         variant: "destructive"
       })
+      // Refresh data even on error to ensure UI is in sync
+      refreshTrades()
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -154,11 +163,11 @@ export default function TradeTable() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="flex space-x-2">
+    <div className="w-full space-y-4">
+      <div className="flex flex-col lg:flex-row gap-4 lg:justify-between lg:items-center">
+        <div className="flex flex-col lg:flex-row gap-2">
           <Select value={filterKey} onValueChange={(value) => setFilterKey(value as keyof Trade)}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full lg:w-[200px]">
               <SelectValue placeholder="Filter by" />
             </SelectTrigger>
             <SelectContent>
@@ -171,25 +180,39 @@ export default function TradeTable() {
             placeholder={`Filter by ${filterKey}`}
             value={filterValue}
             onChange={(e) => setFilterValue(e.target.value)}
-            className="max-w-sm"
+            className="w-full lg:max-w-sm"
           />
         </div>
-        <div className="space-x-2">
-          <Button onClick={() => handleDelete(Array.from(selectedTrades))} disabled={selectedTrades.size === 0}>
-            <Trash className="mr-2 h-4 w-4" /> Delete Selected
+        <div className="flex flex-wrap gap-3">
+          <Button
+            variant={showCovered ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowCovered(!showCovered)}
+          >
+            {showCovered ? "Hide Covered" : "Show Covered"}
+          </Button>
+          <Button 
+            onClick={() => handleDelete(Array.from(selectedTrades))} 
+            disabled={selectedTrades.size === 0 || isDeleting}
+            variant="destructive"
+            size="sm"
+          >
+            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash className="mr-2 h-4 w-4" />}
+            {isDeleting ? 'Deleting...' : `Delete Selected (${selectedTrades.size})`}
           </Button>
         </div>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[50px]">
-              <Checkbox
-                checked={selectAll}
-                onCheckedChange={toggleSelectAll}
-                aria-label="Select all"
-              />
-            </TableHead>
+      <div className="rounded-md border overflow-auto shadow-sm">
+        <Table className="w-full" style={{ minWidth: '1000px' }}>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[50px]">
+                <Checkbox
+                  checked={selectAll}
+                  onCheckedChange={toggleSelectAll}
+                  aria-label="Select all"
+                />
+              </TableHead>
             <TableHead className="w-[100px]">
               <Button variant="ghost" onClick={() => handleSort('instrument')}>
                 Instrument
@@ -281,10 +304,11 @@ export default function TradeTable() {
             </TableRow>
           ))}
         </TableBody>
-      </Table>
+        </Table>
+      </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
           <p className="text-sm text-gray-500">
             Showing {((currentPage - 1) * tradesPerPage) + 1} to {Math.min(currentPage * tradesPerPage, filteredAndSortedTrades.length)} of {filteredAndSortedTrades.length} trades
           </p>
@@ -307,7 +331,7 @@ export default function TradeTable() {
             </select>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             size="sm"

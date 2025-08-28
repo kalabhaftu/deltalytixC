@@ -2,24 +2,58 @@
 
 The application requires the following environment variables to be configured:
 
-## Database Connection
-- DIRECT_URL: Direct connection to your Supabase database (required)
-- DATABASE_URL: Connection pooler URL (optional fallback)
+## Essential Environment Variables
 
-## Supabase Configuration  
-- NEXT_PUBLIC_SUPABASE_URL: Your Supabase project URL
-- NEXT_PUBLIC_SUPABASE_ANON_KEY: Your Supabase anonymous key
+### Database Connection
+- `DIRECT_URL`: Direct connection to your Supabase database (required for migrations)
+- `DATABASE_URL`: Connection pooler URL (required for application)
 
-## Other Configuration
-- NODE_ENV: Set to 'development' for local development
-- NEXTAUTH_SECRET: Random secret for NextAuth
-- NEXTAUTH_URL: Your application URL (e.g., http://localhost:3000)
+### Supabase Configuration  
+- `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous key
 
-Create a .env.local file in your project root with these variables configured to resolve the connection errors.
+### Authentication
+- `NEXTAUTH_SECRET`: Random secret for NextAuth (generate with: `openssl rand -base64 32`)
+- `NEXTAUTH_URL`: Your application URL (required for production)
 
-Example .env.local:
-DIRECT_URL="postgresql://postgres:password@aws-1-eu-north-1.pooler.supabase.com:6543/postgres"
+## Optional Environment Variables
+
+### AI/Chat Features
+- `OPENAI_API_KEY`: For AI-powered features
+- `PERPLEXITY_API_KEY`: For enhanced AI capabilities
+
+### Email (Resend)
+- `RESEND_API_KEY`: For sending transactional emails
+
+### Discord Integration
+- `DISCORD_CLIENT_ID`: Discord OAuth client ID
+- `DISCORD_CLIENT_SECRET`: Discord OAuth client secret
+
+## Environment Setup for Different Environments
+
+### Development (.env.local)
+```env
+DIRECT_URL="postgresql://postgres:password@localhost:5432/deltalytix"
+DATABASE_URL="postgresql://postgres:password@localhost:5432/deltalytix"
 NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
 NODE_ENV="development"
+NEXTAUTH_SECRET="your-secret-here"
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+### Production (Vercel Environment Variables)
+Set these in your Vercel dashboard:
+- `DIRECT_URL`
+- `DATABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXTAUTH_SECRET`
+- `NEXTAUTH_URL` (e.g., "https://your-app.vercel.app")
+
+### Security Notes
+- Never commit .env files to version control
+- Use strong, randomly generated secrets for production
+- Rotate API keys regularly
+- Use environment-specific values (don't use development credentials in production)
 

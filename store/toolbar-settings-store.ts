@@ -6,6 +6,7 @@ interface ToolbarSettings {
   autoHideDelay: number // milliseconds
   opacity: number // 0-1
   showThreshold: number // pixels from edge to show toolbar
+  fixedPosition: boolean // true for fixed position, false for relative
 }
 
 interface ToolbarSettingsStore {
@@ -14,6 +15,7 @@ interface ToolbarSettingsStore {
   setAutoHideDelay: (delay: number) => void
   setOpacity: (opacity: number) => void
   setShowThreshold: (threshold: number) => void
+  setFixedPosition: (fixedPosition: boolean) => void
   resetSettings: () => void
 }
 
@@ -21,7 +23,8 @@ const defaultSettings: ToolbarSettings = {
   autoHide: false,
   autoHideDelay: 800, // 0.8 seconds
   opacity: 0.8,
-  showThreshold: 100 // pixels from edge
+  showThreshold: 100, // pixels from edge
+  fixedPosition: true // enabled by default as requested
 }
 
 export const useToolbarSettingsStore = create<ToolbarSettingsStore>()(
@@ -43,6 +46,10 @@ export const useToolbarSettingsStore = create<ToolbarSettingsStore>()(
       
       setShowThreshold: (showThreshold) => set((state) => ({
         settings: { ...state.settings, showThreshold }
+      })),
+      
+      setFixedPosition: (fixedPosition) => set((state) => ({
+        settings: { ...state.settings, fixedPosition }
       })),
       
       resetSettings: () => set({ settings: defaultSettings }),
