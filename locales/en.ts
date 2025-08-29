@@ -134,6 +134,7 @@ export default {
     
     // Accounts page translations
     'accounts.searchPlaceholder': 'Search accounts by name, number, or broker...',
+    'accounts.edit': 'Edit',
     'accounts.delete': 'Delete',
     'accounts.deleteConfirmTitle': 'Delete Account',
     'accounts.deleteConfirmDescription': 'Are you sure you want to delete this account? This action cannot be undone and will remove all associated data.',

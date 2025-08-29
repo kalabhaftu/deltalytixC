@@ -13,6 +13,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { useData } from '@/context/data-provider'
+import { NoteEditor } from '@/app/[locale]/dashboard/components/mindset/note-editor'
 
 interface TradeCommentProps {
   tradeIds: string[]
@@ -100,47 +101,43 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
             </Button>
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-80 p-4" align="start" forceMount sideOffset={5}>
+        <PopoverContent className="w-[500px] p-4" align="start" forceMount sideOffset={5}>
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-2">
               <Label>{t('trade-table.comment')}</Label>
+              {isUpdating && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="animate-spin rounded-full h-3 w-3 border-2 border-primary border-t-transparent" />
+                  Saving...
+                </div>
+              )}
+              {showSuccess && !isUpdating && (
+                <div className="flex items-center gap-2 text-sm text-green-600 animate-in fade-in zoom-in duration-300">
+                  <svg
+                    className="h-3 w-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  Saved
+                </div>
+              )}
             </div>
             <div className="space-y-2">
-              <div className="relative">
-                <textarea
-                  ref={inputRef}
-                  placeholder={t('trade-table.addComment')}
-                  value={localComment}
-                  onChange={(e) => setLocalComment(e.target.value)}
-                  className={cn(
-                    "w-full px-3 py-2 text-sm bg-transparent border rounded min-h-[100px]",
-                    "focus:outline-none focus:ring-2 focus:ring-primary resize-none transition-all duration-200",
-                    showSuccess && "border-green-500 ring-2 ring-green-500/20",
-                    isUpdating && "border-primary/50"
-                  )}
+              <div className="h-[300px]">
+                <NoteEditor
+                  initialContent={localComment}
+                  onChange={(content) => setLocalComment(content)}
+                  height="300px"
+                  width="100%"
                 />
-                {isUpdating && (
-                  <div className="absolute right-2 top-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent" />
-                  </div>
-                )}
-                {showSuccess && !isUpdating && (
-                  <div className="absolute right-2 top-2 text-green-500 animate-in fade-in zoom-in duration-300">
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </div>
-                )}
               </div>
             </div>
             <div className="flex justify-between">

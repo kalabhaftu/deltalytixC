@@ -27,6 +27,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { LinkPopup } from "./link-popup"
+import { ImagePopup } from "./image-popup"
 
 interface NoteEditorProps {
   initialContent?: string
@@ -47,6 +49,9 @@ export function NoteEditor({
   const [isMounted, setIsMounted] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [linkPopupOpen, setLinkPopupOpen] = useState(false)
+  const [imagePopupOpen, setImagePopupOpen] = useState(false)
+  const [linkData, setLinkData] = useState({ url: '', text: '' })
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
 
   const debouncedOnChange = useCallback((content: string) => {
@@ -96,6 +101,55 @@ export function NoteEditor({
     }
   }, [editor, initialContent])
 
+  // Add global Ctrl+V support for pasting images
+  useEffect(() => {
+    if (!editor) return
+
+    const handleGlobalPaste = async (e: KeyboardEvent) => {
+      // Only handle Ctrl+V (or Cmd+V on Mac) when editor is focused
+      if (!(e.ctrlKey || e.metaKey) || e.key !== 'v') return
+      
+      // Check if the editor is focused
+      if (!editor.isFocused) return
+
+      try {
+        // Get clipboard contents
+        const clipboardItems = await navigator.clipboard.read()
+        
+        for (const clipboardItem of clipboardItems) {
+          for (const type of clipboardItem.types) {
+            if (type.startsWith('image/')) {
+              e.preventDefault() // Prevent default paste behavior
+              
+              const blob = await clipboardItem.getType(type)
+              const file = new File([blob], `pasted-image-${Date.now()}.png`, { type })
+              
+              // Create temporary URL for immediate display
+              const tempUrl = URL.createObjectURL(file)
+              
+              // Insert image immediately
+              editor.chain().focus().setImage({ src: tempUrl, alt: 'Pasted image' }).run()
+              
+              // TODO: Upload to storage in background and update URL
+              // For now, the image will be embedded as blob URL
+              return
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Clipboard paste failed:', error)
+        // Don't show error toast for failed paste attempts
+      }
+    }
+
+    // Add event listener
+    document.addEventListener('keydown', handleGlobalPaste)
+    
+    return () => {
+      document.removeEventListener('keydown', handleGlobalPaste)
+    }
+  }, [editor])
+
   // Load content from localStorage on mount if storageKey is provided
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -117,28 +171,41 @@ export function NoteEditor({
     if (!editor) return
 
     const previousUrl = editor.getAttributes("link").href
-    const url = window.prompt("URL", previousUrl)
+    const selectedText = editor.view.state.doc.textBetween(
+      editor.view.state.selection.from,
+      editor.view.state.selection.to
+    )
+    
+    setLinkData({ url: previousUrl || '', text: selectedText || '' })
+    setLinkPopupOpen(true)
+  }, [editor])
 
-    // cancelled
-    if (url === null) return
+  const handleLinkConfirm = useCallback((url: string, text?: string) => {
+    if (!editor) return
 
-    // empty
-    if (url === "") {
+    if (!url) {
+      // Remove link if URL is empty
       editor.chain().focus().extendMarkRange("link").unsetLink().run()
       return
     }
 
-    // update link
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run()
+    // If there's text and no selection, insert the text with link
+    if (text && editor.view.state.selection.empty) {
+      editor.chain().focus().insertContent(`<a href="${url}">${text}</a>`).run()
+    } else {
+      // Update existing selection or link
+      editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run()
+    }
   }, [editor])
 
   const addImage = useCallback(() => {
     if (!editor) return
+    setImagePopupOpen(true)
+  }, [editor])
 
-    const url = window.prompt("Image URL")
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run()
-    }
+  const handleImageConfirm = useCallback((imageUrl: string, alt?: string) => {
+    if (!editor) return
+    editor.chain().focus().setImage({ src: imageUrl, alt: alt || 'Image' }).run()
   }, [editor])
 
 
@@ -169,6 +236,7 @@ export function NoteEditor({
                 <Button
                   variant="ghost"
                   size="icon"
+                  type="button"
                   onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
                   className={cn("h-8 w-8", editor.isActive("heading", { level: 1 }) && "bg-muted")}
                 >
@@ -183,6 +251,7 @@ export function NoteEditor({
                 <Button
                   variant="ghost"
                   size="icon"
+                  type="button"
                   onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
                   className={cn("h-8 w-8", editor.isActive("heading", { level: 2 }) && "bg-muted")}
                 >
@@ -197,6 +266,7 @@ export function NoteEditor({
                 <Button
                   variant="ghost"
                   size="icon"
+                  type="button"
                   onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
                   className={cn("h-8 w-8", editor.isActive("heading", { level: 3 }) && "bg-muted")}
                 >
@@ -211,6 +281,7 @@ export function NoteEditor({
                 <Button
                   variant="ghost"
                   size="icon"
+                  type="button"
                   onClick={() => editor.chain().focus().toggleBold().run()}
                   className={cn("h-8 w-8", editor.isActive("bold") && "bg-muted")}
                 >
@@ -225,6 +296,7 @@ export function NoteEditor({
                 <Button
                   variant="ghost"
                   size="icon"
+                  type="button"
                   onClick={() => editor.chain().focus().toggleItalic().run()}
                   className={cn("h-8 w-8", editor.isActive("italic") && "bg-muted")}
                 >
@@ -239,6 +311,7 @@ export function NoteEditor({
                 <Button
                   variant="ghost"
                   size="icon"
+                  type="button"
                   onClick={() => editor.chain().focus().toggleUnderline().run()}
                   className={cn("h-8 w-8", editor.isActive("underline") && "bg-muted")}
                 >
@@ -253,6 +326,7 @@ export function NoteEditor({
                 <Button
                   variant="ghost"
                   size="icon"
+                  type="button"
                   onClick={() => editor.chain().focus().toggleStrike().run()}
                   className={cn("h-8 w-8", editor.isActive("strike") && "bg-muted")}
                 >
@@ -267,6 +341,7 @@ export function NoteEditor({
                 <Button
                   variant="ghost"
                   size="icon"
+                  type="button"
                   onClick={() => editor.chain().focus().toggleCode().run()}
                   className={cn("h-8 w-8", editor.isActive("code") && "bg-muted")}
                 >
@@ -281,6 +356,7 @@ export function NoteEditor({
                 <Button
                   variant="ghost"
                   size="icon"
+                  type="button"
                   onClick={setLink}
                   className={cn("h-8 w-8", editor.isActive("link") && "bg-muted")}
                 >
@@ -292,7 +368,13 @@ export function NoteEditor({
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={addImage} className="h-8 w-8">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  type="button"
+                  onClick={addImage} 
+                  className="h-8 w-8"
+                >
                   <ImageIcon className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -304,6 +386,7 @@ export function NoteEditor({
                 <Button
                   variant="ghost"
                   size="icon"
+                  type="button"
                   onClick={() => editor.chain().focus().toggleBulletList().run()}
                   className={cn("h-8 w-8", editor.isActive("bulletList") && "bg-muted")}
                 >
@@ -318,6 +401,7 @@ export function NoteEditor({
                 <Button
                   variant="ghost"
                   size="icon"
+                  type="button"
                   onClick={() => editor.chain().focus().toggleOrderedList().run()}
                   className={cn("h-8 w-8", editor.isActive("orderedList") && "bg-muted")}
                 >
@@ -332,6 +416,7 @@ export function NoteEditor({
                 <Button
                   variant="ghost"
                   size="icon"
+                  type="button"
                   onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
                   className="h-8 w-8"
                 >
@@ -343,6 +428,22 @@ export function NoteEditor({
           </TooltipProvider>
         </div>
       )}
+
+      {/* Link Popup */}
+      <LinkPopup
+        isOpen={linkPopupOpen}
+        onClose={() => setLinkPopupOpen(false)}
+        onConfirm={handleLinkConfirm}
+        initialUrl={linkData.url}
+        initialText={linkData.text}
+      />
+
+      {/* Image Popup */}
+      <ImagePopup
+        isOpen={imagePopupOpen}
+        onClose={() => setImagePopupOpen(false)}
+        onConfirm={handleImageConfirm}
+      />
     </div>
   )
 }

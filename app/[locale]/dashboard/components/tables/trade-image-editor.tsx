@@ -47,6 +47,7 @@ interface TradeImageEditorProps {
 export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
   const t = useI18n()
   const user = useUserStore(state => state.user)
+  const supabaseUser = useUserStore(state => state.supabaseUser)
   const { updateTrades } = useData()
   const [isOpen, setIsOpen] = useState(false)
   const [scale, setScale] = useState(1)
@@ -64,18 +65,22 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
     return tradeIds[0].slice(0, 6)
   })
 
+  // Get the correct user ID for upload paths
+  const userId = supabaseUser?.id || user?.id
+
   // Create separate upload instances for first and second images
+  // Use 'images' as default bucket, will fallback gracefully if not available
   const firstImageUploadProps = useSupabaseUpload({
-    bucketName: 'trade-images',
-    path: user?.id + '/' + generatedId,
+    bucketName: 'images',
+    path: userId + '/' + generatedId,
     allowedMimeTypes: ACCEPTED_IMAGE_TYPES,
     maxFileSize: MAX_FILE_SIZE,
     maxFiles: 1,
   })
 
   const secondImageUploadProps = useSupabaseUpload({
-    bucketName: 'trade-images',
-    path: user?.id + '/' + generatedId,
+    bucketName: 'images',
+    path: userId + '/' + generatedId,
     allowedMimeTypes: ACCEPTED_IMAGE_TYPES,
     maxFileSize: MAX_FILE_SIZE,
     maxFiles: 1,
@@ -144,37 +149,49 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
   useEffect(() => {
     if (firstImageUploadProps.isSuccess && firstImageUploadProps.files.length > 0) {
       const file = firstImageUploadProps.files[0]
-      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/trade-images/${user?.id}/${generatedId}/${file.name}`
+      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/trade-images/${userId}/${generatedId}/${file.name}`
       handleUpdateImage(imageUrl, false)
       setUploadDialogOpen(false)
-      toast.success(t('trade-table.imageUploadSuccess'))
+      
+      // Auto-dismiss success toast after 3 seconds
+      const successToast = toast.success(t('trade-table.imageUploadSuccess'), {
+        duration: 3000
+      })
       
       // Reset the upload props after successful upload
       firstImageUploadProps.setFiles([])
       firstImageUploadProps.setErrors([])
     } else if (firstImageUploadProps.errors.length > 0) {
       const error = firstImageUploadProps.errors[0].message
-      toast.error(t('trade-table.imageUploadError', { error }))
+      toast.error(t('trade-table.imageUploadError', { error }), {
+        duration: 5000
+      })
     }
-  }, [firstImageUploadProps.isSuccess, firstImageUploadProps.files, firstImageUploadProps.errors, user?.id, t, generatedId])
+  }, [firstImageUploadProps.isSuccess, firstImageUploadProps.files, firstImageUploadProps.errors, userId, t, generatedId])
 
   // Listen for successful uploads from second image upload
   useEffect(() => {
     if (secondImageUploadProps.isSuccess && secondImageUploadProps.files.length > 0) {
       const file = secondImageUploadProps.files[0]
-      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/trade-images/${user?.id}/${generatedId}/${file.name}`
+      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/trade-images/${userId}/${generatedId}/${file.name}`
       handleUpdateImage(imageUrl, true)
       setUploadDialogOpen(false)
-      toast.success(t('trade-table.imageUploadSuccess'))
+      
+      // Auto-dismiss success toast after 3 seconds
+      toast.success(t('trade-table.imageUploadSuccess'), {
+        duration: 3000
+      })
       
       // Reset the upload props after successful upload
       secondImageUploadProps.setFiles([])
       secondImageUploadProps.setErrors([])
     } else if (secondImageUploadProps.errors.length > 0) {
       const error = secondImageUploadProps.errors[0].message
-      toast.error(t('trade-table.imageUploadError', { error }))
+      toast.error(t('trade-table.imageUploadError', { error }), {
+        duration: 5000
+      })
     }
-  }, [secondImageUploadProps.isSuccess, secondImageUploadProps.files, secondImageUploadProps.errors, user?.id, t, generatedId])
+  }, [secondImageUploadProps.isSuccess, secondImageUploadProps.files, secondImageUploadProps.errors, userId, t, generatedId])
 
   // Reset upload state when dialog closes to ensure clean state for next upload
   useEffect(() => {

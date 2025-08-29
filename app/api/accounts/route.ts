@@ -24,49 +24,49 @@ export async function GET(request: NextRequest) {
 
       // Fetch all accounts - made universally accessible to all users
       const accounts = await prisma.account.findMany({
-      select: {
-        id: true,
-        number: true,
-        name: true,
-        propfirm: true,
-        startingBalance: true,
-        createdAt: true,
-        userId: true,
-        groupId: true,
-        group: {
-          select: {
-            id: true,
-            name: true
+        select: {
+          id: true,
+          number: true,
+          name: true,
+          propfirm: true,
+          startingBalance: true,
+          createdAt: true,
+          userId: true,
+          groupId: true,
+          group: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
+          user: {
+            select: {
+              id: true,
+              email: true
+            }
+          },
+          phases: {
+            where: { phaseStatus: 'active' },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: {
+              id: true,
+              phaseType: true,
+              phaseStatus: true,
+              profitTarget: true,
+              phaseStartAt: true,
+              currentEquity: true,
+              currentBalance: true
+            }
+          },
+          _count: {
+            select: {
+              trades: true
+            }
           }
         },
-        user: {
-          select: {
-            id: true,
-            email: true
-          }
-        },
-        phases: {
-          where: { phaseStatus: 'active' },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-          select: {
-            id: true,
-            phaseType: true,
-            phaseStatus: true,
-            profitTarget: true,
-            phaseStartAt: true,
-            currentEquity: true,
-            currentBalance: true
-          }
-        },
-        _count: {
-          select: {
-            trades: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+        orderBy: { createdAt: 'desc' }
+      })
 
     // Transform accounts to include account type and ownership info
     const transformedAccounts = accounts.map(account => ({

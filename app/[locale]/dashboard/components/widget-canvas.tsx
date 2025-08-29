@@ -186,7 +186,9 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 drag-handle cursor-grab active:cursor-grabbing">
             <div className="flex flex-col items-center gap-2 text-muted-foreground">
               <GripVertical className="h-6 w-4" />
-              <p className="text-sm font-medium">{t('widgets.dragToMove')}</p>
+              <p className="text-sm font-medium">
+                {isMobile ? t('widgets.dragToMove') : 'Drag to move • Resize from edges'}
+              </p>
             </div>
           </div>
           <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 z-10">
@@ -367,12 +369,21 @@ function getWidgetDimensions(widget: Widget, isMobile: boolean) {
 type WidgetDimensions = { w: number; h: number; width: string; height: string }
 
 export default function WidgetCanvas() {
-  const { user, isMobile, dashboardLayout:layouts, setDashboardLayout:setLayouts } = useUserStore(state => state)
+  const { user, supabaseUser, isMobile, dashboardLayout:layouts, setDashboardLayout:setLayouts } = useUserStore(state => state)
   const { saveDashboardLayout } = useData()
   const { settings: toolbarSettings } = useToolbarSettingsStore()
   const [isCustomizing, setIsCustomizing] = useState(false)
   const [isUserAction, setIsUserAction] = useState(false)
   const t = useI18n()
+
+  // Debug the user and layouts state (commented out for production)
+  // console.log('🏠 WidgetCanvas render - User:', user)
+  // console.log('🏠 WidgetCanvas render - SupabaseUser:', supabaseUser)
+  // console.log('🏠 WidgetCanvas render - Layouts:', layouts)
+  // console.log('🏠 WidgetCanvas render - User ID:', user?.id)
+  // console.log('🏠 WidgetCanvas render - Supabase User ID:', supabaseUser?.id)
+  // console.log('🏠 WidgetCanvas render - Has layouts:', !!layouts)
+  // console.log('🏠 WidgetCanvas render - Edit mode:', isCustomizing)
 
   // Add this state to track if the layout change is from user interaction
   const activeLayout = useMemo(() => isMobile ? 'mobile' : 'desktop', [isMobile])
@@ -429,6 +440,27 @@ export default function WidgetCanvas() {
           const existingWidget = layouts[activeLayout].find(w => w.i === item.i);
           if (!existingWidget) return null;
 
+          // Calculate the effective size based on grid dimensions
+          const effectiveSize = (() => {
+            // For mobile, we don't change size based on grid dimensions since width is always 12
+            if (isMobile) return existingWidget.size;
+            
+            // Map grid dimensions back to widget sizes
+            const w = item.w;
+            const h = item.h;
+            
+            // Check if dimensions match any predefined sizes
+            if (w === 3 && h === 1) return 'tiny';
+            if (w === 3 && h === 4) return 'small';
+            if (w === 6 && h === 2) return 'small-long';
+            if (w === 6 && h === 4) return 'medium';
+            if (w === 6 && h === 8) return 'large';
+            if (w === 12 && h === 8) return 'extra-large';
+            
+            // If dimensions don't match predefined sizes, keep the original size
+            return existingWidget.size;
+          })();
+
           // Create updated widget with proper type assertions
           const updatedWidget = {
             ...existingWidget,
@@ -436,6 +468,7 @@ export default function WidgetCanvas() {
             y: item.y,
             w: isMobile ? 12 : item.w,
             h: item.h,
+            size: effectiveSize,
           };
 
           return updatedWidget;
@@ -463,6 +496,122 @@ export default function WidgetCanvas() {
       setLayouts(layouts);
     }
   }, [user?.id, isCustomizing, setLayouts, layouts, activeLayout, isMobile, isUserAction, saveDashboardLayout, setIsUserAction]);
+
+  // Add resize start handler to track user interactions
+  const handleResizeStart = useCallback(() => {
+    setIsUserAction(true);
+  }, []);
+
+  // Add resize handler for when widgets are resized
+  const handleResize = useCallback((layout: LayoutItem[], oldItem: LayoutItem, newItem: LayoutItem) => {
+    if (!user?.id || !isCustomizing || !setLayouts || !layouts) return;
+
+    try {
+      // Find the widget being resized
+      const existingWidget = layouts[activeLayout].find(w => w.i === newItem.i);
+      if (!existingWidget) return;
+
+      // Get widget config to check constraints
+      const config = WIDGET_REGISTRY[existingWidget.type as WidgetType];
+      if (!config) return;
+
+      // Ensure minimum dimensions are respected
+      let constrainedW = newItem.w;
+      let constrainedH = newItem.h;
+
+      // Apply minimum constraints based on widget type
+      if (config.minWidth) {
+        constrainedW = Math.max(constrainedW, Math.ceil(config.minWidth / 100));
+      }
+      if (config.minHeight) {
+        constrainedH = Math.max(constrainedH, Math.ceil(config.minHeight / 70));
+      }
+
+      // For certain widget types, enforce specific constraints
+      if (existingWidget.type.includes('Chart') && constrainedH < 2) {
+        constrainedH = 2; // Minimum height for charts
+      }
+
+      // Calculate effective size based on new dimensions
+      let effectiveSize = (() => {
+        if (isMobile) return existingWidget.size;
+        
+        const w = constrainedW;
+        const h = constrainedH;
+        
+        // Map grid dimensions to widget sizes
+        if (w <= 3 && h <= 1) return 'tiny';
+        if (w <= 3 && h <= 4) return 'small';
+        if (w <= 6 && h <= 2) return 'small-long';
+        if (w <= 6 && h <= 4) return 'medium';
+        if (w <= 6 && h <= 8) return 'large';
+        if (w <= 12) return 'extra-large';
+        
+        return existingWidget.size;
+      })();
+
+      // Check if the new size is allowed for this widget type
+      if (!config.allowedSizes.includes(effectiveSize as WidgetSize)) {
+        // If not allowed, find the closest allowed size
+        const allowedSizes = config.allowedSizes;
+        const sizeOrder = ['tiny', 'small', 'small-long', 'medium', 'large', 'extra-large'];
+        const currentIndex = sizeOrder.indexOf(effectiveSize);
+        
+        // Find the closest allowed size
+        let closestSize = allowedSizes[0];
+        let minDistance = Math.abs(sizeOrder.indexOf(allowedSizes[0]) - currentIndex);
+        
+        for (const allowedSize of allowedSizes) {
+          const distance = Math.abs(sizeOrder.indexOf(allowedSize) - currentIndex);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestSize = allowedSize;
+          }
+        }
+        
+        // Use the closest allowed size and its corresponding grid dimensions
+        const closestGrid = sizeToGrid(closestSize as WidgetSize, isMobile);
+        constrainedW = closestGrid.w;
+        constrainedH = closestGrid.h;
+        effectiveSize = closestSize;
+      }
+
+      // Final validation - ensure we have valid dimensions
+      if (constrainedW <= 0 || constrainedH <= 0) {
+        logger.warn('Invalid widget dimensions after resize', { w: constrainedW, h: constrainedH, widget: existingWidget.type });
+        return;
+      }
+
+      // Update the layout with the constrained dimensions
+      const updatedLayouts = {
+        ...layouts,
+        [activeLayout]: layouts[activeLayout].map(widget => 
+          widget.i === newItem.i ? {
+            ...widget,
+            x: newItem.x,
+            y: newItem.y,
+            w: constrainedW,
+            h: constrainedH,
+            size: effectiveSize,
+          } : widget
+        )
+      };
+
+      // Update state
+      setLayouts({
+        ...layouts,
+        desktop: updatedLayouts.desktop,
+        mobile: updatedLayouts.mobile,
+        updatedAt: new Date()
+      });
+
+      // Save to backend
+      saveDashboardLayout(updatedLayouts);
+      
+    } catch (error) {
+      logger.error('Error during resize', error, 'WidgetCanvas');
+    }
+  }, [user?.id, isCustomizing, setLayouts, layouts, activeLayout, isMobile, saveDashboardLayout]);
 
   // Define addWidget with all dependencies
   const addWidget = useCallback(async (type: WidgetType, size: WidgetSize = 'medium') => {
@@ -589,16 +738,43 @@ export default function WidgetCanvas() {
 
   // Define removeWidget with all dependencies
   const removeWidget = useCallback(async (i: string) => {
-    if (!user?.id || !layouts) return
-    const updatedWidgets = layouts[activeLayout].filter(widget => widget.i !== i)
-    const newLayouts = {
-      ...layouts,
-      [activeLayout]: updatedWidgets,
-      updatedAt: new Date()
+    const userId = supabaseUser?.id || user?.id
+    
+    if (!userId) {
+      console.error('❌ Cannot remove widget: Missing user ID')
+      toast.error('Failed to remove widget: User not authenticated')
+      return
     }
-    setLayouts(newLayouts)
-    await saveDashboardLayout(newLayouts)
-  }, [user?.id, layouts, activeLayout, setLayouts, saveDashboardLayout]);
+    
+    if (!layouts) {
+      console.error('❌ Cannot remove widget: Layouts not loaded')
+      toast.error('Failed to remove widget: Dashboard layout not loaded. Please refresh the page.')
+      return
+    }
+    
+        try {
+      const currentWidgets = layouts[activeLayout] || []
+      const updatedWidgets = currentWidgets.filter(widget => widget.i !== i)
+
+      const newLayouts = {
+        ...layouts,
+        [activeLayout]: updatedWidgets,
+        updatedAt: new Date()
+      }
+
+      // Update local state first
+      setLayouts(newLayouts)
+
+      // Save to backend (this will also update the data context)
+      await saveDashboardLayout(newLayouts)
+
+      toast.success('Widget removed successfully')
+      
+    } catch (error) {
+      console.error('❌ Error removing widget:', error)
+      toast.error('Failed to remove widget: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    }
+  }, [user?.id, supabaseUser?.id, layouts, activeLayout, setLayouts, saveDashboardLayout]);
 
   // Define changeWidgetType with all dependencies
   const changeWidgetType = useCallback(async (i: string, newType: WidgetType) => {
@@ -623,15 +799,23 @@ export default function WidgetCanvas() {
     const widget = layouts[activeLayout].find(w => w.i === i)
     if (!widget) return
     
+    // Get widget config to validate the size
+    const config = WIDGET_REGISTRY[widget.type as WidgetType];
+    if (!config || !config.allowedSizes.includes(newSize)) {
+      toast.error('Invalid size for this widget type');
+      return;
+    }
+    
     // Prevent charts from being set to tiny size
     let effectiveSize = newSize
     if (widget.type.includes('Chart') && newSize === 'tiny') {
       effectiveSize = 'medium'
+      toast.info('Charts cannot be set to tiny size, using medium instead');
     }
     
-    const grid = sizeToGrid(effectiveSize)
+    const grid = sizeToGrid(effectiveSize, isMobile)
     const updatedWidgets = layouts[activeLayout].map(widget => 
-      widget.i === i ? { ...widget, size: effectiveSize, ...grid } : widget
+      widget.i === i ? { ...widget, size: effectiveSize, w: grid.w, h: grid.h } : widget
     )
     const newLayouts = {
       ...layouts,
@@ -640,7 +824,10 @@ export default function WidgetCanvas() {
     }
     setLayouts(newLayouts)
     await saveDashboardLayout(newLayouts)
-  }, [user?.id, layouts, activeLayout, setLayouts, saveDashboardLayout]);
+    
+    // Show success message
+    toast.success(`Widget resized to ${effectiveSize}`);
+  }, [user?.id, layouts, activeLayout, isMobile, setLayouts, saveDashboardLayout]);
 
   // Define removeAllWidgets with all dependencies
   const removeAllWidgets = useCallback(async () => {
@@ -828,7 +1015,13 @@ export default function WidgetCanvas() {
         onAddWidget={addWidget}
         isCustomizing={isCustomizing}
         onEditToggle={() => {
-          setIsCustomizing(!isCustomizing)
+          const newValue = !isCustomizing
+          setIsCustomizing(newValue)
+          if (newValue) {
+            toast.success('Edit mode enabled - drag widgets to move, resize handles to resize')
+          } else {
+            toast.success('Edit mode disabled')
+          }
         }}
         currentLayout={layouts || { desktop: [], mobile: [] }}
         onRemoveAll={removeAllWidgets}
@@ -838,15 +1031,91 @@ export default function WidgetCanvas() {
       {layouts && (
         <div className="relative">
           <div id="tooltip-portal" className="fixed inset-0 pointer-events-none z-[9999]" />
+          {/* Add custom CSS for resize handles when customizing */}
+          {isCustomizing && !isMobile && (
+            <style>{`
+              .react-resizable-handle {
+                opacity: 0;
+                transition: opacity 0.2s ease;
+                background-color: hsl(var(--primary));
+                border: 1px solid hsl(var(--primary-foreground));
+                border-radius: 2px;
+              }
+              .react-grid-item:hover .react-resizable-handle,
+              .react-grid-item.react-grid-placeholder .react-resizable-handle {
+                opacity: 0.8;
+              }
+              .react-resizable-handle-se {
+                width: 12px !important;
+                height: 12px !important;
+                bottom: 3px !important;
+                right: 3px !important;
+              }
+              .react-resizable-handle-sw {
+                width: 12px !important;
+                height: 12px !important;
+                bottom: 3px !important;
+                left: 3px !important;
+              }
+              .react-resizable-handle-ne {
+                width: 12px !important;
+                height: 12px !important;
+                top: 3px !important;
+                right: 3px !important;
+              }
+              .react-resizable-handle-nw {
+                width: 12px !important;
+                height: 12px !important;
+                top: 3px !important;
+                left: 3px !important;
+              }
+              .react-resizable-handle-s {
+                height: 6px !important;
+                bottom: 3px !important;
+                left: 50% !important;
+                transform: translateX(-50%);
+                width: 20px !important;
+              }
+              .react-resizable-handle-n {
+                height: 6px !important;
+                top: 3px !important;
+                left: 50% !important;
+                transform: translateX(-50%);
+                width: 20px !important;
+              }
+              .react-resizable-handle-e {
+                width: 6px !important;
+                right: 3px !important;
+                top: 50% !important;
+                transform: translateY(-50%);
+                height: 20px !important;
+              }
+              .react-resizable-handle-w {
+                width: 6px !important;
+                left: 3px !important;
+                top: 50% !important;
+                transform: translateY(-50%);
+                height: 20px !important;
+              }
+              .react-grid-item.react-grid-placeholder {
+                background: hsl(var(--primary) / 0.2) !important;
+                border: 2px dashed hsl(var(--primary)) !important;
+                border-radius: 8px !important;
+              }
+            `}</style>
+          )}
           <ResponsiveGridLayout
             layouts={responsiveLayout}
             breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
             cols={{ lg: 12, md: 12, sm: 12, xs: 12, xxs: 12 }}
             rowHeight={isMobile ? 65 : 70}
             isDraggable={isCustomizing}
-            isResizable={false}
+            isResizable={isCustomizing && !isMobile}
             draggableHandle=".drag-handle"
+            resizeHandles={['se', 'sw', 'ne', 'nw', 's', 'n', 'e', 'w']}
             onDragStart={() => setIsUserAction(true)}
+            onResizeStart={handleResizeStart}
+            onResize={handleResize}
             onLayoutChange={handleLayoutChange}
             margin={[16, 16]}
             containerPadding={[0, 0]}
@@ -863,10 +1132,6 @@ export default function WidgetCanvas() {
                   key={typedWidget.i} 
                   className="h-full" 
                   data-customizing={isCustomizing}
-                  style={{
-                    width: dimensions.width,
-                    height: dimensions.height
-                  }}
                   data-grid-dimensions={`${dimensions.w}x${dimensions.h}`}
                 >
                   <WidgetWrapper

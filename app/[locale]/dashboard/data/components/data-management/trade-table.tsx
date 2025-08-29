@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import { deleteTradesByIdsAction } from '@/server/accounts'
 import { useData } from '@/context/data-provider'
 import EnhancedEditTrade from '@/app/[locale]/dashboard/components/tables/enhanced-edit-trade'
+import TradeDetailView from '@/app/[locale]/dashboard/components/tables/trade-detail-view'
 
 type SortConfig = {
   key: keyof Trade
@@ -31,6 +32,8 @@ export default function TradeTable() {
   const [tradesPerPage, setTradesPerPage] = useState(50) // Increased default from 10 to 50
   const [selectedTradeForEdit, setSelectedTradeForEdit] = useState<Trade | null>(null)
   const [isEnhancedEditOpen, setIsEnhancedEditOpen] = useState(false)
+  const [selectedTradeForView, setSelectedTradeForView] = useState<Trade | null>(null)
+  const [isDetailViewOpen, setIsDetailViewOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showCovered, setShowCovered] = useState(true)
 
@@ -289,17 +292,29 @@ export default function TradeTable() {
               <TableCell>{new Date(trade.closeDate).toLocaleString()}</TableCell>
               <TableCell>{trade.pnl.toFixed(2)}</TableCell>
               <TableCell>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedTradeForEdit(trade)
-                    setIsEnhancedEditOpen(true)
-                  }}
-                >
-                  <Edit className="w-4 h-4 mr-1" />
-                  Edit
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedTradeForView(trade)
+                      setIsDetailViewOpen(true)
+                    }}
+                  >
+                    View
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedTradeForEdit(trade)
+                      setIsEnhancedEditOpen(true)
+                    }}
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
@@ -355,6 +370,16 @@ export default function TradeTable() {
           </Button>
         </div>
       </div>
+      
+      {/* Trade Detail View Dialog */}
+      <TradeDetailView
+        isOpen={isDetailViewOpen}
+        onClose={() => {
+          setIsDetailViewOpen(false)
+          setSelectedTradeForView(null)
+        }}
+        trade={selectedTradeForView}
+      />
       
       {/* Enhanced Edit Trade Dialog */}
       <EnhancedEditTrade

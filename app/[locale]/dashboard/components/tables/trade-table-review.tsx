@@ -70,6 +70,7 @@ import { ColumnConfigDialog } from '@/components/ui/column-config-dialog'
 import { calculateTicksAndPointsForTrades, calculateTicksAndPointsForGroupedTrade } from '@/lib/tick-calculations'
 import { Input } from '@/components/ui/input'
 import EnhancedEditTrade from './enhanced-edit-trade'
+import TradeDetailView from './trade-detail-view'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -275,6 +276,8 @@ export function TradeTableReview() {
 
   const [isEnhancedEditOpen, setIsEnhancedEditOpen] = useState(false)
   const [selectedTradeForEdit, setSelectedTradeForEdit] = useState<Trade | null>(null)
+  const [isDetailViewOpen, setIsDetailViewOpen] = useState(false)
+  const [selectedTradeForView, setSelectedTradeForView] = useState<ExtendedTrade | null>(null)
 
   // Sync local state with store
   React.useEffect(() => {
@@ -525,8 +528,15 @@ export function TradeTableReview() {
                 <PopoverTrigger asChild>
                   <div
                     className="flex items-center justify-center w-fit min-w-6 px-2 h-6 rounded-full bg-primary/10 text-xs font-medium cursor-pointer hover:bg-primary/20 transition-colors"
+                    title={accounts.length === 1 ? accounts[0] : accounts.join(', ')}
                   >
-                    {accounts.length === 1 ? `${accounts[0].slice(0, 2)}${accounts[0].slice(-2)}` : `+${accounts.length}`}
+                    {accounts.length === 1 
+                      ? (accounts[0].length > 6 
+                          ? `${accounts[0].slice(0, 3)}...${accounts[0].slice(-3)}` 
+                          : accounts[0]
+                        )
+                      : `+${accounts.length}`
+                    }
                   </div>
                 </PopoverTrigger>
                 <PopoverContent
@@ -734,6 +744,16 @@ export function TradeTableReview() {
         
         return (
           <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedTradeForView(trade)
+                setIsDetailViewOpen(true)
+              }}
+            >
+              View
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -1002,6 +1022,15 @@ export function TradeTableReview() {
           </Button>
         </div>
       </CardFooter>
+      
+      <TradeDetailView
+        isOpen={isDetailViewOpen}
+        onClose={() => {
+          setIsDetailViewOpen(false)
+          setSelectedTradeForView(null)
+        }}
+        trade={selectedTradeForView}
+      />
       
       <EnhancedEditTrade
         isOpen={isEnhancedEditOpen}

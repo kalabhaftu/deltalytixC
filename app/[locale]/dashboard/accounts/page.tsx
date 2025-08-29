@@ -170,6 +170,15 @@ export default function AccountsPage() {
     }
   }
 
+  const handleEditAccount = (accountId: string, accountType: string) => {
+    if (accountType === 'prop-firm') {
+      router.push(`/dashboard/prop-firm/accounts/${accountId}/settings`)
+    } else {
+      // For live accounts, we could create an edit dialog or navigate to settings
+      router.push(`/dashboard/accounts/${accountId}/edit`)
+    }
+  }
+
   const AccountCard = ({ account }: { account: UnifiedAccount }) => {
     const profitLossColor = (account.profitLoss || 0) >= 0 ? 'text-green-600' : 'text-red-600'
     const statusColor = account.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
@@ -214,6 +223,10 @@ export default function AccountsPage() {
                   <DropdownMenuItem onClick={() => handleViewAccount(account.id, account.accountType)}>
                     <ExternalLink className="h-4 w-4 mr-2" />
                     {t('accounts.view')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleEditAccount(account.id, account.accountType)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    {t('accounts.edit')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
@@ -268,6 +281,28 @@ export default function AccountsPage() {
               )}
             </div>
 
+            {/* Additional Details */}
+            {account.currentBalance && (
+              <div className="space-y-1">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <DollarSign className="h-3 w-3" />
+                  Current Balance
+                </div>
+                <p className="text-sm font-semibold">${account.currentBalance.toLocaleString()}</p>
+              </div>
+            )}
+
+            {/* Risk Management for Prop Firm */}
+            {account.accountType === 'prop-firm' && account.drawdownThreshold && (
+              <div className="space-y-1">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Shield className="h-3 w-3" />
+                  Drawdown Limit
+                </div>
+                <p className="text-sm font-medium">${account.drawdownThreshold.toLocaleString()}</p>
+              </div>
+            )}
+
             {/* Additional Metrics for Prop Firm Accounts */}
             {account.accountType === 'prop-firm' && (
               <div className="space-y-3">
@@ -314,6 +349,15 @@ export default function AccountsPage() {
                 >
                   <ExternalLink className="h-3 w-3 mr-1" />
                   {t('accounts.view')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEditAccount(account.id, account.accountType)}
+                  className="h-8"
+                >
+                  <Edit className="h-3 w-3 mr-1" />
+                  {t('accounts.edit')}
                 </Button>
                 {account.accountType === 'prop-firm' && (
                   <Button

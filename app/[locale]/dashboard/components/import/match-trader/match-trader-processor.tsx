@@ -74,7 +74,8 @@ const MatchTraderProcessor = ({
           commission,
           userId: currentUser.id,
           createdAt: new Date(),
-          comment: reason !== 'User' ? reason : null, // Add close reason as comment if not 'User'
+          comment: null, // Don't set reason as comment - reasons should be displayed separately
+          closeReason: reason || null, // Store close reason in dedicated field
           videoUrl: null,
           tags: [],
           imageBase64: null,

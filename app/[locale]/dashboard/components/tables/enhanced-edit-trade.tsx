@@ -19,6 +19,8 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { Trade } from '@prisma/client'
 import { Edit, Camera, X } from 'lucide-react'
+import { useUserStore } from '@/store/user-store'
+import { NoteEditor } from '@/app/[locale]/dashboard/components/mindset/note-editor'
 
 // Schema for limited editing (only notes, screenshots, links)
 const editTradeSchema = z.object({
@@ -53,13 +55,119 @@ const validateImageFile = (file: File): void => {
   }
 }
 
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.readAsDataURL(file)
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = error => reject(error)
-  })
+// Generate a random 6-character alphanumeric ID
+function generateShortId(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+const uploadImageToSupabase = async (file: File, userId: string, tradeId: string): Promise<string> => {
+  const { createClient } = await import('@/lib/supabase')
+  const supabase = createClient()
+  
+  // Generate a unique filename
+  const fileExtension = file.name.split('.').pop()
+  const fileName = `trades_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExtension}`
+  
+  // Create a robust bucket fallback system
+  const preferredBuckets = ['images', 'trade-images', 'public', 'avatars']
+  let bucketName = 'images'
+  let uploadSuccess = false
+  
+  try {
+    // First try to list buckets to see what's available
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets()
+    
+    if (!listError && buckets) {
+      const availableBuckets = buckets.map(b => b.name)
+      
+      // Try preferred buckets in order
+      for (const preferred of preferredBuckets) {
+        if (availableBuckets.includes(preferred)) {
+          bucketName = preferred
+          break
+        }
+      }
+      
+      // If no preferred buckets exist, use the first available one
+      if (!preferredBuckets.some(b => availableBuckets.includes(b)) && availableBuckets.length > 0) {
+        bucketName = availableBuckets[0]
+      }
+    }
+    
+    // Try uploading to the selected bucket
+    const { error: uploadError, data: uploadData } = await supabase.storage
+      .from(bucketName)
+      .upload(`trades/${userId}/${tradeId}/${fileName}`, file, {
+        cacheControl: '3600',
+        upsert: false,
+      })
+    
+    if (!uploadError && uploadData) {
+      uploadSuccess = true
+    } else if (uploadError) {
+      console.warn(`Upload to ${bucketName} failed:`, uploadError)
+      
+      // If upload failed, try creating the images bucket
+      if (bucketName !== 'images') {
+        const { error: createError } = await supabase.storage.createBucket('images', {
+          public: true,
+          allowedMimeTypes: ['image/*'],
+          fileSizeLimit: 10485760 // 10MB
+        })
+        
+        if (!createError) {
+          bucketName = 'images'
+          const { error: retryError } = await supabase.storage
+            .from(bucketName)
+            .upload(`trades/${userId}/${tradeId}/${fileName}`, file, {
+              cacheControl: '3600',
+              upsert: false,
+            })
+          
+          if (!retryError) {
+            uploadSuccess = true
+          }
+        }
+      }
+      
+      // Final fallback: convert to base64 data URL if all else fails
+      if (!uploadSuccess) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = () => reject(new Error('Failed to convert image to base64'))
+          reader.readAsDataURL(file)
+        })
+      }
+    }
+    
+    if (!uploadSuccess) {
+      throw new Error('All upload methods failed')
+    }
+    
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(`trades/${userId}/${tradeId}/${fileName}`)
+    
+    return urlData.publicUrl
+    
+  } catch (error) {
+    console.error('Upload error:', error)
+    
+    // Ultimate fallback: convert to base64 data URL
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = () => reject(new Error('Failed to convert image to base64'))
+      reader.readAsDataURL(file)
+    })
+  }
 }
 
 export default function EnhancedEditTrade({ 
@@ -71,7 +179,15 @@ export default function EnhancedEditTrade({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null)
   const [additionalLinks, setAdditionalLinks] = useState<string[]>([])
+  const [tradeId] = useState(() => {
+    if (trade?.id?.includes('undefined')) {
+      return generateShortId()
+    }
+    return trade?.id?.slice(0, 6) || generateShortId()
+  })
   const { toast } = useToast()
+  const user = useUserStore(state => state.user)
+  const supabaseUser = useUserStore(state => state.supabaseUser)
 
   const {
     register,
@@ -108,19 +224,53 @@ export default function EnhancedEditTrade({
   }, [trade, isOpen, reset])
 
   const handleImageUpload = async (field: 'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth', file: File) => {
-    try {
-      validateImageFile(file)
-      const base64 = await fileToBase64(file)
-      setValue(field, base64)
-      
-      toast({
-        title: 'Image uploaded',
-        description: 'Screenshot has been successfully uploaded.',
-      })
-    } catch (error) {
+    // Check for both user types - prioritize supabaseUser for auth, fallback to user.id
+    const userId = supabaseUser?.id || user?.id
+    
+    if (!userId) {
       toast({
         title: 'Upload failed',
-        description: error instanceof Error ? error.message : 'Failed to upload image',
+        description: 'User not authenticated. Please sign in again.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      validateImageFile(file)
+      
+      // Create temporary URL for immediate display
+      const tempUrl = URL.createObjectURL(file)
+      setValue(field, tempUrl)
+      
+      // Show immediate success feedback
+      toast({
+        title: 'Image added',
+        description: 'Image has been added. Uploading to storage...',
+      })
+      
+      // Upload to Supabase in background
+      try {
+        const imageUrl = await uploadImageToSupabase(file, userId, tradeId)
+        setValue(field, imageUrl) // Update with permanent URL
+        
+        toast({
+          title: 'Upload complete',
+          description: 'Image has been saved to cloud storage.',
+        })
+        
+        // Clean up temp URL
+        URL.revokeObjectURL(tempUrl)
+      } catch (uploadError) {
+        console.warn('Background upload failed, keeping local version:', uploadError)
+        // Keep the temp URL - image will still work locally
+      }
+      
+    } catch (error) {
+      console.error('Image processing error:', error)
+      toast({
+        title: 'Upload failed',
+        description: error instanceof Error ? error.message : 'Failed to process image',
         variant: 'destructive',
       })
     }
@@ -227,6 +377,15 @@ export default function EnhancedEditTrade({
                 <Label className="text-sm text-muted-foreground">Quantity</Label>
                 <p className="font-medium">{trade.quantity}</p>
               </div>
+              {/* Close Reason (if available) */}
+              {(trade as any).closeReason && (
+                <div className="col-span-2">
+                  <Label className="text-sm text-muted-foreground">Close Reason</Label>
+                  <p className="font-medium capitalize">
+                    {(trade as any).closeReason.replace(/[_-]/g, ' ')}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -239,14 +398,16 @@ export default function EnhancedEditTrade({
               <CardContent>
                 <div className="space-y-2">
                   <Label htmlFor="comment">Analysis & Reflections</Label>
-                  <Textarea
-                    id="comment"
-                    {...register('comment')}
-                    placeholder="Add your trade analysis, what went well, what could be improved, market conditions, confluence factors, lessons learned..."
-                    className="min-h-[120px]"
-                  />
+                  <div className="h-[200px]">
+                    <NoteEditor
+                      initialContent={watchedValues.comment || ''}
+                      onChange={(content) => setValue('comment', content)}
+                      height="200px"
+                      width="100%"
+                    />
+                  </div>
                   <p className="text-sm text-muted-foreground">
-                    Document your analysis, market conditions, and lessons learned from this trade.
+                    Document your analysis, market conditions, and lessons learned from this trade using the rich text editor.
                   </p>
                 </div>
               </CardContent>

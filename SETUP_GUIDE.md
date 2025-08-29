@@ -2,27 +2,51 @@
 
 ## Quick Start for Local Development
 
-### 1. Environment Variables
+### 1. Environment Variables (CRITICAL FOR FIXING "Failed to fetch accounts")
 
 Create a `.env.local` file in the root directory with:
 
 ```env
-# Required - Authentication
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
-DATABASE_URL=your_postgresql_database_url
+# ========================================
+# REQUIRED ENVIRONMENT VARIABLES
+# ========================================
 
-# Required - OpenAI API (for AI features)
-OPENAI_API_KEY=your_openai_api_key_here
+# Database Configuration (Required for API endpoints)
+# Without these, you'll get "Failed to fetch accounts" error
+DATABASE_URL="postgresql://username:password@localhost:5432/deltalytix"
+DIRECT_URL="postgresql://username:password@localhost:5432/deltalytix"
 
-# Optional - Analytics
-NEXT_PUBLIC_POSTHOG_KEY=your_posthog_key
-NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
+# Supabase Configuration (Required for authentication)
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-supabase-anon-key"
 
-# Development Settings
-NODE_ENV=development
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
+# Authentication (Required for NextAuth)
+NEXTAUTH_SECRET="your-nextauth-secret-here"
+NEXTAUTH_URL="http://localhost:3000"
+
+# Development Environment
+NODE_ENV="development"
+
+# ========================================
+# OPTIONAL ENVIRONMENT VARIABLES
+# ========================================
+
+# AI Features (Optional)
+OPENAI_API_KEY="your-openai-api-key"
+
+# Email Service (Optional)
+RESEND_API_KEY="your-resend-api-key"
+
+# Support Configuration (Optional)
+SUPPORT_EMAIL="support@example.com"
+SUPPORT_TEAM_EMAIL="support-team@example.com"
 ```
+
+**Important Notes:**
+- The `DATABASE_URL` and `DIRECT_URL` are the most critical variables
+- Without proper database configuration, all API endpoints will fail
+- You can use any PostgreSQL database (local, Supabase, Railway, etc.)
+- Generate `NEXTAUTH_SECRET` with: `openssl rand -base64 32`
 
 ### 2. Install Dependencies
 
@@ -82,6 +106,48 @@ npm run dev
 - **TradingView Integration**: Live market data and charts
 
 ## Troubleshooting
+
+### 🚨 "Failed to fetch accounts" Error (Most Common Issue)
+
+This error occurs when the API endpoints can't connect to the database. Here's how to fix it:
+
+**Step 1: Check Environment Variables**
+```bash
+# Verify .env.local exists in project root
+ls -la .env.local
+
+# If missing, create .env.local with the variables shown above
+```
+
+**Step 2: Verify Database Connection**
+```bash
+# Test database connection
+npx prisma db pull
+
+# If this fails, your DATABASE_URL is incorrect
+```
+
+**Step 3: Generate Prisma Client**
+```bash
+# Generate Prisma client
+npx prisma generate
+
+# Push schema to database
+npx prisma db push
+```
+
+**Step 4: Restart Development Server**
+```bash
+# Stop the server (Ctrl+C) and restart
+npm run dev
+```
+
+**Common Causes:**
+- Missing `.env.local` file (most common)
+- Incorrect `DATABASE_URL` format
+- Database server not running
+- Network connectivity issues
+- Missing Prisma client generation
 
 ### If database migration fails:
 1. Check your DATABASE_URL environment variable
