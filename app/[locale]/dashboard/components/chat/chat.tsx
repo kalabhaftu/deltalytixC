@@ -234,7 +234,7 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
     // Update messages when storedMessages changes
     useEffect(() => {
         setMessages(storedMessages)
-    }, [storedMessages])
+    }, [storedMessages, setStoredMessages])
 
     const stop = useCallback(() => {
         setStatus('ready')

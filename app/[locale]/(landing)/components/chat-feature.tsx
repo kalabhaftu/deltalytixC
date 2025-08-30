@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { User, Bot, Target, AlertTriangle, CheckCircle } from "lucide-react"
 import { useI18n } from "@/locales/client"
 
@@ -31,7 +31,7 @@ export default function TradingChatAssistant({ className = "", maxMessages = 3 }
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const CONVERSATION_LOOP = [
+  const CONVERSATION_LOOP = useMemo(() => [
     {
       user: t('landing.features.chat-feature.conversation.analyze'),
       assistant: t('landing.features.chat-feature.responses.analyze'),
@@ -102,7 +102,7 @@ export default function TradingChatAssistant({ className = "", maxMessages = 3 }
         insight: t('landing.features.chat-feature.analysis.positionSizing.insight'),
       },
     },
-  ]
+  ], [t])
 
   const addMessage = useCallback(
     (message: Message) => {

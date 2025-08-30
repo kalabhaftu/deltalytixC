@@ -771,7 +771,7 @@ export function TradeTableReview() {
       enableSorting: false,
       enableHiding: false,
     }
-  ], [t, timezone, tags, expanded, tickDetails, showPoints])
+  ], [t, timezone])
 
   const table = useReactTable({
     data: groupedTrades,

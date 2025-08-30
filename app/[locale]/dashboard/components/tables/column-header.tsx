@@ -56,7 +56,7 @@ export function DataTableColumnHeader<TData, TValue>({
     const filter = column.getFilterValue() as { min?: number; max?: number } | undefined
     setMinValue(filter?.min?.toString() || '')
     setMaxValue(filter?.max?.toString() || '')
-  }, [column.getFilterValue()])
+  }, [column.getFilterValue(), column])
 
   const handleHideColumn = () => {
     if (tableId) {

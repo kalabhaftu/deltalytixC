@@ -184,7 +184,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
         setCalculatedDuration('')
       }
     }
-  }, [watchedValues.entryDate, watchedValues.entryTime, watchedValues.closeDate, watchedValues.closeTime])
+  }, [watchedValues.entryDate, watchedValues.entryTime, watchedValues.closeDate, watchedValues.closeTime, watchedValues])
 
   // Get unified accounts for dropdown
   const [unifiedAccounts, setUnifiedAccounts] = useState<Array<{id: string, number: string, displayName: string, accountType: string}>>([])

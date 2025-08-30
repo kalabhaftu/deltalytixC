@@ -241,7 +241,7 @@ export function ImagePopup({ isOpen, onClose, onConfirm }: ImagePopupProps) {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFileUpload(e.dataTransfer.files[0])
     }
-  }, [])
+  }, [handleFileUpload])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {

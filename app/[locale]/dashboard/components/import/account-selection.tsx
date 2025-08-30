@@ -94,7 +94,7 @@ export default function AccountSelection({
 
   useEffect(() => {
     fetchAccounts()
-  }, [])
+  }, [fetchAccounts])
 
   if (isLoading) {
     return (

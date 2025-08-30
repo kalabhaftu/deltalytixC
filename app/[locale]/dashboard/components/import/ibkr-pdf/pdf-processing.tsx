@@ -211,7 +211,7 @@ export default function PdfProcessing({
     if (orders.length > 0 && instruments.length > 0 && !isProcessing) {
       submitTrades({ orders, instruments });
     }
-  }, [orders, instruments, isProcessing]);
+  }, [orders, instruments, isProcessing, submitTrades]);
 
   // Helper function to get orders for a trade using API trade data
   const getTradeOrders = (trade: Trade) => {

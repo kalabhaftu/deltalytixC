@@ -644,16 +644,11 @@ export default function EquityChart({ size = 'medium' }: EquityChartProps) {
   const [hoveredData, setHoveredData] = React.useState<ChartDataPoint | null>(null)
   
   // Throttled hover handler for better performance
-  const throttledSetHoveredData = React.useCallback(
-    React.useMemo(() => {
-      let timeoutId: NodeJS.Timeout | null = null
-      return (data: ChartDataPoint | null) => {
-        if (timeoutId) clearTimeout(timeoutId)
-        timeoutId = setTimeout(() => setHoveredData(data), 16) // ~60fps
-      }
-    }, []),
-    []
-  )
+  const throttledSetHoveredData = React.useCallback((data: ChartDataPoint | null) => {
+    let timeoutId: NodeJS.Timeout | null = null
+    if (timeoutId) clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => setHoveredData(data), 16) // ~60fps
+  }, [])
   const yAxisRef = React.useRef<any>(null)
   const t = useI18n()
 

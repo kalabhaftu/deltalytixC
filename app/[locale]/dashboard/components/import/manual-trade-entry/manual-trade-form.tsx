@@ -180,7 +180,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
         setCalculatedDuration('')
       }
     }
-  }, [watchedValues.entryDate, watchedValues.entryTime, watchedValues.closeDate, watchedValues.closeTime])
+  }, [watchedValues.entryDate, watchedValues.entryTime, watchedValues.closeDate, watchedValues.closeTime, watchedValues])
 
   // Get unified accounts for dropdown
   const [unifiedAccounts, setUnifiedAccounts] = useState<Array<{id: string, number: string, displayName: string, accountType: string}>>([])

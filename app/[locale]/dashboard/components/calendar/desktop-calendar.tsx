@@ -337,7 +337,7 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
     //   }
     // })
     return [] // Temporary return empty array until nextPaymentDate field is added
-  }, [accounts, timezone])
+  }, [])
 
   const calculateWeeklyTotal = React.useCallback((index: number, calendarDays: Date[], calendarData: CalendarData) => {
     const startOfWeekIndex = index - 6

@@ -152,7 +152,7 @@ export function AccountGroupBoard() {
       // @ts-expect-error Overload mismatch between local toast and sonner types
       notify({ title: t("common.error"), description: t("filters.errorMovingAccount", { account: account.number }), variant: "destructive" })
     }
-  }, [groups, user?.id, saveGroup, moveAccountToGroup, t, existingAccounts])
+  }, [groups, user?.id, saveGroup, moveAccountToGroup, saveAccount, t, existingAccounts])
 
   const handleDeleteGroup = useCallback(async (groupId: string, groupName: string) => {
     try {

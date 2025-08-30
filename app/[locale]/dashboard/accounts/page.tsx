@@ -150,7 +150,7 @@ export default function AccountsPage() {
       fetchAccounts()
       fetchPropFirmAccounts()
     }
-  }, [user])
+  }, [user, fetchAccounts, fetchPropFirmAccounts])
 
   const handleAccountCreated = () => {
     fetchAccounts()

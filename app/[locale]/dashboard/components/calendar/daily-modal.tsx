@@ -57,7 +57,7 @@ export function CalendarModal({
     if (selectedDate) {
       setFormattedDate(format(selectedDate, 'MMMM d, yyyy', { locale: dateLocale }))
     }
-  }, [selectedDate])
+  }, [selectedDate, dateLocale])
 
   if (!selectedDate) return null;
 

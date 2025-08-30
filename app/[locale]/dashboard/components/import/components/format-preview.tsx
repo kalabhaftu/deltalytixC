@@ -119,7 +119,7 @@ export function FormatPreview({
         scrollToBottom()
       }, 100)
     }
-  }, [object])
+  }, [object, processedTrades, setProcessedTrades])
 
   const columns = useMemo<ColumnDef<Partial<Trade>>[]>(() => [
     {
