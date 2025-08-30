@@ -170,6 +170,7 @@ model User {
   // Preferences
   timezone       String           @default("UTC")
   theme          String           @default("system")
+  aiProvider     String           @default("zai")
 
   @@index([email])
   @@schema("public")

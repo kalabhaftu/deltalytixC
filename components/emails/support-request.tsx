@@ -10,9 +10,10 @@ import {
   Section,
 } from '@react-email/components';
 import * as React from 'react';
+import { UIMessage } from 'ai';
 
 interface SupportRequestEmailProps {
-  messages: { role: string; content: string }[];
+  messages: UIMessage[];
   contactInfo: {
     name: string;
     email: string;
@@ -37,7 +38,9 @@ export const SupportRequestEmail: React.FC<SupportRequestEmailProps> = ({ messag
           <Text style={sectionTitle}>Conversation History:</Text>
           {messages.map((message, index) => (
             <Text key={index} style={message.role === 'user' ? userMessage : assistantMessage}>
-              <strong>{message.role === 'user' ? 'User' : 'Assistant'}:</strong> {message.content}
+              <strong>{message.role === 'user' ? 'User' : 'Assistant'}:</strong> {message.parts?.map((part, partIndex) => 
+                part.type === 'text' ? part.text : null
+              ).join('')}
             </Text>
           ))}
         </Section>

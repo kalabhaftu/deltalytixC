@@ -151,6 +151,7 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
         phaseId: null,
         accountId: null,
         strategy: null,
+        closeReason: null,
       }
       
       newTrades.push(completeTrade);

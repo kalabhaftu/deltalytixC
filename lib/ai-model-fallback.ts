@@ -1,78 +1,66 @@
 /**
  * AI Model Fallback System
  * Automatically switches to cheaper/smaller models when rate limits are hit
+ * Updated to support multiple AI providers
  */
 
 import { aiUsageMonitor } from './ai-usage-monitor'
+import { 
+  AIProvider, 
+  ModelConfig, 
+  getProviderModels, 
+  getUserAIProvider,
+  createAIStream,
+  AIStreamOptions 
+} from './ai-providers'
 
-export interface ModelConfig {
-  name: string
-  displayName: string
-  maxTokens?: number
-  temperature?: number
-  costLevel: number // 1 = most expensive, 5 = cheapest
-  capabilities: string[]
+// Legacy ModelConfig export for backward compatibility
+export type { ModelConfig }
+
+// Get all models from all providers in fallback order
+function getAllModelsInFallbackOrder(preferredProvider?: AIProvider): ModelConfig[] {
+  const allModels: ModelConfig[] = []
+  
+  // If we have a preferred provider, start with its models
+  if (preferredProvider) {
+    allModels.push(...getProviderModels(preferredProvider))
+  }
+  
+  // Add models from other providers
+  const providers: AIProvider[] = ['zai', 'openai']
+  
+  for (const provider of providers) {
+    if (provider !== preferredProvider) {
+      allModels.push(...getProviderModels(provider))
+    }
+  }
+  
+  // Sort by cost level (cheapest first)
+  return allModels.sort((a, b) => a.costLevel - b.costLevel)
 }
 
-// Model hierarchy from most capable/expensive to least capable/cheapest
-// Starting with cheaper models for free tier users
-export const MODEL_HIERARCHY: ModelConfig[] = [
-  {
-    name: 'gpt-4o-mini',
-    displayName: 'GPT-4o Mini',
-    maxTokens: 16384,
-    temperature: 0,
-    costLevel: 1,
-    capabilities: ['reasoning', 'analysis', 'chat', 'fast-response']
-  },
-  {
-    name: 'gpt-3.5-turbo',
-    displayName: 'GPT-3.5 Turbo',
-    maxTokens: 4096,
-    temperature: 0,
-    costLevel: 2,
-    capabilities: ['chat', 'basic-analysis', 'fast-response']
-  },
-  {
-    name: 'gpt-3.5-turbo-0125',
-    displayName: 'GPT-3.5 Turbo (0125)',
-    maxTokens: 4096,
-    temperature: 0,
-    costLevel: 3,
-    capabilities: ['chat', 'basic-analysis', 'fast-response']
-  },
-  {
-    name: 'gpt-4o',
-    displayName: 'GPT-4o',
-    maxTokens: 4096,
-    temperature: 0,
-    costLevel: 4,
-    capabilities: ['complex-reasoning', 'code-generation', 'analysis', 'chat']
-  },
-  {
-    name: 'gpt-4-turbo',
-    displayName: 'GPT-4 Turbo',
-    maxTokens: 4096,
-    temperature: 0,
-    costLevel: 5,
-    capabilities: ['reasoning', 'analysis', 'chat']
-  }
-]
+// Legacy export for backward compatibility
+export const MODEL_HIERARCHY = getAllModelsInFallbackOrder('zai')
 
 // Track failed models to avoid immediate retry
 const failedModels = new Map<string, number>() // model -> timestamp of failure
 const FAILURE_COOLDOWN = 60000 // 1 minute cooldown
 
-export function getNextAvailableModel(currentModel?: string, requiredCapabilities: string[] = []): ModelConfig {
+export function getNextAvailableModel(
+  currentModel?: string, 
+  requiredCapabilities: string[] = [],
+  preferredProvider?: AIProvider
+): ModelConfig {
+  const hierarchy = getAllModelsInFallbackOrder(preferredProvider)
   const currentIndex = currentModel 
-    ? MODEL_HIERARCHY.findIndex(m => m.name === currentModel)
+    ? hierarchy.findIndex(m => m.name === currentModel)
     : -1
 
   // Start from the next model in hierarchy (or first if no current model)
   const startIndex = currentIndex >= 0 ? currentIndex + 1 : 0
 
-  for (let i = startIndex; i < MODEL_HIERARCHY.length; i++) {
-    const model = MODEL_HIERARCHY[i]
+  for (let i = startIndex; i < hierarchy.length; i++) {
+    const model = hierarchy[i]
     
     // Check if model is in cooldown
     const failureTime = failedModels.get(model.name)
@@ -94,7 +82,7 @@ export function getNextAvailableModel(currentModel?: string, requiredCapabilitie
   }
 
   // If no suitable model found, return the cheapest one
-  return MODEL_HIERARCHY[MODEL_HIERARCHY.length - 1]
+  return hierarchy[hierarchy.length - 1]
 }
 
 export function markModelAsFailed(modelName: string) {
@@ -164,16 +152,28 @@ export interface ModelFallbackResult {
   isLastResort: boolean
 }
 
+// Enhanced executeWithModelFallback that supports provider preferences
 export async function executeWithModelFallback<T>(
   operation: (model: ModelConfig) => Promise<T>,
   requiredCapabilities: string[] = [],
-  maxAttempts: number = 3
+  maxAttempts: number = 3,
+  userId?: string
 ): Promise<T> {
   const errors: string[] = []
   let currentModel: string | undefined
   
+  // Get user's preferred provider if userId is provided
+  let preferredProvider: AIProvider | undefined
+  if (userId) {
+    try {
+      preferredProvider = await getUserAIProvider(userId)
+    } catch (error) {
+      console.warn('Failed to get user AI provider preference, using default')
+    }
+  }
+  
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const model = getNextAvailableModel(currentModel, requiredCapabilities)
+    const model = getNextAvailableModel(currentModel, requiredCapabilities, preferredProvider)
     currentModel = model.name
     
     try {
@@ -225,4 +225,74 @@ export async function executeWithModelFallback<T>(
   
   // This should never be reached, but just in case
   throw new Error(`All ${maxAttempts} model attempts failed: ${errors.join('; ')}`)
+}
+
+// New function that uses the AI provider abstraction
+export async function executeWithProviderFallback<T>(
+  options: Omit<AIStreamOptions, 'provider'>,
+  userId?: string,
+  maxAttempts: number = 3
+): Promise<T> {
+  // Get user's preferred provider
+  let preferredProvider: AIProvider = 'zai' // Default to zAI
+  if (userId) {
+    try {
+      preferredProvider = await getUserAIProvider(userId)
+    } catch (error) {
+      console.warn('Failed to get user AI provider preference, using default')
+    }
+  }
+
+  const errors: string[] = []
+  let currentProvider = preferredProvider
+  let currentModel: string | undefined
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      // Check if we want streaming or non-streaming response
+      if (options.toolCallStreaming === false) {
+        // Use generateAIText for non-streaming responses
+        const { generateAIText } = await import('@/lib/ai-providers')
+        const result = await generateAIText({
+          ...options,
+          provider: currentProvider,
+          model: currentModel
+        })
+        return result as T
+      } else {
+        // Use createAIStream for streaming responses
+        const result = await createAIStream({
+          ...options,
+          provider: currentProvider,
+          model: currentModel
+        })
+        return result as T
+      }
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Unknown error'
+      errors.push(`${currentProvider} (${currentModel || 'auto'}): ${errorMessage}`)
+      
+      console.warn(`Provider ${currentProvider} failed (attempt ${attempt}/${maxAttempts}):`, errorMessage)
+      
+      // If rate limited or service error, try different provider
+      if (shouldRetryWithDifferentModel(error) && attempt < maxAttempts) {
+        // Switch to the other provider
+        currentProvider = currentProvider === 'openai' ? 'zai' : 'openai'
+        currentModel = undefined // Reset model selection
+        
+        const delay = getRetryDelayFromError(error)
+        console.log(`Switching to ${currentProvider} provider after ${delay}ms delay...`)
+        await new Promise(resolve => setTimeout(resolve, Math.min(delay, 5000)))
+        continue
+      }
+      
+      // If this is the last attempt, throw
+      if (attempt === maxAttempts) {
+        console.error('All provider fallback attempts failed:', errors)
+        throw error
+      }
+    }
+  }
+  
+  throw new Error(`All ${maxAttempts} provider attempts failed: ${errors.join('; ')}`)
 }

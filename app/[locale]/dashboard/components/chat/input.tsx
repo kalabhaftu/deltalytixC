@@ -10,14 +10,14 @@ import { useI18n } from "@/locales/client"
 export function ChatInput({
   onSend,
   status,
-  input,
+  input = "",
   handleInputChange,
   stop,
 }: {
   onSend: (e?: { preventDefault?: () => void }) => void
   status: "streaming" | "submitted" | "ready" | "error"
-  input: string
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  input?: string
+  handleInputChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
   stop: () => void
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -30,12 +30,19 @@ export function ChatInput({
     }
   }
 
+  // Fallback onChange handler if handleInputChange is not provided
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (handleInputChange) {
+      handleInputChange(e)
+    }
+  }
+
   return (
     <div className="p-4 border-t bg-background/95 backdrop-blur-sm">
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          if (input.trim()) {
+          if (input?.trim()) {
             onSend(e)
           }
         }}
@@ -69,13 +76,13 @@ export function ChatInput({
           </PopoverContent>
         </Popover>
         <Input
-          value={input}
-          onChange={handleInputChange}
+          value={input || ""}
+          onChange={handleChange}
           placeholder={status === 'streaming' ? t('chat.aiThinking') : t('chat.writeMessage')}
           className="flex-grow bg-background/50"
           disabled={status === "streaming"}
         />
-        <Button type="submit" size="icon" className="shrink-0" disabled={status === "streaming" || !input.trim()}>
+        <Button type="submit" size="icon" className="shrink-0" disabled={status === "streaming" || !input?.trim()}>
           <Send className={cn("h-4 w-4", status === "streaming" && "animate-pulse")} />
         </Button>
         {status === "streaming" && (

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = streamObject({
-      model: openai("gpt-4o-mini-2024-07-18"),
+      model: openai("gpt-4o-mini"),
       schema: mappingSchema,
       prompt:
         `The following columns are the headings from a CSV import file for a trading system. ` +

@@ -39,19 +39,20 @@ interface TradeSummary {
 
 export const getTradesSummary = tool({
     description: 'Get trades between two dates',
-    parameters: z.object({
+    inputSchema: z.object({
       startDate: z.string().describe('Date string in format 2025-01-14T14:33:01.000Z'),
       endDate: z.string().describe('Date string in format 2025-01-14T14:33:01.000Z')
     }),
-    execute: async ({ startDate, endDate }: { startDate: string, endDate: string }) => {
-      console.log(`[getTradeSummary] startDate: ${startDate}, endDate: ${endDate}`)
-      const trades = await getTradesAction();
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const filteredTrades = trades.filter(trade => {
-        const tradeDate = new Date(trade.entryDate);
-        return tradeDate >= start && tradeDate <= end;
-      });
-      return generateTradeSummary(filteredTrades);
-    },
   })
+
+export async function executeGetTradesSummary({ startDate, endDate }: { startDate: string, endDate: string }) {
+  console.log(`[getTradeSummary] startDate: ${startDate}, endDate: ${endDate}`)
+  const trades = await getTradesAction();
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const filteredTrades = trades.filter(trade => {
+    const tradeDate = new Date(trade.entryDate);
+    return tradeDate >= start && tradeDate <= end;
+  });
+  return generateTradeSummary(filteredTrades);
+}

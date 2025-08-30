@@ -52,12 +52,6 @@ const navigationItems: NavigationItem[] = [
     translationKey: 'dashboard.tabs.accounts'
   },
   {
-    id: 'prop-firm',
-    label: 'Prop Firm',
-    icon: Shield,
-    translationKey: 'propFirm.title'
-  },
-  {
     id: 'analysis',
     label: 'Analysis',
     icon: BarChart3,

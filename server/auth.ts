@@ -25,10 +25,22 @@ export async function getWebsiteURL() {
 
 export async function createClient() {
   const cookieStore = await cookies()
+  
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  // Check for placeholder values
+  if (!supabaseUrl || !supabaseKey || 
+      supabaseUrl.includes('[YOUR_PROJECT_REF]') || 
+      supabaseKey.includes('your-anon-key') ||
+      supabaseUrl === 'https://[YOUR_PROJECT_REF].supabase.co' ||
+      supabaseKey === 'your-anon-key-from-supabase') {
+    throw new Error('Supabase environment variables are not properly configured. Please update your .env file with actual credentials.')
+  }
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {
@@ -319,10 +331,10 @@ export async function getUserId(): Promise<string> {
   try {
     const supabase = await createClient()
     
-    // Add timeout to Supabase call to match middleware behavior
+    // Add timeout to Supabase call with shorter timeout to fail fast
     const authPromise = supabase.auth.getUser()
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Auth timeout")), 3000)
+      setTimeout(() => reject(new Error("Auth timeout")), 5000) // Reduced to 5 seconds for faster fallback
     )
 
     const { data: { user }, error } = await Promise.race([authPromise, timeoutPromise]) as any

@@ -7,19 +7,23 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   errorFormat: 'pretty',
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  // Disable prepared statements in development to fix Turbopack issues
+  // Enhanced connection configuration with robust error handling
   ...(process.env.NODE_ENV === 'development' && {
     datasources: {
       db: {
-        url: process.env.DIRECT_URL + (process.env.DIRECT_URL?.includes('?') ? '&' : '?') + 'prepared_statements=false&connect_timeout=10&pool_timeout=10'
+        url: (process.env.DATABASE_URL || process.env.DIRECT_URL || '') + 
+             ((process.env.DATABASE_URL || process.env.DIRECT_URL || '').includes('?') ? '&' : '?') + 
+             'connect_timeout=15&pool_timeout=15&connection_limit=3&statement_cache_size=0&prepared_statements=false&pgbouncer=true'
       }
     }
   }),
-  // Use session pooler for production with timeouts
+  // Use connection pooler for production with optimized timeouts
   ...(process.env.NODE_ENV === 'production' && {
     datasources: {
       db: {
-        url: (process.env.DATABASE_URL || process.env.DIRECT_URL) + (process.env.DATABASE_URL?.includes('?') ? '&' : '?') + 'connect_timeout=10&pool_timeout=10'
+        url: (process.env.DATABASE_URL || process.env.DIRECT_URL || '') + 
+             ((process.env.DATABASE_URL || process.env.DIRECT_URL || '').includes('?') ? '&' : '?') + 
+             'connect_timeout=20&pool_timeout=20&connection_limit=10&statement_cache_size=0&pgbouncer=true'
       }
     }
   })

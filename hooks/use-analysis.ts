@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react'
 import { useAnalysisStore } from '@/store/analysis-store'
 import { useCompletion } from '@ai-sdk/react'
+import { safeJsonParse, safeFetch } from '@/lib/api-response-wrapper'
 
 export type AnalysisSection = 'global' | 'instrument' | 'accounts' | 'timeOfDay'
 
@@ -125,8 +126,8 @@ export function useAnalysis() {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
 
-      // Make direct API call instead of using useCompletion
-      const response = await fetch('/api/ai/analysis', {
+      // Use safeFetch for better error handling
+      const result = await safeFetch('/api/ai/analysis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -141,54 +142,30 @@ export function useAnalysis() {
 
       clearTimeout(timeoutId)
 
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`
+      if (!result.success) {
+        let errorMessage = result.error || 'Failed to get analysis'
         
-        if (response.status === 400) {
+        // Handle specific error types
+        if (errorMessage.includes('HTTP 400')) {
           errorMessage = 'Invalid request parameters. Please refresh and try again.'
-        } else if (response.status === 401) {
+        } else if (errorMessage.includes('HTTP 401')) {
           errorMessage = 'Authentication required. Please log in again.'
-        } else if (response.status === 403) {
+        } else if (errorMessage.includes('HTTP 403')) {
           errorMessage = 'Access denied. Please check your permissions.'
-        } else if (response.status === 429) {
+        } else if (errorMessage.includes('HTTP 429')) {
           errorMessage = 'Too many requests. Please wait a moment and try again.'
-        } else if (response.status >= 500) {
+        } else if (errorMessage.includes('HTTP 5')) {
           errorMessage = 'Server error. Please try again in a few moments.'
         }
         
         throw new Error(errorMessage)
       }
 
-      const reader = response.body?.getReader()
-      if (!reader) {
-        throw new Error('No response body received from server')
-      }
-
-      let result = ''
-      const decoder = new TextDecoder()
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          
-          const chunk = decoder.decode(value, { stream: true })
-          result += chunk
-        }
-      } catch (streamError) {
-        throw new Error('Error reading response stream')
-      }
-
-      // Parse the result
-      try {
-        // Clean the result - sometimes streaming responses have extra data
-        const cleanResult = result.replace(/^data: /, '').trim()
-        const parsedData = JSON.parse(cleanResult)
-        setSectionData(section, parsedData)
-      } catch (parseError) {
-        console.error(`Failed to parse analysis response for ${section}:`, parseError)
-        console.error('Raw response:', result)
-        throw new Error('Failed to parse server response. Please try again.')
+      // Store the properly structured analysis data
+      if (result.data) {
+        setSectionData(section, result.data)
+      } else {
+        throw new Error('No analysis data received from server')
       }
     } catch (error) {
       console.error(`Error analyzing ${section} (attempt ${retryCount + 1}):`, error)

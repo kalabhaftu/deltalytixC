@@ -6,8 +6,8 @@ import { AnalysisOverview } from './components/analysis/analysis-overview'
 import WidgetCanvas from './components/widget-canvas'
 import dynamic from 'next/dynamic'
 
-// Dynamically import prop firm dashboard for better performance
-const PropFirmDashboardPage = dynamic(() => import('./prop-firm/page'), {
+// Dynamically import accounts page for better performance
+const AccountsPage = dynamic(() => import('./accounts/page'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-64">
@@ -165,25 +165,9 @@ export default function Home() {
               exit="out"
               variants={pageVariants}
               transition={pageTransition}
-              className="px-4"
+              className="w-full"
             >
-              <AccountsOverview size="large" />
-            </motion.div>
-          </ErrorBoundaryWrapper>
-        )
-      case 'prop-firm':
-        return (
-          <ErrorBoundaryWrapper context="PropFirm">
-            <motion.div
-              key="prop-firm"
-              initial="initial"
-              animate="in"
-              exit="out"
-              variants={pageVariants}
-              transition={pageTransition}
-              className="px-4"
-            >
-              <PropFirmDashboardPage />
+              <AccountsPage />
             </motion.div>
           </ErrorBoundaryWrapper>
         )

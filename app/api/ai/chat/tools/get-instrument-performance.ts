@@ -257,31 +257,32 @@ function analyzeInstruments(trades: Trade[]): InstrumentAnalysis {
 
 export const getInstrumentPerformance = tool({
   description: 'Get detailed performance analysis for each trading instrument including profitability, risk metrics, and trading patterns',
-  parameters: z.object({
+  inputSchema: z.object({
     startDate: z.string().optional().describe('Optional start date to filter trades (format: 2025-01-14T14:33:01.000Z)'),
     endDate: z.string().optional().describe('Optional end date to filter trades (format: 2025-01-14T14:33:01.000Z)'),
     minTrades: z.number().optional().describe('Minimum number of trades required to include an instrument in analysis')
   }),
-  execute: async ({ startDate, endDate, minTrades = 1 }: { startDate?: string, endDate?: string, minTrades?: number }) => {
-    console.log(`[getInstrumentPerformance] startDate: ${startDate}, endDate: ${endDate}, minTrades: ${minTrades}`);
-    
-    let trades = await getTradesAction();
-    
-    // Filter trades by date range if provided
-    if (startDate || endDate) {
-      trades = trades.filter(trade => {
-        const tradeDate = new Date(trade.entryDate);
-        const start = startDate ? new Date(startDate) : new Date('1970-01-01');
-        const end = endDate ? new Date(endDate) : new Date('2100-01-01');
-        return tradeDate >= start && tradeDate <= end;
-      });
-    }
-    
-    const analysis = analyzeInstruments(trades);
-    
-    // Filter out instruments with fewer than minTrades
-    analysis.instruments = analysis.instruments.filter(instrument => instrument.totalTrades >= minTrades);
-    
-    return analysis;
+})
+
+export async function executeGetInstrumentPerformance({ startDate, endDate, minTrades = 1 }: { startDate?: string, endDate?: string, minTrades?: number }) {
+  console.log(`[getInstrumentPerformance] startDate: ${startDate}, endDate: ${endDate}, minTrades: ${minTrades}`);
+  
+  let trades = await getTradesAction();
+  
+  // Filter trades by date range if provided
+  if (startDate || endDate) {
+    trades = trades.filter(trade => {
+      const tradeDate = new Date(trade.entryDate);
+      const start = startDate ? new Date(startDate) : new Date('1970-01-01');
+      const end = endDate ? new Date(endDate) : new Date('2100-01-01');
+      return tradeDate >= start && tradeDate <= end;
+    });
   }
-}); 
+  
+  const analysis = analyzeInstruments(trades);
+  
+  // Filter out instruments with fewer than minTrades
+  analysis.instruments = analysis.instruments.filter(instrument => instrument.totalTrades >= minTrades);
+  
+  return analysis;
+} 

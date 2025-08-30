@@ -24,10 +24,13 @@ import {
   Calendar,
   Target,
   Shield,
-  Gauge
+  Gauge,
+  RefreshCw,
+  Settings
 } from "lucide-react"
 import { CreateLiveAccountDialog } from "../components/accounts/create-live-account-dialog"
 import { CreateAccountDialog as CreatePropFirmAccountDialog } from "../components/prop-firm/create-account-dialog"
+import { PropFirmDashboard } from "../components/prop-firm/prop-firm-dashboard"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   DropdownMenu,
@@ -75,13 +78,15 @@ export default function AccountsPage() {
   const router = useRouter()
   const { user } = useAuth()
   const [accounts, setAccounts] = useState<UnifiedAccount[]>([])
+  const [propFirmAccounts, setPropFirmAccounts] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isPropFirmLoading, setIsPropFirmLoading] = useState(true)
   const [createLiveDialogOpen, setCreateLiveDialogOpen] = useState(false)
   const [createPropFirmDialogOpen, setCreatePropFirmDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAccountForDelete, setSelectedAccountForDelete] = useState<string | null>(null)
 
-  // Fetch all accounts
+  // Fetch all accounts (live accounts only)
   const fetchAccounts = async () => {
     try {
       setIsLoading(true)
@@ -93,7 +98,9 @@ export default function AccountsPage() {
 
       const data = await response.json()
       if (data.success) {
-        setAccounts(data.data)
+        // Filter to only live accounts (non-prop firm)
+        const liveAccounts = data.data.filter((account: UnifiedAccount) => account.accountType === 'live')
+        setAccounts(liveAccounts)
       } else {
         throw new Error(data.error || 'Failed to fetch accounts')
       }
@@ -109,17 +116,106 @@ export default function AccountsPage() {
     }
   }
 
+  // Fetch prop firm accounts
+  const fetchPropFirmAccounts = async () => {
+    try {
+      setIsPropFirmLoading(true)
+      const response = await fetch('/api/prop-firm/accounts')
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch prop firm accounts')
+      }
+
+      const data = await response.json()
+      if (data.success) {
+        setPropFirmAccounts(data.data)
+      } else {
+        throw new Error(data.error || 'Failed to fetch prop firm accounts')
+      }
+    } catch (error) {
+      console.error('Error fetching prop firm accounts:', error)
+      toast({
+        title: t('propFirm.toast.setupError'),
+        description: t('propFirm.toast.setupErrorDescription'),
+        variant: "destructive"
+      })
+    } finally {
+      setIsPropFirmLoading(false)
+    }
+  }
+
   // Load accounts on mount
   useEffect(() => {
     if (user) {
       fetchAccounts()
+      fetchPropFirmAccounts()
     }
   }, [user])
 
   const handleAccountCreated = () => {
     fetchAccounts()
     setCreateLiveDialogOpen(false)
+  }
+
+  const handlePropFirmAccountCreated = () => {
+    fetchPropFirmAccounts()
     setCreatePropFirmDialogOpen(false)
+  }
+
+  // Prop firm account handlers
+  const handleViewPropFirmAccount = (accountId: string) => {
+    router.push(`/dashboard/prop-firm/accounts/${accountId}`)
+  }
+
+  const handleAddTrade = (accountId: string) => {
+    router.push(`/dashboard/prop-firm/accounts/${accountId}/trades/new`)
+  }
+
+  const handleRequestPayout = (accountId: string) => {
+    router.push(`/dashboard/prop-firm/accounts/${accountId}/payouts`)
+  }
+
+  const handleResetPropFirmAccount = async (accountId: string) => {
+    const account = propFirmAccounts.find(a => a.id === accountId)
+    if (!account) return
+
+    const reason = prompt(t('propFirm.reset.reasonPrompt'))
+    if (!reason) return
+
+    try {
+      const response = await fetch(`/api/prop-firm/accounts/${accountId}/reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason,
+          clearTrades: false
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to reset account')
+      }
+
+      const data = await response.json()
+      if (data.success) {
+        toast({
+          title: t('propFirm.reset.success'),
+          description: t('propFirm.reset.successDescription'),
+        })
+        fetchPropFirmAccounts() // Reload accounts
+      } else {
+        throw new Error(data.error || 'Failed to reset account')
+      }
+    } catch (error) {
+      console.error('Error resetting account:', error)
+      toast({
+        title: t('propFirm.reset.error'),
+        description: t('propFirm.reset.errorDescription'),
+        variant: "destructive"
+      })
+    }
   }
 
   const handleDeleteAccount = async (accountId: string) => {
@@ -150,16 +246,12 @@ export default function AccountsPage() {
     }
   }
 
-  // Filter accounts based on search query
-  const filteredAccounts = accounts.filter(account => 
+  // Filter live accounts based on search query
+  const filteredLiveAccounts = accounts.filter(account => 
     account.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     account.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (account.broker && account.broker.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    account.propfirm.toLowerCase().includes(searchQuery.toLowerCase())
+    (account.broker && account.broker.toLowerCase().includes(searchQuery.toLowerCase()))
   )
-
-  const liveAccounts = filteredAccounts.filter(account => account.accountType === 'live')
-  const propFirmAccounts = filteredAccounts.filter(account => account.accountType === 'prop-firm')
 
   const handleViewAccount = (accountId: string, accountType: string) => {
     if (accountType === 'prop-firm') {
@@ -378,7 +470,7 @@ export default function AccountsPage() {
     )
   }
 
-  if (isLoading) {
+  if (isLoading || isPropFirmLoading) {
     return (
       <div className="container mx-auto p-6">
         <div className="space-y-6">
@@ -416,126 +508,268 @@ export default function AccountsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t('accounts.title')}</h1>
-            <p className="text-muted-foreground">{t('accounts.description')}</p>
+            <p className="text-muted-foreground">Manage your trading accounts and prop firm evaluations</p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => setCreateLiveDialogOpen(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              {t('accounts.addLiveAccount')}
-            </Button>
             <Button 
-              variant="outline" 
-              onClick={() => setCreatePropFirmDialogOpen(true)}
+              variant="outline"
+              onClick={() => {
+                fetchAccounts()
+                fetchPropFirmAccounts()
+              }}
               size="sm"
             >
-              <Building2 className="h-4 w-4 mr-2" />
-              {t('accounts.addPropFirmAccount')}
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh All
             </Button>
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder={t('accounts.searchPlaceholder')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {filteredAccounts.length} {filteredAccounts.length === 1 ? 'account' : 'accounts'}
-          </div>
-        </div>
-
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all" className="flex items-center gap-2">
-              {t('accounts.allAccounts')} 
-              <Badge variant="secondary" className="ml-1">{filteredAccounts.length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="live" className="flex items-center gap-2">
-              {t('accounts.liveAccounts')} 
-              <Badge variant="secondary" className="ml-1">{liveAccounts.length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="prop-firm" className="flex items-center gap-2">
-              {t('accounts.propFirmAccounts')} 
+        <Tabs defaultValue="prop-firm-management" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="prop-firm-management" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Prop Firm Management
               <Badge variant="secondary" className="ml-1">{propFirmAccounts.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="accounts" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Accounts
+              <Badge variant="secondary" className="ml-1">{accounts.length + propFirmAccounts.length}</Badge>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="space-y-6 mt-6">
-            {filteredAccounts.length === 0 ? (
-              <Card className="text-center py-16">
-                <CardContent>
-                  <TrendingUp className="h-16 w-16 mx-auto text-muted-foreground mb-6" />
-                  <h3 className="text-xl font-semibold mb-3">{t('accounts.noAccounts')}</h3>
-                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">{t('accounts.noAccountsDescription')}</p>
-                  <div className="flex gap-3 justify-center">
-                    <Button onClick={() => setCreateLiveDialogOpen(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      {t('accounts.addLiveAccount')}
-                    </Button>
-                    <Button variant="outline" onClick={() => setCreatePropFirmDialogOpen(true)}>
-                      <Building2 className="h-4 w-4 mr-2" />
-                      {t('accounts.addPropFirmAccount')}
-                    </Button>
+          {/* Prop Firm Management Section */}
+          <TabsContent value="prop-firm-management" className="space-y-6 mt-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Prop Firm Management
+                    </CardTitle>
+                    <CardDescription>
+                      Manage your prop firm evaluation accounts, track progress, and handle payouts
+                    </CardDescription>
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredAccounts.map((account) => (
-                  <AccountCard key={account.id} account={account} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="live" className="space-y-6 mt-6">
-            {liveAccounts.length === 0 ? (
-              <Card className="text-center py-16">
-                <CardContent>
-                  <User className="h-16 w-16 mx-auto text-muted-foreground mb-6" />
-                  <h3 className="text-xl font-semibold mb-3">{t('accounts.noLiveAccounts')}</h3>
-                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">{t('accounts.noLiveAccountsDescription')}</p>
-                  <Button onClick={() => setCreateLiveDialogOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    {t('accounts.addLiveAccount')}
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {liveAccounts.map((account) => (
-                  <AccountCard key={account.id} account={account} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="prop-firm" className="space-y-6 mt-6">
-            {propFirmAccounts.length === 0 ? (
-              <Card className="text-center py-16">
-                <CardContent>
-                  <Building2 className="h-16 w-16 mx-auto text-muted-foreground mb-6" />
-                  <h3 className="text-xl font-semibold mb-3">{t('accounts.noPropFirmAccounts')}</h3>
-                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">{t('accounts.noPropFirmAccountsDescription')}</p>
                   <Button onClick={() => setCreatePropFirmDialogOpen(true)}>
-                    <Building2 className="h-4 w-4 mr-2" />
-                    {t('accounts.addPropFirmAccount')}
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Prop Firm Account
                   </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {propFirmAccounts.map((account) => (
-                  <AccountCard key={account.id} account={account} />
-                ))}
-              </div>
-            )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <PropFirmDashboard
+                  accounts={propFirmAccounts}
+                  isLoading={isPropFirmLoading}
+                  onRefresh={fetchPropFirmAccounts}
+                  onCreateAccount={() => setCreatePropFirmDialogOpen(true)}
+                  onViewAccount={handleViewPropFirmAccount}
+                  onAddTrade={handleAddTrade}
+                  onRequestPayout={handleRequestPayout}
+                  onResetAccount={handleResetPropFirmAccount}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Accounts Section */}
+          <TabsContent value="accounts" className="space-y-6 mt-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      All Trading Accounts
+                    </CardTitle>
+                    <CardDescription>
+                      View and manage all your trading accounts in one place
+                    </CardDescription>
+                  </div>
+                  {/* Search Bar */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search accounts..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 w-64"
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="prop-firm-accounts" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="prop-firm-accounts" className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Prop Firm Accounts
+                      <Badge variant="secondary" className="ml-1">{propFirmAccounts.length}</Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="live-accounts" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Live Accounts
+                      <Badge variant="secondary" className="ml-1">{filteredLiveAccounts.length}</Badge>
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Prop Firm Accounts Tab */}
+                  <TabsContent value="prop-firm-accounts" className="space-y-6 mt-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Prop Firm Accounts</h3>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setCreatePropFirmDialogOpen(true)}
+                        size="sm"
+                      >
+                        <Building2 className="h-4 w-4 mr-2" />
+                        Add Prop Firm Account
+                      </Button>
+                    </div>
+                    
+                    {propFirmAccounts.length === 0 ? (
+                      <Card className="text-center py-16">
+                        <CardContent>
+                          <Building2 className="h-16 w-16 mx-auto text-muted-foreground mb-6" />
+                          <h3 className="text-xl font-semibold mb-3">No Prop Firm Accounts</h3>
+                          <p className="text-muted-foreground mb-6 max-w-md mx-auto">Start your prop firm evaluation journey by creating your first account.</p>
+                          <Button onClick={() => setCreatePropFirmDialogOpen(true)}>
+                            <Building2 className="h-4 w-4 mr-2" />
+                            Create Prop Firm Account
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {propFirmAccounts
+                          .filter(account => 
+                            account.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            account.number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            account.propfirm?.toLowerCase().includes(searchQuery.toLowerCase())
+                          )
+                          .map((account) => (
+                            <motion.div
+                              key={account.id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              <Card className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
+                                <CardHeader className="pb-4">
+                                  <div className="flex items-start justify-between">
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <CardTitle className="text-lg font-semibold text-foreground">
+                                          {account.name || account.number}
+                                        </CardTitle>
+                                        <Badge className="bg-blue-500 text-white">
+                                          {account.status}
+                                        </Badge>
+                                      </div>
+                                      <CardDescription className="flex items-center gap-2 text-sm">
+                                        <Building2 className="h-4 w-4" />
+                                        {account.propfirm}
+                                      </CardDescription>
+                                    </div>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                          <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleViewPropFirmAccount(account.id)}>
+                                          <ExternalLink className="h-4 w-4 mr-2" />
+                                          View Details
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleAddTrade(account.id)}>
+                                          <Plus className="h-4 w-4 mr-2" />
+                                          Add Trade
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                          <DollarSign className="h-3 w-3" />
+                                          Starting Balance
+                                        </div>
+                                        <p className="text-sm font-semibold">${account.startingBalance?.toLocaleString()}</p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                          <Activity className="h-3 w-3" />
+                                          Trades
+                                        </div>
+                                        <p className="text-sm font-medium">{account.totalTrades || 0}</p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center justify-between pt-2">
+                                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                        <Calendar className="h-3 w-3" />
+                                        {account.createdAt ? 
+                                          new Date(account.createdAt).toLocaleDateString() : 
+                                          'Recently created'
+                                        }
+                                      </div>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleViewPropFirmAccount(account.id)}
+                                        className="h-8"
+                                      >
+                                        <ExternalLink className="h-3 w-3 mr-1" />
+                                        View
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </motion.div>
+                          ))}
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  {/* Live Accounts Tab */}
+                  <TabsContent value="live-accounts" className="space-y-6 mt-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Live Accounts</h3>
+                      <Button onClick={() => setCreateLiveDialogOpen(true)} size="sm">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Live Account
+                      </Button>
+                    </div>
+                    
+                    {filteredLiveAccounts.length === 0 ? (
+                      <Card className="text-center py-16">
+                        <CardContent>
+                          <User className="h-16 w-16 mx-auto text-muted-foreground mb-6" />
+                          <h3 className="text-xl font-semibold mb-3">No Live Accounts</h3>
+                          <p className="text-muted-foreground mb-6 max-w-md mx-auto">Add your live trading accounts to track your real money performance.</p>
+                          <Button onClick={() => setCreateLiveDialogOpen(true)}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Live Account
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {filteredLiveAccounts.map((account) => (
+                          <AccountCard key={account.id} account={account} />
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
@@ -549,7 +783,7 @@ export default function AccountsPage() {
         <CreatePropFirmAccountDialog
           open={createPropFirmDialogOpen}
           onOpenChange={setCreatePropFirmDialogOpen}
-          onSuccess={handleAccountCreated}
+          onSuccess={handlePropFirmAccountCreated}
         />
 
         {/* Delete Confirmation Dialog */}

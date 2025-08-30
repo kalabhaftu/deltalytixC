@@ -135,25 +135,26 @@ function calculateOverallMetrics(trades: Trade[]): OverallMetrics {
 
 export const getOverallPerformanceMetrics = tool({
   description: 'Get comprehensive overall performance metrics including win rate, profit factor, risk metrics, and trading statistics',
-  parameters: z.object({
+  inputSchema: z.object({
     startDate: z.string().optional().describe('Optional start date to filter trades (format: 2025-01-14T14:33:01.000Z)'),
     endDate: z.string().optional().describe('Optional end date to filter trades (format: 2025-01-14T14:33:01.000Z)')
   }),
-  execute: async ({ startDate, endDate }: { startDate?: string, endDate?: string }) => {
-    console.log(`[getOverallPerformanceMetrics] startDate: ${startDate}, endDate: ${endDate}`);
-    
-    let trades = await getTradesAction();
-    
-    // Filter trades by date range if provided
-    if (startDate || endDate) {
-      trades = trades.filter(trade => {
-        const tradeDate = new Date(trade.entryDate);
-        const start = startDate ? new Date(startDate) : new Date('1970-01-01');
-        const end = endDate ? new Date(endDate) : new Date('2100-01-01');
-        return tradeDate >= start && tradeDate <= end;
-      });
-    }
-    
-    return calculateOverallMetrics(trades);
+})
+
+export async function executeGetOverallPerformanceMetrics({ startDate, endDate }: { startDate?: string, endDate?: string }) {
+  console.log(`[getOverallPerformanceMetrics] startDate: ${startDate}, endDate: ${endDate}`);
+  
+  let trades = await getTradesAction();
+  
+  // Filter trades by date range if provided
+  if (startDate || endDate) {
+    trades = trades.filter(trade => {
+      const tradeDate = new Date(trade.entryDate);
+      const start = startDate ? new Date(startDate) : new Date('1970-01-01');
+      const end = endDate ? new Date(endDate) : new Date('2100-01-01');
+      return tradeDate >= start && tradeDate <= end;
+    });
   }
-}); 
+  
+  return calculateOverallMetrics(trades);
+} 

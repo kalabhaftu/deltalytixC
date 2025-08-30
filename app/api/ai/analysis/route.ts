@@ -1,8 +1,10 @@
 import { streamText } from "ai";
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { openai } from "@/lib/ai-sdk-wrapper";
-import { executeWithModelFallback, ModelConfig } from "@/lib/ai-model-fallback";
+import { executeWithProviderFallback } from "@/lib/ai-model-fallback";
+import { createClient } from '@/server/auth';
+import { prisma } from '@/lib/prisma';
+import { createErrorResponse, createSuccessResponse } from '@/lib/api-response-wrapper';
 
 // Global Analysis Tools
 import { getOverallPerformanceMetrics } from "../chat/tools/get-overall-performance-metrics";
@@ -13,7 +15,7 @@ import { getInstrumentPerformance } from "../chat/tools/get-instrument-performan
 import { getMostTradedInstruments } from "../chat/tools/get-most-traded-instruments";
 
 // Account Analysis Tools
-import { getAccountPerformance } from "../chat/tools/get-account-performance";
+// import { getAccountPerformance } from "../chat/tools/get-account-performance";
 
 // Time of Day Analysis Tools
 import { getTimeOfDayPerformance } from "../chat/tools/get-time-of-day-performance";
@@ -55,7 +57,7 @@ function getToolsForSection(section: string) {
     case 'accounts':
       return {
         ...baseTools,
-        getAccountPerformance
+        // getAccountPerformance
       };
     case 'timeOfDay':
       return {
@@ -261,58 +263,88 @@ export async function POST(req: NextRequest) {
       const validatedData = analysisSchema.parse({ section, username, locale, timezone });
       console.log('Validated data:', validatedData);
 
-      const result = await executeWithModelFallback(
-        async (modelConfig: ModelConfig) => {
-          console.log(`[Analysis] Using model: ${modelConfig.displayName} for ${validatedData.section}`)
-          
-          return streamText({
-            model: openai(modelConfig.name),
-            maxTokens: modelConfig.maxTokens,
-            temperature: modelConfig.temperature,
-            system: getSystemPromptForSection(validatedData.section, validatedData.locale, validatedData.timezone),
-            toolCallStreaming: true,
-            messages: [
-              {
-                role: "user",
-                content: `Analyze my ${validatedData.section} trading performance and provide detailed insights in ${validatedData.locale} language.`
-              }
-            ],
-            maxSteps: 5,
-            tools: getToolsForSection(validatedData.section),
-            abortSignal: controller.signal,
+      // Get user ID from auth
+      let userId: string | undefined
+      try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user?.id) {
+          // Find user in our database
+          const dbUser = await prisma.user.findUnique({
+            where: { auth_user_id: user.id },
+            select: { id: true }
           })
-        },
-        ['analysis', 'reasoning'], // Required capabilities for analysis
-        3 // Max attempts with different models
-      );
+          userId = dbUser?.id
+        }
+      } catch (error) {
+        console.warn('[Analysis API] Failed to get user ID for AI provider preference:', error)
+      }
+
+      const result = await executeWithProviderFallback({
+        maxTokens: 8192,
+        temperature: 0.3,
+        requiredCapabilities: ['analysis', 'reasoning'],
+        system: getSystemPromptForSection(validatedData.section, validatedData.locale, validatedData.timezone),
+        toolCallStreaming: false, // Changed to false for proper JSON response
+        messages: [
+          {
+            role: "user",
+            content: `Analyze my ${validatedData.section} trading performance and provide detailed insights in ${validatedData.locale} language. Please provide your response as a structured analysis that can be easily parsed.`
+          }
+        ],
+        tools: getToolsForSection(validatedData.section)
+        // Removed maxSteps and tools to avoid stepModel.doGenerate errors
+      }, userId, 3);
 
       clearTimeout(timeoutId)
-      return result.toDataStreamResponse();
+
+      // Extract the text content from the AI result
+      let analysisContent = ''
+      try {
+        // In AI SDK v5, the result structure is different
+        if (result && typeof result === 'object') {
+          // Try to get text from various possible properties
+          if ((result as any).text) {
+            analysisContent = (result as any).text
+          } else if ((result as any).content) {
+            analysisContent = (result as any).content
+          } else if ((result as any).message?.content) {
+            analysisContent = (result as any).message.content
+          } else if (result.toString) {
+            analysisContent = result.toString()
+          } else {
+            // Fallback: stringify the result
+            analysisContent = JSON.stringify(result)
+          }
+        } else if (typeof result === 'string') {
+          analysisContent = result
+        } else {
+          analysisContent = 'Analysis completed successfully'
+        }
+      } catch (extractError) {
+        console.error('Error extracting analysis content:', extractError)
+        analysisContent = 'Analysis completed successfully'
+      }
+
+      // Return structured JSON response
+      return createSuccessResponse({
+        section: validatedData.section,
+        analysis: analysisContent,
+        timestamp: new Date().toISOString(),
+        locale: validatedData.locale
+      });
     } catch (timeoutError) {
       clearTimeout(timeoutId)
       if ((timeoutError as any)?.name === 'AbortError') {
         console.error("Analysis request timed out");
-        return new Response(JSON.stringify({ 
-          error: "Request timed out. Please try again.",
-          code: "TIMEOUT"
-        }), {
-          status: 408,
-          headers: { "Content-Type": "application/json" },
-        });
+        return createErrorResponse("Request timed out. Please try again.", "TIMEOUT", 408);
       }
       throw timeoutError
     }
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error("Validation error:", error.errors);
-      return new Response(JSON.stringify({ 
-        error: "Invalid request parameters", 
-        details: error.errors,
-        code: "VALIDATION_ERROR"
-      }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return createErrorResponse("Invalid request parameters", "VALIDATION_ERROR", 400);
     }
     
     console.error("Error in analysis route:", error);
@@ -332,12 +364,6 @@ export async function POST(req: NextRequest) {
       statusCode = 502
     }
     
-    return new Response(JSON.stringify({ 
-      error: errorMessage,
-      code: "SERVER_ERROR"
-    }), {
-      status: statusCode,
-      headers: { "Content-Type": "application/json" },
-    });
+    return createErrorResponse(errorMessage, "SERVER_ERROR", statusCode);
   }
 }

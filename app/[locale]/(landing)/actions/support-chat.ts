@@ -1,9 +1,9 @@
 // app/actions/supportChat.ts
 'use server'
 
-import { Message } from 'ai'
+import { UIMessage } from 'ai'
 
-export async function supportChat(messages: Message[]): Promise<{ 
+export async function supportChat(messages: UIMessage[]): Promise<{ 
   response: string; 
   needsHumanHelp: boolean;
   readyForEmail: boolean;

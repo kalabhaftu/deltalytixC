@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     // Add timeout for the entire operation
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 10000) // 10 second timeout
+      setTimeout(() => reject(new Error('Request timeout')), 8000) // 8 second timeout
     })
 
     const operationPromise = async () => {
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
         number,
         name,
         startingBalance: parseFloat(startingBalance),
-        // broker, // TODO: Enable when migration is run
+        // broker, // Temporarily disabled until database migration is complete
         userId,
         propfirm: '', // Empty string indicates it's a live account
         // Set default values for live accounts

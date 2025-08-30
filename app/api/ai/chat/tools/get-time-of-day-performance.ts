@@ -251,26 +251,27 @@ function analyzeTimeOfDay(trades: Trade[], timezone: string = 'UTC'): TimeAnalys
 
 export const getTimeOfDayPerformance = tool({
   description: 'Get detailed time-based performance analysis including hourly, daily, and session-based trading patterns',
-  parameters: z.object({
+  inputSchema: z.object({
     startDate: z.string().optional().describe('Optional start date to filter trades (format: 2025-01-14T14:33:01.000Z)'),
     endDate: z.string().optional().describe('Optional end date to filter trades (format: 2025-01-14T14:33:01.000Z)'),
     timezone: z.string().optional().describe('Timezone for time analysis (e.g., UTC, EST, PST)')
   }),
-  execute: async ({ startDate, endDate, timezone = 'UTC' }: { startDate?: string, endDate?: string, timezone?: string }) => {
-    console.log(`[getTimeOfDayPerformance] startDate: ${startDate}, endDate: ${endDate}, timezone: ${timezone}`);
-    
-    let trades = await getTradesAction();
-    
-    // Filter trades by date range if provided
-    if (startDate || endDate) {
-      trades = trades.filter(trade => {
-        const tradeDate = new Date(trade.entryDate);
-        const start = startDate ? new Date(startDate) : new Date('1970-01-01');
-        const end = endDate ? new Date(endDate) : new Date('2100-01-01');
-        return tradeDate >= start && tradeDate <= end;
-      });
-    }
-    
-    return analyzeTimeOfDay(trades, timezone);
+})
+
+export async function executeGetTimeOfDayPerformance({ startDate, endDate, timezone = 'UTC' }: { startDate?: string, endDate?: string, timezone?: string }) {
+  console.log(`[getTimeOfDayPerformance] startDate: ${startDate}, endDate: ${endDate}, timezone: ${timezone}`);
+  
+  let trades = await getTradesAction();
+  
+  // Filter trades by date range if provided
+  if (startDate || endDate) {
+    trades = trades.filter(trade => {
+      const tradeDate = new Date(trade.entryDate);
+      const start = startDate ? new Date(startDate) : new Date('1970-01-01');
+      const end = endDate ? new Date(endDate) : new Date('2100-01-01');
+      return tradeDate >= start && tradeDate <= end;
+    });
   }
-}); 
+  
+  return analyzeTimeOfDay(trades, timezone);
+} 

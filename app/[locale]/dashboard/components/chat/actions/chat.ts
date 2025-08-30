@@ -1,11 +1,11 @@
 'use server'
-import { Message } from "@ai-sdk/react"
+import { UIMessage } from "ai"
 import { prisma } from "@/lib/prisma"
 import { addDays, format } from "date-fns"
 import { Mood } from "@prisma/client"
 import { revalidateTag } from "next/cache"
 
-export async function saveChat(userId: string, messages: Message[]): Promise<Mood | null> {
+export async function saveChat(userId: string, messages: UIMessage[]): Promise<Mood | null> {
   console.log('Saving chat')
   const today = new Date()
   const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 12))
@@ -66,7 +66,7 @@ export async function saveChat(userId: string, messages: Message[]): Promise<Moo
   }
 }
 
-export async function loadChat(userId: string): Promise<Message[]> {
+export async function loadChat(userId: string): Promise<UIMessage[]> {
   console.log('Loading chat')
   const today = new Date()
   const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 12))

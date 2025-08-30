@@ -4,9 +4,10 @@
 import SupportRequestEmail from '@/components/emails/support-request';
 import { Resend } from 'resend';
 import { createElement } from 'react';
+import { UIMessage } from 'ai';
 
 interface SupportEmailData {
-  messages: { role: string; content: string }[];
+  messages: UIMessage[];
   contactInfo: {
     name: string,
     email: string;

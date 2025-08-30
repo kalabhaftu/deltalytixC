@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const { headers, rows } = requestSchema.parse(body);
 
     const result = streamObject({
-      model: openai("gpt-4o-mini-2024-07-18"),
+      model: openai("gpt-4o-mini"),
       schema: tradeSchema,
       output: 'array',
       system:`

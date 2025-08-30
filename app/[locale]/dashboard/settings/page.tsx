@@ -41,12 +41,15 @@ import {
 import { Slider } from "@/components/ui/slider"
 import { LinkedAccounts } from "@/components/linked-accounts"
 import { useToolbarSettingsStore } from "@/store/toolbar-settings-store"
+import { AIProviderSettings } from "@/components/ai-provider-settings"
 import { 
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { ChevronDown, Layout } from "lucide-react"
+import { updateAIProvider, getUserAIProvider } from "./actions"
+import { AIProvider } from "@/lib/ai-providers"
 
 
 
@@ -76,9 +79,34 @@ export default function SettingsPage() {
   const [tradingAlerts, setTradingAlerts] = useState(true)
   const [weeklyReports, setWeeklyReports] = useState(true)
   const [isUISettingsOpen, setIsUISettingsOpen] = useState(false)
+  const [currentAIProvider, setCurrentAIProvider] = useState<AIProvider>('zai')
   
   // Toolbar settings
   const { settings, setFixedPosition, setAutoHide, resetSettings } = useToolbarSettingsStore()
+  
+  // Load user's AI provider preference
+  useEffect(() => {
+    async function loadAIProvider() {
+      try {
+        const result = await getUserAIProvider()
+        if (result.success) {
+          setCurrentAIProvider(result.provider)
+        }
+      } catch (error) {
+        console.error('Failed to load AI provider preference:', error)
+      }
+    }
+    loadAIProvider()
+  }, [])
+
+  const handleAIProviderChange = async (provider: AIProvider) => {
+    const result = await updateAIProvider(provider)
+    if (result.success) {
+      setCurrentAIProvider(provider)
+    } else {
+      throw new Error(result.error || 'Failed to update AI provider')
+    }
+  }
   
 
 
@@ -389,6 +417,12 @@ export default function SettingsPage() {
         </Card>
 
 
+
+        {/* AI Provider Settings */}
+        <AIProviderSettings 
+          currentProvider={currentAIProvider}
+          onProviderChange={handleAIProviderChange}
+        />
 
         {/* Linked Accounts Section */}
         <LinkedAccounts />

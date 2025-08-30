@@ -40,40 +40,41 @@ function generateTradeSummary(trades: Trade[]): TradeSummary[] {
 
 export const getWeekSummaryForDate = tool({
     description: 'Get trades summary for the week containing a specific date. Automatically calculates week boundaries (Monday to Sunday) for any given date.',
-    parameters: z.object({
+    inputSchema: z.object({
         date: z.string().describe('Date in format YYYY-MM-DD (e.g., "2025-01-15") or ISO format (e.g., "2025-01-15T10:30:00.000Z")')
     }),
-    execute: async ({ date }: { date: string }) => {
-        try {
-            // Parse the input date
-            const inputDate = date.includes('T') ? parseISO(date) : parseISO(date + 'T00:00:00.000Z');
-            
-            // Calculate week boundaries (Monday to Sunday)
-            const weekStart = startOfWeek(inputDate, { weekStartsOn: 1 });
-            const weekEnd = endOfWeek(inputDate, { weekStartsOn: 1 });
-            
-            console.log(`[getWeekSummaryForDate] Input date: ${date}, Week: ${format(weekStart, 'yyyy-MM-dd')} to ${format(weekEnd, 'yyyy-MM-dd')}`);
-            
-            const trades = await getTradesAction();
-            const filteredTrades = trades.filter(trade => {
-                const tradeDate = new Date(trade.entryDate);
-                return tradeDate >= weekStart && tradeDate <= weekEnd;
-            });
-            
-            return {
-                inputDate: format(inputDate, 'yyyy-MM-dd'),
-                weekPeriod: `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`,
-                dateRange: {
-                    start: weekStart.toISOString(),
-                    end: weekEnd.toISOString(),
-                    startFormatted: format(weekStart, 'yyyy-MM-dd'),
-                    endFormatted: format(weekEnd, 'yyyy-MM-dd')
-                },
-                isCurrentWeek: format(weekStart, 'yyyy-MM-dd') === format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'),
-                summary: generateTradeSummary(filteredTrades)
-            };
-        } catch (error) {
-            throw new Error(`Invalid date format. Please use YYYY-MM-DD format (e.g., "2025-01-15")`);
-        }
-    },
-}) 
+})
+
+export async function executeGetWeekSummaryForDate({ date }: { date: string }) {
+    try {
+        // Parse the input date
+        const inputDate = date.includes('T') ? parseISO(date) : parseISO(date + 'T00:00:00.000Z');
+        
+        // Calculate week boundaries (Monday to Sunday)
+        const weekStart = startOfWeek(inputDate, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(inputDate, { weekStartsOn: 1 });
+        
+        console.log(`[getWeekSummaryForDate] Input date: ${date}, Week: ${format(weekStart, 'yyyy-MM-dd')} to ${format(weekEnd, 'yyyy-MM-dd')}`);
+        
+        const trades = await getTradesAction();
+        const filteredTrades = trades.filter(trade => {
+            const tradeDate = new Date(trade.entryDate);
+            return tradeDate >= weekStart && tradeDate <= weekEnd;
+        });
+        
+        return {
+            inputDate: format(inputDate, 'yyyy-MM-dd'),
+            weekPeriod: `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`,
+            dateRange: {
+                start: weekStart.toISOString(),
+                end: weekEnd.toISOString(),
+                startFormatted: format(weekStart, 'yyyy-MM-dd'),
+                endFormatted: format(weekEnd, 'yyyy-MM-dd')
+            },
+            isCurrentWeek: format(weekStart, 'yyyy-MM-dd') === format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+            summary: generateTradeSummary(filteredTrades)
+        };
+    } catch (error) {
+        throw new Error(`Invalid date format. Please use YYYY-MM-DD format (e.g., "2025-01-15")`);
+    }
+} 

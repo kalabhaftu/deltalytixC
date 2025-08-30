@@ -408,6 +408,7 @@ export function TradeTableReview() {
           equityAtOpen: null,
           equityAtClose: null,
           rawBrokerId: null,
+          closeReason: trade.closeReason,
           trades: [{
             ...trade,
             trades: []

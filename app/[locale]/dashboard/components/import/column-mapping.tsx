@@ -49,7 +49,7 @@ interface ColumnMappingProps {
 
 export default function ColumnMapping({ headers, csvData, mappings, setMappings, error, importType }: ColumnMappingProps) {
 
-  const { object, submit, isLoading } = useObject<MappingObject>({
+  const { object, submit, isLoading } = useObject({
     api: '/api/ai/mappings',
     schema: mappingSchema,
     onError(error) {

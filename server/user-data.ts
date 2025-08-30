@@ -72,9 +72,9 @@ export async function getUserData(): Promise<{
       console.log(`[Cache MISS] Fetching user data for user ${userId}`)
       
       try {
-        // Add timeout for database operations
+        // Add timeout for database operations - reduced for faster failure
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Database timeout')), 12000)
+          setTimeout(() => reject(new Error('Database timeout')), 8000)
         )
 
         const dataPromise = Promise.all([
@@ -208,11 +208,18 @@ export async function getUserData(): Promise<{
 export async function getDashboardLayout(userId: string): Promise<DashboardLayout | null> {
   console.log('getDashboardLayout')
   try {
-    return await prisma.dashboardLayout.findUnique({
+    // Add timeout wrapper to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('getDashboardLayout timeout')), 5000)
+    )
+    
+    const operationPromise = prisma.dashboardLayout.findUnique({
       where: {
         userId: userId
       }
     })
+    
+    return await Promise.race([operationPromise, timeoutPromise]) as DashboardLayout | null
   } catch (error) {
     if (error instanceof Error) {
       // Handle prepared statement errors (common with Turbopack)
@@ -236,11 +243,12 @@ export async function getDashboardLayout(userId: string): Promise<DashboardLayou
         console.log('[getDashboardLayout] DashboardLayout table does not exist yet, returning null')
         return null
       }
-      // Handle database connection errors
+      // Handle database connection errors and timeouts
       if (error.message.includes("Can't reach database server") || 
           error.message.includes('P1001') ||
           error.message.includes('connection') ||
-          error.message.includes('timeout')) {
+          error.message.includes('timeout') ||
+          error.message.includes('getDashboardLayout timeout')) {
         console.log('[getDashboardLayout] Database connection error, returning null')
         return null
       }

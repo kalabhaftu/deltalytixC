@@ -56,7 +56,7 @@ export async function generateTradingAnalysis(
     const lastTwoWeeks = weekNumbers.slice(0, 2).map(weekNum => tradesByWeek[weekNum])
 
     const { partialObjectStream } = await streamObject({
-      model: openai("gpt-4.1-nano-2025-04-14"),
+      model: openai("gpt-4o-mini"),
       schema: analysisSchema,
       prompt: language === 'fr'
         ? `Tu es un coach en trading qui aide les traders à progresser. Tu es toujours positif et encourageant.

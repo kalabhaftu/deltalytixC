@@ -40,27 +40,28 @@ function generateTradeSummary(trades: Trade[]): TradeSummary[] {
 
 export const getCurrentWeekSummary = tool({
     description: 'Get trades summary for the current week (Monday to Sunday). This automatically calculates the current week boundaries.',
-    parameters: z.object({}),
-    execute: async () => {
-        const now = new Date();
-        const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
-        const currentWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
-        
-        console.log(`[getCurrentWeekSummary] Current week: ${format(currentWeekStart, 'yyyy-MM-dd')} to ${format(currentWeekEnd, 'yyyy-MM-dd')}`);
-        
-        const trades = await getTradesAction();
-        const filteredTrades = trades.filter(trade => {
-            const tradeDate = new Date(trade.entryDate);
-            return tradeDate >= currentWeekStart && tradeDate <= currentWeekEnd;
-        });
-        
-        return {
-            weekPeriod: `${format(currentWeekStart, 'MMM d')} - ${format(currentWeekEnd, 'MMM d, yyyy')}`,
-            dateRange: {
-                start: currentWeekStart.toISOString(),
-                end: currentWeekEnd.toISOString()
-            },
-            summary: generateTradeSummary(filteredTrades)
-        };
-    },
-}) 
+    inputSchema: z.object({}),
+})
+
+export async function executeGetCurrentWeekSummary() {
+    const now = new Date();
+    const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const currentWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
+    
+    console.log(`[getCurrentWeekSummary] Current week: ${format(currentWeekStart, 'yyyy-MM-dd')} to ${format(currentWeekEnd, 'yyyy-MM-dd')}`);
+    
+    const trades = await getTradesAction();
+    const filteredTrades = trades.filter(trade => {
+        const tradeDate = new Date(trade.entryDate);
+        return tradeDate >= currentWeekStart && tradeDate <= currentWeekEnd;
+    });
+    
+    return {
+        weekPeriod: `${format(currentWeekStart, 'MMM d')} - ${format(currentWeekEnd, 'MMM d, yyyy')}`,
+        dateRange: {
+            start: currentWeekStart.toISOString(),
+            end: currentWeekEnd.toISOString()
+        },
+        summary: generateTradeSummary(filteredTrades)
+    };
+} 

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   try {
     // Add timeout wrapper for the entire operation
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 15000) // 15 second timeout
+      setTimeout(() => reject(new Error('Request timeout')), 10000) // 10 second timeout
     })
 
     const operationPromise = async () => {
@@ -151,15 +151,61 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching prop firm accounts:', error)
     
-    if (error instanceof Error && error.message === 'Request timeout') {
-      return NextResponse.json(
-        { error: 'Request timeout - please try again' },
-        { status: 408 }
-      )
+    // Handle specific error types with detailed error codes
+    if (error instanceof Error) {
+      // Database connection errors
+      if (error.message.includes("Can't reach database server") ||
+          error.message.includes('P1001') ||
+          error.message.includes('Connection timeout') ||
+          error.message.includes('connection pool timeout') ||
+          error.message.includes('ECONNREFUSED')) {
+        return NextResponse.json(
+          { 
+            error: 'Database temporarily unavailable', 
+            code: 'DB_CONNECTION_ERROR',
+            details: 'Please check your database connection and try again.',
+            retryAfter: 30
+          },
+          { status: 503 }
+        )
+      }
+      
+      if (error.message.includes('Authentication service temporarily unavailable')) {
+        return NextResponse.json(
+          { 
+            error: 'Authentication service temporarily unavailable', 
+            code: 'AUTH_TIMEOUT',
+            retryAfter: 15
+          },
+          { status: 503 }
+        )
+      }
+      
+      if (error.message.includes('User not authenticated')) {
+        return NextResponse.json(
+          { error: 'Authentication required', code: 'AUTH_REQUIRED' },
+          { status: 401 }
+        )
+      }
+      
+      if (error.message === 'Request timeout') {
+        return NextResponse.json(
+          { 
+            error: 'Request timed out', 
+            code: 'REQUEST_TIMEOUT',
+            retryAfter: 10
+          },
+          { status: 408 }
+        )
+      }
     }
     
     return NextResponse.json(
-      { error: 'Failed to fetch accounts' },
+      { 
+        error: 'Failed to fetch accounts', 
+        code: 'INTERNAL_ERROR',
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+      },
       { status: 500 }
     )
   }

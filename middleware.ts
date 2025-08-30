@@ -25,15 +25,23 @@ async function updateSession(request: NextRequest) {
     },
   })
 
-  // Check if Supabase environment variables are defined
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    logger.warn("Supabase environment variables are not defined. Skipping authentication.", undefined, 'Middleware')
+  // Check if Supabase environment variables are properly defined (not just placeholders)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  if (!supabaseUrl || !supabaseKey || 
+      supabaseUrl.includes('[YOUR_PROJECT_REF]') || 
+      supabaseKey.includes('your-anon-key') ||
+      supabaseUrl === 'https://[YOUR_PROJECT_REF].supabase.co' ||
+      supabaseKey === 'your-anon-key-from-supabase') {
+    console.log("⚠️ Supabase environment variables contain placeholders. Skipping authentication.")
+    console.log("📝 Please configure your .env file with actual Supabase credentials")
     return { response, user: null, error: "Supabase not configured" }
   }
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {
@@ -58,10 +66,10 @@ async function updateSession(request: NextRequest) {
   let error: unknown = null
 
   try {
-    // Add timeout to prevent hanging requests - reduced to 2s for faster fallback
+    // Add timeout to prevent hanging requests - optimized for faster fallback
     const authPromise = supabase.auth.getUser()
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Auth timeout")), 2000)
+      setTimeout(() => reject(new Error("Auth timeout")), 3000)
     )
 
     const result = await Promise.race([authPromise, timeoutPromise]) as { data?: { user?: { id: string; email?: string } | null }; error?: unknown }

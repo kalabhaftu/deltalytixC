@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useChat, Message } from 'ai/react'
+import { useChat, UIMessage } from '@ai-sdk/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,15 +24,15 @@ import { useI18n } from '@/locales/client'
 
 export default function SupportPage() {
   const t = useI18n()
-  const GREETING_MESSAGE: Message = {
+  const GREETING_MESSAGE: UIMessage = {
     id: 'greeting',
     role: 'assistant',
-    content: t('support.greeting')
+    parts: [{ type: 'text', text: t('support.greeting') }]
   }
   
-  const { messages, append, setMessages, input, handleInputChange, isLoading, setInput } = useChat({
-    initialMessages: [GREETING_MESSAGE]
-  })
+  const [messages, setMessages] = useState<UIMessage[]>([GREETING_MESSAGE])
+  const [input, setInput] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const [needsHumanHelp, setNeedsHumanHelp] = useState(false)
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [isContactFormOpen, setIsContactFormOpen] = useState(false)
@@ -70,15 +70,16 @@ export default function SupportPage() {
     e.preventDefault()
     if (!input.trim() || isLoading) return
 
-    const userMessage: Message = { id: Date.now().toString(), role: 'user', content: input }
+    const userMessage: UIMessage = { id: Date.now().toString(), role: 'user', parts: [{ type: 'text', text: input }] }
     
     setMessages(prevMessages => [...prevMessages, userMessage])
     setInput('')
+    setIsLoading(true)
 
     try {
       const { response, needsHumanHelp: aiNeedsHumanHelp, readyForEmail } = await supportChat([...messages, userMessage])
       
-      const assistantMessage: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: response }
+      const assistantMessage: UIMessage = { id: (Date.now() + 1).toString(), role: 'assistant', parts: [{ type: 'text', text: response }] }
       setMessages(prevMessages => [...prevMessages, assistantMessage])
       setNeedsHumanHelp(aiNeedsHumanHelp)
 
@@ -87,13 +88,15 @@ export default function SupportPage() {
       }
     } catch (error) {
       console.error('Error in chat:', error)
-      const errorMessage: Message = { 
+      const errorMessage: UIMessage = { 
         id: (Date.now() + 1).toString(), 
         role: 'assistant', 
-        content: t('error') 
+        parts: [{ type: 'text', text: t('error') }]
       }
       setMessages(prevMessages => [...prevMessages, errorMessage])
       setNeedsHumanHelp(true)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -116,11 +119,11 @@ export default function SupportPage() {
         })
         setMessages(prevMessages => [
           ...prevMessages,
-          {
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: t('support.emailConfirmation', { name: contactInfo.name, email: contactInfo.email })
-          }
+                     {
+             id: Date.now().toString(),
+             role: 'assistant',
+             parts: [{ type: 'text', text: t('support.emailConfirmation', { name: contactInfo.name, email: contactInfo.email }) }]
+           }
         ])
       } else {
         throw new Error(result.error)
@@ -162,9 +165,11 @@ export default function SupportPage() {
                     <Avatar className={`w-6 h-6 sm:w-8 sm:h-8 ${message.role === 'user' ? 'ml-2' : 'mr-2'}`}>
                       <AvatarFallback>{message.role === 'user' ? 'U' : 'AI'}</AvatarFallback>
                     </Avatar>
-                    <div className={`rounded-lg p-2 sm:p-3 text-base ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                      {message.content}
-                    </div>
+                                         <div className={`rounded-lg p-2 sm:p-3 text-base ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                       {message.parts?.map((part, partIndex) => 
+                         part.type === 'text' ? part.text : null
+                       ).join('')}
+                     </div>
                   </div>
                 </motion.div>
               ))}
@@ -198,14 +203,14 @@ export default function SupportPage() {
         </CardContent>
         <CardFooter className="p-4 sm:p-6 flex-shrink-0">
           <form onSubmit={handleSubmit} className="flex w-full space-x-2">
-            <Input
-              value={input}
-              onChange={handleInputChange}
-              placeholder={t('chat.writeMessage')}
-              disabled={isLoading || isSendingEmail}
-              aria-label={t('chat.writeMessage')}
-              className="text-base"
-            />
+                         <Input
+               value={input}
+               onChange={(e) => setInput(e.target.value)}
+               placeholder={t('chat.writeMessage')}
+               disabled={isLoading || isSendingEmail}
+               aria-label={t('chat.writeMessage')}
+               className="text-base"
+             />
             <Button type="submit" disabled={isLoading || isSendingEmail} size="sm" className="whitespace-nowrap text-base">
               {isLoading ? (
                 <>

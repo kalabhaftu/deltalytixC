@@ -169,7 +169,8 @@ export default function PdfProcessing({
         rawBrokerId: null,
         strategy: null,
         phaseId: null,
-        accountId: null
+        accountId: null,
+        closeReason: null
       }));
       
       setProcessedTrades(convertedTrades);

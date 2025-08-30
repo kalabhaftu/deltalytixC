@@ -18,14 +18,10 @@ import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 
-interface ExtendedTrade extends Trade {
-  closeReason?: string | null
-}
-
 interface TradeDetailViewProps {
   isOpen: boolean
   onClose: () => void
-  trade: ExtendedTrade | null
+  trade: Trade | null
 }
 
 export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps) {
@@ -38,7 +34,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
     trade.imageBase64Second,
     trade.imageBase64Third,
     trade.imageBase64Fourth
-  ].filter(Boolean) as string[]
+  ].filter((img): img is string => Boolean(img) && typeof img === 'string')
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -154,7 +150,21 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">Account Number</Label>
-                    <p className="font-medium">{trade.accountNumber}</p>
+                    <div className="group relative">
+                      <p className="font-medium cursor-help">
+                        {trade.accountNumber.length > 12 
+                          ? `${trade.accountNumber.slice(0, 8)}...${trade.accountNumber.slice(-4)}`
+                          : trade.accountNumber
+                        }
+                      </p>
+                      {trade.accountNumber.length > 12 && (
+                        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50">
+                          <div className="bg-black text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                            {trade.accountNumber}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">Commission</Label>
@@ -178,10 +188,9 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                     <CardTitle className="text-lg">Trade Analysis</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div 
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: trade.comment }}
-                    />
+                    <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+                      {trade.comment}
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -315,10 +324,12 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                   wrapperClass="!w-full !h-full"
                   contentClass="!w-full !h-full flex items-center justify-center"
                 >
-                  <img
+                  <Image
                     src={selectedImage}
                     alt="Full screen view"
                     className="max-w-full max-h-full object-contain"
+                    fill
+                    sizes="95vw"
                   />
                 </TransformComponent>
               </TransformWrapper>

@@ -540,6 +540,8 @@ interface DataContextType {
   changeIsFirstConnection: (isFirstConnection: boolean) => void
   isFirstConnection: boolean
   setIsFirstConnection: (isFirstConnection: boolean) => void
+  error: string | null
+  setError: React.Dispatch<React.SetStateAction<string | null>>
   sharedParams: SharedParams | null
   setSharedParams: React.Dispatch<React.SetStateAction<SharedParams | null>>
 
@@ -687,6 +689,7 @@ export const DataProvider: React.FC<{
   const [hourFilter, setHourFilter] = useState<HourFilter>({ hour: null });
   const [tagFilter, setTagFilter] = useState<TagFilter>({ tags: [] });
   const [isFirstConnection, setIsFirstConnection] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Load data from the server
   const loadData = useCallback(async () => {
@@ -901,6 +904,10 @@ export const DataProvider: React.FC<{
         
         // Log other errors but don't throw to prevent unhandled promise rejections
         console.error('[DataProvider] Error in useEffect loadData:', error);
+        
+        // Set error state to inform user
+        setError('Failed to load data. Please refresh the page.');
+        setIsLoading(false);
       }
     };
 
@@ -1357,6 +1364,8 @@ export const DataProvider: React.FC<{
     changeIsFirstConnection,
     isFirstConnection,
     setIsFirstConnection,
+    error,
+    setError,
 
     // Formatted trades and filters
     formattedTrades,

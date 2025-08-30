@@ -1,9 +1,11 @@
 import { streamText } from "ai";
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { openai } from "@/lib/ai-sdk-wrapper";
-import { executeWithModelFallback, ModelConfig } from "@/lib/ai-model-fallback";
+import { executeWithProviderFallback } from "@/lib/ai-model-fallback";
 import { withRateLimit } from "@/lib/rate-limiting";
+import { createClient } from '@/server/auth';
+import { prisma } from '@/lib/prisma';
+import { createErrorResponse } from '@/lib/api-response-wrapper';
 import { getFinancialNews } from "./tools/get-financial-news";
 import { getJournalEntries } from "./tools/get-journal-entries";
 import { getMostTradedInstruments } from "./tools/get-most-traded-instruments";
@@ -18,20 +20,14 @@ import { startOfWeek, endOfWeek, subWeeks, format } from "date-fns";
 
 export const maxDuration = 30;
 
-export const POST = withRateLimit(async (req: NextRequest) => {
+export const POST = withRateLimit(async (req: NextRequest): Promise<Response> => {
   try {
     console.log('[Chat API] Request received')
     
-    // Check if OPENAI_API_KEY exists
-    if (!process.env.OPENAI_API_KEY) {
-      console.error('[Chat API] Missing OPENAI_API_KEY environment variable')
-      return new Response(JSON.stringify({ 
-        error: 'AI service not configured',
-        code: 'CONFIG_ERROR'
-      }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      })
+    // Check if at least one AI provider is configured
+    if (!process.env.OPENAI_API_KEY && !process.env.ZAI_API_KEY) {
+      console.error('[Chat API] No AI provider API keys configured')
+      return createErrorResponse('AI service not configured', 'CONFIG_ERROR', 500)
     }
     
     // Add request body validation
@@ -40,26 +36,14 @@ export const POST = withRateLimit(async (req: NextRequest) => {
       body = await req.json()
     } catch (parseError) {
       console.error('[Chat API] Failed to parse request body:', parseError)
-      return new Response(JSON.stringify({ 
-        error: 'Invalid request body',
-        code: 'PARSE_ERROR'
-      }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      })
+      return createErrorResponse('Invalid request body', 'PARSE_ERROR', 400)
     }
     
     const { messages, username, locale, timezone } = body
     
     // Validate required fields
     if (!messages || !Array.isArray(messages)) {
-      return new Response(JSON.stringify({ 
-        error: 'Messages array is required',
-        code: 'VALIDATION_ERROR'
-      }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      })
+      return createErrorResponse('Messages array is required', 'VALIDATION_ERROR', 400)
     }
     
     console.log('[Chat API] Request validated:', { 
@@ -69,6 +53,23 @@ export const POST = withRateLimit(async (req: NextRequest) => {
       timezone 
     })
 
+    // Get user ID from auth
+    let userId: string | undefined
+    try {
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.id) {
+        // Find user in our database
+        const dbUser = await prisma.user.findUnique({
+          where: { auth_user_id: user.id },
+          select: { id: true }
+        })
+        userId = dbUser?.id
+      }
+    } catch (error) {
+      console.warn('[Chat API] Failed to get user ID for AI provider preference:', error)
+    }
+
     // Calculate current week and previous week boundaries in user's timezone
     const now = new Date();
     const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday start
@@ -76,19 +77,14 @@ export const POST = withRateLimit(async (req: NextRequest) => {
     const previousWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
     const previousWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
 
-    console.log('[Chat API] Starting model fallback execution')
+    console.log('[Chat API] Starting provider fallback execution')
     
-    const result = await executeWithModelFallback(
-      async (modelConfig: ModelConfig) => {
-        console.log(`[Chat] Using model: ${modelConfig.displayName}`)
-        
-        try {
-          return streamText({
-            model: openai(modelConfig.name),
-            maxTokens: modelConfig.maxTokens,
-            temperature: modelConfig.temperature,
-            
-            system: `# ROLE & PERSONA
+    const result = await executeWithProviderFallback({
+      messages: messages,
+      maxTokens: 16384,
+      temperature: 0.7,
+      requiredCapabilities: ['chat', 'reasoning'],
+      system: `# ROLE & PERSONA
 You are a supportive trading psychology coach with expertise in behavioral finance and trader development. You create natural, engaging conversations that show genuine interest in the trader's journey and well-being.
 
 ## COMMUNICATION LANGUAGE
@@ -189,7 +185,6 @@ Always structure responses with:
 
 Remember: Clarity and structure create better conversations. Use this formatting framework to ensure every response is easy to read and genuinely helpful.`,
       toolCallStreaming: true,
-      messages: messages,
       maxSteps: 5, // Reduced from 10 to prevent complexity issues
       tools: {
         // server-side tool with execute function
@@ -206,66 +201,26 @@ Remember: Clarity and structure create better conversations. Use this formatting
         // client-side tool that is automatically executed on the client
         // askForConfirmation,
         // askForLocation,
-      },
-          })
-        } catch (modelError) {
-          console.error(`[Chat] Model ${modelConfig.displayName} failed:`, modelError)
-          throw modelError
-        }
-      },
-      ['chat', 'reasoning'], // Required capabilities
-      3 // Max attempts with different models
-    )
+      }
+    }, userId, 3)
     
     console.log('[Chat API] Successfully created stream response')
     
-    // Add error handling for streaming response
-    try {
-      return result.toDataStreamResponse();
-    } catch (streamError) {
-      console.error('[Chat API] Error creating data stream response:', streamError)
-      return new Response(JSON.stringify({ 
-        error: "Failed to create streaming response",
-        code: "STREAM_ERROR"
-      }), {
-        status: 500,
-        headers: { 
-          "Content-Type": "application/json",
-          "Connection": "close"
-        },
-      });
-    }
+    // In AI SDK v5, the result is already a Response object
+    console.log('[Chat API] Returning streaming response')
+    return result as Response
   } catch (error: any) {
     console.error('[Chat API] Error occurred:', error)
     
     // Handle timeout and other errors gracefully
     if (error?.name === 'AbortError') {
       console.error("[Chat API] Request timed out");
-      return new Response(JSON.stringify({ 
-        error: "Request timed out. Please try again.",
-        code: "TIMEOUT"
-      }), {
-        status: 408,
-        headers: { 
-          "Content-Type": "application/json",
-          "Connection": "close" // Prevent connection reuse
-        },
-      });
+      return createErrorResponse("Request timed out. Please try again.", "TIMEOUT", 408);
     }
     
     if (error instanceof z.ZodError) {
       console.error("[Chat API] Validation error:", error.errors);
-      return new Response(JSON.stringify({ 
-        error: "Validation failed",
-        details: error.errors,
-        code: "VALIDATION_ERROR"
-      }), {
-        status: 400,
-        headers: { 
-          "Content-Type": "application/json",
-          "Connection": "close"
-        },
-      });
+      return createErrorResponse("Validation failed", "VALIDATION_ERROR", 400);
     }
     
     // Handle AI SDK specific errors
@@ -276,29 +231,11 @@ Remember: Clarity and structure create better conversations. Use this formatting
         code: error.code
       });
       
-      return new Response(JSON.stringify({ 
-        error: "AI service error. Please try again.",
-        code: "AI_ERROR"
-      }), {
-        status: 503,
-        headers: { 
-          "Content-Type": "application/json",
-          "Connection": "close"
-        },
-      });
+      return createErrorResponse("AI service error. Please try again.", "AI_ERROR", 503);
     }
     
     // Generic error handler
     console.error("[Chat API] Unexpected error:", error);
-    return new Response(JSON.stringify({ 
-      error: "An unexpected error occurred. Please try again.",
-      code: "INTERNAL_ERROR"
-    }), {
-      status: 500,
-      headers: { 
-        "Content-Type": "application/json",
-        "Connection": "close"
-      },
-    });
+    return createErrorResponse("An unexpected error occurred. Please try again.", "INTERNAL_ERROR", 500);
   }
 }, 'ai') 

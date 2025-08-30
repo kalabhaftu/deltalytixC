@@ -40,27 +40,28 @@ function generateTradeSummary(trades: Trade[]): TradeSummary[] {
 
 export const getPreviousWeekSummary = tool({
     description: 'Get trades summary for the previous week (Monday to Sunday of last week). This automatically calculates the previous week boundaries.',
-    parameters: z.object({}),
-    execute: async () => {
-        const now = new Date();
-        const previousWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
-        const previousWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
-        
-        console.log(`[getPreviousWeekSummary] Previous week: ${format(previousWeekStart, 'yyyy-MM-dd')} to ${format(previousWeekEnd, 'yyyy-MM-dd')}`);
-        
-        const trades = await getTradesAction();
-        const filteredTrades = trades.filter(trade => {
-            const tradeDate = new Date(trade.entryDate);
-            return tradeDate >= previousWeekStart && tradeDate <= previousWeekEnd;
-        });
-        
-        return {
-            weekPeriod: `${format(previousWeekStart, 'MMM d')} - ${format(previousWeekEnd, 'MMM d, yyyy')}`,
-            dateRange: {
-                start: previousWeekStart.toISOString(),
-                end: previousWeekEnd.toISOString()
-            },
-            summary: generateTradeSummary(filteredTrades)
-        };
-    },
-}) 
+    inputSchema: z.object({}),
+})
+
+export async function executeGetPreviousWeekSummary() {
+    const now = new Date();
+    const previousWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+    const previousWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+    
+    console.log(`[getPreviousWeekSummary] Previous week: ${format(previousWeekStart, 'yyyy-MM-dd')} to ${format(previousWeekEnd, 'yyyy-MM-dd')}`);
+    
+    const trades = await getTradesAction();
+    const filteredTrades = trades.filter(trade => {
+        const tradeDate = new Date(trade.entryDate);
+        return tradeDate >= previousWeekStart && tradeDate <= previousWeekEnd;
+    });
+    
+    return {
+        weekPeriod: `${format(previousWeekStart, 'MMM d')} - ${format(previousWeekEnd, 'MMM d, yyyy')}`,
+        dateRange: {
+            start: previousWeekStart.toISOString(),
+            end: previousWeekEnd.toISOString()
+        },
+        summary: generateTradeSummary(filteredTrades)
+    };
+} 
