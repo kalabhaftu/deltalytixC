@@ -1,4 +1,4 @@
-import { openai } from "@/lib/ai-sdk-wrapper";
+import { openai } from "@ai-sdk/openai";
 import { streamObject } from "ai";
 import { NextRequest } from "next/server";
 import { mappingSchema } from "./schema";

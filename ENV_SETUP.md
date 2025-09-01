@@ -20,7 +20,6 @@ The application requires the following environment variables to be configured:
 
 ### AI/Chat Features
 - `OPENAI_API_KEY`: For OpenAI AI-powered features
-- `ZAI_API_KEY`: For zAI AI-powered features (recommended)
 - `PERPLEXITY_API_KEY`: For enhanced AI capabilities
 
 ### Email (Resend)

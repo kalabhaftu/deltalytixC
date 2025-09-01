@@ -1,4 +1,4 @@
-import { openai } from "@/lib/ai-sdk-wrapper"
+import { openai } from "@ai-sdk/openai"
 import { getUserId } from "@/server/auth"
 import { withRateLimit } from "@/lib/rate-limiting"
 

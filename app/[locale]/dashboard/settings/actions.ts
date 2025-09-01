@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import auth from '@/locales/en/auth'
 import { createClient } from '@/server/auth'
 import { revalidatePath } from 'next/cache'
-import { AIProvider } from '@/lib/ai-providers'
+
 
 export async function createBusiness(name: string, currency: 'USD' | 'EUR' = 'USD') {
   try {
@@ -936,65 +936,3 @@ export async function joinBusinessByInvitation(invitationToken: string) {
   }
 }
 
-export async function updateAIProvider(provider: AIProvider) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user?.id) {
-      throw new Error('Unauthorized')
-    }
-
-    // Find the user in our database using the auth user ID
-    const dbUser = await prisma.user.findUnique({
-      where: { auth_user_id: user.id },
-    })
-
-    if (!dbUser) {
-      throw new Error('User not found in database')
-    }
-
-    // Update the user's AI provider preference using raw query
-    await prisma.$queryRaw`
-      UPDATE "public"."User" SET "aiProvider" = ${provider} WHERE id = ${dbUser.id}
-    `
-
-    revalidatePath('/dashboard/settings')
-    return { success: true }
-  } catch (error) {
-    console.error('Error updating AI provider:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to update AI provider' }
-  }
-}
-
-export async function getUserAIProvider() {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user?.id) {
-      throw new Error('Unauthorized')
-    }
-
-    // Find the user in our database using the auth user ID
-    const dbUser = await prisma.user.findUnique({
-      where: { auth_user_id: user.id },
-      select: { id: true }
-    })
-
-    if (!dbUser) {
-      throw new Error('User not found in database')
-    }
-
-    // Get AI provider using raw query to avoid TypeScript issues
-    const result = await prisma.$queryRaw<{ aiProvider: string }[]>`
-      SELECT "aiProvider" FROM "public"."User" WHERE id = ${dbUser.id}
-    `
-
-    return { 
-      success: true, 
-      provider: (result[0]?.aiProvider as AIProvider) || 'zai' 
-    }
-  } catch (error) {
-    console.error('Error getting user AI provider:', error)
-    return { success: false, error: 'Failed to get AI provider preference', provider: 'zai' as AIProvider }
-  }
-}

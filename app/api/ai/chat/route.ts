@@ -1,11 +1,7 @@
 import { streamText } from "ai";
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { executeWithProviderFallback } from "@/lib/ai-model-fallback";
-import { withRateLimit } from "@/lib/rate-limiting";
-import { createClient } from '@/server/auth';
-import { prisma } from '@/lib/prisma';
-import { createErrorResponse } from '@/lib/api-response-wrapper';
+import { openai } from "@ai-sdk/openai";
 import { getFinancialNews } from "./tools/get-financial-news";
 import { getJournalEntries } from "./tools/get-journal-entries";
 import { getMostTradedInstruments } from "./tools/get-most-traded-instruments";
@@ -20,55 +16,9 @@ import { startOfWeek, endOfWeek, subWeeks, format } from "date-fns";
 
 export const maxDuration = 30;
 
-export const POST = withRateLimit(async (req: NextRequest): Promise<Response> => {
+export async function POST(req: NextRequest) {
   try {
-    console.log('[Chat API] Request received')
-    
-    // Check if at least one AI provider is configured
-    if (!process.env.OPENAI_API_KEY && !process.env.ZAI_API_KEY) {
-      console.error('[Chat API] No AI provider API keys configured')
-      return createErrorResponse('AI service not configured', 'CONFIG_ERROR', 500)
-    }
-    
-    // Add request body validation
-    let body
-    try {
-      body = await req.json()
-    } catch (parseError) {
-      console.error('[Chat API] Failed to parse request body:', parseError)
-      return createErrorResponse('Invalid request body', 'PARSE_ERROR', 400)
-    }
-    
-    const { messages, username, locale, timezone } = body
-    
-    // Validate required fields
-    if (!messages || !Array.isArray(messages)) {
-      return createErrorResponse('Messages array is required', 'VALIDATION_ERROR', 400)
-    }
-    
-    console.log('[Chat API] Request validated:', { 
-      messageCount: messages.length, 
-      username, 
-      locale, 
-      timezone 
-    })
-
-    // Get user ID from auth
-    let userId: string | undefined
-    try {
-      const supabase = await createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user?.id) {
-        // Find user in our database
-        const dbUser = await prisma.user.findUnique({
-          where: { auth_user_id: user.id },
-          select: { id: true }
-        })
-        userId = dbUser?.id
-      }
-    } catch (error) {
-      console.warn('[Chat API] Failed to get user ID for AI provider preference:', error)
-    }
+      const { messages, username, locale, timezone } = await req.json();
 
     // Calculate current week and previous week boundaries in user's timezone
     const now = new Date();
@@ -77,13 +27,9 @@ export const POST = withRateLimit(async (req: NextRequest): Promise<Response> =>
     const previousWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
     const previousWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
 
-    console.log('[Chat API] Starting provider fallback execution')
-    
-    const result = await executeWithProviderFallback({
-      messages: messages,
-      maxTokens: 16384,
-      temperature: 0.7,
-      requiredCapabilities: ['chat', 'reasoning'],
+    const result = streamText({
+      model: openai("gpt-4o-mini"),
+      
       system: `# ROLE & PERSONA
 You are a supportive trading psychology coach with expertise in behavioral finance and trader development. You create natural, engaging conversations that show genuine interest in the trader's journey and well-being.
 
@@ -184,8 +130,9 @@ Always structure responses with:
 - Encouraging closing statements
 
 Remember: Clarity and structure create better conversations. Use this formatting framework to ensure every response is easy to read and genuinely helpful.`,
-      toolCallStreaming: true,
-      maxSteps: 5, // Reduced from 10 to prevent complexity issues
+      // toolCallStreaming: true, // Removed as it's not supported in current version
+      messages: messages,
+      // maxSteps: 10, // Removed as it's not supported in current version
       tools: {
         // server-side tool with execute function
         getJournalEntries,
@@ -201,41 +148,20 @@ Remember: Clarity and structure create better conversations. Use this formatting
         // client-side tool that is automatically executed on the client
         // askForConfirmation,
         // askForLocation,
-      }
-    }, userId, 3)
-    
-    console.log('[Chat API] Successfully created stream response')
-    
-    // In AI SDK v5, the result is already a Response object
-    console.log('[Chat API] Returning streaming response')
-    return result as Response
-  } catch (error: any) {
-    console.error('[Chat API] Error occurred:', error)
-    
-    // Handle timeout and other errors gracefully
-    if (error?.name === 'AbortError') {
-      console.error("[Chat API] Request timed out");
-      return createErrorResponse("Request timed out. Please try again.", "TIMEOUT", 408);
-    }
-    
+      },
+    });
+    return result.toTextStreamResponse();
+  } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("[Chat API] Validation error:", error.errors);
-      return createErrorResponse("Validation failed", "VALIDATION_ERROR", 400);
-    }
-    
-    // Handle AI SDK specific errors
-    if (error?.status || error?.statusCode) {
-      console.error("[Chat API] AI SDK error:", {
-        status: error.status || error.statusCode,
-        message: error.message,
-        code: error.code
+      return new Response(JSON.stringify({ error: error.errors }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
       });
-      
-      return createErrorResponse("AI service error. Please try again.", "AI_ERROR", 503);
     }
-    
-    // Generic error handler
-    console.error("[Chat API] Unexpected error:", error);
-    return createErrorResponse("An unexpected error occurred. Please try again.", "INTERNAL_ERROR", 500);
+    console.error("Error in chat route:", error);
+    return new Response(JSON.stringify({ error: "Failed to process chat" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
-}, 'ai') 
+}

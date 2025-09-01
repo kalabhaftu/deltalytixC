@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { useRef } from "react"
 import { ClipboardCheckIcon, type ClipboardCheckIconHandle } from "@/components/animated-icons/clipboard-check"
-import { ChatStatus } from "./chat"
+type ChatStatus = "error" | "submitted" | "streaming" | "ready"
 import { useI18n } from "@/locales/client"
 
 // Message Components

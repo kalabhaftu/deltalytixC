@@ -1,24 +1,10 @@
 import { streamText } from "ai";
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { executeWithProviderFallback } from "@/lib/ai-model-fallback";
-import { createClient } from '@/server/auth';
-import { prisma } from '@/lib/prisma';
-import { createErrorResponse, createSuccessResponse } from '@/lib/api-response-wrapper';
+import { openai } from "@ai-sdk/openai";
 
-// Global Analysis Tools
-import { getOverallPerformanceMetrics } from "../chat/tools/get-overall-performance-metrics";
-import { getPerformanceTrends } from "../chat/tools/get-performance-trends";
-
-// Instrument Analysis Tools
-import { getInstrumentPerformance } from "../chat/tools/get-instrument-performance";
+// Available tools - only use existing ones
 import { getMostTradedInstruments } from "../chat/tools/get-most-traded-instruments";
-
-// Account Analysis Tools
-// import { getAccountPerformance } from "../chat/tools/get-account-performance";
-
-// Time of Day Analysis Tools
-import { getTimeOfDayPerformance } from "../chat/tools/get-time-of-day-performance";
 
 // Fallback tools
 import { getCurrentWeekSummary } from "../chat/tools/get-current-week-summary";
@@ -42,37 +28,18 @@ function getToolsForSection(section: string) {
     getMostTradedInstruments
   };
 
-  switch (section) {
-    case 'global':
-      return {
-        ...baseTools,
-        getOverallPerformanceMetrics,
-        getPerformanceTrends
-      };
-    case 'instrument':
-      return {
-        ...baseTools,
-        getInstrumentPerformance
-      };
-    case 'accounts':
-      return {
-        ...baseTools,
-        // getAccountPerformance
-      };
-    case 'timeOfDay':
-      return {
-        ...baseTools,
-        getTimeOfDayPerformance
-      };
-    default:
-      return baseTools;
-  }
+  // For now, return base tools for all sections
+  // Additional tools can be added when available
+  return baseTools;
 }
 
 function getLanguageInstructions(locale: string) {
-  return `- You MUST respond in English
-- All content must be in English
-- Use clear, professional English throughout your response`;
+  if (locale === 'fr') {
+    return `- You MUST respond in French (français)
+- All content must be in French except for the specific trading terms listed below
+- Use French grammar, vocabulary, and sentence structure throughout your response`;
+  }
+  return `- You MUST respond in ${locale} language`;
 }
 
 function getBaseSystemPrompt(locale: string) {
@@ -88,21 +55,21 @@ ${getLanguageInstructions(locale)}
 Return ONLY valid JSON in the following format:
 
 {
-  "title": "Section Title",
-  "description": "Brief description of what this analysis covers",
+  "title": "Section Title${locale === 'fr' ? ' (in French)' : ''}",
+  "description": "Brief description of what this analysis covers${locale === 'fr' ? ' (in French)' : ''}",
   "insights": [
     {
       "type": "positive|negative|neutral",
-      "message": "Detailed insight message",
+      "message": "Detailed insight message${locale === 'fr' ? ' (in French)' : ''}",
       "metric": "Optional metric value"
     }
   ],
   "score": 85,
   "trend": "up|down|neutral",
   "recommendations": [
-    "Specific actionable recommendation 1",
-    "Specific actionable recommendation 2",
-    "Specific actionable recommendation 3"
+    "Specific actionable recommendation 1${locale === 'fr' ? ' (in French)' : ''}",
+    "Specific actionable recommendation 2${locale === 'fr' ? ' (in French)' : ''}",
+    "Specific actionable recommendation 3${locale === 'fr' ? ' (in French)' : ''}"
   ]
 }
 
@@ -249,121 +216,41 @@ function getSystemPromptForSection(section: string, locale: string, timezone: st
 
 export async function POST(req: NextRequest) {
   try {
-    // Add request timeout handling
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 second timeout (less than maxDuration)
+    const { section, username, locale, timezone } = await req.json();
+    
+    // Add debugging to see what locale is being received
+    console.log('Analysis API received:', { section, username, locale, timezone });
+    
+    // Validate the request
+    const validatedData = analysisSchema.parse({ section, username, locale, timezone });
+    console.log('Validated data:', validatedData);
 
-    try {
-      const { section, username, locale, timezone } = await req.json();
-      
-      // Add debugging to see what locale is being received
-      console.log('Analysis API received:', { section, username, locale, timezone });
-      
-      // Validate the request
-      const validatedData = analysisSchema.parse({ section, username, locale, timezone });
-      console.log('Validated data:', validatedData);
-
-      // Get user ID from auth
-      let userId: string | undefined
-      try {
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user?.id) {
-          // Find user in our database
-          const dbUser = await prisma.user.findUnique({
-            where: { auth_user_id: user.id },
-            select: { id: true }
-          })
-          userId = dbUser?.id
+    const result = streamText({
+      model: openai("gpt-4o-mini"),
+      system: getSystemPromptForSection(validatedData.section, validatedData.locale, validatedData.timezone),
+      // toolCallStreaming: true, // Removed as it's not supported in current version
+      messages: [
+        {
+          role: "user",
+          content: `Analyze my ${validatedData.section} trading performance and provide detailed insights in ${validatedData.locale} language.`
         }
-      } catch (error) {
-        console.warn('[Analysis API] Failed to get user ID for AI provider preference:', error)
-      }
+      ],
+      // maxSteps: 5, // Removed as it's not supported in current version
+      tools: getToolsForSection(validatedData.section),
+    });
 
-      const result = await executeWithProviderFallback({
-        maxTokens: 8192,
-        temperature: 0.3,
-        requiredCapabilities: ['analysis', 'reasoning'],
-        system: getSystemPromptForSection(validatedData.section, validatedData.locale, validatedData.timezone),
-        toolCallStreaming: false, // Changed to false for proper JSON response
-        messages: [
-          {
-            role: "user",
-            content: `Analyze my ${validatedData.section} trading performance and provide detailed insights in ${validatedData.locale} language. Please provide your response as a structured analysis that can be easily parsed.`
-          }
-        ],
-        tools: getToolsForSection(validatedData.section)
-        // Removed maxSteps and tools to avoid stepModel.doGenerate errors
-      }, userId, 3);
-
-      clearTimeout(timeoutId)
-
-      // Extract the text content from the AI result
-      let analysisContent = ''
-      try {
-        // In AI SDK v5, the result structure is different
-        if (result && typeof result === 'object') {
-          // Try to get text from various possible properties
-          if ((result as any).text) {
-            analysisContent = (result as any).text
-          } else if ((result as any).content) {
-            analysisContent = (result as any).content
-          } else if ((result as any).message?.content) {
-            analysisContent = (result as any).message.content
-          } else if (result.toString) {
-            analysisContent = result.toString()
-          } else {
-            // Fallback: stringify the result
-            analysisContent = JSON.stringify(result)
-          }
-        } else if (typeof result === 'string') {
-          analysisContent = result
-        } else {
-          analysisContent = 'Analysis completed successfully'
-        }
-      } catch (extractError) {
-        console.error('Error extracting analysis content:', extractError)
-        analysisContent = 'Analysis completed successfully'
-      }
-
-      // Return structured JSON response
-      return createSuccessResponse({
-        section: validatedData.section,
-        analysis: analysisContent,
-        timestamp: new Date().toISOString(),
-        locale: validatedData.locale
-      });
-    } catch (timeoutError) {
-      clearTimeout(timeoutId)
-      if ((timeoutError as any)?.name === 'AbortError') {
-        console.error("Analysis request timed out");
-        return createErrorResponse("Request timed out. Please try again.", "TIMEOUT", 408);
-      }
-      throw timeoutError
-    }
+    return result.toTextStreamResponse();
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("Validation error:", error.errors);
-      return createErrorResponse("Invalid request parameters", "VALIDATION_ERROR", 400);
+      return new Response(JSON.stringify({ error: error.errors }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
-    
     console.error("Error in analysis route:", error);
-    
-    // Provide more specific error messages
-    let errorMessage = "Failed to process analysis"
-    let statusCode = 500
-    
-    if ((error as any)?.message?.includes('OpenAI')) {
-      errorMessage = "AI service temporarily unavailable. Please try again."
-      statusCode = 503
-    } else if ((error as any)?.message?.includes('rate limit')) {
-      errorMessage = "Too many requests. Please wait a moment and try again."
-      statusCode = 429
-    } else if ((error as any)?.message?.includes('network') || (error as any)?.message?.includes('fetch')) {
-      errorMessage = "Network error. Please check your connection and try again."
-      statusCode = 502
-    }
-    
-    return createErrorResponse(errorMessage, "SERVER_ERROR", statusCode);
+    return new Response(JSON.stringify({ error: "Failed to process analysis" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }

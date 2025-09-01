@@ -234,8 +234,7 @@ export function AnalysisOverview() {
           const Icon = config.icon
           const isCurrentlyLoading = isLoading[config.key]
           
-          // Debug logging
-          console.log(`Section ${config.key}:`, { isCurrentlyLoading, hasData: !!sectionData })
+          // Debug logging removed - was causing console spam
           
           // Show skeleton loader if currently loading or if any section is loading (for analyze all) and this section has no data
           if ((isCurrentlyLoading || hasAnyLoading) && !sectionData) {

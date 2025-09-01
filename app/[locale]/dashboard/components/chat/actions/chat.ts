@@ -1,32 +1,26 @@
 'use server'
-import { UIMessage } from "ai"
+import { UIMessage } from "@ai-sdk/react"
+
+type Message = UIMessage
 import { prisma } from "@/lib/prisma"
 import { addDays, format } from "date-fns"
 import { Mood } from "@prisma/client"
 import { revalidateTag } from "next/cache"
 
-export async function saveChat(userId: string, messages: UIMessage[]): Promise<Mood | null> {
+export async function saveChat(userId: string, messages: Message[]): Promise<Mood | null> {
   console.log('Saving chat')
   const today = new Date()
   const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 12))
 
-  // Extract only text content from messages, handling both direct content and parts
-  const textOnlyMessages = messages.map(msg => {
-    if (msg.parts) {
-      // If message has parts, only keep text parts
-      const textParts = msg.parts
-        .filter(part => part.type === 'text')
-        .map(part => part.text)
-        .join('')
-      return {
-        ...msg,
-        content: textParts,
-        parts: undefined // Remove parts since we've consolidated them into content
-      }
-    }
-    // If no parts, just use the content directly
-    return msg
-  })
+  // Simplify messages for storage
+  const textOnlyMessages = messages.map(msg => ({
+    id: (msg as any).id || Math.random().toString(),
+    role: msg.role,
+    content: msg.role === 'user' ? (msg as any).content : 
+             msg.role === 'assistant' ? (msg as any).content || 'AI response' : 
+             msg.role === 'system' ? (msg as any).content || 'System message' : 
+             JSON.stringify(msg),
+  }))
 
   // Try to find existing mood entry for today
   const existingMood = await prisma.mood.findFirst({
@@ -66,7 +60,7 @@ export async function saveChat(userId: string, messages: UIMessage[]): Promise<M
   }
 }
 
-export async function loadChat(userId: string): Promise<UIMessage[]> {
+export async function loadChat(userId: string): Promise<Message[]> {
   console.log('Loading chat')
   const today = new Date()
   const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 12))
@@ -87,4 +81,4 @@ export async function loadChat(userId: string): Promise<UIMessage[]> {
 
   // Return conversation if it exists, otherwise empty array
   return mood?.conversation ? JSON.parse(mood.conversation as string) : []
-} 
+}

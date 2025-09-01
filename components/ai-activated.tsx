@@ -88,4 +88,3 @@ export function AIBorder({ children, className, success = false }: AIBorderProps
     </div>
   )
 }
-
