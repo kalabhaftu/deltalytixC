@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Trash2, Save } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/locales/client'
@@ -13,7 +14,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { useData } from '@/context/data-provider'
-import { NoteEditor } from '@/app/[locale]/dashboard/components/mindset/note-editor'
 
 interface TradeCommentProps {
   tradeIds: string[]
@@ -131,14 +131,12 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
               )}
             </div>
             <div className="space-y-2">
-              <div className="h-[300px]">
-                <NoteEditor
-                  initialContent={localComment}
-                  onChange={(content) => setLocalComment(content)}
-                  height="300px"
-                  width="100%"
-                />
-              </div>
+              <Textarea
+                value={localComment}
+                onChange={(e) => setLocalComment(e.target.value)}
+                placeholder="Add your trade analysis and notes..."
+                className="min-h-[300px] resize-none"
+              />
             </div>
             <div className="flex justify-between">
               <Button

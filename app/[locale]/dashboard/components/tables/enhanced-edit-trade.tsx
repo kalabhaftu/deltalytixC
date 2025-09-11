@@ -20,7 +20,6 @@ import { useToast } from '@/hooks/use-toast'
 import { Trade } from '@prisma/client'
 import { Edit, Camera, X } from 'lucide-react'
 import { useUserStore } from '@/store/user-store'
-import { NoteEditor } from '@/app/[locale]/dashboard/components/mindset/note-editor'
 
 // Schema for limited editing (only notes, screenshots, links)
 const editTradeSchema = z.object({
@@ -398,16 +397,15 @@ export default function EnhancedEditTrade({
               <CardContent>
                 <div className="space-y-2">
                   <Label htmlFor="comment">Analysis & Reflections</Label>
-                  <div className="h-[200px]">
-                    <NoteEditor
-                      initialContent={watchedValues.comment || ''}
-                      onChange={(content) => setValue('comment', content)}
-                      height="200px"
-                      width="100%"
-                    />
-                  </div>
+                  <Textarea
+                    {...register('comment')}
+                    placeholder="Document your analysis, market conditions, and lessons learned from this trade..."
+                    className="min-h-[200px] resize-none"
+                    value={watchedValues.comment || ''}
+                    onChange={(e) => setValue('comment', e.target.value)}
+                  />
                   <p className="text-sm text-muted-foreground">
-                    Document your analysis, market conditions, and lessons learned from this trade using the rich text editor.
+                    Document your analysis, market conditions, and lessons learned from this trade.
                   </p>
                 </div>
               </CardContent>
