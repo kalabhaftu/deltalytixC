@@ -13,7 +13,6 @@ import { useData } from '@/context/data-provider'
 import { AccountFilter } from './account-filter'
 import { InstrumentFilterSimple } from './instrument-filter-simple'
 import { PnlFilterSimple } from './pnl-filter-simple'
-import { TagFilter } from './tag-filter'
 import { useI18n } from "@/locales/client"
 
 export default function FilterLeftPane() {
@@ -52,8 +51,6 @@ export default function FilterLeftPane() {
       {/* PnL Filter */}
       <PnlFilterSimple />
 
-      {/* Tag Filter */}
-      <TagFilter />
     </div>
   ), [showAccountNumbers, t])
 

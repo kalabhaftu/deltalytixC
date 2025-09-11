@@ -2,7 +2,6 @@ import shared from './en/shared'
 import landing from './en/landing'
 import auth from './en/auth'
 import dropzone from './en/dropzone'
-import mindset from './en/mindset'
 import propfirm from './en/propfirm'
 import chat from './en/chat'
 import importTranslations from './en/import'
@@ -12,7 +11,6 @@ export default {
     ...landing,
     ...auth,
     ...dropzone,
-    ...mindset,
     ...propfirm,
     ...chat,
     ...importTranslations,

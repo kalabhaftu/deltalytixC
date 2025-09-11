@@ -30,7 +30,6 @@ import { cn, parsePositionTime } from '@/lib/utils'
 import { Checkbox } from "@/components/ui/checkbox"
 import { useI18n } from '@/locales/client'
 
-import { TradeTag } from './trade-tag'
 import { formatInTimeZone } from 'date-fns-tz'
 import {
   Tooltip,
@@ -85,8 +84,8 @@ import {
 // Custom Tags Header Component
 function TagsColumnHeader() {
   const t = useI18n()
-  const { tagFilter, setTagFilter } = useData()
-  const tags = useUserStore(state => state.tags)
+  
+  
   const [searchQuery, setSearchQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
 
@@ -229,7 +228,7 @@ function TagsColumnHeader() {
 
 interface ExtendedTrade extends Trade {
   imageUrl?: string | undefined
-  tags: string[]
+  
   imageBase64: string | null
   imageBase64Second: string | null
   comment: string | null
@@ -248,7 +247,7 @@ export function TradeTableReview() {
     formattedTrades: contextTrades,
     updateTrades,
   } = useData()
-  const tags = useUserStore(state => state.tags)
+  
   const timezone = useUserStore(state => state.timezone)
   const tickDetails = useTickDetailsStore(state => state.tickDetails)
 
@@ -381,7 +380,7 @@ export function TradeTableReview() {
           symbol: trade.symbol ?? null,
           entryTime: null,
           exitTime: null,
-          tags: trade.tags,
+          
           imageBase64: trade.imageBase64,
           imageBase64Second: trade.imageBase64Second,
           phaseId: trade.phaseId ?? null,
@@ -917,7 +916,7 @@ export function TradeTableReview() {
                             ? '160px'
                             : header.column.id === 'timeInPosition'
                             ? '120px'
-                            : header.column.id === 'tags'
+                            : header.column.id === 'unused'
                             ? '200px'
                             : '110px'
                         }}
@@ -966,7 +965,7 @@ export function TradeTableReview() {
                                 ? '160px'
                                 : cell.column.id === 'timeInPosition'
                                 ? '120px'
-                                : cell.column.id === 'tags'
+                                : cell.column.id === 'unused'
                                 ? '200px'
                                 : '110px'
                             }}
