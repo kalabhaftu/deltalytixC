@@ -195,11 +195,13 @@ export async function GET(request: NextRequest) {
     // Race between operation and timeout
     const result = await Promise.race([operationPromise(), timeoutPromise])
     
-    // Add caching headers for performance
-    result.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60')
-    result.headers.set('CDN-Cache-Control', 'public, s-maxage=30')
+    // Add caching headers for performance (result is guaranteed to be NextResponse if operationPromise resolves)
+    if (result && typeof result === 'object' && 'headers' in result) {
+      (result as NextResponse).headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60')
+      ;(result as NextResponse).headers.set('CDN-Cache-Control', 'public, s-maxage=30')
+    }
     
-    return result
+    return result as NextResponse
 
   } catch (error) {
     console.error('Error fetching prop firm accounts:', error)

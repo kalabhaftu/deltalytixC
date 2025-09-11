@@ -270,7 +270,7 @@ export function TradeTableReview() {
           }],
           createdAt: new Date(),
           groupId: trade.groupId || null,
-          tags: trade.tags || [],
+          tags: trade.tags ?? [],
         })
       }
       else {
