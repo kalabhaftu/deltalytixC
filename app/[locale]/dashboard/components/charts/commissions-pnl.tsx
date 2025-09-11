@@ -44,19 +44,55 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
   const chartData = React.useMemo(() => {
     const totalPnL = trades.reduce((sum, trade) => sum + trade.pnl, 0)
     const totalCommissions = trades.reduce((sum, trade) => sum + trade.commission, 0)
-    const total = Math.abs(totalPnL) + Math.abs(totalCommissions)
+    
+    // Handle case where both values are zero or very small
+    if (Math.abs(totalPnL) < 0.01 && Math.abs(totalCommissions) < 0.01) {
+      return [
+        {
+          name: t('commissions.legend.netPnl'),
+          value: 0,
+          percentage: 0.5,
+          fill: chartConfig.pnl.color
+        },
+        {
+          name: t('commissions.legend.commissions'),
+          value: 0,
+          percentage: 0.5,
+          fill: chartConfig.commissions.color
+        }
+      ]
+    }
+
+    // Calculate percentages with a minimum threshold for visibility
+    const absPnL = Math.abs(totalPnL)
+    const absCommissions = Math.abs(totalCommissions)
+    const total = absPnL + absCommissions
+    
+    // Ensure minimum 5% visibility for each slice
+    const minPercentage = 0.05
+    let pnlPercentage = absPnL / total
+    let commissionsPercentage = absCommissions / total
+    
+    // If one percentage is too small, adjust both to ensure visibility
+    if (pnlPercentage < minPercentage && pnlPercentage > 0) {
+      pnlPercentage = minPercentage
+      commissionsPercentage = 1 - minPercentage
+    } else if (commissionsPercentage < minPercentage && commissionsPercentage > 0) {
+      commissionsPercentage = minPercentage
+      pnlPercentage = 1 - minPercentage
+    }
 
     return [
       {
         name: t('commissions.legend.netPnl'),
         value: totalPnL,
-        percentage: totalPnL / total,
+        percentage: pnlPercentage,
         fill: chartConfig.pnl.color
       },
       {
         name: t('commissions.legend.commissions'),
         value: totalCommissions,
-        percentage: totalCommissions / total,
+        percentage: commissionsPercentage,
         fill: chartConfig.commissions.color
       }
     ]
@@ -186,40 +222,49 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
         <div className={cn(
           "w-full h-full"
         )}>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="45%"
-                innerRadius={getOuterRadius() * 0.6}
-                outerRadius={getOuterRadius()}
-                paddingAngle={2}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`}
-                    fill={entry.fill}
-                    className="transition-all duration-300 ease-in-out"
-                  />
-                ))}
-              </Pie>
-              <Tooltip 
-                content={<CustomTooltip />}
-                wrapperStyle={{ 
-                  fontSize: size === 'small-long' ? '10px' : '12px',
-                  zIndex: 1000
-                }} 
-              />
-              <Legend 
-                content={<CustomLegend />}
-                verticalAlign="bottom"
-                align="center"
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          {chartData.length > 0 && chartData.some(item => Math.abs(item.value) > 0.01) ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  dataKey="percentage"
+                  nameKey="name"
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={getOuterRadius() * 0.6}
+                  outerRadius={getOuterRadius()}
+                  paddingAngle={2}
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`}
+                      fill={entry.fill}
+                      className="transition-all duration-300 ease-in-out"
+                    />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  content={<CustomTooltip />}
+                  wrapperStyle={{ 
+                    fontSize: size === 'small-long' ? '10px' : '12px',
+                    zIndex: 1000
+                  }} 
+                />
+                <Legend 
+                  content={<CustomLegend />}
+                  verticalAlign="bottom"
+                  align="center"
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center text-muted-foreground">
+                <p className="text-sm">No significant data to display</p>
+                <p className="text-xs mt-1">Both P/L and commissions are near zero</p>
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -83,8 +83,15 @@ export default function PnLBySideChart({ size = 'medium' }: PnLBySideChartProps)
   const t = useI18n()
 
   const chartData = React.useMemo(() => {
-    const longTrades = trades.filter(trade => trade.side?.toLowerCase() === 'long')
-    const shortTrades = trades.filter(trade => trade.side?.toLowerCase() === 'short')
+    // Handle both "long/short" and "BUY/SELL" formats
+    const longTrades = trades.filter(trade => {
+      const side = trade.side?.toLowerCase()
+      return side === 'long' || side === 'buy'
+    })
+    const shortTrades = trades.filter(trade => {
+      const side = trade.side?.toLowerCase()
+      return side === 'short' || side === 'sell'
+    })
 
     const longPnL = longTrades.reduce((sum, trade) => sum + trade.pnl, 0)
     const shortPnL = shortTrades.reduce((sum, trade) => sum + trade.pnl, 0)

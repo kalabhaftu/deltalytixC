@@ -55,7 +55,7 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
               {t('tickDistribution.tooltip.ticks')}
             </span>
             <span className="font-bold text-muted-foreground">
-              {data.ticks} {parseInt(data.ticks) !== 1 ? t('tickDistribution.tooltip.ticks_plural') : t('tickDistribution.tooltip.tick')}
+              {data.displayTick} {Math.abs(data.tick) !== 1 ? t('tickDistribution.tooltip.ticks_plural') : t('tickDistribution.tooltip.tick')}
             </span>
           </div>
           <div className="flex flex-col">
@@ -93,6 +93,11 @@ export default function TickDistributionChart({ size = 'medium' }: TickDistribut
 
     // Count trades for each tick value
     trades.forEach(trade => {
+      // Skip trades with zero quantity to avoid division by zero
+      if (Number(trade.quantity) === 0) {
+        return
+      }
+
       // Fix ticker matching logic - sort by length descending to match longer tickers first
       // This prevents "ES" from matching "MES" trades
       const matchingTicker = Object.keys(tickDetails)
@@ -102,25 +107,41 @@ export default function TickDistributionChart({ size = 'medium' }: TickDistribut
       // Use tickValue (monetary value per tick) instead of tickSize (minimum price increment)
       const tickValue = matchingTicker ? tickDetails[matchingTicker].tickValue : 1
       
+      // Skip if tickValue is zero to avoid division by zero
+      if (tickValue === 0) {
+        return
+      }
+      
       // Calculate PnL per contract first
       const pnlPerContract = Number(trade.pnl) / Number(trade.quantity)
       const ticks = Math.round(pnlPerContract / tickValue)
+      
+      // Skip if ticks is not finite (handles NaN, Infinity, -Infinity)
+      if (!isFinite(ticks)) {
+        return
+      }
+      
       tickCounts[ticks] = (tickCounts[ticks] || 0) + 1
     })
 
-    // Convert the tick counts to sorted chart data
-    return Object.entries(tickCounts)
+    // Only show tick values that actually have trades (non-zero counts)
+    const chartData = Object.entries(tickCounts)
+      .filter(([_, count]) => count > 0) // Only include ticks with actual trades
       .map(([tick, count]) => ({
-        ticks: tick === '0' ? '0' : Number(tick) > 0 ? `+${tick}` : `${tick}`,
-        count
+        tick: Number(tick),
+        count,
+        displayTick: tick === '0' ? '0' : Number(tick) > 0 ? `+${tick}` : `${tick}`,
+        // For waterfall-style: negative ticks go down (negative count), positive go up
+        barHeight: Number(tick) < 0 ? -count : count
       }))
-      .sort((a, b) => Number(a.ticks.replace('+', '')) - Number(b.ticks.replace('+', '')))
+      .sort((a, b) => a.tick - b.tick) // Sort by tick value
 
+    return chartData
   }, [trades, tickDetails])
 
   const handleBarClick = (data: any) => {
     if (!data || !trades.length) return
-    const clickedTicks = data.ticks
+    const clickedTicks = data.displayTick
     if (tickFilter.value === clickedTicks) {
       setTickFilter({ value: null })
     } else {
@@ -179,45 +200,32 @@ export default function TickDistributionChart({ size = 'medium' }: TickDistribut
         )}
       >
         <div className={cn("w-full h-full")}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              margin={
-                size === 'small-long'
-                  ? { left: 0, right: 4, top: 4, bottom: 20 }
-                  : { left: 0, right: 8, top: 8, bottom: 24 }
-              }
-              onClick={(e) => e?.activePayload && handleBarClick(e.activePayload[0].payload)}
-            >
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={
+                  size === 'small-long'
+                    ? { left: 0, right: 4, top: 4, bottom: 20 }
+                    : { left: 0, right: 8, top: 8, bottom: 24 }
+                }
+                onClick={(e) => e?.activePayload && handleBarClick(e.activePayload[0].payload)}
+              >
               <CartesianGrid 
                 strokeDasharray="3 3" 
                 className="text-border dark:opacity-[0.12] opacity-[0.2]"
               />
               <XAxis
-                dataKey="ticks"
+                dataKey="displayTick"
                 tickLine={false}
                 axisLine={false}
                 height={size === 'small-long' ? 20 : 24}
                 tickMargin={size === 'small-long' ? 4 : 8}
-                tick={(props) => {
-                  const { x, y, payload } = props;
-                  return (
-                    <g transform={`translate(${x},${y})`}>
-                      <text
-                        x={0}
-                        y={0}
-                        dy={size === 'small-long' ? 8 : 4}
-                        textAnchor={size === 'small-long' ? 'end' : 'middle'}
-                        fill="currentColor"
-                        fontSize={size === 'small-long' ? 9 : 11}
-                        transform={size === 'small-long' ? 'rotate(-45)' : 'rotate(0)'}
-                      >
-                        {payload.value}
-                      </text>
-                    </g>
-                  );
+                tick={{ 
+                  fontSize: size === 'small-long' ? 9 : 11,
+                  fill: 'currentColor'
                 }}
-                interval="preserveStartEnd"
+                interval={0} // Show all tick labels
                 allowDataOverflow={true}
               />
               <YAxis
@@ -225,11 +233,13 @@ export default function TickDistributionChart({ size = 'medium' }: TickDistribut
                 axisLine={false}
                 width={45}
                 tickMargin={4}
-                tickFormatter={formatCount}
+                tickFormatter={(value) => Math.abs(value).toString()}
                 tick={{ 
                   fontSize: size === 'small-long' ? 9 : 11,
                   fill: 'currentColor'
                 }}
+                domain={['dataMin', 'dataMax']}
+                allowDecimals={false}
               />
               <Tooltip 
                 content={<CustomTooltip />}
@@ -239,22 +249,45 @@ export default function TickDistributionChart({ size = 'medium' }: TickDistribut
                 }} 
               />
               <Bar
-                dataKey="count"
+                dataKey="barHeight"
                 fill={chartConfig.count.color}
                 radius={[3, 3, 0, 0]}
-                maxBarSize={size === 'small-long' ? 25 : 40}
+                maxBarSize={(() => {
+                  const dataPoints = chartData.length
+                  const baseWidth = size === 'small-long' ? 25 : 40
+                  
+                  // Calculate responsive bar width based on number of data points
+                  if (dataPoints <= 10) {
+                    return baseWidth // Full width for few data points
+                  } else if (dataPoints <= 20) {
+                    return Math.max(baseWidth * 0.8, 20) // Slightly smaller
+                  } else if (dataPoints <= 30) {
+                    return Math.max(baseWidth * 0.6, 15) // Medium width
+                  } else {
+                    return Math.max(baseWidth * 0.4, 10) // Narrow bars for many data points
+                  }
+                })()}
                 className="transition-all duration-300 ease-in-out"
                 opacity={tickFilter.value ? 0.3 : 1}
               >
                 {chartData.map((entry) => (
                   <Cell
-                    key={`cell-${entry.ticks}`}
-                    opacity={tickFilter.value === entry.ticks ? 1 : (tickFilter.value ? 0.3 : 1)}
+                    key={`cell-${entry.tick}`}
+                    opacity={tickFilter.value === entry.displayTick ? 1 : (tickFilter.value ? 0.3 : 1)}
+                    fill={entry.count === 0 ? 'transparent' : (entry.tick < 0 ? 'hsl(var(--chart-4))' : 'hsl(var(--chart-3))')}
                   />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center text-muted-foreground">
+                <p className="text-sm">No valid tick data to display</p>
+                <p className="text-xs mt-1">Trades with zero quantity are excluded</p>
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
