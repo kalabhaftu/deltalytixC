@@ -1,0 +1,759 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  schemas   = ["public"]
+}
+generator client {
+  provider        = "prisma-client-js"
+}
+
+// Enums for prop firm evaluation system
+enum AccountStatus {
+  active
+  failed
+  passed
+  funded
+
+  @@schema("public")
+}
+
+enum PhaseType {
+  phase_1
+  phase_2
+  funded
+
+  @@schema("public")
+}
+
+enum PhaseStatus {
+  active
+  passed
+  failed
+
+  @@schema("public")
+}
+
+enum DrawdownType {
+  absolute
+  percent
+
+  @@schema("public")
+}
+
+enum DrawdownMode {
+  static
+  trailing
+
+  @@schema("public")
+}
+
+enum EvaluationType {
+  one_step
+  two_step
+
+  @@schema("public")
+}
+
+enum BreachType {
+  daily_drawdown
+  max_drawdown
+
+  @@schema("public")
+}
+
+model Trade {
+  id             String   @id @default(uuid())
+  accountNumber  String
+  quantity       Int
+  entryId        String? @default("")
+  closeId        String? @default("")
+  instrument     String
+  entryPrice     String
+  closePrice     String
+  entryDate      String
+  closeDate      String
+  pnl            Float
+  timeInPosition Float    @default(0)
+  userId         String
+  side           String?  @default("")
+  commission     Float    @default(0)
+  createdAt      DateTime @default(now())
+  comment        String?
+  closeReason    String?  // Trade closure reason (stop loss, take profit, user, etc.)
+  videoUrl       String?  @db.Text
+  tags           String[] @default([])
+  imageBase64    String?  @db.Text
+  imageBase64Second String? @db.Text
+  imageBase64Third String? @db.Text
+  imageBase64Fourth String? @db.Text
+  groupId        String?  @default("")
+
+  // New fields for prop firm evaluation
+  phaseId        String?
+  accountId      String?
+  symbol         String?
+  strategy       String?
+  fees           Float?   @default(0)
+  realizedPnl    Float?
+  entryTime      DateTime?
+  exitTime       DateTime?
+  equityAtOpen   Float?
+  equityAtClose  Float?
+  rawBrokerId    String?
+
+  // Relations
+  phase          AccountPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+  account        Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountNumber])
+  @@index([groupId])
+  @@index([phaseId])
+  @@index([accountId])
+  @@index([entryTime])
+  @@index([symbol])
+  @@schema("public")
+}
+
+model TickDetails{
+  id String @id @default(uuid())
+  ticker String
+  tickValue Float
+  tickSize Float
+  @@schema("public")
+}
+
+
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+  readAt      DateTime?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@schema("public")
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  auth_user_id    String           @unique
+  notifications   Notification[]
+  accounts        Account[]
+  groups          Group[]
+  dashboardLayout DashboardLayout?
+  tags            Tag[]
+  isBeta          Boolean          @default(false)
+  isFirstConnection Boolean        @default(true)
+  etpToken        String?
+  thorToken       String?
+  posts           Post[]
+  votes           Vote[]
+  comments        Comment[]
+  language        String           @default("en")
+  orders          Order[]
+  businesses      Business[]
+  
+  // Two-Factor Authentication
+  twoFactorSecret String?
+  twoFactorEnabled Boolean         @default(false)
+  
+  // Security and Audit
+  lastLoginAt    DateTime?
+  loginAttempts  Int              @default(0)
+  lockedUntil    DateTime?
+  
+  // Preferences
+  timezone       String           @default("UTC")
+  theme          String           @default("system")
+
+  @@index([email])
+  @@schema("public")
+}
+
+
+
+
+
+
+
+model Group {
+  id          String    @id @default(uuid())
+  name        String
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accounts    Account[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([name, userId])
+  @@index([userId])
+  @@schema("public")
+}
+
+model Account {
+  id                String    @id @default(uuid())
+  number            String
+  propfirm          String    @default("")
+  groupId           String?
+  group             Group?    @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  drawdownThreshold Float     @default(0)
+  trailingDrawdown  Boolean   @default(false)
+  trailingStopProfit Float?   
+  profitTarget      Float     @default(0)
+  startingBalance   Float     @default(0)
+  isPerformance     Boolean   @default(false)
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime  @default(now())
+  payoutCount       Int       @default(0)
+  resetDate         DateTime?
+  payouts           Payout[]
+  consistencyPercentage Float? @default(30)
+
+  // Payment and renewal fields
+  nextPaymentDate   DateTime?
+  paymentFrequency  String?  @default("MONTHLY") // MONTHLY, QUARTERLY, BIANNUAL, ANNUAL, CUSTOM
+  autoRenewal       Boolean  @default(false)
+  renewalNotice     Int?     @default(3) // Days before renewal to send notice
+
+  // New fields for prop firm configuration
+  accountSize       String?   // The account size key (e.g., '50K', '100K')
+  accountSizeName   String?   // The display name of the account size
+  price             Float?    // Regular price
+  priceWithPromo    Float?    // Promotional price
+  evaluation        Boolean   @default(true) // Whether it's an evaluation account
+  minDays           Int?      // Minimum trading days required
+  dailyLoss         Float?    // Daily loss limit
+  rulesDailyLoss    String?   // Rules for daily loss (Violation, No, Lock, DIRECTLY FUNDED)
+  trailing          String?   // Trailing type (EOD, Intraday, Static, DIRECTLY FUNDED)
+  tradingNewsAllowed Boolean  @default(true)
+  activationFees    Float?    // Activation fees
+  isRecursively     String?   // Recursivity type (Unique, Monthly, No)
+  payoutBonus       Float?    // Bonus for payouts
+  profitSharing     Float?    // Profit sharing percentage
+  payoutPolicy      String?   // Payout policy description
+  balanceRequired   Float?    // Required balance
+  minTradingDaysForPayout Int? // Minimum trading days for payout
+  minPayout         Float?    // Minimum payout amount
+  maxPayout         String?   // Maximum payout policy
+  maxFundedAccounts Int?      // Maximum number of funded accounts
+
+  // New evaluation system fields
+  name              String?
+  broker            String?   // Broker name for live accounts
+  dailyDrawdownAmount Float?
+  dailyDrawdownType DrawdownType @default(percent)
+  maxDrawdownAmount Float?
+  maxDrawdownType   DrawdownType @default(percent)
+  drawdownModeMax   DrawdownMode @default(static)
+  evaluationType    EvaluationType @default(two_step)
+  timezone          String       @default("UTC")
+  dailyResetTime    String       @default("00:00")
+  status            AccountStatus @default(active)
+  
+  // Config flags for business rules
+  ddIncludeOpenPnl  Boolean      @default(false)
+  progressionIncludeOpenPnl Boolean @default(false)
+  allowManualPhaseOverride Boolean @default(false)
+  
+  // Funded account payout configuration
+  profitSplitPercent Float?      @default(80)
+  payoutCycleDays   Int?         @default(14)
+  minDaysToFirstPayout Int?      @default(4)
+  payoutEligibilityMinProfit Float?
+  resetOnPayout     Boolean      @default(false)
+  reduceBalanceByPayout Boolean  @default(true)
+  fundedResetBalance Float?
+
+  // Relations to new models
+  phases            AccountPhase[]
+  trades            Trade[]
+  breaches          Breach[]
+  dailyAnchors      DailyAnchor[]
+  equitySnapshots   EquitySnapshot[]
+  transitions       AccountTransition[]
+  auditLogs         AuditLog[]
+
+
+  @@unique([number, userId])
+  @@index([number])
+  @@index([groupId])
+  @@index([userId])
+  @@index([status])
+  @@index([evaluationType])
+  @@schema("public")
+}
+
+model Payout {
+  id            String    @id @default(uuid())
+  amount        Float // Legacy field - will be migrated
+  date          DateTime // Legacy field - will be migrated
+  accountNumber String    
+  accountId     String
+  account       Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+  status        String    @default("PENDING")
+  
+  // New payout fields
+  amountRequested Float?
+  amountPaid      Float?
+  requestedAt     DateTime?
+  paidAt          DateTime?
+  notes           String?
+  
+  @@index([accountNumber])
+  @@index([accountId])
+  @@schema("public")
+}
+
+model DashboardLayout {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  desktop   Json     @default("[]")
+  mobile    Json     @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@schema("public")
+}
+
+
+
+
+model Shared{
+  id            String   @id @default(uuid())
+  userId        String   // The user who shared the trades
+  slug          String   @unique // Unique identifier for the share URL
+  title         String?  // Optional title for the shared trades
+  description   String?  // Optional description
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime? // Optional expiration date
+  isPublic      Boolean  @default(true)
+  viewCount     Int      @default(0)
+  accountNumbers String[] // List of account numbers included
+  dateRange     Json     // { from: string, to: string }
+  desktop       Json     @default("[]") // Desktop layout configuration
+  mobile        Json     @default("[]") // Mobile layout configuration
+
+  @@index([userId])
+  @@index([slug])
+  @@schema("public")
+}
+
+
+
+model Tag {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  color       String?  @default("#CBD5E1") // Default to a neutral color
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([name, userId])
+  @@index([userId])
+  @@schema("public")
+}
+
+model Newsletter {
+  email     String   @id
+  firstName String?
+  lastName  String?
+  isActive  Boolean  @default(true)
+
+  @@schema("public")
+}
+
+model Post {
+  id          String    @id @default(uuid())
+  title       String
+  content     String    @db.Text
+  type        PostType  @default(FEATURE_REQUEST)
+  status      PostStatus @default(OPEN)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votes       Vote[]
+  comments    Comment[]
+  screenshots String[]  @default([]) @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@schema("public")
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  content   String    @db.Text
+  postId    String
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([postId])
+  @@index([userId])
+  @@index([parentId])
+  @@schema("public")
+}
+
+enum PostType {
+  FEATURE_REQUEST
+  BUG_REPORT
+  DISCUSSION
+
+  @@schema("public")
+}
+
+enum PostStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CLOSED
+
+  @@schema("public")
+}
+
+model Vote {
+  id        String   @id @default(uuid())
+  type      VoteType
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@schema("public")
+}
+
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+
+  @@schema("public")
+}
+
+
+
+
+
+model Order {
+  id                String   @id @default(uuid())
+  accountId         String
+  orderId           String   @unique
+  orderAction       String
+  quantity          Int
+  averageFilledPrice Float
+  isOpeningOrder    Boolean
+  time              DateTime
+  symbol            String
+  instrumentType    String
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+
+  @@index([accountId])
+  @@index([userId])
+  @@schema("public")
+}
+
+model TradeAnalytics {
+  id                String   @id @default(uuid())
+  tradeId           String   @unique
+  mae               Float    @default(0) // Maximum Adverse Excursion
+  mfe               Float    @default(0) // Maximum Favorable Excursion
+  entryPriceFromData Float?  // Actual entry price from market data
+  priceDifference   Float?   // Difference between reported and actual entry price
+  riskRewardRatio   Float?   // Risk/Reward ratio
+  efficiency        Float?   // How much of the favorable move was captured
+  dataSource        String   @default("DATABENTO") // Source of the data
+  computedAt        DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([tradeId])
+  @@index([computedAt])
+  @@schema("public")
+}
+
+model HistoricalData {
+  id            String   @id @default(uuid())
+  symbol        String   // Original symbol (e.g., "ES", "NQ")
+  databentSymbol String  // Databento symbol (e.g., "ES.FUT.CME")
+  timestamp     DateTime
+  open          Float
+  high          Float
+  low           Float
+  close         Float
+  volume        Int
+  dataSource    String   @default("DATABENTO")
+  createdAt     DateTime @default(now())
+
+  @@unique([symbol, databentSymbol, timestamp])
+  @@index([symbol])
+  @@index([databentSymbol])
+  @@index([timestamp])
+  @@schema("public")
+}
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  userId      String?   // Can be null for anonymous actions
+  action      String    // Action performed (LOGIN, LOGOUT, CREATE_TRADE, etc.)
+  resource    String?   // Resource affected (trade, account, etc.)
+  resourceId  String?   // ID of the affected resource
+  details     Json?     // Additional details about the action
+  ipAddress   String?   // IP address of the user
+  userAgent   String?   // User agent string
+  success     Boolean   @default(true) // Whether the action was successful
+  errorMessage String?  // Error message if action failed
+  timestamp   DateTime  @default(now())
+  
+  // Security fields
+  riskLevel   String    @default("LOW") // LOW, MEDIUM, HIGH, CRITICAL
+  flags       String[]  @default([]) // Security flags (SUSPICIOUS_IP, RATE_LIMITED, etc.)
+  
+  // Account evaluation system fields
+  accountId   String?   // For account-related audit events
+  entity      String?   // e.g., 'account', 'phase', 'trade', 'payout'
+  entityId    String?   // ID of the entity
+  oldValues   Json?     // Previous values for updates
+  newValues   Json?     // New values for updates
+  metadata    Json?     // Additional metadata
+  
+  // Relations
+  account     Account?  @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+  @@index([riskLevel])
+  @@index([accountId])
+  @@index([entity, entityId])
+  @@schema("public")
+}
+
+model SecurityEvent {
+  id          String    @id @default(uuid())
+  type        String    // FAILED_LOGIN, RATE_LIMIT_EXCEEDED, SUSPICIOUS_ACTIVITY, etc.
+  severity    String    // LOW, MEDIUM, HIGH, CRITICAL
+  source      String    // IP address or user ID
+  description String
+  details     Json?     // Additional event details
+  resolved    Boolean   @default(false)
+  resolvedAt  DateTime?
+  resolvedBy  String?   // User ID who resolved the event
+  createdAt   DateTime  @default(now())
+  
+  @@index([type])
+  @@index([severity])
+  @@index([source])
+  @@index([createdAt])
+  @@index([resolved])
+  @@schema("public")
+}
+
+model FilterPreset {
+  id          String    @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  filters     Json      // Store filter configuration
+  isDefault   Boolean   @default(false)
+  isPublic    Boolean   @default(false)
+  category    String    @default("custom") // trades, analytics, accounts, etc.
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([category])
+  @@index([isPublic])
+  @@schema("public")
+}
+
+// Account Phase Management
+model AccountPhase {
+  id                   String      @id @default(uuid())
+  accountId            String
+  phaseType            PhaseType
+  phaseStatus          PhaseStatus @default(active)
+  profitTarget         Float?
+  phaseStartAt         DateTime    @default(now())
+  phaseEndAt           DateTime?
+  
+  // Running stats snapshot for fast rendering
+  currentEquity        Float       @default(0)
+  currentBalance       Float       @default(0)
+  netProfitSincePhaseStart Float   @default(0)
+  highestEquitySincePhaseStart Float @default(0)
+  totalTrades          Int         @default(0)
+  winningTrades        Int         @default(0)
+  totalCommission      Float       @default(0)
+  
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  // Relations
+  account              Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  trades               Trade[]
+  breaches             Breach[]
+  equitySnapshots      EquitySnapshot[]
+  transitionsFrom      AccountTransition[] @relation("FromPhase")
+  transitionsTo        AccountTransition[] @relation("ToPhase")
+
+  @@index([accountId])
+  @@index([phaseType])
+  @@index([phaseStatus])
+  @@schema("public")
+}
+
+// Drawdown Breach Tracking
+model Breach {
+  id              String      @id @default(uuid())
+  accountId       String
+  phaseId         String?
+  breachType      BreachType
+  breachAmount    Float
+  breachThreshold Float
+  equity          Float
+  breachTime      DateTime    @default(now())
+  description     String?
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  account         Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  phase           AccountPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+
+  @@index([accountId])
+  @@index([phaseId])
+  @@index([breachTime])
+  @@schema("public")
+}
+
+// Daily Equity Anchors for Drawdown Calculation
+model DailyAnchor {
+  id              String      @id @default(uuid())
+  accountId       String
+  date            DateTime    @db.Date
+  anchorEquity    Float
+  computedAt      DateTime    @default(now())
+
+  // Relations
+  account         Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, date])
+  @@index([date])
+  @@schema("public")
+}
+
+// Equity Snapshots for Charts and Tracking
+model EquitySnapshot {
+  id              String      @id @default(uuid())
+  accountId       String
+  phaseId         String?
+  timestamp       DateTime    @default(now())
+  equity          Float
+  balance         Float
+  openPnl         Float       @default(0)
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  account         Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  phase           AccountPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+
+  @@index([accountId])
+  @@index([phaseId])
+  @@index([timestamp])
+  @@schema("public")
+}
+
+// Account Phase Transitions Audit Trail
+model AccountTransition {
+  id              String        @id @default(uuid())
+  accountId       String
+  fromPhaseId     String?
+  toPhaseId       String?
+  fromStatus      AccountStatus?
+  toStatus        AccountStatus?
+  reason          String?
+  triggeredBy     String? // userId who triggered the transition
+  transitionTime  DateTime      @default(now())
+  metadata        Json          @default("{}")
+
+  // Relations
+  account         Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  fromPhase       AccountPhase? @relation("FromPhase", fields: [fromPhaseId], references: [id], onDelete: SetNull)
+  toPhase         AccountPhase? @relation("ToPhase", fields: [toPhaseId], references: [id], onDelete: SetNull)
+
+  @@index([accountId])
+  @@index([transitionTime])
+  @@schema("public")
+}
+
+// Business Management Models
+model Business {
+  id          String    @id @default(uuid())
+  name        String
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  traderIds   String[]  @default([])
+  managers    BusinessManager[]
+  invitations BusinessInvitation[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([name, userId])
+  @@index([userId])
+  @@schema("public")
+}
+
+model BusinessManager {
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  managerId  String
+  access     String   @default("viewer")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([businessId, managerId])
+  @@index([businessId])
+  @@index([managerId])
+  @@schema("public")
+}
+
+model BusinessInvitation {
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  email      String
+  invitedBy  String
+  status     String   @default("PENDING")
+  expiresAt  DateTime @default(dbgenerated("(NOW() + INTERVAL '7 days')"))
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([businessId, email])
+  @@index([businessId])
+  @@index([email])
+  @@index([status])
+  @@schema("public")
+}
+
+
