@@ -23,7 +23,6 @@ import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import ProfitFactorCard from '../components/statistics/profit-factor-card'
-import DailyTickTargetChart from '../components/charts/daily-tick-target'
 import { LineChart, Line, XAxis, YAxis } from 'recharts'
 import { useI18n } from '@/locales/client'
 import { WidgetErrorBoundary } from '@/components/error-boundary'
@@ -248,15 +247,6 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     previewHeight: 100,
     getComponent: ({ size }) => <ProfitFactorCard size={size} />,
     getPreview: () => <ProfitFactorCard size="tiny" />
-  },
-  dailyTickTarget: {
-    type: 'dailyTickTarget',
-    defaultSize: 'medium',
-    allowedSizes: ['small', 'small-long', 'medium', 'large'],
-    category: 'charts',
-    previewHeight: 300,
-    getComponent: ({ size }) => <DailyTickTargetChart size={size} />,
-    getPreview: () => <DailyTickTargetChart size="small" />
   },
   statisticsWidget: {
     type: 'statisticsWidget',

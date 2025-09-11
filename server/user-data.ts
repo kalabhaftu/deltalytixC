@@ -56,10 +56,8 @@ export async function loadSharedData(slug: string): Promise<SharedDataResponse> 
 export async function getUserData(): Promise<{
   userData: User | null;
   tickDetails: TickDetails[];
-  tags: Tag[];
   accounts: Account[];
   groups: Group[];
-  moodHistory: Mood[];
 }> {
   try {
     const userId = await getUserId()
@@ -83,11 +81,6 @@ export async function getUserData(): Promise<{
             }
           }),
           prisma.tickDetails.findMany(),
-          prisma.tag.findMany({
-            where: {
-              userId: userId
-            }
-          }),
           // Optimized accounts query - minimal data for performance
           prisma.account.findMany({
             where: {
@@ -137,47 +130,25 @@ export async function getUserData(): Promise<{
                 }
               }
             }
-          }),
-          prisma.financialEvent.findMany({
-            where: {
-              lang: locale
-            },
-            take: 50, // Limit events for performance
-            orderBy: {
-              date: 'desc'
-            }
-          }),
-          prisma.mood.findMany({
-            where: {
-              userId: userId
-            },
-            orderBy: {
-              day: 'desc'
-            },
-            take: 30 // Limit moods for performance
           })
         ])
 
         const [
           userData,
           tickDetails,
-          tags,
           accounts,
-          groups,
-          moodHistory
+          groups
         ] = await Promise.race([dataPromise, timeoutPromise]) as any
 
-        return { userData, tickDetails, tags, accounts, groups, moodHistory }
+        return { userData, tickDetails, accounts, groups }
       } catch (error) {
         console.error('[getUserData] Database error:', error)
         // Return empty data structure if database is unavailable
         return {
           userData: null,
           tickDetails: [],
-          tags: [],
           accounts: [],
-          groups: [],
-          moodHistory: []
+          groups: []
         }
       }
     },
@@ -193,11 +164,8 @@ export async function getUserData(): Promise<{
     return {
       userData: null,
       tickDetails: [],
-      tags: [],
       accounts: [],
-      groups: [],
-      financialEvents: [],
-      moodHistory: []
+      groups: []
     }
   }
 }

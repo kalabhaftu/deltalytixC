@@ -433,6 +433,7 @@ export default {
     'widgets.resetToDefaults': 'Layout reset to defaults successfully',
     'widgets.alreadyExists': 'This widget is already added to your dashboard',
     'widgets.types.calendarView': 'Calendar View',
+    'widgets.types.calendarWidget': 'Calendar',
     'widgets.types.equityChart': 'Equity Chart',
     'widgets.types.pnlChart': 'P&L Chart',
     'widgets.types.timeOfDay': 'P&L by hour of Day',
@@ -440,29 +441,10 @@ export default {
     'widgets.types.weekdayPnl': 'P&L by Weekday',
     'widgets.types.pnlBySide': 'P&L by Side',
     'widgets.types.tickDistribution': 'Tick Distribution',
-    'widgets.types.dailyTickTarget': 'Daily Tick Target',
     'widgets.types.commissionsPnl': 'Commissions PnL share',
     'widgets.types.averagePositionTime': 'Average Position Time',
     'widgets.averagePositionTime': {
         'tooltip': 'Average time you hold your positions. This metric helps you understand your typical holding period and can be useful for identifying if you tend to hold positions too long or exit too quickly.'
-    },
-    'widgets.dailyTickTarget': {
-        'title': 'Tick Target',
-        'tooltip': 'Track your tick targets and progress. Set targets for the number of ticks you want to achieve and monitor your progress in real-time. Works with single days or date ranges.',
-        'current': 'Current',
-        'target': 'Target',
-        'progress': 'Progress',
-        'setTarget': 'Set Target',
-        'setTargetDescription': 'Set your tick target. Use the +/- buttons for quick adjustments or enter a specific value below.',
-        'noTargetSet': 'No target set. Click the target icon to set one.',
-        'positive': 'Positive',
-        'negative': 'Negative',
-        'total': 'Total',
-        'displayMode': {
-            'ticks': 'Ticks',
-            'points': 'Points',
-            'tooltip': 'Toggle between displaying values in ticks or points (1 point = 4 ticks)'
-        }
     },
     'widgets.types.cumulativePnl': 'Cumulative PnL',
     'widgets.types.longShortPerformance': 'Long/Short Ratio',

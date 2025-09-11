@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/card"
 import { CalendarEntry } from "@/app/[locale]/dashboard/types/calendar"
 import { useI18n } from '@/locales/client'
-import { DailyMood } from './daily-mood'
 
 interface DailyStatsProps {
   dayData: CalendarEntry | undefined;

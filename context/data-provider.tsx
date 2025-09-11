@@ -323,15 +323,6 @@ export const defaultLayouts: PrismaDashboardLayout = {
       "h": 1
     },
     {
-      "i": "widget1752135447611",
-      "type": "dailyTickTarget",
-      "size": "tiny",
-      "x": 3,
-      "y": 31,
-      "w": 3,
-      "h": 1
-    },
-    {
       "i": "widget1752135449717",
       "type": "averagePositionTime",
       "size": "tiny",
@@ -449,15 +440,6 @@ export const defaultLayouts: PrismaDashboardLayout = {
       y: 31,
       w: 12,
       h: 4
-    },
-    {
-      i: "propFirm",
-      type: "propFirm" as WidgetType,
-      size: "medium" as WidgetSize,
-      x: 0,
-      y: 35,
-      w: 12,
-      h: 6
     },
   ]
 };
@@ -583,11 +565,9 @@ export const DataProvider: React.FC<{
   const user = useUserStore(state => state.user);
   const setUser = useUserStore(state => state.setUser);
 
-  const setTags = useUserStore(state => state.setTags);
   const setAccounts = useUserStore(state => state.setAccounts);
   const setGroups = useUserStore(state => state.setGroups);
   const setDashboardLayout = useUserStore(state => state.setDashboardLayout);
-  const setMoods = useMoodStore(state => state.setMoods);
   const supabaseUser = useUserStore(state => state.supabaseUser);
   const timezone = useUserStore(state => state.timezone);
   const groups = useUserStore(state => state.groups);
@@ -675,9 +655,7 @@ export const DataProvider: React.FC<{
         // RESET ALL OTHER STATES
         setUser(null);
 
-        setTags([]);
         setGroups([]);
-        setMoods([]);
         setTickDetails([]);
         setAccounts([]);
         setGroups([]);
@@ -748,9 +726,7 @@ export const DataProvider: React.FC<{
       await ensureUserInDatabase(user, locale)
         
 
-      setTags(data.tags);
       setGroups(data.groups);
-      setMoods(data.moodHistory);
       setTickDetails(data.tickDetails);
       setIsFirstConnection(data.userData?.isFirstConnection || false)
 
@@ -993,12 +969,6 @@ export const DataProvider: React.FC<{
           }
         }
 
-        // Tag filter
-        if (tagFilter.tags.length > 0) {
-          if (!trade.tags.some(tag => tagFilter.tags.includes(tag))) {
-            return false;
-          }
-        }
 
         return true;
       })
@@ -1016,7 +986,6 @@ export const DataProvider: React.FC<{
     timeRange,
     weekdayFilter,
     hourFilter,
-    tagFilter,
     timezone
   ]);
 
