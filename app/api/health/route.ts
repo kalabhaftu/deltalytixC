@@ -1,51 +1,29 @@
-"use server"
-
 import { NextRequest, NextResponse } from 'next/server'
-import { checkDatabaseHealth } from '@/lib/db-health-check'
+import { prisma } from '@/lib/prisma'
 
-// GET /api/health - Check database and service health
+// Simple health check endpoint for monitoring API performance
 export async function GET(request: NextRequest) {
-  const startTime = Date.now()
+  const start = Date.now()
   
   try {
-    console.log('[Health Check] Starting database health check...')
+    // Quick database ping
+    await prisma.$queryRaw`SELECT 1`
     
-    // Test database connection with shorter timeout for health checks
-    const dbHealth = await checkDatabaseHealth(5000)
-    
-    const totalTime = Date.now() - startTime
+    const dbLatency = Date.now() - start
     
     return NextResponse.json({
-      status: dbHealth.success ? 'healthy' : 'unhealthy',
+      status: 'healthy',
       timestamp: new Date().toISOString(),
-      services: {
-        database: {
-          status: dbHealth.success ? 'up' : 'down',
-          latency: dbHealth.latency,
-          error: dbHealth.error || null
-        }
+      latency: {
+        database: `${dbLatency}ms`
       },
-      responseTime: totalTime
-    }, {
-      status: dbHealth.success ? 200 : 503
+      environment: process.env.NODE_ENV
     })
-
   } catch (error) {
-    const totalTime = Date.now() - startTime
-    console.error('[Health Check] Unexpected error:', error)
-    
     return NextResponse.json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
-      services: {
-        database: {
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        }
-      },
-      responseTime: totalTime
-    }, {
-      status: 500
-    })
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 503 })
   }
 }

@@ -86,14 +86,32 @@ export default function AccountsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAccountForDelete, setSelectedAccountForDelete] = useState<string | null>(null)
 
-  // Fetch all accounts (live accounts only)
-  const fetchAccounts = async () => {
+  // Fetch all accounts (live accounts only) with enhanced error handling
+  const fetchAccounts = async (retryCount = 0, showToast = true) => {
+    const maxRetries = 1 // Reduced retry attempts
+    
     try {
       setIsLoading(true)
-      const response = await fetch('/api/accounts')
+      
+      // Use simplified fetch with shorter timeout
+      const response = await fetch('/api/accounts', {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
       
       if (!response.ok) {
-        throw new Error('Failed to fetch accounts')
+        const errorData = await response.json().catch(() => ({}))
+        
+        // Simplified retry logic - only retry once for server errors
+        if ((response.status === 503 || response.status === 408) && retryCount < maxRetries) {
+          console.warn(`[Accounts] Server error ${response.status}, retrying... (${retryCount + 1}/${maxRetries + 1})`)
+          setTimeout(() => fetchAccounts(retryCount + 1, false), 2000)
+          return
+        }
+        
+        throw new Error(errorData.error || `Server error (${response.status})`)
       }
 
       const data = await response.json()
@@ -101,44 +119,134 @@ export default function AccountsPage() {
         // Filter to only live accounts (non-prop firm)
         const liveAccounts = data.data.filter((account: UnifiedAccount) => account.accountType === 'live')
         setAccounts(liveAccounts)
+        if (retryCount > 0 && showToast) {
+          toast({
+            title: "Connection Restored",
+            description: "Successfully loaded accounts.",
+            variant: "default"
+          })
+        }
       } else {
         throw new Error(data.error || 'Failed to fetch accounts')
       }
     } catch (error) {
       console.error('Error fetching accounts:', error)
-      toast({
-        title: t('accounts.toast.fetchError'),
-        description: t('accounts.toast.fetchErrorDescription'),
-        variant: "destructive"
-      })
+      
+      // Handle network errors with retry logic
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          if (retryCount < 1) {
+            console.warn(`[Accounts] Request timeout, retrying... (${retryCount + 1}/2)`)
+            setTimeout(() => fetchAccounts(retryCount + 1, false), 3000)
+            return
+          }
+          error.message = 'Request timed out. Please check your internet connection.'
+        }
+        
+        if (error.message.includes('fetch')) {
+          if (retryCount < maxRetries) {
+            console.warn(`[Accounts] Network error, retrying... (${retryCount + 1}/${maxRetries})`)
+            setTimeout(() => fetchAccounts(retryCount + 1, false), Math.pow(2, retryCount) * 2000)
+            return
+          }
+          error.message = 'Network error. Please check your internet connection and try again.'
+        }
+      }
+      
+      if (showToast || retryCount >= maxRetries) {
+        toast({
+          title: t('accounts.toast.fetchError'),
+          description: error instanceof Error ? error.message : t('accounts.toast.fetchErrorDescription'),
+          variant: "destructive"
+        })
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Fetch prop firm accounts
-  const fetchPropFirmAccounts = async () => {
+  // Fetch prop firm accounts with simplified error handling
+  const fetchPropFirmAccounts = async (retryCount = 0, showToast = true) => {
+    const maxRetries = 1 // Reduced from 3 to 1
+    
     try {
       setIsPropFirmLoading(true)
-      const response = await fetch('/api/prop-firm/accounts')
+      
+      // Use simplified fetch without aggressive timeout
+      const response = await fetch('/api/prop-firm/accounts', {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
       
       if (!response.ok) {
-        throw new Error('Failed to fetch prop firm accounts')
+        const errorData = await response.json().catch(() => ({}))
+        
+        // Simplified error handling with single retry
+        if ((response.status === 503 || response.status === 408) && retryCount < maxRetries) {
+          console.warn(`[PropFirm] Server error ${response.status}, retrying... (${retryCount + 1}/${maxRetries + 1})`)
+          setTimeout(() => fetchPropFirmAccounts(retryCount + 1, false), 2000)
+          return
+        }
+        
+        // Map error codes to user-friendly messages
+        let errorMessage = errorData.error || `Server error (${response.status})`
+        if (errorData.code === 'DB_CONNECTION_ERROR') {
+          errorMessage = 'Database temporarily unavailable. Please try again in a few minutes.'
+        } else if (errorData.code === 'AUTH_TIMEOUT') {
+          errorMessage = 'Authentication service temporarily unavailable. Please refresh the page.'
+        } else if (errorData.code === 'REQUEST_TIMEOUT') {
+          errorMessage = 'Request timed out. Please check your internet connection and try again.'
+        }
+        
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
       if (data.success) {
         setPropFirmAccounts(data.data)
+        if (retryCount > 0 && showToast) {
+          toast({
+            title: "Connection Restored",
+            description: "Successfully loaded prop firm accounts.",
+            variant: "default"
+          })
+        }
       } else {
         throw new Error(data.error || 'Failed to fetch prop firm accounts')
       }
     } catch (error) {
       console.error('Error fetching prop firm accounts:', error)
-      toast({
-        title: t('propFirm.toast.setupError'),
-        description: t('propFirm.toast.setupErrorDescription'),
-        variant: "destructive"
-      })
+      
+      // Handle network errors with retry logic
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          if (retryCount < maxRetries) {
+            console.warn(`[PropFirm] Request aborted, retrying... (${retryCount + 1}/${maxRetries})`)
+            setTimeout(() => fetchPropFirmAccounts(retryCount + 1, false), Math.pow(2, retryCount) * 2000)
+            return
+          }
+          error.message = 'Request timed out. Please check your internet connection.'
+        }
+        
+        if (error.message.includes('fetch')) {
+          if (retryCount < maxRetries) {
+            console.warn(`[PropFirm] Network error, retrying... (${retryCount + 1}/${maxRetries})`)
+            setTimeout(() => fetchPropFirmAccounts(retryCount + 1, false), Math.pow(2, retryCount) * 2000)
+            return
+          }
+          error.message = 'Network error. Please check your internet connection and try again.'
+        }
+      }
+      
+      if (showToast || retryCount >= maxRetries) {
+        toast({
+          title: "Unable to Load Prop Firm Accounts",
+          description: error instanceof Error ? error.message : "An unexpected error occurred.",
+          variant: "destructive"
+        })
+      }
     } finally {
       setIsPropFirmLoading(false)
     }

@@ -2,7 +2,6 @@
 
 import { TradeTableReview } from './components/tables/trade-table-review'
 import { AccountsOverview } from './components/accounts/accounts-overview-simple'
-import { AnalysisOverview } from './components/analysis/analysis-overview'
 import WidgetCanvas from './components/widget-canvas'
 import dynamic from 'next/dynamic'
 
@@ -168,22 +167,6 @@ export default function Home() {
               className="w-full"
             >
               <AccountsPage />
-            </motion.div>
-          </ErrorBoundaryWrapper>
-        )
-      case 'analysis':
-        return (
-          <ErrorBoundaryWrapper context="Analysis">
-            <motion.div
-              key="analysis"
-              initial="initial"
-              animate="in"
-              exit="out"
-              variants={pageVariants}
-              transition={pageTransition}
-              className="px-4"
-            >
-              <AnalysisOverview />
             </motion.div>
           </ErrorBoundaryWrapper>
         )

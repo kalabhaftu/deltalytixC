@@ -323,7 +323,7 @@ export async function getUserId(): Promise<string> {
     throw new Error("User not authenticated")
   }
 
-  // Fallback to Supabase call (for API routes or edge cases) with timeout
+  // Reduced fallback logging to prevent spam
   if (process.env.NODE_ENV === 'development') {
     console.log("[Auth] Fallback to Supabase call")
   }
@@ -331,10 +331,10 @@ export async function getUserId(): Promise<string> {
   try {
     const supabase = await createClient()
     
-    // Add timeout to Supabase call with shorter timeout to fail fast
+    // Reduce timeout to match middleware timeout for consistency
     const authPromise = supabase.auth.getUser()
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Auth timeout")), 5000) // Reduced to 5 seconds for faster fallback
+      setTimeout(() => reject(new Error("Auth timeout")), 3000) // Match middleware timeout
     )
 
     const { data: { user }, error } = await Promise.race([authPromise, timeoutPromise]) as any

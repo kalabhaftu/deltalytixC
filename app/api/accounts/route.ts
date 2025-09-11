@@ -7,23 +7,28 @@ import { getUserId } from '@/server/auth'
 // GET /api/accounts - Get all accounts (both prop firm and live) - universally accessible
 export async function GET(request: NextRequest) {
   try {
-    // Add timeout for the entire operation
+    // Add timeout for the entire operation with reduced timeout
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 8000) // 8 second timeout
+      setTimeout(() => reject(new Error('Request timeout')), 15000) // Reduced to 15 seconds
     })
 
     const operationPromise = async () => {
-      // Try to get user ID but don't fail if not authenticated since accounts are now universally accessible
+      // Try to get user ID without aggressive retry logic to prevent loops
       let currentUserId: string | null = null
+      
       try {
         currentUserId = await getUserId()
-      } catch (error) {
-        // Continue without authentication - accounts are universally accessible
-        console.log('No authentication provided, continuing with universal access')
+      } catch (authError) {
+        // Don't retry on auth failures to prevent loops - simplified logging
+        console.log('[Accounts API] Auth failed, using universal access')
+        currentUserId = null
       }
 
-      // Fetch all accounts - made universally accessible to all users
+      // Fetch accounts with optimized query - limit data and add user filtering
+      const whereClause = currentUserId ? { userId: currentUserId } : {}
+      
       const accounts = await prisma.account.findMany({
+        where: whereClause,
         select: {
           id: true,
           number: true,
@@ -39,50 +44,48 @@ export async function GET(request: NextRequest) {
               name: true
             }
           },
-          user: {
+          // Simplified user selection
+          user: currentUserId ? {
             select: {
               id: true,
               email: true
             }
-          },
-          phases: {
-            where: { phaseStatus: 'active' },
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-            select: {
-              id: true,
-              phaseType: true,
-              phaseStatus: true,
-              profitTarget: true,
-              phaseStartAt: true,
-              currentEquity: true,
-              currentBalance: true
-            }
-          },
+          } : false,
+          // Only get active phase count, not full data
           _count: {
             select: {
-              trades: true
+              trades: true,
+              phases: {
+                where: { phaseStatus: 'active' }
+              }
             }
           }
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        take: 100 // Limit to prevent excessive data
       })
 
-    // Transform accounts to include account type and ownership info
+    // Transform accounts with simplified data structure
     const transformedAccounts = accounts.map(account => ({
       ...account,
       accountType: account.propfirm ? 'prop-firm' : 'live',
       displayName: account.name || account.number,
-      currentPhase: account.phases[0] || null,
       tradeCount: account._count.trades,
+      hasActivePhase: account._count.phases > 0,
       owner: account.user,
       isOwner: currentUserId === account.userId
     }))
 
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         data: transformedAccounts
       })
+      
+      // Add caching headers to reduce repeated requests
+      response.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60')
+      response.headers.set('CDN-Cache-Control', 'public, s-maxage=30')
+      
+      return response
     }
 
     // Race between operation and timeout

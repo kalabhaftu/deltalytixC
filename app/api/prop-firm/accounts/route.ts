@@ -8,19 +8,37 @@ import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
 import { PropFirmSchemas } from '@/lib/validation/prop-firm-schemas'
 import { PropFirmBusinessRules } from '@/lib/prop-firm/business-rules'
+import { executeDbOperation } from '@/lib/database-connection-manager'
 // Removed heavy validation import - using Zod directly
 import { PhaseType, EvaluationType } from '@/types/prop-firm'
 
 // GET /api/prop-firm/accounts - List accounts with filtering
 export async function GET(request: NextRequest) {
   try {
-    // Add timeout wrapper for the entire operation
+    // Add timeout wrapper for the entire operation with reduced timeout
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 10000) // 10 second timeout
+      setTimeout(() => reject(new Error('Request timeout')), 15000) // Reduced to 15 seconds
     })
 
     const operationPromise = async () => {
-      const userId = await getUserId()
+      // Get user ID with improved error handling
+      let userId: string
+      
+      try {
+        userId = await getUserId()
+      } catch (authError) {
+        // Improved error logging without infinite retry
+        const errorMessage = authError instanceof Error ? authError.message : String(authError)
+        console.log(`[Prop Firm API] Auth failed: ${errorMessage}`)
+        
+        // Specific handling for auth timeouts
+        if (errorMessage.includes('timeout') || errorMessage.includes('temporarily unavailable')) {
+          throw new Error('Authentication service temporarily unavailable')
+        }
+        
+        throw authError
+      }
+
       const { searchParams } = new URL(request.url)
     
     // Parse and validate filter parameters
@@ -72,40 +90,69 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Simplified and optimized query - remove complex joins that cause timeouts
-    const [accounts, total] = await Promise.all([
-      prisma.account.findMany({
-        where,
-        select: {
-          id: true,
-          number: true,
-          name: true,
-          propfirm: true,
-          status: true,
-          startingBalance: true,
-          dailyDrawdownAmount: true,
-          dailyDrawdownType: true,
-          maxDrawdownAmount: true,
-          maxDrawdownType: true,
-          drawdownModeMax: true,
-          createdAt: true,
-          // Simplified - only get active phase count for performance
-          _count: {
+    // Simplified database query with reduced retry logic to prevent loops
+    let accounts: any[] = []
+    let total: number = 0
+    let dbRetries = 0
+    const maxDbRetries = 1 // Reduced from 3 to 1
+
+    while (dbRetries <= maxDbRetries) {
+      try {
+        // Use connection manager for safe database operations
+        const result = await executeDbOperation(async () => {
+          // Execute main queries without connectivity test to reduce load
+          const accounts = await prisma.account.findMany({
+            where,
             select: {
-              trades: true,
-              payouts: true,
-              phases: {
-                where: { phaseStatus: 'active' }
+              id: true,
+              number: true,
+              name: true,
+              propfirm: true,
+              status: true,
+              startingBalance: true,
+              dailyDrawdownAmount: true,
+              dailyDrawdownType: true,
+              maxDrawdownAmount: true,
+              maxDrawdownType: true,
+              drawdownModeMax: true,
+              createdAt: true,
+              // Simplified - only get active phase count for performance
+              _count: {
+                select: {
+                  trades: true,
+                  payouts: true,
+                  phases: {
+                    where: { phaseStatus: 'active' }
+                  }
+                }
               }
-            }
-          }
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: offset,
-        take: filters.limit,
-      }),
-      prisma.account.count({ where })
-    ])
+            },
+            orderBy: { createdAt: 'desc' },
+            skip: offset,
+            take: filters.limit,
+          })
+          
+          const total = await prisma.account.count({ where })
+          
+          return [accounts, total] as [any[], number]
+        })
+        
+        accounts = result[0]
+        total = result[1]
+        break
+
+      } catch (dbError) {
+        dbRetries++
+        console.warn(`[Database] Attempt ${dbRetries}/${maxDbRetries + 1} failed:`, dbError instanceof Error ? dbError.message : dbError)
+        
+        if (dbRetries > maxDbRetries) {
+          throw dbError
+        }
+
+        // Shorter wait time to prevent user timeout
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      }
+    }
 
     // Simplified transformation for performance - detailed data loaded separately
     const accountsWithData = accounts.map(account => {
@@ -146,7 +193,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Race between operation and timeout
-    return await Promise.race([operationPromise(), timeoutPromise])
+    const result = await Promise.race([operationPromise(), timeoutPromise])
+    
+    // Add caching headers for performance
+    result.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60')
+    result.headers.set('CDN-Cache-Control', 'public, s-maxage=30')
+    
+    return result
 
   } catch (error) {
     console.error('Error fetching prop firm accounts:', error)

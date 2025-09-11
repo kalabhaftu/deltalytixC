@@ -50,12 +50,6 @@ const navigationItems: NavigationItem[] = [
     label: 'Accounts',
     icon: Users,
     translationKey: 'dashboard.tabs.accounts'
-  },
-  {
-    id: 'analysis',
-    label: 'Analysis',
-    icon: BarChart3,
-    translationKey: 'dashboard.tabs.analysis'
   }
 ]
 
