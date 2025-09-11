@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Mail, BarChart, UserPlus, Calendar, TrendingUp } from "lucide-react"
+import { TrendingUp } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -21,26 +21,6 @@ export function SidebarNav({ className, ...props }: SidebarNavProps) {
   const pathname = usePathname()
 
   const routes = [
-    {
-      href: "/admin/newsletter-builder",
-      label: "Newsletter Builder",
-      icon: Mail,
-    },
-    {
-      href: "/admin/weekly-recap",
-      label: "Weekly Recap",
-      icon: BarChart,
-    },
-    {
-      href: "/admin/welcome-email",
-      label: "Welcome Email",
-      icon: UserPlus,
-    },
-    {
-      href: "/admin/investing-calendar",
-      label: "Investing Calendar",
-      icon: Calendar,
-    },
     {
       href: "/admin/user-equity",
       label: "User Equity",
