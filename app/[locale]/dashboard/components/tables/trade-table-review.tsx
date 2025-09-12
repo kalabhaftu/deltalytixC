@@ -155,7 +155,7 @@ export function TradeTableReview() {
   } = useTableConfigStore()
 
   const tableConfig = tables['trade-table']
-  const [sorting, setSorting] = useState<SortingState>(tableConfig?.sorting || [{ id: "entryDate", desc: true }])
+  const [sorting, setSorting] = useState<SortingState>(tableConfig?.sorting || [{ id: "closeDate", desc: true }])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(tableConfig?.columnFilters || [])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(tableConfig?.columnVisibility || {})
   const [expanded, setExpanded] = useState<ExpandedState>({})
@@ -580,6 +580,11 @@ export function TradeTableReview() {
       cell: ({ row }) => {
         const dateStr = row.original.closeDate
         return <div>{formatInTimeZone(new Date(dateStr), timezone, 'HH:mm:ss')}</div>
+      },
+      sortingFn: (rowA, rowB, columnId) => {
+        const a = new Date(rowA.getValue(columnId)).getTime();
+        const b = new Date(rowB.getValue(columnId)).getTime();
+        return a < b ? -1 : a > b ? 1 : 0;
       },
     },
     {

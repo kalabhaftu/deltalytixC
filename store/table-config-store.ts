@@ -61,7 +61,7 @@ const defaultTradeTableConfig: TableConfig = {
     { id: 'tags', title: 'Tags', visible: true, size: 200, order: 15 },
   ],
   columnVisibility: {},
-  sorting: [{ id: 'entryDate', desc: true }],
+  sorting: [{ id: 'closeDate', desc: true }],
   columnFilters: [],
   pageSize: 10,
   pageIndex: 0,
