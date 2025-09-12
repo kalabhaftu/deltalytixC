@@ -1,8 +1,0 @@
-[33mdac755b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m feat: remove cron jobs and French language support
-[33md212965[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix TypeScript build errors
-[33m6e66721[m Fix TypeScript errors in tick-distribution.tsx and remove AI Trading Analysis page completely
-[33m3e99ee3[m Add P/L by Day toggle functionality - show total P/L by default with average toggle
-[33m5b60e92[m Fix dashboard widgets and improve calendar layout
-[33m2811b9b[m CRITICAL FIX: Remove remaining NoteEditor imports and TagsColumnHeader
-[33mfcfb593[m CRITICAL: Remove Trading Journal, Tags, and Mood functionality
-[33m68f0e49[m Initial commit - Clean Next.js 15 project with comprehensive .gitignore
