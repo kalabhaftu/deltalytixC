@@ -76,8 +76,13 @@ export function WeeklyModal({
           </DialogDescription>
         </DialogHeader>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
-          <TabsList className="px-6">
-            <TabsTrigger value="charts">{t('calendar.modal.charts')}</TabsTrigger>
+          <TabsList className="px-6 bg-background border border-border rounded-md">
+            <TabsTrigger 
+              value="charts"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-accent hover:text-accent-foreground"
+            >
+              {t('calendar.modal.charts')}
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="charts" className="flex-grow overflow-auto p-6 pt-2">
             <Charts dayData={weeklyData} isWeekly={true} />

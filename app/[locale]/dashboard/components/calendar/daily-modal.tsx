@@ -71,9 +71,19 @@ export function CalendarModal({
           </DialogDescription>
         </DialogHeader>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
-          <TabsList className="px-6">
-            <TabsTrigger value="table">{t('calendar.modal.table')}</TabsTrigger>
-            <TabsTrigger value="analysis">{t('calendar.modal.analysis')}</TabsTrigger>
+          <TabsList className="px-6 bg-background border border-border rounded-md">
+            <TabsTrigger 
+              value="table"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-accent hover:text-accent-foreground"
+            >
+              {t('calendar.modal.table')}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="analysis"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-accent hover:text-accent-foreground"
+            >
+              {t('calendar.modal.analysis')}
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="table" className="flex-grow overflow-auto p-6 pt-2">
             <ScrollArea className="h-full">
