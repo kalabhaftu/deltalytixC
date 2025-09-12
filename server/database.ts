@@ -78,7 +78,7 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
           closePrice: cleanTrade.closePrice || '',
           entryDate: cleanTrade.entryDate || '',
           closeDate: cleanTrade.closeDate || '',
-          quantity: cleanTrade.quantity || 0,
+          quantity: cleanTrade.quantity || 1,
           pnl: cleanTrade.pnl || 0,
           timeInPosition: cleanTrade.timeInPosition || 0,
           userId: cleanTrade.userId || '',
