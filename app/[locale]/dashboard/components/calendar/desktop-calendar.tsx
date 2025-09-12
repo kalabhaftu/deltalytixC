@@ -313,7 +313,7 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
                 {t('calendar.weekdays.weekly')}
               </div>
             </div>
-            <div className="grid grid-cols-8 auto-rows-fr rounded-lg h-[calc(100%-20px)]">
+            <div className="grid grid-cols-8 auto-rows-fr rounded-lg h-[calc(100%-20px)] gap-1">
               {calendarDays.map((date, index) => {
                 const dateString = format(date, 'yyyy-MM-dd')
                 const dayData = calendarData[dateString]
@@ -358,17 +358,15 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
                   <React.Fragment key={dateString}>
                     <div
                       className={cn(
-                        "h-full flex flex-col cursor-pointer transition-all rounded-none p-1",
-                        "ring-1 ring-border hover:ring-primary hover:z-10",
+                        "h-full flex flex-col cursor-pointer transition-all duration-200 rounded-md p-1",
+                        "border hover:border-primary hover:shadow-sm hover:scale-[1.02]",
                         dayData && dayData.pnl >= 0
-                          ? "bg-green-50 dark:bg-green-900/20"
+                          ? "bg-green-50/80 dark:bg-green-950/40 border-green-100 dark:border-green-900/50"
                           : dayData && dayData.pnl < 0
-                            ? "bg-red-50 dark:bg-red-900/20"
-                            : "bg-card",
-                        !isCurrentMonth && "",
-                        isToday(date) && "ring-blue-500 bg-blue-500/5 z-10",
-                        index === 0 && "rounded-tl-lg",
-                        index === 35 && "rounded-bl-lg",
+                            ? "bg-red-50/60 dark:bg-red-950/30 border-red-100/80 dark:border-red-900/40"
+                            : "bg-card border-border",
+                        !isCurrentMonth && "opacity-50",
+                        isToday(date) && "border-blue-500 bg-blue-500/5 ring-1 ring-blue-500/20",
                       )}
                       onClick={() => {
                         setSelectedDate(date)
@@ -434,10 +432,13 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
                       return (
                         <div
                           className={cn(
-                            "h-full flex items-center justify-center rounded-none cursor-pointer",
-                            "ring-1 ring-border hover:ring-primary hover:z-10",
-                            index === 6 && "rounded-tr-lg",
-                            index === 41 && "rounded-br-lg"
+                            "h-full flex items-center justify-center rounded-md cursor-pointer transition-all duration-200",
+                            "border hover:border-primary hover:shadow-sm hover:scale-[1.02]",
+                            weeklyTotal >= 0
+                              ? "bg-green-50/80 dark:bg-green-950/40 border-green-100 dark:border-green-900/50"
+                              : weeklyTotal < 0
+                                ? "bg-red-50/60 dark:bg-red-950/30 border-red-100/80 dark:border-red-900/40"
+                                : "bg-card border-border"
                           )}
                           onClick={() => setSelectedWeekDate(date)}
                         >
