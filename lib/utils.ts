@@ -10,6 +10,33 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Utility function to format numbers without unnecessary trailing zeros
+export function formatNumber(value: number, maxDecimals: number = 4): string {
+  if (isNaN(value) || !isFinite(value)) return '0'
+  
+  // Convert to string and remove trailing zeros
+  const formatted = value.toFixed(maxDecimals)
+  return parseFloat(formatted).toString()
+}
+
+// Utility function to format currency without unnecessary trailing zeros
+export function formatCurrency(value: number, maxDecimals: number = 2): string {
+  if (isNaN(value) || !isFinite(value)) return '$0'
+  
+  const formatted = value.toFixed(maxDecimals)
+  const cleanNumber = parseFloat(formatted)
+  return `$${cleanNumber}`
+}
+
+// Utility function to format percentage without unnecessary trailing zeros
+export function formatPercentage(value: number, maxDecimals: number = 1): string {
+  if (isNaN(value) || !isFinite(value)) return '0%'
+  
+  const formatted = (value * 100).toFixed(maxDecimals)
+  const cleanNumber = parseFloat(formatted)
+  return `${cleanNumber}%`
+}
+
 export function parsePositionTime(timeInSeconds: number): string {
   const hours = Math.floor(timeInSeconds / 3600);
   const minutesLeft = Math.floor((timeInSeconds - (hours * 3600)) / 60);

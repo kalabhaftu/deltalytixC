@@ -26,7 +26,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { cn, parsePositionTime } from '@/lib/utils'
+import { cn, parsePositionTime, formatCurrency, formatNumber } from '@/lib/utils'
 import { Checkbox } from "@/components/ui/checkbox"
 import { useI18n } from '@/locales/client'
 
@@ -526,7 +526,7 @@ export function TradeTableReview() {
         const decimalPlaces = getDecimalPlaces(row.original.instrument, entryPrice)
         return (
           <div className="text-right font-medium">
-            ${entryPrice.toFixed(decimalPlaces)}
+            {formatCurrency(entryPrice, decimalPlaces)}
           </div>
         )
       },
@@ -541,7 +541,7 @@ export function TradeTableReview() {
         const decimalPlaces = getDecimalPlaces(row.original.instrument, exitPrice)
         return (
           <div className="text-right font-medium">
-            ${exitPrice.toFixed(decimalPlaces)}
+            {formatCurrency(exitPrice, decimalPlaces)}
           </div>
         )
       },
@@ -594,7 +594,7 @@ export function TradeTableReview() {
             <span className={cn(
               pnl >= 0 ? 'text-green-600' : 'text-red-600'
             )}>
-              {pnl.toFixed(2)}
+              {formatCurrency(pnl)}
             </span>
           </div>
         )
@@ -610,7 +610,7 @@ export function TradeTableReview() {
         const commission = row.original.commission
         return (
           <div className="text-right font-medium">
-            ${commission.toFixed(2)}
+            {formatCurrency(commission)}
           </div>
         )
       },

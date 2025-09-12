@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Eye, Calendar, Clock, TrendingUp, TrendingDown, DollarSign, Hash, User, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency, formatNumber } from '@/lib/utils'
 import Image from 'next/image'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 
@@ -111,11 +111,11 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">Entry Price</Label>
-                    <p className="font-medium">${parseFloat(trade.entryPrice).toFixed(4)}</p>
+                    <p className="font-medium">{formatCurrency(parseFloat(trade.entryPrice), 4)}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">Exit Price</Label>
-                    <p className="font-medium">${parseFloat(trade.closePrice).toFixed(4)}</p>
+                    <p className="font-medium">{formatCurrency(parseFloat(trade.closePrice), 4)}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">P&L</Label>
@@ -266,13 +266,13 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Risk/Reward</span>
                     <span className="font-medium">
-                      {trade.pnl >= 0 ? '+' : '-'} ${Math.abs(trade.pnl).toFixed(2)}
+                      {trade.pnl >= 0 ? '+' : '-'} {formatCurrency(Math.abs(trade.pnl))}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Price Movement</span>
                     <span className="font-medium">
-                      {((parseFloat(trade.closePrice) - parseFloat(trade.entryPrice)) / parseFloat(trade.entryPrice) * 100).toFixed(2)}%
+                      {formatNumber((parseFloat(trade.closePrice) - parseFloat(trade.entryPrice)) / parseFloat(trade.entryPrice) * 100, 2)}%
                     </span>
                   </div>
                   <div className="flex justify-between">

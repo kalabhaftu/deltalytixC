@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Trade } from '@prisma/client'
 import { Edit, Camera, X } from 'lucide-react'
 import { useUserStore } from '@/store/user-store'
+import { formatCurrency } from '@/lib/utils'
 // import { NoteEditor } from '@/app/[locale]/dashboard/components/mindset/note-editor' // Removed - journaling feature
 
 // Schema for limited editing (only notes, screenshots, links)
@@ -366,7 +367,7 @@ export default function EnhancedEditTrade({
               <div>
                 <Label className="text-sm text-muted-foreground">P&L</Label>
                 <p className={`font-bold ${trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ${trade.pnl.toFixed(2)}
+                  {formatCurrency(trade.pnl)}
                 </p>
               </div>
               <div>

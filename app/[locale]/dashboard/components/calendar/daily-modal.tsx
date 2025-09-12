@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn, parsePositionTime } from "@/lib/utils"
+import { cn, parsePositionTime, formatCurrency } from "@/lib/utils"
 import { Trade } from "@prisma/client"
 import { CalendarEntry } from "@/app/[locale]/dashboard/types/calendar"
 import { Charts } from "./charts"
@@ -118,9 +118,9 @@ export function CalendarModal({
                                   ? "text-green-600 dark:text-green-400"
                                   : "text-red-600 dark:text-red-400"
                               )}>
-                                ${trade.pnl.toFixed(2)}
+                                ${formatCurrency(trade.pnl)}
                               </TableCell>
-                              <TableCell>${(trade.commission).toFixed(2)}</TableCell>
+                              <TableCell>{formatCurrency(trade.commission)}</TableCell>
                               <TableCell>{parsePositionTime(trade.timeInPosition)}</TableCell>
                             </TableRow>
                           ))}
@@ -131,10 +131,10 @@ export function CalendarModal({
                                 ? "text-green-600 dark:text-green-400"
                                 : "text-red-600 dark:text-red-400"
                             )}>
-                              ${trades.reduce((sum, trade) => sum + trade.pnl, 0).toFixed(2)}
+                              ${formatCurrency(trades.reduce((sum, trade) => sum + trade.pnl, 0))}
                             </TableCell>
                             <TableCell>
-                              ${trades.reduce((sum, trade) => sum + trade.commission, 0).toFixed(2)}
+                              {formatCurrency(trades.reduce((sum, trade) => sum + trade.commission, 0))}
                             </TableCell>
                             <TableCell></TableCell>
                           </TableRow>
