@@ -56,7 +56,7 @@ export default function TopstepProcessor({ headers, csvData, setProcessedTrades,
                     switch (key) {
                         case 'quantity':
                             quantity = parseFloat(cellValue) || 0;
-                            if (quantity <= 0) {
+                            if (quantity < 0) {
                                 isValidTrade = false;
                                 return;
                             }
@@ -168,7 +168,7 @@ export default function TopstepProcessor({ headers, csvData, setProcessedTrades,
                 const completeTrade: Trade = {
                     id: uuidv4(),
                     accountNumber,
-                    quantity: item.quantity || 0,
+                    quantity: item.quantity || 1,
                     entryId: item.entryId || null,
                     closeId: item.closeId || null,
                     instrument: item.instrument || '',

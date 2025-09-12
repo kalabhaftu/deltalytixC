@@ -130,7 +130,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
               closePrice: cleanTrade.closePrice || '',
               entryDate: cleanTrade.entryDate || '',
               closeDate: cleanTrade.closeDate || '',
-              quantity: cleanTrade.quantity || 0,
+              quantity: cleanTrade.quantity || 1,
               pnl: cleanTrade.pnl || 0,
               timeInPosition: cleanTrade.timeInPosition || 0,
               side: cleanTrade.side || '',
@@ -152,7 +152,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
             // Check if all required fields are present and not empty
             return trade.accountNumber &&
               trade.instrument &&
-              trade.quantity !== 0 &&
+              trade.quantity > 0 &&
               (trade.entryPrice || trade.closePrice) &&
               (trade.entryDate || trade.closeDate);
           });

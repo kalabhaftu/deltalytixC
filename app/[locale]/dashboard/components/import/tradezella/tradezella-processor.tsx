@@ -118,7 +118,7 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
       const completeTrade: Trade = {
         id: uuidv4(),
         accountNumber: item.accountNumber || accountNumber,
-        quantity: item.quantity || 0,
+        quantity: item.quantity || 1,
         entryId: item.entryId || null,
         closeId: item.closeId || null,
         instrument: item.instrument || '',
