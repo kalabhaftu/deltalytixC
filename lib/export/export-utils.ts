@@ -5,6 +5,7 @@ import autoTable from 'jspdf-autotable'
 import html2canvas from 'html2canvas'
 import * as ExcelJS from 'exceljs'
 import { saveAs } from 'file-saver'
+import { formatCurrency, formatNumber, formatPercentage } from '@/lib/utils'
 
 export interface ExportOptions {
   filename?: string
@@ -145,24 +146,24 @@ export class PDFExporter {
       ['Total Trades', analytics.totalTrades.toString()],
       ['Winning Trades', analytics.winningTrades.toString()],
       ['Losing Trades', analytics.losingTrades.toString()],
-      ['Win Rate', `${analytics.winRate.toFixed(2)}%`],
-      ['Total PnL', `$${analytics.totalPnL.toFixed(2)}`],
-      ['Average Win', `$${analytics.avgWin.toFixed(2)}`],
-      ['Average Loss', `$${analytics.avgLoss.toFixed(2)}`],
-      ['Profit Factor', analytics.profitFactor.toFixed(2)],
-      ['Total Commission', `$${analytics.totalCommission.toFixed(2)}`],
+      ['Win Rate', `${formatPercentage(analytics.winRate / 100)}`],
+      ['Total PnL', formatCurrency(analytics.totalPnL)],
+      ['Average Win', formatCurrency(analytics.avgWin)],
+      ['Average Loss', formatCurrency(analytics.avgLoss)],
+      ['Profit Factor', formatNumber(analytics.profitFactor, 2)],
+      ['Total Commission', formatCurrency(analytics.totalCommission)],
     ]
 
     if (analytics.sharpeRatio !== undefined) {
-      summaryData.push(['Sharpe Ratio', analytics.sharpeRatio.toFixed(2)])
+      summaryData.push(['Sharpe Ratio', formatNumber(analytics.sharpeRatio, 2)])
     }
 
     if (analytics.maxDrawdown !== undefined) {
-      summaryData.push(['Max Drawdown', `${analytics.maxDrawdown.toFixed(2)}%`])
+      summaryData.push(['Max Drawdown', `${formatNumber(analytics.maxDrawdown, 2)}%`])
     }
 
     if (analytics.avgTimeInPosition !== undefined) {
-      summaryData.push(['Avg. Time in Position', `${analytics.avgTimeInPosition.toFixed(0)} min`])
+      summaryData.push(['Avg. Time in Position', `${formatNumber(analytics.avgTimeInPosition, 0)} min`])
     }
 
     autoTable(this.pdf, {
@@ -199,10 +200,10 @@ export class PDFExporter {
       trade.instrument,
       trade.side.toUpperCase(),
       trade.quantity.toString(),
-      `$${trade.entryPrice.toFixed(2)}`,
-      trade.closePrice ? `$${trade.closePrice.toFixed(2)}` : 'Open',
-      `$${trade.pnl.toFixed(2)}`,
-      `$${trade.commission.toFixed(2)}`,
+      `$${formatNumber(parseFloat(trade.entryPrice), 2)}`,
+      trade.closePrice ? `$${formatNumber(parseFloat(trade.closePrice), 2)}` : 'Open',
+      formatCurrency(trade.pnl),
+      formatCurrency(trade.commission),
       trade.timeInPosition ? `${trade.timeInPosition}min` : 'N/A',
     ])
 
@@ -396,7 +397,7 @@ export class ExcelExporter {
       ['Total Trades', analytics.totalTrades],
       ['Winning Trades', analytics.winningTrades],
       ['Losing Trades', analytics.losingTrades],
-      ['Win Rate', `${analytics.winRate.toFixed(2)}%`],
+      ['Win Rate', `${formatPercentage(analytics.winRate / 100)}%`],
       ['Total PnL', analytics.totalPnL],
       ['Average Win', analytics.avgWin],
       ['Average Loss', analytics.avgLoss],
@@ -427,7 +428,7 @@ export class ExcelExporter {
     const metricsData = [
       ['Metric', 'Value'],
       ['Total Trades', analytics.totalTrades],
-      ['Win Rate', `${analytics.winRate.toFixed(2)}%`],
+      ['Win Rate', `${formatPercentage(analytics.winRate / 100)}%`],
       ['Total PnL', analytics.totalPnL],
       ['Profit Factor', analytics.profitFactor],
       ['Average Win', analytics.avgWin],
