@@ -622,8 +622,8 @@ export function TradeTableReview() {
       ),
       cell: ({ row }) => {
         const quantity = row.original.quantity
-        // Use toFixed to preserve decimal places for fractional quantities
-        const formattedQuantity = quantity < 1 ? quantity.toFixed(4) : quantity.toLocaleString()
+        // Preserve exact decimal places without trailing zeros
+        const formattedQuantity = quantity < 1 ? parseFloat(quantity.toString()) : quantity.toLocaleString()
         return (
           <div className="text-right font-medium">
             {formattedQuantity}

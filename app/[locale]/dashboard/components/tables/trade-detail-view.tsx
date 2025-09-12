@@ -106,7 +106,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                   <div>
                     <Label className="text-sm text-muted-foreground">Quantity</Label>
                     <p className="font-medium">
-                      {trade.quantity < 1 ? trade.quantity.toFixed(4) : trade.quantity.toLocaleString()}
+                      {trade.quantity < 1 ? parseFloat(trade.quantity.toString()) : trade.quantity.toLocaleString()}
                     </p>
                   </div>
                   <div>
