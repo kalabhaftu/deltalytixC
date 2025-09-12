@@ -622,11 +622,9 @@ export function TradeTableReview() {
       ),
       cell: ({ row }) => {
         const quantity = row.original.quantity
-        // Preserve exact decimal places without trailing zeros
-        const formattedQuantity = quantity < 1 ? parseFloat(quantity.toString()) : quantity.toLocaleString()
         return (
           <div className="text-right font-medium">
-            {formattedQuantity}
+            {quantity}
           </div>
         )
       },
