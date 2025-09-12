@@ -14,6 +14,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { useData } from '@/context/data-provider'
+// import { NoteEditor } from '@/app/[locale]/dashboard/components/mindset/note-editor' // Removed - journaling feature
 
 interface TradeCommentProps {
   tradeIds: string[]
@@ -134,7 +135,7 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
               <Textarea
                 value={localComment}
                 onChange={(e) => setLocalComment(e.target.value)}
-                placeholder="Add your trade analysis and notes..."
+                placeholder="Add your trade analysis and reflections..."
                 className="min-h-[300px] resize-none"
               />
             </div>

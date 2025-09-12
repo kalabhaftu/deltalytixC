@@ -16,34 +16,22 @@ import {
 } from "@/components/ui/tooltip"
 import { useI18n } from "@/locales/client"
 import { Button } from "@/components/ui/button"
-import { 
-  classifyAsset, 
-  getDisplayUnit, 
-  CountingUnit 
-} from "@/lib/asset-classification"
+import { useTickDetailsStore } from "../../../../../store/tick-details-store"
+import { useUserStore } from "../../../../../store/user-store"
 
 interface TickDistributionProps {
   size?: WidgetSize
 }
 
 interface ChartDataPoint {
-  asset: string;
-  winValue: number;
-  lossValue: number;
-  winDisplay: string;
-  lossDisplay: string;
-  unit: CountingUnit;
-  winCount: number;
-  lossCount: number;
-  winBarHeight: number;
-  lossBarHeight: number;
+  ticks: string;
+  count: number;
 }
 
 interface TooltipProps {
   active?: boolean;
   payload?: Array<{
     payload: ChartDataPoint;
-    dataKey?: string;
   }>;
   label?: string;
 }
@@ -58,32 +46,16 @@ const chartConfig = {
 const CustomTooltip = ({ active, payload }: TooltipProps) => {
   const t = useI18n()
   if (active && payload && payload.length) {
-    const item = payload[0];
-    const data = item.payload;
-    const unitLabel = data.unit === 'pip' ? 'pips' : 'handles';
-    
-    // Determine which bar is being hovered based on dataKey
-    const isWinBar = item.dataKey === 'winBarHeight';
-    const isLossBar = item.dataKey === 'lossBarHeight';
-    
-    if (isWinBar) {
+    const data = payload[0].payload;
     return (
       <div className="rounded-lg border bg-background p-2 shadow-sm">
         <div className="grid gap-2">
           <div className="flex flex-col">
             <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {data.asset}
-              </span>
-              <span className="font-bold text-green-600">
-                Average Win
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
-                Value
+              {t('tickDistribution.tooltip.ticks')}
             </span>
-              <span className="font-bold text-green-600">
-                {data.winDisplay} {unitLabel}
+            <span className="font-bold text-muted-foreground">
+              {data.ticks} {parseInt(data.ticks) !== 1 ? t('tickDistribution.tooltip.ticks_plural') : t('tickDistribution.tooltip.tick')}
             </span>
           </div>
           <div className="flex flex-col">
@@ -91,174 +63,68 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
               {t('tickDistribution.tooltip.trades')}
             </span>
             <span className="font-bold">
-                {data.winCount} {data.winCount !== 1 ? t('tickDistribution.tooltip.trades_plural') : t('tickDistribution.tooltip.trade')}
+              {data.count} {data.count !== 1 ? t('tickDistribution.tooltip.trades_plural') : t('tickDistribution.tooltip.trade')}
             </span>
           </div>
         </div>
       </div>
     );
-    }
-    
-    if (isLossBar) {
-      return (
-        <div className="rounded-lg border bg-background p-2 shadow-sm">
-          <div className="grid gap-2">
-            <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {data.asset}
-              </span>
-              <span className="font-bold text-red-600">
-                Average Loss
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
-                Value
-              </span>
-              <span className="font-bold text-red-600">
-                {data.lossDisplay} {unitLabel}
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('tickDistribution.tooltip.trades')}
-              </span>
-              <span className="font-bold">
-                {data.lossCount} {data.lossCount !== 1 ? t('tickDistribution.tooltip.trades_plural') : t('tickDistribution.tooltip.trade')}
-              </span>
-            </div>
-          </div>
-        </div>
-      );
-    }
   }
   return null;
 };
 
+const formatCount = (value: number) => {
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(1)}k`
+  }
+  return value.toString()
+}
 
 export default function TickDistributionChart({ size = 'medium' }: TickDistributionProps) {
   const { formattedTrades: trades, tickFilter, setTickFilter } = useData()
+  const tickDetails = useTickDetailsStore(state => state.tickDetails)
   const t = useI18n()
 
   const chartData = React.useMemo(() => {
     if (!trades.length) return []
 
-    // Group trades by asset
-    const assetGroups: Record<string, { 
-      trades: any[], 
-      classification: any, 
-      displayUnit: CountingUnit 
-    }> = {}
+    // Create a map to store tick counts
+    const tickCounts: Record<number, number> = {}
 
+    // Count trades for each tick value
     trades.forEach(trade => {
-      // Skip trades with zero quantity
-      if (Number(trade.quantity) === 0) return
-
-      const classification = classifyAsset(trade.instrument)
-      const displayUnit = getDisplayUnit(classification)
-      const asset = trade.instrument
+      // Fix ticker matching logic - sort by length descending to match longer tickers first
+      // This prevents "ES" from matching "MES" trades
+      const matchingTicker = Object.keys(tickDetails)
+        .sort((a, b) => b.length - a.length) // Sort by length descending
+        .find(ticker => trade.instrument.includes(ticker))
       
-      if (!assetGroups[asset]) {
-        assetGroups[asset] = {
-          trades: [],
-          classification,
-          displayUnit
-        }
-      }
-      assetGroups[asset].trades.push(trade)
+      // Use tickValue (monetary value per tick) instead of tickSize (minimum price increment)
+      const tickValue = matchingTicker ? tickDetails[matchingTicker].tickValue : 1
+      
+      // Calculate PnL per contract first
+      const pnlPerContract = Number(trade.pnl) / Number(trade.quantity)
+      const ticks = Math.round(pnlPerContract / tickValue)
+      tickCounts[ticks] = (tickCounts[ticks] || 0) + 1
     })
 
-    // Calculate averages for each asset and create grouped data
-    const chartData: ChartDataPoint[] = []
+    // Convert the tick counts to sorted chart data
+    return Object.entries(tickCounts)
+      .map(([tick, count]) => ({
+        ticks: tick === '0' ? '0' : Number(tick) > 0 ? `+${tick}` : `${tick}`,
+        count
+      }))
+      .sort((a, b) => Number(a.ticks.replace('+', '')) - Number(b.ticks.replace('+', '')))
 
-    Object.entries(assetGroups).forEach(([asset, { trades: assetTrades, classification, displayUnit }]) => {
-      const winTrades: number[] = []
-      const lossTrades: number[] = []
-
-      assetTrades.forEach(trade => {
-        const entryPrice = Number(trade.entryPrice)
-        const closePrice = Number(trade.closePrice)
-        
-        // Skip trades with invalid prices
-        if (!entryPrice || !closePrice || entryPrice <= 0 || closePrice <= 0) {
-          return
-        }
-        
-        const priceDifference = closePrice - entryPrice
-        const isWin = priceDifference > 0
-        
-        // Calculate the actual price movement distance
-        const movementDistance = Math.abs(priceDifference)
-        
-        // Add extra validation for forex pairs
-        if (classification.type === 'forex') {
-          // For forex, price difference should be small (usually less than 0.1)
-          if (movementDistance > 0.1) {
-            console.log(`Skipping forex trade with large movement: ${trade.instrument}, Entry: ${entryPrice}, Close: ${closePrice}, Diff: ${movementDistance}`)
-            return
-          }
-        }
-        
-        // Add validation for indices
-        if (classification.type === 'index') {
-          // For indices, price difference should be reasonable (less than 1000 points)
-          if (movementDistance > 1000) {
-            console.log(`Skipping index trade with large movement: ${trade.instrument}, Entry: ${entryPrice}, Close: ${closePrice}, Diff: ${movementDistance}`)
-            return
-          }
-        }
-        
-        const movementCount = Math.round(movementDistance / classification.smallestMove)
-        
-        // Very strict filtering - max 200 pips/handles
-        if (movementCount > 0 && movementCount <= 200 && isFinite(movementCount)) {
-          if (isWin) {
-            winTrades.push(movementCount)
-          } else {
-            lossTrades.push(movementCount)
-          }
-        }
-      })
-
-      // Calculate averages
-      const avgWin = winTrades.length > 0 ? winTrades.reduce((sum, val) => sum + val, 0) / winTrades.length : 0
-      const avgLoss = lossTrades.length > 0 ? lossTrades.reduce((sum, val) => sum + val, 0) / lossTrades.length : 0
-
-      // Debug logging for problematic values
-      if (avgWin > 1000 || avgLoss > 1000) {
-        console.log(`Asset: ${asset}, Win Trades: ${winTrades}, Loss Trades: ${lossTrades}`)
-        console.log(`Avg Win: ${avgWin}, Avg Loss: ${avgLoss}`)
-      }
-
-      // Cap unrealistic values - much stricter now
-      const cappedWin = Math.min(avgWin, 200)
-      const cappedLoss = Math.min(avgLoss, 200)
-
-      // Create single data point per asset with both win and loss values
-      chartData.push({
-        asset,
-        winValue: cappedWin,
-        lossValue: cappedLoss,
-        winDisplay: cappedWin > 0 ? `+${Math.round(cappedWin)}` : '0',
-        lossDisplay: cappedLoss > 0 ? `-${Math.round(cappedLoss)}` : '0',
-        unit: displayUnit,
-        winCount: winTrades.length,
-        lossCount: lossTrades.length,
-        winBarHeight: cappedWin,
-        lossBarHeight: -cappedLoss // Negative for loss bars
-      })
-    })
-
-    return chartData
-  }, [trades])
+  }, [trades, tickDetails])
 
   const handleBarClick = (data: any) => {
     if (!data || !trades.length) return
-    const clickedAsset = data.asset
-    if (tickFilter.value === clickedAsset) {
+    const clickedTicks = data.ticks
+    if (tickFilter.value === clickedTicks) {
       setTickFilter({ value: null })
     } else {
-      setTickFilter({ value: clickedAsset })
+      setTickFilter({ value: clickedTicks })
     }
   }
 
@@ -313,33 +179,45 @@ export default function TickDistributionChart({ size = 'medium' }: TickDistribut
         )}
       >
         <div className={cn("w-full h-full")}>
-          {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={chartData}
-                margin={
-                  size === 'small-long'
-                    ? { left: 0, right: 2, top: 4, bottom: 20 }
-                    : { left: 0, right: 4, top: 8, bottom: 24 }
-                }
-                barCategoryGap={2}
-                onClick={(e) => e?.activePayload && handleBarClick(e.activePayload[0].payload)}
-              >
+            <BarChart
+              data={chartData}
+              margin={
+                size === 'small-long'
+                  ? { left: 0, right: 4, top: 4, bottom: 20 }
+                  : { left: 0, right: 8, top: 8, bottom: 24 }
+              }
+              onClick={(e) => e?.activePayload && handleBarClick(e.activePayload[0].payload)}
+            >
               <CartesianGrid 
                 strokeDasharray="3 3" 
                 className="text-border dark:opacity-[0.12] opacity-[0.2]"
               />
               <XAxis
-                dataKey="asset"
+                dataKey="ticks"
                 tickLine={false}
                 axisLine={false}
                 height={size === 'small-long' ? 20 : 24}
                 tickMargin={size === 'small-long' ? 4 : 8}
-                tick={{ 
-                  fontSize: size === 'small-long' ? 9 : 11,
-                  fill: 'currentColor'
+                tick={(props) => {
+                  const { x, y, payload } = props;
+                  return (
+                    <g transform={`translate(${x},${y})`}>
+                      <text
+                        x={0}
+                        y={0}
+                        dy={size === 'small-long' ? 8 : 4}
+                        textAnchor={size === 'small-long' ? 'end' : 'middle'}
+                        fill="currentColor"
+                        fontSize={size === 'small-long' ? 9 : 11}
+                        transform={size === 'small-long' ? 'rotate(-45)' : 'rotate(0)'}
+                      >
+                        {payload.value}
+                      </text>
+                    </g>
+                  );
                 }}
-                interval={0} // Show all asset labels
+                interval="preserveStartEnd"
                 allowDataOverflow={true}
               />
               <YAxis
@@ -347,22 +225,11 @@ export default function TickDistributionChart({ size = 'medium' }: TickDistribut
                 axisLine={false}
                 width={45}
                 tickMargin={4}
-                tickFormatter={(value) => {
-                  const absValue = Math.abs(value)
-                  const roundedValue = Math.round(absValue)
-                  if (roundedValue >= 1000000) {
-                    return `${Math.round(roundedValue / 1000000)}M`
-                  } else if (roundedValue >= 1000) {
-                    return `${Math.round(roundedValue / 1000)}k`
-                  }
-                  return roundedValue.toString()
-                }}
+                tickFormatter={formatCount}
                 tick={{ 
                   fontSize: size === 'small-long' ? 9 : 11,
                   fill: 'currentColor'
                 }}
-                domain={['dataMin', 'dataMax']}
-                allowDecimals={false}
               />
               <Tooltip 
                 content={<CustomTooltip />}
@@ -372,29 +239,22 @@ export default function TickDistributionChart({ size = 'medium' }: TickDistribut
                 }} 
               />
               <Bar
-                dataKey="winBarHeight"
-                name="Win"
-                fill="hsl(var(--chart-3))"
-                radius={[2, 2, 0, 0]}
-                maxBarSize={size === 'small-long' ? 15 : 20}
-              />
-              <Bar
-                dataKey="lossBarHeight"
-                name="Loss"
-                fill="hsl(var(--chart-4))"
-                radius={[2, 2, 0, 0]}
-                maxBarSize={size === 'small-long' ? 15 : 20}
-              />
+                dataKey="count"
+                fill={chartConfig.count.color}
+                radius={[3, 3, 0, 0]}
+                maxBarSize={size === 'small-long' ? 25 : 40}
+                className="transition-all duration-300 ease-in-out"
+                opacity={tickFilter.value ? 0.3 : 1}
+              >
+                {chartData.map((entry) => (
+                  <Cell
+                    key={`cell-${entry.ticks}`}
+                    opacity={tickFilter.value === entry.ticks ? 1 : (tickFilter.value ? 0.3 : 1)}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center text-muted-foreground">
-                <p className="text-sm">No valid data to display</p>
-                <p className="text-xs mt-1">Trades with zero quantity or missing TP/SL are excluded</p>
-              </div>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>

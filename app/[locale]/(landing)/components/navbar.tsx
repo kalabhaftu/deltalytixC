@@ -154,6 +154,7 @@ export default function Component() {
                     <AccordionContent>
                         <ul className="space-y-2 list-none">
                             <MobileNavItem href="/updates" onClick={onLinkClick}>{t('landing.navbar.productUpdates')}</MobileNavItem>
+                            <MobileNavItem href="/community" onClick={onLinkClick}>{t('landing.navbar.community')}</MobileNavItem>
                         </ul>
                     </AccordionContent>
                 </AccordionItem>

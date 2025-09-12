@@ -11,7 +11,7 @@ import { CalendarModal } from "./daily-modal"
 import { CalendarData } from "@/app/[locale]/dashboard/types/calendar"
 import { Card, CardTitle } from "@/components/ui/card"
 import { useI18n, useCurrentLocale } from "@/locales/client"
-import { useUserStore } from "@/store/user-store"
+import { useUserStore } from "../../../../../store/user-store"
 
 function formatCurrency(value: number): string {
   const absValue = Math.abs(value);

@@ -348,14 +348,11 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                         contentClass="!w-full !h-full flex items-center justify-center"
                       >
                         <div className="flex items-center justify-center w-full h-full">
-                          <Image
+                          <img
                             src={imageArray[selectedImageIndex]}
                             alt="Trade image"
-                            fill
-                            className="object-contain select-none"
+                            className="max-w-full max-h-full object-contain select-none"
                             style={{ margin: 'auto' }}
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
-                            priority={true}
                           />
                         </div>
                       </TransformComponent>

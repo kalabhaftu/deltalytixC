@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/context/theme-provider";
 
 import { Metadata } from 'next';
 
-type Locale = 'en' | 'fr';
+type Locale = 'en';
 
 export async function generateMetadata(props: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
   const params = await props.params;

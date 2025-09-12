@@ -5,11 +5,11 @@ import { prisma } from '@/lib/prisma'
 // Simple migration check and execution
 export async function ensureDatabaseSchema() {
   try {
-    // Test if we can connect to the database with extended timeout for migrations
+    // Test if we can connect to the database with reasonable timeout
     const healthCheck = Promise.race([
       prisma.$queryRaw`SELECT 1`,
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database connection timeout')), 20000) // Extended timeout for migrations
+        setTimeout(() => reject(new Error('Database connection timeout')), 30000)
       )
     ]);
     

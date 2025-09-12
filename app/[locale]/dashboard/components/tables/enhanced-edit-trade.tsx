@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import Image from 'next/image'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -21,6 +20,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Trade } from '@prisma/client'
 import { Edit, Camera, X } from 'lucide-react'
 import { useUserStore } from '@/store/user-store'
+// import { NoteEditor } from '@/app/[locale]/dashboard/components/mindset/note-editor' // Removed - journaling feature
 
 // Schema for limited editing (only notes, screenshots, links)
 const editTradeSchema = z.object({
@@ -400,13 +400,11 @@ export default function EnhancedEditTrade({
                   <Label htmlFor="comment">Analysis & Reflections</Label>
                   <Textarea
                     {...register('comment')}
-                    placeholder="Document your analysis, market conditions, and lessons learned from this trade..."
+                    placeholder="Add your trade analysis and reflections..."
                     className="min-h-[200px] resize-none"
-                    value={watchedValues.comment || ''}
-                    onChange={(e) => setValue('comment', e.target.value)}
                   />
                   <p className="text-sm text-muted-foreground">
-                    Document your analysis, market conditions, and lessons learned from this trade.
+                    Document your analysis, market conditions, and lessons learned from this trade using the rich text editor.
                   </p>
                 </div>
               </CardContent>
@@ -440,14 +438,11 @@ export default function EnhancedEditTrade({
                         
                         {watchedValues.imageBase64 ? (
                           <div className="relative w-full h-full group">
-                            <Image
+                            <img
                               src={watchedValues.imageBase64}
                               alt="Screenshot 1"
-                              fill
-                              className="object-cover rounded cursor-pointer"
+                              className="w-full h-full object-cover rounded cursor-pointer"
                               onClick={() => setFullscreenImage(watchedValues.imageBase64!)}
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                              priority={false}
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                               <Button
@@ -500,14 +495,11 @@ export default function EnhancedEditTrade({
                         
                         {watchedValues.imageBase64Second ? (
                           <div className="relative w-full h-full group">
-                            <Image
+                            <img
                               src={watchedValues.imageBase64Second}
                               alt="Screenshot 2"
-                              fill
-                              className="object-cover rounded cursor-pointer"
+                              className="w-full h-full object-cover rounded cursor-pointer"
                               onClick={() => setFullscreenImage(watchedValues.imageBase64Second!)}
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                              priority={false}
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                               <Button
@@ -560,14 +552,11 @@ export default function EnhancedEditTrade({
                         
                         {watchedValues.imageBase64Third ? (
                           <div className="relative w-full h-full group">
-                            <Image
+                            <img
                               src={watchedValues.imageBase64Third}
                               alt="Screenshot 3"
-                              fill
-                              className="object-cover rounded cursor-pointer"
+                              className="w-full h-full object-cover rounded cursor-pointer"
                               onClick={() => setFullscreenImage(watchedValues.imageBase64Third!)}
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                              priority={false}
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                               <Button
@@ -620,14 +609,11 @@ export default function EnhancedEditTrade({
                         
                         {watchedValues.imageBase64Fourth ? (
                           <div className="relative w-full h-full group">
-                            <Image
+                            <img
                               src={watchedValues.imageBase64Fourth}
                               alt="Screenshot 4"
-                              fill
-                              className="object-cover rounded cursor-pointer"
+                              className="w-full h-full object-cover rounded cursor-pointer"
                               onClick={() => setFullscreenImage(watchedValues.imageBase64Fourth!)}
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                              priority={false}
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                               <Button
@@ -690,13 +676,10 @@ export default function EnhancedEditTrade({
           onClick={() => setFullscreenImage(null)}
         >
           <div className="w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-            <Image 
+            <img 
               src={fullscreenImage} 
               alt="Fullscreen view" 
-              fill
-              className="object-contain"
-              sizes="100vw"
-              priority={true}
+              className="max-w-full max-h-full object-contain" 
             />
           </div>
           <Button

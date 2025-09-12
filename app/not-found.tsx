@@ -29,17 +29,9 @@ const translations = {
   }
 }
 
-function getLocaleFromGeolocation(): 'en' | 'fr' {
-  if (typeof window === 'undefined') return 'fr' // Default for SSR
-  
-  // Get country from cookie set by middleware
-  const cookies = document.cookie.split(';')
-  const countryCookie = cookies.find(cookie => cookie.trim().startsWith('user-country='))
-  const country = countryCookie?.split('=')[1]?.trim()
-  
-  // Use French for France and French-speaking countries, English for others
-  const frenchCountries = ['FR', 'CA', 'BE', 'CH', 'LU', 'MC']
-  return frenchCountries.includes(country || '') ? 'fr' : 'en'
+function getLocaleFromGeolocation(): 'en' {
+  // Always return English since we only support English now
+  return 'en'
 }
 
 function getThemeFromLocalStorage(): 'light' | 'dark' | 'system' {
@@ -72,11 +64,9 @@ function applyThemeToDocument(effectiveTheme: 'light' | 'dark', intensity: numbe
   root.style.setProperty('--theme-intensity', `${intensity}%`)
 }
 
-function detectLocaleFromBrowser(): 'en' | 'fr' {
-  if (typeof window === 'undefined') return 'fr'
-  
-  // First try geolocation from middleware
-  const geoLocale = getLocaleFromGeolocation()
+function detectLocaleFromBrowser(): 'en' {
+  // Always return English since we only support English now
+  return 'en'
   
   // If no country detected, fall back to browser language
   const cookies = document.cookie.split(';')
@@ -84,7 +74,7 @@ function detectLocaleFromBrowser(): 'en' | 'fr' {
   
   if (!countryCookie) {
     const browserLang = navigator.language.toLowerCase()
-    return browserLang.startsWith('en') ? 'en' : 'fr'
+    return 'en'
   }
   
   return geoLocale
@@ -92,7 +82,7 @@ function detectLocaleFromBrowser(): 'en' | 'fr' {
 
 function NotFoundContent() {
   const router = useRouter()
-  const [locale, setLocale] = useState<'en' | 'fr'>('fr')
+  const [locale, setLocale] = useState<'en'>('en')
   const [isClient, setIsClient] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
   const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light')
@@ -157,7 +147,7 @@ function NotFoundContent() {
     return <Sun className="w-4 h-4" />
   }
 
-  // Show fallback during hydration with French as default (respects system theme)
+  // Show fallback during hydration with English as default (respects system theme)
   if (!isClient) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 relative">

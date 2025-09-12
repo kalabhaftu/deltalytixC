@@ -441,6 +441,15 @@ export const defaultLayouts: PrismaDashboardLayout = {
       w: 12,
       h: 4
     },
+    {
+      i: "propFirm",
+      type: "propFirm" as WidgetType,
+      size: "medium" as WidgetSize,
+      x: 0,
+      y: 35,
+      w: 12,
+      h: 6
+    },
   ]
 };
 
@@ -565,9 +574,11 @@ export const DataProvider: React.FC<{
   const user = useUserStore(state => state.user);
   const setUser = useUserStore(state => state.setUser);
 
+  // const setTags = useUserStore(state => state.setTags); // Removed - tags feature
   const setAccounts = useUserStore(state => state.setAccounts);
   const setGroups = useUserStore(state => state.setGroups);
   const setDashboardLayout = useUserStore(state => state.setDashboardLayout);
+  // const setMoods = useMoodStore(state => state.setMoods); // Removed - mood feature
   const supabaseUser = useUserStore(state => state.supabaseUser);
   const timezone = useUserStore(state => state.timezone);
   const groups = useUserStore(state => state.groups);
@@ -655,7 +666,9 @@ export const DataProvider: React.FC<{
         // RESET ALL OTHER STATES
         setUser(null);
 
+        // setTags([]); // Removed - tags feature
         setGroups([]);
+        // setMoods([]); // Removed - mood feature
         setTickDetails([]);
         setAccounts([]);
         setGroups([]);
@@ -726,7 +739,9 @@ export const DataProvider: React.FC<{
       await ensureUserInDatabase(user, locale)
         
 
+      // setTags(data.tags); // Removed - tags feature
       setGroups(data.groups);
+      // setMoods(data.moodHistory); // Removed - mood feature
       setTickDetails(data.tickDetails);
       setIsFirstConnection(data.userData?.isFirstConnection || false)
 
@@ -969,6 +984,7 @@ export const DataProvider: React.FC<{
           }
         }
 
+        // Tag filter removed - journaling feature
 
         return true;
       })

@@ -25,7 +25,11 @@ import { useI18n } from "@/locales/client"
 
 interface ConsentSettings {
   analytics_storage: boolean;
+  ad_storage: boolean;
+  ad_user_data: boolean;
+  ad_personalization: boolean;
   functionality_storage: boolean;
+  personalization_storage: boolean;
   security_storage: boolean;
 }
 
@@ -36,7 +40,11 @@ export function ConsentBanner() {
   const [showDetails, setShowDetails] = useState(false)
   const [settings, setSettings] = useState<ConsentSettings>({
     analytics_storage: false,
+    ad_storage: false,
+    ad_user_data: false,
+    ad_personalization: false,
     functionality_storage: true,
+    personalization_storage: false,
     security_storage: true,
   })
 
@@ -77,7 +85,11 @@ export function ConsentBanner() {
   const handleAcceptAll = () => {
     const allEnabled = {
       analytics_storage: true,
+      ad_storage: true,
+      ad_user_data: true,
+      ad_personalization: true,
       functionality_storage: true,
+      personalization_storage: true,
       security_storage: true,
     }
     setSettings(allEnabled)
@@ -91,14 +103,15 @@ export function ConsentBanner() {
 
   const saveConsent = (consentSettings: ConsentSettings) => {
     localStorage.setItem("cookieConsent", JSON.stringify(consentSettings))
-    // Only update analytics consent since we removed marketing/advertising tracking
-    if (window.gtag) {
-      window.gtag("consent", "update", {
-        analytics_storage: consentSettings.analytics_storage ? "granted" : "denied",
-        functionality_storage: consentSettings.functionality_storage ? "granted" : "denied",
-        security_storage: consentSettings.security_storage ? "granted" : "denied",
-      })
-    }
+    window.gtag?.("consent", "update", {
+      analytics_storage: consentSettings.analytics_storage ? "granted" : "denied",
+      ad_storage: consentSettings.ad_storage ? "granted" : "denied",
+      ad_user_data: consentSettings.ad_user_data ? "granted" : "denied",
+      ad_personalization: consentSettings.ad_personalization ? "granted" : "denied",
+      functionality_storage: consentSettings.functionality_storage ? "granted" : "denied",
+      personalization_storage: consentSettings.personalization_storage ? "granted" : "denied",
+      security_storage: consentSettings.security_storage ? "granted" : "denied",
+    })
     setIsVisible(false)
   }
 
@@ -136,9 +149,10 @@ export function ConsentBanner() {
                   variant="outline" 
                   size="sm"
                   onClick={() => saveConsent({
+                    ...settings,
                     analytics_storage: false,
-                    functionality_storage: true,
-                    security_storage: true,
+                    ad_storage: false,
+                    personalization_storage: false,
                   })}
                 >
                   {t('landing.consent.banner.rejectNonEssential')}
@@ -206,6 +220,22 @@ export function ConsentBanner() {
                     </div>
                   </div>
                   
+                  <div className="flex items-start gap-3">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.ad_storage}
+                      onChange={(e) => setSettings({ ...settings, ad_storage: e.target.checked })}
+                      className="mt-1 h-4 w-4 rounded border-gray-300"
+                    />
+                    <div>
+                      <label className="text-sm font-medium text-gray-900">
+                        {t('landing.consent.preferences.marketing.title')}
+                      </label>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {t('landing.consent.preferences.marketing.description')}
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 
                 <div className="mt-6">
@@ -270,6 +300,22 @@ export function ConsentBanner() {
                       </div>
                     </div>
                     
+                    <div className="flex items-start gap-3">
+                      <input 
+                        type="checkbox" 
+                        checked={settings.ad_storage}
+                        onChange={(e) => setSettings({ ...settings, ad_storage: e.target.checked })}
+                        className="mt-1 h-4 w-4 rounded border-gray-300"
+                      />
+                      <div>
+                        <label className="text-sm font-medium text-gray-900">
+                          {t('landing.consent.preferences.marketing.title')}
+                        </label>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {t('landing.consent.preferences.marketing.description')}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 

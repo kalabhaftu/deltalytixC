@@ -50,7 +50,7 @@ const navigationItems: NavigationItem[] = [
     label: 'Accounts',
     icon: Users,
     translationKey: 'dashboard.tabs.accounts'
-  }
+  },
 ]
 
 export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, className }: SidebarProps) {

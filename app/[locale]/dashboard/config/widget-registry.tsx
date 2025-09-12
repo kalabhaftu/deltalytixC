@@ -1,71 +1,28 @@
-import React, { Suspense } from 'react'
-import dynamic from 'next/dynamic'
+import React from 'react'
 import { WidgetType, WidgetSize } from '../types/dashboard'
-
-// Dynamic imports for better code splitting and performance
-const EquityChart = dynamic(() => import('../components/charts/equity-chart'), {
-  loading: () => <div className="h-64 flex items-center justify-center">Loading chart...</div>
-})
-const TickDistributionChart = dynamic(() => import('../components/charts/tick-distribution'), {
-  loading: () => <div className="h-64 flex items-center justify-center">Loading chart...</div>
-})
-const PNLChart = dynamic(() => import('../components/charts/pnl-bar-chart'), {
-  loading: () => <div className="h-64 flex items-center justify-center">Loading chart...</div>
-})
-const TimeOfDayTradeChart = dynamic(() => import('../components/charts/pnl-time-bar-chart'), {
-  loading: () => <div className="h-64 flex items-center justify-center">Loading chart...</div>
-})
-const TimeInPositionChart = dynamic(() => import('../components/charts/time-in-position'), {
-  loading: () => <div className="h-64 flex items-center justify-center">Loading chart...</div>
-})
-const TimeRangePerformanceChart = dynamic(() => import('../components/charts/time-range-performance'), {
-  loading: () => <div className="h-64 flex items-center justify-center">Loading chart...</div>
-})
-const WeekdayPNLChart = dynamic(() => import('../components/charts/weekday-pnl'), {
-  loading: () => <div className="h-64 flex items-center justify-center">Loading chart...</div>
-})
-const PnLBySideChart = dynamic(() => import('../components/charts/pnl-by-side'), {
-  loading: () => <div className="h-64 flex items-center justify-center">Loading chart...</div>
-})
-const CommissionsPnLChart = dynamic(() => import('../components/charts/commissions-pnl'), {
-  loading: () => <div className="h-64 flex items-center justify-center">Loading chart...</div>
-})
-const TradeDistributionChart = dynamic(() => import('../components/charts/trade-distribution'), {
-  loading: () => <div className="h-64 flex items-center justify-center">Loading chart...</div>
-})
-
-// Statistics widgets with dynamic loading
-const AveragePositionTimeCard = dynamic(() => import('../components/statistics/average-position-time-card'), {
-  loading: () => <div className="h-32 flex items-center justify-center">Loading...</div>
-})
-const CumulativePnlCard = dynamic(() => import('../components/statistics/cumulative-pnl-card'), {
-  loading: () => <div className="h-32 flex items-center justify-center">Loading...</div>
-})
-const LongShortPerformanceCard = dynamic(() => import('../components/statistics/long-short-card'), {
-  loading: () => <div className="h-32 flex items-center justify-center">Loading...</div>
-})
-const TradePerformanceCard = dynamic(() => import('../components/statistics/trade-performance-card'), {
-  loading: () => <div className="h-32 flex items-center justify-center">Loading...</div>
-})
-const WinningStreakCard = dynamic(() => import('../components/statistics/winning-streak-card'), {
-  loading: () => <div className="h-32 flex items-center justify-center">Loading...</div>
-})
-const RiskRewardRatioCard = dynamic(() => import('../components/statistics/risk-reward-ratio-card'), {
-  loading: () => <div className="h-32 flex items-center justify-center">Loading...</div>
-})
-const CalendarPnl = dynamic(() => import('../components/calendar/calendar-widget'), {
-  loading: () => <div className="h-64 flex items-center justify-center">Loading calendar...</div>
-})
-const StatisticsWidget = dynamic(() => import('../components/statistics/statistics-widget'), {
-  loading: () => <div className="h-32 flex items-center justify-center">Loading...</div>
-})
+import EquityChart from '../components/charts/equity-chart'
+import TickDistributionChart from '../components/charts/tick-distribution'
+import PNLChart from '../components/charts/pnl-bar-chart'
+import TimeOfDayTradeChart from '../components/charts/pnl-time-bar-chart'
+import TimeInPositionChart from '../components/charts/time-in-position'
+import TimeRangePerformanceChart from '../components/charts/time-range-performance'
+import WeekdayPNLChart from '../components/charts/weekday-pnl'
+import PnLBySideChart from '../components/charts/pnl-by-side'
+import AveragePositionTimeCard from '../components/statistics/average-position-time-card'
+import CumulativePnlCard from '../components/statistics/cumulative-pnl-card'
+import LongShortPerformanceCard from '../components/statistics/long-short-card'
+import TradePerformanceCard from '../components/statistics/trade-performance-card'
+import WinningStreakCard from '../components/statistics/winning-streak-card'
+import RiskRewardRatioCard from '../components/statistics/risk-reward-ratio-card'
+import CalendarPnl from '../components/calendar/calendar-widget'
+import CommissionsPnLChart from '../components/charts/commissions-pnl'
+import StatisticsWidget from '../components/statistics/statistics-widget'
+import TradeDistributionChart from '../components/charts/trade-distribution'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
-const ProfitFactorCard = dynamic(() => import('../components/statistics/profit-factor-card'), {
-  loading: () => <div className="h-32 flex items-center justify-center">Loading...</div>
-})
+import ProfitFactorCard from '../components/statistics/profit-factor-card'
 import { LineChart, Line, XAxis, YAxis } from 'recharts'
 import { useI18n } from '@/locales/client'
 import { WidgetErrorBoundary } from '@/components/error-boundary'
@@ -336,6 +293,33 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
   //   getComponent: ({ size }) => <MarketChart />,
   //   getPreview: () => <MarketChart />
   // },
+  propFirm: {
+    type: 'propFirm',
+    defaultSize: 'medium',
+    allowedSizes: ['medium', 'large'],
+    category: 'other',
+    previewHeight: 200,
+    getComponent: ({ size }) => <div>Prop Firm Widget</div>,
+    getPreview: () => <div>Prop Firm Preview</div>
+  },
+  tradeTableReview: {
+    type: 'tradeTableReview',
+    defaultSize: 'extra-large',
+    allowedSizes: ['large', 'extra-large'],
+    category: 'tables',
+    previewHeight: 400,
+    getComponent: ({ size }) => <div>Trade Table Review</div>,
+    getPreview: () => <div>Trade Table Preview</div>
+  },
+  chatWidget: {
+    type: 'chatWidget',
+    defaultSize: 'medium',
+    allowedSizes: ['medium', 'large'],
+    category: 'other',
+    previewHeight: 300,
+    getComponent: ({ size }) => <div>Chat Widget</div>,
+    getPreview: () => <div>Chat Preview</div>
+  }
 }
 
 export function getWidgetsByCategory(category: WidgetConfig['category']) {

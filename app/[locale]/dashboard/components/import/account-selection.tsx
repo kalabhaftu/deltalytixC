@@ -32,19 +32,12 @@ export default function AccountSelection({
   const [accounts, setAccounts] = useState<UnifiedAccount[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
-  const [isRequestInProgress, setIsRequestInProgress] = useState(false)
   const t = useI18n()
   const { toast } = useToast()
 
   // Fetch all accounts with retry logic and network fallbacks
   const fetchAccounts = async (retryCount = 0) => {
-    // Prevent multiple simultaneous requests
-    if (isRequestInProgress) {
-      return
-    }
-    
     try {
-      setIsRequestInProgress(true)
       setIsLoading(true)
       setHasError(false)
       
@@ -71,13 +64,17 @@ export default function AccountSelection({
     } catch (error) {
       console.error('Error fetching accounts:', error)
       
-      // Simplified retry logic to prevent loops
-      if (retryCount < 1 && error instanceof Error && 
-          (error.message.includes('HTTP 5') || error.message.includes('503'))) {
-        console.log(`Retrying fetchAccounts in 3 seconds...`)
+      // Retry logic for network errors and service unavailable
+      if (retryCount < 2 && error instanceof Error && 
+          (error.message.includes('fetch') || 
+           error.message.includes('Network') || 
+           error.message.includes('HTTP 5') ||
+           error.message.includes('503') ||
+           error.message.includes('Authentication service temporarily unavailable'))) {
+        console.log(`Retrying fetchAccounts in ${(retryCount + 1) * 1000}ms...`)
         setTimeout(() => {
           fetchAccounts(retryCount + 1)
-        }, 3000)
+        }, (retryCount + 1) * 1000)
         return
       }
       
@@ -92,13 +89,12 @@ export default function AccountSelection({
       setAccounts([])
     } finally {
       setIsLoading(false)
-      setIsRequestInProgress(false)
     }
   }
 
   useEffect(() => {
     fetchAccounts()
-  }, []) // Remove fetchAccounts dependency to prevent loops
+  }, [fetchAccounts])
 
   if (isLoading) {
     return (

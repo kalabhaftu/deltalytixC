@@ -30,6 +30,7 @@ import { cn, parsePositionTime } from '@/lib/utils'
 import { Checkbox } from "@/components/ui/checkbox"
 import { useI18n } from '@/locales/client'
 
+// import { TradeTag } from './trade-tag' // Removed - journaling feature
 import { formatInTimeZone } from 'date-fns-tz'
 import {
   Tooltip,
@@ -81,10 +82,15 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu"
 
+// Custom Tags Header Component - Removed journaling feature
+function TagsColumnHeaderRemoved() {
+  // This function has been removed - journaling feature
+  return null
+}
 
 interface ExtendedTrade extends Trade {
   imageUrl?: string | undefined
-  
+  tags: string[]
   imageBase64: string | null
   imageBase64Second: string | null
   comment: string | null
@@ -103,7 +109,7 @@ export function TradeTableReview() {
     formattedTrades: contextTrades,
     updateTrades,
   } = useData()
-  
+  // const tags = useUserStore(state => state.tags) // Removed - journaling feature
   const timezone = useUserStore(state => state.timezone)
   const tickDetails = useTickDetailsStore(state => state.tickDetails)
 
@@ -236,7 +242,7 @@ export function TradeTableReview() {
           symbol: trade.symbol ?? null,
           entryTime: null,
           exitTime: null,
-          
+          tags: trade.tags,
           imageBase64: trade.imageBase64,
           imageBase64Second: trade.imageBase64Second,
           phaseId: trade.phaseId ?? null,
@@ -270,7 +276,6 @@ export function TradeTableReview() {
           }],
           createdAt: new Date(),
           groupId: trade.groupId || null,
-          tags: trade.tags ?? [],
         })
       }
       else {
@@ -773,7 +778,7 @@ export function TradeTableReview() {
                             ? '160px'
                             : header.column.id === 'timeInPosition'
                             ? '120px'
-                            : header.column.id === 'unused'
+                            : header.column.id === 'tags'
                             ? '200px'
                             : '110px'
                         }}
@@ -822,7 +827,7 @@ export function TradeTableReview() {
                                 ? '160px'
                                 : cell.column.id === 'timeInPosition'
                                 ? '120px'
-                                : cell.column.id === 'unused'
+                                : cell.column.id === 'tags'
                                 ? '200px'
                                 : '110px'
                             }}

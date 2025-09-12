@@ -56,8 +56,10 @@ export async function loadSharedData(slug: string): Promise<SharedDataResponse> 
 export async function getUserData(): Promise<{
   userData: User | null;
   tickDetails: TickDetails[];
+  // tags: Tag[]; // Removed - tags feature
   accounts: Account[];
   groups: Group[];
+  // moodHistory: Mood[]; // Removed - mood feature
 }> {
   try {
     const userId = await getUserId()
@@ -69,9 +71,9 @@ export async function getUserData(): Promise<{
       console.log(`[Cache MISS] Fetching user data for user ${userId}`)
       
       try {
-        // Add timeout for database operations - reduced for faster failure
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Database timeout')), 8000)
+        // Add timeout for database operations - increased for better connectivity
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Database timeout')), 30000)
         )
 
         const dataPromise = Promise.all([
@@ -81,6 +83,11 @@ export async function getUserData(): Promise<{
             }
           }),
           prisma.tickDetails.findMany(),
+          prisma.tag.findMany({
+            where: {
+              userId: userId
+            }
+          }),
           // Optimized accounts query - minimal data for performance
           prisma.account.findMany({
             where: {
@@ -130,25 +137,49 @@ export async function getUserData(): Promise<{
                 }
               }
             }
-          })
+          }),
+          // prisma.financialEvent.findMany({ // Removed - financial events feature
+          //   where: {
+          //     lang: locale
+          //   },
+          //   take: 50, // Limit events for performance
+          //   orderBy: {
+          //     date: 'desc'
+          //   }
+          // }),
+          Promise.resolve([]), // Placeholder for removed financial events
+          // prisma.mood.findMany({ // Removed - mood feature
+          //   where: {
+          //     userId: userId
+          //   },
+          //   orderBy: {
+          //     day: 'desc'
+          //   },
+          //   take: 30 // Limit moods for performance
+          // })
+          Promise.resolve([]) // Placeholder for removed mood feature
         ])
 
         const [
           userData,
           tickDetails,
+          tags,
           accounts,
-          groups
+          groups,
+          moodHistory
         ] = await Promise.race([dataPromise, timeoutPromise]) as any
 
-        return { userData, tickDetails, accounts, groups }
+        return { userData, tickDetails, /* tags, */ accounts, groups, /* moodHistory */ } // Removed tags and mood features
       } catch (error) {
         console.error('[getUserData] Database error:', error)
         // Return empty data structure if database is unavailable
         return {
           userData: null,
           tickDetails: [],
+          // tags: [], // Removed - tags feature
           accounts: [],
-          groups: []
+          groups: [],
+          // moodHistory: [] // Removed - mood feature
         }
       }
     },
@@ -164,8 +195,11 @@ export async function getUserData(): Promise<{
     return {
       userData: null,
       tickDetails: [],
+      // tags: [], // Removed - tags feature
       accounts: [],
-      groups: []
+      groups: [],
+      // financialEvents: [], // Removed - financial events feature
+      // moodHistory: [] // Removed - mood feature
     }
   }
 }

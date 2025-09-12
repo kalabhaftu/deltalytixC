@@ -47,14 +47,8 @@ export function WeeklyModal({
     }
 
     // Calculate long and short numbers
-    const longNumber = trades.filter(trade => {
-      const side = trade.side?.toLowerCase();
-      return side === 'long' || side === 'buy';
-    }).length
-    const shortNumber = trades.filter(trade => {
-      const side = trade.side?.toLowerCase();
-      return side === 'short' || side === 'sell';
-    }).length
+    const longNumber = trades.filter(trade => trade.side?.toLowerCase() === 'long').length
+    const shortNumber = trades.filter(trade => trade.side?.toLowerCase() === 'short').length
 
     return {
       trades,

@@ -52,7 +52,7 @@ export const getPostsByStatus = cache(async function(
 })
 
 export async function generateStaticParams() {
-  const locales = ['en', 'fr']
+  const locales = ['en']
   const paths: { params: { locale: string; slug: string } }[] = []
 
   for (const locale of locales) {
