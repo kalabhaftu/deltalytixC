@@ -34,8 +34,7 @@ const chartConfig = {
 const formatCurrency = (value: number) =>
   value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 
-const formatPercentage = (value: number) =>
-  `${(value * 100).toFixed(1)}%`
+import { formatPercentage } from '@/lib/utils'
 
 export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLChartProps) {
   const { formattedTrades:trades } = useData()

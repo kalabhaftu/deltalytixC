@@ -43,15 +43,17 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-const formatCurrency = (value: number) => {
+import { formatCurrency, formatNumber } from '@/lib/utils'
+
+const formatCurrencyValue = (value: number) => {
   const absValue = Math.abs(value)
   if (absValue >= 1000000) {
-    return `${value < 0 ? '-' : ''}$${(absValue / 1000000).toFixed(1)}M`
+    return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000000, 1)}M`
   }
   if (absValue >= 1000) {
-    return `${value < 0 ? '-' : ''}$${(absValue / 1000).toFixed(1)}k`
+    return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000, 1)}k`
   }
-  return `${value < 0 ? '-' : ''}$${absValue.toFixed(0)}`
+  return `${value < 0 ? '-' : ''}$${formatNumber(absValue, 0)}`
 }
 
 const positiveColor = "hsl(var(--chart-2))" // Green color
@@ -77,7 +79,7 @@ const CustomTooltip = ({ active, payload, label, showAverage }: TooltipProps & {
         </p>
         {showAverage && (
           <p className="text-sm text-muted-foreground">
-            Total P/L: {formatCurrency(data.totalPnl)}
+            Total P/L: {formatCurrencyValue(data.totalPnl)}
           </p>
         )}
         <p>{t('pnl.tooltip.longTrades')}: {data.longNumber}</p>

@@ -5,7 +5,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Cell, ResponsiveCo
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartConfig } from "@/components/ui/chart"
 import { useData } from "@/context/data-provider"
-import { cn } from "@/lib/utils"
+import { cn, formatPercentage } from "@/lib/utils"
 import { Info } from 'lucide-react'
 import {
   Tooltip as UITooltip,
@@ -59,7 +59,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
               {t('pnlBySide.tooltip.winRate')}
             </span>
             <span className="font-bold text-muted-foreground">
-              {((data.winCount / data.tradeCount) * 100).toFixed(1)}%
+              {formatPercentage(data.winCount / data.tradeCount)}
             </span>
           </div>
           <div className="flex flex-col">
