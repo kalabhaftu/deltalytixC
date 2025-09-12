@@ -276,6 +276,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         data: {
           ...tradeData,
           accountNumber: account.number,
+          accountId: accountId, // ← Add accountId to properly link trades to accounts
           phaseId: currentPhase.id,
           realizedPnl: exitPrice ? realizedPnl : null,
           fees: totalFees,

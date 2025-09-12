@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useI18n } from "@/locales/client"
 import { useAuth } from "@/context/auth-provider"
@@ -91,11 +91,60 @@ export default function AccountsPage() {
   const [createPropFirmDialogOpen, setCreatePropFirmDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAccountForDelete, setSelectedAccountForDelete] = useState<string | null>(null)
+  const hasFetchedPropFirmAccounts = useRef(false)
 
-  // Fetch prop firm accounts
-  const fetchPropFirmAccounts = async () => {
+  // DD Calculation Functions
+  const calculateDailyDD = useCallback((account: any) => {
+    if (!account.startingBalance || !account.currentEquity) return 0
+    
+    // Daily DD = (Equity at start of day - Lowest Equity during day)
+    // For now, using current equity as proxy for lowest equity of the day
+    // In a real implementation, you'd track the lowest equity of the current day
+    const dailyStartBalance = account.startingBalance // This should be equity at start of day
+    const lowestEquityToday = account.currentEquity // This should be lowest equity during day
+    
+    return Math.max(0, dailyStartBalance - lowestEquityToday)
+  }, [])
+
+  const calculateMaxDD = useCallback((account: any) => {
+    if (!account.startingBalance || !account.currentEquity) return 0
+    
+    // Max DD = Trailing DD that only moves up with equity highs and locks at breakeven
+    // For now, using starting balance as highest equity reached
+    // In a real implementation, you'd track the highest equity reached
+    const highestEquityReached = account.startingBalance // This should be tracked highest equity
+    const maxDDLimit = account.maxDrawdownAmount || (account.startingBalance * 0.1) // 10% default
+    
+    // Calculate trailing DD limit
+    const trailingDDLimit = Math.max(
+      account.startingBalance, // Breakeven point (locked)
+      highestEquityReached - maxDDLimit
+    )
+    
+    // Current max DD remaining = trailing DD limit - current equity
+    return Math.max(0, trailingDDLimit - account.currentEquity)
+  }, [])
+
+  const calculateDailyDDRemaining = useCallback((account: any) => {
+    const dailyDDUsed = calculateDailyDD(account)
+    const dailyDDLimit = account.dailyDrawdownAmount || (account.startingBalance * 0.05) // 5% default
+    return Math.max(0, dailyDDLimit - dailyDDUsed)
+  }, [calculateDailyDD])
+
+  const calculateMaxDDRemaining = useCallback((account: any) => {
+    const maxDDUsed = calculateMaxDD(account)
+    const maxDDLimit = account.maxDrawdownAmount || (account.startingBalance * 0.1) // 10% default
+    return Math.max(0, maxDDLimit - maxDDUsed)
+  }, [calculateMaxDD])
+
+  // Fetch prop firm accounts with useCallback to prevent infinite loops
+  const fetchPropFirmAccounts = useCallback(async () => {
+    if (hasFetchedPropFirmAccounts.current) return
+    
     try {
       setIsPropFirmLoading(true)
+      hasFetchedPropFirmAccounts.current = true
+      
       const response = await fetch('/api/prop-firm/accounts')
       
       if (!response.ok) {
@@ -118,14 +167,14 @@ export default function AccountsPage() {
     } finally {
       setIsPropFirmLoading(false)
     }
-  }
+  }, [t])
 
   // Load prop firm accounts on mount
   useEffect(() => {
     if (user) {
       fetchPropFirmAccounts()
     }
-  }, [user])
+  }, [user, fetchPropFirmAccounts])
 
   const handleAccountCreated = () => {
     refetchAccounts()
@@ -133,6 +182,7 @@ export default function AccountsPage() {
   }
 
   const handlePropFirmAccountCreated = () => {
+    hasFetchedPropFirmAccounts.current = false
     fetchPropFirmAccounts()
     setCreatePropFirmDialogOpen(false)
   }
@@ -263,7 +313,7 @@ export default function AccountsPage() {
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-lg font-semibold text-foreground">{account.displayName}</CardTitle>
                   <Badge className={statusColor}>
-                    {account.status}
+                    {t(`propFirm.status.${account.status}`)}
                   </Badge>
                 </div>
                 <CardDescription className="flex items-center gap-2 text-sm">
@@ -333,19 +383,25 @@ export default function AccountsPage() {
                   <Activity className="h-3 w-3" />
                   {t('accounts.trades')}
                 </div>
-                <p className="text-sm font-medium">{account.tradeCount}</p>
+                <p className="text-sm font-medium">
+                  {account.accountType === 'prop-firm' 
+                    ? (account.totalTrades || account.tradeCount || 0)
+                    : (account.tradeCount || 0)
+                  }
+                </p>
               </div>
-              {account.profitLoss !== undefined && (
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <TrendingUp className="h-3 w-3" />
-                    P&L
-                  </div>
-                  <p className={`text-sm font-semibold ${profitLossColor}`}>
-                    ${account.profitLoss.toLocaleString()}
-                  </p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <TrendingUp className="h-3 w-3" />
+                  {account.accountType === 'prop-firm' ? 'Payouts' : 'P&L'}
                 </div>
-              )}
+                <p className="text-sm font-medium">
+                  {account.accountType === 'prop-firm' 
+                    ? (account.totalPayouts || 0)
+                    : (account.profitLoss !== undefined ? `$${account.profitLoss.toLocaleString()}` : '0')
+                  }
+                </p>
+              </div>
             </div>
 
             {/* Additional Details */}
@@ -373,23 +429,63 @@ export default function AccountsPage() {
             {/* Additional Metrics for Prop Firm Accounts */}
             {account.accountType === 'prop-firm' && (
               <div className="space-y-3">
+                {/* Current Equity */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <DollarSign className="h-3 w-3" />
+                    Current Equity
+                  </div>
+                  <p className="text-sm font-semibold">
+                    ${(account.currentEquity || account.startingBalance || 0).toLocaleString()}
+                  </p>
+                </div>
+
+                {/* Daily DD Remaining */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Shield className="h-3 w-3" />
+                    Daily DD Remaining
+                  </div>
+                  <p className={`text-sm font-semibold ${
+                    calculateDailyDDRemaining(account) < (account.startingBalance * 0.01) ? 'text-red-500' : 'text-green-500'
+                  }`}>
+                    ${calculateDailyDDRemaining(account).toLocaleString()}
+                  </p>
+                </div>
+
+                {/* Max DD Remaining */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Shield className="h-3 w-3" />
+                    Max DD Remaining
+                  </div>
+                  <p className={`text-sm font-semibold ${
+                    calculateMaxDDRemaining(account) < (account.startingBalance * 0.02) ? 'text-red-500' : 'text-green-500'
+                  }`}>
+                    ${calculateMaxDDRemaining(account).toLocaleString()}
+                  </p>
+                </div>
+
+                {/* Profit Target */}
                 {account.profitTarget && (
                   <div className="space-y-1">
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Target className="h-3 w-3" />
-                      {t('accounts.profitTarget')}
+                      Profit Target
                     </div>
                     <p className="text-sm font-medium">${account.profitTarget.toLocaleString()}</p>
                   </div>
                 )}
+
+                {/* Current Phase */}
                 {account.currentPhase && (
                   <div className="space-y-1">
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Gauge className="h-3 w-3" />
-                      {t('accounts.currentPhase')}
+                      Current Phase
                     </div>
                     <p className="text-sm font-medium capitalize">
-                      {account.currentPhase.phaseType.replace('_', ' ')}
+                      {t(`propFirm.phase.${account.currentPhase.phaseType}`)}
                     </p>
                   </div>
                 )}
@@ -445,7 +541,7 @@ export default function AccountsPage() {
     )
   }
 
-  if (isLoading || isPropFirmLoading) {
+  if (accountsLoading || isPropFirmLoading) {
     return (
       <div className="container mx-auto p-6">
         <div className="space-y-6">

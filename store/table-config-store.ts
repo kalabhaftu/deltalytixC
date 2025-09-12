@@ -17,6 +17,7 @@ export interface TableConfig {
   sorting: SortingState
   columnFilters: ColumnFiltersState
   pageSize: number
+  pageIndex: number
   groupingGranularity: number
 }
 
@@ -31,6 +32,7 @@ interface TableConfigState {
   updateSorting: (tableId: string, sorting: SortingState) => void
   updateColumnFilters: (tableId: string, filters: ColumnFiltersState) => void
   updatePageSize: (tableId: string, pageSize: number) => void
+  updatePageIndex: (tableId: string, pageIndex: number) => void
   updateGroupingGranularity: (tableId: string, granularity: number) => void
   resetTableConfig: (tableId: string) => void
   resetAllConfigs: () => void
@@ -62,6 +64,7 @@ const defaultTradeTableConfig: TableConfig = {
   sorting: [{ id: 'entryDate', desc: true }],
   columnFilters: [],
   pageSize: 10,
+  pageIndex: 0,
   groupingGranularity: 0,
 }
 
@@ -238,6 +241,16 @@ export const useTableConfigStore = create<TableConfigState>()(
           [tableId]: {
             ...state.tables[tableId],
             pageSize,
+          },
+        },
+      })),
+
+      updatePageIndex: (tableId, pageIndex) => set((state) => ({
+        tables: {
+          ...state.tables,
+          [tableId]: {
+            ...state.tables[tableId],
+            pageIndex,
           },
         },
       })),

@@ -584,8 +584,17 @@ export default function WidgetCanvas() {
 
       // Update the layout with the constrained dimensions
       const updatedLayouts = {
-        ...layouts,
-        [activeLayout]: layouts[activeLayout].map(widget => 
+        desktop: layouts.desktop.map(widget => 
+          widget.i === newItem.i ? {
+            ...widget,
+            x: newItem.x,
+            y: newItem.y,
+            w: constrainedW,
+            h: constrainedH,
+            size: effectiveSize,
+          } : widget
+        ),
+        mobile: layouts.mobile.map(widget => 
           widget.i === newItem.i ? {
             ...widget,
             x: newItem.x,

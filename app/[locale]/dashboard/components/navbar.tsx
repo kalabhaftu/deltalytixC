@@ -22,8 +22,7 @@ import ImportButton from './import/import-button'
 import { useI18n } from "@/locales/client"
 import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts'
 import DateCalendarFilter from './filters/date-calendar-filter'
-import { ActiveFilterTags } from './filters/active-filter-tags'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 import {
   Popover,
@@ -34,8 +33,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useTheme } from '@/context/theme-provider'
 import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
-import { AccountFilter } from './filters/account-filter'
-import { UsersIcon, type UsersIconHandle } from '@/components/animated-icons/users'
 import { useModalStateStore } from '../../../../store/modal-state-store'
 import { useUserStore } from '../../../../store/user-store'
 
@@ -45,20 +42,9 @@ export default function Navbar() {
 
   const { theme, setTheme, intensity, setIntensity } = useTheme()
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false)
-  const [showAccountNumbers, setShowAccountNumbers] = useState(true)
   const [isLogoPopoverOpen, setIsLogoPopoverOpen] = useState(false)
-  const usersIconRef = useRef<UsersIconHandle>(null)
-  const { accountGroupBoardOpen } = useModalStateStore()
-  const [accountFilterOpen, setAccountFilterOpen] = useState(false)
 
   const {refreshTrades} = useData()
-
-  // Close account filter when account board is open
-  useEffect(() => {
-    if (accountGroupBoardOpen) {
-      setAccountFilterOpen(false)
-    }
-  }, [accountGroupBoardOpen])
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts()
@@ -129,22 +115,6 @@ export default function Navbar() {
           <div className="flex items-center space-x-4">
             <div className='hidden md:flex gap-x-4'>
               <DateCalendarFilter />
-              <DropdownMenu open={accountFilterOpen} onOpenChange={setAccountFilterOpen}>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className="justify-start text-left font-normal border-border/50 bg-background/50 hover:bg-accent/80 hover:border-accent transition-all duration-200 hover:shadow-lg backdrop-blur-sm hover:scale-[1.02]"
-                    onMouseEnter={() => usersIconRef.current?.startAnimation()}
-                    onMouseLeave={() => usersIconRef.current?.stopAnimation()}
-                  >
-                    <UsersIcon ref={usersIconRef} className="h-4 w-4 mr-2 transition-transform duration-200" />
-                    {t('filters.accounts')}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-[300px] bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl">
-                  <AccountFilter showAccountNumbers={showAccountNumbers} />
-                </DropdownMenuContent>
-              </DropdownMenu>
               <ImportButton />
             </div>
             <div className="flex items-center gap-3">
@@ -252,9 +222,6 @@ export default function Navbar() {
             </div>
           </div>
         </div>
-        <AnimatePresence>
-          <ActiveFilterTags showAccountNumbers={showAccountNumbers} />
-        </AnimatePresence>
       </motion.nav>
       <div className="h-[76px]" />
     </>

@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { headers } from 'next/headers'
+import { getUserId } from '@/server/auth'
 import { PropFirmSchemas } from '@/lib/validation/prop-firm-schemas'
 import { PropFirmBusinessRules } from '@/lib/prop-firm/business-rules'
 // Removed heavy validation import - using Zod directly
@@ -20,16 +20,8 @@ export async function GET(request: NextRequest) {
     })
 
     const operationPromise = async () => {
-      // Get user ID from middleware headers (fastest method)
-      const headersList = await headers()
-      const userId = headersList.get("x-user-id")
-      
-      if (!userId) {
-        return NextResponse.json(
-          { success: false, error: 'User not authenticated' },
-          { status: 401 }
-        )
-      }
+      // Get user ID using the proper authentication function
+      const userId = await getUserId()
 
       const { searchParams } = new URL(request.url)
     
@@ -118,9 +110,31 @@ export async function GET(request: NextRequest) {
       prisma.account.count({ where })
     ])
 
+    // Get trade counts for all accounts (both by accountId and accountNumber)
+    const tradeCounts = await prisma.trade.groupBy({
+      by: ['accountId', 'accountNumber'],
+      where: {
+        OR: [
+          { accountId: { in: accounts.map(a => a.id) } },
+          { accountNumber: { in: accounts.map(a => a.number) } }
+        ]
+      },
+      _count: true
+    })
+
+    // Create a map for quick lookup
+    const tradeCountMap = new Map()
+    tradeCounts.forEach(count => {
+      const key = count.accountId || count.accountNumber
+      if (key) {
+        tradeCountMap.set(key, (tradeCountMap.get(key) || 0) + count._count)
+      }
+    })
+
     // Simplified transformation for performance - detailed data loaded separately
     const accountsWithData = accounts.map(account => {
       const hasActivePhase = account._count.phases > 0
+      const totalTrades = tradeCountMap.get(account.id) || tradeCountMap.get(account.number) || 0
 
       return {
         id: account.id,
@@ -134,7 +148,7 @@ export async function GET(request: NextRequest) {
         dailyDrawdownRemaining: account.dailyDrawdownAmount || 0,
         maxDrawdownRemaining: account.maxDrawdownAmount || 0,
         profitTargetProgress: 0, // Will be loaded separately for performance
-        totalTrades: account._count.trades,
+        totalTrades: totalTrades,
         totalPayouts: account._count.payouts,
         hasRecentBreach: false, // Will be loaded separately
         createdAt: account.createdAt,

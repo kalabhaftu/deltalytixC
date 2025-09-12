@@ -122,6 +122,7 @@ export function TradeTableReview() {
     updateColumnFilters,
     updateColumnVisibilityState,
     updatePageSize,
+    updatePageIndex,
     updateGroupingGranularity,
   } = useTableConfigStore()
 
@@ -131,6 +132,7 @@ export function TradeTableReview() {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(tableConfig?.columnVisibility || {})
   const [expanded, setExpanded] = useState<ExpandedState>({})
   const [pageSize, setPageSize] = useState(tableConfig?.pageSize || 10)
+  const [pageIndex, setPageIndex] = useState(tableConfig?.pageIndex || 0)
   const [groupingGranularity, setGroupingGranularity] = useState<number>(tableConfig?.groupingGranularity || 0)
   const [selectedTrades, setSelectedTrades] = useState<string[]>([])
   const [showPoints, setShowPoints] = useState(false)
@@ -147,6 +149,7 @@ export function TradeTableReview() {
       setColumnFilters(tableConfig.columnFilters)
       setColumnVisibility(tableConfig.columnVisibility)
       setPageSize(tableConfig.pageSize)
+      setPageIndex(tableConfig.pageIndex)
       setGroupingGranularity(tableConfig.groupingGranularity)
     }
   }, [tableConfig])
@@ -173,6 +176,11 @@ export function TradeTableReview() {
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize)
     updatePageSize('trade-table', newPageSize)
+  }
+
+  const handlePageIndexChange = (newPageIndex: number) => {
+    setPageIndex(newPageIndex)
+    updatePageIndex('trade-table', newPageIndex)
   }
 
   const handleGroupingGranularityChange = (newGranularity: number) => {
@@ -643,12 +651,19 @@ export function TradeTableReview() {
       columnVisibility,
       expanded,
       pagination: {
-        pageIndex: 0,
+        pageIndex,
         pageSize,
       },
     },
     paginateExpandedRows: false,
     onExpandedChange: setExpanded,
+    onPaginationChange: (updaterOrValue) => {
+      const newPagination = typeof updaterOrValue === 'function' 
+        ? updaterOrValue({ pageIndex, pageSize })
+        : updaterOrValue
+      handlePageIndexChange(newPagination.pageIndex)
+      handlePageSizeChange(newPagination.pageSize)
+    },
     getSubRows: (row) => row.trades,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
