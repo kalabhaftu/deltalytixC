@@ -103,6 +103,34 @@ interface ExtendedTrade extends Trade {
 
 const supabase = createClient()
 
+// Function to determine appropriate decimal places based on instrument type
+const getDecimalPlaces = (instrument: string, price: number): number => {
+  const instrumentUpper = instrument.toUpperCase()
+  
+  // Forex pairs typically need 4-5 decimal places
+  if (instrumentUpper.includes('USD') || instrumentUpper.includes('EUR') || 
+      instrumentUpper.includes('GBP') || instrumentUpper.includes('JPY') ||
+      instrumentUpper.includes('AUD') || instrumentUpper.includes('CAD') ||
+      instrumentUpper.includes('CHF') || instrumentUpper.includes('NZD')) {
+    // For forex pairs, use 4-5 decimal places
+    return 4
+  }
+  
+  // Precious metals like gold/silver need more precision
+  if (instrumentUpper.includes('XAU') || instrumentUpper.includes('XAG')) {
+    return 2
+  }
+  
+  // For indices and stocks, 2 decimal places is usually sufficient
+  if (instrumentUpper.includes('US') || instrumentUpper.includes('SPX') || 
+      instrumentUpper.includes('NAS') || instrumentUpper.includes('DOW')) {
+    return 2
+  }
+  
+  // Default to 2 decimal places for other instruments
+  return 2
+}
+
 export function TradeTableReview() {
   const t = useI18n()
   const {
@@ -495,9 +523,10 @@ export function TradeTableReview() {
       ),
       cell: ({ row }) => {
         const entryPrice = parseFloat(row.original.entryPrice)
+        const decimalPlaces = getDecimalPlaces(row.original.instrument, entryPrice)
         return (
           <div className="text-right font-medium">
-            ${entryPrice.toFixed(2)}
+            ${entryPrice.toFixed(decimalPlaces)}
           </div>
         )
       },
@@ -509,9 +538,10 @@ export function TradeTableReview() {
       ),
       cell: ({ row }) => {
         const exitPrice = parseFloat(row.original.closePrice)
+        const decimalPlaces = getDecimalPlaces(row.original.instrument, exitPrice)
         return (
           <div className="text-right font-medium">
-            ${exitPrice.toFixed(2)}
+            ${exitPrice.toFixed(decimalPlaces)}
           </div>
         )
       },
