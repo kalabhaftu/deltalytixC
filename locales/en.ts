@@ -21,7 +21,6 @@ export default {
     'footer.product.features': 'Features',
     'footer.product.pricing': 'Pricing',
     'footer.product.business': 'Business',
-    'footer.product.support': 'Support',
     'footer.company.title': 'Company',
     'footer.company.about': 'About',
     'footer.legal.title': 'Legal',
@@ -77,7 +76,6 @@ export default {
     'dashboard.inviteUsers': 'Invite users',
     'dashboard.email': 'Email',
     'dashboard.message': 'Message',
-    'dashboard.support': 'Support',
     'dashboard.api': 'API',
     'dashboard.keyboardShortcuts': 'Keyboard Shortcuts',
     'dashboard.keyboardShortcutsDescription': 'Keyboard shortcuts to help you navigate faster',
@@ -1108,24 +1106,6 @@ export default {
             'createPost': 'create a post'
         }
     },
-    'support': {
-        'greeting': "Hello! Welcome to Deltalytix support. How can I assist you with your trading journal today? Please explain your issue or question, and I'll do my best to help.",
-        'description': 'How can we help you with your trading journal?',
-        'requestHumanSupport': 'Request Human Support',
-        'contactInformation': 'Contact Information',
-        'contactInformationDescription': 'Please provide your contact information so we can get back to you.',
-        'emailSent': 'Our team will get back to you soon.',
-        'emailError': 'Please try again later.',
-        'emailConfirmation': "Thank you, {name}. I've sent your support request to our team. They will review your case and get back to you at {email} as soon as possible. Is there anything else I can help you with?",
-        'form': {
-            'name': 'Name',
-            'email': 'Email',
-            'additionalInfo': 'Additional Information',
-            'additionalInfoPlaceholder': "Any additional details you'd like to share...",
-            'submit': 'Submit',
-            'cancel': 'Cancel'
-        }
-    },
     'maintenance': {
         'title': 'System Maintenance',
         'description': 'We are currently performing scheduled maintenance to improve our services.',
@@ -1138,18 +1118,6 @@ export default {
         'updates': 'Status Updates',
         'lastUpdate': 'Last update: {time}',
         'nextUpdate': 'Next update: {time}'
-    },
-    'newsletter': {
-        'unsubscribed': {
-            'title': 'Successfully Unsubscribed',
-            'description': 'You have been successfully unsubscribed from our newsletter.',
-            'email': 'Unsubscribed email'
-        },
-        'preferences': {
-            'title': 'Newsletter Preferences',
-            'description': 'Manage your email preferences and subscription settings',
-            'comingSoon': 'Additional newsletter preferences management features coming soon.'
-        }
     },
     'disclaimer.risk.title': 'Risk Warning',
     'disclaimer.risk.content': 'Trading in futures and forex markets involves significant risks and is not suitable for all investors. An investor could potentially lose all or a portion of their initial investment. Risk capital is money that can be lost without jeopardizing one\'s financial security or lifestyle. Only risk capital should be used for trading, and only those with sufficient risk capital should consider trading. Past performance is not necessarily indicative of future results.',

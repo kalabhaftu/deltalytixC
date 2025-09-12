@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, lazy, ComponentType, ReactNode } from 'react'
+import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Loader2 } from 'lucide-react'
@@ -296,7 +297,7 @@ export function LazyImage({
 
   return (
     <div className={`relative ${className}`} style={{ width, height }}>
-      <img
+      <Image
         ref={imgRef}
         src={isInView && !hasError ? src : placeholder}
         alt={alt}
@@ -307,7 +308,8 @@ export function LazyImage({
         }`}
         onLoad={handleLoad}
         onError={handleError}
-        loading="lazy"
+        priority={false}
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       />
       
       {!isLoaded && isInView && !hasError && (

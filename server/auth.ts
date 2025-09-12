@@ -374,6 +374,7 @@ export async function getUserEmail(): Promise<string> {
 }
 
 // Identity linking functions
+
 export async function linkDiscordAccount() {
   const supabase = await createClient()
   const websiteURL = await getWebsiteURL()

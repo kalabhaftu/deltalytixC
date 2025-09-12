@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useI18n } from "@/locales/client"
 import { useAuth } from "@/context/auth-provider"
@@ -86,8 +86,8 @@ export default function AccountsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAccountForDelete, setSelectedAccountForDelete] = useState<string | null>(null)
 
-  // Fetch all accounts (live accounts only) with enhanced error handling
-  const fetchAccounts = async (retryCount = 0, showToast = true) => {
+  // Fetch all accounts (live accounts only) with enhanced error handling - optimized with useCallback
+  const fetchAccounts = useCallback(async (retryCount = 0, showToast = true) => {
     const maxRetries = 1 // Reduced retry attempts
     
     try {
@@ -163,10 +163,10 @@ export default function AccountsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [toast, t])
 
   // Fetch prop firm accounts with simplified error handling
-  const fetchPropFirmAccounts = async (retryCount = 0, showToast = true) => {
+  const fetchPropFirmAccounts = useCallback(async (retryCount = 0, showToast = true) => {
     const maxRetries = 1 // Reduced from 3 to 1
     
     try {
@@ -250,7 +250,7 @@ export default function AccountsPage() {
     } finally {
       setIsPropFirmLoading(false)
     }
-  }
+  }, [toast, t])
 
   // Load accounts on mount
   useEffect(() => {

@@ -172,22 +172,6 @@ export default function GitHubRepoCard() {
                   </Button>
                 </AccordionContent>
               </AccordionItem>
-              <AccordionItem value="community">
-                <AccordionTrigger className="flex items-center justify-between text-primary">
-                  <div className="flex items-center space-x-2">
-                    <UsersIcon className="h-5 w-5 md:h-6 md:w-6" />
-                    <span className="text-sm md:text-base lg:text-lg">{t('landing.accordion.community.title')}</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="text-xs md:text-sm text-muted-foreground">
-                  <p>{t('landing.accordion.community.description')}</p>
-                  <Button variant="outline" className="mt-2 md:mt-4 mb-2 border-primary text-primary text-xs md:text-sm">
-                    <a href={process.env.NEXT_PUBLIC_DISCORD_INVITATION} target="_blank" rel="noreferrer">
-                      {t('landing.accordion.community.button')}
-                    </a>
-                  </Button>
-                </AccordionContent>
-              </AccordionItem>
               <AccordionItem value="open-roadmap">
                 <AccordionTrigger className="flex items-center justify-between text-primary">
                   <div className="flex items-center space-x-2">

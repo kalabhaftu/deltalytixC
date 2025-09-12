@@ -49,12 +49,13 @@ async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            // Use more permissive cookie options for better compatibility
+            // Optimized cookie options for faster auth
             response.cookies.set(name, value, {
               ...options,
               secure: process.env.NODE_ENV === "production",
-              sameSite: "lax", // More permissive than 'strict'
-              httpOnly: false, // Allow client-side access if needed
+              sameSite: "lax", // Optimal for performance and compatibility
+              httpOnly: name.includes('refresh') ? true : false, // Only httpOnly for refresh tokens
+              maxAge: name.includes('refresh') ? 60 * 60 * 24 * 7 : 60 * 60 * 4, // Shorter sessions for better security
             })
           })
         },
@@ -194,9 +195,10 @@ export default async function middleware(req: NextRequest) {
       response.headers.set("x-user-country", geo.country)
       response.cookies.set("user-country", geo.country, {
         path: "/",
-        maxAge: 60 * 60 * 24, // 24 hours
+        maxAge: 60 * 60 * 2, // 2 hours instead of 24 - faster session handling
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
+        httpOnly: false, // Allow client access for faster reads
       })
     }
 
@@ -217,9 +219,10 @@ export default async function middleware(req: NextRequest) {
       response.headers.set("x-user-country", country)
       response.cookies.set("user-country", country, {
         path: "/",
-        maxAge: 60 * 60 * 24,
+        maxAge: 60 * 60 * 2, // 2 hours instead of 24
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
+        httpOnly: false,
       })
     }
     if (city) response.headers.set("x-user-city", encodeURIComponent(city))

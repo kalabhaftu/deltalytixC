@@ -22,7 +22,7 @@ NEXTAUTH_SECRET="your-secret-here"
 NEXTAUTH_URL="http://localhost:3000"
 
 # AI/Chat Features (Optional but recommended)
-OPENAI_API_KEY="sk-proj-your-openai-key"
+OPENAI_API_KEY="your-openai-api-key-here"
 PERPLEXITY_API_KEY="pplx-your-perplexity-key"
 
 # Email (Optional)

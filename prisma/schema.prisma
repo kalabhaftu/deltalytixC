@@ -150,9 +150,6 @@ model User {
   isFirstConnection Boolean        @default(true)
   etpToken        String?
   thorToken       String?
-  posts           Post[]
-  votes           Vote[]
-  comments        Comment[]
   language        String           @default("en")
   orders          Order[]
   businesses      Business[]
@@ -363,92 +360,7 @@ model Tag {
   @@schema("public")
 }
 
-model Newsletter {
-  email     String   @id
-  firstName String?
-  lastName  String?
-  isActive  Boolean  @default(true)
 
-  @@schema("public")
-}
-
-model Post {
-  id          String    @id @default(uuid())
-  title       String
-  content     String    @db.Text
-  type        PostType  @default(FEATURE_REQUEST)
-  status      PostStatus @default(OPEN)
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  votes       Vote[]
-  comments    Comment[]
-  screenshots String[]  @default([]) @db.Text
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@index([userId])
-  @@index([type])
-  @@index([status])
-  @@schema("public")
-}
-
-model Comment {
-  id        String    @id @default(uuid())
-  content   String    @db.Text
-  postId    String
-  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parentId  String?
-  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies   Comment[] @relation("CommentReplies")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  @@index([postId])
-  @@index([userId])
-  @@index([parentId])
-  @@schema("public")
-}
-
-enum PostType {
-  FEATURE_REQUEST
-  BUG_REPORT
-  DISCUSSION
-
-  @@schema("public")
-}
-
-enum PostStatus {
-  OPEN
-  IN_PROGRESS
-  COMPLETED
-  CLOSED
-
-  @@schema("public")
-}
-
-model Vote {
-  id        String   @id @default(uuid())
-  type      VoteType
-  postId    String
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@unique([postId, userId])
-  @@index([postId])
-  @@index([userId])
-  @@schema("public")
-}
-
-enum VoteType {
-  UPVOTE
-  DOWNVOTE
-
-  @@schema("public")
-}
 
 
 
