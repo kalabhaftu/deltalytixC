@@ -21,7 +21,7 @@ import { motion } from "framer-motion"
 interface SidebarProps {
   activeTab: string
   onTabChange: (tab: string) => void
-  onCollapsedChange?: (collapsed: boolean) => void from 
+  onCollapsedChange?: (collapsed: boolean) => void
   className?: string
 }
 
