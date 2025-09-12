@@ -98,47 +98,115 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         } as Trade
       })
 
-      // WIPE AND REPLACE: Delete all existing trades for the user first
       const userId = cleanedData[0]?.userId
-      if (userId) {
-        logger.debug(`Deleting all existing trades for user ${userId} before import`, { count: cleanedData.length }, 'SaveTrades')
-        await prisma.trade.deleteMany({
-          where: { userId }
-        })
+      if (!userId) {
+        return {
+          error: 'INVALID_DATA',
+          numberOfTradesAdded: 0,
+          details: 'No user ID found in trades'
+        }
       }
 
-      const result = await prisma.trade.createMany({
-        data: cleanedData,
-        skipDuplicates: false // Changed from true since we've already cleared existing trades
-      })
+      // ULTRA-FAST DUPLICATE DETECTION: Use database-level checking with minimal queries
+      logger.debug(`Checking for duplicate trades for user ${userId}`, { count: cleanedData.length }, 'SaveTrades')
       
-      // Log potential duplicates if no trades were added
-      if (result.count === 0) {
-        logger.debug('No trades added. Checking for duplicates', { attempted: data.length }, 'SaveTrades')
-        const tradeIds = data.map(trade => trade.id)
+      // For small datasets (< 100 trades), use simple approach
+      if (cleanedData.length < 100) {
+        // Check for duplicates using a single optimized query
         const existingTrades = await prisma.trade.findMany({
-          where: { id: { in: tradeIds } },
+          where: { 
+            userId,
+            OR: cleanedData.map(trade => ({
+              entryId: trade.entryId || null,
+              closeId: trade.closeId || null,
+              accountNumber: trade.accountNumber,
+              entryDate: trade.entryDate,
+              instrument: trade.instrument,
+              quantity: trade.quantity,
+              entryPrice: trade.entryPrice,
+              closePrice: trade.closePrice
+            }))
+          },
           select: {
-            id: true,
+            entryId: true,
+            closeId: true,
+            accountNumber: true,
             entryDate: true,
-            instrument: true
+            instrument: true,
+            quantity: true,
+            entryPrice: true,
+            closePrice: true
           }
         })
 
-        if (existingTrades.length > 0) {
-          console.log('[saveTrades] Found existing trades:', existingTrades)
+        // Create set of existing signatures for fast lookup
+        const existingSignatures = new Set(
+          existingTrades.map(trade => 
+            `${trade.entryId || ''}-${trade.closeId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
+          )
+        )
+
+        // Filter out duplicate trades
+        const newTrades = cleanedData.filter(trade => {
+          const signature = `${trade.entryId || ''}-${trade.closeId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
+          return !existingSignatures.has(signature)
+        })
+
+        logger.debug(`Found ${cleanedData.length - newTrades.length} duplicate trades, ${newTrades.length} new trades to add`, { 
+          total: cleanedData.length, 
+          duplicates: cleanedData.length - newTrades.length, 
+          new: newTrades.length 
+        }, 'SaveTrades')
+
+        if (newTrades.length === 0) {
           return {
-            error: 'DUPLICATE_TRADES',
+            error: 'ALL_DUPLICATES',
             numberOfTradesAdded: 0,
-            details: existingTrades
+            details: `All ${cleanedData.length} trades already exist`
+          }
+        }
+
+        // Add only new trades
+        const result = await prisma.trade.createMany({
+          data: newTrades,
+          skipDuplicates: true
+        })
+
+        revalidatePath('/')
+        return {
+          error: false,
+          numberOfTradesAdded: result.count,
+          details: {
+            totalProcessed: cleanedData.length,
+            duplicatesSkipped: cleanedData.length - newTrades.length,
+            newTradesAdded: result.count
           }
         }
       }
 
+      // For larger datasets, use batch processing with skipDuplicates
+      logger.debug(`Large dataset detected (${cleanedData.length} trades), using batch processing`, {}, 'SaveTrades')
+      
+      const result = await prisma.trade.createMany({
+        data: cleanedData,
+        skipDuplicates: true
+      })
+
+      logger.debug(`Batch processing completed: ${result.count} trades added`, { 
+        total: cleanedData.length, 
+        added: result.count,
+        skipped: cleanedData.length - result.count
+      }, 'SaveTrades')
+
       revalidatePath('/')
       return {
-        error: result.count === 0 ? 'NO_TRADES_ADDED' : false,
-        numberOfTradesAdded: result.count
+        error: false,
+        numberOfTradesAdded: result.count,
+        details: {
+          totalProcessed: cleanedData.length,
+          duplicatesSkipped: cleanedData.length - result.count,
+          newTradesAdded: result.count
+        }
       }
     } catch(error) {
       logger.dbError('saveTrades', error)

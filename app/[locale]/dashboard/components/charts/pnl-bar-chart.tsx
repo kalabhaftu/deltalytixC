@@ -14,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Switch } from "@/components/ui/switch"
 import { useI18n } from "@/locales/client"
 
 interface PNLChartProps {
@@ -56,7 +57,7 @@ const formatCurrency = (value: number) => {
 const positiveColor = "hsl(var(--chart-2))" // Green color
 const negativeColor = "hsl(var(--chart-1))" // Orangish color
 
-const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
+const CustomTooltip = ({ active, payload, label, showAverage }: TooltipProps & { showAverage: boolean }) => {
   const t = useI18n()
   if (active && payload && payload.length) {
     const data = payload[0].payload;
@@ -72,8 +73,13 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
           })}
         </p>
         <p className={`font-bold ${data.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          {t('pnl.tooltip.pnl')}: {formatCurrency(data.pnl)}
+          {showAverage ? 'Average P/L per Trade' : 'Total P/L'}: {formatCurrency(data.pnl)}
         </p>
+        {showAverage && (
+          <p className="text-sm text-muted-foreground">
+            Total P/L: {formatCurrency(data.totalPnl)}
+          </p>
+        )}
         <p>{t('pnl.tooltip.longTrades')}: {data.longNumber}</p>
         <p>{t('pnl.tooltip.shortTrades')}: {data.shortNumber}</p>
       </div>
@@ -85,18 +91,26 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
 export default function PNLChart({ size = 'medium' }: PNLChartProps) {
   const { calendarData } = useData()
   const t = useI18n()
+  const [showAverage, setShowAverage] = React.useState(false) // Default to actual values
 
-  const chartData = React.useMemo(() => 
-    Object.entries(calendarData)
+  const chartData = React.useMemo(() => {
+    const dataEntries = Object.entries(calendarData)
       .map(([date, values]) => ({
         date,
-        pnl: values.pnl,
+        totalPnl: values.pnl,
         shortNumber: values.shortNumber,
         longNumber: values.longNumber,
+        totalTrades: values.shortNumber + values.longNumber,
       }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-    [calendarData]
-  );
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    return dataEntries.map(entry => ({
+      ...entry,
+      pnl: showAverage && entry.totalTrades > 0 
+        ? entry.totalPnl / entry.totalTrades 
+        : entry.totalPnl
+    }))
+  }, [calendarData, showAverage]);
 
   const maxPnL = Math.max(...chartData.map(d => d.pnl));
   const minPnL = Math.min(...chartData.map(d => d.pnl));
@@ -143,7 +157,7 @@ export default function PNLChart({ size = 'medium' }: PNLChartProps) {
                 size === 'small-long' ? "text-sm" : "text-base"
               )}
             >
-              {t('pnl.title')}
+              P/L by Day
             </CardTitle>
             <TooltipProvider>
               <UITooltip>
@@ -154,10 +168,23 @@ export default function PNLChart({ size = 'medium' }: PNLChartProps) {
                   )} />
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>{t('pnl.description')}</p>
+                  <p>Shows daily P/L. Toggle to view average P/L per trade for each day.</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              "text-muted-foreground",
+              size === 'small-long' ? "text-xs" : "text-sm"
+            )}>
+              Average
+            </span>
+            <Switch
+              checked={showAverage}
+              onCheckedChange={setShowAverage}
+              className="data-[state=checked]:bg-primary"
+            />
           </div>
         </div>
       </CardHeader>
@@ -211,7 +238,7 @@ export default function PNLChart({ size = 'medium' }: PNLChartProps) {
                 tickFormatter={formatCurrency}
               />
               <Tooltip 
-                content={<CustomTooltip />}
+                content={<CustomTooltip showAverage={showAverage} />}
                 wrapperStyle={{ 
                   fontSize: size === 'small-long' ? '10px' : '12px',
                   zIndex: 1000

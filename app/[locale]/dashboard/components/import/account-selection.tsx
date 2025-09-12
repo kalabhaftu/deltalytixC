@@ -6,7 +6,7 @@ import { CheckCircle2, Building2, User, AlertCircle, RefreshCw } from 'lucide-re
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/locales/client"
 import { useToast } from "@/hooks/use-toast"
-import { fetchWithFallback } from "@/lib/network-fallback"
+import { useAccounts } from "@/hooks/use-accounts"
 
 interface UnifiedAccount {
   id: string
@@ -29,72 +29,24 @@ export default function AccountSelection({
   accountNumber,
   setAccountNumber
 }: AccountSelectionProps) {
-  const [accounts, setAccounts] = useState<UnifiedAccount[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { accounts, isLoading, error, refetch } = useAccounts()
   const [hasError, setHasError] = useState(false)
   const t = useI18n()
   const { toast } = useToast()
 
-  // Fetch all accounts with retry logic and network fallbacks
-  const fetchAccounts = async (retryCount = 0) => {
-    try {
-      setIsLoading(true)
-      setHasError(false)
-      
-      // Use network-aware fetch with automatic retries
-      const response = await fetchWithFallback('/api/accounts', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }, 2)
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`HTTP ${response.status}: ${errorText || 'Failed to fetch accounts'}`)
-      }
-
-      const data = await response.json()
-      if (data.success) {
-        setAccounts(data.data || [])
-        setHasError(false)
-      } else {
-        throw new Error(data.error || 'Failed to fetch accounts')
-      }
-    } catch (error) {
-      console.error('Error fetching accounts:', error)
-      
-      // Retry logic for network errors and service unavailable
-      if (retryCount < 2 && error instanceof Error && 
-          (error.message.includes('fetch') || 
-           error.message.includes('Network') || 
-           error.message.includes('HTTP 5') ||
-           error.message.includes('503') ||
-           error.message.includes('Authentication service temporarily unavailable'))) {
-        console.log(`Retrying fetchAccounts in ${(retryCount + 1) * 1000}ms...`)
-        setTimeout(() => {
-          fetchAccounts(retryCount + 1)
-        }, (retryCount + 1) * 1000)
-        return
-      }
-      
+  // Update error state when hook error changes
+  useEffect(() => {
+    if (error) {
       setHasError(true)
       toast({
         title: t('import.error.fetchAccounts'),
-        description: error instanceof Error ? error.message : t('import.error.fetchAccountsDescription'),
+        description: error,
         variant: "destructive"
       })
-      
-      // Set empty accounts array on error to show the no accounts state
-      setAccounts([])
-    } finally {
-      setIsLoading(false)
+    } else {
+      setHasError(false)
     }
-  }
-
-  useEffect(() => {
-    fetchAccounts()
-  }, [fetchAccounts])
+  }, [error, toast, t])
 
   if (isLoading) {
     return (
@@ -152,7 +104,7 @@ export default function AccountSelection({
             </p>
             {hasError ? (
               <Button 
-                onClick={() => fetchAccounts()} 
+                onClick={() => refetch()} 
                 disabled={isLoading}
                 className="mb-4"
               >

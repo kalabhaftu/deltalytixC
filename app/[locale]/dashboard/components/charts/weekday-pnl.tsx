@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/tooltip"
 import { WidgetSize } from '@/app/[locale]/dashboard/types/dashboard'
 import { useI18n } from "@/locales/client"
-import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
 
 const daysOfWeek = [0, 1, 2, 3, 4, 5, 6]; // Sunday = 0, Saturday = 6
 
@@ -59,6 +59,7 @@ export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProp
   const {calendarData, weekdayFilter, setWeekdayFilter} = useData()
   const [darkMode, setDarkMode] = React.useState(false)
   const [activeDay, setActiveDay] = React.useState<number | null>(null)
+  const [showAverage, setShowAverage] = React.useState(false) // Default to actual values
   const t = useI18n()
 
   React.useEffect(() => {
@@ -91,10 +92,14 @@ export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProp
 
     return daysOfWeek.map(day => ({
       day,
-      pnl: weekdayTotals[day].count > 0 ? weekdayTotals[day].total / weekdayTotals[day].count : 0,
+      totalPnl: weekdayTotals[day].total,
+      averagePnl: weekdayTotals[day].count > 0 ? weekdayTotals[day].total / weekdayTotals[day].count : 0,
+      pnl: showAverage 
+        ? (weekdayTotals[day].count > 0 ? weekdayTotals[day].total / weekdayTotals[day].count : 0)
+        : weekdayTotals[day].total,
       tradeCount: weekdayTotals[day].count
     }))
-  }, [calendarData])
+  }, [calendarData, showAverage])
 
   const maxPnL = Math.max(...weekdayData.map(d => d.pnl))
   const minPnL = Math.min(...weekdayData.map(d => d.pnl))
@@ -141,12 +146,32 @@ export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProp
             </div>
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('weekdayPnl.tooltip.averagePnl')}
+                {showAverage ? 'Average P/L per Trade' : 'Total P/L'}
               </span>
               <span className="font-bold">
                 {formatCurrency(data.pnl)}
               </span>
             </div>
+            {showAverage && (
+              <div className="flex flex-col">
+                <span className="text-[0.70rem] uppercase text-muted-foreground">
+                  Total P/L
+                </span>
+                <span className="font-bold text-muted-foreground">
+                  {formatCurrency(data.totalPnl)}
+                </span>
+              </div>
+            )}
+            {!showAverage && (
+              <div className="flex flex-col">
+                <span className="text-[0.70rem] uppercase text-muted-foreground">
+                  Average P/L per Trade
+                </span>
+                <span className="font-bold text-muted-foreground">
+                  {formatCurrency(data.averagePnl)}
+                </span>
+              </div>
+            )}
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
                 {t('weekdayPnl.tooltip.trades')}
@@ -178,7 +203,7 @@ export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProp
                 size === 'small-long' ? "text-sm" : "text-base"
               )}
             >
-              {t('weekdayPnl.title')}
+              P/L by Day
             </CardTitle>
             <TooltipProvider>
               <UITooltip>
@@ -189,21 +214,34 @@ export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProp
                   )} />
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>{t('weekdayPnl.description')}</p>
+                  <p>Shows P/L by day of the week. Toggle to view average P/L per trade for each day.</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>
           </div>
-          {weekdayFilter.day !== null && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 lg:px-3"
-              onClick={() => setWeekdayFilter({ day: null })}
-            >
-              {t('weekdayPnl.clearFilter')}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              "text-muted-foreground",
+              size === 'small-long' ? "text-xs" : "text-sm"
+            )}>
+              Average
+            </span>
+            <Switch
+              checked={showAverage}
+              onCheckedChange={setShowAverage}
+              className="data-[state=checked]:bg-primary"
+            />
+            {weekdayFilter.day !== null && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 lg:px-3"
+                onClick={() => setWeekdayFilter({ day: null })}
+              >
+                {t('weekdayPnl.clearFilter')}
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent 

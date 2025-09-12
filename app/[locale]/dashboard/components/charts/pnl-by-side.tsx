@@ -83,8 +83,15 @@ export default function PnLBySideChart({ size = 'medium' }: PnLBySideChartProps)
   const t = useI18n()
 
   const chartData = React.useMemo(() => {
-    const longTrades = trades.filter(trade => trade.side?.toLowerCase() === 'long')
-    const shortTrades = trades.filter(trade => trade.side?.toLowerCase() === 'short')
+    // Filter trades by side, supporting both standard and alternative naming conventions
+    const longTrades = trades.filter(trade => {
+      const side = trade.side?.toLowerCase()
+      return side === 'long' || side === 'buy'
+    })
+    const shortTrades = trades.filter(trade => {
+      const side = trade.side?.toLowerCase()
+      return side === 'short' || side === 'sell'
+    })
 
     const longPnL = longTrades.reduce((sum, trade) => sum + trade.pnl, 0)
     const shortPnL = shortTrades.reduce((sum, trade) => sum + trade.pnl, 0)
@@ -120,6 +127,9 @@ export default function PnLBySideChart({ size = 'medium' }: PnLBySideChartProps)
     const intensity = Math.max(0.2, ratio)
     return `hsl(var(${baseColorVar}) / ${intensity})`
   }
+
+  // Check if we have any data to display
+  const hasData = chartData.some(item => item.tradeCount > 0)
 
   return (
     <Card className="h-full flex flex-col">
@@ -174,69 +184,82 @@ export default function PnLBySideChart({ size = 'medium' }: PnLBySideChartProps)
           size === 'small-long' ? "p-1" : "p-2 sm:p-4"
         )}
       >
-        <div className={cn(
-          "w-full h-full"
-        )}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              margin={
-                size === 'small-long'
-                  ? { left: 10, right: 4, top: 4, bottom: 20 }
-                  : { left: 10, right: 8, top: 8, bottom: 24 }
-              }
-            >
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                className="text-border dark:opacity-[0.12] opacity-[0.2]"
-              />
-              <XAxis
-                dataKey="side"
-                tickLine={false}
-                axisLine={false}
-                height={size === 'small-long' ? 20 : 24}
-                tickMargin={size === 'small-long' ? 4 : 8}
-                tick={{ 
-                  fontSize: size === 'small-long' ? 9 : 11,
-                  fill: 'currentColor'
-                }}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                width={60}
-                tickMargin={4}
-                tick={{ 
-                  fontSize: size === 'small-long' ? 9 : 11,
-                  fill: 'currentColor'
-                }}
-                tickFormatter={formatCurrency}
-                domain={[Math.min(minPnL * 1.1, 0), Math.max(maxPnL * 1.1, 0)]}
-              />
-              <ReferenceLine y={0} stroke="hsl(var(--border))" />
-              <Tooltip 
-                content={<CustomTooltip />}
-                wrapperStyle={{ 
-                  fontSize: size === 'small-long' ? '10px' : '12px',
-                  zIndex: 1000
-                }} 
-              />
-              <Bar
-                dataKey="pnl"
-                radius={[3, 3, 0, 0]}
-                maxBarSize={size === 'small-long' ? 25 : 40}
-                className="transition-all duration-300 ease-in-out"
+        {!hasData ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <p className="text-muted-foreground text-sm">
+                No trades with side information available
+              </p>
+              <p className="text-muted-foreground text-xs mt-1">
+                Import trades or ensure trades have 'long' or 'short' side values
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className={cn(
+            "w-full h-full"
+          )}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={
+                  size === 'small-long'
+                    ? { left: 10, right: 4, top: 4, bottom: 20 }
+                    : { left: 10, right: 8, top: 8, bottom: 24 }
+                }
               >
-                {chartData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={getColor(entry.pnl)}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+                <CartesianGrid 
+                  strokeDasharray="3 3" 
+                  className="text-border dark:opacity-[0.12] opacity-[0.2]"
+                />
+                <XAxis
+                  dataKey="side"
+                  tickLine={false}
+                  axisLine={false}
+                  height={size === 'small-long' ? 20 : 24}
+                  tickMargin={size === 'small-long' ? 4 : 8}
+                  tick={{ 
+                    fontSize: size === 'small-long' ? 9 : 11,
+                    fill: 'currentColor'
+                  }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={60}
+                  tickMargin={4}
+                  tick={{ 
+                    fontSize: size === 'small-long' ? 9 : 11,
+                    fill: 'currentColor'
+                  }}
+                  tickFormatter={formatCurrency}
+                  domain={[Math.min(minPnL * 1.1, 0), Math.max(maxPnL * 1.1, 0)]}
+                />
+                <ReferenceLine y={0} stroke="hsl(var(--border))" />
+                <Tooltip 
+                  content={<CustomTooltip />}
+                  wrapperStyle={{ 
+                    fontSize: size === 'small-long' ? '10px' : '12px',
+                    zIndex: 1000
+                  }} 
+                />
+                <Bar
+                  dataKey="pnl"
+                  radius={[3, 3, 0, 0]}
+                  maxBarSize={size === 'small-long' ? 25 : 40}
+                  className="transition-all duration-300 ease-in-out"
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={getColor(entry.pnl)}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

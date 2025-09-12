@@ -2,102 +2,75 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getUserId } from '@/server/auth'
+import { headers } from 'next/headers'
 
-// GET /api/accounts - Get all accounts (both prop firm and live) - universally accessible
+// GET /api/accounts - Simplified and optimized accounts fetching
 export async function GET(request: NextRequest) {
   try {
-    // Add timeout for the entire operation
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 8000) // 8 second timeout
-    })
+    // Get user ID from middleware headers (fastest method)
+    const headersList = await headers()
+    const currentUserId = headersList.get("x-user-id")
 
-    const operationPromise = async () => {
-      // Try to get user ID but don't fail if not authenticated since accounts are now universally accessible
-      let currentUserId: string | null = null
-      try {
-        currentUserId = await getUserId()
-      } catch (error) {
-        // Continue without authentication - accounts are universally accessible
-        console.log('No authentication provided, continuing with universal access')
-      }
-
-      // Fetch all accounts - made universally accessible to all users
-      const accounts = await prisma.account.findMany({
-        select: {
-          id: true,
-          number: true,
-          name: true,
-          propfirm: true,
-          startingBalance: true,
-          createdAt: true,
-          userId: true,
-          groupId: true,
-          group: {
-            select: {
-              id: true,
-              name: true
-            }
-          },
-          user: {
-            select: {
-              id: true,
-              email: true
-            }
-          },
-          phases: {
-            where: { phaseStatus: 'active' },
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-            select: {
-              id: true,
-              phaseType: true,
-              phaseStatus: true,
-              profitTarget: true,
-              phaseStartAt: true,
-              currentEquity: true,
-              currentBalance: true
-            }
-          },
-          _count: {
-            select: {
-              trades: true
-            }
+    // Simplified query - only fetch essential data
+    const accounts = await prisma.account.findMany({
+      select: {
+        id: true,
+        number: true,
+        name: true,
+        propfirm: true,
+        startingBalance: true,
+        createdAt: true,
+        userId: true,
+        groupId: true,
+        group: {
+          select: {
+            id: true,
+            name: true
           }
         },
-        orderBy: { createdAt: 'desc' }
-      })
+        user: {
+          select: {
+            id: true,
+            email: true
+          }
+        },
+        // Simplified - only get trade count, phases loaded separately if needed
+        _count: {
+          select: {
+            trades: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
 
-    // Transform accounts to include account type and ownership info
+    // Transform accounts with minimal processing
     const transformedAccounts = accounts.map(account => ({
-      ...account,
+      id: account.id,
+      number: account.number,
+      name: account.name,
+      propfirm: account.propfirm,
+      startingBalance: account.startingBalance,
+      createdAt: account.createdAt,
+      userId: account.userId,
+      groupId: account.groupId,
+      group: account.group,
       accountType: account.propfirm ? 'prop-firm' : 'live',
       displayName: account.name || account.number,
-      currentPhase: account.phases[0] || null,
       tradeCount: account._count.trades,
       owner: account.user,
-      isOwner: currentUserId === account.userId
+      isOwner: currentUserId === account.userId,
+      // Simplified - phases loaded separately for performance
+      currentPhase: null
     }))
 
-      return NextResponse.json({
-        success: true,
-        data: transformedAccounts
-      })
-    }
-
-    // Race between operation and timeout
-    return await Promise.race([operationPromise(), timeoutPromise])
+    return NextResponse.json({
+      success: true,
+      data: transformedAccounts
+    })
 
   } catch (error) {
     console.error('Error fetching accounts:', error)
-    
-    if (error instanceof Error && error.message === 'Request timeout') {
-      return NextResponse.json(
-        { success: false, error: 'Request timeout - please try again' },
-        { status: 408 }
-      )
-    }
-    
     return NextResponse.json(
       { success: false, error: 'Failed to fetch accounts' },
       { status: 500 }
@@ -108,7 +81,17 @@ export async function GET(request: NextRequest) {
 // POST /api/accounts - Create a new live account
 export async function POST(request: NextRequest) {
   try {
-    const userId = await getUserId()
+    // Get user ID from middleware headers (fastest method)
+    const headersList = await headers()
+    const userId = headersList.get("x-user-id")
+    
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'User not authenticated' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
 
     const { name, number, startingBalance, broker } = body

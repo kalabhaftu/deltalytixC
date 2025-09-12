@@ -42,24 +42,67 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
   const t = useI18n()
 
   const chartData = React.useMemo(() => {
-    const totalPnL = trades.reduce((sum, trade) => sum + trade.pnl, 0)
-    const totalCommissions = trades.reduce((sum, trade) => sum + trade.commission, 0)
-    const total = Math.abs(totalPnL) + Math.abs(totalCommissions)
+    // Calculate totals with null safety
+    const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
+    const totalCommissions = trades.reduce((sum, trade) => sum + Math.abs(trade.commission || 0), 0)
+    
+    // Debug: Uncomment to troubleshoot data issues
+    // console.log('Commissions Chart Debug:', { 
+    //   tradesCount: trades.length, 
+    //   totalPnL, 
+    //   totalCommissions,
+    //   sampleTrades: trades.slice(0, 3).map(t => ({ pnl: t.pnl, commission: t.commission }))
+    // })
 
-    return [
-      {
+    // For pie chart, we need absolute values to show proportions correctly
+    const absPnL = Math.abs(totalPnL)
+    const absCommissions = Math.abs(totalCommissions)
+    const total = absPnL + absCommissions
+
+    // Handle case where total is 0 to avoid division by zero
+    if (total === 0 || (absPnL === 0 && absCommissions === 0)) {
+      return [
+        {
+          name: t('commissions.legend.netPnl'),
+          value: 0,
+          displayValue: 0,
+          percentage: 0,
+          fill: chartConfig.pnl.color
+        },
+        {
+          name: t('commissions.legend.commissions'),
+          value: 0,
+          displayValue: 0,
+          percentage: 0,
+          fill: chartConfig.commissions.color
+        }
+      ]
+    }
+
+    // Create data with actual values but calculate percentages from absolute values
+    const data = []
+    
+    if (absPnL > 0) {
+      data.push({
         name: t('commissions.legend.netPnl'),
-        value: totalPnL,
-        percentage: totalPnL / total,
+        value: totalPnL, // Keep original sign for display
+        displayValue: absPnL, // Absolute value for pie chart display
+        percentage: absPnL / total,
         fill: chartConfig.pnl.color
-      },
-      {
+      })
+    }
+    
+    if (absCommissions > 0) {
+      data.push({
         name: t('commissions.legend.commissions'),
-        value: totalCommissions,
-        percentage: totalCommissions / total,
+        value: totalCommissions, // Always positive for commissions
+        displayValue: absCommissions, // Absolute value for pie chart display
+        percentage: absCommissions / total,
         fill: chartConfig.commissions.color
-      }
-    ]
+      })
+    }
+
+    return data
   }, [trades, t])
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -143,6 +186,9 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
     }
   }
 
+  // Check if we have any meaningful data to display
+  const hasData = chartData.length > 0 && chartData.some(item => Math.abs(item.value) > 0)
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader 
@@ -183,14 +229,26 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
           size === 'small-long' ? "p-1" : "p-2 sm:p-4"
         )}
       >
-        <div className={cn(
-          "w-full h-full"
-        )}>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
+        {!hasData ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <p className="text-muted-foreground text-sm">
+                No P&L or commission data available
+              </p>
+              <p className="text-muted-foreground text-xs mt-1">
+                Import trades with P&L and commission information
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className={cn(
+            "w-full h-full"
+          )}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
               <Pie
                 data={chartData}
-                dataKey="value"
+                dataKey="displayValue"
                 nameKey="name"
                 cx="50%"
                 cy="45%"
@@ -198,29 +256,30 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
                 outerRadius={getOuterRadius()}
                 paddingAngle={2}
               >
-                {chartData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`}
-                    fill={entry.fill}
-                    className="transition-all duration-300 ease-in-out"
-                  />
-                ))}
-              </Pie>
-              <Tooltip 
-                content={<CustomTooltip />}
-                wrapperStyle={{ 
-                  fontSize: size === 'small-long' ? '10px' : '12px',
-                  zIndex: 1000
-                }} 
-              />
-              <Legend 
-                content={<CustomLegend />}
-                verticalAlign="bottom"
-                align="center"
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+                  {chartData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`}
+                      fill={entry.fill}
+                      className="transition-all duration-300 ease-in-out"
+                    />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  content={<CustomTooltip />}
+                  wrapperStyle={{ 
+                    fontSize: size === 'small-long' ? '10px' : '12px',
+                    zIndex: 1000
+                  }} 
+                />
+                <Legend 
+                  content={<CustomLegend />}
+                  verticalAlign="bottom"
+                  align="center"
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

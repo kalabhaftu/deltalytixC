@@ -251,6 +251,33 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 border rounded-md p-0.5 bg-muted">
+            <Button
+              variant={viewMode === 'daily' ? 'default' : 'ghost'}
+              size="sm"
+              className={cn(
+                "h-7 px-2 transition-colors",
+                viewMode === 'daily' && "bg-primary text-primary-foreground shadow font-semibold"
+              )}
+              onClick={() => setViewMode('daily')}
+            >
+              <Calendar className="h-4 w-4 mr-1" />
+              <span className="text-xs">{t('calendar.viewMode.daily')}</span>
+            </Button>
+            <Button
+              variant={viewMode === 'weekly' ? 'default' : 'ghost'}
+              size="sm"
+              className={cn(
+                "h-7 px-2 transition-colors",
+                viewMode === 'weekly' && "bg-primary text-primary-foreground shadow font-semibold"
+              )}
+              onClick={() => setViewMode('weekly')}
+            >
+              <CalendarDays className="h-4 w-4 mr-1" />
+              <span className="text-xs">{t('calendar.viewMode.weekly')}</span>
+            </Button>
+          </div>
           <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
@@ -455,35 +482,6 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
         calendarData={calendarData}
         isLoading={isLoading}
       />
-      <CardFooter className="flex justify-end">
-        {/* View Mode Toggle */}
-        <div className="flex items-center gap-1 border rounded-md p-0.5 bg-muted">
-          <Button
-            variant={viewMode === 'daily' ? 'default' : 'ghost'}
-            size="sm"
-            className={cn(
-              "h-7 px-2 transition-colors",
-              viewMode === 'daily' && "bg-primary text-primary-foreground shadow font-semibold"
-            )}
-            onClick={() => setViewMode('daily')}
-          >
-            <Calendar className="h-4 w-4 mr-1" />
-            <span className="text-xs">{t('calendar.viewMode.daily')}</span>
-          </Button>
-          <Button
-            variant={viewMode === 'weekly' ? 'default' : 'ghost'}
-            size="sm"
-            className={cn(
-              "h-7 px-2 transition-colors",
-              viewMode === 'weekly' && "bg-primary text-primary-foreground shadow font-semibold"
-            )}
-            onClick={() => setViewMode('weekly')}
-          >
-            <CalendarDays className="h-4 w-4 mr-1" />
-            <span className="text-xs">{t('calendar.viewMode.weekly')}</span>
-          </Button>
-        </div>
-      </CardFooter>
     </Card>
   )
 }

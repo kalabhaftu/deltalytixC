@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useI18n } from "@/locales/client"
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "@/hooks/use-toast"
+import { useAccounts } from "@/hooks/use-accounts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -77,44 +78,19 @@ export default function AccountsPage() {
   const t = useI18n()
   const router = useRouter()
   const { user } = useAuth()
-  const [accounts, setAccounts] = useState<UnifiedAccount[]>([])
+  
+  // Use centralized accounts hook
+  const { accounts: allAccounts, isLoading: accountsLoading, refetch: refetchAccounts } = useAccounts()
+  
+  // Filter to only live accounts (non-prop firm)
+  const accounts = allAccounts.filter(account => account.accountType === 'live')
+  
   const [propFirmAccounts, setPropFirmAccounts] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [isPropFirmLoading, setIsPropFirmLoading] = useState(true)
   const [createLiveDialogOpen, setCreateLiveDialogOpen] = useState(false)
   const [createPropFirmDialogOpen, setCreatePropFirmDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAccountForDelete, setSelectedAccountForDelete] = useState<string | null>(null)
-
-  // Fetch all accounts (live accounts only)
-  const fetchAccounts = async () => {
-    try {
-      setIsLoading(true)
-      const response = await fetch('/api/accounts')
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch accounts')
-      }
-
-      const data = await response.json()
-      if (data.success) {
-        // Filter to only live accounts (non-prop firm)
-        const liveAccounts = data.data.filter((account: UnifiedAccount) => account.accountType === 'live')
-        setAccounts(liveAccounts)
-      } else {
-        throw new Error(data.error || 'Failed to fetch accounts')
-      }
-    } catch (error) {
-      console.error('Error fetching accounts:', error)
-      toast({
-        title: t('accounts.toast.fetchError'),
-        description: t('accounts.toast.fetchErrorDescription'),
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   // Fetch prop firm accounts
   const fetchPropFirmAccounts = async () => {
@@ -144,16 +120,15 @@ export default function AccountsPage() {
     }
   }
 
-  // Load accounts on mount
+  // Load prop firm accounts on mount
   useEffect(() => {
     if (user) {
-      fetchAccounts()
       fetchPropFirmAccounts()
     }
-  }, [user, fetchAccounts, fetchPropFirmAccounts])
+  }, [user])
 
   const handleAccountCreated = () => {
-    fetchAccounts()
+    refetchAccounts()
     setCreateLiveDialogOpen(false)
   }
 

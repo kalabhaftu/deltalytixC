@@ -100,6 +100,14 @@ export default function ImportButton() {
     }
 
     setIsSaving(true)
+    
+    // Show processing indicator
+    toast({
+      title: "Processing Trades",
+      description: "Checking for duplicates and saving trades...",
+      duration: 0, // Don't auto-dismiss
+    })
+    
     try {
       let newTrades: Trade[] = []
           newTrades = processedTrades.map(trade => {
@@ -146,10 +154,16 @@ export default function ImportButton() {
               (trade.entryDate || trade.closeDate);
           });
 
-      // Remove debug logging - trades are being saved successfully
+      // Save trades with smart duplicate detection
       const result = await saveTradesAction(newTrades)
       if(result.error){
-        if (result.error === "DUPLICATE_TRADES") {
+        if (result.error === "ALL_DUPLICATES") {
+          toast({
+            title: "All Trades Already Exist",
+            description: `All ${newTrades.length} trades were already imported and skipped.`,
+            variant: "destructive",
+          })
+        } else if (result.error === "DUPLICATE_TRADES") {
           toast({
             title: t('import.error.duplicateTrades'),
             description: t('import.error.duplicateTradesDescription'),
@@ -183,10 +197,20 @@ export default function ImportButton() {
       await new Promise(resolve => setTimeout(resolve, 200))
       
       setIsOpen(false)
-      toast({
-        title: t('import.success'),
-        description: `Successfully imported ${result.numberOfTradesAdded} trades`,
-      })
+      
+      // Show detailed success message with duplicate information
+      const details = result.details as any
+      if (details && typeof details === 'object' && details.duplicatesSkipped > 0) {
+        toast({
+          title: "Import Completed",
+          description: `Added ${details.newTradesAdded} new trades, skipped ${details.duplicatesSkipped} duplicates`,
+        })
+      } else {
+        toast({
+          title: t('import.success'),
+          description: `Successfully imported ${result.numberOfTradesAdded} trades`,
+        })
+      }
       // Reset the import process
       resetImportState()
 

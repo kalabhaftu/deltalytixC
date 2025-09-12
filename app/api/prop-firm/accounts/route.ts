@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getUserId } from '@/server/auth'
+import { headers } from 'next/headers'
 import { PropFirmSchemas } from '@/lib/validation/prop-firm-schemas'
 import { PropFirmBusinessRules } from '@/lib/prop-firm/business-rules'
 // Removed heavy validation import - using Zod directly
@@ -20,7 +20,17 @@ export async function GET(request: NextRequest) {
     })
 
     const operationPromise = async () => {
-      const userId = await getUserId()
+      // Get user ID from middleware headers (fastest method)
+      const headersList = await headers()
+      const userId = headersList.get("x-user-id")
+      
+      if (!userId) {
+        return NextResponse.json(
+          { success: false, error: 'User not authenticated' },
+          { status: 401 }
+        )
+      }
+
       const { searchParams } = new URL(request.url)
     
     // Parse and validate filter parameters
@@ -48,6 +58,7 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const where: any = {
       userId,
+      propfirm: { not: '' }, // Only prop firm accounts
     }
 
     if (filters.status && filters.status.length > 0) {
