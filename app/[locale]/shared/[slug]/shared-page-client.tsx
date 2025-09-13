@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/locales/client"
-import { Loader2, ChevronDown } from "lucide-react"
+import { ChevronDown } from "lucide-react"
+import { LoadingSpinner } from '@/components/ui/loading'
 import { useEffect, useState } from "react"
 import { SharedParams } from "@/server/shared"
 import { Trade } from "@prisma/client"
@@ -165,10 +166,7 @@ export function SharedPageClient({ params, initialData }: SharedPageClientProps)
       <div className="flex flex-col min-h-screen">
         <TopBanner t={t} />
         <div className="w-full mx-auto flex-1 flex items-center justify-center pt-[120px] sm:pt-[60px]">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">{t('shared.loading')}</p>
-          </div>
+          <LoadingSpinner size="lg" text={t('shared.loading')} />
         </div>
       </div>
     )

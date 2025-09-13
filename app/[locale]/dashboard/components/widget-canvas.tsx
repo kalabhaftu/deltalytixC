@@ -1115,7 +1115,7 @@ export default function WidgetCanvas() {
             layouts={responsiveLayout}
             breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
             cols={{ lg: 12, md: 12, sm: 12, xs: 12, xxs: 12 }}
-            rowHeight={isMobile ? 65 : 70}
+            rowHeight={isMobile ? 60 : 70}
             isDraggable={isCustomizing}
             isResizable={isCustomizing && !isMobile}
             draggableHandle=".drag-handle"
@@ -1124,8 +1124,8 @@ export default function WidgetCanvas() {
             onResizeStart={handleResizeStart}
             onResize={handleResize}
             onLayoutChange={handleLayoutChange}
-            margin={[16, 16]}
-            containerPadding={[0, 0]}
+            margin={isMobile ? [8, 8] : [16, 16]}
+            containerPadding={isMobile ? [8, 8] : [0, 0]}
             compactType="vertical"
             preventCollision={false}
             useCSSTransforms={true}

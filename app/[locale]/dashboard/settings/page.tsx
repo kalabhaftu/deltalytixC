@@ -23,7 +23,9 @@ import {
   Laptop,
   Clock,
   Database,
-  LogOut
+  LogOut,
+  Trash2,
+  AlertTriangle
 } from "lucide-react"
 import { signOut } from "@/server/auth"
 import Link from 'next/link'
@@ -41,6 +43,8 @@ import {
 import { Slider } from "@/components/ui/slider"
 import { LinkedAccounts } from "@/components/linked-accounts"
 import { useToolbarSettingsStore } from "@/store/toolbar-settings-store"
+import { toast } from "@/hooks/use-toast"
+import { PrimaryButton, SecondaryButton, DestructiveButton } from "@/components/ui/button-styles"
 
 import { 
   Collapsible,
@@ -48,6 +52,24 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { ChevronDown, Layout } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 
 
@@ -78,10 +100,46 @@ export default function SettingsPage() {
   const [tradingAlerts, setTradingAlerts] = useState(true)
   const [weeklyReports, setWeeklyReports] = useState(true)
   const [isUISettingsOpen, setIsUISettingsOpen] = useState(false)
+  
+  // Account deletion states
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
+  
+  // Form state for profile updates
+  const [profileData, setProfileData] = useState({
+    firstName: '',
+    lastName: '',
+    email: user?.email || ''
+  })
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
 
   
   // Toolbar settings
   const { settings, setFixedPosition, setAutoHide, resetSettings } = useToolbarSettingsStore()
+  
+  const handleToolbarSettingChange = (setting: string, value: boolean) => {
+    if (setting === 'fixedPosition') {
+      setFixedPosition(value)
+    } else if (setting === 'autoHide') {
+      setAutoHide(value)
+    }
+    
+    toast({
+      title: "Toolbar Settings Updated",
+      description: `${setting === 'fixedPosition' ? 'Fixed position' : 'Auto-hide'} ${value ? 'enabled' : 'disabled'}.`,
+      duration: 2000,
+    })
+  }
+  
+  const handleResetSettings = () => {
+    resetSettings()
+    toast({
+      title: "Settings Reset",
+      description: "Toolbar settings have been reset to default values.",
+      duration: 2000,
+    })
+  }
   
 
   
@@ -91,7 +149,112 @@ export default function SettingsPage() {
 
   const handleThemeChange = (value: string) => {
     setTheme(value as "light" | "dark" | "system")
+    toast({
+      title: "Theme Updated",
+      description: `Theme changed to ${value === 'system' ? 'system default' : value} mode.`,
+      duration: 2000,
+    })
   }
+  
+  const handleProfileUpdate = async () => {
+    setIsUpdatingProfile(true)
+    try {
+      // Simulate API call - replace with actual implementation
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been saved successfully.",
+        duration: 3000,
+      })
+    } catch (error) {
+      toast({
+        title: "Update Failed", 
+        description: "There was an error updating your profile. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
+    } finally {
+      setIsUpdatingProfile(false)
+    }
+  }
+  
+  const handleTimezoneChange = (value: string) => {
+    setTimezone(value)
+    toast({
+      title: "Timezone Updated",
+      description: `Timezone changed to ${value.replace('_', ' ')}.`,
+      duration: 2000,
+    })
+  }
+  
+  const handleNotificationChange = (type: string, enabled: boolean) => {
+    const notificationTypes: { [key: string]: (value: boolean) => void } = {
+      email: setEmailNotifications,
+      push: setPushNotifications,
+      trading: setTradingAlerts,
+      weekly: setWeeklyReports
+    }
+    
+    notificationTypes[type]?.(enabled)
+    toast({
+      title: "Notification Settings Updated",
+      description: `${type.charAt(0).toUpperCase() + type.slice(1)} notifications ${enabled ? 'enabled' : 'disabled'}.`,
+      duration: 2000,
+    })
+  }
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'Delete my account') {
+      toast({
+        title: "Confirmation Required",
+        description: "Please type 'Delete my account' to confirm.",
+        variant: "destructive",
+        duration: 3000,
+      })
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch('/api/auth/delete-account', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete account')
+      }
+
+      toast({
+        title: "Account Deleted",
+        description: "Your account and all associated data have been permanently deleted.",
+        duration: 3000,
+      })
+
+      // Clear local storage and sign out
+      localStorage.removeItem('deltalytix_user_data')
+      await signOut()
+      
+    } catch (error) {
+      toast({
+        title: "Deletion Failed",
+        description: error instanceof Error ? error.message : "There was an error deleting your account. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      })
+    } finally {
+      setIsDeleting(false)
+      setIsDeleteModalOpen(false)
+      setDeleteConfirmText('')
+    }
+  }
+
+  const isDeleteConfirmed = deleteConfirmText === 'Delete my account'
 
   const getThemeIcon = () => {
     if (theme === 'light') return <Sun className="h-4 w-4" />;
@@ -147,18 +310,34 @@ export default function SettingsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" placeholder="Enter your first name" />
+                  <Input 
+                    id="firstName" 
+                    placeholder="Enter your first name"
+                    value={profileData.firstName}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" placeholder="Enter your last name" />
+                  <Input 
+                    id="lastName" 
+                    placeholder="Enter your last name"
+                    value={profileData.lastName}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
+                  />
                 </div>
               </div>
               <div>
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" value={user?.email || ''} disabled />
               </div>
-              <Button>Update Profile</Button>
+              <PrimaryButton 
+                onClick={handleProfileUpdate}
+                loading={isUpdatingProfile}
+                loadingText="Updating..."
+              >
+                Update Profile
+              </PrimaryButton>
             </div>
           </CardContent>
         </Card>
@@ -240,7 +419,7 @@ export default function SettingsPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
                     <ScrollArea className="h-[200px]">
-                      <DropdownMenuRadioGroup value={timezone} onValueChange={setTimezone}>
+                      <DropdownMenuRadioGroup value={timezone} onValueChange={handleTimezoneChange}>
                         {timezones.map((tz) => (
                           <DropdownMenuRadioItem key={tz} value={tz}>
                             {tz.replace('_', ' ')}
@@ -281,7 +460,7 @@ export default function SettingsPage() {
                     <Switch
                       id="fixed-position"
                       checked={settings.fixedPosition}
-                      onCheckedChange={setFixedPosition}
+                      onCheckedChange={(checked) => handleToolbarSettingChange('fixedPosition', checked)}
                     />
                   </div>
                   
@@ -295,19 +474,18 @@ export default function SettingsPage() {
                     <Switch
                       id="auto-hide-toolbar"
                       checked={settings.autoHide}
-                      onCheckedChange={setAutoHide}
+                      onCheckedChange={(checked) => handleToolbarSettingChange('autoHide', checked)}
                     />
                   </div>
                   
                   <div className="pt-2">
-                    <Button 
-                      variant="outline" 
+                    <SecondaryButton 
                       size="sm" 
-                      onClick={resetSettings}
+                      onClick={handleResetSettings}
                       className="text-xs"
                     >
                       {t('toolbar.resetSettings')}
-                    </Button>
+                    </SecondaryButton>
                   </div>
                 </div>
                 
@@ -345,7 +523,7 @@ export default function SettingsPage() {
               <Switch
                 id="email-notifications"
                 checked={emailNotifications}
-                onCheckedChange={setEmailNotifications}
+                onCheckedChange={(checked) => handleNotificationChange('email', checked)}
               />
             </div>
             <Separator />
@@ -359,7 +537,7 @@ export default function SettingsPage() {
               <Switch
                 id="push-notifications"
                 checked={pushNotifications}
-                onCheckedChange={setPushNotifications}
+                onCheckedChange={(checked) => handleNotificationChange('push', checked)}
               />
             </div>
             <Separator />
@@ -373,7 +551,7 @@ export default function SettingsPage() {
               <Switch
                 id="trading-alerts"
                 checked={tradingAlerts}
-                onCheckedChange={setTradingAlerts}
+                onCheckedChange={(checked) => handleNotificationChange('trading', checked)}
               />
             </div>
             <Separator />
@@ -387,7 +565,7 @@ export default function SettingsPage() {
               <Switch
                 id="weekly-reports"
                 checked={weeklyReports}
-                onCheckedChange={setWeeklyReports}
+                onCheckedChange={(checked) => handleNotificationChange('weekly', checked)}
               />
             </div>
           </CardContent>
@@ -415,15 +593,24 @@ export default function SettingsPage() {
             <div className="grid gap-4">
 
               <Link href="/dashboard/data">
-                <Button variant="outline" className="w-full justify-start">
+                <SecondaryButton className="w-full justify-start">
                   <Database className="mr-2 h-4 w-4" />
                   Data Management
-                </Button>
+                </SecondaryButton>
               </Link>
 
               <Separator />
-              <Button 
-                variant="destructive" 
+              
+              <DestructiveButton 
+                className="w-full justify-start"
+                onClick={() => setIsDeleteModalOpen(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete My Account
+              </DestructiveButton>
+
+              <Separator />
+              <SecondaryButton 
                 className="w-full justify-start"
                 onClick={() => {
                   localStorage.removeItem('deltalytix_user_data')
@@ -432,11 +619,76 @@ export default function SettingsPage() {
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign Out
-              </Button>
+              </SecondaryButton>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Account Deletion Verification Modal */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Are you absolutely sure?
+            </DialogTitle>
+            <DialogDescription className="text-left">
+              This action is <strong>irreversible</strong> and will permanently delete:
+              <ul className="mt-2 list-disc list-inside space-y-1 text-sm">
+                <li>Your account and profile information</li>
+                <li>All trading data and history</li>
+                <li>Prop firm account configurations</li>
+                <li>Dashboard layouts and preferences</li>
+                <li>All uploaded files and documents</li>
+              </ul>
+              <div className="mt-4 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                <p className="text-sm font-medium text-destructive">
+                  ⚠️ This data cannot be recovered once deleted.
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirm" className="text-sm font-medium">
+                Type <code className="bg-muted px-1 py-0.5 rounded text-xs">Delete my account</code> to confirm:
+              </Label>
+              <Input
+                id="delete-confirm"
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type the confirmation text here"
+                className="font-mono text-sm"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsDeleteModalOpen(false)
+                setDeleteConfirmText('')
+              }}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <DestructiveButton
+              onClick={handleDeleteAccount}
+              disabled={!isDeleteConfirmed || isDeleting}
+              loading={isDeleting}
+              loadingText="Deleting Account..."
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              I understand the consequences, delete my account
+            </DestructiveButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

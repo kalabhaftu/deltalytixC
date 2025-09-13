@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Increase body size limit for Server Actions (for image uploads)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb', // Increased from default 1MB to 10MB
+    },
+  },
   images: {
     remotePatterns: [
       {

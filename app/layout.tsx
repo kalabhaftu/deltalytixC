@@ -7,6 +7,7 @@ import { AuthProvider } from "@/context/auth-provider";
 import { ConsentBanner } from "@/components/consent-banner";
 import { ConsoleFilterWrapper } from "@/components/console-filter-wrapper";
 import { DatabaseInit } from "@/components/database-init";
+import { ThemeProvider } from "@/context/theme-provider";
 import Script from "next/script"
 
 // Font configuration now imported from lib/fonts.ts
@@ -100,12 +101,41 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} bg-background`} translate="no">
+    <html lang="en" className={inter.variable} translate="no" suppressHydrationWarning>
       <head>
         {/* Prevent Google Translate */}
         <meta name="google" content="notranslate" />
         <meta name="googlebot" content="notranslate" />
         <meta name="googlebot-news" content="notranslate" />
+
+        {/* Prevent theme flash - improved version */}
+        <Script id="theme-script" strategy="beforeInteractive">
+          {`
+            (function() {
+              try {
+                var theme = localStorage.getItem('theme');
+                var systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                var effectiveTheme = theme === 'system' || !theme ? systemTheme : theme;
+                
+                if (effectiveTheme === 'dark') {
+                  document.documentElement.classList.add('dark');
+                  document.documentElement.style.colorScheme = 'dark';
+                } else {
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.style.colorScheme = 'light';
+                }
+              } catch (e) {
+                // Fallback to system preference
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                  document.documentElement.classList.add('dark');
+                  document.documentElement.style.colorScheme = 'dark';
+                } else {
+                  document.documentElement.style.colorScheme = 'light';
+                }
+              }
+            })();
+          `}
+        </Script>
 
         {/* Prevent Google Translate DOM manipulation */}
         <Script id="prevent-google-translate" strategy="beforeInteractive">
@@ -220,14 +250,16 @@ export default async function RootLayout({
 
       </head>
       <body className={`${inter.variable} font-sans min-h-screen overflow-x-hidden w-screen`}>
-        <ConsoleFilterWrapper>
-          <DatabaseInit />
-          <AuthProvider>
-            {/* Analytics components removed to comply with essential-only cookie policy */}
-            <Toaster />
-            {children}
-          </AuthProvider>
-        </ConsoleFilterWrapper>
+        <ThemeProvider>
+          <ConsoleFilterWrapper>
+            <DatabaseInit />
+            <AuthProvider>
+              {/* Analytics components removed to comply with essential-only cookie policy */}
+              <Toaster />
+              {children}
+            </AuthProvider>
+          </ConsoleFilterWrapper>
+        </ThemeProvider>
       </body>
     </html>
   );

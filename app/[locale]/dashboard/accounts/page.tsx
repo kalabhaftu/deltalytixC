@@ -53,6 +53,10 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Separator } from "@/components/ui/separator"
 import { motion } from "framer-motion"
+import { LoadingSkeleton } from "@/components/ui/loading"
+import { PrimaryButton, SecondaryButton, CrudActions } from "@/components/ui/button-styles"
+import { AccessibleText, AccessibleDescription } from "@/components/ui/accessible-text"
+// Removed SimplifiedAccountOverview import - using inline simplified view
 
 interface UnifiedAccount {
   id: string
@@ -91,6 +95,7 @@ export default function AccountsPage() {
   const [createPropFirmDialogOpen, setCreatePropFirmDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAccountForDelete, setSelectedAccountForDelete] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'simple' | 'advanced'>('simple')
   const hasFetchedPropFirmAccounts = useRef(false)
 
   // DD Calculation Functions
@@ -259,7 +264,7 @@ export default function AccountsPage() {
         variant: "default"
       })
 
-      fetchAccounts()
+      refetchAccounts()
       setSelectedAccountForDelete(null)
     } catch (error) {
       console.error('Error deleting account:', error)
@@ -275,7 +280,7 @@ export default function AccountsPage() {
   const filteredLiveAccounts = accounts.filter(account => 
     account.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     account.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (account.broker && account.broker.toLowerCase().includes(searchQuery.toLowerCase()))
+    (account.propfirm && account.propfirm.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
   const handleViewAccount = (accountId: string, accountType: string) => {
@@ -313,10 +318,10 @@ export default function AccountsPage() {
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-lg font-semibold text-foreground">{account.displayName}</CardTitle>
                   <Badge className={statusColor}>
-                    {t(`propFirm.status.${account.status}`)}
+                    {account.status || 'Active'}
                   </Badge>
                 </div>
-                <CardDescription className="flex items-center gap-2 text-sm">
+                <AccessibleDescription className="flex items-center gap-2">
                   {account.accountType === 'prop-firm' ? (
                     <>
                       <Building2 className="h-4 w-4" />
@@ -328,7 +333,7 @@ export default function AccountsPage() {
                       {account.broker || t('accounts.liveBroker')}
                     </>
                   )}
-                </CardDescription>
+                </AccessibleDescription>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -361,17 +366,17 @@ export default function AccountsPage() {
             {/* Account Details */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <AccessibleText variant="muted" size="xs" className="flex items-center gap-1">
                   <Shield className="h-3 w-3" />
                   {t('accounts.accountNumber')}
-                </div>
+                </AccessibleText>
                 <p className="font-mono text-sm font-medium">{account.number}</p>
               </div>
               <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <AccessibleText variant="muted" size="xs" className="flex items-center gap-1">
                   <DollarSign className="h-3 w-3" />
                   {t('accounts.startingBalance')}
-                </div>
+                </AccessibleText>
                 <p className="text-sm font-semibold">${account.startingBalance.toLocaleString()}</p>
               </div>
             </div>
@@ -385,7 +390,7 @@ export default function AccountsPage() {
                 </div>
                 <p className="text-sm font-medium">
                   {account.accountType === 'prop-firm' 
-                    ? (account.totalTrades || account.tradeCount || 0)
+                    ? (account.tradeCount || 0)
                     : (account.tradeCount || 0)
                   }
                 </p>
@@ -397,7 +402,7 @@ export default function AccountsPage() {
                 </div>
                 <p className="text-sm font-medium">
                   {account.accountType === 'prop-firm' 
-                    ? (account.totalPayouts || 0)
+                    ? '0'
                     : (account.profitLoss !== undefined ? `$${account.profitLoss.toLocaleString()}` : '0')
                   }
                 </p>
@@ -436,7 +441,7 @@ export default function AccountsPage() {
                     Current Equity
                   </div>
                   <p className="text-sm font-semibold">
-                    ${(account.currentEquity || account.startingBalance || 0).toLocaleString()}
+                    ${(account.startingBalance || 0).toLocaleString()}
                   </p>
                 </div>
 
@@ -485,7 +490,7 @@ export default function AccountsPage() {
                       Current Phase
                     </div>
                     <p className="text-sm font-medium capitalize">
-                      {t(`propFirm.phase.${account.currentPhase.phaseType}`)}
+                      {account.currentPhase?.phaseType || 'Phase 1'}
                     </p>
                   </div>
                 )}
@@ -503,37 +508,24 @@ export default function AccountsPage() {
                   t('accounts.noTrades')
                 }
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
+              <CrudActions
+                onView={() => handleViewAccount(account.id, account.accountType)}
+                onEdit={() => handleEditAccount(account.id, account.accountType)}
+                viewText={t('accounts.view')}
+                editText={t('accounts.edit')}
+                size="sm"
+                className="gap-1"
+              />
+              {account.accountType === 'prop-firm' && (
+                <PrimaryButton
                   size="sm"
-                  onClick={() => handleViewAccount(account.id, account.accountType)}
-                  className="h-8"
+                  onClick={() => router.push(`/dashboard/prop-firm/accounts/${account.id}/trades/new`)}
+                  className="h-8 ml-2"
                 >
-                  <ExternalLink className="h-3 w-3 mr-1" />
-                  {t('accounts.view')}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleEditAccount(account.id, account.accountType)}
-                  className="h-8"
-                >
-                  <Edit className="h-3 w-3 mr-1" />
-                  {t('accounts.edit')}
-                </Button>
-                {account.accountType === 'prop-firm' && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => router.push(`/dashboard/prop-firm/accounts/${account.id}/trades/new`)}
-                    className="h-8"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    {t('accounts.addTrade')}
-                  </Button>
-                )}
-              </div>
+                  <Plus className="h-3 w-3 mr-1" />
+                  {t('accounts.addTrade')}
+                </PrimaryButton>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -551,20 +543,9 @@ export default function AccountsPage() {
               <p className="text-muted-foreground">{t('accounts.description')}</p>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader>
-                  <div className="h-6 bg-muted rounded w-3/4"></div>
-                  <div className="h-4 bg-muted rounded w-1/2"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="h-4 bg-muted rounded"></div>
-                    <div className="h-4 bg-muted rounded w-2/3"></div>
-                  </div>
-                </CardContent>
-              </Card>
+              <LoadingSkeleton key={i} variant="card" />
             ))}
           </div>
         </div>
@@ -576,27 +557,179 @@ export default function AccountsPage() {
     <div className="container mx-auto p-6">
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{t('accounts.title')}</h1>
-            <p className="text-muted-foreground">Manage your trading accounts and prop firm evaluations</p>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline"
-              onClick={() => {
-                fetchAccounts()
-                fetchPropFirmAccounts()
-              }}
-              size="sm"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh All
-            </Button>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('accounts.title')}</h1>
+              <AccessibleDescription className="text-sm sm:text-base">
+                Manage your trading accounts and prop firm evaluations
+              </AccessibleDescription>
+            </div>
+            <div className="flex gap-2">
+              <SecondaryButton 
+                onClick={() => setViewMode(viewMode === 'simple' ? 'advanced' : 'simple')}
+                size="sm"
+                variant={viewMode === 'simple' ? 'outline' : 'default'}
+              >
+                {viewMode === 'simple' ? 'Advanced View' : 'Simple View'}
+              </SecondaryButton>
+              <SecondaryButton 
+                onClick={() => {
+                  refetchAccounts()
+                  fetchPropFirmAccounts()
+                }}
+                size="sm"
+                className="whitespace-nowrap"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Refresh All</span>
+                <span className="sm:hidden">Refresh</span>
+              </SecondaryButton>
+            </div>
           </div>
         </div>
 
-        <Tabs defaultValue="prop-firm-management" className="w-full">
+        {/* Conditional rendering based on view mode */}
+        {viewMode === 'simple' ? (
+          <div className="space-y-6">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                    <AccessibleText variant="muted" size="sm">Total Accounts</AccessibleText>
+                  </div>
+                  <p className="text-2xl font-bold mt-1">{accounts.length + propFirmAccounts.length}</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <AccessibleText variant="muted" size="sm">Prop Firms</AccessibleText>
+                  </div>
+                  <p className="text-2xl font-bold mt-1">{propFirmAccounts.length}</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <AccessibleText variant="muted" size="sm">Live Accounts</AccessibleText>
+                  </div>
+                  <p className="text-2xl font-bold mt-1">{accounts.length}</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    <AccessibleText variant="muted" size="sm">Total Balance</AccessibleText>
+                  </div>
+                  <p className="text-2xl font-bold mt-1">
+                    ${[...accounts, ...propFirmAccounts].reduce((sum, a) => sum + (a.startingBalance || 0), 0).toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Simplified Account Grid */}
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>Your Trading Accounts</CardTitle>
+                    <AccessibleDescription>
+                      Manage and monitor all your trading accounts in one place
+                    </AccessibleDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <SecondaryButton 
+                      size="sm" 
+                      onClick={() => setCreateLiveDialogOpen(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Live Account
+                    </SecondaryButton>
+                    <PrimaryButton 
+                      size="sm" 
+                      onClick={() => setCreatePropFirmDialogOpen(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Prop Firm
+                    </PrimaryButton>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {[...accounts, ...propFirmAccounts].length === 0 ? (
+                  <div className="text-center py-12">
+                    <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No accounts found</h3>
+                    <AccessibleDescription className="mb-6">
+                      Create your first trading account to get started
+                    </AccessibleDescription>
+                    <div className="flex gap-2 justify-center">
+                      <SecondaryButton onClick={() => setCreateLiveDialogOpen(true)}>
+                        Add Live Account
+                      </SecondaryButton>
+                      <PrimaryButton onClick={() => setCreatePropFirmDialogOpen(true)}>
+                        Add Prop Firm Account
+                      </PrimaryButton>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[...accounts, ...propFirmAccounts].map((account) => (
+                      <motion.div
+                        key={account.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleViewAccount(account.id, account.accountType)}>
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-base font-medium">{account.displayName || account.name || account.number}</CardTitle>
+                              <Badge variant={account.accountType === 'prop-firm' ? 'default' : 'secondary'}>
+                                {account.accountType === 'prop-firm' ? 'Prop Firm' : 'Live'}
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <AccessibleText variant="muted" size="xs">Balance</AccessibleText>
+                                <p className="font-semibold">${(account.startingBalance || 0).toLocaleString()}</p>
+                              </div>
+                              <div>
+                                <AccessibleText variant="muted" size="xs">Trades</AccessibleText>
+                                <p className="font-semibold">{account.tradeCount || account.totalTrades || 0}</p>
+                              </div>
+                            </div>
+                            {account.profitLoss !== undefined && (
+                              <div className="mt-3 pt-3 border-t">
+                                <AccessibleText variant="muted" size="xs">P&L</AccessibleText>
+                                <p className={`font-semibold ${account.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  ${account.profitLoss.toLocaleString()}
+                                </p>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <Tabs defaultValue="prop-firm-management" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="prop-firm-management" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
@@ -624,10 +757,10 @@ export default function AccountsPage() {
                       Manage your prop firm evaluation accounts, track progress, and handle payouts
                     </CardDescription>
                   </div>
-                  <Button onClick={() => setCreatePropFirmDialogOpen(true)}>
+                  <PrimaryButton onClick={() => setCreatePropFirmDialogOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Create Prop Firm Account
-                  </Button>
+                  </PrimaryButton>
                 </div>
               </CardHeader>
               <CardContent>
@@ -649,7 +782,7 @@ export default function AccountsPage() {
           <TabsContent value="accounts" className="space-y-6 mt-6">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <User className="h-5 w-5" />
@@ -660,13 +793,13 @@ export default function AccountsPage() {
                     </CardDescription>
                   </div>
                   {/* Search Bar */}
-                  <div className="relative">
+                  <div className="relative w-full sm:w-64">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input
                       placeholder="Search accounts..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 w-64"
+                      className="pl-10 w-full"
                     />
                   </div>
                 </div>
@@ -690,14 +823,13 @@ export default function AccountsPage() {
                   <TabsContent value="prop-firm-accounts" className="space-y-6 mt-6">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold">Prop Firm Accounts</h3>
-                      <Button 
-                        variant="outline" 
+                      <SecondaryButton 
                         onClick={() => setCreatePropFirmDialogOpen(true)}
                         size="sm"
                       >
                         <Building2 className="h-4 w-4 mr-2" />
                         Add Prop Firm Account
-                      </Button>
+                      </SecondaryButton>
                     </div>
                     
                     {propFirmAccounts.length === 0 ? (
@@ -706,14 +838,14 @@ export default function AccountsPage() {
                           <Building2 className="h-16 w-16 mx-auto text-muted-foreground mb-6" />
                           <h3 className="text-xl font-semibold mb-3">No Prop Firm Accounts</h3>
                           <p className="text-muted-foreground mb-6 max-w-md mx-auto">Start your prop firm evaluation journey by creating your first account.</p>
-                          <Button onClick={() => setCreatePropFirmDialogOpen(true)}>
+                          <PrimaryButton onClick={() => setCreatePropFirmDialogOpen(true)}>
                             <Building2 className="h-4 w-4 mr-2" />
                             Create Prop Firm Account
-                          </Button>
+                          </PrimaryButton>
                         </CardContent>
                       </Card>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
                         {propFirmAccounts
                           .filter(account => 
                             account.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -812,10 +944,10 @@ export default function AccountsPage() {
                   <TabsContent value="live-accounts" className="space-y-6 mt-6">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold">Live Accounts</h3>
-                      <Button onClick={() => setCreateLiveDialogOpen(true)} size="sm">
+                      <SecondaryButton onClick={() => setCreateLiveDialogOpen(true)} size="sm">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Live Account
-                      </Button>
+                      </SecondaryButton>
                     </div>
                     
                     {filteredLiveAccounts.length === 0 ? (
@@ -824,16 +956,16 @@ export default function AccountsPage() {
                           <User className="h-16 w-16 mx-auto text-muted-foreground mb-6" />
                           <h3 className="text-xl font-semibold mb-3">No Live Accounts</h3>
                           <p className="text-muted-foreground mb-6 max-w-md mx-auto">Add your live trading accounts to track your real money performance.</p>
-                          <Button onClick={() => setCreateLiveDialogOpen(true)}>
+                          <PrimaryButton onClick={() => setCreateLiveDialogOpen(true)}>
                             <Plus className="h-4 w-4 mr-2" />
                             Add Live Account
-                          </Button>
+                          </PrimaryButton>
                         </CardContent>
                       </Card>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
                         {filteredLiveAccounts.map((account) => (
-                          <AccountCard key={account.id} account={account} />
+                          <AccountCard key={account.id} account={{...account, status: 'active'}} />
                         ))}
                       </div>
                     )}
@@ -843,6 +975,7 @@ export default function AccountsPage() {
             </Card>
           </TabsContent>
         </Tabs>
+        )}
 
         {/* Dialogs */}
         <CreateLiveAccountDialog

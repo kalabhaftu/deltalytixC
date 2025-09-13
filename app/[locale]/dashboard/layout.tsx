@@ -1,4 +1,3 @@
-import { ThemeProvider } from "@/context/theme-provider";
 import { DataProvider } from "@/context/data-provider";
 import Modals from "@/components/modals";
 import { Toaster } from "@/components/ui/toaster";
@@ -16,19 +15,17 @@ export default async function RootLayout(props: { params: Promise<{ locale: stri
 
   return (
     <TooltipProvider>
-      <ThemeProvider>
-        <DataProvider>
-              <div className="min-h-screen flex flex-col">
-                    <SonnerToaster/>
-                    <Toaster />
-                    <Navbar />
-                    <div className="flex flex-1">
-                      {children}
-                    </div>
-                    <Modals />
-              </div>
-        </DataProvider>
-      </ThemeProvider>
+      <DataProvider>
+            <div className="min-h-screen flex flex-col">
+                  <SonnerToaster/>
+                  <Toaster />
+                  <Navbar />
+                  <div className="flex flex-1">
+                    {children}
+                  </div>
+                  <Modals />
+            </div>
+      </DataProvider>
     </TooltipProvider>
   );
 }

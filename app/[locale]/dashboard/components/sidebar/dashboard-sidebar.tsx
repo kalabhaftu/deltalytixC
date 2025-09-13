@@ -113,6 +113,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
                       className={cn(
                         "w-full justify-start transition-all duration-300 ease-out group",
                         isCollapsed && !isMobile ? "px-2" : "px-3",
+                        isMobile ? "h-12 text-base" : "h-10",
                         isActive 
                           ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]" 
                           : "hover:bg-accent/80 hover:shadow-md hover:scale-[1.02] hover:translate-x-1"
@@ -185,13 +186,17 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
             <Button
               variant="outline"
               size="icon"
-              className="fixed top-20 left-4 z-50 md:hidden bg-background/95 backdrop-blur-xl border-border/50 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200"
+              className="fixed top-20 left-4 z-50 md:hidden bg-background/95 backdrop-blur-xl border-border/50 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 h-12 w-12"
+              aria-label="Open navigation menu"
             >
-              <Menu className="h-4 w-4" />
+              <Menu className="h-5 w-5" />
             </Button>
           </motion.div>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0 bg-background/95 backdrop-blur-xl border-border/50">
+        <SheetContent side="left" className="w-72 p-0 bg-background/95 backdrop-blur-xl border-border/50">
+          <div className="p-4 border-b border-border/50">
+            <h2 className="font-semibold text-lg">Navigation</h2>
+          </div>
           <NavigationContent />
         </SheetContent>
       </Sheet>

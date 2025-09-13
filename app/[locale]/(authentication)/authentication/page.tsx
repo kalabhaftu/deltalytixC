@@ -12,9 +12,11 @@ import { useI18n } from '@/locales/client'
 export default function AuthenticationPage() {
   const t = useI18n()
 
+  // Theme is now handled by the root layout script, no client-side logic needed
+
   return (
-    <div>
-      <div className="flex relative h-screen flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
+    <div className="min-h-screen bg-background">
+      <div className="flex relative h-screen flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0 bg-background">
         <div className="relative hidden h-full flex-col bg-gray-900 p-10 text-white dark:border-r lg:flex">
           <div className="absolute inset-0 overflow-hidden">
           <Image src={"/auth-background.jpeg"} width={928} height={1232} className="opacity-35 w-full" alt="Auth abstract image background"></Image>
@@ -27,7 +29,7 @@ export default function AuthenticationPage() {
           </div>
 
         </div>
-        <div className="p-4 lg:p-8">
+        <div className="p-4 lg:p-8 bg-background">
           <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
             <div className="flex flex-col space-y-2 text-center">
               <h1 className="text-2xl font-semibold tracking-tight">

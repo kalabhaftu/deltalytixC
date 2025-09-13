@@ -25,6 +25,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
+import { LiveAccountSchema, type LiveAccountInput } from "@/lib/validation/enhanced-schemas"
+import { FormFieldWrapper, FormValidationSummary } from "@/components/ui/enhanced-form"
 
 // Common brokers list
 const BROKERS = [
@@ -51,18 +53,16 @@ const BROKERS = [
   'Other'
 ]
 
-const createLiveAccountSchema = z.object({
-  name: z.string().min(1, 'Account name is required').max(100, 'Name too long'),
-  number: z.string().min(1, 'Account number is required').max(50, 'Number too long'),
+// Extended schema for the form (includes string fields for form handling)
+const createLiveAccountFormSchema = LiveAccountSchema.extend({
   startingBalance: z.string().min(1, 'Starting balance is required').refine(
-    (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
-    'Starting balance must be a positive number'
+    (val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 100,
+    'Starting balance must be at least $100'
   ),
-  broker: z.string().min(1, 'Broker selection is required'),
   customBroker: z.string().optional(),
 })
 
-type CreateLiveAccountForm = z.infer<typeof createLiveAccountSchema>
+type CreateLiveAccountForm = z.infer<typeof createLiveAccountFormSchema>
 
 interface CreateLiveAccountDialogProps {
   open: boolean
@@ -87,7 +87,7 @@ export function CreateLiveAccountDialog({
     setValue,
     watch
   } = useForm<CreateLiveAccountForm>({
-    resolver: zodResolver(createLiveAccountSchema)
+    resolver: zodResolver(createLiveAccountFormSchema)
   })
 
   const watchedBroker = watch('broker')
@@ -159,8 +159,13 @@ export function CreateLiveAccountDialog({
           </DialogDescription>
         </DialogHeader>
 
+        <FormValidationSummary form={{ formState: { errors }, getFieldState: () => ({ isDirty: false, isValidating: false }) } as any} />
+        
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
+          <FormFieldWrapper 
+            error={errors.name}
+            hint="Choose a descriptive name for your trading account"
+          >
             <Label htmlFor="name">{t('accounts.accountName')} *</Label>
             <Input
               id="name"
@@ -168,12 +173,12 @@ export function CreateLiveAccountDialog({
               {...register('name')}
               disabled={isSubmitting}
             />
-            {errors.name && (
-              <p className="text-sm text-red-500">{errors.name.message}</p>
-            )}
-          </div>
+          </FormFieldWrapper>
 
-          <div className="space-y-2">
+          <FormFieldWrapper 
+            error={errors.number}
+            hint="6-20 characters, letters, numbers, and hyphens only"
+          >
             <Label htmlFor="number">{t('accounts.accountNumber')} *</Label>
             <Input
               id="number"
@@ -181,26 +186,23 @@ export function CreateLiveAccountDialog({
               {...register('number')}
               disabled={isSubmitting}
             />
-            {errors.number && (
-              <p className="text-sm text-red-500">{errors.number.message}</p>
-            )}
-          </div>
+          </FormFieldWrapper>
 
-          <div className="space-y-2">
-            <Label htmlFor="startingBalance">{t('accounts.startingBalance')} *</Label>
+          <FormFieldWrapper 
+            error={errors.startingBalance}
+            hint="Enter the initial account balance (minimum $100)"
+          >
+            <Label htmlFor="startingBalance">Starting Balance *</Label>
             <Input
               id="startingBalance"
               type="number"
               step="0.01"
-              min="0"
+              min="100"
               placeholder="10000.00"
               {...register('startingBalance')}
               disabled={isSubmitting}
             />
-            {errors.startingBalance && (
-              <p className="text-sm text-red-500">{errors.startingBalance.message}</p>
-            )}
-          </div>
+          </FormFieldWrapper>
 
           <div className="space-y-2">
             <Label htmlFor="broker">{t('accounts.broker')} *</Label>

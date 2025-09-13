@@ -47,4 +47,15 @@ export default {
   'accounts.toast.createErrorDescription': 'There was an error creating your account. Please try again.',
   'accounts.toast.fetchError': 'Failed to fetch accounts',
   'accounts.toast.fetchErrorDescription': 'There was an error loading your accounts. Please refresh the page.',
+  'accounts.toast.deleteSuccess': 'Account deleted successfully',
+  'accounts.toast.deleteSuccessDescription': 'The account has been permanently deleted.',
+  'accounts.toast.deleteError': 'Failed to delete account',
+  'accounts.toast.deleteErrorDescription': 'There was an error deleting the account. Please try again.',
+  
+  // Additional actions
+  'accounts.edit': 'Edit',
+  'accounts.delete': 'Delete',
+  'accounts.deleteConfirmTitle': 'Delete Account',
+  'accounts.deleteConfirmDescription': 'Are you sure you want to delete this account? This action cannot be undone.',
+  'accounts.noTrades': 'No trades yet',
 }

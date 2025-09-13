@@ -191,7 +191,7 @@ export default function PnLBySideChart({ size = 'medium' }: PnLBySideChartProps)
                 No trades with side information available
               </p>
               <p className="text-muted-foreground text-xs mt-1">
-                Import trades or ensure trades have 'long' or 'short' side values
+                Import trades or ensure trades have &apos;long&apos; or &apos;short&apos; side values
               </p>
             </div>
           </div>

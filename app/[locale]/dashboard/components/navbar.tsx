@@ -113,9 +113,17 @@ export default function Navbar() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <div className='hidden md:flex gap-x-4'>
-              <DateCalendarFilter />
-              <ImportButton />
+            <div className='flex gap-x-2 md:gap-x-4'>
+              <div className='hidden sm:block'>
+                <DateCalendarFilter />
+              </div>
+              <div className='hidden md:block'>
+                <ImportButton />
+              </div>
+              {/* Mobile import button */}
+              <div className='md:hidden'>
+                <ImportButton variant="icon" />
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <Popover>

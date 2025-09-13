@@ -37,5 +37,9 @@ export default function AuthenticationLayout({
     }
   }, [router, isClient]);
 
-  return children;
+  return (
+    <div className="min-h-screen bg-background">
+      {children}
+    </div>
+  );
 }

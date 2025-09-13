@@ -31,6 +31,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
 
   const applyTheme = (newTheme: Theme) => {
+    if (typeof window === 'undefined') return
+    
     const root = window.document.documentElement
     root.classList.remove('light', 'dark')
 
@@ -47,6 +49,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true)
+    
+    // Get current theme from DOM (set by the script)
+    const root = document.documentElement
+    const isDark = root.classList.contains('dark')
+    const currentEffectiveTheme = isDark ? 'dark' : 'light'
+    setEffectiveTheme(currentEffectiveTheme)
+    
     const savedTheme = localStorage.getItem('theme') as Theme | null
     const savedIntensity = localStorage.getItem('intensity')
     
@@ -56,7 +65,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (savedIntensity) {
       setIntensityState(Number(savedIntensity))
     }
-    applyTheme(savedTheme || 'system')
+    
+    // Only apply theme if it differs from what the script set
+    const scriptSetTheme = currentEffectiveTheme
+    const expectedTheme = savedTheme === 'system' || !savedTheme 
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : savedTheme
+    
+    if (expectedTheme !== scriptSetTheme) {
+      applyTheme(savedTheme || 'system')
+    }
   }, [])
 
   useEffect(() => {
@@ -107,10 +125,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme,
     setIntensity,
     toggleTheme,
-  }
-
-  if (!mounted) {
-    return null
   }
 
   return (
