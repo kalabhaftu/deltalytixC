@@ -36,6 +36,7 @@ const otpFormSchema = z.object({
     otp: z.string().length(6, "Verification code must be 6 digits"),
 })
 
+
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 type AuthMethod = 'email' | 'discord' | 'google' | null
@@ -82,6 +83,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
             otp: "",
         },
     })
+
 
     async function onSubmitEmail(values: z.infer<typeof formSchema>) {
         if (countdown > 0) return
@@ -303,6 +305,19 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                     </form>
                 </Form>
             )}
+
+            {/* COMMENTED OUT - Verification Link Approach (kept for future reference)
+            {isEmailSent && (
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                    <div className="text-center space-y-2">
+                        <h3 className="font-semibold text-lg">{t('auth.checkEmail')}</h3>
+                        <p className="text-sm text-muted-foreground">
+                            {t('auth.verificationLinkSent')}
+                        </p>
+                    </div>
+                </div>
+            )}
+            */}
 
             <div className="relative">
                 <div className="absolute inset-0 flex items-center">

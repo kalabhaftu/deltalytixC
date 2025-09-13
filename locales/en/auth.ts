@@ -13,6 +13,11 @@ export default {
         resendEmail: 'Resend Email',
         verificationCode: 'Verification Code',
         verifyCode: 'Verify Code',
+        emailSent: 'Email Sent',
+        otpSent: 'A 6-digit verification code has been sent to your email. Please enter it below.',
+        checkEmail: 'Check Your Email',
+        // COMMENTED OUT - Verification Link Messages (kept for future reference)
+        // verificationLinkSent: 'A verification link has been sent to your email. Please click the link to confirm your account.',
         // Identity linking
         linkedAccounts: 'Linked Accounts',
         linkedAccountsDescription: 'Manage your connected authentication methods',

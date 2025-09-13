@@ -226,3 +226,4 @@ export function PageLoading({ text = 'Loading page...', className }: { text?: st
     </div>
   )
 }
+

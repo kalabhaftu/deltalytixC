@@ -36,41 +36,50 @@ export async function GET(request: Request) {
   if (code) {
     try {
       const supabase = await createClient()
-      const { error } = await supabase.auth.exchangeCodeForSession(code)
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-      if (!error) {
-      // Handle identity linking redirect
-      if (action === 'link') {
-        const forwardedHost = request.headers.get('x-forwarded-host')
+      if (!error && data.user) {
+        // Ensure user exists in database
+        try {
+          const locale = await getCurrentLocale()
+          await ensureUserInDatabase(data.user, locale)
+        } catch (dbError) {
+          console.error('Failed to ensure user in database:', dbError)
+          // Continue with redirect - user authentication succeeded
+        }
+
+        // Handle identity linking redirect
+        if (action === 'link') {
+          const forwardedHost = request.headers.get('x-forwarded-host')
+          const isLocalEnv = process.env.NODE_ENV === 'development'
+          const baseUrl = isLocalEnv 
+            ? `${origin}/dashboard/settings` 
+            : `https://${forwardedHost || origin}/dashboard/settings`
+          const redirectUrl = `${baseUrl}?linked=true`
+          return NextResponse.redirect(redirectUrl)
+        }
+
+        const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
         const isLocalEnv = process.env.NODE_ENV === 'development'
-        const baseUrl = isLocalEnv 
-          ? `${origin}/dashboard/settings` 
-          : `https://${forwardedHost || origin}/dashboard/settings`
-        const redirectUrl = `${baseUrl}?linked=true`
-        return NextResponse.redirect(redirectUrl)
-      }
-
-      const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
-      const isLocalEnv = process.env.NODE_ENV === 'development'
-      
-      // Always use localhost:3000 in development
-      if (isLocalEnv) {
-        const baseUrl = 'http://localhost:3000'
-        if (decodedNext) {
-          return NextResponse.redirect(new URL(decodedNext, baseUrl))
+        
+        // Always use localhost:3000 in development
+        if (isLocalEnv) {
+          const baseUrl = 'http://localhost:3000'
+          if (decodedNext) {
+            return NextResponse.redirect(new URL(decodedNext, baseUrl))
+          }
+          return NextResponse.redirect(`${baseUrl}/dashboard`)
+        } else if (forwardedHost) {
+          if (decodedNext) {
+            return NextResponse.redirect(new URL(decodedNext, `https://${forwardedHost}`))
+          }
+          return NextResponse.redirect(`https://${forwardedHost}/dashboard`)
+        } else {
+          if (decodedNext) {
+            return NextResponse.redirect(new URL(decodedNext, origin))
+          }
+          return NextResponse.redirect(`${origin}/dashboard`)
         }
-        return NextResponse.redirect(`${baseUrl}${next ?? '/dashboard'}`)
-      } else if (forwardedHost) {
-        if (decodedNext) {
-          return NextResponse.redirect(new URL(decodedNext, `https://${forwardedHost}`))
-        }
-        return NextResponse.redirect(`https://${forwardedHost}${next ?? '/dashboard'}`)
-      } else {
-        if (decodedNext) {
-          return NextResponse.redirect(new URL(decodedNext, origin))
-        }
-        return NextResponse.redirect(`${origin}${next ?? '/dashboard'}`)
-      }
       }
       console.log('Auth exchange error:', error)
       

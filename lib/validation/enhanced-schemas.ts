@@ -181,3 +181,4 @@ export type ProfileUpdateInput = z.infer<typeof ProfileUpdateSchema>
 export type LiveAccountInput = z.infer<typeof LiveAccountSchema>
 export type EnhancedPropFirmAccountInput = z.infer<typeof EnhancedPropFirmAccountSchema>
 export type ContactFormInput = z.infer<typeof ContactFormSchema>
+

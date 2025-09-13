@@ -1,11 +1,11 @@
 'use client'
 
-import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { toast } from '@/hooks/use-toast'
 import { Session } from '@supabase/supabase-js'
 import { signOut } from '@/server/auth'
+import { createClient } from '@/lib/supabase'
 
 interface AuthContextType {
   isLoading: boolean
@@ -27,10 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    const supabase = createClient()
 
     // Initial session check
     const checkSession = async () => {

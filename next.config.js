@@ -5,6 +5,15 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb', // Increased from default 1MB to 10MB
     },
+    // Turbopack configuration (equivalent to webpack optimizations)
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
   images: {
     remotePatterns: [
@@ -16,6 +25,19 @@ const nextConfig = {
   },
   // Disable source maps in development to reduce memory usage
   productionBrowserSourceMaps: false,
+  
+  // Optimize webpack cache (only applies when NOT using Turbopack)
+  webpack: (config, { dev, isServer }) => {
+    // Only apply webpack config when not using Turbopack
+    if (dev && !process.env.TURBOPACK) {
+      config.cache = {
+        type: 'filesystem',
+        maxMemoryGenerations: 1,
+        cacheDirectory: '.next/cache/webpack',
+      }
+    }
+    return config
+  },
 }
 
 // Increase event emitter max listeners to prevent warnings

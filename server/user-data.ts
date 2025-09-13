@@ -79,7 +79,7 @@ export async function getUserData(): Promise<{
         const dataPromise = Promise.all([
           prisma.user.findUnique({
             where: {
-              id: userId
+              auth_user_id: userId
             }
           }),
           prisma.tickDetails.findMany(),
@@ -265,7 +265,7 @@ export async function updateIsFirstConnectionAction(isFirstConnection: boolean) 
     return 0
   }
   await prisma.user.update({
-    where: { id: userId },
+    where: { auth_user_id: userId },
     data: { isFirstConnection }
   })
   revalidateTag(`user-data-${userId}`)

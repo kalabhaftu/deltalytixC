@@ -68,7 +68,7 @@ export async function signInWithDiscord(next: string | null = null) {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'discord',
     options: {
-      redirectTo: `${websiteURL}api/auth/callback/${next ? `?next=${encodeURIComponent(next)}` : ''}`,
+      redirectTo: `${websiteURL}api/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`,
     },
   })
   if (data.url) {
@@ -83,7 +83,7 @@ export async function signInWithGoogle(next: string | null = null) {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${websiteURL}api/auth/callback/${next ? `?next=${encodeURIComponent(next)}` : ''}`,
+      redirectTo: `${websiteURL}api/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`,
     },
   })
   if (data.url) {
@@ -100,12 +100,65 @@ export async function signOut() {
 
 export async function signInWithEmail(email: string, next: string | null = null) {
   const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithOtp({
+  
+  // Check if user exists in our database first (with fallback if DB is unavailable)
+  let existingUser = null
+  try {
+    existingUser = await prisma.user.findUnique({
+      where: { email: email }
+    })
+    console.log('[signInWithEmail] Database check successful, user exists:', !!existingUser)
+  } catch (dbError) {
+    console.warn('[signInWithEmail] Database unavailable, proceeding without user check:', dbError)
+    // Continue without database check - Supabase will handle user existence
+  }
+  
+  // Try signUp first (for new users), fallback to signInWithOtp if user exists
+  console.log('[signInWithEmail] Attempting signUp (will send OTP for new users)')
+  const { error } = await supabase.auth.signUp({
     email: email,
+    password: generateTemporaryPassword(), // Temporary password (user won't use this)
     options: {
-      emailRedirectTo: `${getWebsiteURL()}api/auth/callback/${next ? `?next=${encodeURIComponent(next)}` : ''}`,
-    },
+      // CRITICAL: Don't set emailRedirectTo to get OTP tokens instead of confirmation links
+      // The email template must use {{ .Token }} instead of {{ .ConfirmationURL }}
+      emailRedirectTo: undefined, // Explicitly set to undefined
+      data: {
+        email: email,
+      }
+    }
   })
+  
+  if (error) {
+    if (error.message.includes('already registered')) {
+      // User exists in Supabase, use signInWithOtp instead
+      console.log('[signInWithEmail] User exists in Supabase, switching to signInWithOtp')
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: undefined, // No redirect = OTP mode
+        }
+      })
+      if (otpError) {
+        throw new Error(otpError.message)
+      }
+    } else {
+      throw new Error(error.message)
+    }
+  }
+  
+  // COMMENTED OUT - Original Magic Link Approach (kept for future reference)
+  // const { error } = await supabase.auth.signInWithOtp({
+  //   email: email,
+  //   options: {
+  //     emailRedirectTo: `${getWebsiteURL()}api/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`,
+  //   },
+  // })
+}
+
+// Generate a temporary password for signUp (user won't use this)
+function generateTemporaryPassword(): string {
+  return Math.random().toString(36).slice(-12) + 'A1!'
 }
 
 interface SupabaseUser {
@@ -265,18 +318,77 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
 }
 
 export async function verifyOtp(email: string, token: string, type: 'email' | 'signup' = 'email') {
-  const supabase = await createClient()
-  const { data, error } = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type
-  })
+  try {
+    console.log('[verifyOtp] Starting OTP verification for:', email, 'type:', type)
+    const supabase = await createClient()
+    
+    // Try both types - first try with the specified type, then try the other
+    let data, error
+    
+    const { data: result1, error: error1 } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: type
+    })
+    
+    if (error1 && type !== 'signup') {
+      // If first attempt failed and we didn't try signup, try signup
+      console.log('[verifyOtp] Retrying with signup type')
+      const { data: result2, error: error2 } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'signup'
+      })
+      data = result2
+      error = error2
+    } else {
+      data = result1
+      error = error1
+    }
 
-  if (error) {
-    throw new Error(error.message)
+    if (error) {
+      console.error('[verifyOtp] Supabase OTP verification error:', error)
+      throw new Error(error.message)
+    }
+
+    console.log('[verifyOtp] OTP verification successful for:', email)
+
+    // After successful OTP verification, ensure user exists in database (if DB is available)
+    if (data.user) {
+      try {
+        console.log('[verifyOtp] Attempting to sync user to database:', data.user.id)
+        
+        // Check if user already exists in our database with this email
+        const existingUser = await prisma.user.findUnique({
+          where: { email: email }
+        })
+        
+        if (existingUser && existingUser.auth_user_id !== data.user.id) {
+          // User exists with different auth ID - update the auth_user_id instead of creating conflict
+          console.log('[verifyOtp] Updating existing user with new auth_user_id')
+          await prisma.user.update({
+            where: { email: email },
+            data: { auth_user_id: data.user.id }
+          })
+        } else if (!existingUser) {
+          // New user, create in database
+          const locale = 'en' // Default locale
+          await ensureUserInDatabase(data.user, locale)
+        }
+        
+        console.log('[verifyOtp] User database sync completed successfully')
+      } catch (dbError) {
+        console.warn('[verifyOtp] Database unavailable, skipping user sync. Authentication still successful:', dbError)
+        // Don't throw - authentication succeeded, database sync is secondary
+        // The app will work with just Supabase auth, database sync can happen later
+      }
+    }
+
+    return data
+  } catch (error) {
+    console.error('[verifyOtp] Unexpected error:', error)
+    throw error
   }
-
-  return data
 }
 
 // Optimized function that uses middleware data when available
@@ -310,10 +422,10 @@ export async function getUserId(): Promise<string> {
   try {
     const supabase = await createClient()
     
-    // Add timeout to Supabase call with shorter timeout to fail fast
+    // Add timeout to Supabase call with reasonable timeout for stability
     const authPromise = supabase.auth.getUser()
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Auth timeout")), 5000) // Reduced to 5 seconds for faster fallback
+      setTimeout(() => reject(new Error("Auth timeout")), 10000) // Increased to 10 seconds for stability
     )
 
     const { data: { user }, error } = await Promise.race([authPromise, timeoutPromise]) as any

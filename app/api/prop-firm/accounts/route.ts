@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   try {
     // Add timeout wrapper for the entire operation
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 10000) // 10 second timeout
+      setTimeout(() => reject(new Error('Request timeout')), 30000) // Increased to 30 seconds
     })
 
     const operationPromise = async () => {

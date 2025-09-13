@@ -95,10 +95,6 @@ export default function SettingsPage() {
   const timezone = useUserStore(state => state.timezone)
   const setTimezone = useUserStore(state => state.setTimezone)
   
-  const [emailNotifications, setEmailNotifications] = useState(true)
-  const [pushNotifications, setPushNotifications] = useState(false)
-  const [tradingAlerts, setTradingAlerts] = useState(true)
-  const [weeklyReports, setWeeklyReports] = useState(true)
   const [isUISettingsOpen, setIsUISettingsOpen] = useState(false)
   
   // Account deletion states
@@ -113,6 +109,7 @@ export default function SettingsPage() {
     email: user?.email || ''
   })
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true)
 
   
   // Toolbar settings
@@ -156,21 +153,60 @@ export default function SettingsPage() {
     })
   }
   
+  // Fetch user profile data on component mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setIsLoadingProfile(true)
+        const response = await fetch('/api/auth/profile')
+        const result = await response.json()
+        
+        if (result.success) {
+          setProfileData({
+            firstName: result.data.firstName || '',
+            lastName: result.data.lastName || '',
+            email: result.data.email || ''
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error)
+      } finally {
+        setIsLoadingProfile(false)
+      }
+    }
+
+    fetchProfile()
+  }, [])
+
   const handleProfileUpdate = async () => {
     setIsUpdatingProfile(true)
     try {
-      // Simulate API call - replace with actual implementation
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      toast({
-        title: "Profile Updated",
-        description: "Your profile information has been saved successfully.",
-        duration: 3000,
+      const response = await fetch('/api/auth/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: profileData.firstName,
+          lastName: profileData.lastName
+        })
       })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        toast({
+          title: "Profile Updated",
+          description: "Your profile information has been saved successfully.",
+          duration: 3000,
+        })
+      } else {
+        throw new Error(result.error || 'Update failed')
+      }
     } catch (error) {
       toast({
         title: "Update Failed", 
-        description: "There was an error updating your profile. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error updating your profile. Please try again.",
         variant: "destructive",
         duration: 3000,
       })
@@ -188,21 +224,6 @@ export default function SettingsPage() {
     })
   }
   
-  const handleNotificationChange = (type: string, enabled: boolean) => {
-    const notificationTypes: { [key: string]: (value: boolean) => void } = {
-      email: setEmailNotifications,
-      push: setPushNotifications,
-      trading: setTradingAlerts,
-      weekly: setWeeklyReports
-    }
-    
-    notificationTypes[type]?.(enabled)
-    toast({
-      title: "Notification Settings Updated",
-      description: `${type.charAt(0).toUpperCase() + type.slice(1)} notifications ${enabled ? 'enabled' : 'disabled'}.`,
-      duration: 2000,
-    })
-  }
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== 'Delete my account') {
@@ -315,6 +336,7 @@ export default function SettingsPage() {
                     placeholder="Enter your first name"
                     value={profileData.firstName}
                     onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
+                    disabled={isLoadingProfile}
                   />
                 </div>
                 <div>
@@ -324,6 +346,7 @@ export default function SettingsPage() {
                     placeholder="Enter your last name"
                     value={profileData.lastName}
                     onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
+                    disabled={isLoadingProfile}
                   />
                 </div>
               </div>
@@ -333,8 +356,8 @@ export default function SettingsPage() {
               </div>
               <PrimaryButton 
                 onClick={handleProfileUpdate}
-                loading={isUpdatingProfile}
-                loadingText="Updating..."
+                loading={isUpdatingProfile || isLoadingProfile}
+                loadingText={isLoadingProfile ? "Loading..." : "Updating..."}
               >
                 Update Profile
               </PrimaryButton>
@@ -509,65 +532,13 @@ export default function SettingsPage() {
               Notifications
             </CardTitle>
             <CardDescription>
-              Configure how you receive notifications and alerts
+              Notification settings will be available in a future update
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="email-notifications">Email Notifications</Label>
-                <p className="text-sm text-muted-foreground">
-                  Receive important updates via email
-                </p>
-              </div>
-              <Switch
-                id="email-notifications"
-                checked={emailNotifications}
-                onCheckedChange={(checked) => handleNotificationChange('email', checked)}
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="push-notifications">Push Notifications</Label>
-                <p className="text-sm text-muted-foreground">
-                  Get real-time alerts in your browser
-                </p>
-              </div>
-              <Switch
-                id="push-notifications"
-                checked={pushNotifications}
-                onCheckedChange={(checked) => handleNotificationChange('push', checked)}
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="trading-alerts">Trading Alerts</Label>
-                <p className="text-sm text-muted-foreground">
-                  Notifications about your trading performance
-                </p>
-              </div>
-              <Switch
-                id="trading-alerts"
-                checked={tradingAlerts}
-                onCheckedChange={(checked) => handleNotificationChange('trading', checked)}
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="weekly-reports">Weekly Reports</Label>
-                <p className="text-sm text-muted-foreground">
-                  Receive weekly performance summaries
-                </p>
-              </div>
-              <Switch
-                id="weekly-reports"
-                checked={weeklyReports}
-                onCheckedChange={(checked) => handleNotificationChange('weekly', checked)}
-              />
-            </div>
+          <CardContent className="flex items-center justify-center py-8">
+            <p className="text-muted-foreground text-center">
+              Advanced notification preferences are coming soon. You'll be able to customize email alerts, trading notifications, and performance reports.
+            </p>
           </CardContent>
         </Card>
 
@@ -627,25 +598,30 @@ export default function SettingsPage() {
 
       {/* Account Deletion Verification Modal */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
               Are you absolutely sure?
             </DialogTitle>
-            <DialogDescription className="text-left">
-              This action is <strong>irreversible</strong> and will permanently delete:
-              <ul className="mt-2 list-disc list-inside space-y-1 text-sm">
-                <li>Your account and profile information</li>
-                <li>All trading data and history</li>
-                <li>Prop firm account configurations</li>
-                <li>Dashboard layouts and preferences</li>
-                <li>All uploaded files and documents</li>
-              </ul>
-              <div className="mt-4 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                <p className="text-sm font-medium text-destructive">
-                  ⚠️ This data cannot be recovered once deleted.
+            <DialogDescription asChild>
+              <div className="text-left">
+                <p className="text-sm text-muted-foreground">
+                  This action is <strong>irreversible</strong> and will permanently delete:
                 </p>
+                <ul className="mt-2 list-disc list-inside space-y-1 text-sm">
+                  <li>Your account and profile information</li>
+                  <li>All trading data and history</li>
+                  <li>Prop firm account configurations</li>
+                  <li>Dashboard layouts and preferences</li>
+                  <li>All uploaded files and documents</li>
+                </ul>
+                <div className="mt-4 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                  <p className="text-sm font-medium text-destructive flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    This data cannot be recovered once deleted.
+                  </p>
+                </div>
               </div>
             </DialogDescription>
           </DialogHeader>
@@ -661,12 +637,12 @@ export default function SettingsPage() {
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="Type the confirmation text here"
-                className="font-mono text-sm"
+                className="font-mono text-sm w-full"
               />
             </div>
           </div>
 
-          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-end">
             <Button 
               variant="outline" 
               onClick={() => {
@@ -674,6 +650,7 @@ export default function SettingsPage() {
                 setDeleteConfirmText('')
               }}
               disabled={isDeleting}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -682,9 +659,11 @@ export default function SettingsPage() {
               disabled={!isDeleteConfirmed || isDeleting}
               loading={isDeleting}
               loadingText="Deleting Account..."
+              className="w-full sm:w-auto"
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              I understand the consequences, delete my account
+              <span className="hidden sm:inline">I understand the consequences, delete my account</span>
+              <span className="sm:hidden">Delete Account</span>
             </DestructiveButton>
           </DialogFooter>
         </DialogContent>

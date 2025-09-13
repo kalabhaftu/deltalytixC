@@ -13,5 +13,12 @@ export function createClient() {
     throw new Error('Supabase environment variables are not properly configured. Please update your .env file with actual credentials.')
   }
   
-  return createBrowserClient(supabaseUrl, supabaseKey)
+  return createBrowserClient(supabaseUrl, supabaseKey, {
+    auth: {
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
+  })
 }
