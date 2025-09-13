@@ -346,24 +346,25 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Prevent deletion if account has activity
-    if (account.trades.length > 0 || account.payouts.length > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete account with existing trades or payouts' },
-        { status: 400 }
-      )
-    }
-
-    // Delete account and related data in transaction
+    // Delete account and all associated data in transaction
     await prisma.$transaction(async (tx) => {
-      // Delete related data first
+      // First, delete any orphaned trades that might only be linked by accountNumber
+      // but not by accountId (to handle legacy data)
+      await tx.trade.deleteMany({
+        where: {
+          accountNumber: account.number,
+          userId: userId,
+        }
+      })
+
+      // Delete related data (cascade delete should handle most of this, but being explicit)
       await tx.equitySnapshot.deleteMany({ where: { accountId } })
       await tx.dailyAnchor.deleteMany({ where: { accountId } })
       await tx.accountTransition.deleteMany({ where: { accountId } })
       await tx.breach.deleteMany({ where: { accountId } })
       await tx.accountPhase.deleteMany({ where: { accountId } })
       
-      // Delete the account
+      // Delete the account (this will cascade delete trades linked by accountId)
       await tx.account.delete({ where: { id: accountId } })
 
       // Log the deletion
@@ -381,7 +382,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       success: true,
-      message: 'Account deleted successfully'
+      message: 'Account and all associated trades deleted successfully'
     })
 
   } catch (error) {

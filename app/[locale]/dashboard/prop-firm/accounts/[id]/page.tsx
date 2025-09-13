@@ -20,7 +20,6 @@ import {
   Shield,
   DollarSign,
   Clock,
-  Plus,
   Settings,
   RefreshCw,
   Activity,
@@ -78,27 +77,27 @@ export default function AccountDetailPage() {
 
   // Load account data on mount
   useEffect(() => {
-    if (user && accountId) {
+    if (accountId) {
       fetchAccountData()
     }
-  }, [user, accountId])
+  }, [accountId])
 
   const getStatusColor = (status: AccountStatus) => {
     switch (status) {
-      case 'active': return 'bg-blue-500'
-      case 'funded': return 'bg-green-500'
-      case 'failed': return 'bg-red-500'
-      case 'passed': return 'bg-purple-500'
-      default: return 'bg-gray-500'
+      case 'active': return 'bg-chart-2 text-white'
+      case 'funded': return 'bg-chart-1 text-white'
+      case 'failed': return 'bg-destructive text-destructive-foreground'
+      case 'passed': return 'bg-chart-4 text-white'
+      default: return 'bg-muted text-muted-foreground'
     }
   }
 
   const getPhaseColor = (phase: PhaseType) => {
     switch (phase) {
-      case 'phase_1': return 'bg-yellow-500'
-      case 'phase_2': return 'bg-orange-500'
-      case 'funded': return 'bg-green-500'
-      default: return 'bg-gray-500'
+      case 'phase_1': return 'bg-chart-3 text-white'
+      case 'phase_2': return 'bg-chart-5 text-white'
+      case 'funded': return 'bg-chart-1 text-white'
+      default: return 'bg-muted text-muted-foreground'
     }
   }
 
@@ -151,7 +150,7 @@ export default function AccountDetailPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push('/dashboard/prop-firm')}
+            onClick={() => router.push('/dashboard/accounts')}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
@@ -181,13 +180,6 @@ export default function AccountDetailPage() {
           >
             <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
             Refresh
-          </Button>
-          <Button
-            onClick={() => router.push(`/dashboard/prop-firm/accounts/${accountId}/trades/new`)}
-            size="sm"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {t('propFirm.trade.add')}
           </Button>
         </div>
       </div>

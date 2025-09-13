@@ -1,7 +1,6 @@
 'use client'
 
 import { TradeTableReview } from './components/tables/trade-table-review'
-import { AccountsOverview } from './components/accounts/accounts-overview-simple'
 import WidgetCanvas from './components/widget-canvas'
 import dynamic from 'next/dynamic'
 

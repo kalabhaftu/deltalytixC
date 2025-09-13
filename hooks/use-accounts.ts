@@ -6,6 +6,7 @@ interface UnifiedAccount {
   number: string
   name: string
   propfirm: string
+  broker: string | null
   startingBalance: number
   createdAt: string
   userId: string

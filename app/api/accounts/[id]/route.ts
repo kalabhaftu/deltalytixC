@@ -141,16 +141,28 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Delete account (this will cascade delete related data)
-    await prisma.account.delete({
-      where: {
-        id: accountId,
-      }
+    // Delete account and clean up orphaned trades in a transaction
+    await prisma.$transaction(async (tx) => {
+      // First, delete any orphaned trades that might only be linked by accountNumber
+      // but not by accountId (to handle legacy data)
+      await tx.trade.deleteMany({
+        where: {
+          accountNumber: existingAccount.number,
+          userId: userId,
+        }
+      })
+
+      // Then delete the account (this will cascade delete trades linked by accountId)
+      await tx.account.delete({
+        where: {
+          id: accountId,
+        }
+      })
     })
 
     return NextResponse.json({
       success: true,
-      message: 'Account deleted successfully'
+      message: 'Account and all associated trades deleted successfully'
     })
 
   } catch (error) {

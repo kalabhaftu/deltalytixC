@@ -1,38 +1,44 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useCallback, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useI18n } from "@/locales/client"
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "@/hooks/use-toast"
 import { useAccounts } from "@/hooks/use-accounts"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { 
   Plus, 
+  Search,
+  Filter,
+  RefreshCw,
   TrendingUp, 
-  ExternalLink, 
+  TrendingDown,
   Building2, 
   User, 
-  Search,
-  MoreVertical,
-  Edit,
-  Trash2,
-  Activity,
   DollarSign,
-  Calendar,
-  Target,
+  Activity,
+  MoreHorizontal,
+  Settings,
+  ExternalLink,
   Shield,
-  Gauge,
-  RefreshCw,
-  Settings
+  Target,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Eye,
+  Edit,
+  Trash2
 } from "lucide-react"
-import { CreateLiveAccountDialog } from "../components/accounts/create-live-account-dialog"
-import { CreateAccountDialog as CreatePropFirmAccountDialog } from "../components/prop-firm/create-account-dialog"
-import { PropFirmDashboard } from "../components/prop-firm/prop-firm-dashboard"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { EnhancedCreateLiveAccountDialog } from "../components/accounts/enhanced-create-live-account-dialog"
+import { EnhancedCreateAccountDialog as CreatePropFirmAccountDialog } from "../components/prop-firm/enhanced-create-account-dialog"
+import { Separator } from "@/components/ui/separator"
+import { motion, AnimatePresence } from "framer-motion"
+import { LoadingSkeleton } from "@/components/ui/loading"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,208 +55,167 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Separator } from "@/components/ui/separator"
-import { motion } from "framer-motion"
-import { LoadingSkeleton } from "@/components/ui/loading"
-import { PrimaryButton, SecondaryButton, CrudActions } from "@/components/ui/button-styles"
-import { AccessibleText, AccessibleDescription } from "@/components/ui/accessible-text"
-// Removed SimplifiedAccountOverview import - using inline simplified view
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
-interface UnifiedAccount {
+// Types
+interface Account {
   id: string
-  number: string
   name?: string
+  number: string
+  displayName?: string
+  accountType: 'live' | 'prop-firm'
   broker?: string
-  propfirm: string
-  accountType: 'prop-firm' | 'live'
-  displayName: string
-  startingBalance: number
-  status: string
-  currentPhase?: any
-  tradeCount: number
-  createdAt: string
+  propfirm?: string
+  startingBalance?: number
   currentBalance?: number
-  profitLoss?: number
-  profitTarget?: number
-  drawdownThreshold?: number
-  lastTradeDate?: string
+  currentEquity?: number
+  tradeCount?: number
+  status?: 'active' | 'funded' | 'failed' | 'passed'
+  currentPhase?: 'phase_1' | 'phase_2' | 'funded'
+  profitTargetProgress?: number
+  dailyDrawdownRemaining?: number
+  maxDrawdownRemaining?: number
+  totalPayouts?: number
+  hasRecentBreach?: boolean
+  createdAt?: string
+  updatedAt?: string
 }
 
 export default function AccountsPage() {
   const t = useI18n()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
-  
-  // Use centralized accounts hook
-  const { accounts: allAccounts, isLoading: accountsLoading, refetch: refetchAccounts } = useAccounts()
-  
-  // Filter to only live accounts (non-prop firm)
-  const accounts = allAccounts.filter(account => account.accountType === 'live')
-  
-  const [propFirmAccounts, setPropFirmAccounts] = useState<any[]>([])
-  const [isPropFirmLoading, setIsPropFirmLoading] = useState(true)
+  const { accounts, isLoading, refetch: refetchAccounts } = useAccounts()
+
+  // State
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterType, setFilterType] = useState<'all' | 'live' | 'prop-firm'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'funded' | 'failed'>('all')
   const [createLiveDialogOpen, setCreateLiveDialogOpen] = useState(false)
   const [createPropFirmDialogOpen, setCreatePropFirmDialogOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedAccountForDelete, setSelectedAccountForDelete] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<'simple' | 'advanced'>('simple')
-  const hasFetchedPropFirmAccounts = useRef(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null)
+  const [deletingAccount, setDeletingAccount] = useState<Account | null>(null)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
 
-  // DD Calculation Functions
-  const calculateDailyDD = useCallback((account: any) => {
-    if (!account.startingBalance || !account.currentEquity) return 0
-    
-    // Daily DD = (Equity at start of day - Lowest Equity during day)
-    // For now, using current equity as proxy for lowest equity of the day
-    // In a real implementation, you'd track the lowest equity of the current day
-    const dailyStartBalance = account.startingBalance // This should be equity at start of day
-    const lowestEquityToday = account.currentEquity // This should be lowest equity during day
-    
-    return Math.max(0, dailyStartBalance - lowestEquityToday)
-  }, [])
+  // Set initial filter from URL params only on first load
+  useEffect(() => {
+    const filterParam = searchParams.get('filter')
+    if (filterParam === 'prop-firm' || filterParam === 'live') {
+      setFilterType(filterParam)
+      // Clear the URL parameter to prevent it from affecting future navigation
+      const url = new URL(window.location.href)
+      url.searchParams.delete('filter')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, []) // Remove searchParams dependency to only run on mount
 
-  const calculateMaxDD = useCallback((account: any) => {
-    if (!account.startingBalance || !account.currentEquity) return 0
+  // Derived data
+  const filteredAccounts = accounts.filter(account => {
+    const matchesSearch = !searchQuery || 
+      account.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      account.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      account.broker?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      account.propfirm?.toLowerCase().includes(searchQuery.toLowerCase())
     
-    // Max DD = Trailing DD that only moves up with equity highs and locks at breakeven
-    // For now, using starting balance as highest equity reached
-    // In a real implementation, you'd track the highest equity reached
-    const highestEquityReached = account.startingBalance // This should be tracked highest equity
-    const maxDDLimit = account.maxDrawdownAmount || (account.startingBalance * 0.1) // 10% default
-    
-    // Calculate trailing DD limit
-    const trailingDDLimit = Math.max(
-      account.startingBalance, // Breakeven point (locked)
-      highestEquityReached - maxDDLimit
-    )
-    
-    // Current max DD remaining = trailing DD limit - current equity
-    return Math.max(0, trailingDDLimit - account.currentEquity)
-  }, [])
+    const matchesType = filterType === 'all' || account.accountType === filterType
+    const matchesStatus = filterStatus === 'all' || account.status === filterStatus
 
-  const calculateDailyDDRemaining = useCallback((account: any) => {
-    const dailyDDUsed = calculateDailyDD(account)
-    const dailyDDLimit = account.dailyDrawdownAmount || (account.startingBalance * 0.05) // 5% default
-    return Math.max(0, dailyDDLimit - dailyDDUsed)
-  }, [calculateDailyDD])
+    return matchesSearch && matchesType && matchesStatus
+  })
 
-  const calculateMaxDDRemaining = useCallback((account: any) => {
-    const maxDDUsed = calculateMaxDD(account)
-    const maxDDLimit = account.maxDrawdownAmount || (account.startingBalance * 0.1) // 10% default
-    return Math.max(0, maxDDLimit - maxDDUsed)
-  }, [calculateMaxDD])
+  const accountStats = {
+    total: accounts.length,
+    live: accounts.filter(a => a.accountType === 'live').length,
+    propFirm: accounts.filter(a => a.accountType === 'prop-firm').length,
+    active: accounts.filter(a => a.status === 'active').length,
+    funded: accounts.filter(a => a.status === 'funded').length,
+    totalEquity: accounts.reduce((sum, a) => sum + (a.currentEquity || a.currentBalance || a.startingBalance || 0), 0)
+  }
 
-  // Fetch prop firm accounts with useCallback to prevent infinite loops
-  const fetchPropFirmAccounts = useCallback(async () => {
-    if (hasFetchedPropFirmAccounts.current) return
-    
+  // Handlers
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true)
     try {
-      setIsPropFirmLoading(true)
-      hasFetchedPropFirmAccounts.current = true
-      
-      const response = await fetch('/api/prop-firm/accounts')
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch prop firm accounts')
-      }
-
-      const data = await response.json()
-      if (data.success) {
-        setPropFirmAccounts(data.data)
-      } else {
-        throw new Error(data.error || 'Failed to fetch prop firm accounts')
-      }
-    } catch (error) {
-      console.error('Error fetching prop firm accounts:', error)
+      await refetchAccounts()
       toast({
-        title: t('propFirm.toast.setupError'),
-        description: t('propFirm.toast.setupErrorDescription'),
+        title: "Accounts refreshed",
+        description: "All account data has been updated",
+      })
+    } catch (error) {
+      toast({
+        title: "Refresh failed",
+        description: "Failed to refresh account data",
         variant: "destructive"
       })
     } finally {
-      setIsPropFirmLoading(false)
+      setIsRefreshing(false)
     }
-  }, [t])
+  }, [refetchAccounts])
 
-  // Load prop firm accounts on mount
-  useEffect(() => {
-    if (user) {
-      fetchPropFirmAccounts()
-    }
-  }, [user, fetchPropFirmAccounts])
-
-  const handleAccountCreated = () => {
+  const handleAccountCreated = useCallback(() => {
     refetchAccounts()
     setCreateLiveDialogOpen(false)
-  }
-
-  const handlePropFirmAccountCreated = () => {
-    hasFetchedPropFirmAccounts.current = false
-    fetchPropFirmAccounts()
     setCreatePropFirmDialogOpen(false)
-  }
+  }, [refetchAccounts])
 
-  // Prop firm account handlers
-  const handleViewPropFirmAccount = (accountId: string) => {
-    router.push(`/dashboard/prop-firm/accounts/${accountId}`)
-  }
+  const handleViewAccount = useCallback((account: Account) => {
+    if (account.accountType === 'prop-firm') {
+      router.push(`/dashboard/prop-firm/accounts/${account.id}`)
+    } else {
+      router.push(`/dashboard?account=${account.id}`)
+    }
+  }, [router])
 
-  const handleAddTrade = (accountId: string) => {
-    router.push(`/dashboard/prop-firm/accounts/${accountId}/trades/new`)
-  }
-
-  const handleRequestPayout = (accountId: string) => {
-    router.push(`/dashboard/prop-firm/accounts/${accountId}/payouts`)
-  }
-
-  const handleResetPropFirmAccount = async (accountId: string) => {
-    const account = propFirmAccounts.find(a => a.id === accountId)
-    if (!account) return
-
-    const reason = prompt(t('propFirm.reset.reasonPrompt'))
-    if (!reason) return
-
-    try {
-      const response = await fetch(`/api/prop-firm/accounts/${accountId}/reset`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          reason,
-          clearTrades: false
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to reset account')
-      }
-
-      const data = await response.json()
-      if (data.success) {
-        toast({
-          title: t('propFirm.reset.success'),
-          description: t('propFirm.reset.successDescription'),
-        })
-        fetchPropFirmAccounts() // Reload accounts
-      } else {
-        throw new Error(data.error || 'Failed to reset account')
-      }
-    } catch (error) {
-      console.error('Error resetting account:', error)
+  const handleEditAccount = useCallback((account: Account) => {
+    // Navigate to edit page (only works for live accounts currently)
+    if (account.accountType === 'live') {
+      router.push(`/dashboard/accounts/${account.id}/edit`)
+    } else {
+      // For prop firm accounts, show a message that editing isn't available yet
       toast({
-        title: t('propFirm.reset.error'),
-        description: t('propFirm.reset.errorDescription'),
-        variant: "destructive"
+        title: "Edit Not Available",
+        description: "Prop firm account editing is not yet available. Contact support for changes.",
+        variant: "default"
       })
     }
-  }
+  }, [router])
 
-  const handleDeleteAccount = async (accountId: string) => {
+  const handleDeleteAccount = useCallback((account: Account) => {
+    setDeletingAccount(account)
+  }, [])
+
+  const confirmDeleteAccount = useCallback(async () => {
+    if (!deletingAccount) return
+
+    const accountName = deletingAccount.displayName || deletingAccount.name || deletingAccount.number
+    
+    // Require exact account name confirmation
+    if (deleteConfirmText !== accountName) {
+        toast({
+        title: "Confirmation Required",
+        description: `Please type "${accountName}" exactly to confirm deletion.`,
+        variant: "destructive",
+        duration: 4000,
+      })
+      return
+    }
+
     try {
-      const response = await fetch(`/api/accounts/${accountId}`, {
+      const endpoint = deletingAccount.accountType === 'prop-firm' 
+        ? `/api/prop-firm/accounts/${deletingAccount.id}`
+        : `/api/accounts/${deletingAccount.id}`
+
+      const response = await fetch(endpoint, {
         method: 'DELETE',
       })
 
@@ -259,761 +224,616 @@ export default function AccountsPage() {
       }
 
       toast({
-        title: t('accounts.toast.deleteSuccess'),
-        description: t('accounts.toast.deleteSuccessDescription'),
-        variant: "default"
+        title: "Account deleted",
+        description: `${accountName} and all associated trades have been permanently deleted.`,
       })
 
       refetchAccounts()
-      setSelectedAccountForDelete(null)
+      setDeletingAccount(null)
+      setDeleteConfirmText('')
     } catch (error) {
-      console.error('Error deleting account:', error)
       toast({
-        title: t('accounts.toast.deleteError'),
-        description: t('accounts.toast.deleteErrorDescription'),
+        title: "Delete failed",
+        description: "Failed to delete account. Please try again.",
         variant: "destructive"
       })
     }
+  }, [deletingAccount, refetchAccounts, deleteConfirmText])
+
+  if (isLoading) {
+    return <AccountsLoadingSkeleton />
   }
-
-  // Filter live accounts based on search query
-  const filteredLiveAccounts = accounts.filter(account => 
-    account.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    account.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (account.propfirm && account.propfirm.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
-
-  const handleViewAccount = (accountId: string, accountType: string) => {
-    if (accountType === 'prop-firm') {
-      router.push(`/dashboard/prop-firm/accounts/${accountId}`)
-    } else {
-      // For live accounts, we can navigate to a general view or trades
-      router.push(`/dashboard?account=${accountId}`)
-    }
-  }
-
-  const handleEditAccount = (accountId: string, accountType: string) => {
-    if (accountType === 'prop-firm') {
-      router.push(`/dashboard/prop-firm/accounts/${accountId}/settings`)
-    } else {
-      // For live accounts, we could create an edit dialog or navigate to settings
-      router.push(`/dashboard/accounts/${accountId}/edit`)
-    }
-  }
-
-  const AccountCard = ({ account }: { account: UnifiedAccount }) => {
-    const profitLossColor = (account.profitLoss || 0) >= 0 ? 'text-green-600' : 'text-red-600'
-    const statusColor = account.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
     
     return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-6 py-8 max-w-7xl">
+        {/* Header Section */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Card className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary/20 hover:border-l-primary">
-          <CardHeader className="pb-4">
-            <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-lg font-semibold text-foreground">{account.displayName}</CardTitle>
-                  <Badge className={statusColor}>
-                    {account.status || 'Active'}
-                  </Badge>
+          className="mb-8"
+        >
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div>
+              <h1 className="text-4xl font-bold text-foreground mb-2">
+                Trading Accounts
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                Manage your trading accounts and track performance
+              </p>
                 </div>
-                <AccessibleDescription className="flex items-center gap-2">
-                  {account.accountType === 'prop-firm' ? (
-                    <>
-                      <Building2 className="h-4 w-4" />
-                      {account.propfirm || t('accounts.propFirm')}
-                    </>
-                  ) : (
-                    <>
-                      <User className="h-4 w-4" />
-                      {account.broker || t('accounts.liveBroker')}
-                    </>
-                  )}
-                </AccessibleDescription>
-              </div>
+            
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="h-10"
+              >
+                <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")} />
+                Refresh
+              </Button>
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <MoreVertical className="h-4 w-4" />
+                  <Button className="h-10">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Account
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleViewAccount(account.id, account.accountType)}>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    {t('accounts.view')}
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setCreateLiveDialogOpen(true)}>
+                    <User className="h-4 w-4 mr-2" />
+                    Live Account
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleEditAccount(account.id, account.accountType)}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    {t('accounts.edit')}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => setSelectedAccountForDelete(account.id)}
-                    className="text-red-600 focus:text-red-600"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    {t('accounts.delete')}
+                  <DropdownMenuItem onClick={() => setCreatePropFirmDialogOpen(true)}>
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Prop Firm Account
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Account Details */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <AccessibleText variant="muted" size="xs" className="flex items-center gap-1">
-                  <Shield className="h-3 w-3" />
-                  {t('accounts.accountNumber')}
-                </AccessibleText>
-                <p className="font-mono text-sm font-medium">{account.number}</p>
               </div>
-              <div className="space-y-1">
-                <AccessibleText variant="muted" size="xs" className="flex items-center gap-1">
-                  <DollarSign className="h-3 w-3" />
-                  {t('accounts.startingBalance')}
-                </AccessibleText>
-                <p className="text-sm font-semibold">${account.startingBalance.toLocaleString()}</p>
-              </div>
-            </div>
+        </motion.div>
 
-            {/* Performance Metrics */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Activity className="h-3 w-3" />
-                  {t('accounts.trades')}
-                </div>
-                <p className="text-sm font-medium">
-                  {account.accountType === 'prop-firm' 
-                    ? (account.tradeCount || 0)
-                    : (account.tradeCount || 0)
-                  }
-                </p>
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <TrendingUp className="h-3 w-3" />
-                  {account.accountType === 'prop-firm' ? 'Payouts' : 'P&L'}
-                </div>
-                <p className="text-sm font-medium">
-                  {account.accountType === 'prop-firm' 
-                    ? '0'
-                    : (account.profitLoss !== undefined ? `$${account.profitLoss.toLocaleString()}` : '0')
-                  }
-                </p>
-              </div>
-            </div>
+        {/* Stats Cards */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+        >
+          <StatsCard
+            title="Total Accounts"
+            value={accountStats.total}
+            icon={<Activity className="h-5 w-5" />}
+          />
+          <StatsCard
+            title="Live Accounts"
+            value={accountStats.live}
+            icon={<User className="h-5 w-5" />}
+          />
+          <StatsCard
+            title="Prop Firm Accounts"
+            value={accountStats.propFirm}
+            icon={<Building2 className="h-5 w-5" />}
+          />
+          <StatsCard
+            title="Total Equity"
+            value={formatCurrency(accountStats.totalEquity)}
+            icon={<DollarSign className="h-5 w-5" />}
+          />
+        </motion.div>
 
-            {/* Additional Details */}
-            {account.currentBalance && (
-              <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <DollarSign className="h-3 w-3" />
-                  Current Balance
-                </div>
-                <p className="text-sm font-semibold">${account.currentBalance.toLocaleString()}</p>
-              </div>
-            )}
-
-            {/* Risk Management for Prop Firm */}
-            {account.accountType === 'prop-firm' && account.drawdownThreshold && (
-              <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Shield className="h-3 w-3" />
-                  Drawdown Limit
-                </div>
-                <p className="text-sm font-medium">${account.drawdownThreshold.toLocaleString()}</p>
-              </div>
-            )}
-
-            {/* Additional Metrics for Prop Firm Accounts */}
-            {account.accountType === 'prop-firm' && (
-              <div className="space-y-3">
-                {/* Current Equity */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <DollarSign className="h-3 w-3" />
-                    Current Equity
-                  </div>
-                  <p className="text-sm font-semibold">
-                    ${(account.startingBalance || 0).toLocaleString()}
-                  </p>
-                </div>
-
-                {/* Daily DD Remaining */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Shield className="h-3 w-3" />
-                    Daily DD Remaining
-                  </div>
-                  <p className={`text-sm font-semibold ${
-                    calculateDailyDDRemaining(account) < (account.startingBalance * 0.01) ? 'text-red-500' : 'text-green-500'
-                  }`}>
-                    ${calculateDailyDDRemaining(account).toLocaleString()}
-                  </p>
-                </div>
-
-                {/* Max DD Remaining */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Shield className="h-3 w-3" />
-                    Max DD Remaining
-                  </div>
-                  <p className={`text-sm font-semibold ${
-                    calculateMaxDDRemaining(account) < (account.startingBalance * 0.02) ? 'text-red-500' : 'text-green-500'
-                  }`}>
-                    ${calculateMaxDDRemaining(account).toLocaleString()}
-                  </p>
-                </div>
-
-                {/* Profit Target */}
-                {account.profitTarget && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Target className="h-3 w-3" />
-                      Profit Target
-                    </div>
-                    <p className="text-sm font-medium">${account.profitTarget.toLocaleString()}</p>
-                  </div>
-                )}
-
-                {/* Current Phase */}
-                {account.currentPhase && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Gauge className="h-3 w-3" />
-                      Current Phase
-                    </div>
-                    <p className="text-sm font-medium capitalize">
-                      {account.currentPhase?.phaseType || 'Phase 1'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <Separator />
-
-            {/* Action Buttons */}
-            <div className="flex items-center justify-between pt-2">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Calendar className="h-3 w-3" />
-                {account.lastTradeDate ? 
-                  new Date(account.lastTradeDate).toLocaleDateString() : 
-                  t('accounts.noTrades')
-                }
-              </div>
-              <CrudActions
-                onView={() => handleViewAccount(account.id, account.accountType)}
-                onEdit={() => handleEditAccount(account.id, account.accountType)}
-                viewText={t('accounts.view')}
-                editText={t('accounts.edit')}
-                size="sm"
-                className="gap-1"
+        {/* Filters and Search */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-card rounded-xl shadow-sm border p-6 mb-8"
+        >
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search accounts..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-10"
               />
-              {account.accountType === 'prop-firm' && (
-                <PrimaryButton
-                  size="sm"
-                  onClick={() => router.push(`/dashboard/prop-firm/accounts/${account.id}/trades/new`)}
-                  className="h-8 ml-2"
-                >
-                  <Plus className="h-3 w-3 mr-1" />
-                  {t('accounts.addTrade')}
-                </PrimaryButton>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-    )
-  }
-
-  if (accountsLoading || isPropFirmLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">{t('accounts.title')}</h1>
-              <p className="text-muted-foreground">{t('accounts.description')}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {[...Array(6)].map((_, i) => (
-              <LoadingSkeleton key={i} variant="card" />
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="container mx-auto p-6">
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('accounts.title')}</h1>
-              <AccessibleDescription className="text-sm sm:text-base">
-                Manage your trading accounts and prop firm evaluations
-              </AccessibleDescription>
-            </div>
-            <div className="flex gap-2">
-              <SecondaryButton 
-                onClick={() => setViewMode(viewMode === 'simple' ? 'advanced' : 'simple')}
-                size="sm"
-                variant={viewMode === 'simple' ? 'outline' : 'default'}
-              >
-                {viewMode === 'simple' ? 'Advanced View' : 'Simple View'}
-              </SecondaryButton>
-              <SecondaryButton 
-                onClick={() => {
-                  refetchAccounts()
-                  fetchPropFirmAccounts()
-                }}
-                size="sm"
-                className="whitespace-nowrap"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Refresh All</span>
-                <span className="sm:hidden">Refresh</span>
-              </SecondaryButton>
-            </div>
-          </div>
-        </div>
-
-        {/* Conditional rendering based on view mode */}
-        {viewMode === 'simple' ? (
-          <div className="space-y-6">
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-muted-foreground" />
-                    <AccessibleText variant="muted" size="sm">Total Accounts</AccessibleText>
-                  </div>
-                  <p className="text-2xl font-bold mt-1">{accounts.length + propFirmAccounts.length}</p>
-                </CardContent>
-              </Card>
+                </div>
+            
+            <div className="flex gap-3">
+              <Select value={filterType} onValueChange={(value: any) => setFilterType(value)}>
+                <SelectTrigger className="w-40 h-10">
+                  <SelectValue placeholder="Account Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="live">Live Accounts</SelectItem>
+                  <SelectItem value="prop-firm">Prop Firm</SelectItem>
+                </SelectContent>
+              </Select>
               
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-muted-foreground" />
-                    <AccessibleText variant="muted" size="sm">Prop Firms</AccessibleText>
-                  </div>
-                  <p className="text-2xl font-bold mt-1">{propFirmAccounts.length}</p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <AccessibleText variant="muted" size="sm">Live Accounts</AccessibleText>
-                  </div>
-                  <p className="text-2xl font-bold mt-1">{accounts.length}</p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    <AccessibleText variant="muted" size="sm">Total Balance</AccessibleText>
-                  </div>
-                  <p className="text-2xl font-bold mt-1">
-                    ${[...accounts, ...propFirmAccounts].reduce((sum, a) => sum + (a.startingBalance || 0), 0).toLocaleString()}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Simplified Account Grid */}
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <CardTitle>Your Trading Accounts</CardTitle>
-                    <AccessibleDescription>
-                      Manage and monitor all your trading accounts in one place
-                    </AccessibleDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <SecondaryButton 
-                      size="sm" 
-                      onClick={() => setCreateLiveDialogOpen(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Live Account
-                    </SecondaryButton>
-                    <PrimaryButton 
-                      size="sm" 
-                      onClick={() => setCreatePropFirmDialogOpen(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Prop Firm
-                    </PrimaryButton>
+              <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+                <SelectTrigger className="w-32 h-10">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="funded">Funded</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                </SelectContent>
+              </Select>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {[...accounts, ...propFirmAccounts].length === 0 ? (
-                  <div className="text-center py-12">
-                    <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No accounts found</h3>
-                    <AccessibleDescription className="mb-6">
-                      Create your first trading account to get started
-                    </AccessibleDescription>
-                    <div className="flex gap-2 justify-center">
-                      <SecondaryButton onClick={() => setCreateLiveDialogOpen(true)}>
-                        Add Live Account
-                      </SecondaryButton>
-                      <PrimaryButton onClick={() => setCreatePropFirmDialogOpen(true)}>
-                        Add Prop Firm Account
-                      </PrimaryButton>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[...accounts, ...propFirmAccounts].map((account) => (
-                      <motion.div
-                        key={account.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleViewAccount(account.id, account.accountType)}>
-                          <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between">
-                              <CardTitle className="text-base font-medium">{account.displayName || account.name || account.number}</CardTitle>
-                              <Badge variant={account.accountType === 'prop-firm' ? 'default' : 'secondary'}>
-                                {account.accountType === 'prop-firm' ? 'Prop Firm' : 'Live'}
-                              </Badge>
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <AccessibleText variant="muted" size="xs">Balance</AccessibleText>
-                                <p className="font-semibold">${(account.startingBalance || 0).toLocaleString()}</p>
-                              </div>
-                              <div>
-                                <AccessibleText variant="muted" size="xs">Trades</AccessibleText>
-                                <p className="font-semibold">{account.tradeCount || account.totalTrades || 0}</p>
-                              </div>
-                            </div>
-                            {account.profitLoss !== undefined && (
-                              <div className="mt-3 pt-3 border-t">
-                                <AccessibleText variant="muted" size="xs">P&L</AccessibleText>
-                                <p className={`font-semibold ${account.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                  ${account.profitLoss.toLocaleString()}
-                                </p>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    ))}
+        </motion.div>
+
+        {/* Accounts Grid */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          {filteredAccounts.length === 0 ? (
+            <EmptyState 
+              hasAccounts={accounts.length > 0}
+              onCreateLive={() => setCreateLiveDialogOpen(true)}
+              onCreatePropFirm={() => setCreatePropFirmDialogOpen(true)}
+            />
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredAccounts.map((account, index) => (
+                <motion.div
+                  key={account.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.2 }}
+                  className="h-full"
+                >
+                  <AccountCard 
+                    account={account} 
+                    onView={() => handleViewAccount(account)}
+                    onEdit={() => handleEditAccount(account)}
+                    onDelete={() => handleDeleteAccount(account)}
+                  />
+                </motion.div>
+              ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <Tabs defaultValue="prop-firm-management" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="prop-firm-management" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Prop Firm Management
-              <Badge variant="secondary" className="ml-1">{propFirmAccounts.length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="accounts" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Accounts
-              <Badge variant="secondary" className="ml-1">{accounts.length + propFirmAccounts.length}</Badge>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Prop Firm Management Section */}
-          <TabsContent value="prop-firm-management" className="space-y-6 mt-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Shield className="h-5 w-5" />
-                      Prop Firm Management
-                    </CardTitle>
-                    <CardDescription>
-                      Manage your prop firm evaluation accounts, track progress, and handle payouts
-                    </CardDescription>
-                  </div>
-                  <PrimaryButton onClick={() => setCreatePropFirmDialogOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Prop Firm Account
-                  </PrimaryButton>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <PropFirmDashboard
-                  accounts={propFirmAccounts}
-                  isLoading={isPropFirmLoading}
-                  onRefresh={fetchPropFirmAccounts}
-                  onCreateAccount={() => setCreatePropFirmDialogOpen(true)}
-                  onViewAccount={handleViewPropFirmAccount}
-                  onAddTrade={handleAddTrade}
-                  onRequestPayout={handleRequestPayout}
-                  onResetAccount={handleResetPropFirmAccount}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Accounts Section */}
-          <TabsContent value="accounts" className="space-y-6 mt-6">
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <User className="h-5 w-5" />
-                      All Trading Accounts
-                    </CardTitle>
-                    <CardDescription>
-                      View and manage all your trading accounts in one place
-                    </CardDescription>
-                  </div>
-                  {/* Search Bar */}
-                  <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                      placeholder="Search accounts..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 w-full"
-                    />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="prop-firm-accounts" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="prop-firm-accounts" className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4" />
-                      Prop Firm Accounts
-                      <Badge variant="secondary" className="ml-1">{propFirmAccounts.length}</Badge>
-                    </TabsTrigger>
-                    <TabsTrigger value="live-accounts" className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      Live Accounts
-                      <Badge variant="secondary" className="ml-1">{filteredLiveAccounts.length}</Badge>
-                    </TabsTrigger>
-                  </TabsList>
-
-                  {/* Prop Firm Accounts Tab */}
-                  <TabsContent value="prop-firm-accounts" className="space-y-6 mt-6">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">Prop Firm Accounts</h3>
-                      <SecondaryButton 
-                        onClick={() => setCreatePropFirmDialogOpen(true)}
-                        size="sm"
-                      >
-                        <Building2 className="h-4 w-4 mr-2" />
-                        Add Prop Firm Account
-                      </SecondaryButton>
-                    </div>
-                    
-                    {propFirmAccounts.length === 0 ? (
-                      <Card className="text-center py-16">
-                        <CardContent>
-                          <Building2 className="h-16 w-16 mx-auto text-muted-foreground mb-6" />
-                          <h3 className="text-xl font-semibold mb-3">No Prop Firm Accounts</h3>
-                          <p className="text-muted-foreground mb-6 max-w-md mx-auto">Start your prop firm evaluation journey by creating your first account.</p>
-                          <PrimaryButton onClick={() => setCreatePropFirmDialogOpen(true)}>
-                            <Building2 className="h-4 w-4 mr-2" />
-                            Create Prop Firm Account
-                          </PrimaryButton>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-                        {propFirmAccounts
-                          .filter(account => 
-                            account.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            account.number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            account.propfirm?.toLowerCase().includes(searchQuery.toLowerCase())
-                          )
-                          .map((account) => (
-                            <motion.div
-                              key={account.id}
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              <Card className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
-                                <CardHeader className="pb-4">
-                                  <div className="flex items-start justify-between">
-                                    <div className="space-y-2">
-                                      <div className="flex items-center gap-2">
-                                        <CardTitle className="text-lg font-semibold text-foreground">
-                                          {account.name || account.number}
-                                        </CardTitle>
-                                        <Badge className="bg-blue-500 text-white">
-                                          {account.status}
-                                        </Badge>
-                                      </div>
-                                      <CardDescription className="flex items-center gap-2 text-sm">
-                                        <Building2 className="h-4 w-4" />
-                                        {account.propfirm}
-                                      </CardDescription>
-                                    </div>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                          <MoreVertical className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => handleViewPropFirmAccount(account.id)}>
-                                          <ExternalLink className="h-4 w-4 mr-2" />
-                                          View Details
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleAddTrade(account.id)}>
-                                          <Plus className="h-4 w-4 mr-2" />
-                                          Add Trade
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-                                </CardHeader>
-                                <CardContent>
-                                  <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div className="space-y-1">
-                                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                          <DollarSign className="h-3 w-3" />
-                                          Starting Balance
-                                        </div>
-                                        <p className="text-sm font-semibold">${account.startingBalance?.toLocaleString()}</p>
-                                      </div>
-                                      <div className="space-y-1">
-                                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                          <Activity className="h-3 w-3" />
-                                          Trades
-                                        </div>
-                                        <p className="text-sm font-medium">{account.totalTrades || 0}</p>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center justify-between pt-2">
-                                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                        <Calendar className="h-3 w-3" />
-                                        {account.createdAt ? 
-                                          new Date(account.createdAt).toLocaleDateString() : 
-                                          'Recently created'
-                                        }
-                                      </div>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleViewPropFirmAccount(account.id)}
-                                        className="h-8"
-                                      >
-                                        <ExternalLink className="h-3 w-3 mr-1" />
-                                        View
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </motion.div>
-                          ))}
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  {/* Live Accounts Tab */}
-                  <TabsContent value="live-accounts" className="space-y-6 mt-6">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">Live Accounts</h3>
-                      <SecondaryButton onClick={() => setCreateLiveDialogOpen(true)} size="sm">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Live Account
-                      </SecondaryButton>
-                    </div>
-                    
-                    {filteredLiveAccounts.length === 0 ? (
-                      <Card className="text-center py-16">
-                        <CardContent>
-                          <User className="h-16 w-16 mx-auto text-muted-foreground mb-6" />
-                          <h3 className="text-xl font-semibold mb-3">No Live Accounts</h3>
-                          <p className="text-muted-foreground mb-6 max-w-md mx-auto">Add your live trading accounts to track your real money performance.</p>
-                          <PrimaryButton onClick={() => setCreateLiveDialogOpen(true)}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Live Account
-                          </PrimaryButton>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-                        {filteredLiveAccounts.map((account) => (
-                          <AccountCard key={account.id} account={{...account, status: 'active'}} />
-                        ))}
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        )}
+        </motion.div>
 
         {/* Dialogs */}
-        <CreateLiveAccountDialog
+        <EnhancedCreateLiveAccountDialog
           open={createLiveDialogOpen}
           onOpenChange={setCreateLiveDialogOpen}
           onSuccess={handleAccountCreated}
         />
-
+        
         <CreatePropFirmAccountDialog
           open={createPropFirmDialogOpen}
           onOpenChange={setCreatePropFirmDialogOpen}
-          onSuccess={handlePropFirmAccountCreated}
+          onSuccess={handleAccountCreated}
         />
 
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog 
-          open={!!selectedAccountForDelete} 
-          onOpenChange={(open) => !open && setSelectedAccountForDelete(null)}
-        >
-          <AlertDialogContent>
+        {/* Enhanced Delete Confirmation Dialog */}
+        <AlertDialog open={!!deletingAccount} onOpenChange={() => {
+          setDeletingAccount(null)
+          setDeleteConfirmText('')
+        }}>
+          <AlertDialogContent className="sm:max-w-[600px]">
             <AlertDialogHeader>
-              <AlertDialogTitle>{t('accounts.deleteConfirmTitle')}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {t('accounts.deleteConfirmDescription')}
+              <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Delete Account: {deletingAccount?.displayName || deletingAccount?.name || deletingAccount?.number}
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="text-left space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    This action is <strong>irreversible</strong> and will permanently delete:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                    <li>The account and all its configuration</li>
+                    <li>All trades associated with this account</li>
+                    <li>Trade history, analytics, and performance data</li>
+                    <li>Any uploaded trade screenshots or videos</li>
+                    <li>Account phases and evaluation progress (for prop firm accounts)</li>
+                  </ul>
+                  <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                    <p className="text-sm font-medium text-destructive flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      This data cannot be recovered once deleted.
+                    </p>
+                  </div>
+                </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={() => selectedAccountForDelete && handleDeleteAccount(selectedAccountForDelete)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="delete-confirm" className="text-sm font-medium">
+                  Type <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">
+                    {deletingAccount?.displayName || deletingAccount?.name || deletingAccount?.number}
+                  </code> to confirm:
+                </Label>
+                <Input
+                  id="delete-confirm"
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type the account name here"
+                  className="font-mono text-sm"
+                />
+              </div>
+            </div>
+
+            <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
+              <AlertDialogCancel 
+                onClick={() => {
+                  setDeletingAccount(null)
+                  setDeleteConfirmText('')
+                }}
+                className="w-full sm:w-auto"
               >
-                {t('accounts.delete')}
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmDeleteAccount}
+                disabled={deleteConfirmText !== (deletingAccount?.displayName || deletingAccount?.name || deletingAccount?.number)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                I understand the consequences, delete account
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+            </div>
+    </div>
+  )
+}
+
+// Components
+function StatsCard({ 
+  title, 
+  value, 
+  icon
+}: { 
+  title: string
+  value: string | number
+  icon: React.ReactNode
+}) {
+    return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+            <p className="text-sm font-medium text-muted-foreground mb-1">
+              {title}
+            </p>
+            <p className="text-2xl font-bold text-foreground">
+              {value}
+            </p>
+            </div>
+          <div className="p-3 rounded-full bg-muted text-muted-foreground">
+            {icon}
+          </div>
+          </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function AccountCard({ 
+  account, 
+  onView, 
+  onEdit, 
+  onDelete 
+}: { 
+  account: Account
+  onView: () => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'active': return 'bg-chart-2 text-white'
+      case 'funded': return 'bg-chart-1 text-white'
+      case 'failed': return 'bg-destructive text-destructive-foreground'
+      case 'passed': return 'bg-chart-4 text-white'
+      default: return 'bg-muted text-muted-foreground'
+    }
+  }
+
+  const isAtRisk = account.accountType === 'prop-firm' && (
+    (account.dailyDrawdownRemaining && account.dailyDrawdownRemaining < 500) ||
+    (account.maxDrawdownRemaining && account.maxDrawdownRemaining < 1000)
+  )
+    
+    return (
+    <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 h-full flex flex-col">
+          <CardHeader className="pb-4">
+            <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+                  {account.accountType === 'prop-firm' ? (
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                <User className="h-4 w-4 text-muted-foreground" />
+                  )}
+              <h3 className="font-semibold text-foreground truncate">
+                {account.displayName || account.name || account.number}
+              </h3>
+              </div>
+            <p className="text-sm text-muted-foreground">
+              {account.accountType === 'prop-firm' ? account.propfirm : account.broker}
+            </p>
+        </div>
+
+                  <div className="flex items-center gap-2">
+            {account.status && (
+              <Badge className={getStatusColor(account.status)}>
+                {account.status}
+              </Badge>
+            )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={onView}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Details
+                  </DropdownMenuItem>
+                <DropdownMenuItem onClick={onEdit}>
+                    <Edit className="h-4 w-4 mr-2" />
+                  Edit Account
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onDelete} className="text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Account
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+              </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4 flex-1 flex flex-col">
+        {/* Balance Information */}
+            <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Current Balance</p>
+            <p className="font-semibold text-foreground">
+              {formatCurrency(account.currentBalance || account.currentEquity || account.startingBalance || 0)}
+                </p>
+              </div>
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Trades</p>
+            <p className="font-semibold text-foreground">
+              {account.tradeCount || 0}
+                </p>
+              </div>
+            </div>
+
+        {/* Prop Firm Specific Info - Fixed Height Container */}
+        <div className="min-h-[120px] flex flex-col justify-start">
+          {account.accountType === 'prop-firm' ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Account Type</span>
+                <Badge variant="outline" className="text-xs">
+                  PROP FIRM
+                </Badge>
+                </div>
+              {account.currentPhase && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Phase</span>
+                  <Badge variant="outline" className="text-xs">
+                    {account.currentPhase.replace('_', ' ').toUpperCase()}
+                  </Badge>
+              </div>
+            )}
+
+              {account.profitTargetProgress !== undefined && account.currentPhase !== 'funded' && (
+                  <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-muted-foreground">Profit Target</span>
+                    <span className="text-xs font-medium">{account.profitTargetProgress.toFixed(1)}%</span>
+                </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div 
+                      className="bg-primary h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, Math.max(0, account.profitTargetProgress))}%` }}
+                    />
+                  </div>
+              </div>
+            )}
+
+              {isAtRisk && (
+                <div className="flex items-center gap-2 p-2 bg-destructive/10 rounded-lg border border-destructive/20">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  <span className="text-xs text-destructive font-medium">
+                    Approaching drawdown limit
+                  </span>
+                  </div>
+              )}
+              
+              {/* Prop Firm Description */}
+              <div className="text-xs text-muted-foreground mt-auto">
+                Prop firm evaluation account with funded trading opportunity
+                  </div>
+                </div>
+                ) : (
+            <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Account Type</span>
+                <Badge variant="outline" className="text-xs">
+                  LIVE
+                              </Badge>
+                  </div>
+              <div className="text-xs text-muted-foreground">
+                Live trading account for real market execution
+                </div>
+                  </div>
+                )}
+                    </div>
+
+        {/* Spacer to maintain card height consistency */}
+        <div className="mt-auto" />
+          </CardContent>
+        </Card>
+  )
+}
+
+function EmptyState({ 
+  hasAccounts, 
+  onCreateLive, 
+  onCreatePropFirm 
+}: { 
+  hasAccounts: boolean
+  onCreateLive: () => void
+  onCreatePropFirm: () => void
+}) {
+  if (hasAccounts) {
+    return (
+      <Card className="text-center py-12">
+        <CardContent>
+          <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            No accounts found
+          </h3>
+          <p className="text-muted-foreground">
+            Try adjusting your search or filter criteria
+          </p>
+              </CardContent>
+            </Card>
+    )
+  }
+
+  return (
+    <Card className="text-center py-16">
+      <CardContent>
+        <div className="max-w-md mx-auto">
+          <div className="bg-muted rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+            <Activity className="h-12 w-12 text-muted-foreground" />
+            </div>
+          <h3 className="text-xl font-semibold text-foreground mb-2">
+            Welcome to Your Trading Dashboard
+          </h3>
+          <p className="text-muted-foreground mb-8">
+            Get started by adding your first trading account to track performance and analyze your trades
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button onClick={onCreateLive} size="lg">
+              <User className="h-4 w-4 mr-2" />
+              Add Live Account
+            </Button>
+            <Button onClick={onCreatePropFirm} size="lg" variant="outline">
+              <Building2 className="h-4 w-4 mr-2" />
+              Add Prop Firm Account
+            </Button>
+            </div>
+          </div>
+                </CardContent>
+              </Card>
+  )
+}
+
+function AccountsLoadingSkeleton() {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-6 py-8 max-w-7xl">
+        {/* Header skeleton */}
+        <div className="mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                  <div>
+              <div className="h-10 bg-muted rounded-md w-64 mb-2 animate-pulse" />
+              <div className="h-6 bg-muted rounded-md w-96 animate-pulse" />
+                  </div>
+            <div className="flex items-center gap-3">
+              <div className="h-10 bg-muted rounded-md w-20 animate-pulse" />
+              <div className="h-10 bg-muted rounded-md w-32 animate-pulse" />
+                  </div>
+                </div>
+                    </div>
+        
+        {/* Stats cards skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden">
+              <CardContent className="p-6">
+                            <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="h-4 bg-muted rounded w-20 animate-pulse" />
+                    <div className="h-8 bg-muted rounded w-16 animate-pulse" />
+                            </div>
+                  <div className="h-12 w-12 bg-muted rounded-full animate-pulse" />
+                              </div>
+                          </CardContent>
+                        </Card>
+                    ))}
+                  </div>
+        
+        {/* Filter section skeleton */}
+        <Card className="p-6 mb-8">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1 h-10 bg-muted rounded-md animate-pulse" />
+            <div className="flex gap-3">
+              <div className="h-10 bg-muted rounded-md w-40 animate-pulse" />
+              <div className="h-10 bg-muted rounded-md w-32 animate-pulse" />
+                  </div>
+                </div>
+            </Card>
+        
+        {/* Account cards skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden">
+                                <CardHeader className="pb-4">
+                                  <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-4 w-4 bg-muted rounded animate-pulse" />
+                      <div className="h-5 bg-muted rounded w-32 animate-pulse" />
+                                      </div>
+                    <div className="h-4 bg-muted rounded w-24 animate-pulse" />
+                                    </div>
+                  <div className="h-6 bg-muted rounded-full w-16 animate-pulse" />
+                                  </div>
+                                </CardHeader>
+              <CardContent className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="h-3 bg-muted rounded w-20 animate-pulse" />
+                    <div className="h-5 bg-muted rounded w-16 animate-pulse" />
+                                        </div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-muted rounded w-12 animate-pulse" />
+                    <div className="h-5 bg-muted rounded w-8 animate-pulse" />
+                                      </div>
+                                        </div>
+                <div className="h-10 bg-muted rounded animate-pulse" />
+                                </CardContent>
+                              </Card>
+                          ))}
+                      </div>
       </div>
     </div>
   )
+}
+
+// Utilities
+function formatCurrency(amount: number): string {
+  if (!isFinite(amount) || isNaN(amount)) return '$0.00'
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount)
 }

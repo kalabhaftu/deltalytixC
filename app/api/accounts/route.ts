@@ -2,22 +2,25 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { headers } from 'next/headers'
+import { getUserId } from '@/server/auth'
 
 // GET /api/accounts - Simplified and optimized accounts fetching
 export async function GET(request: NextRequest) {
   try {
-    // Get user ID from middleware headers (fastest method)
-    const headersList = await headers()
-    const currentUserId = headersList.get("x-user-id")
+    // Get user ID using the proper auth function
+    const currentUserId = await getUserId()
 
-    // Simplified query - only fetch essential data
+    // Simplified query - only fetch essential data for current user
     const accounts = await prisma.account.findMany({
+      where: {
+        userId: currentUserId
+      },
       select: {
         id: true,
         number: true,
         name: true,
         propfirm: true,
+        broker: true,
         startingBalance: true,
         createdAt: true,
         userId: true,
@@ -50,6 +53,7 @@ export async function GET(request: NextRequest) {
       number: account.number,
       name: account.name,
       propfirm: account.propfirm,
+      broker: account.broker,
       startingBalance: account.startingBalance,
       createdAt: account.createdAt,
       userId: account.userId,
@@ -81,16 +85,8 @@ export async function GET(request: NextRequest) {
 // POST /api/accounts - Create a new live account
 export async function POST(request: NextRequest) {
   try {
-    // Get user ID from middleware headers (fastest method)
-    const headersList = await headers()
-    const userId = headersList.get("x-user-id")
-    
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'User not authenticated' },
-        { status: 401 }
-      )
-    }
+    // Get user ID using the proper auth function
+    const userId = await getUserId()
 
     const body = await request.json()
 
@@ -125,7 +121,7 @@ export async function POST(request: NextRequest) {
         number,
         name,
         startingBalance: parseFloat(startingBalance),
-        // broker, // Temporarily disabled until database migration is complete
+        broker,
         userId,
         propfirm: '', // Empty string indicates it's a live account
         // Set default values for live accounts

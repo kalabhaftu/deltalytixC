@@ -101,14 +101,13 @@ export default function ImportButton() {
 
     setIsSaving(true)
     
-    // Show processing indicator
-    toast({
-      title: "Processing Trades",
-      description: "Checking for duplicates and saving trades...",
-      duration: 0, // Don't auto-dismiss
-    })
-    
     try {
+      // Show processing indicator (auto-dismiss after 3 seconds)
+      toast({
+        title: "Processing Trades",
+        description: "Checking for duplicates and saving trades...",
+        duration: 3000,
+      })
       let newTrades: Trade[] = []
           newTrades = processedTrades.map(trade => {
             // Clean up the trade object to remove undefined values
@@ -184,13 +183,14 @@ export default function ImportButton() {
         }
         return
       }
+      // Close dialog immediately for better UX
+      setIsOpen(false)
+      
+      // Reset the import process
+      resetImportState()
+      
       // Update the trades and wait for completion
       await refreshTrades()
-      
-      // Force a small delay to ensure state updates propagate
-      await new Promise(resolve => setTimeout(resolve, 200))
-      
-      setIsOpen(false)
       
       // Show detailed success message with duplicate information
       const details = result.details as any
@@ -198,15 +198,15 @@ export default function ImportButton() {
         toast({
           title: "Import Completed",
           description: `Added ${details.newTradesAdded} new trades, skipped ${details.duplicatesSkipped} duplicates`,
+          duration: 5000,
         })
       } else {
         toast({
           title: t('import.success'),
           description: `Successfully imported ${result.numberOfTradesAdded} trades`,
+          duration: 5000,
         })
       }
-      // Reset the import process
-      resetImportState()
 
     } catch (error) {
       console.error('Error saving trades:', error)

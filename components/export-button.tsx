@@ -55,15 +55,17 @@ export default function TradeExportDialog({ trades }: Props) {
     to: new Date() 
   })
   
+  const [isAllTime, setIsAllTime] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [filteredTrades, setFilteredTrades] = useState<FilteredTrade[]>([])
   const itemsPerPage = 10
 
   const quickSelectors = [
-    { label: "This Week", getRange: () => ({ from: startOfWeek(new Date()), to: endOfWeek(new Date()) }) },
-    { label: "This Month", getRange: () => ({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) }) },
-    { label: "Last 3 Months", getRange: () => ({ from: subMonths(new Date(), 3), to: new Date() }) },
-    { label: "Last 6 Months", getRange: () => ({ from: subMonths(new Date(), 6), to: new Date() }) },
+    { label: "All Time", getRange: () => null, isAllTime: true },
+    { label: "This Week", getRange: () => ({ from: startOfWeek(new Date()), to: endOfWeek(new Date()) }), isAllTime: false },
+    { label: "This Month", getRange: () => ({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) }), isAllTime: false },
+    { label: "Last 3 Months", getRange: () => ({ from: subMonths(new Date(), 3), to: new Date() }), isAllTime: false },
+    { label: "Last 6 Months", getRange: () => ({ from: subMonths(new Date(), 6), to: new Date() }), isAllTime: false },
   ]
 
   const handleExport = () => {
@@ -71,8 +73,8 @@ export default function TradeExportDialog({ trades }: Props) {
     const filteredTrades = trades.filter(trade => 
       selectedAccounts.includes(trade.accountNumber) &&
       selectedInstruments.includes(trade.instrument.slice(0, 2)) &&
-      (!dateRange?.from || new Date(trade.entryDate) >= dateRange.from) &&
-      (!dateRange?.to || new Date(trade.entryDate) <= dateRange.to)
+      (isAllTime || (!dateRange?.from || new Date(trade.entryDate) >= dateRange.from)) &&
+      (isAllTime || (!dateRange?.to || new Date(trade.entryDate) <= dateRange.to))
     )
 
     // Define CSV headers
@@ -149,15 +151,15 @@ export default function TradeExportDialog({ trades }: Props) {
     const filtered = trades.filter(trade => 
       selectedAccounts.includes(trade.accountNumber) &&
       selectedInstruments.includes(trade.instrument.slice(0, 2)) &&
-      (!dateRange?.from || new Date(trade.entryDate) >= dateRange.from) &&
-      (!dateRange?.to || new Date(trade.entryDate) <= dateRange.to)
+      (isAllTime || (!dateRange?.from || new Date(trade.entryDate) >= dateRange.from)) &&
+      (isAllTime || (!dateRange?.to || new Date(trade.entryDate) <= dateRange.to))
     ).map(trade => ({
       ...trade,
       formattedEntryDate: format(new Date(trade.entryDate), 'yyyy-MM-dd HH:mm'),
       formattedCloseDate: format(new Date(trade.closeDate), 'yyyy-MM-dd HH:mm')
     }))
     setFilteredTrades(filtered)
-  }, [selectedAccounts, selectedInstruments, dateRange, trades])
+  }, [selectedAccounts, selectedInstruments, dateRange, isAllTime, trades])
 
   useEffect(() => {
     updateFilteredTrades()
@@ -171,6 +173,17 @@ export default function TradeExportDialog({ trades }: Props) {
   const handleDateRangeSelect = (range: DateRange | undefined) => {
     if (range) {
       setDateRange(range)
+      setIsAllTime(false)
+    }
+  }
+
+  const handleQuickSelect = (selector: typeof quickSelectors[0]) => {
+    if (selector.isAllTime) {
+      setIsAllTime(true)
+      setDateRange({ from: undefined, to: undefined })
+    } else {
+      setIsAllTime(false)
+      setDateRange(selector.getRange())
     }
   }
 
@@ -195,9 +208,9 @@ export default function TradeExportDialog({ trades }: Props) {
                 <CardTitle className="text-base">Select Data</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div>
-                    <Label className="text-base">Select Accounts</Label>
+                    <Label className="text-sm font-medium">Accounts</Label>
                     <div className="flex items-center space-x-2 mt-2">
                       <Checkbox 
                         id="selectAllAccounts" 
@@ -205,10 +218,10 @@ export default function TradeExportDialog({ trades }: Props) {
                         onCheckedChange={handleSelectAllAccounts}
                       />
                       <label htmlFor="selectAllAccounts" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Select All
+                        Select All ({accounts.length})
                       </label>
                     </div>
-                    <ScrollArea className="h-[100px] mt-2 rounded border p-2">
+                    <ScrollArea className="h-[120px] mt-2 rounded border p-3">
                       {accounts.map(account => (
                         <div key={account} className="flex items-center space-x-2 mb-2">
                           <Checkbox 
@@ -224,7 +237,7 @@ export default function TradeExportDialog({ trades }: Props) {
                     </ScrollArea>
                   </div>
                   <div>
-                    <Label className="text-base">Select Instruments</Label>
+                    <Label className="text-sm font-medium">Instruments</Label>
                     <div className="flex items-center space-x-2 mt-2">
                       <Checkbox 
                         id="selectAllInstruments" 
@@ -232,10 +245,10 @@ export default function TradeExportDialog({ trades }: Props) {
                         onCheckedChange={handleSelectAllInstruments}
                       />
                       <label htmlFor="selectAllInstruments" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Select All
+                        Select All ({instruments.length})
                       </label>
                     </div>
-                    <ScrollArea className="h-[100px] mt-2 rounded border p-2">
+                    <ScrollArea className="h-[120px] mt-2 rounded border p-3">
                       {instruments.map(instrument => (
                         <div key={instrument} className="flex items-center space-x-2 mb-2">
                           <Checkbox 
@@ -256,31 +269,47 @@ export default function TradeExportDialog({ trades }: Props) {
             
             <Card className="w-full h-fit">
               <CardHeader>
-                <CardTitle className="text-base">Select Date Range</CardTitle>
+                <CardTitle className="text-base">Time Range</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {quickSelectors.map((selector, index) => (
                       <Button
                         key={index}
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => setDateRange(selector.getRange())}
+                        variant={selector.isAllTime && isAllTime ? "default" : "outline"}
+                        className="w-full text-xs"
+                        onClick={() => handleQuickSelect(selector)}
                       >
                         {selector.label}
                       </Button>
                     ))}
                   </div>
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={dateRange?.from}
-                    selected={dateRange}
-                    onSelect={handleDateRangeSelect}
-                    numberOfMonths={2}
-                    className="rounded-md border"
-                  />
+                  
+                  {!isAllTime && (
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Custom Range</Label>
+                      <div className="flex justify-center p-2">
+                        <div className="calendar-container">
+                          <Calendar
+                            initialFocus
+                            mode="range"
+                            defaultMonth={dateRange?.from}
+                            selected={dateRange}
+                            onSelect={handleDateRangeSelect}
+                            numberOfMonths={1}
+                            className="rounded-md border"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {isAllTime && (
+                    <div className="text-center py-4 text-sm text-muted-foreground">
+                      All trades will be exported
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -288,45 +317,65 @@ export default function TradeExportDialog({ trades }: Props) {
           <div className="mt-6 px-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Preview ({filteredTrades.length} trades)</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Preview</CardTitle>
+                  <div className="text-sm text-muted-foreground">
+                    {filteredTrades.length} trades selected
+                    {isAllTime && " (All Time)"}
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Account</TableHead>
-                        <TableHead>Instrument</TableHead>
-                        <TableHead>Side</TableHead>
-                        <TableHead>Quantity</TableHead>
-                        <TableHead>Entry Date</TableHead>
-                        <TableHead>Close Date</TableHead>
-                        <TableHead className="text-right">Commission</TableHead>
-                        <TableHead className="text-right">PNL</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {currentTrades.map((trade) => (
-                        <TableRow key={`${trade.entryId}-${trade.closeId}`}>
-                          <TableCell>{trade.accountNumber}</TableCell>
-                          <TableCell>{trade.instrument}</TableCell>
-                          <TableCell>{trade.side}</TableCell>
-                          <TableCell>{trade.quantity}</TableCell>
-                          <TableCell>{trade.formattedEntryDate}</TableCell>
-                          <TableCell>{trade.formattedCloseDate}</TableCell>
-                          <TableCell className="text-right">
-                            {trade.commission?.toFixed(2) || '0.00'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className={trade.pnl >= 0 ? "text-green-500" : "text-red-500"}>
-                              {trade.pnl.toFixed(2)}
-                            </span>
-                          </TableCell>
+                {filteredTrades.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No trades match your selection criteria
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Account</TableHead>
+                          <TableHead>Instrument</TableHead>
+                          <TableHead>Side</TableHead>
+                          <TableHead>Quantity</TableHead>
+                          <TableHead>Entry Date</TableHead>
+                          <TableHead>Close Date</TableHead>
+                          <TableHead className="text-right">Commission</TableHead>
+                          <TableHead className="text-right">PNL</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {currentTrades.map((trade) => (
+                          <TableRow key={`${trade.entryId}-${trade.closeId}`}>
+                            <TableCell className="font-mono text-xs">{trade.accountNumber}</TableCell>
+                            <TableCell>{trade.instrument}</TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 rounded text-xs ${
+                                trade.side === 'BUY' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {trade.side}
+                              </span>
+                            </TableCell>
+                            <TableCell>{trade.quantity}</TableCell>
+                            <TableCell className="text-xs">{trade.formattedEntryDate}</TableCell>
+                            <TableCell className="text-xs">{trade.formattedCloseDate}</TableCell>
+                            <TableCell className="text-right text-xs">
+                              {trade.commission?.toFixed(2) || '0.00'}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className={`text-xs font-medium ${
+                                trade.pnl >= 0 ? "text-green-600" : "text-red-600"
+                              }`}>
+                                {trade.pnl >= 0 ? '+' : ''}{trade.pnl.toFixed(2)}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
                 
                 <div className="mt-4">
                   <Pagination>
@@ -377,13 +426,26 @@ export default function TradeExportDialog({ trades }: Props) {
           </div>
         </div>
         <div className="p-4 bg-background border-t mt-auto">
-          <Button 
-            onClick={handleExport} 
-            disabled={selectedAccounts.length === 0 || selectedInstruments.length === 0}
-            className="w-full max-w-xl mx-auto"
-          >
-            <Download className="mr-2 h-4 w-4" /> Export {filteredTrades.length} Trades
-          </Button>
+          <div className="flex items-center justify-between max-w-xl mx-auto">
+            <div className="text-sm text-muted-foreground">
+              {filteredTrades.length > 0 ? (
+                <>
+                  Ready to export {filteredTrades.length} trades
+                  {isAllTime && " (All Time)"}
+                </>
+              ) : (
+                "No trades selected"
+              )}
+            </div>
+            <Button 
+              onClick={handleExport} 
+              disabled={selectedAccounts.length === 0 || selectedInstruments.length === 0 || filteredTrades.length === 0}
+              className="ml-4"
+            >
+              <Download className="mr-2 h-4 w-4" /> 
+              Export CSV
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

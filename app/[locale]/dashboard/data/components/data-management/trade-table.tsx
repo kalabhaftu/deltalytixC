@@ -177,16 +177,33 @@ export default function TradeTable() {
               <SelectItem value="instrument">Instrument</SelectItem>
               <SelectItem value="side">Side</SelectItem>
               <SelectItem value="accountNumber">Account Number</SelectItem>
+              <SelectItem value="comment">Comments</SelectItem>
+              <SelectItem value="closeReason">Close Reason</SelectItem>
             </SelectContent>
           </Select>
-          <Input
-            placeholder={`Filter by ${filterKey}`}
-            value={filterValue}
-            onChange={(e) => setFilterValue(e.target.value)}
-            className="w-full lg:max-w-sm"
-          />
+          <div className="relative">
+            <Input
+              placeholder={`Search ${filterKey.replace(/([A-Z])/g, ' $1').toLowerCase()}...`}
+              value={filterValue}
+              onChange={(e) => setFilterValue(e.target.value)}
+              className="w-full lg:max-w-sm pr-8"
+            />
+            {filterValue && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+                onClick={() => setFilterValue('')}
+              >
+                ×
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="text-sm text-muted-foreground">
+            {filteredAndSortedTrades.length} of {formattedTrades.length}
+          </div>
           <Button
             variant={showCovered ? "default" : "outline"}
             size="sm"
@@ -194,15 +211,17 @@ export default function TradeTable() {
           >
             {showCovered ? "Hide Covered" : "Show Covered"}
           </Button>
-          <Button 
-            onClick={() => handleDelete(Array.from(selectedTrades))} 
-            disabled={selectedTrades.size === 0 || isDeleting}
-            variant="destructive"
-            size="sm"
-          >
-            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash className="mr-2 h-4 w-4" />}
-            {isDeleting ? 'Deleting...' : `Delete Selected (${selectedTrades.size})`}
-          </Button>
+          {selectedTrades.size > 0 && (
+            <Button 
+              onClick={() => handleDelete(Array.from(selectedTrades))} 
+              disabled={isDeleting}
+              variant="destructive"
+              size="sm"
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash className="mr-2 h-4 w-4" />}
+              {isDeleting ? 'Deleting...' : `Delete (${selectedTrades.size})`}
+            </Button>
+          )}
         </div>
       </div>
       <div className="rounded-md border overflow-auto shadow-sm">
