@@ -42,16 +42,6 @@ export async function POST(req: Request) {
     const lastName = fullName.split(' ')[1] || ''
 
     // Newsletter feature removed - skip newsletter subscription
-    // await prisma.newsletter.upsert({
-    //   where: { email: record.email },
-    //   update: { isActive: true },
-    //   create: {
-    //     email: record.email,
-    //     firstName: firstName,
-    //     lastName: lastName,
-    //     isActive: true
-    //   }
-    // })
     
     const unsubscribeUrl = `https://deltalytix.app/api/email/unsubscribe?email=${encodeURIComponent(record.email)}`
 

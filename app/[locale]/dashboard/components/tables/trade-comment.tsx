@@ -14,7 +14,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { useData } from '@/context/data-provider'
-// import { NoteEditor } from '@/app/[locale]/dashboard/components/mindset/note-editor' // Removed - journaling feature
 
 interface TradeCommentProps {
   tradeIds: string[]

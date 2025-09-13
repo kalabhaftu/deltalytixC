@@ -24,21 +24,6 @@ export async function GET(request: Request) {
       message: 'Newsletter feature has been disabled. No action needed.',
       email: email
     })
-
-    // Update or create newsletter record with isActive = false (removed)
-    // await prisma.newsletter.upsert({
-    //   where: { email },
-    //   update: { isActive: false },
-    //   create: {
-    //     email,
-    //     isActive: false
-    //   }
-    // })
-
-    // Redirect to the newsletter preferences page (removed)
-    // return NextResponse.redirect(
-    //   new URL(`/newsletter?status=unsubscribed&email=${encodeURIComponent(email)}`, request.url)
-    // )
   } catch (error) {
     console.error('Unsubscribe error:', error)
     return NextResponse.json(

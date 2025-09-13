@@ -30,7 +30,6 @@ import { cn, parsePositionTime, formatCurrency, formatNumber } from '@/lib/utils
 import { Checkbox } from "@/components/ui/checkbox"
 import { useI18n } from '@/locales/client'
 
-// import { TradeTag } from './trade-tag' // Removed - journaling feature
 import { formatInTimeZone } from 'date-fns-tz'
 import {
   Tooltip,
@@ -82,11 +81,6 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu"
 
-// Custom Tags Header Component - Removed journaling feature
-function TagsColumnHeaderRemoved() {
-  // This function has been removed - journaling feature
-  return null
-}
 
 interface ExtendedTrade extends Trade {
   imageUrl?: string | undefined
@@ -137,7 +131,6 @@ export function TradeTableReview() {
     formattedTrades: contextTrades,
     updateTrades,
   } = useData()
-  // const tags = useUserStore(state => state.tags) // Removed - journaling feature
   const timezone = useUserStore(state => state.timezone)
   const tickDetails = useTickDetailsStore(state => state.tickDetails)
 

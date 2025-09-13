@@ -166,16 +166,6 @@ export type HttpStatus = 200 | 201 | 204 | 400 | 401 | 403 | 404 | 500
 /**
  * Component prop types
  */
-// export type ComponentProps<T extends keyof JSX.IntrinsicElements | React.JSXElementConstructor<any>> = 
-//   T extends React.JSXElementConstructor<infer P> ? P : 
-//   T extends keyof JSX.IntrinsicElements ? JSX.IntrinsicElements[T] : {}
-// 
-// /**
-//  * Ref types
-//  */
-// export type ElementRef<T extends keyof JSX.IntrinsicElements | React.JSXElementConstructor<any>> = 
-//   T extends keyof JSX.IntrinsicElements ? JSX.IntrinsicElements[T] extends React.DetailedHTMLProps<any, infer E> ? E : never :
-//   T extends React.JSXElementConstructor<any> ? React.ComponentRef<T> : never
 
 export type ComponentProps<T> = any;
 export type ElementRef<T> = any;

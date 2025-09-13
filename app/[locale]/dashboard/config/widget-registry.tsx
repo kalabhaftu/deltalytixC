@@ -27,7 +27,6 @@ import { LineChart, Line, XAxis, YAxis } from 'recharts'
 import { useI18n } from '@/locales/client'
 import { WidgetErrorBoundary } from '@/components/error-boundary'
 import { OptimizedChartContainer } from '@/components/ui/optimized-chart'
-// import MarketChart from '../components/market/market-chart'
 
 export interface WidgetConfig {
   type: WidgetType
@@ -284,15 +283,6 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     getComponent: ({ size }) => <RiskRewardRatioCard size={size} />,
     getPreview: () => <RiskRewardRatioCard size="tiny" />
   },
-  // marketChart: {
-  //   type: 'marketChart',
-  //   defaultSize: 'large',
-  //   allowedSizes: ['small', 'medium', 'large'],
-  //   category: 'charts',
-  //   previewHeight: 300,
-  //   getComponent: ({ size }) => <MarketChart />,
-  //   getPreview: () => <MarketChart />
-  // },
   propFirm: {
     type: 'propFirm',
     defaultSize: 'medium',

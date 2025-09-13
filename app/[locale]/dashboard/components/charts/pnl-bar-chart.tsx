@@ -159,7 +159,7 @@ export default function PNLChart({ size = 'medium' }: PNLChartProps) {
                 size === 'small-long' ? "text-sm" : "text-base"
               )}
             >
-              P/L by Day
+              Daily P/L Timeline
             </CardTitle>
             <TooltipProvider>
               <UITooltip>
@@ -170,7 +170,7 @@ export default function PNLChart({ size = 'medium' }: PNLChartProps) {
                   )} />
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>Shows daily P/L. Toggle to view average P/L per trade for each day.</p>
+                  <p>Shows daily P/L over time in chronological order. Toggle to view average P/L per trade for each day.</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>

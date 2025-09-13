@@ -10,11 +10,6 @@ interface UserData {
     email: string
     language: string
   }
-  // newsletter: {
-  //   email: string
-  //   firstName: string | null
-  //   isActive: boolean
-  // }
   trades: {
     id: string
     pnl: number
@@ -48,13 +43,6 @@ export async function getUserData(userId: string): Promise<UserData> {
   }
 
   // Newsletter feature removed - skip subscription check
-  // const newsletter = await prisma.newsletter.findUnique({
-  //   where: { email: user.email },
-  // })
-
-  // if (!newsletter || !newsletter.isActive) {
-  //   throw new Error(`Newsletter subscription not found or inactive for email: ${user.email}`)
-  // }
 
   const trades = await prisma.trade.findMany({
     where: {
@@ -78,11 +66,6 @@ export async function getUserData(userId: string): Promise<UserData> {
       language: user.language
     },
     // Newsletter feature removed
-    // newsletter: {
-    //   email: newsletter.email,
-    //   firstName: newsletter.firstName,
-    //   isActive: newsletter.isActive
-    // },
     trades: last14DaysTrades
   }
 }

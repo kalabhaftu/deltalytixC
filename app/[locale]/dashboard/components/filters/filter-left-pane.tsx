@@ -13,7 +13,6 @@ import { useData } from '@/context/data-provider'
 import { AccountFilter } from './account-filter'
 import { InstrumentFilterSimple } from './instrument-filter-simple'
 import { PnlFilterSimple } from './pnl-filter-simple'
-// import { TagFilter } from './tag-filter' // Removed - journaling feature
 import { useI18n } from "@/locales/client"
 
 export default function FilterLeftPane() {
@@ -53,7 +52,6 @@ export default function FilterLeftPane() {
       <PnlFilterSimple />
 
       {/* Tag Filter - Removed journaling feature */}
-      {/* <TagFilter /> */}
     </div>
   ), [showAccountNumbers, t])
 

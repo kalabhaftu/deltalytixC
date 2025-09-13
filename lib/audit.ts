@@ -139,7 +139,6 @@ class AuditLogger {
         })
 
         // TODO: Send alert to administrators
-        // await this.sendSecurityAlert(data)
       }
     } catch (error) {
       console.error('Failed to log security event:', error)

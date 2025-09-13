@@ -203,7 +203,7 @@ export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProp
                 size === 'small-long' ? "text-sm" : "text-base"
               )}
             >
-              P/L by Day
+              P/L by Weekday
             </CardTitle>
             <TooltipProvider>
               <UITooltip>
@@ -214,7 +214,7 @@ export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProp
                   )} />
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>Shows P/L by day of the week. Toggle to view average P/L per trade for each day.</p>
+                  <p>Shows P/L aggregated by day of the week. Toggle to view average P/L per trade for each weekday.</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>

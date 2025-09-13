@@ -1,5 +1,4 @@
 // Temporarily disable Google Fonts due to network issues
-// import { Inter } from 'next/font/google'
 
 // Use system fonts as fallback due to network issues
 export const inter = {

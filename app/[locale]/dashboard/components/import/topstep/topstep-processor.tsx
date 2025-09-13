@@ -208,13 +208,6 @@ export default function TopstepProcessor({ headers, csvData, setProcessedTrades,
             }
         });
 
-        // if (newTrades.length < csvData.length) {
-            // toast({
-            //     title: "Invalid Trades Filtered",
-            //     description: `${csvData.length - newTrades.length} trade(s) were filtered out due to invalid or missing data.`,
-            //     variant: "default",
-            // });
-        // }
 
         setTrades(newTrades);
         setProcessedTrades(newTrades);

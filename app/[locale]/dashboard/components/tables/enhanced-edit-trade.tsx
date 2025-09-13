@@ -21,7 +21,6 @@ import { Trade } from '@prisma/client'
 import { Edit, Camera, X } from 'lucide-react'
 import { useUserStore } from '@/store/user-store'
 import { formatCurrency } from '@/lib/utils'
-// import { NoteEditor } from '@/app/[locale]/dashboard/components/mindset/note-editor' // Removed - journaling feature
 
 // Schema for limited editing (only notes, screenshots, links)
 const editTradeSchema = z.object({

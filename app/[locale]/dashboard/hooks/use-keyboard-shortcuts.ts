@@ -14,10 +14,6 @@ export function useKeyboardShortcuts() {
     });
 
     // Stripe customer portal shortcut removed - feature not implemented
-    // hotkeys('⌘+b, ctrl+b', (event) => {
-    //   event.preventDefault();
-    //   window.location.href = process.env.NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL || '';
-    // });
 
     hotkeys('⌘+s, ctrl+s', (event) => {
       event.preventDefault();
@@ -45,7 +41,6 @@ export function useKeyboardShortcuts() {
     return () => {
       // Cleanup shortcuts when component unmounts
       hotkeys.unbind('⌘+d, ctrl+d');
-      // hotkeys.unbind('⌘+b, ctrl+b');
       hotkeys.unbind('⌘+s, ctrl+s');
       hotkeys.unbind('⌘+h, ctrl+h');
       hotkeys.unbind('⌘+k, ctrl+k');

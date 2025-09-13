@@ -46,12 +46,6 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
     const totalCommissions = trades.reduce((sum, trade) => sum + Math.abs(trade.commission || 0), 0)
     
     // Debug: Uncomment to troubleshoot data issues
-    // console.log('Commissions Chart Debug:', { 
-    //   tradesCount: trades.length, 
-    //   totalPnL, 
-    //   totalCommissions,
-    //   sampleTrades: trades.slice(0, 3).map(t => ({ pnl: t.pnl, commission: t.commission }))
-    // })
 
     // For pie chart, we need absolute values to show proportions correctly
     const absPnL = Math.abs(totalPnL)

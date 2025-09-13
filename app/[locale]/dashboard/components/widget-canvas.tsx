@@ -377,13 +377,6 @@ export default function WidgetCanvas() {
   const t = useI18n()
 
   // Debug the user and layouts state (commented out for production)
-  // console.log('🏠 WidgetCanvas render - User:', user)
-  // console.log('🏠 WidgetCanvas render - SupabaseUser:', supabaseUser)
-  // console.log('🏠 WidgetCanvas render - Layouts:', layouts)
-  // console.log('🏠 WidgetCanvas render - User ID:', user?.id)
-  // console.log('🏠 WidgetCanvas render - Supabase User ID:', supabaseUser?.id)
-  // console.log('🏠 WidgetCanvas render - Has layouts:', !!layouts)
-  // console.log('🏠 WidgetCanvas render - Edit mode:', isCustomizing)
 
   // Add this state to track if the layout change is from user interaction
   const activeLayout = useMemo(() => isMobile ? 'mobile' : 'desktop', [isMobile])
@@ -615,7 +608,12 @@ export default function WidgetCanvas() {
       });
 
       // Save to backend
-      saveDashboardLayout(updatedLayouts);
+      saveDashboardLayout({
+        ...layouts,
+        desktop: updatedLayouts.desktop,
+        mobile: updatedLayouts.mobile,
+        updatedAt: new Date()
+      });
       
     } catch (error) {
       logger.error('Error during resize', error, 'WidgetCanvas');
