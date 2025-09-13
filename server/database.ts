@@ -198,13 +198,41 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         skipped: cleanedData.length - result.count
       }, 'SaveTrades')
 
+      // Trigger prop firm account evaluation for newly added trades (batch processing)
+      try {
+        const { PropFirmAccountEvaluator } = await import('@/lib/prop-firm/account-evaluation')
+        // For batch processing, we need to pass the trades that were actually created
+        // Since we use skipDuplicates, we can't know exactly which trades were added
+        // So we'll evaluate all trades and let the evaluator handle duplicates
+        const evaluationResult = await PropFirmAccountEvaluator.linkTradesAndEvaluate(
+          cleanedData, 
+          userId
+        )
+        
+        logger.info('Prop firm evaluation completed (batch)', {
+          linkedTrades: evaluationResult.linkedTrades.length,
+          statusUpdates: evaluationResult.statusUpdates.length,
+          errors: evaluationResult.errors.length
+        }, 'SaveTrades')
+
+        // Log any evaluation errors but don't fail the trade import
+        if (evaluationResult.errors.length > 0) {
+          logger.warn('Prop firm evaluation errors (batch)', {
+            errors: evaluationResult.errors
+          }, 'SaveTrades')
+        }
+      } catch (evaluationError) {
+        // Log evaluation errors but don't fail the trade import
+        logger.error('Failed to evaluate prop firm accounts (batch)', evaluationError, 'SaveTrades')
+      }
+
       revalidatePath('/')
       return {
         error: false,
         numberOfTradesAdded: result.count,
         details: {
           totalProcessed: cleanedData.length,
-          duplicatesSkipped: cleanedData.length - result.count,
+          duplicatesSkipped: cleanedData.length - newTrades.length,
           newTradesAdded: result.count
         }
       }

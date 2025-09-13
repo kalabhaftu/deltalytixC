@@ -679,8 +679,8 @@ export function EnhancedCreateAccountDialog({
                             ) : (
                               <li>• Reach ${((watchedBalance || 0) * (watch('profitTargetPhase1') || 0) / 100).toLocaleString()} profit target</li>
                             )}
-                            <li>• Don't lose more than ${((watchedBalance || 0) * (watch('dailyDrawdown') || 0) / 100).toLocaleString()} in a single day</li>
-                            <li>• Don't lose more than ${((watchedBalance || 0) * (watch('maxDrawdown') || 0) / 100).toLocaleString()} total</li>
+                            <li>• Don&apos;t lose more than ${((watchedBalance || 0) * (watch('dailyDrawdown') || 0) / 100).toLocaleString()} in a single day</li>
+                            <li>• Don&apos;t lose more than ${((watchedBalance || 0) * (watch('maxDrawdown') || 0) / 100).toLocaleString()} total</li>
                           </ul>
                         </div>
                       </div>

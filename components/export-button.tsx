@@ -9,9 +9,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Calendar } from "@/components/ui/calendar"
+import { CustomDateRangePicker, DateRange } from "@/components/ui/custom-date-range-picker"
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths } from "date-fns"
-import { DateRange } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import {
   Table,
@@ -289,18 +288,12 @@ export default function TradeExportDialog({ trades }: Props) {
                   {!isAllTime && (
                     <div className="space-y-3">
                       <Label className="text-sm font-medium">Custom Range</Label>
-                      <div className="flex justify-center p-2">
-                        <div className="calendar-container">
-                          <Calendar
-                            initialFocus
-                            mode="range"
-                            defaultMonth={dateRange?.from}
-                            selected={dateRange}
-                            onSelect={handleDateRangeSelect}
-                            numberOfMonths={1}
-                            className="rounded-md border"
-                          />
-                        </div>
+                      <div className="flex justify-center">
+                        <CustomDateRangePicker
+                          selected={dateRange}
+                          onSelect={handleDateRangeSelect}
+                          className="w-fit"
+                        />
                       </div>
                     </div>
                   )}

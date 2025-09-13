@@ -303,19 +303,27 @@ code > [data-line]::before {
   }
   
   .calendar-container .rdp-head_row {
-    @apply flex w-full;
+    @apply flex w-full justify-between;
   }
   
   .calendar-container .rdp-head_cell {
-    @apply text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] flex items-center justify-center;
+    @apply text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] flex items-center justify-center flex-1;
   }
   
   .calendar-container .rdp-row {
-    @apply flex w-full;
+    @apply flex w-full justify-between;
   }
   
   .calendar-container .rdp-cell {
-    @apply h-9 w-9 text-center text-sm p-0 relative flex items-center justify-center;
+    @apply h-9 w-9 text-center text-sm p-0 relative flex items-center justify-center flex-1;
+  }
+  
+  .calendar-container .rdp-caption {
+    @apply flex justify-center items-center relative w-full;
+  }
+  
+  .calendar-container .rdp-nav {
+    @apply absolute inset-0 flex justify-between items-center px-1;
   }
 
   .react-grid-item.react-grid-placeholder {

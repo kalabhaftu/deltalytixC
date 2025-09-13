@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { useI18n } from "@/locales/client"
 import { 
   LayoutDashboard, 
@@ -194,6 +194,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
           </motion.div>
         </SheetTrigger>
         <SheetContent side="left" className="w-72 p-0 bg-background/95 backdrop-blur-xl border-border/50">
+          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           <div className="p-4 border-b border-border/50">
             <h2 className="font-semibold text-lg">Navigation</h2>
           </div>

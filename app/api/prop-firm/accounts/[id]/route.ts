@@ -63,7 +63,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         trades: {
           where: { accountId },
           orderBy: { entryTime: 'desc' },
-          take: 10, // Latest 10 trades for overview
+          take: 200, // More trades for detailed view
         },
         breaches: {
           orderBy: { breachTime: 'desc' },
