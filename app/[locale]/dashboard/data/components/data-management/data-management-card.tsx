@@ -2,17 +2,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
-import { TrashIcon, AlertCircle, ChevronDown, ChevronUp, MoreVertical, Edit2, Loader2 } from "lucide-react"
+import { TrashIcon, AlertCircle, MoreVertical, Edit2, Loader2 } from "lucide-react"
 import { 
   removeAccountsFromTradesAction, 
-  deleteInstrumentGroupAction, 
-  updateCommissionForGroupAction, 
-  renameAccountAction,
-  renameInstrumentAction 
+  renameAccountAction
 } from "@/server/accounts"
-import debounce from 'lodash/debounce'
 import { useData } from '@/context/data-provider'
 import { toast } from '@/hooks/use-toast'
 import { User } from '@supabase/supabase-js'
@@ -20,7 +15,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import { Trade } from '@prisma/client'
 import ExportButton from '@/components/export-button'
 import { useI18n } from "@/locales/client"
@@ -40,16 +34,11 @@ export function DataManagementCard() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [renameLoading, setRenameLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
-  const [expandedAccounts, setExpandedAccounts] = useState<Record<string, boolean>>({})
-  const [renameInstrumentDialogOpen, setRenameInstrumentDialogOpen] = useState(false)
   const [renameAccountDialogOpen, setRenameAccountDialogOpen] = useState(false)
   const [accountToRename, setAccountToRename] = useState("")
   const [newAccountNumber, setNewAccountNumber] = useState("")
-  const [instrumentToRename, setInstrumentToRename] = useState({ accountNumber: "", currentName: "" })
-  const [newInstrumentName, setNewInstrumentName] = useState("")
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([])
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [deleteMode, setDeleteMode] = useState<'selected' | 'all'>('selected')
   const [groupedTrades, setGroupedTrades] = useState<GroupedTrades>({})
 
 
@@ -84,7 +73,8 @@ export function DataManagementCard() {
     if (!user) return
     try {
       setDeleteLoading(true)
-      const accountsToDelete = deleteMode === 'all' ? Object.keys(groupedTrades) : selectedAccounts
+      // If no accounts are selected, delete all accounts
+      const accountsToDelete = selectedAccounts.length === 0 ? Object.keys(groupedTrades) : selectedAccounts
       await removeAccountsFromTradesAction(accountsToDelete)
       await refreshTrades()
       setSelectedAccounts([])
@@ -104,85 +94,8 @@ export function DataManagementCard() {
       setDeleteLoading(false)
       setDeleteDialogOpen(false)
     }
-  }, [user, deleteMode, groupedTrades, selectedAccounts, refreshTrades, t])
+  }, [user, groupedTrades, selectedAccounts, refreshTrades, t])
 
-  const handleDeleteInstrument = useCallback(async (accountNumber: string, instrumentGroup: string) => {
-    try {
-      await deleteInstrumentGroupAction(accountNumber, instrumentGroup, user!.id)
-      await refreshTrades()
-      toast({
-        title: t('dataManagement.toast.instrumentDeleted'),
-        variant: 'default',
-      })
-    } catch (error) {
-      console.error("Failed to delete instrument group:", error)
-      setError(error instanceof Error ? error : new Error('Failed to delete instrument group'))
-      toast({
-        title: t('dataManagement.toast.instrumentDeleteError'),
-        description: t('dataManagement.toast.deleteErrorDesc'),
-        variant: 'destructive',
-      })
-    }
-  }, [user, refreshTrades, t])
-
-  const debouncedUpdateCommission = useMemo(
-    () => debounce(async (accountNumber: string, instrumentGroup: string, newCommission: number) => {
-      try {
-        await updateCommissionForGroupAction(accountNumber, instrumentGroup, newCommission)
-        await refreshTrades()
-        toast({
-          title: t('dataManagement.toast.commissionUpdated'),
-          variant: 'default',
-        })
-      } catch (error) {
-        console.error("Failed to update commission:", error)
-        setError(error instanceof Error ? error : new Error('Failed to update commission'))
-        toast({
-          title: t('dataManagement.toast.commissionError'),
-          description: t('dataManagement.toast.deleteErrorDesc'),
-          variant: 'destructive',
-        })
-      }
-    }, 1000),
-    [refreshTrades, t]
-  )
-
-  const handleUpdateCommission = useCallback((accountNumber: string, instrumentGroup: string, newCommission: number) => {
-    debouncedUpdateCommission(accountNumber, instrumentGroup, newCommission)
-  }, [debouncedUpdateCommission])
-
-  const toggleAccountExpansion = useCallback((accountNumber: string) => {
-    setExpandedAccounts(prev => ({
-      ...prev,
-      [accountNumber]: !prev[accountNumber]
-    }))
-  }, [])
-
-  const handleRenameInstrument = useCallback(async () => {
-    if (!user || !instrumentToRename.currentName || !newInstrumentName) return
-    try {
-      setRenameLoading(true)
-      await renameInstrumentAction(instrumentToRename.accountNumber, instrumentToRename.currentName, newInstrumentName)
-      await refreshTrades()
-      toast({
-        title: t('dataManagement.toast.instrumentRenamed'),
-        variant: 'default',
-      })
-      setRenameInstrumentDialogOpen(false)
-      setInstrumentToRename({ accountNumber: "", currentName: "" })
-      setNewInstrumentName("")
-    } catch (error) {
-      console.error("Failed to rename instrument:", error)
-      setError(error instanceof Error ? error : new Error('Failed to rename instrument'))
-      toast({
-        title: t('dataManagement.toast.instrumentRenameError'),
-        description: error instanceof Error ? error.message : t('dataManagement.toast.deleteErrorDesc'),
-        variant: 'destructive',
-      })
-    } finally {
-      setRenameLoading(false)
-    }
-  }, [user, instrumentToRename, newInstrumentName, refreshTrades, t])
 
   const handleSelectAccount = useCallback((accountNumber: string) => {
     setSelectedAccounts(prev =>
@@ -191,6 +104,15 @@ export function DataManagementCard() {
         : [...prev, accountNumber]
     )
   }, [])
+
+  const handleSelectAll = useCallback(() => {
+    const allAccountNumbers = Object.keys(groupedTrades)
+    if (selectedAccounts.length === allAccountNumbers.length) {
+      setSelectedAccounts([])
+    } else {
+      setSelectedAccounts(allAccountNumbers)
+    }
+  }, [selectedAccounts.length, groupedTrades])
 
   const handleRenameAccount = useCallback(async () => {
     if (!user || !accountToRename || !newAccountNumber) return
@@ -238,46 +160,8 @@ export function DataManagementCard() {
                   variant="destructive"
                   size="sm"
                   className="flex-1 lg:flex-none min-w-[140px]"
-                  disabled={selectedAccounts.length === 0 || deleteLoading}
-                  onClick={() => {
-                    setDeleteMode('selected')
-                    setDeleteDialogOpen(true)
-                  }}
-                >
-                  {deleteLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('dataManagement.deleting')}
-                    </>
-                  ) : (
-                    <>{t('dataManagement.deleteSelected')} ({selectedAccounts.length})</>
-                  )}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t('dataManagement.deleteConfirm.title')}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t('dataManagement.deleteConfirm.description')}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t('dataManagement.deleteConfirm.cancel')}</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteAccounts} disabled={deleteLoading}>
-                    {deleteLoading ? t('dataManagement.deleting') : t('dataManagement.deleteConfirm.continue')}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="flex-1 lg:flex-none min-w-[100px]"
                   disabled={deleteLoading}
                   onClick={() => {
-                    setDeleteMode('all')
                     setDeleteDialogOpen(true)
                   }}
                 >
@@ -287,15 +171,23 @@ export function DataManagementCard() {
                       {t('dataManagement.deleting')}
                     </>
                   ) : (
-                    <>{t('dataManagement.deleteAll')}</>
+                    <>
+                      <TrashIcon className="mr-2 h-4 w-4" />
+                      {selectedAccounts.length === 0 ? 'Delete' : `Delete (${selectedAccounts.length})`}
+                    </>
                   )}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>{t('dataManagement.deleteConfirm.title')}</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    {selectedAccounts.length === 0 ? 'Delete All Accounts' : `Delete ${selectedAccounts.length} Account${selectedAccounts.length > 1 ? 's' : ''}`}
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
-                    {t('dataManagement.deleteConfirm.allDescription')}
+                    {selectedAccounts.length === 0 
+                      ? 'This will delete all accounts and their associated trades. This action cannot be undone.'
+                      : `This will delete the selected account${selectedAccounts.length > 1 ? 's' : ''} and their associated trades. This action cannot be undone.`
+                    }
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -311,27 +203,47 @@ export function DataManagementCard() {
         <CardDescription>{t('dataManagement.description')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
+        <div className="space-y-4">
+          {/* Select All Header */}
+          {Object.keys(groupedTrades).length > 0 && (
+            <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+              <div className="flex items-center">
+                <Checkbox
+                  id="select-all"
+                  checked={selectedAccounts.length === Object.keys(groupedTrades).length && Object.keys(groupedTrades).length > 0}
+                  onCheckedChange={handleSelectAll}
+                  className="mr-3"
+                />
+                <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                  {selectedAccounts.length === Object.keys(groupedTrades).length 
+                    ? 'Deselect All' 
+                    : 'Select All'
+                  }
+                </label>
+              </div>
+              {selectedAccounts.length > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {selectedAccounts.length} selected
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Account List */}
           {Object.entries(groupedTrades).map(([accountNumber, instruments]) => (
-            <div key={accountNumber} className="border-b pb-4 last:border-b-0">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mb-2">
+            <div key={accountNumber} className="border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
                 <div className="flex items-center w-full sm:w-auto">
                   <Checkbox
                     id={`select-${accountNumber}`}
                     checked={selectedAccounts.includes(accountNumber)}
                     onCheckedChange={() => handleSelectAccount(accountNumber)}
-                    className="mr-2 flex-shrink-0"
+                    className="mr-3 flex-shrink-0"
                   />
                   <div className="flex items-center justify-between w-full sm:w-auto">
-                    <button
-                      onClick={() => toggleAccountExpansion(accountNumber)}
-                      className="flex items-center text-base sm:text-lg font-semibold focus:outline-none text-left"
-                      aria-expanded={expandedAccounts[accountNumber]}
-                      aria-controls={`account-${accountNumber}`}
-                    >
-                      <span className="mr-2">{accountNumber}</span>
-                      {expandedAccounts[accountNumber] ? <ChevronUp className="w-4 h-4 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 flex-shrink-0" />}
-                    </button>
+                    <span className="text-base sm:text-lg font-semibold">
+                      {accountNumber}
+                    </span>
                     <div className="flex items-center sm:hidden ml-2">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -350,17 +262,6 @@ export function DataManagementCard() {
                             <Edit2 className="w-4 h-4 mr-2" />
                             {t('dataManagement.renameAccount')}
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onSelect={() => {
-                              setSelectedAccounts([accountNumber])
-                              setDeleteMode('selected')
-                              setDeleteDialogOpen(true)
-                            }}
-                          >
-                            <TrashIcon className="w-4 h-4 mr-2" />
-                            {t('dataManagement.deleteAccount')}
-                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -378,136 +279,19 @@ export function DataManagementCard() {
                     <Edit2 className="w-4 h-4 mr-2" />
                     {t('dataManagement.rename')}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-destructive"
-                    onClick={() => {
-                      setSelectedAccounts([accountNumber])
-                      setDeleteMode('selected')
-                      setDeleteDialogOpen(true)
-                    }}
-                  >
-                    <TrashIcon className="w-4 h-4 mr-2" />
-                    {t('dataManagement.delete')}
-                  </Button>
                 </div>
               </div>
-              {expandedAccounts[accountNumber] && (
-                <div id={`account-${accountNumber}`} className="space-y-4 pl-2 sm:pl-4">
-                  {Object.entries(instruments).map(([instrumentGroup, trades]) => (
-                    <div key={instrumentGroup} className="bg-gray-100 dark:bg-white/5 p-3 lg:p-4 rounded-lg">
-                      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <h3 className="text-md font-medium truncate">
-                            {instrumentGroup}
-                          </h3>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => {
-                              setInstrumentToRename({ accountNumber, currentName: instrumentGroup })
-                              setRenameInstrumentDialogOpen(true)
-                            }}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                            <span className="sr-only">{t('dataManagement.renameInstrument.title')}</span>
-                          </Button>
-                        </div>
-                        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 w-full lg:w-auto">
-                          <div className="relative w-full lg:w-32">
-                            <Input
-                              type="number"
-                              placeholder="Commission"
-                              defaultValue={trades[0].commission / trades[0].quantity}
-                              className="w-full"
-                              onChange={(e) => handleUpdateCommission(accountNumber, instrumentGroup, parseFloat(e.target.value))}
-                              aria-label={`Update commission for ${instrumentGroup}`}
-                            />
-                          </div>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full lg:w-auto whitespace-nowrap"
-                              >
-                                <TrashIcon className="w-4 h-4 mr-2" />
-                                {t('dataManagement.removeInstrument')}
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>{t('dataManagement.deleteInstrument.title')}</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  {t('dataManagement.deleteInstrument.description')}
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>{t('dataManagement.deleteConfirm.cancel')}</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteInstrument(accountNumber, instrumentGroup)}>
-                                  {t('dataManagement.deleteConfirm.continue')}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           ))}
+
+          {/* Empty State */}
+          {Object.keys(groupedTrades).length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No accounts found</p>
+            </div>
+          )}
         </div>
       </CardContent>
-      <Dialog open={renameInstrumentDialogOpen} onOpenChange={setRenameInstrumentDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('dataManagement.renameInstrument.title')}</DialogTitle>
-            <DialogDescription>
-              {t('dataManagement.renameInstrument.description')}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={(e) => {
-            e.preventDefault()
-            handleRenameInstrument()
-          }}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="newInstrumentName" className="text-right">
-                  {t('dataManagement.renameInstrument.newName')}
-                </Label>
-                <Input
-                  id="newInstrumentName"
-                  value={newInstrumentName}
-                  onChange={(e) => setNewInstrumentName(e.target.value)}
-                  className="col-span-3"
-                  autoFocus
-                  autoComplete="off"
-                  placeholder={t('dataManagement.renameInstrument.placeholder')}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="submit"
-                disabled={renameLoading || !newInstrumentName}
-              >
-                {renameLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t('dataManagement.renameDialog.renaming')}
-                  </>
-                ) : (
-                  t('dataManagement.rename')
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
       <Dialog open={renameAccountDialogOpen} onOpenChange={setRenameAccountDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -526,14 +310,14 @@ export function DataManagementCard() {
           }}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="newAccountNumber" className="text-right">
+                <label htmlFor="newAccountNumber" className="text-right">
                   {t('dataManagement.renameAccount.newNumber')}
-                </Label>
-                <Input
+                </label>
+                <input
                   id="newAccountNumber"
                   value={newAccountNumber}
                   onChange={(e) => setNewAccountNumber(e.target.value)}
-                  className="col-span-3"
+                  className="col-span-3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   autoFocus
                   autoComplete="off"
                   placeholder={t('dataManagement.renameAccount.placeholder')}

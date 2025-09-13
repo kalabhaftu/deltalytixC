@@ -537,7 +537,7 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="flex items-center justify-center py-8">
             <p className="text-muted-foreground text-center">
-              Advanced notification preferences are coming soon. You'll be able to customize email alerts, trading notifications, and performance reports.
+              Advanced notification preferences are coming soon. You&apos;ll be able to customize email alerts, trading notifications, and performance reports.
             </p>
           </CardContent>
         </Card>

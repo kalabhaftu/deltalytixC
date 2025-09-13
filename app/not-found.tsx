@@ -67,17 +67,6 @@ function applyThemeToDocument(effectiveTheme: 'light' | 'dark', intensity: numbe
 function detectLocaleFromBrowser(): 'en' {
   // Always return English since we only support English now
   return 'en'
-  
-  // If no country detected, fall back to browser language
-  const cookies = document.cookie.split(';')
-  const countryCookie = cookies.find(cookie => cookie.trim().startsWith('user-country='))
-  
-  if (!countryCookie) {
-    const browserLang = navigator.language.toLowerCase()
-    return 'en'
-  }
-  
-  return geoLocale
 }
 
 function NotFoundContent() {

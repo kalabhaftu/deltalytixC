@@ -111,11 +111,11 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">Entry Price</Label>
-                    <p className="font-medium">{formatCurrency(parseFloat(trade.entryPrice), 4)}</p>
+                    <p className="font-medium">{formatCurrency(parseFloat(trade.entryPrice))}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">Exit Price</Label>
-                    <p className="font-medium">{formatCurrency(parseFloat(trade.closePrice), 4)}</p>
+                    <p className="font-medium">{formatCurrency(parseFloat(trade.closePrice))}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">P&L</Label>

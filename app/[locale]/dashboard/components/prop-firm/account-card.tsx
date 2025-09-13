@@ -160,10 +160,10 @@ export function PropFirmAccountCard({
 
         <div className="flex items-center gap-2">
           <Badge variant={getStatusVariant(account.status)}>
-            {t(`propFirm.status.${account.status}`)}
+            {account.status}
           </Badge>
           <Badge variant="outline" className={getPhaseColor(account.currentPhase)}>
-            {t(`propFirm.phase.${account.currentPhase}`)}
+            {account.currentPhase}
           </Badge>
         </div>
       </CardHeader>

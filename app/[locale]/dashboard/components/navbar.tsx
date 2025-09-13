@@ -122,7 +122,7 @@ export default function Navbar() {
               </div>
               {/* Mobile import button */}
               <div className='md:hidden'>
-                <ImportButton variant="icon" />
+                <ImportButton />
               </div>
             </div>
             <div className="flex items-center gap-3">

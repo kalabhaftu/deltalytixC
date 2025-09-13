@@ -77,11 +77,6 @@ const CustomTooltip = ({ active, payload, label, showAverage }: TooltipProps & {
         <p className={`font-bold ${data.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
           {showAverage ? 'Average P/L per Trade' : 'Total P/L'}: {formatCurrency(data.pnl)}
         </p>
-        {showAverage && (
-          <p className="text-sm text-muted-foreground">
-            Total P/L: {formatCurrencyValue(data.totalPnl)}
-          </p>
-        )}
         <p>{t('pnl.tooltip.longTrades')}: {data.longNumber}</p>
         <p>{t('pnl.tooltip.shortTrades')}: {data.shortNumber}</p>
       </div>

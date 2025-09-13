@@ -160,16 +160,10 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
       // Save trades with smart duplicate detection
       const result = await saveTradesAction(newTrades)
       if(result.error){
-        if (result.error === "ALL_DUPLICATES") {
+        if (result.error === "DUPLICATE_TRADES") {
           toast({
             title: "All Trades Already Exist",
             description: `All ${newTrades.length} trades were already imported and skipped.`,
-            variant: "destructive",
-          })
-        } else if (result.error === "DUPLICATE_TRADES") {
-          toast({
-            title: t('import.error.duplicateTrades'),
-            description: t('import.error.duplicateTradesDescription'),
             variant: "destructive",
           })
         } else if (result.error === "NO_TRADES_ADDED") {

@@ -219,13 +219,13 @@ export function PropFirmAccountTable({
 
                 <TableCell>
                   <Badge variant={getStatusVariant(account.status)}>
-                    {t(`propFirm.status.${account.status}`)}
+                    {account.status}
                   </Badge>
                 </TableCell>
 
                 <TableCell>
                   <Badge variant="outline" className={getPhaseColor(account.currentPhase)}>
-                    {t(`propFirm.phase.${account.currentPhase}`)}
+                    {account.currentPhase}
                   </Badge>
                 </TableCell>
 

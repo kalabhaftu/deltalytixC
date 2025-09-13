@@ -107,7 +107,7 @@ export async function DELETE(request: NextRequest) {
       
       // Account-related deletions
       if (accountIds.length > 0) {
-        await tx.phaseBreach.deleteMany({
+        await tx.breach.deleteMany({
           where: {
             phase: {
               accountId: { in: accountIds }

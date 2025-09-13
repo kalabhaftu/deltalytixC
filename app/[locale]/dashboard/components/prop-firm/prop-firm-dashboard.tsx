@@ -368,10 +368,10 @@ function AccountCard({
           </div>
           <div className="flex items-center gap-2">
             <Badge className={cn(getStatusColor(account.status), 'text-white')}>
-              {t(`propFirm.status.${account.status}`)}
+              {account.status}
             </Badge>
             <Badge variant="outline" className={cn(getPhaseColor(account.currentPhase), 'text-white')}>
-              {t(`propFirm.phase.${account.currentPhase}`)}
+              {account.currentPhase}
             </Badge>
           </div>
         </div>

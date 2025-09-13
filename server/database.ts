@@ -160,7 +160,7 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
 
         if (newTrades.length === 0) {
           return {
-            error: 'ALL_DUPLICATES',
+            error: 'DUPLICATE_TRADES',
             numberOfTradesAdded: 0,
             details: `All ${cleanedData.length} trades already exist`
           }

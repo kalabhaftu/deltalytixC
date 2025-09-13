@@ -82,7 +82,7 @@ export function FormErrorsDisplay({ errors, className }: FormErrorsDisplayProps)
           <ul className="list-disc list-inside space-y-1 text-sm">
             {errorEntries.map(([field, error]) => (
               <li key={field}>
-                <span className="capitalize">{field.replace(/([A-Z])/g, ' $1')}</span>: {error?.message}
+                <span className="capitalize">{field.replace(/([A-Z])/g, ' $1')}</span>: {(error as any)?.message || String(error)}
               </li>
             ))}
           </ul>

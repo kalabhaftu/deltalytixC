@@ -293,7 +293,13 @@ export default {
         phase: {
             phase_1: 'Phase 1',
             phase_2: 'Phase 2',
-            funded: 'Funded'
+            funded: 'Funded',
+            challenge: 'Challenge',
+            verification: 'Verification', 
+            evaluation: 'Evaluation',
+            phase1: 'Phase 1',
+            phase2: 'Phase 2',
+            active: 'Active'
         },
         tabs: {
             all: 'All',
@@ -479,18 +485,6 @@ export default {
             maxDD: 'Max DD',
             noAccounts: 'No accounts found'
         },
-        phase: {
-            challenge: 'Challenge',
-            verification: 'Verification', 
-            funded: 'Funded',
-            evaluation: 'Evaluation',
-            phase1: 'Phase 1',
-            phase2: 'Phase 2',
-            active: 'Active',
-            failed: 'Failed',
-            passed: 'Passed',
-            pending: 'Pending'
-        },
         common: {
             viewMode: {
                 cards: 'Cards',
@@ -500,10 +494,6 @@ export default {
             delete: 'Delete',
             deleting: 'Deleting...',
             cancel: 'Cancel'
-        },
-        toast: {
-            setupError: 'Setup Error',
-            setupErrorDescription: 'Failed to set up prop firm account. Please try again.'
         }
     }
 } as const;

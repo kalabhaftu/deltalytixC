@@ -517,15 +517,15 @@ export function AccountsOverview({ size }: { size: WidgetSize }) {
       setSelectedAccountForTable(null)
 
       toast({
-        title: t('propFirm.toast.deleteSuccess'),
-        description: t('propFirm.toast.deleteSuccessDescription'),
+        title: "Account deleted successfully",
+        description: "The account has been removed from your list.",
         variant: "default"
       })
     } catch (error) {
       console.error('Failed to delete account:', error)
       toast({
-        title: t('propFirm.toast.deleteError'),
-        description: t('propFirm.toast.deleteErrorDescription'),
+        title: "Failed to delete account",
+        description: "An error occurred while deleting the account. Please try again.",
         variant: "destructive"
       })
     } finally {

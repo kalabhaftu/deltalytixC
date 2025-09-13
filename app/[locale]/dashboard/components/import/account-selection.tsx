@@ -146,7 +146,7 @@ export default function AccountSelection({
                     <p className="text-xs text-muted-foreground">
                       {account.accountType === 'prop-firm' 
                         ? account.propfirm || t('import.account.propFirm')
-                        : account.broker || t('import.account.liveBroker')
+                        : (account as any).broker || t('import.account.liveBroker')
                       }
                     </p>
                   </div>
