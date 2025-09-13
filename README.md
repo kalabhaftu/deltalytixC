@@ -1,45 +1,33 @@
 # Deltalytix
 
-Deltalytix is an advanced analytics platform for modern traders, providing comprehensive tools to store, explore, and understand trading track records.
+Deltalytix is a personal trading analytics platform for storing, exploring, and understanding trading track records.
 
 ## Features
 
 ### 1. User Authentication
-- Secure authentication system using Supabase
-- Support for Discord login
+- Authentication using Supabase
+- Discord login
 - User profile management
 
 ### 2. Data Import and Processing
-- CSV data import functionality
-- AI-assisted field mapping for efficient data processing
+- CSV data import
+- AI-assisted field mapping
 - Support for multiple CSV formats, including Rithmic Performance Import
-- Data encryption for enhanced security
+- Data encryption
 
-### 3. Advanced Analytics
-- Daily performance chart with customizable views (PnL, Volume, etc.)
+### 3. Analytics
+- Daily performance charts (PnL, Volume, etc.)
 - Trading session summaries
 - Decile statistics and trading habits analysis (upcoming)
 - AI-powered sentiment analysis (upcoming)
 
 ### 4. User Interface
-- Responsive design for both desktop and mobile
+- Responsive design
 - Dark mode support
 - Customizable dashboard
 - Interactive charts and data visualizations
 
-### 5. Developer-Friendly
-- Open-source project
-- Comprehensive documentation (upcoming)
-- Active developer community
-
-### 6. Pricing Tiers
-- Multiple pricing plans to suit different trader needs
-- Features include:
-  - Account limits
-  - Data storage duration
-  - Mentor Mode
-
-### 7. Data Management
+### 5. Data Management
 - Secure storage of trading data
 - Easy access to historical trading information
 - Data visualization tools
@@ -87,15 +75,6 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - Sensitive operations are handled through Server Actions to prevent exposure
 - Public data is served through cached API routes for optimal performance
 - Database operations are type-safe and validated through Prisma
-
-## Contributing
-
-We welcome contributions to Deltalytix. Please check out our [GitHub repository](https://github.com/hugodemenez/deltalytix) for more information on how to get involved.
-
-## Support
-
-For any questions or support, please join our [Discord community](https://discord.gg/a5YVF5Ec2n).
-
 
 
 ## Cursor usage
