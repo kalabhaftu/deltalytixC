@@ -91,7 +91,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       await tx.accountPhase.update({
         where: { id: currentPhase.id },
         data: {
-          phaseStatus: 'passed',
+          phaseStatus: 'archived', // Archive instead of just marking as passed
           phaseEndAt: new Date(),
           netProfitSincePhaseStart: currentPhaseProfit || currentPhase.netProfitSincePhaseStart
         }

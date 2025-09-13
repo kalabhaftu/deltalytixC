@@ -68,7 +68,7 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
       nbLoss: 0,
       totalPositionTime: 0,
       averagePositionTime: '0s',
-      profitFactor: 1,
+      profitFactor: 0,
       grossLosses: 0,
       grossWin: 0,
       // New metrics for enhanced statistics
@@ -106,7 +106,7 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
       nbLoss: 0,
       totalPositionTime: 0,
       averagePositionTime: '0s',
-      profitFactor: 1,
+      profitFactor: 0,
       grossLosses: 0,
       grossWin: 0,
       // New metrics for enhanced statistics
@@ -198,7 +198,7 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
   // Calculate improved profit factor
   const avgWin = statistics.nbWin > 0 ? statistics.grossWin / statistics.nbWin : 0;
   const avgLoss = statistics.nbLoss > 0 ? statistics.grossLosses / statistics.nbLoss : 0;
-  statistics.profitFactor = avgLoss > 0 ? avgWin / avgLoss : (statistics.grossWin > 0 ? 999 : 1);
+  statistics.profitFactor = avgLoss > 0 ? avgWin / avgLoss : (statistics.grossWin > 0 ? 999 : 0);
 
   return statistics;
 }

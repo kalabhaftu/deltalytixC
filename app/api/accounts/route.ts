@@ -10,11 +10,22 @@ export async function GET(request: NextRequest) {
     // Get user ID using the proper auth function
     const currentUserId = await getUserId()
 
+    // Add filtering for failed accounts when used for trade imports
+    const whereClause: any = {
+      userId: currentUserId
+    }
+    
+    // Filter out failed accounts for trade imports
+    if (request.nextUrl.searchParams.get('forImport') === 'true') {
+      whereClause.OR = [
+        { status: { not: 'failed' } },
+        { status: null } // Include accounts without status (legacy)
+      ]
+    }
+
     // Simplified query - only fetch essential data for current user
     const accounts = await prisma.account.findMany({
-      where: {
-        userId: currentUserId
-      },
+      where: whereClause,
       select: {
         id: true,
         number: true,

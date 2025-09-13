@@ -1,260 +1,297 @@
 "use client"
 
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command"
-import { Checkbox } from "@/components/ui/checkbox"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { useI18n } from "@/locales/client"
 import { useState, useEffect } from "react"
-import { Settings } from "lucide-react"
-import { useModalStateStore } from "../../../../../store/modal-state-store"
+import { Building2, User, X, Filter } from "lucide-react"
 import { useData } from "@/context/data-provider"
-import { useTradesStore } from "../../../../../store/trades-store"
-import { useUserStore } from "../../../../../store/user-store"
-
+import { useAccounts } from "@/hooks/use-accounts"
 
 interface AccountFilterProps {
   showAccountNumbers: boolean
   className?: string
 }
 
-interface Account {
-  id: string
-  number: string
-  groupId: string | null
-}
-
-interface TradeAccount {
-  number: string
+interface DashboardFilters {
+  accountId?: string
+  phaseId?: string
+  accountType?: 'all' | 'live' | 'prop-firm'
+  showAll: boolean
 }
 
 export function AccountFilter({ showAccountNumbers, className }: AccountFilterProps) {
-  const { accountNumbers = [], setAccountNumbers} = useData()
-  const groups = useUserStore(state => state.groups)
-  const trades = useTradesStore(state => state.trades)
+  const { accountNumbers = [], setAccountNumbers } = useData()
+  const { accounts } = useAccounts()
   const [searchTerm, setSearchTerm] = useState("")
+  const [filters, setFilters] = useState<DashboardFilters>({ showAll: true, accountType: 'all' })
   const t = useI18n()
-  const { setAccountGroupBoardOpen } = useModalStateStore()
 
-  // Get unique account numbers from trades
-  const tradeAccounts = Array.from(new Set(trades.map(trade => trade.accountNumber)))
-    .map(number => ({ number }))
+  // Load saved filters from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('dashboardAccountFilters')
+      if (saved) {
+        const parsedFilters = JSON.parse(saved)
+        setFilters(parsedFilters)
+        applyFilters(parsedFilters)
+      }
+    } catch (error) {
+      console.error('Failed to load saved dashboard filters:', error)
+    }
+  }, [])
 
-  // Get accounts that exist in the Account table
-  const existingAccounts = tradeAccounts.filter(tradeAccount => 
-    groups.some(group => 
-      group.accounts.some(account => account.number === tradeAccount.number)
-    )
-  )
+  // Apply filters to account numbers
+  const applyFilters = (filterState: DashboardFilters) => {
+    if (!accounts) return
 
-  // Get accounts that only exist in trades (not in Account table)
-  const tradeOnlyAccounts = tradeAccounts
-    .filter(tradeAccount => !existingAccounts.some(existing => existing.number === tradeAccount.number))
-    .map(account => ({ 
-      id: account.number,       // Use number as id for trade-only accounts
-      number: account.number,
-      groupId: null     // No group for trade-only accounts
-    }))
-
-  // Filter groups and trade-only accounts based on search term
-  const filteredGroups = searchTerm
-    ? groups
-        .filter(group => group.name !== "Hidden Accounts") // Exclude hidden group
-        .map(group => ({
-          ...group,
-          accounts: group.accounts.filter(account => 
-            account.number.toLowerCase().includes(searchTerm.toLowerCase())
-          )
-        }))
-        .filter(group => group.accounts.length > 0)
-    : groups.filter(group => group.name !== "Hidden Accounts") // Exclude hidden group
-
-  const filteredTradeOnlyAccounts = searchTerm
-    ? tradeOnlyAccounts.filter(account => 
-        account.number.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : tradeOnlyAccounts
-
-  const handleSelectGroup = (groupId: string, groupAccounts: Account[]) => {
-    const selectableItems = groupAccounts.filter(item => !isItemDisabled(item))
-    const allSelected = selectableItems.every(item => accountNumbers.includes(item.number))
-    
-    if (allSelected) {
-      setAccountNumbers(prev => 
-        prev.filter(account => !selectableItems.some(item => item.number === account))
-      )
+    if (filterState.showAll) {
+      // Show all accounts
+      setAccountNumbers([])
     } else {
-      setAccountNumbers(prev => [
-        ...prev,
-        ...selectableItems
-          .map(item => item.number)
-          .filter(account => !prev.includes(account))
-      ])
+      // Apply specific filters
+      let filteredAccountNumbers: string[] = []
+
+      if (filterState.accountId) {
+        // Single account selected
+        const selectedAccount = accounts.find(a => a.id === filterState.accountId)
+        if (selectedAccount) {
+          filteredAccountNumbers = [selectedAccount.number]
+        }
+      } else if (filterState.accountType && filterState.accountType !== 'all') {
+        // Filter by account type
+        filteredAccountNumbers = accounts
+          .filter(account => account.accountType === filterState.accountType)
+          .map(account => account.number)
+      }
+
+      setAccountNumbers(filteredAccountNumbers)
     }
   }
 
-  const handleSelectAll = () => {
-    const allAccounts = [
-      ...groups
-        .filter(group => group.name !== "Hidden Accounts") // Exclude hidden group
-        .flatMap(group => group.accounts),
-      ...tradeOnlyAccounts
-    ]
-    const availableAccounts = allAccounts.filter(item => !isItemDisabled(item))
-    
-    // Check if all available accounts are already selected
-    const allAvailableSelected = availableAccounts.every(account => 
-      accountNumbers.includes(account.number)
-    )
-    
-    setAccountNumbers(prev => 
-      allAvailableSelected ? [] : availableAccounts.map(i => i.number)
-    )
-  }
-
-  const isItemDisabled = (item: Account | TradeAccount) => false
-
-  const isItemSelected = (item: Account | TradeAccount): boolean => {
-    return accountNumbers.includes(item.number)
-  }
-
-  const isGroupSelected = (groupAccounts: Account[]) => {
-    const selectableItems = groupAccounts.filter(item => !isItemDisabled(item))
-    return selectableItems.length > 0 && selectableItems.every(item => isItemSelected(item))
-  }
-
-  const isGroupIndeterminate = (groupAccounts: Account[]) => {
-    const selectableItems = groupAccounts.filter(item => !isItemDisabled(item))
-    const selectedCount = selectableItems.filter(item => isItemSelected(item)).length
-    return selectedCount > 0 && selectedCount < selectableItems.length
-  }
-
-  const anonymizeAccount = (account: string) => {
-    if (!showAccountNumbers) {
-      return account.slice(0, 3) + '*'.repeat(Math.max(0, account.length - 7)) + account.slice(-4)
+  // Save filters to localStorage when changed
+  useEffect(() => {
+    try {
+      localStorage.setItem('dashboardAccountFilters', JSON.stringify(filters))
+      applyFilters(filters)
+    } catch (error) {
+      console.error('Failed to save dashboard filters:', error)
     }
-    return account
+  }, [filters])
+
+  const handleAccountTypeChange = (value: string) => {
+    if (value === 'all') {
+      setFilters({ showAll: true, accountType: 'all' })
+    } else {
+      setFilters(prev => ({ 
+        ...prev, 
+        accountType: value as 'live' | 'prop-firm',
+        accountId: undefined,
+        phaseId: undefined,
+        showAll: false 
+      }))
+    }
   }
 
-  const handleSelect = (value: string) => {
-    setAccountNumbers(prev => 
-      prev.includes(value) 
-        ? prev.filter(account => account !== value)
-        : [...prev, value]
-    )
+  const handleAccountChange = (value: string) => {
+    if (value === 'all') {
+      setFilters(prev => ({ ...prev, accountId: undefined, phaseId: undefined, showAll: true }))
+    } else {
+      setFilters(prev => ({ 
+        ...prev, 
+        accountId: value, 
+        phaseId: undefined, 
+        showAll: false 
+      }))
+    }
   }
+
+  const handlePhaseChange = (value: string) => {
+    if (value === 'all') {
+      setFilters(prev => ({ ...prev, phaseId: undefined }))
+    } else {
+      setFilters(prev => ({ ...prev, phaseId: value }))
+    }
+  }
+
+  const clearFilters = () => {
+    setFilters({ showAll: true, accountType: 'all' })
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800'
+      case 'funded': return 'bg-blue-100 text-blue-800'
+      case 'failed': return 'bg-red-100 text-red-800'
+      case 'passed': return 'bg-yellow-100 text-yellow-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getPhaseColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800'
+      case 'archived': return 'bg-gray-100 text-gray-800'
+      case 'failed': return 'bg-red-100 text-red-800'
+      case 'passed': return 'bg-yellow-100 text-yellow-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const selectedAccount = accounts?.find(a => a.id === filters.accountId)
+  const availablePhases = selectedAccount?.phases || []
+
+  // Filter accounts by type and search
+  const filteredAccountsByType = accounts?.filter(account => {
+    if (filters.accountType === 'all') return true
+    return account.accountType === filters.accountType
+  }).filter(account => {
+    if (!searchTerm) return true
+    return account.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           (account.name && account.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  }) || []
 
   return (
-    <div className="space-y-2">
-      <Label className="text-sm font-medium">{t('filters.accounts')}</Label>
-      <Command className="rounded-lg border" shouldFilter={false}>
-        <div className="border-b">
-          <CommandInput 
-            placeholder={t('filters.search')} 
-            value={searchTerm}
-            onValueChange={setSearchTerm}
-            className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-8"
-          />
+    <div className="space-y-4">
+      {/* Quick Filter Controls */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Label className="text-sm font-medium">Account Filter</Label>
         </div>
-        <CommandList>
-          <ScrollArea className="h-[300px]">
-            <CommandGroup>
-              <CommandItem
-                onSelect={() => setAccountGroupBoardOpen(true)}
-                className="flex items-center gap-2 px-2"
-              >
-                <Settings className="h-4 w-4" />
-                <span className="text-sm">{t('filters.manageAccounts')}</span>
-              </CommandItem>
-              <CommandSeparator />
 
-              <CommandItem
-                onSelect={handleSelectAll}
-                className="flex items-center gap-2 px-2 bg-muted/50"
-              >
-                <Checkbox
-                  checked={[
-                    ...groups
-                      .filter(group => group.name !== "Hidden Accounts")
-                      .flatMap(g => g.accounts),
-                    ...tradeOnlyAccounts
-                  ].every(item => isItemSelected(item))}
-                  className="h-4 w-4"
-                />
-                <span className="text-sm font-medium">{t('filters.selectAllAccounts')}</span>
-              </CommandItem>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={filters.showAll ? "default" : "outline"}
+            size="sm"
+            onClick={clearFilters}
+            className="text-xs"
+          >
+            Show All Data
+          </Button>
+        </div>
 
-              {/* Show trade-only accounts first */}
-              {filteredTradeOnlyAccounts.length > 0 && (
-                <CommandGroup className="px-2">
-                  <CommandItem
-                    onSelect={() => handleSelectGroup('trade-only', filteredTradeOnlyAccounts)}
-                    className="flex items-center gap-2 bg-muted/50"
-                  >
-                    <Checkbox
-                      checked={isGroupSelected(filteredTradeOnlyAccounts)}
-                      className="h-4 w-4"
-                      data-state={isGroupIndeterminate(filteredTradeOnlyAccounts) ? 'indeterminate' : undefined}
-                    />
-                    <span className="text-sm font-medium">{t('filters.tradeOnlyAccounts')}</span>
-                  </CommandItem>
-                  {filteredTradeOnlyAccounts.map(account => (
-                    <CommandItem
-                      key={account.number}
-                      onSelect={() => handleSelect(account.number)}
-                      disabled={isItemDisabled(account)}
-                      className="flex items-center gap-2 pl-6"
-                    >
-                      <Checkbox
-                        checked={isItemSelected(account)}
-                        className="h-4 w-4 flex-shrink-0"
-                        disabled={isItemDisabled(account)}
-                      />
-                      <span className="text-sm break-all pr-2">
-                        {anonymizeAccount(account.number)}
-                      </span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
+        <Select
+          value={filters.accountType || "all"}
+          onValueChange={handleAccountTypeChange}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Account Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="live">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Live Accounts
+              </div>
+            </SelectItem>
+            <SelectItem value="prop-firm">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Prop Firm
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
 
-              {/* Show grouped accounts */}
-              {filteredGroups.map((group) => (
-                <CommandGroup key={group.id} className="px-2">
-                  <CommandItem
-                    onSelect={() => handleSelectGroup(group.id, group.accounts)}
-                    className="flex items-center gap-2 bg-muted/50"
-                  >
-                    <Checkbox
-                      checked={isGroupSelected(group.accounts)}
-                      className="h-4 w-4"
-                      data-state={isGroupIndeterminate(group.accounts) ? 'indeterminate' : undefined}
-                    />
-                    <span className="text-sm font-medium">{group.name}</span>
-                  </CommandItem>
-                  {group.accounts.map(account => (
-                    <CommandItem
-                      key={account.id}
-                      onSelect={() => handleSelect(account.number)}
-                      disabled={isItemDisabled(account)}
-                      className="flex items-center gap-2 pl-6"
-                    >
-                      <Checkbox
-                        checked={isItemSelected(account)}
-                        className="h-4 w-4 flex-shrink-0"
-                        disabled={isItemDisabled(account)}
-                      />
-                      <span className="text-sm break-all pr-2">
-                        {anonymizeAccount(account.number)}
-                      </span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
+        {!filters.showAll && filteredAccountsByType.length > 0 && (
+          <Select
+            value={filters.accountId || "all"}
+            onValueChange={handleAccountChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select account..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All {filters.accountType === 'all' ? 'Accounts' : filters.accountType === 'live' ? 'Live Accounts' : 'Prop Firm Accounts'}</SelectItem>
+              {filteredAccountsByType.map((account) => (
+                <SelectItem key={account.id} value={account.id}>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{account.number}</span>
+                    {account.name && (
+                      <span className="text-muted-foreground">({account.name})</span>
+                    )}
+                    {account.status && (
+                      <Badge className={getStatusColor(account.status)} variant="secondary">
+                        {account.status?.toUpperCase()}
+                      </Badge>
+                    )}
+                  </div>
+                </SelectItem>
               ))}
-            </CommandGroup>
-          </ScrollArea>
-        </CommandList>
-      </Command>
+            </SelectContent>
+          </Select>
+        )}
+
+        {selectedAccount && selectedAccount.accountType === 'prop-firm' && availablePhases.length > 0 && (
+          <Select
+            value={filters.phaseId || "all"}
+            onValueChange={handlePhaseChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="All phases" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Phases</SelectItem>
+              {availablePhases.map((phase: any) => (
+                <SelectItem key={phase.id} value={phase.id}>
+                  <div className="flex items-center gap-2">
+                    <span className="capitalize">
+                      {phase.phaseType.replace('_', ' ')}
+                    </span>
+                    <Badge className={getPhaseColor(phase.phaseStatus)} variant="secondary">
+                      {phase.phaseStatus}
+                    </Badge>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {!filters.showAll && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="w-full text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4 mr-1" />
+            Clear Filters
+          </Button>
+        )}
+      </div>
+
+      {/* Active Filter Summary */}
+      {!filters.showAll && (
+        <div className="pt-3 border-t">
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Currently showing:</Label>
+            <div className="flex flex-wrap items-center gap-1">
+              {filters.accountType && filters.accountType !== 'all' && (
+                <Badge variant="outline" className="text-xs capitalize">
+                  {filters.accountType === 'prop-firm' ? 'Prop Firm' : filters.accountType} Accounts
+                </Badge>
+              )}
+              {selectedAccount && (
+                <Badge variant="outline" className="text-xs">
+                  {selectedAccount.number}
+                  {selectedAccount.name && ` (${selectedAccount.name})`}
+                </Badge>
+              )}
+              {filters.phaseId && (
+                <Badge variant="outline" className="text-xs">
+                  {availablePhases.find((p: any) => p.id === filters.phaseId)?.phaseType?.replace('_', ' ') || 'Unknown Phase'}
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
-} 
+}

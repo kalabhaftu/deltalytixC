@@ -1014,7 +1014,7 @@ export const DataProvider: React.FC<{
 
     // Calculate profit factor (handle division by zero)
     const profitFactor = grossLosses === 0 ?
-      grossProfits > 0 ? Number.POSITIVE_INFINITY : 1 :
+      grossProfits > 0 ? Number.POSITIVE_INFINITY : 0 :
       grossProfits / grossLosses;
 
     return {

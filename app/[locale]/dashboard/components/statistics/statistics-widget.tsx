@@ -233,7 +233,7 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
                   <span className="text-xs font-medium font-mono">
                     {nbLoss > 0 && grossLosses > 0 ? 
                       ((nbWin > 0 ? grossWin / nbWin : 0) / (grossLosses / nbLoss)).toFixed(2) : 
-                      (grossWin > 0 ? '∞' : '1.00')
+                      (grossWin > 0 ? '∞' : 'N/A')
                     }
                   </span>
                 </div>

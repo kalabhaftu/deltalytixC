@@ -15,6 +15,8 @@ const AccountsPage = dynamic(() => import('./accounts/page'), {
 })
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from "@/locales/client"
+import { useAccounts } from "@/hooks/use-accounts"
+import { useData } from "@/context/data-provider"
 import { DashboardErrorBoundary, ErrorBoundaryWrapper } from '@/components/error-boundary'
 import { DashboardSidebar } from './components/sidebar/dashboard-sidebar'
 import { cn } from "@/lib/utils"
@@ -26,6 +28,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('widgets')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const { accounts } = useAccounts()
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
@@ -122,6 +125,7 @@ export default function Home() {
     
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
 
   const pageVariants = {
     initial: { opacity: 0, y: 20 },

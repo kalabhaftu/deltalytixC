@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       duration: `${duration}ms`,
       date: new Date().toISOString().split('T')[0]
     }, 'DailyAnchorCron')
-    
+
     return NextResponse.json({
       success: true,
       message: `Daily anchor creation completed`,
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('Daily anchor cron failed', error, 'DailyAnchorCron')
     
-    return NextResponse.json(
+        return NextResponse.json(
       { 
         error: 'Daily anchor creation failed', 
         details: error instanceof Error ? error.message : 'Unknown error',

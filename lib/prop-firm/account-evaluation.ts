@@ -63,7 +63,7 @@ export class PropFirmAccountEvaluator {
         },
         include: {
           phases: {
-            where: { phaseStatus: 'active' },
+            where: { phaseStatus: 'active' }, // Only get active phases, not archived ones
             orderBy: { createdAt: 'desc' },
             take: 1
           }
@@ -92,6 +92,41 @@ export class PropFirmAccountEvaluator {
           if (!currentPhase) {
             errors.push(`No active phase found for account: ${trade.accountNumber}`)
             continue
+          }
+
+          // Check if Phase 2 requires new account ID assignment
+          if (currentPhase.phaseType === 'phase_2') {
+            // Check if this account has been through Phase 1 transition
+            const hasPhase1 = await prisma.accountPhase.findFirst({
+              where: {
+                accountId: matchingAccount.id,
+                phaseType: 'phase_1',
+                phaseStatus: 'passed'
+              }
+            })
+
+            if (hasPhase1) {
+              // This means we transitioned from Phase 1 to Phase 2
+              // Check if account number was updated for Phase 2
+              const transitions = await prisma.accountTransition.findMany({
+                where: {
+                  accountId: matchingAccount.id,
+                  toPhaseId: currentPhase.id
+                }
+              })
+
+              const hasNewAccountId = transitions.some(t => 
+                t.metadata && 
+                typeof t.metadata === 'object' && 
+                'newAccountNumber' in t.metadata &&
+                t.metadata.newAccountNumber
+              )
+
+              if (!hasNewAccountId) {
+                errors.push(`Phase 2 requires new account ID assignment for account: ${trade.accountNumber}. Please complete phase transition first.`)
+                continue
+              }
+            }
           }
 
           // Update trade with account and phase linking
@@ -213,8 +248,8 @@ export class PropFirmAccountEvaluator {
 
       // 1. Check for Failure First (Daily DD or Max DD breach)
       const drawdownResult = PropFirmBusinessRules.calculateDrawdown(
-        account as PropFirmAccount,
-        currentPhase as AccountPhase,
+        account as any,
+        currentPhase as any,
         currentEquity,
         dailyStartBalance,
         highWaterMark
@@ -261,7 +296,7 @@ export class PropFirmAccountEvaluator {
             data: {
               userId: account.userId,
               action: 'ACCOUNT_FAILED',
-              entityType: 'ACCOUNT',
+              entity: 'ACCOUNT',
               entityId: accountId,
               details: {
                 reason: 'drawdown_breach',
@@ -299,8 +334,8 @@ export class PropFirmAccountEvaluator {
 
       // 2. Check for Phase Progression (profit target met)
       const progressResult = PropFirmBusinessRules.calculatePhaseProgress(
-        account as PropFirmAccount,
-        currentPhase as AccountPhase,
+        account as any,
+        currentPhase as any,
         netProfit
       )
 
@@ -372,7 +407,7 @@ export class PropFirmAccountEvaluator {
             data: {
               userId: account.userId,
               action: 'PHASE_PROGRESSION',
-              entityType: 'ACCOUNT',
+              entity: 'ACCOUNT',
               entityId: accountId,
               details: {
                 fromPhase: currentPhase.phaseType,

@@ -3,6 +3,7 @@ import Modals from "@/components/modals";
 import { Toaster } from "@/components/ui/toaster";
 import { ReactElement } from "react";
 import Navbar from "./components/navbar";
+import { AutoRefreshProvider } from "./components/auto-refresh-provider";
 
 
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
@@ -16,6 +17,7 @@ export default async function RootLayout(props: { params: Promise<{ locale: stri
   return (
     <TooltipProvider>
       <DataProvider>
+        <AutoRefreshProvider refreshInterval={30000}>
             <div className="min-h-screen flex flex-col">
                   <SonnerToaster/>
                   <Toaster />
@@ -25,6 +27,7 @@ export default async function RootLayout(props: { params: Promise<{ locale: stri
                   </div>
                   <Modals />
             </div>
+        </AutoRefreshProvider>
       </DataProvider>
     </TooltipProvider>
   );

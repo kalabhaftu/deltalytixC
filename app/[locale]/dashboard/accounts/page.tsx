@@ -370,6 +370,7 @@ export default function AccountsPage() {
                 </div>
         </motion.div>
 
+
         {/* Accounts Grid */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}

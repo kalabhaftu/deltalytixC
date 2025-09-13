@@ -75,6 +75,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Add filtering for failed accounts when requested (for import selection)
+    if (filters.excludeFailed || searchParams.get('excludeFailed') === 'true') {
+      where.status = {
+        not: 'failed'
+      }
+    }
+
     // Simplified and optimized query - remove complex joins that cause timeouts
     const [accounts, total] = await Promise.all([
       prisma.account.findMany({

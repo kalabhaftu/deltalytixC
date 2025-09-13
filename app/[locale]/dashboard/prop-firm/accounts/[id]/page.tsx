@@ -56,6 +56,19 @@ export default function AccountDetailPage() {
       const response = await fetch(`/api/prop-firm/accounts/${accountId}`)
       
       if (!response.ok) {
+        // Handle account deletion/not found specifically
+        if (response.status === 404) {
+          toast({
+            title: "Account Not Found",
+            description: "This account has been deleted or does not exist.",
+            variant: "destructive"
+          })
+          // Redirect to accounts list after a delay
+          setTimeout(() => {
+            router.push('/dashboard/prop-firm/accounts')
+          }, 3000)
+          return
+        }
         throw new Error('Failed to fetch account details')
       }
 
@@ -71,15 +84,40 @@ export default function AccountDetailPage() {
           setShowTransitionDialog(true)
         }
       } else {
+        // Check if error indicates account was deleted
+        if (data.error && (data.error.includes('not found') || data.error.includes('deleted'))) {
+          toast({
+            title: "Account Deleted",
+            description: "This account has been deleted and is no longer available.",
+            variant: "destructive"
+          })
+          setTimeout(() => {
+            router.push('/dashboard/prop-firm/accounts')
+          }, 3000)
+          return
+        }
         throw new Error(data.error || 'Failed to fetch account details')
       }
     } catch (error) {
       console.error('Error fetching account details:', error)
+      
+      // Final fallback for any other errors that might indicate deletion
+      if (error instanceof Error && (error.message.includes('404') || error.message.includes('not found'))) {
+        toast({
+          title: "Account Not Available",
+          description: "This account is no longer available. Redirecting to accounts list...",
+          variant: "destructive"
+        })
+        setTimeout(() => {
+          router.push('/dashboard/prop-firm/accounts')
+        }, 3000)
+      } else {
       toast({
         title: t('propFirm.toast.setupError'),
         description: t('propFirm.toast.setupErrorDescription'),
         variant: "destructive"
       })
+      }
     } finally {
       setIsLoading(false)
     }
