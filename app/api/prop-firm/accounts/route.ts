@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
 import { PropFirmSchemas } from '@/lib/validation/prop-firm-schemas'
-import { PropFirmBusinessRules } from '@/lib/prop-firm/business-rules'
+import { evaluateAccount } from '@/lib/prop-firm/clean-system'
 // Removed heavy validation import - using Zod directly
 import { PhaseType, EvaluationType } from '@/types/prop-firm'
 
@@ -260,11 +260,10 @@ export async function POST(request: NextRequest) {
 
     const accountData = parseResult.data
 
-    // Validate business rules
-    const configValidation = PropFirmBusinessRules.validateAccountConfiguration(accountData)
-    if (!configValidation.valid) {
+    // Basic validation - simplified approach
+    if (!accountData.number || !accountData.propfirm || !accountData.startingBalance || accountData.startingBalance <= 0) {
       return NextResponse.json(
-        { error: 'Business Rule Violation', details: configValidation.errors },
+        { error: 'Validation Error', message: 'Account number, prop firm name, and positive starting balance are required' },
         { status: 400 }
       )
     }
@@ -284,91 +283,49 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create account and initial phase in a transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Create the account
-      const account = await tx.account.create({
-        data: {
-          ...accountData,
-          userId,
-          // Set defaults
-          status: 'active',
-          dailyDrawdownType: accountData.dailyDrawdownType || 'percent',
-          maxDrawdownType: accountData.maxDrawdownType || 'percent',
-          drawdownModeMax: accountData.drawdownModeMax || 'static',
-          evaluationType: accountData.evaluationType || 'two_step',
-          timezone: accountData.timezone || 'UTC',
-          dailyResetTime: accountData.dailyResetTime || '00:00',
-          ddIncludeOpenPnl: false,
-          progressionIncludeOpenPnl: false,
-          allowManualPhaseOverride: false,
-          profitSplitPercent: 80,
-          payoutCycleDays: 14,
-          minDaysToFirstPayout: 4,
-          resetOnPayout: false,
-          reduceBalanceByPayout: true,
-        }
-      })
-
-      // Determine profit target for Phase 1
-      const profitTarget = accountData.profitTarget || 
-        PropFirmBusinessRules.getDefaultProfitTarget(
-          'phase_1', 
-          accountData.startingBalance, 
-          accountData.evaluationType || 'two_step'
-        )
-
-      // Create initial Phase 1
-      const initialPhase = await tx.accountPhase.create({
-        data: {
-          accountId: account.id,
-          phaseType: 'phase_1',
-          phaseStatus: 'active',
-          profitTarget,
-          currentEquity: accountData.startingBalance,
-          currentBalance: accountData.startingBalance,
-          highestEquitySincePhaseStart: accountData.startingBalance,
-        }
-      })
-
-      // Create initial daily anchor
-      await tx.dailyAnchor.create({
-        data: {
-          accountId: account.id,
-          date: new Date(),
-          anchorEquity: accountData.startingBalance,
-        }
-      })
-
-      // Create initial equity snapshot
-      await tx.equitySnapshot.create({
-        data: {
-          accountId: account.id,
-          phaseId: initialPhase.id,
-          equity: accountData.startingBalance,
-          balance: accountData.startingBalance,
-          openPnl: 0,
-        }
-      })
-
-      // Log account creation in audit log
-      await tx.auditLog.create({
-        data: {
-          userId,
-          accountId: account.id,
-          action: 'ACCOUNT_CREATED',
-          entity: 'account',
-          entityId: account.id,
-          newValues: account,
-          metadata: {
-            initialPhaseId: initialPhase.id,
-            profitTarget,
-          }
-        }
-      })
-
-      return { account, initialPhase }
+    // Create account (simplified, no transaction)
+    const account = await prisma.account.create({
+      data: {
+        number: accountData.number,
+        name: accountData.name,
+        propfirm: accountData.propfirm,
+        startingBalance: accountData.startingBalance,
+        userId,
+        status: 'active',
+        dailyDrawdownAmount: accountData.dailyDrawdownAmount,
+        dailyDrawdownType: accountData.dailyDrawdownType || 'percent',
+        maxDrawdownAmount: accountData.maxDrawdownAmount,
+        maxDrawdownType: accountData.maxDrawdownType || 'percent',
+        drawdownModeMax: accountData.drawdownModeMax || 'static',
+        evaluationType: accountData.evaluationType || 'two_step',
+        timezone: accountData.timezone || 'UTC',
+        dailyResetTime: accountData.dailyResetTime || '00:00',
+        ddIncludeOpenPnl: false,
+        progressionIncludeOpenPnl: false,
+        allowManualPhaseOverride: false,
+        profitSplitPercent: accountData.profitSplitPercent || 80,
+        payoutCycleDays: accountData.payoutCycleDays || 14,
+        minDaysToFirstPayout: accountData.minDaysToFirstPayout || 4,
+        resetOnPayout: accountData.resetOnPayout || false,
+        reduceBalanceByPayout: accountData.reduceBalanceByPayout !== false,
+      }
     })
+
+    // Create initial Phase 1 (no complex fields that don't exist)
+    const profitTarget = accountData.profitTarget || (accountData.startingBalance * 0.08)
+    const initialPhase = await prisma.accountPhase.create({
+      data: {
+        accountId: account.id,
+        phaseType: 'phase_1',
+        phaseStatus: 'active',
+        profitTarget,
+        currentEquity: accountData.startingBalance,
+        currentBalance: accountData.startingBalance,
+        highestEquitySincePhaseStart: accountData.startingBalance,
+      }
+    })
+
+    const result = { account, initialPhase }
 
     return NextResponse.json({
       success: true,

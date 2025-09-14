@@ -21,7 +21,8 @@
     "pre-deploy": "npm run type-check && npm run lint && npm run smoke-test",
     "setup-env": "node scripts/setup-env.js",
     "fix-db": "node scripts/migrate-database.js",
-    "setup": "npm run setup-env && npm run fix-db && npx prisma generate"
+    "setup": "npm run setup-env && npm run fix-db && npx prisma generate",
+    "fix-prisma": "node scripts/fix-prisma-studio.js"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.19",

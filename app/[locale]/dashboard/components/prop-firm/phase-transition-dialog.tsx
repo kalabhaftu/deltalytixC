@@ -20,7 +20,14 @@ import {
   Target, 
   DollarSign,
   ArrowRight,
-  AlertCircle
+  AlertCircle,
+  Trophy,
+  CheckCircle,
+  Rocket,
+  Key,
+  Mail,
+  CreditCard,
+  X
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -164,43 +171,54 @@ export function PhaseTransitionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-green-600" />
-            Congratulations! Phase Transition
+      <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="text-center pb-2">
+          <DialogTitle className="flex items-center justify-center gap-2 text-xl">
+            <div className="p-2 bg-muted rounded-full">
+              <TrendingUp className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <Trophy className="h-5 w-5 text-muted-foreground" />
+            Phase Completed!
           </DialogTitle>
-          <DialogDescription>
-            Your account has successfully completed {getPhaseDisplayName(currentPhase.phaseType)} and is ready to advance to {getPhaseDisplayName(nextPhaseType)}.
+          <DialogDescription className="text-base">
+            Your account crushed {getPhaseDisplayName(currentPhase.phaseType)} and is ready for {getPhaseDisplayName(nextPhaseType)}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Success Summary */}
-          <Card className="border-green-200 bg-green-50">
+          <Card className="border-border bg-muted/50">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    {getPhaseDisplayName(currentPhase.phaseType)} COMPLETED
+              <div className="flex items-center justify-center mb-4">
+                <div className="flex items-center gap-3">
+                  <Badge variant="secondary" className="px-3 py-1 flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3" />
+                    {getPhaseDisplayName(currentPhase.phaseType)}
                   </Badge>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  <Badge variant="default">
-                    {getPhaseDisplayName(nextPhaseType)} READY
+                  <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                  <Badge variant="default" className="px-3 py-1 flex items-center gap-1">
+                    <Rocket className="h-3 w-3" />
+                    {getPhaseDisplayName(nextPhaseType)}
                   </Badge>
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Profit Achieved:</span>
-                  <p className="font-medium text-green-600">
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <DollarSign className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground text-xs">Profit Made</span>
+                  </div>
+                  <p className="font-bold text-foreground text-lg">
                     {formatCurrency(currentPhase.netProfitSincePhaseStart)}
                   </p>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Target Required:</span>
-                  <p className="font-medium">
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <Target className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground text-xs">Target Was</span>
+                  </div>
+                  <p className="font-semibold text-sm">
                     {currentPhase.profitTarget ? formatCurrency(currentPhase.profitTarget) : 'N/A'}
                   </p>
                 </div>
@@ -210,32 +228,42 @@ export function PhaseTransitionDialog({
 
           {/* New Account ID Input */}
           <div className="space-y-4">
-            <div className="flex items-start gap-3 p-4 border border-blue-200 rounded-lg bg-blue-50">
-              <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-blue-800">
-                  New Account ID Required
-                </p>
-                <p className="text-xs text-blue-600">
-                  Most prop firms provide a new account ID when you advance to {getPhaseDisplayName(nextPhaseType)}. 
-                  Please check your email or prop firm dashboard for the new account credentials.
-                </p>
+            <div className="flex items-start gap-3 p-4 border rounded-xl bg-muted/30">
+              <div className="p-1 bg-muted rounded-full">
+                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  <p className="text-sm font-semibold text-foreground">
+                    Need Your New Account ID
+                  </p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Mail className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Your prop firm should've sent you a new account ID for {getPhaseDisplayName(nextPhaseType)}. 
+                    Check your email or their dashboard!
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="newAccountId">
+            <div className="space-y-3">
+              <Label htmlFor="newAccountId" className="text-sm font-medium flex items-center gap-2">
+                <Key className="h-4 w-4" />
                 {getPhaseDisplayName(nextPhaseType)} Account ID
               </Label>
               <Input
                 id="newAccountId"
-                placeholder={`Enter your new ${getPhaseDisplayName(nextPhaseType)} account ID...`}
+                placeholder={`e.g., 987654321`}
                 value={newAccountId}
                 onChange={(e) => setNewAccountId(e.target.value)}
-                className="font-mono"
+                className="font-mono text-center text-lg py-3"
               />
-              <p className="text-xs text-muted-foreground">
-                This is typically provided by your prop firm via email or their platform
+              <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
+                <CreditCard className="h-3 w-3" />
+                Usually found in your prop firm's trader portal or email
               </p>
             </div>
           </div>
@@ -289,31 +317,43 @@ export function PhaseTransitionDialog({
           </Card>
 
           {/* Action Buttons */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2 pt-2">
             <Button 
               onClick={handleTransition}
               disabled={isLoading}
-              className="w-full"
+              className="w-full py-3 text-base font-semibold"
             >
-              {isLoading ? "Processing..." : `Advance to ${getPhaseDisplayName(nextPhaseType)}`}
+{isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Rocket className="h-4 w-4 mr-2" />
+                  Advance to {getPhaseDisplayName(nextPhaseType)}
+                </>
+              )}
             </Button>
             
             <Button 
               variant="outline"
               onClick={handleSkipTransition}
               disabled={isLoading}
-              className="w-full"
+              className="w-full py-2"
             >
-              Continue with Current Account ID
+<CreditCard className="h-4 w-4 mr-2" />
+              Keep Current Account ID
             </Button>
             
             <Button 
               variant="ghost"
               onClick={onClose}
               disabled={isLoading}
-              className="w-full text-muted-foreground"
+              className="w-full text-muted-foreground py-1"
             >
-              Cancel (Stay in {getPhaseDisplayName(currentPhase.phaseType)})
+<X className="h-4 w-4 mr-2" />
+              Cancel
             </Button>
           </div>
         </div>

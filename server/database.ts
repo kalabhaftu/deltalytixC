@@ -78,7 +78,7 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
           closePrice: cleanTrade.closePrice || '',
           entryDate: cleanTrade.entryDate || '',
           closeDate: cleanTrade.closeDate || '',
-          quantity: cleanTrade.quantity || 1,
+          quantity: cleanTrade.quantity ?? 0,
           pnl: cleanTrade.pnl || 0,
           timeInPosition: cleanTrade.timeInPosition || 0,
           userId: cleanTrade.userId || '',
@@ -198,28 +198,20 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         skipped: cleanedData.length - result.count
       }, 'SaveTrades')
 
-      // Trigger prop firm account evaluation for newly added trades (batch processing)
+      // Trigger clean prop firm account evaluation 
       try {
-        const { PropFirmAccountEvaluator } = await import('@/lib/prop-firm/account-evaluation')
-        // For batch processing, we need to pass the trades that were actually created
-        // Since we use skipDuplicates, we can't know exactly which trades were added
-        // So we'll evaluate all trades and let the evaluator handle duplicates
-        const evaluationResult = await PropFirmAccountEvaluator.linkTradesAndEvaluate(
-          cleanedData, 
-          userId
-        )
+        const { linkTradesAndEvaluate } = await import('@/lib/prop-firm/clean-system')
         
-        logger.info('Prop firm evaluation completed (batch)', {
-          linkedTrades: evaluationResult.linkedTrades.length,
-          statusUpdates: evaluationResult.statusUpdates.length,
-          errors: evaluationResult.errors.length
+        const evaluationResult = await linkTradesAndEvaluate(cleanedData, userId)
+        
+        logger.info('Clean prop firm evaluation completed', {
+          resultsCount: evaluationResult.results.length,
+          errorsCount: evaluationResult.errors.length,
+          results: evaluationResult.results
         }, 'SaveTrades')
-
-        // Log any evaluation errors but don't fail the trade import
+        
         if (evaluationResult.errors.length > 0) {
-          logger.warn('Prop firm evaluation errors (batch)', {
-            errors: evaluationResult.errors
-          }, 'SaveTrades')
+          logger.warn('Evaluation errors', { errors: evaluationResult.errors }, 'SaveTrades')
         }
       } catch (evaluationError) {
         // Log evaluation errors but don't fail the trade import

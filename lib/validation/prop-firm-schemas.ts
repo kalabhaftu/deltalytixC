@@ -83,17 +83,17 @@ export const CreateAccountSchema = BaseAccountSchema
 
 export const UpdateAccountSchema = BaseAccountSchema.partial().extend({
   status: AccountStatusSchema.optional(),
-  ddIncludeOpenPnl: z.boolean().optional(),
-  progressionIncludeOpenPnl: z.boolean().optional(),
+  ddIncludeOpenPnl: z.boolean().default(false),
+  progressionIncludeOpenPnl: z.boolean().default(false),
   allowManualPhaseOverride: z.boolean().optional(),
   
   // Funded account payout configuration
-  profitSplitPercent: PercentageSchema.optional(),
-  payoutCycleDays: PositiveIntegerSchema.min(1).max(365).optional(),
-  minDaysToFirstPayout: PositiveIntegerSchema.max(365).optional(),
+  profitSplitPercent: PercentageSchema.default(80),
+  payoutCycleDays: PositiveIntegerSchema.min(1).max(365).default(14),
+  minDaysToFirstPayout: PositiveIntegerSchema.max(365).default(4),
   payoutEligibilityMinProfit: PositiveNumberSchema.optional(),
-  resetOnPayout: z.boolean().optional(),
-  reduceBalanceByPayout: z.boolean().optional(),
+  resetOnPayout: z.boolean().default(false),
+  reduceBalanceByPayout: z.boolean().default(true),
   fundedResetBalance: PositiveNumberSchema.optional(),
 })
 

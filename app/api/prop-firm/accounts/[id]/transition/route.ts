@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
-import { getUserId } from '@/lib/auth/get-user-id'
+import { getUserId } from '@/server/auth'
 import { PropFirmBusinessRules } from '@/lib/prop-firm/business-rules'
 
 const prisma = new PrismaClient()
@@ -15,7 +15,7 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const { id: accountId } = await params
     
     const body = await request.json()
     const { newAccountId, nextPhaseType, currentPhaseProfit } = body
@@ -125,16 +125,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           accountId: accountId,
           phaseType: nextPhaseType,
           phaseStatus: 'active',
-          phaseStartAt: new Date(),
-          startingBalance: account.startingBalance,
           currentBalance: account.startingBalance, // Reset balance for new phase
           currentEquity: account.startingBalance,
           profitTarget: newPhaseSettings.profitTarget,
           netProfitSincePhaseStart: 0, // Reset profit tracking
-          dailyDrawdownLimit: newPhaseSettings.dailyDrawdownLimit,
-          maxDrawdownLimit: newPhaseSettings.maxDrawdownLimit,
-          highWaterMark: account.startingBalance,
-          lastDailyResetAt: new Date()
+          highestEquitySincePhaseStart: account.startingBalance
         }
       })
 

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const tradeSchema = z.object({
-  quantity: z.number().describe("The number of units traded"),
+  quantity: z.number().describe("The number of units traded - preserve negative values exactly"),
   pnl: z.number().describe("The profit or loss from the trade"),
   commission: z.number().describe("The commission charged for the trade or 0 if not available"),
   timeInPosition: z.number().describe("The duration for which the position was held in seconds"),

@@ -126,7 +126,7 @@ export default function ImportButton() {
               closePrice: cleanTrade.closePrice || '',
               entryDate: cleanTrade.entryDate || '',
               closeDate: cleanTrade.closeDate || '',
-              quantity: cleanTrade.quantity || 1,
+              quantity: cleanTrade.quantity ?? 0,
               pnl: cleanTrade.pnl || 0,
               timeInPosition: cleanTrade.timeInPosition || 0,
               side: cleanTrade.side || '',

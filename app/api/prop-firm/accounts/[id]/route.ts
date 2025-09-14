@@ -346,43 +346,34 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Delete account and all associated data in transaction
-    await prisma.$transaction(async (tx) => {
-      // First, delete any orphaned trades that might only be linked by accountNumber
-      // but not by accountId (to handle legacy data)
-      await tx.trade.deleteMany({
-        where: {
-          accountNumber: account.number,
-          userId: userId,
-        }
-      })
+    // Simple delete - let cascade handle related data
+    await prisma.account.delete({ 
+      where: { id: accountId } 
+    })
 
-      // Delete related data (cascade delete should handle most of this, but being explicit)
-      await tx.equitySnapshot.deleteMany({ where: { accountId } })
-      await tx.dailyAnchor.deleteMany({ where: { accountId } })
-      await tx.accountTransition.deleteMany({ where: { accountId } })
-      await tx.breach.deleteMany({ where: { accountId } })
-      await tx.accountPhase.deleteMany({ where: { accountId } })
-      
-      // Delete the account (this will cascade delete trades linked by accountId)
-      await tx.account.delete({ where: { id: accountId } })
-
-      // Log the deletion
-      await tx.auditLog.create({
+    // Quick audit log (no transaction)
+    try {
+      await prisma.auditLog.create({
         data: {
           userId,
           action: 'ACCOUNT_DELETED',
           entity: 'account',
           entityId: accountId,
-          oldValues: account,
-          metadata: { deletedAt: new Date() }
+          metadata: { deletedAt: new Date(), accountNumber: account.number }
         }
       })
-    })
+    } catch (error) {
+      // Don't fail delete if audit log fails
+      console.warn('Failed to create audit log for deletion:', error)
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Account and all associated trades deleted successfully'
+    }, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      }
     })
 
   } catch (error) {

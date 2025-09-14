@@ -35,6 +35,10 @@ const baseSchema = z.object({
   profitTargetPhase2: z.number().min(1, 'Phase 2 profit target is required').optional(),
   dailyDrawdown: z.number().min(1, 'Daily drawdown limit is required'),
   maxDrawdown: z.number().min(1, 'Maximum drawdown limit is required'),
+  // Payout configuration
+  payoutCycleDays: z.number().min(1).max(365).default(14),
+  profitSplitPercent: z.number().min(0).max(100).default(80),
+  minDaysToFirstPayout: z.number().min(0).max(90).default(4),
 })
 
 // Dynamic schema that validates Phase 2 target for two-step evaluations

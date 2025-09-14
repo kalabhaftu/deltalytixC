@@ -42,11 +42,15 @@ export async function POST(req: NextRequest) {
       6. Convert time in position to seconds
       7. Handle missing values appropriately:
         - Omit missing fields until they can be filled
-      8. Ensure all required fields are populated:
+      8. IMPORTANT - Quantity/Volume handling:
+        - Preserve negative quantities exactly as they appear
+        - Do not round, floor, or add trailing zeros
+        - Negative quantities are valid and should be maintained
+      9. Ensure all required fields are populated:
         - entryPrice (string)
         - closePrice (string)
         - commission (number) can be 0 if not available
-        - quantity (number)
+        - quantity (number, preserve negative values exactly)
         - pnl (number)
         - side (string)
         - entryDate (ISO string)

@@ -37,7 +37,14 @@ interface UseAccountsResult {
 let accountsCache: UnifiedAccount[] | null = null
 let accountsPromise: Promise<UnifiedAccount[]> | null = null
 let lastFetchTime = 0
-const CACHE_DURATION = 30000 // 30 seconds
+const CACHE_DURATION = 5000 // 5 seconds - reduced cache time
+
+// Function to clear cache when accounts are deleted
+export function clearAccountsCache() {
+  accountsCache = null
+  accountsPromise = null
+  lastFetchTime = 0
+}
 
 export function useAccounts(): UseAccountsResult {
   const [accounts, setAccounts] = useState<UnifiedAccount[]>([])

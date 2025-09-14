@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils"
 import { AccountDashboardData, AccountSummary, PhaseType, AccountStatus, PropFirmTrade } from "@/types/prop-firm"
 import { PhaseTransitionDialog } from "@/app/[locale]/dashboard/components/prop-firm/phase-transition-dialog"
+import { RedirectToAccounts } from "../redirect-to-accounts"
 
 interface AccountDetailPageProps {
   params: {

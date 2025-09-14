@@ -520,6 +520,8 @@ model AccountPhase {
   winningTrades        Int         @default(0)
   totalCommission      Float       @default(0)
   
+  // Note: Breach tracking will be handled in separate Breach table for now
+  
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 
