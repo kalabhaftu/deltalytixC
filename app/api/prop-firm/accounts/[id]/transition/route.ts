@@ -91,7 +91,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       await tx.accountPhase.update({
         where: { id: currentPhase.id },
         data: {
-          phaseStatus: 'archived', // Archive instead of just marking as passed
+          phaseStatus: 'passed',
           phaseEndAt: new Date(),
           netProfitSincePhaseStart: currentPhaseProfit || currentPhase.netProfitSincePhaseStart
         }
@@ -107,11 +107,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
 
       // 3. Calculate new phase settings
-      const newPhaseSettings = PropFirmBusinessRules.getPhaseSettings(
-        nextPhaseType,
-        account.startingBalance,
-        account.evaluationType
-      )
+      const newPhaseSettings = {
+        profitTarget: nextPhaseType === 'funded' 
+          ? undefined 
+          : PropFirmBusinessRules.getDefaultProfitTarget(
+              nextPhaseType,
+              account.startingBalance,
+              account.evaluationType
+            ),
+        dailyDrawdownLimit: account.dailyDrawdownAmount,
+        maxDrawdownLimit: account.maxDrawdownAmount
+      }
 
       // 4. Create new phase
       const newPhase = await tx.accountPhase.create({
