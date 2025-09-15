@@ -120,13 +120,13 @@ export function AccountFilter({ showAccountNumbers, className }: AccountFilterPr
     setFilters({ showAll: true, accountType: 'all' })
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800'
-      case 'funded': return 'bg-blue-100 text-blue-800'
-      case 'failed': return 'bg-red-100 text-red-800'
-      case 'passed': return 'bg-yellow-100 text-yellow-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'active': return 'outline'
+      case 'funded': return 'default'
+      case 'failed': return 'destructive'
+      case 'passed': return 'secondary'
+      default: return 'outline'
     }
   }
 
@@ -215,7 +215,7 @@ export function AccountFilter({ showAccountNumbers, className }: AccountFilterPr
                       <span className="text-muted-foreground">({account.name})</span>
                     )}
                     {account.status && (
-                      <Badge className={getStatusColor(account.status)} variant="secondary">
+                      <Badge variant={getStatusVariant(account.status)} className="text-xs">
                         {account.status?.toUpperCase()}
                       </Badge>
                     )}

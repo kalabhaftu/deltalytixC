@@ -434,6 +434,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return trade
     })
 
+    // Trigger account evaluation after trade creation
+    try {
+      const { evaluateAccount } = await import('@/lib/prop-firm/clean-system')
+      const evaluationResult = await evaluateAccount(accountId)
+      console.log(`Auto-evaluation after trade creation: Account ${account.number} - ${evaluationResult.status}`)
+    } catch (evalError) {
+      console.error('Failed to evaluate account after trade creation:', evalError)
+    }
+
     return NextResponse.json({
       success: true,
       data: {

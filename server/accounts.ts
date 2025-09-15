@@ -269,6 +269,8 @@ export async function getAccountsAction() {
   try {
     // First get all accounts for the user
     const userId = await getUserId()
+    console.log('[getAccountsAction] User ID:', userId)
+    
     const accounts = await prisma.account.findMany({
       where: {
         userId: userId,
@@ -285,11 +287,22 @@ export async function getAccountsAction() {
       }
     })
 
-    return accounts.map(account => ({
+    console.log('[getAccountsAction] Raw accounts from DB:', accounts.length, 'accounts')
+    console.log('[getAccountsAction] Account details:', accounts.map(a => ({ 
+      id: a.id, 
+      number: a.number, 
+      status: a.status, 
+      userId: a.userId 
+    })))
+
+    const transformedAccounts = accounts.map(account => ({
       ...account,
       number: account.number,
       payouts: account.payouts,
     }))
+    
+    console.log('[getAccountsAction] Returning:', transformedAccounts.length, 'accounts')
+    return transformedAccounts
   } catch (error) {
     console.error('Error fetching accounts:', error)
     throw new Error('Failed to fetch accounts')

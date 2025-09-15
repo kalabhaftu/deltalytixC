@@ -53,24 +53,18 @@ export function PropFirmAdmin({ className }: PropFirmAdminProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null)
   const [recentBreaches, setRecentBreaches] = useState<AccountBreach[]>([])
-  const [cronStatus, setCronStatus] = useState<'running' | 'idle' | 'error'>('idle')
 
   // Fetch system statistics
   const fetchSystemStats = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/cron/daily-anchors')
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch system stats')
-      }
-
-      const data = await response.json()
-      if (data.success) {
-        setSystemStats(data.data)
-      } else {
-        throw new Error(data.error || 'Failed to fetch system stats')
-      }
+      // System stats functionality removed - personal use only
+      setSystemStats({
+        totalAccounts: 0,
+        activeAccounts: 0,
+        failedAccounts: 0,
+        pendingEvaluations: 0
+      })
     } catch (error) {
       console.error('Error fetching system stats:', error)
     } finally {
@@ -95,34 +89,6 @@ export function PropFirmAdmin({ className }: PropFirmAdminProps) {
     }
   }
 
-  // Run daily anchor processing manually
-  const runDailyAnchors = async () => {
-    try {
-      setCronStatus('running')
-      const response = await fetch('/api/cron/daily-anchors', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          // Refresh stats after successful run
-          await fetchSystemStats()
-          setCronStatus('idle')
-        } else {
-          setCronStatus('error')
-        }
-      } else {
-        setCronStatus('error')
-      }
-    } catch (error) {
-      console.error('Error running daily anchors:', error)
-      setCronStatus('error')
-    }
-  }
 
   // Load data on mount
   useEffect(() => {
@@ -179,26 +145,9 @@ export function PropFirmAdmin({ className }: PropFirmAdminProps) {
             <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
             Refresh
           </Button>
-          <Button
-            onClick={runDailyAnchors}
-            disabled={cronStatus === 'running'}
-            size="sm"
-          >
-            <Play className={cn("h-4 w-4 mr-2", cronStatus === 'running' && "animate-spin")} />
-            Run Daily Anchors
-          </Button>
         </div>
       </div>
 
-      {/* System Status Alert */}
-      {cronStatus === 'error' && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Daily anchor processing failed. Check system logs and try again.
-          </AlertDescription>
-        </Alert>
-      )}
 
       {/* Overview Metrics */}
       {systemStats && (
@@ -285,13 +234,6 @@ export function PropFirmAdmin({ className }: PropFirmAdminProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span>Daily Anchor Processing</span>
-                    <Badge variant={cronStatus === 'error' ? 'destructive' : 'default'}>
-                      {cronStatus === 'running' ? 'Running' : 
-                       cronStatus === 'error' ? 'Error' : 'Operational'}
-                    </Badge>
-                  </div>
                   <div className="flex justify-between items-center">
                     <span>Last Anchor Run</span>
                     <span className="text-sm text-muted-foreground">
@@ -399,13 +341,6 @@ export function PropFirmAdmin({ className }: PropFirmAdminProps) {
                       Run daily anchor computation immediately
                     </p>
                   </div>
-                  <Button 
-                    onClick={runDailyAnchors}
-                    disabled={cronStatus === 'running'}
-                  >
-                    <Play className={cn("h-4 w-4 mr-2", cronStatus === 'running' && "animate-spin")} />
-                    {cronStatus === 'running' ? 'Processing...' : 'Run Now'}
-                  </Button>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4 text-sm">

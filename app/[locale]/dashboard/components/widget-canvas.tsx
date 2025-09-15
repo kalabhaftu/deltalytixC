@@ -15,6 +15,7 @@ import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import { useData } from '@/context/data-provider'
 import { useI18n } from "@/locales/client"
+import { WidgetSkeleton } from '@/components/ui/widget-skeletons'
 import { WIDGET_REGISTRY, getWidgetComponent } from '../config/widget-registry'
 import { useAutoScroll } from '../hooks/use-auto-scroll'
 import { cn } from '@/lib/utils'
@@ -25,6 +26,7 @@ import { useUserStore } from '../../../../store/user-store'
 import { toast } from 'sonner'
 import { defaultLayouts } from '@/context/data-provider'
 import { useToolbarSettingsStore } from '@/store/toolbar-settings-store'
+import { useEffect as useLayoutEffect } from 'react'
 
 
 // Update sizeToGrid to handle responsive sizes
@@ -370,13 +372,12 @@ type WidgetDimensions = { w: number; h: number; width: string; height: string }
 
 export default function WidgetCanvas() {
   const { user, supabaseUser, isMobile, dashboardLayout:layouts, setDashboardLayout:setLayouts } = useUserStore(state => state)
-  const { saveDashboardLayout } = useData()
+  const { saveDashboardLayout, isLoading } = useData()
   const { settings: toolbarSettings } = useToolbarSettingsStore()
   const [isCustomizing, setIsCustomizing] = useState(false)
   const [isUserAction, setIsUserAction] = useState(false)
   const t = useI18n()
 
-  // Debug the user and layouts state (commented out for production)
 
   // Add this state to track if the layout change is from user interaction
   const activeLayout = useMemo(() => isMobile ? 'mobile' : 'desktop', [isMobile])
@@ -425,6 +426,9 @@ export default function WidgetCanvas() {
     if (!user?.id || !isCustomizing || !setLayouts || !layouts) return;
 
     try {
+      // Only save if this is a user action (drag/drop), not automatic layout updates
+      if (!isUserAction) return;
+
       // Keep the existing layouts for the non-active layout
       const updatedLayouts = {
         ...layouts,
@@ -465,24 +469,18 @@ export default function WidgetCanvas() {
           };
 
           return updatedWidget;
-        }).filter((item): item is NonNullable<typeof item> => item !== null)
+        }).filter((item): item is NonNullable<typeof item> => item !== null),
+        updatedAt: new Date()
       };
 
       // Update the state first
-      setLayouts({
-        ...layouts,
-        desktop: updatedLayouts.desktop,
-        mobile: updatedLayouts.mobile,
-        updatedAt: new Date()
-      });
+      setLayouts(updatedLayouts);
       
-      // Always save to database when layout changes
+      // Save to backend immediately for user actions
       saveDashboardLayout(updatedLayouts);
       
       // Reset user action flag
-      if (isUserAction) {
-        setIsUserAction(false);
-      }
+      setIsUserAction(false);
     } catch (error) {
       logger.error('Error updating layout', error, 'WidgetCanvas');
       // Revert to previous layout on error
@@ -977,6 +975,18 @@ export default function WidgetCanvas() {
 
   // Define renderWidget with all dependencies
   const renderWidget = useCallback((widget: Widget) => {
+    // Show contextual skeleton while data is loading
+    if (isLoading) {
+      const effectiveSize = (() => {
+        if (isMobile && widget.size !== 'tiny') {
+          return 'small' as WidgetSize
+        }
+        return widget.size as WidgetSize
+      })()
+      
+      return <WidgetSkeleton type={widget.type as WidgetType} size={effectiveSize} />
+    }
+
     // Ensure widget.type is a valid WidgetType
     if (!Object.keys(WIDGET_REGISTRY).includes(widget.type)) {
       return (
@@ -1001,7 +1011,7 @@ export default function WidgetCanvas() {
     })()
 
     return getWidgetComponent(widget.type as WidgetType, effectiveSize)
-  }, [isMobile, removeWidget]);
+  }, [isMobile, removeWidget, isLoading]);
 
   useEffect(() => {
     if (isCustomizing) {
@@ -1012,6 +1022,35 @@ export default function WidgetCanvas() {
 
   // Add auto-scroll functionality for mobile
   useAutoScroll(isMobile && isCustomizing)
+
+  // Add layout persistence to localStorage for back button support
+  useLayoutEffect(() => {
+    if (layouts && user?.id) {
+      try {
+        localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(layouts))
+      } catch (error) {
+        // Ignore localStorage errors
+      }
+    }
+  }, [layouts, user?.id])
+
+  // Restore layout from localStorage if available on navigation
+  useLayoutEffect(() => {
+    if (!layouts && user?.id) {
+      try {
+        const savedLayout = localStorage.getItem(`dashboard-layout-${user.id}`)
+        if (savedLayout) {
+          const parsedLayout = JSON.parse(savedLayout)
+          // Validate the layout structure before using it
+          if (parsedLayout.desktop && parsedLayout.mobile) {
+            setLayouts(parsedLayout)
+          }
+        }
+      } catch (error) {
+        // Ignore localStorage errors
+      }
+    }
+  }, [layouts, user?.id, setLayouts])
 
   return (
     <div className={cn(
@@ -1035,7 +1074,32 @@ export default function WidgetCanvas() {
         onAutoArrange={autoArrangeWidgets}
         onReset={resetLayout}
       />
-      {layouts && (
+      {!layouts ? (
+        // Loading skeleton to prevent layout shifts with contextual widget skeletons
+        <div className="relative mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { type: 'equityChart', size: 'medium' },
+              { type: 'cumulativePnl', size: 'tiny' },
+              { type: 'tradePerformance', size: 'tiny' },
+              { type: 'pnlChart', size: 'medium' },
+              { type: 'statisticsWidget', size: 'medium' },
+              { type: 'calendarWidget', size: 'extra-large' }
+            ].map((widget, i) => (
+              <div
+                key={i}
+                style={{ height: isMobile ? '240px' : '280px' }}
+              >
+                <WidgetSkeleton 
+                  type={widget.type as WidgetType} 
+                  size={widget.size as WidgetSize}
+                  className="h-full"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
         <div className="relative">
           <div id="tooltip-portal" className="fixed inset-0 pointer-events-none z-[9999]" />
           {/* Add custom CSS for resize handles when customizing */}
@@ -1128,7 +1192,7 @@ export default function WidgetCanvas() {
             containerPadding={isMobile ? [8, 8] : [0, 0]}
             compactType="vertical"
             preventCollision={false}
-            useCSSTransforms={true}
+            useCSSTransforms={false} // Disable CSS transforms to prevent layout shifts
           >
             {currentLayout.map((widget) => {
               const typedWidget = widget as unknown as Widget

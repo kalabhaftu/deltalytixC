@@ -13,7 +13,7 @@ import { FilterItem } from "@/app/[locale]/dashboard/types/filter"
 import { useState, useEffect } from "react"
 import { ChevronDown } from "lucide-react"
 import { PnlRangeFilter } from "./pnl-range-filter"
-import { AccountFilter } from "./account-filter"
+// import { AccountFilter } from "./account-filter" // Removed - using persistent settings instead
 import { useTradesStore } from "../../../../../store/trades-store"
 
 interface FilterDropdownProps {
@@ -170,7 +170,7 @@ export function FilterDropdowns({ showAccountNumbers }: FilterDropdownsProps) {
 
   return (
     <div className="flex gap-2">
-      <AccountFilter showAccountNumbers={showAccountNumbers} />
+      {/* AccountFilter removed - using persistent account filtering settings instead */}
       <FilterDropdown
         type="instrument"
         items={allItems.filter(item => item.type === 'instrument')}

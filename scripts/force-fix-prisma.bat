@@ -60,3 +60,5 @@ echo 1. Start Prisma Studio: npx prisma studio
 echo 2. If issues persist, restart your computer and try again
 echo.
 pause
+
+

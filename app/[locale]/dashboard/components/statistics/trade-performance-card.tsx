@@ -21,8 +21,9 @@ export default function TradePerformanceCard({ size = 'medium' }: TradePerforman
   const { statistics: { nbWin, nbLoss, nbBe, nbTrades } } = useData()
   const t = useI18n()
 
-  // Calculate rates
-  const winRate = Number((nbWin / nbTrades * 100).toFixed(2))
+  // Calculate rates (exclude break-even trades from win rate - industry standard)
+  const tradableTradesCount = nbWin + nbLoss // Exclude break-even trades
+  const winRate = tradableTradesCount > 0 ? Number((nbWin / tradableTradesCount * 100).toFixed(2)) : 0
   const lossRate = Number((nbLoss / nbTrades * 100).toFixed(2))
   const beRate = Number((nbBe / nbTrades * 100).toFixed(2))
 

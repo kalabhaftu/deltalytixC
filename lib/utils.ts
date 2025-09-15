@@ -140,6 +140,10 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
     nbPayouts: 0,
   };
 
+  // Track consecutive winning streak
+  let currentWinningStreak = 0;
+  let maxWinningStreak = 0;
+
   const statistics = filteredTrades.reduce((acc: StatisticsProps, trade: Trade) => {
     const pnl = trade.pnl;
     
@@ -156,23 +160,32 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
       acc.biggestLoss = pnl;
     }
 
+    // Categorize trades and handle winning streak correctly
     if (pnl === 0) {
       acc.nbBe++;
+      currentWinningStreak = 0; // Break-even breaks winning streak
     } else if (pnl > 0) {
       acc.nbWin++;
-      acc.winningStreak++;
       acc.grossWin += pnl;
+      currentWinningStreak++;
+      if (currentWinningStreak > maxWinningStreak) {
+        maxWinningStreak = currentWinningStreak;
+      }
     } else {
       acc.nbLoss++;
-      acc.winningStreak = 0;
       acc.grossLosses += Math.abs(pnl);
+      currentWinningStreak = 0; // Loss breaks winning streak
     }
 
-    const totalTrades = acc.nbWin + acc.nbLoss;
-    acc.winRate = totalTrades > 0 ? (acc.nbWin / totalTrades) * 100 : 0;
+    // Calculate win rate excluding break-even trades (standard trading metric)
+    const tradableTradesCount = acc.nbWin + acc.nbLoss;
+    acc.winRate = tradableTradesCount > 0 ? (acc.nbWin / tradableTradesCount) * 100 : 0;
 
     return acc;
   }, initialStatistics);
+
+  // Set the maximum winning streak achieved
+  statistics.winningStreak = maxWinningStreak;
 
   // Get unique account numbers from the filtered trades
   const tradeAccountNumbers = new Set(filteredTrades.map(trade => trade.accountNumber));
@@ -192,13 +205,27 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
     }
   });
 
-  const averageTimeInSeconds = Math.round(statistics.totalPositionTime / filteredTrades.length);
+  // Calculate average position time (handle division by zero)
+  const averageTimeInSeconds = filteredTrades.length > 0 ? 
+    Math.round(statistics.totalPositionTime / filteredTrades.length) : 0;
   statistics.averagePositionTime = parsePositionTime(averageTimeInSeconds);
 
-  // Calculate improved profit factor
-  const avgWin = statistics.nbWin > 0 ? statistics.grossWin / statistics.nbWin : 0;
-  const avgLoss = statistics.nbLoss > 0 ? statistics.grossLosses / statistics.nbLoss : 0;
-  statistics.profitFactor = avgLoss > 0 ? avgWin / avgLoss : (statistics.grossWin > 0 ? 999 : 0);
+  // Calculate proper profit factor (industry standard formula)
+  // Profit Factor = Gross Profits / Gross Losses
+  if (statistics.grossLosses > 0) {
+    statistics.profitFactor = statistics.grossWin / statistics.grossLosses;
+  } else if (statistics.grossWin > 0) {
+    // If no losses but have profits, profit factor is theoretically infinite
+    statistics.profitFactor = Number.POSITIVE_INFINITY;
+  } else {
+    // No profits and no losses
+    statistics.profitFactor = 0;
+  }
+
+  // Round profit factor to reasonable precision
+  if (statistics.profitFactor !== Number.POSITIVE_INFINITY) {
+    statistics.profitFactor = Math.round(statistics.profitFactor * 100) / 100;
+  }
 
   return statistics;
 }

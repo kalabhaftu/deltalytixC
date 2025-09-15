@@ -131,13 +131,13 @@ export default function AccountDetailPage() {
     }
   }, [accountId])
 
-  const getStatusColor = (status: AccountStatus) => {
+  const getStatusVariant = (status: AccountStatus): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
-      case 'active': return 'bg-chart-2 text-white'
-      case 'funded': return 'bg-chart-1 text-white'
-      case 'failed': return 'bg-destructive text-destructive-foreground'
-      case 'passed': return 'bg-chart-4 text-white'
-      default: return 'bg-muted text-muted-foreground'
+      case 'active': return 'outline'
+      case 'funded': return 'default'
+      case 'failed': return 'destructive'
+      case 'passed': return 'secondary'
+      default: return 'outline'
     }
   }
 
@@ -209,7 +209,7 @@ export default function AccountDetailPage() {
               {account.name || account.number}
             </h1>
             <div className="flex items-center gap-2 mt-1">
-              <Badge className={cn("text-white", getStatusColor(account.status))}>
+              <Badge variant={getStatusVariant(account.status)} className="text-xs">
                 {t(`propFirm.status.${account.status}` as any, { count: 1 })}
               </Badge>
               <Badge className={cn("text-white", getPhaseColor(currentPhase.phaseType))}>
@@ -618,9 +618,13 @@ export default function AccountDetailPage() {
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Win Rate</p>
                     <p className="text-2xl font-bold text-green-600">
-                      {accountData.recentActivity?.trades?.length > 0 
-                        ? Math.round((accountData.recentActivity.trades.filter((t: any) => (t.realizedPnl || t.pnl) > 0).length / accountData.recentActivity.trades.length) * 100)
-                        : 0}%
+                      {(() => {
+                        const trades = accountData.recentActivity?.trades || []
+                        const winningTrades = trades.filter((t: any) => (t.realizedPnl || t.pnl) > 0).length
+                        const losingTrades = trades.filter((t: any) => (t.realizedPnl || t.pnl) < 0).length
+                        const tradableTradesCount = winningTrades + losingTrades
+                        return tradableTradesCount > 0 ? Math.round((winningTrades / tradableTradesCount) * 100) : 0
+                      })()}%
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -659,8 +663,12 @@ export default function AccountDetailPage() {
                   {accountData.account.phases?.map((phase: any) => {
                     const phaseTrades = accountData.recentActivity?.trades?.filter((t: any) => t.phaseId === phase.id) || []
                     const phasePnL = phaseTrades.reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0)
-                    const phaseWinRate = phaseTrades.length > 0 
-                      ? Math.round((phaseTrades.filter((t: any) => (t.realizedPnl || t.pnl) > 0).length / phaseTrades.length) * 100)
+                    // Calculate win rate excluding break-even trades (industry standard)
+                    const winningTrades = phaseTrades.filter((t: any) => (t.realizedPnl || t.pnl) > 0).length
+                    const losingTrades = phaseTrades.filter((t: any) => (t.realizedPnl || t.pnl) < 0).length
+                    const tradableTradesCount = winningTrades + losingTrades
+                    const phaseWinRate = tradableTradesCount > 0 
+                      ? Math.round((winningTrades / tradableTradesCount) * 100)
                       : 0
                     
                     return (
@@ -733,12 +741,15 @@ export default function AccountDetailPage() {
                   const instrumentStats = (accountData.recentActivity?.trades || []).reduce((acc: any, trade: any) => {
                     const symbol = trade.symbol || trade.instrument || 'Unknown'
                     if (!acc[symbol]) {
-                      acc[symbol] = { trades: 0, pnl: 0, wins: 0 }
+                      acc[symbol] = { trades: 0, pnl: 0, wins: 0, losses: 0 }
                     }
                     acc[symbol].trades++
                     acc[symbol].pnl += (trade.realizedPnl || trade.pnl || 0)
-                    if ((trade.realizedPnl || trade.pnl || 0) > 0) {
+                    const tradePnl = (trade.realizedPnl || trade.pnl || 0)
+                    if (tradePnl > 0) {
                       acc[symbol].wins++
+                    } else if (tradePnl < 0) {
+                      acc[symbol].losses++
                     }
                     return acc
                   }, {})
@@ -762,7 +773,10 @@ export default function AccountDetailPage() {
                               <div className="text-center">
                                 <p className="text-muted-foreground">Win Rate</p>
                                 <p className="font-medium text-green-600">
-                                  {Math.round((stats.wins / stats.trades) * 100)}%
+                                  {(() => {
+                                    const tradableTradesCount = stats.wins + stats.losses
+                                    return tradableTradesCount > 0 ? Math.round((stats.wins / tradableTradesCount) * 100) : 0
+                                  })()}%
                                 </p>
                               </div>
                               <div className="text-center">

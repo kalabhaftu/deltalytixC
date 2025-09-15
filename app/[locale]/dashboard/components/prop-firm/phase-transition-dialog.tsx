@@ -106,7 +106,11 @@ export function PhaseTransitionDialog({
           description: `Account successfully transitioned to ${getPhaseDisplayName(nextPhaseType)}`,
         })
         onClose()
-        router.refresh() // Refresh the page to show updated data
+        // Force immediate refresh and reload
+        router.refresh()
+        setTimeout(() => {
+          window.location.reload()
+        }, 500)
       } else {
         toast({
           title: "Transition Failed",
@@ -149,7 +153,11 @@ export function PhaseTransitionDialog({
           description: `Account transitioned to ${getPhaseDisplayName(nextPhaseType)} with existing account ID`,
         })
         onClose()
+        // Force immediate refresh and reload
         router.refresh()
+        setTimeout(() => {
+          window.location.reload()
+        }, 500)
       } else {
         toast({
           title: "Transition Failed",

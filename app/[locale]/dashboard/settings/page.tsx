@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Slider } from "@/components/ui/slider"
 import { LinkedAccounts } from "@/components/linked-accounts"
+import { AccountFilterSettingsCard } from "@/components/account-filter-settings"
 import { useToolbarSettingsStore } from "@/store/toolbar-settings-store"
 import { toast } from "@/hooks/use-toast"
 import { PrimaryButton, SecondaryButton, DestructiveButton } from "@/components/ui/button-styles"
@@ -525,26 +526,13 @@ export default function SettingsPage() {
         </Card>
 
         {/* Notifications Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notifications
-            </CardTitle>
-            <CardDescription>
-              Notification settings will be available in a future update
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-center py-8">
-            <p className="text-muted-foreground text-center">
-              Advanced notification preferences are coming soon. You&apos;ll be able to customize email alerts, trading notifications, and performance reports.
-            </p>
-          </CardContent>
-        </Card>
 
 
 
 
+
+        {/* Account Filter Settings */}
+        <AccountFilterSettingsCard />
 
         {/* Linked Accounts Section */}
         <LinkedAccounts />

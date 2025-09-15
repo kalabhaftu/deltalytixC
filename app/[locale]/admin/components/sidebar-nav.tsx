@@ -22,16 +22,6 @@ export function SidebarNav({ className, ...props }: SidebarNavProps) {
 
   const routes = [
     {
-      href: "/admin/newsletter-builder",
-      label: "Newsletter Builder",
-      icon: Mail,
-    },
-    {
-      href: "/admin/weekly-recap",
-      label: "Weekly Recap",
-      icon: BarChart,
-    },
-    {
       href: "/admin/welcome-email",
       label: "Welcome Email",
       icon: UserPlus,

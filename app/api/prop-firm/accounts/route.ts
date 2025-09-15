@@ -174,6 +174,13 @@ export async function GET(request: NextRequest) {
           hasNext: offset + filters.limit < total,
           hasPrevious: filters.page > 1,
         },
+      }, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Last-Modified': new Date().toUTCString()
+        }
       })
     }
 

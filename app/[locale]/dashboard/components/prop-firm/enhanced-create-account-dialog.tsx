@@ -168,7 +168,7 @@ export function EnhancedCreateAccountDialog({
 }: EnhancedCreateAccountDialogProps) {
   const t = useI18n()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [step, setStep] = useState<'propfirm' | 'details' | 'rules' | 'confirm'>('propfirm')
+  const [step, setStep] = useState<'propfirm' | 'details' | 'rules' | 'payout' | 'confirm'>('propfirm')
 
   const form = useForm<CreatePropFirmAccountForm>({
     resolver: zodResolver(createPropFirmAccountSchema),
@@ -188,7 +188,6 @@ export function EnhancedCreateAccountDialog({
 
   const { register, handleSubmit, formState: { errors, isValid }, reset, setValue, watch, getValues } = form
   
-  // Debug validation errors
   useEffect(() => {
     if (Object.keys(errors).length > 0) {
       console.log('Form validation errors:', errors)
@@ -312,6 +311,8 @@ export function EnhancedCreateAccountDialog({
     } else if (currentStep === 'details') {
       setStep('rules')
     } else if (currentStep === 'rules') {
+      setStep('payout')
+    } else if (currentStep === 'payout') {
       setStep('confirm')
     }
   }
@@ -321,8 +322,10 @@ export function EnhancedCreateAccountDialog({
       setStep('propfirm')
     } else if (step === 'rules') {
       setStep('details')
-    } else if (step === 'confirm') {
+    } else if (step === 'payout') {
       setStep('rules')
+    } else if (step === 'confirm') {
+      setStep('payout')
     }
   }
 
@@ -697,6 +700,114 @@ export function EnhancedCreateAccountDialog({
                     Back
                   </Button>
                   <Button type="button" onClick={nextStep}>
+                    Next: Payouts
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 4: Payout Configuration */}
+            {step === 'payout' && (
+              <motion.div
+                key="payout"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Payout Configuration</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="profitSplitPercent">Profit Split (%)</Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="profitSplitPercent"
+                          type="number"
+                          step="1"
+                          min="50"
+                          max="95"
+                          className="pl-10"
+                          placeholder="80"
+                          {...register('profitSplitPercent', { valueAsNumber: true })}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Percentage of profits you keep (typical: 80%)</p>
+                      {errors.profitSplitPercent && (
+                        <p className="text-sm text-red-500">{errors.profitSplitPercent.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="payoutCycleDays">Payout Cycle (Days)</Label>
+                      <div className="relative">
+                        <Target className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="payoutCycleDays"
+                          type="number"
+                          step="1"
+                          min="7"
+                          max="90"
+                          className="pl-10"
+                          placeholder="14"
+                          {...register('payoutCycleDays', { valueAsNumber: true })}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">How often payouts are processed (typical: 14 days)</p>
+                      {errors.payoutCycleDays && (
+                        <p className="text-sm text-red-500">{errors.payoutCycleDays.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="minDaysToFirstPayout">Min Days to First Payout</Label>
+                      <div className="relative">
+                        <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="minDaysToFirstPayout"
+                          type="number"
+                          step="1"
+                          min="0"
+                          max="30"
+                          className="pl-10"
+                          placeholder="4"
+                          {...register('minDaysToFirstPayout', { valueAsNumber: true })}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Minimum trading days before first payout eligibility</p>
+                      {errors.minDaysToFirstPayout && (
+                        <p className="text-sm text-red-500">{errors.minDaysToFirstPayout.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <Card className="bg-muted/50 border mt-4">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Info className="h-5 w-5 text-muted-foreground mt-0.5" />
+                        <div>
+                          <h4 className="font-medium text-foreground mb-1">
+                            Payout Summary
+                          </h4>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• You keep {watch('profitSplitPercent') || 80}% of profits</li>
+                            <li>• Payouts processed every {watch('payoutCycleDays') || 14} days</li>
+                            <li>• First payout after {watch('minDaysToFirstPayout') || 4} trading days</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="flex justify-between">
+                  <Button type="button" variant="outline" onClick={prevStep}>
+                    Back
+                  </Button>
+                  <Button type="button" onClick={nextStep}>
                     Review
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
@@ -704,7 +815,7 @@ export function EnhancedCreateAccountDialog({
               </motion.div>
             )}
 
-            {/* Step 4: Confirmation */}
+            {/* Step 5: Confirmation */}
             {step === 'confirm' && (
               <motion.div
                 key="confirm"
@@ -754,6 +865,14 @@ export function EnhancedCreateAccountDialog({
                         <div>
                           <p className="text-sm text-muted-foreground">Daily Drawdown</p>
                           <p className="font-medium text-destructive">{getValues('dailyDrawdown')}%</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Profit Split</p>
+                          <p className="font-medium">{getValues('profitSplitPercent') || 80}%</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Payout Cycle</p>
+                          <p className="font-medium">{getValues('payoutCycleDays') || 14} days</p>
                         </div>
                       </div>
                     </CardContent>

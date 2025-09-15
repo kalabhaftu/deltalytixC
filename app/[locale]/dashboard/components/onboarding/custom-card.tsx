@@ -5,6 +5,7 @@ import { useOnborda } from "onborda";
 
 // Shadcn
 import { Button } from "@/components/ui/button";
+import { CheckCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -88,7 +89,7 @@ export const TourCard: React.FC<CardComponentProps> = ({
               className="ml-auto"
               onClick={handleConfetti}
             >
-              🎉 Finish!
+              <CheckCircle className="h-4 w-4 mr-1" /> Finish!
             </Button>
           )}
         </div>

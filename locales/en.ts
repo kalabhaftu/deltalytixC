@@ -21,7 +21,6 @@ export default {
     'footer.product.features': 'Features',
     'footer.product.pricing': 'Pricing',
     'footer.product.business': 'Business',
-    'footer.product.support': 'Support',
     'footer.company.title': 'Company',
     'footer.company.about': 'About',
     'footer.legal.title': 'Legal',
@@ -77,7 +76,6 @@ export default {
     'dashboard.inviteUsers': 'Invite users',
     'dashboard.email': 'Email',
     'dashboard.message': 'Message',
-    'dashboard.support': 'Support',
     'dashboard.api': 'API',
     'dashboard.keyboardShortcuts': 'Keyboard Shortcuts',
     'dashboard.keyboardShortcutsDescription': 'Keyboard shortcuts to help you navigate faster',
@@ -208,8 +206,6 @@ export default {
     'import.type.badge.soon': 'SOON',
     'import.type.badge.plus': 'PLUS',
     'import.type.badge.maintenance': 'MAINTENANCE',
-    'import.type.badge.comingSoon': 'COMING SOON',
-    'import.type.comingSoon': 'This feature is coming soon!',
 
 
     'import.type.topstep.name': 'Topstep',
@@ -1125,7 +1121,7 @@ export default {
         'preferences': {
             'title': 'Newsletter Preferences',
             'description': 'Manage your email preferences and subscription settings',
-            'comingSoon': 'Additional newsletter preferences management features coming soon.'
+            'comingSoon': 'Manage your newsletter preferences and subscription settings.'
         }
     },
     'disclaimer.risk.title': 'Risk Warning',

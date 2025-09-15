@@ -138,7 +138,7 @@ export function SharedWidgetCanvas() {
         containerPadding={[0, 0]}
         compactType="vertical"
         preventCollision={false}
-        useCSSTransforms={true}
+        useCSSTransforms={false} // Disable CSS transforms to prevent layout shifts
         style={{ 
           minHeight: isMobile ? '100vh' : 'auto',
           touchAction: 'auto'

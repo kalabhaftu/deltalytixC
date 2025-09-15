@@ -6,6 +6,7 @@
 import { prisma } from '@/lib/prisma'
 import { PropFirmBusinessRules } from './business-rules'
 import { logger } from '@/lib/logger'
+import { getActiveAccountsWhereClause } from '@/lib/utils/account-filters'
 import type { 
   PropFirmAccount, 
   AccountPhase, 
@@ -54,13 +55,12 @@ export class PropFirmAccountEvaluator {
     const accountsToEvaluate = new Set<string>()
 
     try {
-      // Get all prop firm accounts for this user
+      // Get all prop firm accounts for this user (automatically excludes failed accounts)
       const propFirmAccounts = await prisma.account.findMany({
-        where: {
+        where: getActiveAccountsWhereClause({
           userId,
-          propfirm: { not: '' }, // Only prop firm accounts
-          status: { not: 'failed' } // Skip already failed accounts
-        },
+          propfirm: { not: '' } // Only prop firm accounts
+        }),
         include: {
           phases: {
             where: { phaseStatus: 'active' }, // Only get active phases, not archived ones

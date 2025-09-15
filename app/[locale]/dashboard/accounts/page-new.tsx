@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useI18n } from "@/locales/client"
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "@/hooks/use-toast"
 import { useAccounts } from "@/hooks/use-accounts"
+import { useAccountFilterSettings } from '@/hooks/use-account-filter-settings'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -92,7 +93,7 @@ export default function AccountsPage() {
   const [createPropFirmDialogOpen, setCreatePropFirmDialogOpen] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  // Derived data
+  // Derived data - filter accounts for display (this includes failed accounts for filtering)
   const filteredAccounts = accounts.filter(account => {
     const matchesSearch = !searchQuery || 
       account.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -106,13 +107,57 @@ export default function AccountsPage() {
     return matchesSearch && matchesType && matchesStatus
   })
 
+  // Get active accounts for statistics (excludes failed and passed accounts)
+  // Get filtered accounts based on user's filter settings
+  const { settings: accountFilterSettings } = useAccountFilterSettings()
+  
+  const filteredAccounts = useMemo(() => {
+    if (accountFilterSettings.showMode === 'all-accounts') {
+      return accounts // Show all accounts
+    }
+    
+    if (accountFilterSettings.showMode === 'active-only') {
+      // Default: exclude failed and passed accounts
+      return accounts.filter(account => 
+        account.status !== 'failed' && account.status !== 'passed'
+      )
+    }
+    
+    // Custom filtering
+    return accounts.filter(account => {
+      // Filter by account type
+      if (account.accountType === 'live' && !accountFilterSettings.showLiveAccounts) {
+        return false
+      }
+      
+      if (account.accountType === 'prop-firm' && !accountFilterSettings.showPropFirmAccounts) {
+        return false
+      }
+      
+      // Filter by status
+      if (account.status === 'failed' && !accountFilterSettings.showFailedAccounts) {
+        return false
+      }
+      
+      if (account.status === 'passed' && !accountFilterSettings.showPassedAccounts) {
+        return false
+      }
+      
+      if (account.status && !accountFilterSettings.includeStatuses.includes(account.status)) {
+        return false
+      }
+      
+      return true
+    })
+  }, [accounts, accountFilterSettings])
+
   const accountStats = {
-    total: accounts.length,
-    live: accounts.filter(a => a.accountType === 'live').length,
-    propFirm: accounts.filter(a => a.accountType === 'prop-firm').length,
-    active: accounts.filter(a => a.status === 'active').length,
-    funded: accounts.filter(a => a.status === 'funded').length,
-    totalEquity: accounts.reduce((sum, a) => sum + (a.currentEquity || a.currentBalance || a.startingBalance || 0), 0)
+    total: filteredAccounts.length, // Count based on user's filter settings
+    live: filteredAccounts.filter(a => a.accountType === 'live').length,
+    propFirm: filteredAccounts.filter(a => a.accountType === 'prop-firm').length,
+    active: filteredAccounts.filter(a => a.status === 'active').length,
+    funded: filteredAccounts.filter(a => a.status === 'funded').length,
+    totalEquity: filteredAccounts.reduce((sum, a) => sum + (a.currentEquity || a.currentBalance || a.startingBalance || 0), 0)
   }
 
   // Handlers
@@ -376,13 +421,13 @@ function StatsCard({
 }
 
 function AccountCard({ account, onView }: { account: Account; onView: () => void }) {
-  const getStatusColor = (status?: string) => {
+  const getStatusVariant = (status?: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
-      case 'active': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-      case 'funded': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-      case 'failed': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-      case 'passed': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+      case 'active': return 'outline'
+      case 'funded': return 'default'
+      case 'failed': return 'destructive'
+      case 'passed': return 'secondary'
+      default: return 'outline'
     }
   }
 
@@ -413,8 +458,8 @@ function AccountCard({ account, onView }: { account: Account; onView: () => void
           
           <div className="flex items-center gap-2">
             {account.status && (
-              <Badge className={getStatusColor(account.status)}>
-                {account.status}
+              <Badge variant={getStatusVariant(account.status)} className="text-xs">
+                {account.status.toUpperCase()}
               </Badge>
             )}
             <DropdownMenu>

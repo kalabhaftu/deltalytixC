@@ -202,7 +202,18 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
       try {
         const { linkTradesAndEvaluate } = await import('@/lib/prop-firm/clean-system')
         
-        const evaluationResult = await linkTradesAndEvaluate(cleanedData, userId)
+        // Get the actual saved trades with IDs for linking
+        const savedTrades = await prisma.trade.findMany({
+          where: {
+            userId,
+            accountId: null, // Only unlinked trades
+            createdAt: {
+              gte: new Date(Date.now() - 5 * 60 * 1000) // Last 5 minutes
+            }
+          }
+        })
+        
+        const evaluationResult = await linkTradesAndEvaluate(savedTrades, userId)
         
         logger.info('Clean prop firm evaluation completed', {
           resultsCount: evaluationResult.results.length,

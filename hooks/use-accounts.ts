@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useToast } from '@/hooks/use-toast'
+import { filterActiveAccounts } from '@/lib/utils/account-filters'
+import { getAccountsAction } from '@/server/accounts'
 
 interface UnifiedAccount {
   id: string
@@ -8,6 +10,7 @@ interface UnifiedAccount {
   propfirm: string
   broker: string | null
   startingBalance: number
+  status: 'active' | 'failed' | 'funded' | 'passed'
   createdAt: string
   userId: string
   groupId: string | null
@@ -33,11 +36,15 @@ interface UseAccountsResult {
   refetch: () => Promise<void>
 }
 
+interface UseAccountsOptions {
+  includeFailed?: boolean
+}
+
 // Global cache to prevent multiple simultaneous requests
 let accountsCache: UnifiedAccount[] | null = null
 let accountsPromise: Promise<UnifiedAccount[]> | null = null
 let lastFetchTime = 0
-const CACHE_DURATION = 5000 // 5 seconds - reduced cache time
+const CACHE_DURATION = 1000 // 1 second - very short cache for real-time updates
 
 // Function to clear cache when accounts are deleted
 export function clearAccountsCache() {
@@ -46,7 +53,8 @@ export function clearAccountsCache() {
   lastFetchTime = 0
 }
 
-export function useAccounts(): UseAccountsResult {
+export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult {
+  const { includeFailed = false } = options
   const [accounts, setAccounts] = useState<UnifiedAccount[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -90,27 +98,50 @@ export function useAccounts(): UseAccountsResult {
 
       // Create the promise and store it globally
       accountsPromise = (async () => {
-        const response = await fetch('/api/accounts', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          signal: abortControllerRef.current?.signal,
-        })
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: Failed to fetch accounts`)
+        console.log('[useAccounts] Fetching accounts using server action')
+        
+        try {
+          const accounts = await getAccountsAction()
+          console.log('[useAccounts] Server action returned:', accounts.length, 'accounts')
+          
+          // Transform accounts to match the expected interface
+          const transformedAccounts = accounts.map(account => ({
+            id: account.id,
+            number: account.number,
+            name: account.name,
+            propfirm: account.propfirm,
+            broker: account.broker,
+            startingBalance: account.startingBalance,
+            status: account.status || 'active',
+            createdAt: account.createdAt.toISOString(),
+            userId: account.userId,
+            groupId: account.groupId,
+            group: account.group,
+            accountType: account.propfirm ? 'prop-firm' : 'live',
+            displayName: account.name || account.number,
+            tradeCount: 0, // Will be calculated separately if needed
+            owner: null,
+            isOwner: true,
+            currentPhase: null
+          }))
+          
+          console.log('[useAccounts] Transformed accounts:', transformedAccounts.length, 'accounts')
+          return transformedAccounts
+        } catch (error) {
+          console.error('[useAccounts] Server action error:', error)
+          throw error
         }
-
-        const data = await response.json()
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to fetch accounts')
-        }
-
-        return data.data || []
       })()
 
       const fetchedAccounts = await accountsPromise
+
+      console.log('[useAccounts] Setting accounts state:', fetchedAccounts.length, 'accounts')
+      console.log('[useAccounts] Account details:', fetchedAccounts.map(a => ({ 
+        id: a.id, 
+        number: a.number, 
+        status: a.status, 
+        accountType: a.accountType 
+      })))
 
       // Update cache
       accountsCache = fetchedAccounts

@@ -157,7 +157,13 @@ export default function LiveAccountDetailPage({ params }: LiveAccountDetailProps
               <div className="flex items-center gap-2 text-muted-foreground">
                 <User className="h-4 w-4" />
                 <span>{account.broker || 'Live Account'}</span>
-                <Badge variant="secondary">{account.status}</Badge>
+                <Badge variant={
+                  account.status === 'active' ? 'outline' :
+                  account.status === 'funded' ? 'default' :
+                  account.status === 'failed' ? 'destructive' : 'secondary'
+                } className="text-xs">
+                  {account.status?.toUpperCase()}
+                </Badge>
               </div>
             </div>
           </div>

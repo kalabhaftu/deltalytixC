@@ -264,11 +264,16 @@ export async function getUserEquityData(page: number = 1, limit: number = 10) {
     const totalPnL = userTrades.reduce((sum, trade) => sum + (trade.pnl - (trade.commission || 0)), 0)
     const winningTrades = userTrades.filter(trade => (trade.pnl - (trade.commission || 0)) > 0)
     const losingTrades = userTrades.filter(trade => (trade.pnl - (trade.commission || 0)) < 0)
-    const winRate = userTrades.length > 0 ? (winningTrades.length / userTrades.length) * 100 : 0
+    // Calculate win rate excluding break-even trades (industry standard)
+    const tradableTradesCount = winningTrades.length + losingTrades.length
+    const winRate = tradableTradesCount > 0 ? (winningTrades.length / tradableTradesCount) * 100 : 0
     const averageWin = winningTrades.length > 0 ? winningTrades.reduce((sum, trade) => sum + (trade.pnl - (trade.commission || 0)), 0) / winningTrades.length : 0
     const averageLoss = losingTrades.length > 0 ? losingTrades.reduce((sum, trade) => sum + (trade.pnl - (trade.commission || 0)), 0) / losingTrades.length : 0
     const maxDrawdown = calculateMaxDrawdown(equityCurve)
-    const profitFactor = Math.abs(averageLoss) > 0 ? Math.abs(averageWin) / Math.abs(averageLoss) : 0
+    // Calculate proper profit factor: Gross Profits / Gross Losses
+    const grossProfits = userTrades.reduce((sum, trade) => trade.pnl > 0 ? sum + trade.pnl : sum, 0)
+    const grossLosses = Math.abs(userTrades.reduce((sum, trade) => trade.pnl < 0 ? sum + trade.pnl : sum, 0))
+    const profitFactor = grossLosses > 0 ? grossProfits / grossLosses : (grossProfits > 0 ? Number.POSITIVE_INFINITY : 0)
 
     return {
       userId: user.id,
@@ -364,11 +369,16 @@ export async function getIndividualUserEquityData(userId: string) {
   const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl - (trade.commission || 0)), 0)
   const winningTrades = trades.filter(trade => (trade.pnl - (trade.commission || 0)) > 0)
   const losingTrades = trades.filter(trade => (trade.pnl - (trade.commission || 0)) < 0)
-  const winRate = trades.length > 0 ? (winningTrades.length / trades.length) * 100 : 0
+  // Calculate win rate excluding break-even trades (industry standard)
+  const tradableTradesCount = winningTrades.length + losingTrades.length
+  const winRate = tradableTradesCount > 0 ? (winningTrades.length / tradableTradesCount) * 100 : 0
   const averageWin = winningTrades.length > 0 ? winningTrades.reduce((sum, trade) => sum + (trade.pnl - (trade.commission || 0)), 0) / winningTrades.length : 0
   const averageLoss = losingTrades.length > 0 ? losingTrades.reduce((sum, trade) => sum + (trade.pnl - (trade.commission || 0)), 0) / losingTrades.length : 0
   const maxDrawdown = calculateMaxDrawdown(equityCurve)
-  const profitFactor = Math.abs(averageLoss) > 0 ? Math.abs(averageWin) / Math.abs(averageLoss) : 0
+  // Calculate proper profit factor: Gross Profits / Gross Losses
+  const grossProfits = trades.reduce((sum, trade) => trade.pnl > 0 ? sum + trade.pnl : sum, 0)
+  const grossLosses = Math.abs(trades.reduce((sum, trade) => trade.pnl < 0 ? sum + trade.pnl : sum, 0))
+  const profitFactor = grossLosses > 0 ? grossProfits / grossLosses : (grossProfits > 0 ? Number.POSITIVE_INFINITY : 0)
 
   return {
     userId,

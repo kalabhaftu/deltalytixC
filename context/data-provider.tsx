@@ -62,6 +62,9 @@ import {
   startOfDay
 } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+import { filterActiveAccounts, filterTradesFromActiveAccounts } from '@/lib/utils/account-filters';
+import { useAccountFilterSettings } from '@/hooks/use-account-filter-settings';
+import { AccountFilterSettings } from '@/types/account-filter-settings';
 import { calculateStatistics, formatCalendarData } from '@/lib/utils';
 import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
@@ -592,6 +595,9 @@ export const DataProvider: React.FC<{
   const isLoading = useUserStore(state => state.isLoading)
   const setIsLoading = useUserStore(state => state.setIsLoading)
 
+  // Account filter settings
+  const { settings: accountFilterSettings } = useAccountFilterSettings()
+
   // Local states
   const [sharedParams, setSharedParams] = useState<SharedParams | null>(null);
 
@@ -699,7 +705,6 @@ export const DataProvider: React.FC<{
 
       // CRITICAL: Get dashboard layout first
       // But check if the layout is already in the state
-      // TODO: Cache layout client side (lightweight)
       if (!dashboardLayout) {
         const dashboardLayoutResponse = await getDashboardLayout(user.id)
         if (dashboardLayoutResponse) {
@@ -717,7 +722,6 @@ export const DataProvider: React.FC<{
       setTrades(Array.isArray(trades) ? trades : []);
 
       // Step 3: Fetch user data
-      // TODO: Check what we could cache client side
       const data = await getUserData()
 
 
@@ -745,6 +749,15 @@ export const DataProvider: React.FC<{
         ...account,
         balanceToDate: calculateAccountBalance(account, Array.isArray(trades) ? trades : [])
       }));
+      
+      console.log('[DataProvider] Setting accounts:', accountsWithBalance.length, 'accounts')
+      console.log('[DataProvider] Account details:', accountsWithBalance.map(a => ({ 
+        id: a.id, 
+        number: a.number, 
+        status: a.status, 
+        userId: a.userId 
+      })))
+      
       setAccounts(accountsWithBalance);
 
     } catch (error) {
@@ -880,21 +893,76 @@ export const DataProvider: React.FC<{
     }
   }, [user?.id, loadData, setIsLoading, locale])
 
+  // Get hidden accounts for filtering (moved outside useMemo to avoid circular dependency)
+  const hiddenGroup = groups.find(g => g.name === "Hidden Accounts");
+  const hiddenAccountNumbers = accounts
+    .filter(a => a.groupId === hiddenGroup?.id)
+    .map(a => a.number);
+
   const formattedTrades = useMemo(() => {
     // Early return if no trades or if trades is not an array
     if (!trades || !Array.isArray(trades) || trades.length === 0) return [];
 
-    // Get hidden accounts for filtering
-    const hiddenGroup = groups.find(g => g.name === "Hidden Accounts");
-    const hiddenAccountNumbers = accounts
-      .filter(a => a.groupId === hiddenGroup?.id)
-      .map(a => a.number);
+    // Filter accounts based on user settings
+    const getFilteredAccountNumbers = (): string[] => {
+      if (accountFilterSettings.showMode === 'all-accounts') {
+        return [] // No filtering, include all accounts
+      }
+      
+      if (accountFilterSettings.showMode === 'active-only') {
+        // Default behavior: exclude failed and passed accounts
+        return accounts
+          .filter(a => a.status === 'failed' || a.status === 'passed')
+          .map(a => a.number)
+      }
+      
+      // Custom filtering
+      const excludedNumbers: string[] = []
+      
+      accounts.forEach(account => {
+        // Filter by account type
+        if (account.accountType === 'live' && !accountFilterSettings.showLiveAccounts) {
+          excludedNumbers.push(account.number)
+          return
+        }
+        
+        if (account.accountType === 'prop-firm' && !accountFilterSettings.showPropFirmAccounts) {
+          excludedNumbers.push(account.number)
+          return
+        }
+        
+        // Filter by status
+        if (account.status === 'failed' && !accountFilterSettings.showFailedAccounts) {
+          excludedNumbers.push(account.number)
+          return
+        }
+        
+        if (account.status === 'passed' && !accountFilterSettings.showPassedAccounts) {
+          excludedNumbers.push(account.number)
+          return
+        }
+        
+        if (account.status && !accountFilterSettings.includeStatuses.includes(account.status)) {
+          excludedNumbers.push(account.number)
+          return
+        }
+      })
+      
+      return excludedNumbers
+    }
+
+    const excludedAccountNumbers = getFilteredAccountNumbers()
 
     // Apply all filters in a single pass
     return trades
       .filter((trade) => {
         // Skip trades from hidden accounts
         if (hiddenAccountNumbers.includes(trade.accountNumber)) {
+          return false;
+        }
+
+        // Skip trades from filtered accounts (based on user settings)
+        if (excludedAccountNumbers.includes(trade.accountNumber)) {
           return false;
         }
 
@@ -995,7 +1063,9 @@ export const DataProvider: React.FC<{
     timeRange,
     weekdayFilter,
     hourFilter,
-    timezone
+    timezone,
+    accountFilterSettings, // CRITICAL: Missing dependency that caused trades not to re-filter
+    hiddenAccountNumbers // CRITICAL: Missing dependency for hidden accounts
   ]);
 
   const statistics = useMemo(() => {

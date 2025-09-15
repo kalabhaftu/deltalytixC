@@ -98,7 +98,9 @@ export async function getUserData(): Promise<{
               number: true,
               name: true,
               propfirm: true,
+              broker: true,
               startingBalance: true,
+              status: true, // Include status field for proper filtering
               createdAt: true,
               groupId: true,
               group: {
@@ -168,6 +170,14 @@ export async function getUserData(): Promise<{
           groups,
           moodHistory
         ] = await Promise.race([dataPromise, timeoutPromise]) as any
+
+        console.log('[getUserData] Raw accounts from DB:', accounts?.length || 0, 'accounts')
+        console.log('[getUserData] Account details:', accounts?.map(a => ({ 
+          id: a.id, 
+          number: a.number, 
+          status: a.status, 
+          userId: a.userId 
+        })))
 
         return { userData, tickDetails, /* tags, */ accounts, groups, /* moodHistory */ } // Removed tags and mood features
       } catch (error) {

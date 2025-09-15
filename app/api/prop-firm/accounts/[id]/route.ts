@@ -62,8 +62,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
         trades: {
           where: { accountId },
-          orderBy: { entryTime: 'desc' },
+          orderBy: { createdAt: 'desc' },
           take: 200, // More trades for detailed view
+          select: {
+            id: true,
+            symbol: true,
+            side: true,
+            quantity: true,
+            entryPrice: true,
+            closePrice: true,
+            realizedPnl: true,
+            pnl: true,
+            fees: true,
+            commission: true,
+            entryTime: true,
+            exitTime: true,
+            createdAt: true,
+            phaseId: true,
+            instrument: true
+          }
         },
         breaches: {
           orderBy: { breachTime: 'desc' },
@@ -92,6 +109,38 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         { error: 'Account not found' },
         { status: 404 }
       )
+    }
+
+    // Handle failed accounts differently
+    if (account.status === 'failed') {
+      const failedPhase = account.phases.find(p => p.phaseStatus === 'failed') || account.phases[0]
+      const netProfit = account.trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
+      const currentBalance = account.startingBalance + netProfit
+      
+      return NextResponse.json({
+        success: true,
+        data: {
+          account: {
+            ...account,
+            currentBalance,
+            netProfit
+          },
+          currentPhase: failedPhase,
+          drawdown: null,
+          progress: null,
+          payoutEligibility: null,
+          riskMetrics: null,
+          recentActivity: {
+            trades: account.trades,
+            breaches: account.breaches,
+            transitions: account.transitions,
+          },
+          charts: {
+            equity: [],
+            dailyAnchors: [],
+          }
+        }
+      })
     }
 
     // Get current active phase
@@ -182,7 +231,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         payoutEligibility,
         riskMetrics,
         recentActivity: {
-          trades: account.trades.slice(0, 5),
+          trades: account.trades, // Return all trades (up to 200)
           breaches: account.breaches,
           transitions: account.transitions,
         },

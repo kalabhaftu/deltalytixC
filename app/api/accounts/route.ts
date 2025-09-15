@@ -3,25 +3,62 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
+import { getActiveAccountsWhereClause } from '@/lib/utils/account-filters'
+
+// PATCH /api/accounts - Clear cache
+export async function PATCH(request: NextRequest) {
+  try {
+    const { action } = await request.json()
+    
+    if (action === 'clear-cache') {
+      // Force cache invalidation by returning a timestamp
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Cache cleared',
+        timestamp: Date.now()
+      })
+    }
+    
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+  } catch (error) {
+    console.error('Error clearing cache:', error)
+    return NextResponse.json({ error: 'Failed to clear cache' }, { status: 500 })
+  }
+}
 
 // GET /api/accounts - Simplified and optimized accounts fetching
 export async function GET(request: NextRequest) {
   try {
     // Get user ID using the proper auth function
-    const currentUserId = await getUserId()
+    let currentUserId: string
+    try {
+      currentUserId = await getUserId()
+      console.log('[API/accounts] User authenticated:', currentUserId)
+    } catch (authError) {
+      console.error('Authentication error in accounts API:', authError)
+      return NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
 
-    // Add filtering for failed accounts when used for trade imports
-    const whereClause: any = {
-      userId: currentUserId
+    // Always exclude failed accounts unless explicitly requested
+    const includeFailedAccounts = request.nextUrl.searchParams.get('includeFailed') === 'true'
+    console.log('[API/accounts] Include failed accounts:', includeFailedAccounts)
+    
+    let whereClause: any = { userId: currentUserId }
+    
+    if (!includeFailedAccounts) {
+      // Add status filter to exclude inactive accounts (failed and passed)
+      whereClause = {
+        userId: currentUserId,
+        status: {
+          in: ['active', 'funded']
+        }
+      }
     }
     
-    // Filter out failed accounts for trade imports
-    if (request.nextUrl.searchParams.get('forImport') === 'true') {
-      whereClause.OR = [
-        { status: { not: 'failed' } },
-        { status: null } // Include accounts without status (legacy)
-      ]
-    }
+    console.log('[API/accounts] Where clause:', JSON.stringify(whereClause))
 
     // Simplified query - only fetch essential data for current user
     const accounts = await prisma.account.findMany({
@@ -33,6 +70,7 @@ export async function GET(request: NextRequest) {
         propfirm: true,
         broker: true,
         startingBalance: true,
+        status: true, // Include status field for proper filtering
         createdAt: true,
         userId: true,
         groupId: true,
@@ -57,6 +95,14 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { createdAt: 'desc' }
     })
+    
+    console.log('[API/accounts] Raw accounts from DB:', accounts.length, 'accounts found')
+    console.log('[API/accounts] Account details:', accounts.map(a => ({ 
+      id: a.id, 
+      number: a.number, 
+      status: a.status, 
+      userId: a.userId 
+    })))
 
     // Transform accounts with minimal processing
     const transformedAccounts = accounts.map(account => ({
@@ -66,6 +112,7 @@ export async function GET(request: NextRequest) {
       propfirm: account.propfirm,
       broker: account.broker,
       startingBalance: account.startingBalance,
+      status: account.status || 'active', // Include status, default to 'active' for legacy accounts
       createdAt: account.createdAt,
       userId: account.userId,
       groupId: account.groupId,
@@ -79,9 +126,24 @@ export async function GET(request: NextRequest) {
       currentPhase: null
     }))
 
+    console.log('[API/accounts] Transformed accounts:', transformedAccounts.length, 'accounts')
+    console.log('[API/accounts] Response data:', transformedAccounts.map(a => ({ 
+      id: a.id, 
+      number: a.number, 
+      status: a.status, 
+      accountType: a.accountType 
+    })))
+
     return NextResponse.json({
       success: true,
       data: transformedAccounts
+    }, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Last-Modified': new Date().toUTCString()
+      }
     })
 
   } catch (error) {

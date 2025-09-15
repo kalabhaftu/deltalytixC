@@ -15,7 +15,7 @@ import { Filter } from "lucide-react"
 import { useI18n } from "@/locales/client"
 import { PnlFilter } from "./pnl-filter"
 import { InstrumentFilter } from "./instrument-filter"
-import { AccountFilter } from "./account-filter"
+// import { AccountFilter } from "./account-filter" // Removed - using persistent settings instead
 import { useData } from "@/context/data-provider"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
@@ -68,7 +68,10 @@ export function FilterDropdown() {
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent className="w-[300px]">
-                <AccountFilter showAccountNumbers={true}/>
+                {/* AccountFilter removed - using persistent account filtering settings instead */}
+                <div className="p-4 text-sm text-muted-foreground">
+                  Account filtering is now managed in Settings → Account Filtering
+                </div>
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
           </DropdownMenuSub>

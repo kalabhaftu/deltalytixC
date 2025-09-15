@@ -58,8 +58,9 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
   // Calculate Net P&L including payouts
   const netPnlWithPayouts = cumulativePnl - cumulativeFees - totalPayouts
 
-  // Calculate rates
-  const winRate = Number((nbWin / nbTrades * 100).toFixed(2))
+  // Calculate rates (exclude break-even trades from win rate - industry standard)
+  const tradableTradesCount = nbWin + nbLoss // Exclude break-even trades
+  const winRate = tradableTradesCount > 0 ? Number((nbWin / tradableTradesCount * 100).toFixed(2)) : 0
   const lossRate = Number((nbLoss / nbTrades * 100).toFixed(2))
   const beRate = Number((nbBe / nbTrades * 100).toFixed(2))
 
@@ -231,8 +232,8 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground text-xs">{t('statistics.performance.profitFactor')}</span>
                   <span className="text-xs font-medium font-mono">
-                    {nbLoss > 0 && grossLosses > 0 ? 
-                      ((nbWin > 0 ? grossWin / nbWin : 0) / (grossLosses / nbLoss)).toFixed(2) : 
+                    {grossLosses > 0 ? 
+                      (grossWin / grossLosses).toFixed(2) : 
                       (grossWin > 0 ? '∞' : 'N/A')
                     }
                   </span>

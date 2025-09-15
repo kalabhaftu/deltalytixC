@@ -4,7 +4,7 @@ const mainTour = {
   tour: "main",
   steps: [
     {
-      icon: "📊",
+      icon: "BarChart3",
       title: "Import Your Trades",
       content: "Start by clicking here to import your trading data",
       selector: "#import-data",
@@ -15,7 +15,7 @@ const mainTour = {
       nextRoute: "/dashboard"
     },
     {
-      icon: "🎯",
+      icon: "Target",
       title: "Customize Widgets",
       content: "Add widgets to your dashboard by clicking here",
       selector: "#widget-canvas",

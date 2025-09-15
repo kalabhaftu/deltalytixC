@@ -138,7 +138,7 @@ class AuditLogger {
           description: data.description,
         })
 
-        // TODO: Send alert to administrators
+        // Critical threshold reached - should send alert to administrators
       }
     } catch (error) {
       console.error('Failed to log security event:', error)

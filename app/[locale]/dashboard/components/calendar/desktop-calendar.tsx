@@ -182,7 +182,6 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
   const yearTotal = calculateYearTotal()
 
 
-  // TODO: Uncomment when nextPaymentDate field is added to Account model
   const getRenewalsForDate = React.useCallback((date: Date) => {
     return [] // Temporary return empty array until nextPaymentDate field is added
   }, [])

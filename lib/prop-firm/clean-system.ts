@@ -5,6 +5,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { getActiveAccountsWhereClause } from '@/lib/utils/account-filters'
 
 export interface CleanAccountStatus {
   accountId: string
@@ -45,12 +46,13 @@ export async function evaluateAccount(accountId: string): Promise<CleanAccountSt
   const netProfit = account.trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
   const currentBalance = account.startingBalance + netProfit
 
-  // Check for failure (simple approach)
+  // Check for failure - both max drawdown and daily drawdown
   const maxDDLimit = account.startingBalance * (account.maxDrawdownAmount || 10) / 100
+  const dailyDDLimit = account.startingBalance * (account.dailyDrawdownAmount || 4) / 100
   const totalLoss = Math.max(0, account.startingBalance - currentBalance)
   
+  // Check max drawdown
   if (totalLoss > maxDDLimit) {
-    // Mark account as failed
     await prisma.account.update({
       where: { id: accountId },
       data: { status: 'failed' }
@@ -64,10 +66,42 @@ export async function evaluateAccount(accountId: string): Promise<CleanAccountSt
     return {
       accountId,
       status: 'failed',
-      reason: 'Max drawdown exceeded',
+      reason: `Max drawdown exceeded: $${totalLoss.toFixed(2)} > $${maxDDLimit.toFixed(2)}`,
       currentBalance,
       netProfit,
       phaseType: currentPhase.phaseType as any
+    }
+  }
+  
+  // Check daily drawdown (simplified - check if any single day exceeded limit)
+  const tradesByDate: Record<string, number> = {}
+  account.trades.forEach(trade => {
+    const date = trade.createdAt.toISOString().split('T')[0]
+    if (!tradesByDate[date]) tradesByDate[date] = 0
+    tradesByDate[date] += trade.pnl || 0
+  })
+  
+  for (const [date, dailyPnL] of Object.entries(tradesByDate)) {
+    const dailyLoss = Math.max(0, -(dailyPnL as number))
+    if (dailyLoss > dailyDDLimit) {
+      await prisma.account.update({
+        where: { id: accountId },
+        data: { status: 'failed' }
+      })
+      
+      await prisma.accountPhase.update({
+        where: { id: currentPhase.id },
+        data: { phaseStatus: 'failed', phaseEndAt: new Date() }
+      })
+
+      return {
+        accountId,
+        status: 'failed',
+        reason: `Daily drawdown exceeded on ${date}: $${dailyLoss.toFixed(2)} > $${dailyDDLimit.toFixed(2)}`,
+        currentBalance,
+        netProfit,
+        phaseType: currentPhase.phaseType as any
+      }
     }
   }
 
@@ -218,13 +252,12 @@ export async function linkTradesAndEvaluate(trades: any[], userId: string) {
   const results = []
   const errors = []
 
-  // Get prop firm accounts for this user
+  // Get prop firm accounts for this user (automatically excludes failed accounts)
   const accounts = await prisma.account.findMany({
-    where: {
+    where: getActiveAccountsWhereClause({
       userId,
-      propfirm: { not: '' },
-      status: { not: 'failed' }
-    }
+      propfirm: { not: '' }
+    })
   })
 
   // Process each trade
@@ -237,20 +270,37 @@ export async function linkTradesAndEvaluate(trades: any[], userId: string) {
       )
 
       if (matchingAccount) {
-        // Update trade with account linking
+        // Get current active phase for the account
+        const currentPhase = await prisma.accountPhase.findFirst({
+          where: { 
+            accountId: matchingAccount.id,
+            phaseStatus: 'active'
+          },
+          orderBy: { createdAt: 'desc' }
+        })
+
+        // Update trade with account and phase linking
         await prisma.trade.update({
           where: { id: trade.id },
           data: {
             accountId: matchingAccount.id,
+            phaseId: currentPhase?.id || null,
             symbol: trade.instrument,
             realizedPnl: trade.pnl,
             fees: trade.commission || 0
           }
         })
 
-        // Evaluate account
+        // Evaluate account immediately after linking
         const status = await evaluateAccount(matchingAccount.id)
         results.push(status)
+        
+        // Log evaluation result for debugging
+        console.log(`Evaluated account ${matchingAccount.number}: ${status.status} (${status.reason || 'no reason'})`)
+        
+        if (status.status === 'failed') {
+          console.log(`🚨 Account ${matchingAccount.number} marked as FAILED: ${status.reason}`)
+        }
       } else {
         errors.push(`No account found for ${trade.accountNumber}`)
       }

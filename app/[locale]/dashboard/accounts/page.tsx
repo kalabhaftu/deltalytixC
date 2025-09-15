@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useI18n } from "@/locales/client"
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "@/hooks/use-toast"
 import { useAccounts } from "@/hooks/use-accounts"
+import { useAccountFilterSettings } from '@/hooks/use-account-filter-settings'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -96,6 +97,18 @@ export default function AccountsPage() {
   const { user } = useAuth()
   const { accounts, isLoading, refetch: refetchAccounts } = useAccounts()
 
+  // Debug logging
+  console.log('[AccountsPage] Component rendered')
+  console.log('[AccountsPage] User:', user?.id)
+  console.log('[AccountsPage] Accounts from hook:', accounts?.length || 0, 'accounts')
+  console.log('[AccountsPage] Is loading:', isLoading)
+  console.log('[AccountsPage] Accounts details:', accounts?.map(a => ({ 
+    id: a.id, 
+    number: a.number, 
+    status: a.status, 
+    accountType: a.accountType 
+  })))
+
   // State
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'live' | 'prop-firm'>('all')
@@ -119,27 +132,93 @@ export default function AccountsPage() {
     }
   }, []) // Remove searchParams dependency to only run on mount
 
-  // Derived data
-  const filteredAccounts = accounts.filter(account => {
-    const matchesSearch = !searchQuery || 
-      account.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      account.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      account.broker?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      account.propfirm?.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    const matchesType = filterType === 'all' || account.accountType === filterType
-    const matchesStatus = filterStatus === 'all' || account.status === filterStatus
 
-    return matchesSearch && matchesType && matchesStatus
-  })
+  // Get filtered accounts based on user's filter settings
+  const { settings: accountFilterSettings } = useAccountFilterSettings()
+  
+  const filteredAccounts = useMemo(() => {
+    console.log('[AccountsPage] Filtering accounts...')
+    console.log('[AccountsPage] Input accounts:', accounts?.length || 0)
+    console.log('[AccountsPage] Account filter settings:', accountFilterSettings)
+    console.log('[AccountsPage] Search query:', searchQuery)
+    console.log('[AccountsPage] Filter type:', filterType)
+    console.log('[AccountsPage] Filter status:', filterStatus)
+    
+    // First apply user's account filter settings
+    let accountsToShow = accounts
+    
+    if (accountFilterSettings.showMode === 'active-only') {
+      // Default: exclude failed and passed accounts
+      accountsToShow = accounts.filter(account => 
+        account.status !== 'failed' && account.status !== 'passed'
+      )
+      console.log('[AccountsPage] After active-only filter:', accountsToShow.length, 'accounts')
+    } else if (accountFilterSettings.showMode === 'custom') {
+      // Custom filtering
+      accountsToShow = accounts.filter(account => {
+        // Filter by account type
+        if (account.accountType === 'live' && !accountFilterSettings.showLiveAccounts) {
+          return false
+        }
+        
+        if (account.accountType === 'prop-firm' && !accountFilterSettings.showPropFirmAccounts) {
+          return false
+        }
+        
+        // Filter by status
+        if (account.status === 'failed' && !accountFilterSettings.showFailedAccounts) {
+          return false
+        }
+        
+        if (account.status === 'passed' && !accountFilterSettings.showPassedAccounts) {
+          return false
+        }
+        
+        // Only apply includeStatuses filter if it's not empty
+        if (accountFilterSettings.includeStatuses && accountFilterSettings.includeStatuses.length > 0 && account.status && !accountFilterSettings.includeStatuses.includes(account.status)) {
+          return false
+        }
+        
+        return true
+      })
+      console.log('[AccountsPage] After custom filter:', accountsToShow.length, 'accounts')
+    } else if (accountFilterSettings.showMode === 'all-accounts') {
+      // Show all accounts - no filtering
+      console.log('[AccountsPage] All accounts mode - no filtering applied')
+    }
+    
+    // Then apply search/type/status filters on top
+    const finalFiltered = accountsToShow.filter(account => {
+      const matchesSearch = !searchQuery || 
+        account.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        account.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        account.broker?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        account.propfirm?.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      const matchesType = filterType === 'all' || account.accountType === filterType
+      const matchesStatus = filterStatus === 'all' || account.status === filterStatus
+
+      return matchesSearch && matchesType && matchesStatus
+    })
+    
+    console.log('[AccountsPage] Final filtered accounts:', finalFiltered.length, 'accounts')
+    console.log('[AccountsPage] Final accounts details:', finalFiltered.map(a => ({ 
+      id: a.id, 
+      number: a.number, 
+      status: a.status, 
+      accountType: a.accountType 
+    })))
+    
+    return finalFiltered
+  }, [accounts, accountFilterSettings, searchQuery, filterType, filterStatus])
 
   const accountStats = {
-    total: accounts.length,
-    live: accounts.filter(a => a.accountType === 'live').length,
-    propFirm: accounts.filter(a => a.accountType === 'prop-firm').length,
-    active: accounts.filter(a => a.status === 'active').length,
-    funded: accounts.filter(a => a.status === 'funded').length,
-    totalEquity: accounts.reduce((sum, a) => sum + (a.currentEquity || a.currentBalance || a.startingBalance || 0), 0)
+    total: filteredAccounts.length, // Count based on user's filter settings
+    live: filteredAccounts.filter(a => a.accountType === 'live').length,
+    propFirm: filteredAccounts.filter(a => a.accountType === 'prop-firm').length,
+    active: filteredAccounts.filter(a => a.status === 'active').length,
+    funded: filteredAccounts.filter(a => a.status === 'funded').length,
+    totalEquity: filteredAccounts.reduce((sum, a) => sum + (a.currentEquity || a.currentBalance || a.startingBalance || 0), 0)
   }
 
   // Handlers
@@ -537,13 +616,13 @@ function AccountCard({
   onEdit: () => void
   onDelete: () => void
 }) {
-  const getStatusColor = (status?: string) => {
+  const getStatusVariant = (status?: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
-      case 'active': return 'bg-chart-2 text-white'
-      case 'funded': return 'bg-chart-1 text-white'
-      case 'failed': return 'bg-destructive text-destructive-foreground'
-      case 'passed': return 'bg-chart-4 text-white'
-      default: return 'bg-muted text-muted-foreground'
+      case 'active': return 'outline'
+      case 'funded': return 'default'
+      case 'failed': return 'destructive'
+      case 'passed': return 'secondary'
+      default: return 'outline'
     }
   }
 
@@ -574,8 +653,8 @@ function AccountCard({
 
                   <div className="flex items-center gap-2">
             {account.status && (
-              <Badge className={getStatusColor(account.status)}>
-                {account.status}
+              <Badge variant={getStatusVariant(account.status)} className="text-xs">
+                {account.status.toUpperCase()}
               </Badge>
             )}
               <DropdownMenu>

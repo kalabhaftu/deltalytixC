@@ -151,7 +151,10 @@ export default function AccountTradesPage() {
   const totalTrades = trades.length
   const winningTrades = trades.filter(trade => trade.pnl > 0).length
   const losingTrades = trades.filter(trade => trade.pnl < 0).length
-  const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0
+  const breakEvenTrades = trades.filter(trade => trade.pnl === 0).length
+  // Calculate win rate excluding break-even trades (industry standard)
+  const tradableTradesCount = winningTrades + losingTrades
+  const winRate = tradableTradesCount > 0 ? (winningTrades / tradableTradesCount) * 100 : 0
   const totalPnl = trades.reduce((sum, trade) => sum + trade.pnl, 0)
 
   if (isLoading) {
