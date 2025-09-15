@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useI18n } from "@/locales/client"
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "@/hooks/use-toast"
+import { usePropFirmRealtime } from "@/hooks/use-prop-firm-realtime"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -31,6 +32,9 @@ import { cn } from "@/lib/utils"
 import { AccountDashboardData, AccountSummary, PhaseType, AccountStatus, PropFirmTrade } from "@/types/prop-firm"
 import { PhaseTransitionDialog } from "@/app/[locale]/dashboard/components/prop-firm/phase-transition-dialog"
 import { RedirectToAccounts } from "../redirect-to-accounts"
+import { RealtimeStatusIndicator, RealtimeMetrics } from "@/components/prop-firm/realtime-status-indicator"
+import { AccountLoadingState } from "@/components/prop-firm/account-loading-skeleton"
+import { PropFirmErrorBoundary, AccountNotFoundError, ConnectionError } from "@/components/prop-firm/account-error-boundary"
 
 interface AccountDetailPageProps {
   params: {
@@ -43,93 +47,74 @@ export default function AccountDetailPage() {
   const router = useRouter()
   const t = useI18n()
   const { user } = useAuth()
-  const [accountData, setAccountData] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
   const [showTransitionDialog, setShowTransitionDialog] = useState(false)
+  const [accountData, setAccountData] = useState<any>(null) // For legacy compatibility
 
   const accountId = params.id as string
+  
+  // Use real-time hook for live updates
+  const { 
+    account: realtimeAccount, 
+    drawdown: realtimeDrawdown, 
+    isLoading, 
+    error: realtimeError, 
+    lastUpdated, 
+    refetch, 
+    isPolling 
+  } = usePropFirmRealtime({ 
+    accountId, 
+    pollInterval: 30000,
+    enabled: !!accountId 
+  })
 
-  // Fetch account details
+  // Legacy fetch function for backward compatibility - now handled by real-time hook
   const fetchAccountData = async () => {
-    try {
-      setIsLoading(true)
-      const response = await fetch(`/api/prop-firm/accounts/${accountId}`)
-      
-      if (!response.ok) {
-        // Handle account deletion/not found specifically
-        if (response.status === 404) {
-          toast({
-            title: "Account Not Found",
-            description: "This account has been deleted or does not exist.",
-            variant: "destructive"
-          })
-          // Redirect to accounts list after a delay
-          setTimeout(() => {
-            router.push('/dashboard/prop-firm/accounts')
-          }, 3000)
-          return
-        }
-        throw new Error('Failed to fetch account details')
-      }
+    await refetch()
+  }
 
-      const data = await response.json()
-      if (data.success) {
-        setAccountData(data.data)
-        
-        // Check if phase transition dialog should be shown
-        const { progress } = data.data
-        if (progress?.canProgress && progress?.nextPhaseType && 
-            data.data.currentPhase?.phaseStatus === 'active' &&
-            data.data.account?.status !== 'failed') {
-          setShowTransitionDialog(true)
-        }
-      } else {
-        // Check if error indicates account was deleted
-        if (data.error && (data.error.includes('not found') || data.error.includes('deleted'))) {
-          toast({
-            title: "Account Deleted",
-            description: "This account has been deleted and is no longer available.",
-            variant: "destructive"
-          })
-          setTimeout(() => {
-            router.push('/dashboard/prop-firm/accounts')
-          }, 3000)
-          return
-        }
-        throw new Error(data.error || 'Failed to fetch account details')
-      }
-    } catch (error) {
-      console.error('Error fetching account details:', error)
-      
-      // Final fallback for any other errors that might indicate deletion
-      if (error instanceof Error && (error.message.includes('404') || error.message.includes('not found'))) {
+  // Handle real-time data updates and error states
+  useEffect(() => {
+    if (realtimeError) {
+      if (realtimeError.includes('404') || realtimeError.includes('not found')) {
         toast({
-          title: "Account Not Available",
-          description: "This account is no longer available. Redirecting to accounts list...",
+          title: "Account Not Found",
+          description: "This account has been deleted or does not exist.",
           variant: "destructive"
         })
         setTimeout(() => {
           router.push('/dashboard/prop-firm/accounts')
         }, 3000)
       } else {
-      toast({
-        title: t('propFirm.toast.setupError'),
-        description: t('propFirm.toast.setupErrorDescription'),
-        variant: "destructive"
-      })
+        toast({
+          title: t('propFirm.toast.setupError'),
+          description: realtimeError,
+          variant: "destructive"
+        })
       }
-    } finally {
-      setIsLoading(false)
     }
-  }
+  }, [realtimeError, router, t])
 
-  // Load account data on mount
+  // Sync real-time data with legacy state for compatibility
   useEffect(() => {
-    if (accountId) {
-      fetchAccountData()
+    if (realtimeAccount && realtimeDrawdown) {
+      // Create compatible data structure
+      const compatibleData = {
+        account: realtimeAccount,
+        currentPhase: {
+          phaseType: realtimeAccount.currentPhase || 'evaluation',
+          phaseStatus: 'active' // Assume active if we're getting real-time data
+        },
+        drawdown: realtimeDrawdown,
+        progress: {
+          profitProgress: realtimeAccount.profitTargetProgress || 0,
+          canProgress: false, // Will be determined by backend
+          nextPhaseType: null
+        }
+      }
+      setAccountData(compatibleData)
     }
-  }, [accountId])
+  }, [realtimeAccount, realtimeDrawdown])
 
   const getStatusVariant = (status: AccountStatus): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
@@ -161,30 +146,39 @@ export default function AccountDetailPage() {
     return `${value.toFixed(1)}%`
   }
 
-  if (isLoading) {
+  // Handle loading state
+  if (isLoading && !accountData) {
     return (
       <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <RefreshCw className="h-8 w-8 animate-spin" />
-        </div>
+        <AccountLoadingState />
       </div>
     )
   }
 
+  // Handle connection errors
+  if (realtimeError && realtimeError.includes('404')) {
+    return (
+      <AccountNotFoundError 
+        accountId={accountId}
+        onRetry={refetch}
+        onGoBack={() => router.push('/dashboard/accounts')}
+      />
+    )
+  }
+
+  // Handle no data state
   if (!accountData) {
     return (
       <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Account Not Found</h3>
-            <p className="text-muted-foreground">The requested account could not be found.</p>
-            <Button onClick={() => router.back()} className="mt-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Go Back
-            </Button>
-          </div>
-        </div>
+        {realtimeError ? (
+          <ConnectionError error={realtimeError} onRetry={refetch} />
+        ) : (
+          <AccountNotFoundError 
+            accountId={accountId}
+            onRetry={refetch}
+            onGoBack={() => router.push('/dashboard/accounts')}
+          />
+        )}
       </div>
     )
   }
@@ -192,7 +186,8 @@ export default function AccountDetailPage() {
   const { account, currentPhase, drawdown, progress, payoutEligibility } = accountData
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <PropFirmErrorBoundary onReset={() => window.location.reload()}>
+      <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -215,21 +210,29 @@ export default function AccountDetailPage() {
               <Badge className={cn("text-white", getPhaseColor(currentPhase.phaseType))}>
                 {t(`propFirm.phase.${currentPhase.phaseType}` as any, { count: 1 })}
               </Badge>
+              <RealtimeStatusIndicator 
+                isPolling={isPolling} 
+                lastUpdated={lastUpdated} 
+                error={realtimeError} 
+              />
               <span className="text-muted-foreground">•</span>
               <span className="text-sm text-muted-foreground">{account.propfirm}</span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchAccountData}
-            disabled={isLoading}
-          >
-            <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
-            Refresh
-          </Button>
+          <div className="flex flex-col items-end gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchAccountData}
+              disabled={isLoading}
+            >
+              <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+              Refresh
+            </Button>
+            <RealtimeMetrics isLoading={isLoading} lastUpdated={lastUpdated} />
+          </div>
         </div>
       </div>
 
@@ -515,7 +518,7 @@ export default function AccountDetailPage() {
                           <Card key={phase.id} className="p-4">
                             <div className="flex items-center justify-between mb-2">
                               <Badge variant={phase.phaseStatus === 'active' ? 'default' : phase.phaseStatus === 'passed' ? 'secondary' : 'destructive'}>
-                                {phase.phaseType.replace('_', ' ').toUpperCase()}
+                                {(phase?.phaseType || 'evaluation').replace('_', ' ').toUpperCase()}
                               </Badge>
                               <span className="text-sm text-muted-foreground">
                                 {phase.phaseStatus}
@@ -571,7 +574,7 @@ export default function AccountDetailPage() {
                                 </td>
                                 <td className="p-3">
                                   <Badge variant="outline" className="text-xs">
-                                    {trade.phase?.phaseType?.replace('_', ' ') || 'N/A'}
+                                    {(trade.phase?.phaseType || 'evaluation').replace('_', ' ')}
                                   </Badge>
                                 </td>
                                 <td className="p-3 text-sm text-muted-foreground">
@@ -676,7 +679,7 @@ export default function AccountDetailPage() {
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <Badge variant={phase.phaseStatus === 'active' ? 'default' : phase.phaseStatus === 'passed' ? 'secondary' : 'destructive'}>
-                              {phase.phaseType.replace('_', ' ').toUpperCase()}
+                              {(phase?.phaseType || 'evaluation').replace('_', ' ').toUpperCase()}
                             </Badge>
                             <span className="text-sm text-muted-foreground">
                               {phase.phaseStatus} • Started {new Date(phase.createdAt).toLocaleDateString()}
@@ -955,15 +958,15 @@ export default function AccountDetailPage() {
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm text-muted-foreground">Current Phase</label>
-                      <p className="font-medium">{currentPhase.phaseType.replace('_', ' ').toUpperCase()}</p>
+                      <p className="font-medium">{(currentPhase?.phaseType || 'evaluation').replace('_', ' ').toUpperCase()}</p>
                     </div>
                     <div>
                       <label className="text-sm text-muted-foreground">Phase Status</label>
                       <Badge variant={
-                        currentPhase.phaseStatus === 'active' ? 'default' :
-                        currentPhase.phaseStatus === 'passed' ? 'secondary' : 'destructive'
+                        currentPhase?.phaseStatus === 'active' ? 'default' :
+                        currentPhase?.phaseStatus === 'passed' ? 'secondary' : 'destructive'
                       }>
-                        {currentPhase.phaseStatus.toUpperCase()}
+                        {(currentPhase?.phaseStatus || 'active').toUpperCase()}
                       </Badge>
                     </div>
                     <div>
@@ -972,7 +975,7 @@ export default function AccountDetailPage() {
                     </div>
                     <div>
                       <label className="text-sm text-muted-foreground">Evaluation Type</label>
-                      <p className="font-medium">{account.evaluationType.replace('_', '-').toUpperCase()}</p>
+                      <p className="font-medium">{(account?.evaluationType || 'two_step').replace('_', '-').toUpperCase()}</p>
                     </div>
                   </div>
                 </div>
@@ -1092,7 +1095,7 @@ export default function AccountDetailPage() {
                       <div key={breach.id} className="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-red-50">
                         <div>
                           <div className="font-medium text-red-800">
-                            {breach.breachType.replace('_', ' ').toUpperCase()} BREACH
+                            {(breach?.breachType || 'drawdown').replace('_', ' ').toUpperCase()} BREACH
                           </div>
                           <div className="text-sm text-red-600">
                             {breach.description}
@@ -1127,5 +1130,6 @@ export default function AccountDetailPage() {
         />
       )}
     </div>
+    </PropFirmErrorBoundary>
   )
 }

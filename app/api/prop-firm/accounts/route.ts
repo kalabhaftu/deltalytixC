@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
 import { PropFirmSchemas } from '@/lib/validation/prop-firm-schemas'
-import { evaluateAccount } from '@/lib/prop-firm/clean-system'
+import { PropFirmAccountEvaluator } from '@/lib/prop-firm/account-evaluation'
 // Removed heavy validation import - using Zod directly
 import { PhaseType, EvaluationType } from '@/types/prop-firm'
 

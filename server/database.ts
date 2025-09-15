@@ -198,9 +198,9 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         skipped: cleanedData.length - result.count
       }, 'SaveTrades')
 
-      // Trigger clean prop firm account evaluation 
+      // Trigger prop firm account evaluation using the official evaluation system
       try {
-        const { linkTradesAndEvaluate } = await import('@/lib/prop-firm/clean-system')
+        const { PropFirmAccountEvaluator } = await import('@/lib/prop-firm/account-evaluation')
         
         // Get the actual saved trades with IDs for linking
         const savedTrades = await prisma.trade.findMany({
@@ -213,12 +213,13 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
           }
         })
         
-        const evaluationResult = await linkTradesAndEvaluate(savedTrades, userId)
+        const evaluationResult = await PropFirmAccountEvaluator.linkTradesAndEvaluate(savedTrades, userId)
         
-        logger.info('Clean prop firm evaluation completed', {
-          resultsCount: evaluationResult.results.length,
+        logger.info('Prop firm evaluation completed', {
+          linkedTradesCount: evaluationResult.linkedTrades.length,
+          statusUpdatesCount: evaluationResult.statusUpdates.length,
           errorsCount: evaluationResult.errors.length,
-          results: evaluationResult.results
+          statusUpdates: evaluationResult.statusUpdates
         }, 'SaveTrades')
         
         if (evaluationResult.errors.length > 0) {

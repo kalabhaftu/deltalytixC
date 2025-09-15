@@ -50,7 +50,7 @@ export default function LandingPage() {
                                     </p>
                                 </div>
                                 <div className="flex w-full justify-center">
-                                    <Link href={"/authentication"} className="flex justify-center items-center px-8 py-2.5 h-10 bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl rounded-xl transition-all duration-200">
+                                    <Link href={"/authentication"} className="flex justify-center items-center px-8 py-2.5 h-10 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl rounded-xl transition-all duration-200">
                                         <span className="font-medium text-sm text-white">{t('landing.cta')}</span>
                                     </Link>
                                 </div>

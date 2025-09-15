@@ -22,7 +22,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const userId = await getUserId()
     const { id: accountId } = await params
 
-    // Get account with all related data
+    // Step 1: Get basic account info first (lightweight query)
     const account = await prisma.account.findFirst({
       where: {
         id: accountId,
@@ -57,13 +57,44 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         resetOnPayout: true,
         reduceBalanceByPayout: true,
         fundedResetBalance: true,
-        phases: {
+      }
+    })
+
+    if (!account) {
+      return NextResponse.json(
+        { error: 'Account not found' },
+        { status: 404 }
+      )
+    }
+
+    // Step 2: Get related data with separate, efficient queries
+    const [phases, trades, breaches, dailyAnchors] = await Promise.all([
+      // Get phases (lightweight)
+      prisma.accountPhase.findMany({
+        where: { accountId },
           orderBy: { createdAt: 'desc' },
-        },
-        trades: {
+        select: {
+          id: true,
+          phaseType: true,
+          phaseStatus: true,
+          phaseStartAt: true,
+          phaseEndAt: true,
+          profitTarget: true,
+          currentEquity: true,
+          currentBalance: true,
+          netProfitSincePhaseStart: true,
+          highestEquitySincePhaseStart: true,
+          createdAt: true
+        }
+      }),
+      
+      // Get trades - BOTH linked trades AND trades by account number
+      Promise.all([
+        // Get trades directly linked by accountId
+        prisma.trade.findMany({
           where: { accountId },
-          orderBy: { createdAt: 'desc' },
-          take: 200, // More trades for detailed view
+          orderBy: { exitTime: 'desc' },
+          take: 100,
           select: {
             id: true,
             symbol: true,
@@ -81,164 +112,155 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             phaseId: true,
             instrument: true
           }
-        },
-        breaches: {
-          orderBy: { breachTime: 'desc' },
-          take: 5, // Latest 5 breaches
-        },
-        payouts: {
-          orderBy: { createdAt: 'desc' },
-        },
-        dailyAnchors: {
-          orderBy: { date: 'desc' },
-          take: 30, // Last 30 days
-        },
-        equitySnapshots: {
-          orderBy: { timestamp: 'desc' },
-          take: 100, // For equity chart
-        },
-        transitions: {
-          orderBy: { transitionTime: 'desc' },
-          take: 10,
-        }
-      }
-    })
-
-    if (!account) {
-      return NextResponse.json(
-        { error: 'Account not found' },
-        { status: 404 }
-      )
-    }
-
-    // Handle failed accounts differently
-    if (account.status === 'failed') {
-      const failedPhase = account.phases.find(p => p.phaseStatus === 'failed') || account.phases[0]
-      const netProfit = account.trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
-      const currentBalance = account.startingBalance + netProfit
-      
-      return NextResponse.json({
-        success: true,
-        data: {
-          account: {
-            ...account,
-            currentBalance,
-            netProfit
+        }),
+        // Get trades by account number (for failed accounts or unlinked trades)
+        prisma.trade.findMany({
+          where: { 
+            accountNumber: account.number,
+            userId 
           },
-          currentPhase: failedPhase,
-          drawdown: null,
-          progress: null,
-          payoutEligibility: null,
-          riskMetrics: null,
-          recentActivity: {
-            trades: account.trades,
-            breaches: account.breaches,
-            transitions: account.transitions,
-          },
-          charts: {
-            equity: [],
-            dailyAnchors: [],
+          orderBy: { exitTime: 'desc' },
+          take: 100,
+          select: {
+            id: true,
+            symbol: true,
+            side: true,
+            quantity: true,
+            entryPrice: true,
+            closePrice: true,
+            realizedPnl: true,
+            pnl: true,
+            fees: true,
+            commission: true,
+            entryTime: true,
+            exitTime: true,
+            createdAt: true,
+            phaseId: true,
+            instrument: true
+          }
+        })
+      ]).then(([linkedTrades, unlinkedTrades]) => {
+        // Merge and deduplicate trades
+        const allTrades = [...linkedTrades]
+        const linkedIds = new Set(linkedTrades.map(t => t.id))
+        
+        for (const trade of unlinkedTrades) {
+          if (!linkedIds.has(trade.id)) {
+            allTrades.push(trade)
           }
         }
+        
+        return allTrades.sort((a, b) => {
+          const timeA = a.exitTime || a.createdAt
+          const timeB = b.exitTime || b.createdAt
+          return new Date(timeB).getTime() - new Date(timeA).getTime()
+        })
+      }),
+      
+      // Get recent breaches only
+      prisma.breach.findMany({
+        where: { accountId },
+        orderBy: { breachTime: 'desc' },
+        take: 5,
+        select: {
+          id: true,
+          breachType: true,
+          breachAmount: true,
+          breachThreshold: true,
+          breachTime: true,
+          description: true,
+          equity: true
+        }
+      }),
+      
+      // Get recent daily anchors only
+      prisma.dailyAnchor.findMany({
+        where: { accountId },
+        orderBy: { date: 'desc' },
+        take: 7, // Last week only
+        select: {
+          id: true,
+          date: true,
+          anchorEquity: true,
+          computedAt: true
+        }
       })
-    }
+    ])
 
-    // Get current active phase
-    const currentPhase = account.phases.find(p => p.phaseStatus === 'active')
-    if (!currentPhase) {
-      return NextResponse.json(
-        { error: 'Account has no active phase' },
-        { status: 400 }
-      )
-    }
-
-    // Calculate current equity and metrics with safe defaults
-    const latestSnapshot = account.equitySnapshots[0]
-    const currentEquity = Math.max(0, latestSnapshot?.equity || account.startingBalance)
-    const currentBalance = Math.max(0, latestSnapshot?.balance || account.startingBalance)
-    const openPnl = latestSnapshot?.openPnl || 0
-
-    // Get latest daily anchor for drawdown calculation
-    const latestAnchor = account.dailyAnchors[0]
-    const dailyStartBalance = Math.max(0, latestAnchor?.anchorEquity || account.startingBalance)
-
-    // Calculate drawdown status
-    const drawdown = PropFirmBusinessRules.calculateDrawdown(
-      account as any,
-      currentPhase as any,
-      currentEquity,
-      dailyStartBalance,
-      currentPhase.highestEquitySincePhaseStart || account.startingBalance
-    )
-
-    // Calculate phase progress
-    const progress = PropFirmBusinessRules.calculatePhaseProgress(
-      account as any,
-      currentPhase as any,
-      currentPhase.netProfitSincePhaseStart
-    )
-
-    // Calculate payout eligibility if funded
-    let payoutEligibility = null
-    if (currentPhase.phaseType === 'funded') {
-      const fundedPhaseStart = account.phases.find(p => p.phaseType === 'funded')?.phaseStartAt
-      const daysSinceFunded = fundedPhaseStart 
-        ? Math.floor((new Date().getTime() - fundedPhaseStart.getTime()) / (1000 * 60 * 60 * 24))
-        : 0
-
-      const lastPayout = account.payouts[0]
-      const daysSinceLastPayout = lastPayout
-        ? Math.floor((new Date().getTime() - lastPayout.createdAt.getTime()) / (1000 * 60 * 60 * 24))
-        : daysSinceFunded
-
-      const netProfitSinceLastPayout = lastPayout
-        ? Math.max(0, currentPhase.netProfitSincePhaseStart - (lastPayout.amountPaid || lastPayout.amount || 0))
-        : Math.max(0, currentPhase.netProfitSincePhaseStart || 0)
-
-      const hasActiveBreaches = account.breaches.some(
-        b => b.breachTime >= new Date(Date.now() - 24 * 60 * 60 * 1000)
-      )
-
-      payoutEligibility = PropFirmBusinessRules.calculatePayoutEligibility(
-        account as any,
-        currentPhase as any,
-        daysSinceFunded,
-        daysSinceLastPayout,
-        netProfitSinceLastPayout,
-        hasActiveBreaches
-      )
-    }
-
-    // Calculate risk metrics
-    const riskMetrics = PropFirmBusinessRules.calculateRiskMetrics(
-      account as any,
-      account.trades as any,
+    // Calculate metrics efficiently
+    const currentPhase = phases.find(p => p.phaseStatus === 'active') || phases[0]
+    const totalPnl = trades.reduce((sum, trade) => sum + (trade.pnl || trade.realizedPnl || 0), 0)
+    const currentBalance = account.startingBalance + totalPnl
+    const currentEquity = currentPhase?.currentEquity || currentBalance
+    
+    // Simple drawdown calculation
+    const latestAnchor = dailyAnchors[0]
+    const dailyStartBalance = latestAnchor?.anchorEquity || account.startingBalance
+    const highWaterMark = Math.max(
+      currentPhase?.highestEquitySincePhaseStart || account.startingBalance,
       currentEquity
     )
+
+    const dailyDrawdownAmount = Math.max(0, dailyStartBalance - currentEquity)
+    const maxDrawdownAmount = Math.max(0, highWaterMark - currentEquity)
+    
+    const dailyDrawdownLimit = account.dailyDrawdownType === 'percent' 
+      ? (account.dailyDrawdownAmount / 100) * account.startingBalance
+      : account.dailyDrawdownAmount
+      
+    const maxDrawdownLimit = account.maxDrawdownType === 'percent'
+      ? (account.maxDrawdownAmount / 100) * (account.drawdownModeMax === 'static' ? account.startingBalance : highWaterMark)
+      : account.maxDrawdownAmount
+
+    const dailyDrawdownRemaining = Math.max(0, dailyDrawdownLimit - dailyDrawdownAmount)
+    const maxDrawdownRemaining = Math.max(0, maxDrawdownLimit - maxDrawdownAmount)
+    
+    const isBreached = dailyDrawdownAmount > dailyDrawdownLimit || maxDrawdownAmount > maxDrawdownLimit
+    const breachType = dailyDrawdownAmount > dailyDrawdownLimit ? 'daily_drawdown' : 'max_drawdown'
 
     return NextResponse.json({
       success: true,
       data: {
         account: {
           ...account,
-          currentEquity,
           currentBalance,
-          openPnl,
+          currentEquity,
+          netProfit: totalPnl,
+          phases: phases.map(p => p.phaseType).join(' → '),
+          currentPhase: currentPhase?.phaseType || 'evaluation'
         },
-        currentPhase,
-        drawdown,
-        progress,
-        payoutEligibility,
-        riskMetrics,
-        recentActivity: {
-          trades: account.trades, // Return all trades (up to 200)
-          breaches: account.breaches,
-          transitions: account.transitions,
+        drawdown: {
+          dailyDrawdownRemaining,
+          maxDrawdownRemaining,
+          dailyStartBalance,
+          highestEquity: highWaterMark,
+          isBreached,
+          breachType: isBreached ? breachType : null,
+          breachAmount: isBreached ? (breachType === 'daily_drawdown' ? dailyDrawdownAmount : maxDrawdownAmount) : null
         },
-        charts: {
-          equity: account.equitySnapshots,
-          dailyAnchors: account.dailyAnchors,
-        }
+        phases,
+        trades,
+        breaches,
+        dailyAnchors,
+        // Instrument performance
+        instrumentStats: (() => {
+          const stats = new Map()
+          for (const trade of trades) {
+            const symbol = trade.symbol || trade.instrument || 'Unknown'
+            if (!stats.has(symbol)) {
+              stats.set(symbol, { trades: 0, pnl: 0, wins: 0 })
+            }
+            const stat = stats.get(symbol)
+            stat.trades++
+            stat.pnl += (trade.pnl || trade.realizedPnl || 0)
+            if ((trade.pnl || trade.realizedPnl || 0) > 0) stat.wins++
+          }
+          return Array.from(stats.entries()).map(([symbol, data]) => ({
+            symbol,
+            ...data,
+            winRate: data.trades > 0 ? (data.wins / data.trades * 100) : 0
+          }))
+        })()
       }
     })
 

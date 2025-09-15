@@ -55,12 +55,12 @@ export class PropFirmAccountEvaluator {
     const accountsToEvaluate = new Set<string>()
 
     try {
-      // Get all prop firm accounts for this user (automatically excludes failed accounts)
+      // Get ALL prop firm accounts for this user (including failed accounts for historical data)
       const propFirmAccounts = await prisma.account.findMany({
-        where: getActiveAccountsWhereClause({
+        where: {
           userId,
-          propfirm: { not: '' } // Only prop firm accounts
-        }),
+          propfirm: { not: '' } // Only prop firm accounts - DO NOT exclude failed accounts
+        },
         include: {
           phases: {
             where: { phaseStatus: 'active' }, // Only get active phases, not archived ones
@@ -88,9 +88,38 @@ export class PropFirmAccountEvaluator {
             continue
           }
 
+          // Handle failed accounts - assign trades for historical data but don't evaluate
+          if (matchingAccount.status === 'failed') {
+            // For failed accounts, simply link the trade without phase evaluation
+            await prisma.trade.update({
+              where: { id: trade.id },
+              data: { 
+                accountId: matchingAccount.id,
+                // Leave phaseId as null since account is failed
+              }
+            })
+
+            linkedTrades.push({
+              tradeId: trade.id,
+              accountId: matchingAccount.id,
+              accountNumber: trade.accountNumber,
+              phaseId: null,
+              reason: 'Failed account - linked for historical data'
+            })
+            
+            logger.info('Linked trade to failed account', {
+              tradeId: trade.id,
+              accountNumber: trade.accountNumber,
+              accountId: matchingAccount.id
+            }, 'AccountEvaluator')
+            
+            continue // Skip evaluation for failed accounts
+          }
+
           const currentPhase = matchingAccount.phases[0]
           if (!currentPhase) {
-            errors.push(`No active phase found for account: ${trade.accountNumber}`)
+            // No active phase but account is not failed - this is an error
+            errors.push(`No active phase found for non-failed account: ${trade.accountNumber}`)
             continue
           }
 
@@ -242,9 +271,12 @@ export class PropFirmAccountEvaluator {
       const { currentBalance, currentEquity, netProfit, highWaterMark } = 
         await this.calculateAccountMetrics(account, currentPhase, account.trades)
 
-      // Get daily start balance for drawdown calculation
-      const dailyAnchor = account.dailyAnchors[0]
-      const dailyStartBalance = dailyAnchor?.anchorEquity || account.startingBalance
+      // Get daily start balance for drawdown calculation (timezone-aware)
+      const dailyStartBalance = await this.getDailyStartBalance(
+        accountId, 
+        account.timezone || 'UTC', 
+        account.startingBalance
+      )
 
       // 1. Check for Failure First (Daily DD or Max DD breach)
       const drawdownResult = PropFirmBusinessRules.calculateDrawdown(
@@ -333,6 +365,36 @@ export class PropFirmAccountEvaluator {
       }
 
       // 2. Check for Phase Progression (profit target met)
+      // IMPORTANT: Only allow progression if no breaches exist
+      const activeBreaches = await prisma.breach.count({
+        where: {
+          accountId,
+          phaseId: currentPhase.id
+        }
+      })
+
+      if (activeBreaches > 0) {
+        // Account has breaches - cannot progress regardless of profit target
+        logger.info('Account progression blocked due to existing breaches', {
+          accountId,
+          accountNumber: account.number,
+          breachCount: activeBreaches
+        }, 'AccountEvaluator')
+        
+        // Update phase metrics but don't allow progression
+        await prisma.accountPhase.update({
+          where: { id: currentPhase.id },
+          data: {
+            currentEquity,
+            currentBalance,
+            highestEquitySincePhaseStart: highWaterMark,
+            netProfitSincePhaseStart: netProfit,
+          }
+        })
+
+        return null // No status change due to existing breaches
+      }
+
       const progressResult = PropFirmBusinessRules.calculatePhaseProgress(
         account as any,
         currentPhase as any,
@@ -444,7 +506,7 @@ export class PropFirmAccountEvaluator {
         data: {
           currentEquity,
           currentBalance,
-          highestEquitySincePhaseStart: Math.max(highWaterMark, currentPhase.highestEquitySincePhaseStart),
+          highestEquitySincePhaseStart: highWaterMark, // Use calculated high-water mark
           netProfitSincePhaseStart: netProfit,
         }
       })
@@ -473,7 +535,7 @@ export class PropFirmAccountEvaluator {
   }
 
   /**
-   * Calculate account metrics from trades
+   * Calculate account metrics from trades with proper high-water mark tracking
    */
   private static async calculateAccountMetrics(
     account: any,
@@ -485,18 +547,42 @@ export class PropFirmAccountEvaluator {
     netProfit: number
     highWaterMark: number
   }> {
-    // Calculate net profit from all trades in current phase
-    const phaseTrades = trades.filter(trade => trade.phaseId === currentPhase.id)
+    // Filter trades for current phase and sort chronologically
+    const phaseTrades = trades
+      .filter(trade => trade.phaseId === currentPhase.id)
+      .sort((a, b) => {
+        // Use exitTime if available, otherwise createdAt
+        const timeA = a.exitTime || a.createdAt
+        const timeB = b.exitTime || b.createdAt
+        return new Date(timeA).getTime() - new Date(timeB).getTime()
+      })
+
+    // Calculate running balance and track highest equity chronologically
+    let runningBalance = account.startingBalance
+    let highWaterMark = account.startingBalance
+    
+    // Track the highest equity from phase start
+    const phaseStartHighest = currentPhase.highestEquitySincePhaseStart || account.startingBalance
+    highWaterMark = Math.max(highWaterMark, phaseStartHighest)
+
+    // Process trades chronologically to find true high-water mark
+    for (const trade of phaseTrades) {
+      runningBalance += (trade.pnl || 0)
+      // For now, equity equals balance (no open positions tracking)
+      const equityAtThisPoint = runningBalance
+      
+      // Update high-water mark if this is a new peak
+      if (equityAtThisPoint > highWaterMark) {
+        highWaterMark = equityAtThisPoint
+      }
+    }
+
     const netProfit = phaseTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
-    
-    // Current balance = starting balance + net profit
-    const currentBalance = account.startingBalance + netProfit
-    
-    // For now, equity equals balance (no open positions)
+    const currentBalance = runningBalance
     const currentEquity = currentBalance
-    
-    // High water mark is the highest equity reached in this phase
-    const highWaterMark = Math.max(currentEquity, currentPhase.highestEquitySincePhaseStart || account.startingBalance)
+
+    // Ensure high-water mark is at least the current equity
+    highWaterMark = Math.max(highWaterMark, currentEquity)
 
     return {
       currentBalance,
@@ -507,11 +593,10 @@ export class PropFirmAccountEvaluator {
   }
 
   /**
-   * Create daily anchors for accounts (should be called daily via cron)
+   * Create daily anchors for accounts (timezone-aware, called by cron)
    */
-  static async createDailyAnchors(userId?: string): Promise<number> {
-    const today = new Date()
-    const todayStr = today.toISOString().split('T')[0]
+  static async createDailyAnchors(userId?: string, forceDate?: string): Promise<number> {
+    let anchorsCreated = 0
 
     const whereClause: any = {
       propfirm: { not: '' }, // Only prop firm accounts
@@ -531,43 +616,166 @@ export class PropFirmAccountEvaluator {
           orderBy: { createdAt: 'desc' },
           take: 1
         },
-        dailyAnchors: {
-          where: { date: new Date(todayStr) }
+        trades: {
+          where: { accountId: { not: null } },
+          orderBy: { exitTime: 'desc' },
+          take: 1
         }
       }
     })
 
-    // Filter accounts that don't have today's anchor
-    const accountsNeedingAnchors = accounts.filter(account => 
-      account.dailyAnchors.length === 0 && account.phases.length > 0
-    )
-
-    if (accountsNeedingAnchors.length === 0) {
-      return 0
+    // Group accounts by timezone for efficient processing
+    const accountsByTimezone = new Map<string, typeof accounts>()
+    
+    for (const account of accounts) {
+      const timezone = account.timezone || 'UTC'
+      if (!accountsByTimezone.has(timezone)) {
+        accountsByTimezone.set(timezone, [])
+      }
+      accountsByTimezone.get(timezone)!.push(account)
     }
 
-    // Create daily anchors
-    const anchorsToCreate = accountsNeedingAnchors.map(account => {
-      const currentPhase = account.phases[0]
-      const anchorEquity = currentPhase?.currentEquity || account.startingBalance
+    // Process each timezone group
+    for (const [timezone, timezoneAccounts] of accountsByTimezone) {
+      try {
+        // Calculate the date in the account's timezone
+        const now = new Date()
+        const todayInTimezone = forceDate || this.getDateInTimezone(now, timezone)
+        
+        // Check which accounts need anchors for this date
+        const accountsWithExistingAnchors = await prisma.account.findMany({
+          where: {
+            id: { in: timezoneAccounts.map(a => a.id) }
+          },
+          include: {
+            dailyAnchors: {
+              where: { date: new Date(todayInTimezone) }
+            }
+          }
+        })
 
-      return {
-        accountId: account.id,
-        date: new Date(todayStr),
-        anchorEquity
+        const accountsNeedingAnchors = timezoneAccounts.filter(account => {
+          const existingAnchor = accountsWithExistingAnchors.find(a => a.id === account.id)
+          return !existingAnchor?.dailyAnchors.length && account.phases.length > 0
+        })
+
+        if (accountsNeedingAnchors.length === 0) {
+          continue
+        }
+
+        // Create daily anchors for accounts in this timezone
+        const anchorsToCreate = accountsNeedingAnchors.map(account => {
+          const currentPhase = account.phases[0]
+          const anchorEquity = currentPhase?.currentEquity || account.startingBalance
+
+          return {
+            accountId: account.id,
+            date: new Date(todayInTimezone),
+            anchorEquity
+          }
+        })
+
+        const result = await prisma.dailyAnchor.createMany({
+          data: anchorsToCreate,
+          skipDuplicates: true
+        })
+
+        anchorsCreated += result.count
+
+        logger.info('Created daily anchors for timezone', {
+          timezone,
+          count: result.count,
+          date: todayInTimezone,
+          accounts: accountsNeedingAnchors.map(a => a.number)
+        }, 'AccountEvaluator')
+
+      } catch (error) {
+        logger.error(`Failed to create daily anchors for timezone ${timezone}`, error, 'AccountEvaluator')
+      }
+    }
+
+    return anchorsCreated
+  }
+
+  /**
+   * Get current date string in specified timezone (YYYY-MM-DD format)
+   */
+  private static getDateInTimezone(date: Date, timezone: string): string {
+    try {
+      // Convert to timezone and get date string
+      const formatter = new Intl.DateTimeFormat('en-CA', { 
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      })
+      return formatter.format(date) // Returns YYYY-MM-DD format
+    } catch (error) {
+      logger.warn(`Invalid timezone ${timezone}, falling back to UTC`, { timezone }, 'AccountEvaluator')
+      return date.toISOString().split('T')[0]
+    }
+  }
+
+  /**
+   * Get daily start balance for drawdown calculation (timezone-aware)
+   */
+  private static async getDailyStartBalance(
+    accountId: string, 
+    accountTimezone: string, 
+    accountStartingBalance: number
+  ): Promise<number> {
+    const today = this.getDateInTimezone(new Date(), accountTimezone)
+    
+    // Get today's daily anchor
+    const todayAnchor = await prisma.dailyAnchor.findFirst({
+      where: {
+        accountId,
+        date: new Date(today)
       }
     })
 
-    const result = await prisma.dailyAnchor.createMany({
-      data: anchorsToCreate,
-      skipDuplicates: true
-    })
+    if (todayAnchor) {
+      return todayAnchor.anchorEquity
+    }
 
-    logger.info('Created daily anchors', {
-      count: result.count,
-      date: todayStr
-    }, 'AccountEvaluator')
+    // If no anchor for today, try to create one immediately
+    try {
+      const account = await prisma.account.findFirst({
+        where: { id: accountId },
+        include: {
+          phases: {
+            where: { phaseStatus: 'active' },
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          }
+        }
+      })
 
-    return result.count
+      if (account && account.phases.length > 0) {
+        const currentPhase = account.phases[0]
+        const anchorEquity = currentPhase.currentEquity || accountStartingBalance
+
+        const newAnchor = await prisma.dailyAnchor.create({
+          data: {
+            accountId,
+            date: new Date(today),
+            anchorEquity
+          }
+        })
+
+        logger.info('Created missing daily anchor', {
+          accountId,
+          date: today,
+          anchorEquity
+        }, 'AccountEvaluator')
+
+        return newAnchor.anchorEquity
+      }
+    } catch (error) {
+      logger.warn('Failed to create missing daily anchor', { accountId, error }, 'AccountEvaluator')
+    }
+
+    // Fallback to starting balance
+    return accountStartingBalance
   }
 }

@@ -54,6 +54,9 @@ model Trade {
   @@index([accountId])
   @@index([entryTime])
   @@index([symbol])
+  @@index([accountId, phaseId])
+  @@index([exitTime])
+  @@index([accountId, exitTime])
   @@schema("public")
 }
 
@@ -161,8 +164,8 @@ model Account {
   maxPayout                  String?
   maxFundedAccounts          Int?
   name                       String?
-  dailyDrawdownAmount        Float?
-  maxDrawdownAmount          Float?
+  dailyDrawdownAmount        Float?              @default(4.0)
+  maxDrawdownAmount          Float?              @default(10.0)
   timezone                   String              @default("UTC")
   dailyResetTime             String              @default("00:00")
   ddIncludeOpenPnl           Boolean             @default(false)
@@ -202,6 +205,9 @@ model Account {
   @@index([userId])
   @@index([status])
   @@index([evaluationType])
+  @@index([propfirm, status])
+  @@index([timezone])
+  @@index([userId, propfirm, status, evaluationType])
   @@schema("public")
 }
 
@@ -427,6 +433,8 @@ model AccountPhase {
   @@index([accountId])
   @@index([phaseType])
   @@index([phaseStatus])
+  @@index([phaseStatus, phaseType])
+  @@index([accountId, phaseStatus])
   @@schema("public")
 }
 
@@ -447,6 +455,7 @@ model Breach {
   @@index([accountId])
   @@index([phaseId])
   @@index([breachTime])
+  @@index([accountId, phaseId])
   @@schema("public")
 }
 
@@ -460,6 +469,7 @@ model DailyAnchor {
 
   @@unique([accountId, date])
   @@index([date])
+  @@index([accountId, date])
   @@schema("public")
 }
 
@@ -478,6 +488,8 @@ model EquitySnapshot {
   @@index([accountId])
   @@index([phaseId])
   @@index([timestamp])
+  @@index([accountId, timestamp])
+  @@index([phaseId, timestamp])
   @@schema("public")
 }
 
@@ -498,6 +510,7 @@ model AccountTransition {
 
   @@index([accountId])
   @@index([transitionTime])
+  @@index([accountId, transitionTime])
   @@schema("public")
 }
 
