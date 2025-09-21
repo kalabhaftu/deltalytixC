@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CalendarModal } from "./daily-modal"
-import { useI18n } from "@/lib/translations/client"
 import { WeeklyModal } from "./weekly-modal"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useCalendarViewStore } from "@/store/calendar-view"
@@ -64,8 +63,6 @@ interface CalendarPnlProps {
 
 
 function RenewalBadge({ renewals }: { renewals: Account[] }) {
-  const t = useI18n()
-
   if (renewals.length === 0) return null
 
   return (
@@ -94,7 +91,7 @@ function RenewalBadge({ renewals }: { renewals: Account[] }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="space-y-4">
-          <div className="font-semibold text-sm">{t('propFirm.renewal.title')}</div>
+          <div className="font-semibold text-sm">Daily</div>
           {renewals.map((account, index) => (
             <div key={account.id} className="border-b last:border-b-0 pb-3 last:pb-0">
               <div className="flex justify-between items-start">
@@ -119,7 +116,6 @@ function RenewalBadge({ renewals }: { renewals: Account[] }) {
 
 export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
   const accounts = useUserStore(state => state.accounts)
-  const t = useI18n()
   const locale = 'en' // Fixed to English since we removed i18n
   const timezone = useUserStore(state => state.timezone)
   const dateLocale = enUS
@@ -229,7 +225,7 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
               onClick={() => setViewMode('daily')}
             >
               <Calendar className="h-4 w-4 mr-1" />
-              <span className="text-xs">{t('calendar.viewMode.daily')}</span>
+              <span className="text-xs">{"Daily"}</span>
             </Button>
             <Button
               variant={viewMode === 'weekly' ? 'default' : 'ghost'}
@@ -241,7 +237,7 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
               onClick={() => setViewMode('weekly')}
             >
               <CalendarDays className="h-4 w-4 mr-1" />
-              <span className="text-xs">{t('calendar.viewMode.weekly')}</span>
+              <span className="text-xs">{"Weekly"}</span>
             </Button>
           </div>
           <div className="flex items-center gap-1.5">
@@ -272,14 +268,14 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
             <div className="grid grid-cols-8 gap-x-[1px] mb-1">
               {WEEKDAYS.map((day) => (
                 <div key={day} className="text-center font-medium text-[9px] sm:text-[11px] text-muted-foreground">
-                  {t(day)}
+                  {day}
                 </div>
               ))}
               <div className="text-center font-medium text-[9px] sm:text-[11px] text-muted-foreground">
-                {t('calendar.weekdays.weekly')}
+                Weekly
               </div>
             </div>
-            <div className="grid grid-cols-8 auto-rows-fr rounded-lg h-[calc(100%-20px)] gap-1">
+            <div className="grid grid-cols-8 gap-1">
               {calendarDays.map((date, index) => {
                 const dateString = format(date, 'yyyy-MM-dd')
                 const dayData = calendarData[dateString]
@@ -372,8 +368,8 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
                           !isCurrentMonth && "opacity-50"
                         )}>
                           {dayData
-                            ? `${dayData.tradeNumber} ${dayData.tradeNumber > 1 ? t('calendar.trades') : t('calendar.trade')}`
-                            : t('calendar.noTrades')}
+                            ? `${dayData.tradeNumber} ${dayData.tradeNumber > 1 ? "trades" : "trade"}`
+                            : "No trades"}
                         </div>
                         {dayData && (
                           <>
@@ -381,13 +377,13 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
                               "text-[7px] sm:text-[9px] text-green-600 dark:text-green-400 truncate text-center",
                               !isCurrentMonth && "opacity-50"
                             )}>
-                              {t('calendar.maxProfit')}: {formatCurrency(maxProfit)}
+                              Max Profit: {formatCurrency(maxProfit)}
                             </div>
                             <div className={cn(
                               "text-[7px] sm:text-[9px] text-red-600 dark:text-red-400 truncate text-center",
                               !isCurrentMonth && "opacity-50"
                             )}>
-                              {t('calendar.maxDD')}: -{formatCurrency(maxDrawdown)}
+                              Max Drawdown: -{formatCurrency(maxDrawdown)}
                             </div>
                           </>
                         )}

@@ -120,7 +120,7 @@ export default function AccountsPage() {
 
   // Set initial filter from URL params only on first load
   useEffect(() => {
-    const filterParam = searchParams.get('filter')
+    const filterParam = searchParams.ge"Filter"
     if (filterParam === 'prop-firm' || filterParam === 'live') {
       setFilterType(filterParam)
       // Clear the URL parameter to prevent it from affecting future navigation
@@ -826,80 +826,80 @@ function AccountsLoadingSkeleton() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8 max-w-7xl">
-        {/* Header skeleton */}
-        <div className="mb-8">
+        {/* Header skeleton - FIXED HEIGHT to prevent CLS */}
+        <div className="mb-8 h-24">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                  <div>
+            <div>
               <div className="h-10 bg-muted rounded-md w-64 mb-2 animate-pulse" />
               <div className="h-6 bg-muted rounded-md w-96 animate-pulse" />
-                  </div>
+            </div>
             <div className="flex items-center gap-3">
               <div className="h-10 bg-muted rounded-md w-20 animate-pulse" />
               <div className="h-10 bg-muted rounded-md w-32 animate-pulse" />
-                  </div>
-                </div>
-                    </div>
+            </div>
+          </div>
+        </div>
         
-        {/* Stats cards skeleton */}
+        {/* Stats cards skeleton - FIXED HEIGHT to prevent CLS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden">
+            <Card key={i} className="overflow-hidden h-24">
               <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between">
                   <div className="space-y-2">
                     <div className="h-4 bg-muted rounded w-20 animate-pulse" />
                     <div className="h-8 bg-muted rounded w-16 animate-pulse" />
-                            </div>
-                  <div className="h-12 w-12 bg-muted rounded-full animate-pulse" />
-                              </div>
-                          </CardContent>
-                        </Card>
-                    ))}
                   </div>
+                  <div className="h-12 w-12 bg-muted rounded-full animate-pulse" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
         
-        {/* Filter section skeleton */}
-        <Card className="p-6 mb-8">
+        {/* Filter section skeleton - FIXED HEIGHT to prevent CLS */}
+        <Card className="p-6 mb-8 h-20">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 h-10 bg-muted rounded-md animate-pulse" />
             <div className="flex gap-3">
               <div className="h-10 bg-muted rounded-md w-40 animate-pulse" />
               <div className="h-10 bg-muted rounded-md w-32 animate-pulse" />
-                  </div>
-                </div>
-            </Card>
+            </div>
+          </div>
+        </Card>
         
-        {/* Account cards skeleton */}
+        {/* Account cards skeleton - FIXED HEIGHT to prevent CLS */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden">
-                                <CardHeader className="pb-4">
-                                  <div className="flex items-start justify-between">
+            <Card key={i} className="overflow-hidden h-64">
+              <CardHeader className="pb-4">
+                <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-4 w-4 bg-muted rounded animate-pulse" />
                       <div className="h-5 bg-muted rounded w-32 animate-pulse" />
-                                      </div>
+                    </div>
                     <div className="h-4 bg-muted rounded w-24 animate-pulse" />
-                                    </div>
+                  </div>
                   <div className="h-6 bg-muted rounded-full w-16 animate-pulse" />
-                                  </div>
-                                </CardHeader>
+                </div>
+              </CardHeader>
               <CardContent className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div className="h-3 bg-muted rounded w-20 animate-pulse" />
                     <div className="h-5 bg-muted rounded w-16 animate-pulse" />
-                                        </div>
+                  </div>
                   <div className="space-y-2">
                     <div className="h-3 bg-muted rounded w-12 animate-pulse" />
                     <div className="h-5 bg-muted rounded w-8 animate-pulse" />
-                                      </div>
-                                        </div>
+                  </div>
+                </div>
                 <div className="h-10 bg-muted rounded animate-pulse" />
-                                </CardContent>
-                              </Card>
-                          ))}
-                      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -908,10 +908,5 @@ function AccountsLoadingSkeleton() {
 // Utilities
 function formatCurrency(amount: number): string {
   if (!isFinite(amount) || isNaN(amount)) return '$0.00'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount)
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
 }

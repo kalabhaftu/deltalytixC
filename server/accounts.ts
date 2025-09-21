@@ -3,6 +3,7 @@
 import { getUserId } from '@/server/auth'
 import { PrismaClient, Trade, Payout } from '@prisma/client'
 import { Account } from '@/context/data-provider'
+import { unstable_cache } from 'next/cache'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -188,12 +189,10 @@ export async function deleteTradesByIdsAction(tradeIds: string[]): Promise<void>
       }),
       // Invalidate multiple related caches immediately
       (async () => {
-        const { revalidateCache } = await import('@/server/database')
-        await revalidateCache([
-          `trades-${userId}`,
-          `user-data-${userId}`,
-          `grouped-trades-${userId}`
-        ])
+        const { revalidateTag } = await import('next/cache')
+        revalidateTag(`trades-${userId}`)
+        revalidateTag(`user-data-${userId}`)
+        revalidateTag(`grouped-trades-${userId}`)
       })()
     ])
     
@@ -267,42 +266,46 @@ export async function deleteAccountAction(account: Account) {
 
 export async function getAccountsAction() {
   try {
-    // First get all accounts for the user
     const userId = await getUserId()
     console.log('[getAccountsAction] User ID:', userId)
     
-    const accounts = await prisma.account.findMany({
-      where: {
-        userId: userId,
-      },
-      include: {
-        payouts: {
+    // PERFORMANCE OPTIMIZATION: Use caching and minimal fields
+    return unstable_cache(
+      async () => {
+        console.log(`[Cache MISS] Fetching accounts for user ${userId}`)
+        
+        const accounts = await prisma.account.findMany({
+          where: {
+            userId: userId,
+          },
           select: {
             id: true,
-            amount: true,
-            date: true,
+            number: true,
+            name: true,
+            propfirm: true,
+            broker: true,
+            startingBalance: true,
             status: true,
+            createdAt: true,
+            userId: true,
+            groupId: true,
+            // Skip payouts for performance - can be loaded on demand
           }
-        }
+        })
+
+        console.log('[getAccountsAction] Raw accounts from DB:', accounts.length, 'accounts')
+        
+        return accounts.map(account => ({
+          ...account,
+          payouts: [], // Empty for performance - load on demand if needed
+        }))
+      },
+      [`accounts-${userId}`],
+      { 
+        tags: [`accounts-${userId}`], 
+        revalidate: 900 // 15 minutes cache
       }
-    })
-
-    console.log('[getAccountsAction] Raw accounts from DB:', accounts.length, 'accounts')
-    console.log('[getAccountsAction] Account details:', accounts.map(a => ({ 
-      id: a.id, 
-      number: a.number, 
-      status: a.status, 
-      userId: a.userId 
-    })))
-
-    const transformedAccounts = accounts.map(account => ({
-      ...account,
-      number: account.number,
-      payouts: account.payouts,
-    }))
-    
-    console.log('[getAccountsAction] Returning:', transformedAccounts.length, 'accounts')
-    return transformedAccounts
+    )()
   } catch (error) {
     console.error('Error fetching accounts:', error)
     throw new Error('Failed to fetch accounts')

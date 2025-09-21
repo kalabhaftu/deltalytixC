@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils"
 import { CalendarModal } from "./daily-modal"
 import { CalendarData } from "@/app/dashboard/types/calendar"
 import { Card, CardTitle } from "@/components/ui/card"
-import { useI18n } from "@/lib/translations/client"
 import { useUserStore } from "@/store/user-store"
 
 function formatCurrency(value: number): string {
@@ -57,7 +56,6 @@ function isDateStringToday(dateString: string, timezone: string): boolean {
 }
 
 export default function MobileCalendarPnl({ calendarData }: { calendarData: CalendarData }) {
-  const t = useI18n()
   const locale = 'en' // Fixed to English since we removed i18n
   const timezone = useUserStore(state => state.timezone)
   const dateLocale = enUS
@@ -76,13 +74,13 @@ export default function MobileCalendarPnl({ calendarData }: { calendarData: Cale
 
   // Define weekday headers (assuming Sunday start)
   const weekdayHeaders = [
-    { key: 'sunday', label: t('calendar.weekdays.sun') },
-    { key: 'monday', label: t('calendar.weekdays.mon') },
-    { key: 'tuesday', label: t('calendar.weekdays.tue') },
-    { key: 'wednesday', label: t('calendar.weekdays.wed') },
-    { key: 'thursday', label: t('calendar.weekdays.thu') },
-    { key: 'friday', label: t('calendar.weekdays.fri') },
-    { key: 'saturday', label: t('calendar.weekdays.sat') }
+    { key: 'sunday', label: "Loading..." },
+    { key: 'monday', label: "Loading..." },
+    { key: 'tuesday', label: "Loading..." },
+    { key: 'wednesday', label: "Loading..." },
+    { key: 'thursday', label: "Loading..." },
+    { key: 'friday', label: "Loading..." },
+    { key: 'saturday', label: "Loading..." }
   ]
 
   const handlePrevMonth = () => setCurrentDate(subMonths(currentDate, 1))

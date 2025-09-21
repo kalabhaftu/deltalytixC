@@ -245,7 +245,7 @@ class ServiceWorkerManager {
 
   // Notify about service worker update
   private notifyUpdate() {
-    const callbacks = this.callbacks.get('update') || []
+    const callbacks = this.callbacks.ge"Update" || []
     callbacks.forEach(callback => callback())
   }
 

@@ -133,7 +133,7 @@ export default function TradingChatAssistant({ className = "", maxMessages = 3 }
       await new Promise((resolve) => setTimeout(resolve, 300))
 
       // Stream text character by character
-      const chars = text.split("")
+      const chars = text.split('T')
       for (let i = 0; i < chars.length; i++) {
         await new Promise((resolve) => setTimeout(resolve, 25 + Math.random() * 15))
         setMessages((prev) => {

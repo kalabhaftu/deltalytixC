@@ -15,8 +15,6 @@ import {
 } from "@/components/ui/tooltip"
 import { Switch } from "@/components/ui/switch"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
-import { useI18n } from "@/lib/translations/client"
-
 interface PnLBySideChartProps {
   size?: WidgetSize
 }
@@ -32,7 +30,6 @@ const formatCurrency = (value: number) =>
   value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 
 const CustomTooltip = ({ active, payload, label }: any) => {
-  const t = useI18n()
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
@@ -40,7 +37,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <div className="grid gap-2">
           <div className="flex flex-col">
             <span className="text-[0.70rem] uppercase text-muted-foreground">
-              {t('pnlBySide.tooltip.side')}
+              Side
             </span>
             <span className="font-bold text-muted-foreground">
               {data.side}
@@ -48,7 +45,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           </div>
           <div className="flex flex-col">
             <span className="text-[0.70rem] uppercase text-muted-foreground">
-              {data.isAverage ? t('pnlBySide.tooltip.averageTotal') : 'Total'} P/L
+              {data.isAverage ? "Average" : 'Total'} P&L
             </span>
             <span className="font-bold">
               {formatCurrency(data.pnl)}
@@ -56,7 +53,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           </div>
           <div className="flex flex-col">
             <span className="text-[0.70rem] uppercase text-muted-foreground">
-              {t('pnlBySide.tooltip.winRate')}
+              Win Rate
             </span>
             <span className="font-bold text-muted-foreground">
               {formatPercentage(data.winCount / data.tradeCount)}
@@ -64,10 +61,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           </div>
           <div className="flex flex-col">
             <span className="text-[0.70rem] uppercase text-muted-foreground">
-              {t('pnlBySide.tooltip.trades')}
+              Trades
             </span>
             <span className="font-bold text-muted-foreground">
-              {data.tradeCount} {t('pnlBySide.tooltip.trades')} ({data.winCount} {data.winCount === 1 ? t('pnlBySide.tooltip.wins') : t('pnlBySide.tooltip.wins_plural')})
+              {data.tradeCount} trades ({data.winCount} {data.winCount === 1 ? "win" : "wins"})
             </span>
           </div>
         </div>
@@ -80,8 +77,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export default function PnLBySideChart({ size = 'medium' }: PnLBySideChartProps) {
   const { formattedTrades: trades } = useData()
   const [showAverage, setShowAverage] = React.useState(true)
-  const t = useI18n()
-
   const chartData = React.useMemo(() => {
     // Filter trades by side, supporting both standard and alternative naming conventions
     const longTrades = trades.filter(trade => {
@@ -147,7 +142,7 @@ export default function PnLBySideChart({ size = 'medium' }: PnLBySideChartProps)
                 size === 'small-long' ? "text-sm" : "text-base"
               )}
             >
-              {t('pnlBySide.title')}
+              P&L by Side
             </CardTitle>
             <TooltipProvider>
               <UITooltip>
@@ -158,7 +153,7 @@ export default function PnLBySideChart({ size = 'medium' }: PnLBySideChartProps)
                   )} />
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>{t('pnlBySide.description')}</p>
+                  <p>P&L performance by trade side (Long vs Short)</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>
@@ -168,7 +163,7 @@ export default function PnLBySideChart({ size = 'medium' }: PnLBySideChartProps)
               "text-muted-foreground",
               size === 'small-long' ? "text-xs" : "text-sm"
             )}>
-              {t('pnlBySide.toggle.showAverage')}
+              Show Average
             </span>
             <Switch
               checked={showAverage}

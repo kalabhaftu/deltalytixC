@@ -615,7 +615,12 @@ export const DataProvider: React.FC<{
 
   // Load data from the server
   const loadData = useCallback(async () => {
-    // Prevent multiple simultaneous loads
+    // PERFORMANCE FIX: Add loading state check to prevent redundant calls
+    if (isLoading) {
+      console.log('[DataProvider] Already loading, skipping redundant call')
+      return
+    }
+    
     try {
       setIsLoading(true);
 
@@ -794,14 +799,17 @@ export const DataProvider: React.FC<{
     } finally {
       setIsLoading(false);
     }
-  }, [isSharedView, adminView?.userId]); // Simplified dependencies to prevent unnecessary re-renders
+  }, [isSharedView, adminView?.userId]); // Remove setIsLoading from deps to prevent infinite loops
 
   // Load data on mount and when isSharedView changes
   useEffect(() => {
     let mounted = true;
+    let hasLoadedData = false; // Prevent multiple loads
 
     const loadDataIfMounted = async () => {
-      if (!mounted) return;
+      if (!mounted || hasLoadedData) return;
+      hasLoadedData = true;
+      
       try {
         await loadData();
       } catch (error) {
@@ -839,7 +847,7 @@ export const DataProvider: React.FC<{
     return () => {
       mounted = false;
     };
-  }, [isSharedView]); // Only depend on isSharedView
+  }, [isSharedView, adminView?.userId]); // Stable dependencies only
 
   const refreshTrades = useCallback(async () => {
     if (!user?.id) return

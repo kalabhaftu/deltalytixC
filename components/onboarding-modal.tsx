@@ -3,12 +3,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { useData } from '@/context/data-provider'
-import { useI18n } from '@/lib/translations/client'
 import { logger } from '@/lib/logger'
 
 export default function OnboardingModal() {
   const { isFirstConnection, changeIsFirstConnection } = useData()
-  const t = useI18n()
 
 
   const handleClose = async (open: boolean) => {
@@ -26,17 +24,17 @@ export default function OnboardingModal() {
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">
-                                                   {t('onboarding.welcome') as any}
+                                                   Welcome to Deltalytix
           </DialogTitle>
           <DialogDescription>
-                                                   {t('onboarding.description') as any}
+                                                   Discover powerful trading analytics and insights to improve your performance.
           </DialogDescription>
         </DialogHeader>
 
 
         <div className="mt-6 flex justify-end">
           <Button onClick={() => handleClose(false)}>
-                                                   {t('onboarding.getStarted') as any}
+                                                   Get Started
           </Button>
         </div>
       </DialogContent>

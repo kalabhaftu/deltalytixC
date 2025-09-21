@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useI18n } from "@/lib/translations/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -43,7 +42,6 @@ interface LiveAccountData {
 
 export default function LiveAccountDetailPage({ params }: LiveAccountDetailProps) {
   const router = useRouter()
-  const t = useI18n()
   const [account, setAccount] = useState<LiveAccountData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
@@ -83,12 +81,7 @@ export default function LiveAccountDetailPage({ params }: LiveAccountDetailProps
   }, [accountId, router])
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount)
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
   }
 
   if (isLoading) {

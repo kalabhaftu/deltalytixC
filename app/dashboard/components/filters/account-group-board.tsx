@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Settings, Check, X, Trash2, EyeOff } from "lucide-react"
-import { useI18n } from "@/lib/translations/client"
 import { useToast } from "@/hooks/use-toast"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
@@ -36,9 +35,6 @@ interface UngroupedAccount {
 }
 
 export function AccountGroupBoard() {
-  const t = useI18n()
-  
-  
   const user = useUserStore(state => state.user)
   const groups = useUserStore(state => state.groups)
   const trades = useTradesStore(state => state.trades)
@@ -88,26 +84,26 @@ export function AccountGroupBoard() {
       setIsCreating(true)
       await saveGroup(newGroupName.trim())
       setNewGroupName("")
-      notify({ title: t("common.success"), description: t("filters.groupCreated", { name: newGroupName }) })
+      notify({ title: "Group Created", description: "Account group created successfully" })
     } catch (error) {
       console.error("Error creating group:", error)
-      notify({ title: t("common.error"), description: t("filters.errorCreatingGroup", { name: newGroupName }), variant: "destructive" })
+      notify({ title: "Error", description: "Failed to create group", variant: "destructive" })
     } finally {
       setIsCreating(false)
     }
-  }, [newGroupName, user?.id, saveGroup, t])
+  }, [newGroupName, user?.id, saveGroup])
 
   const handleUpdateGroup = useCallback(async (groupId: string, newName: string) => {
     try {
       await renameGroup(groupId, newName)
       setEditingGroupId(null)
       setEditingGroupName("")
-      notify({ title: t("common.success"), description: t("filters.groupUpdated", { name: newName }) })
+      notify({ title: "Group Updated", description: "Group name updated successfully" })
     } catch (error) {
       console.error("Error updating group:", error)
-      notify({ title: t("common.error"), description: t("filters.errorUpdatingGroup", { name: newName }), variant: "destructive" })
+      notify({ title: "Error", description: "Failed to update group", variant: "destructive" })
     }
-  }, [renameGroup, t])
+  }, [renameGroup])
 
   const handleMoveAccount = useCallback(async (account: Account | UngroupedAccount, groupId: string | null) => {
     try {
@@ -145,22 +141,22 @@ export function AccountGroupBoard() {
       await moveAccountToGroup(account.id, groupId)
     } catch (error) {
       console.error("Error moving account:", error)
-      notify({ title: t("common.error"), description: t("filters.errorMovingAccount", { account: account.number }), variant: "destructive" })
+      notify({ title: "Error", description: "Failed to move account", variant: "destructive" })
     }
-  }, [groups, user?.id, saveGroup, moveAccountToGroup, saveAccount, t, existingAccounts])
+  }, [groups, user?.id, saveGroup, moveAccountToGroup, saveAccount, existingAccounts])
 
   const handleDeleteGroup = useCallback(async (groupId: string, groupName: string) => {
     try {
       setIsDeleting(true)
       await deleteGroup(groupId)
-      notify({ title: t("common.success"), description: t("filters.groupDeleted", { name: groupName }) })
+      notify({ title: "Group Deleted", description: "Group deleted successfully" })
     } catch (error) {
       console.error("Error deleting group:", error)
-      notify({ title: t("common.error"), description: t("filters.errorDeletingGroup", { name: groupName }), variant: "destructive" })
+      notify({ title: "Error", description: "Failed to delete group", variant: "destructive" })
     } finally {
       setIsDeleting(false)
     }
-  }, [deleteGroup, t])
+  }, [deleteGroup])
 
   const anonymizeAccount = useCallback((account: string) => {
     // This is a placeholder - use your actual anonymization function
@@ -199,7 +195,7 @@ export function AccountGroupBoard() {
 
   // Helper function to get display name for a group
   const getGroupDisplayName = (group: Group) => {
-    return isHiddenGroup(group) ? t("filters.hiddenAccounts") : group.name
+    return isHiddenGroup(group) ? "Hidden" : group.name
   }
 
   // Helper function to get visible groups (excluding hidden group)
@@ -212,7 +208,7 @@ export function AccountGroupBoard() {
     <SelectItem value="hidden" className="cursor-pointer">
       <div className="flex items-center gap-2 text-destructive">
         <EyeOff className="h-4 w-4" />
-        {t("filters.moveToHidden")}
+        Hide All
       </div>
     </SelectItem>
   )
@@ -220,20 +216,20 @@ export function AccountGroupBoard() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
-        <h3 className="text-lg font-medium">{t("filters.accountGroups")}</h3>
+        <h3 className="text-lg font-medium">Account Groups</h3>
         
         {/* Create Group */}
         <div className="flex items-center gap-2">
           <Input
             value={newGroupName}
             onChange={handleGroupNameChange}
-            placeholder={t("filters.newGroup")}
+            placeholder="Enter group name"
             className="w-[200px]"
             disabled={isCreating}
           />
           <Button onClick={handleCreateGroup} disabled={!newGroupName.trim() || isCreating}>
             <Plus className="h-4 w-4 mr-2" />
-            {t("filters.createGroup")}
+            Create Group
           </Button>
         </div>
       </div>
@@ -242,13 +238,13 @@ export function AccountGroupBoard() {
         {/* Ungrouped Accounts */}
         <Card className="p-4">
           <div className="flex items-center justify-between mb-4">
-            <h4 className="text-sm font-medium">{t("filters.noGroup")} ({ungroupedAccounts.length})</h4>
+            <h4 className="text-sm font-medium">Ungrouped Accounts ({ungroupedAccounts.length})</h4>
           </div>
           <ScrollArea className="h-[200px]">
             <div className="space-y-2">
               {ungroupedAccounts.length === 0 ? (
                 <div className="text-sm text-muted-foreground text-center p-2">
-                  {t("filters.noAccounts")}
+                  No ungrouped accounts
                 </div>
               ) : (
                 ungroupedAccounts.map(account => (
@@ -257,7 +253,7 @@ export function AccountGroupBoard() {
                       <span className="text-sm">{anonymizeAccount(account.number)}</span>
                       {account.id.startsWith('placeholder-') && (
                         <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded">
-                          {t("filters.newAccount")}
+                          New
                         </span>
                       )}
                     </div>
@@ -267,7 +263,7 @@ export function AccountGroupBoard() {
                       }}
                     >
                       <SelectTrigger className="w-[140px] h-8">
-                        <SelectValue placeholder={t("filters.moveTo")} />
+                        <SelectValue placeholder="Select group" />
                       </SelectTrigger>
                       <SelectContent>
                         {renderMoveToHiddenOption()}
@@ -348,18 +344,18 @@ export function AccountGroupBoard() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>{t("filters.deleteGroupTitle")}</AlertDialogTitle>
+                          <AlertDialogTitle>Delete Group</AlertDialogTitle>
                           <AlertDialogDescription>
-                            {t("filters.deleteGroupDescription", { name: getGroupDisplayName(group) })}
+                            {"Loading..."}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction 
                             onClick={() => handleDeleteGroup(group.id, group.name)}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                           >
-                            {t("common.delete")}
+                            Delete
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -372,7 +368,7 @@ export function AccountGroupBoard() {
               <div className="space-y-2">
                 {group.accounts.length === 0 ? (
                   <div className="text-sm text-muted-foreground text-center p-2">
-                    {t("filters.noAccounts")}
+                    No groups available
                   </div>
                 ) : (
                   group.accounts.map(account => (
@@ -385,10 +381,10 @@ export function AccountGroupBoard() {
                         }}
                       >
                         <SelectTrigger className="w-[140px] h-8">
-                          <SelectValue placeholder={t("filters.moveTo")} />
+                          <SelectValue placeholder="Move to..." />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none" className="cursor-pointer">{t("filters.noGroup")}</SelectItem>
+                          <SelectItem value="none" className="cursor-pointer">Ungroup</SelectItem>
                           {!isHiddenGroup(group) && renderMoveToHiddenOption()}
                           {getVisibleGroups(groups)
                             .filter(g => g.id !== group.id)

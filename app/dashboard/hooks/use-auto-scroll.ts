@@ -11,7 +11,7 @@ export function useAutoScroll(isEnabled: boolean) {
     const maxScrollSpeed = 30 // maximum scroll speed
 
     // Add style to prevent selection
-    const style = document.createElement('style')
+    const style = document.createElemen"Loading..."
     style.textContent = `
       body.dragging {
         user-select: none !important;

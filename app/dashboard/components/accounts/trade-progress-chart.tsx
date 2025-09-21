@@ -3,7 +3,6 @@
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from "recharts"
 import { ChartContainer } from "@/components/ui/chart"
 import { cn } from "@/lib/utils"
-import { useI18n } from "@/lib/translations/client"
 import { ReactElement } from "react"
 
 interface Trade {
@@ -66,23 +65,21 @@ export function TradeProgressChart({
   resetDate,
   className
 }: TradeProgressChartProps) {
-  const t = useI18n()
-
   const chartConfig = {
     balance: {
-      label: t('propFirm.chart.balance'),
+      label: "Loading...",
       color: "#2563eb",
     },
     drawdown: {
-      label: t('propFirm.chart.drawdownLevel'),
+      label: "Loading...",
       color: "#dc2626",
     },
     target: {
-      label: t('propFirm.chart.profitTarget'),
+      label: "Loading...",
       color: "#16a34a",
     },
     payout: {
-      label: t('propFirm.chart.payout'),
+      label: "Loading...",
       color: "#9333ea",
     }
   }
@@ -268,7 +265,7 @@ export function TradeProgressChart({
                         </div>
                         {data.isReset && (
                           <div className="flex items-center gap-2 text-red-500">
-                            <span className="font-medium">{t('propFirm.chart.accountReset')}</span>
+                            <span className="font-medium">Reset</span>
                           </div>
                         )}
                         {data.isPayout && data.payoutStatus && (
@@ -294,7 +291,7 @@ export function TradeProgressChart({
               <Line
                 type="monotone"
                 dataKey="balance"
-                name={t('propFirm.chart.balance')}
+                name="Balance"
                 stroke={chartConfig.balance.color}
                 strokeWidth={2}
                 dot={renderDot}
@@ -302,7 +299,7 @@ export function TradeProgressChart({
               <Line
                 type="monotone"
                 dataKey="drawdownLevel"
-                name={t('propFirm.chart.drawdownLevel')}
+                name="Drawdown"
                 stroke={chartConfig.drawdown.color}
                 strokeWidth={1.5}
                 strokeDasharray="3 3"
@@ -311,7 +308,7 @@ export function TradeProgressChart({
               <Line
                 type="monotone"
                 dataKey="target"
-                name={t('propFirm.chart.profitTarget')}
+                name="Target"
                 stroke={chartConfig.target.color}
                 strokeWidth={2}
                 strokeDasharray="5 5"
@@ -322,7 +319,7 @@ export function TradeProgressChart({
                 stroke="#666"
                 strokeDasharray="3 3"
                 label={{
-                  value: t('propFirm.chart.startingBalance'),
+                  value: "Loading...",
                   position: "right",
                   fill: "#666",
                   fontSize: 12,
@@ -332,7 +329,7 @@ export function TradeProgressChart({
           </ResponsiveContainer>
         ) : (
           <div className="flex h-full items-center justify-center">
-            <p className="text-muted-foreground">{t('propFirm.chart.noTrades')}</p>
+            <p className="text-muted-foreground">No data available</p>
           </div>
         )}
       </ChartContainer>

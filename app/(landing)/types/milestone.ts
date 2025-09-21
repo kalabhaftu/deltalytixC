@@ -1,11 +1,10 @@
-import { TranslationKeys } from "@/app/(landing)/types/translations";
 
 export type Milestone = {
   id: number;
-  titleKey: keyof TranslationKeys;
-  descriptionKey: keyof TranslationKeys;
+  title: string;
+  description: string;
   image?: string;
   status: 'completed' | 'in-progress' | 'upcoming';
-  estimatedDate?: keyof TranslationKeys;
+  estimatedDate?: string;
   completedDate?: string;
 }

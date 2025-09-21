@@ -8,7 +8,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useData } from "@/context/data-provider"
-import { useI18n } from "@/lib/translations/client"
 import { FilterItem } from "@/app/dashboard/types/filter"
 import { useState, useEffect } from "react"
 import { ChevronDown } from "lucide-react"
@@ -39,18 +38,16 @@ function FilterDropdown({
 }: FilterDropdownProps) {
   const [open, setOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const t = useI18n()
-
   const filteredItems = searchTerm
     ? items.filter(item => item.value.toLowerCase().includes(searchTerm.toLowerCase()))
     : items
 
   const buttonText = {
-    instrument: t('filters.instruments')
+    instrument: "Instruments"
   }
 
   const selectAllText = {
-    instrument: t('filters.selectAllInstruments')
+    instrument: "Select all instruments"
   }
 
   return (
@@ -64,11 +61,11 @@ function FilterDropdown({
       <DropdownMenuContent className="w-[300px]" align="start">
         <Command shouldFilter={false}>
           <CommandInput 
-            placeholder={t('filters.search')} 
+            placeholder={"Search..."} 
             value={searchTerm}
             onValueChange={setSearchTerm}
           />
-          <CommandEmpty>{t('filters.noResults')}</CommandEmpty>
+          <CommandEmpty>No results found</CommandEmpty>
           <CommandList>
             <ScrollArea className="h-[300px]">
               <CommandGroup>
@@ -175,7 +172,7 @@ export function FilterDropdowns({ showAccountNumbers }: FilterDropdownsProps) {
         type="instrument"
         items={allItems.filter(item => item.type === 'instrument')}
         selectedItems={instruments}
-        onSelect={(value) => handleSelect('instrument', value)}
+        onSelect={(value) => handleSelec"Instruments"}
         onSelectAll={() => handleSelectAll('instrument')}
         isItemDisabled={isItemDisabled}
         isItemSelected={isItemSelected}

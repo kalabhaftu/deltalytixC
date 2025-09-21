@@ -143,18 +143,17 @@ export function RealtimeStatusIndicatorV2({
     fetchAccountStatus(true)
   }, [fetchAccountStatus])
 
-  // Initial load and interval setup
+  // Initial load only - disable polling for performance
   useEffect(() => {
     if (!accountId) return
 
     fetchAccountStatus()
 
-    const interval = setInterval(() => {
-      fetchAccountStatus()
-    }, refreshInterval)
-
-    return () => clearInterval(interval)
-  }, [accountId, refreshInterval, fetchAccountStatus])
+    // PERFORMANCE FIX: Disable automatic polling that was causing constant requests
+    // Users can manually refresh if needed
+    console.log('[RealtimeStatusIndicatorV2] Auto-polling disabled for performance')
+    
+  }, [accountId]) // Remove fetchAccountStatus and refreshInterval from deps to prevent infinite loops
 
   // Render loading state
   if (isLoading) {
@@ -214,12 +213,7 @@ export function RealtimeStatusIndicatorV2({
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
   }
 
   const formatPercent = (value: number, decimals = 1) => {

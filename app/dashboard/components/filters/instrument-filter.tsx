@@ -1,7 +1,6 @@
 "use client"
 
 import { useData } from "@/context/data-provider"
-import { useI18n } from "@/lib/translations/client"
 import { useState, useEffect } from "react"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -10,7 +9,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useTradesStore } from "@/store/trades-store"
 
 export function InstrumentFilter() {
-  const t = useI18n()
   const { instruments, setInstruments } = useData()
   const trades = useTradesStore(state => state.trades)
   const [searchTerm, setSearchTerm] = useState("")
@@ -39,7 +37,7 @@ export function InstrumentFilter() {
   return (
     <div className="p-2 space-y-2">
       <Input
-        placeholder={t('filters.searchInstrument')}
+        placeholder="Search instruments..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         className="w-full"

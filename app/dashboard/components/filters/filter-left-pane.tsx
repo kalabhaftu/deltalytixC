@@ -13,12 +13,8 @@ import { useData } from '@/context/data-provider'
 import { AccountFilter } from './account-filter'
 import { InstrumentFilterSimple } from './instrument-filter-simple'
 import { PnlFilterSimple } from './pnl-filter-simple'
-import { useI18n } from '@/lib/translations/client'
-
 export default function FilterLeftPane() {
   const { accountNumbers, setAccountNumbers, instruments, setInstruments } = useData()
-  const t = useI18n()
-  
   const [isOpen, setIsOpen] = useState(false)
   const [showAccountNumbers, setShowAccountNumbers] = useState(true)
   const isMobile = useMediaQuery("(max-width: 768px)")
@@ -53,7 +49,7 @@ export default function FilterLeftPane() {
 
       {/* Tag Filter - Removed journaling feature */}
     </div>
-  ), [showAccountNumbers, t])
+  ), [showAccountNumbers])
 
   if (isMobile) {
     return (
@@ -69,7 +65,7 @@ export default function FilterLeftPane() {
           </SheetTrigger>
           <SheetContent side="right" className="w-[90vw] sm:max-w-[640px] flex flex-col h-[100dvh] overflow-hidden">
             <SheetHeader>
-              <SheetTitle>{t('filters.title')}</SheetTitle>
+              <SheetTitle>{"Filters"}</SheetTitle>
             </SheetHeader>
             <ScrollArea className="flex-1 mt-6">
               {FilterContent}

@@ -15,7 +15,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
-import { useI18n } from "@/lib/translations/client"
 import { formatInTimeZone } from 'date-fns-tz'
 
 interface TimeInPositionChartProps {
@@ -40,8 +39,6 @@ const formatTime = (minutes: number) => {
 
 export default function TimeInPositionChart({ size = 'medium' }: TimeInPositionChartProps) {
   const { formattedTrades: trades } = useData()
-  const t = useI18n()
-
   const chartData = React.useMemo(() => {
     const hourlyData: { [hour: string]: { totalTime: number; count: number } } = {}
     
@@ -82,7 +79,7 @@ export default function TimeInPositionChart({ size = 'medium' }: TimeInPositionC
           <div className="grid gap-2">
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('timeInPosition.tooltip.time')}
+                Time Period
               </span>
               <span className="font-bold text-muted-foreground">
                 {`${label}:00 - ${(label + 1) % 24}:00`}
@@ -90,7 +87,7 @@ export default function TimeInPositionChart({ size = 'medium' }: TimeInPositionC
             </div>
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('timeInPosition.tooltip.averageDuration')}
+                Avg Time in Position
               </span>
               <span className="font-bold">
                 {formatTime(data.avgTimeInPosition)}
@@ -98,10 +95,10 @@ export default function TimeInPositionChart({ size = 'medium' }: TimeInPositionC
             </div>
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('timeInPosition.tooltip.trades')}
+                Trades
               </span>
               <span className="font-bold text-muted-foreground">
-                {data.tradeCount} {data.tradeCount !== 1 ? t('timeInPosition.tooltip.trades_plural') : t('timeInPosition.tooltip.trade')}
+                {data.tradeCount} {data.tradeCount !== 1 ? "trades" : "trade"}
               </span>
             </div>
           </div>
@@ -127,7 +124,7 @@ export default function TimeInPositionChart({ size = 'medium' }: TimeInPositionC
                 size === 'small-long' ? "text-sm" : "text-base"
               )}
             >
-              {t('timeInPosition.title')}
+              {"Time In Position"}
             </CardTitle>
             <TooltipProvider>
               <UITooltip>
@@ -138,7 +135,7 @@ export default function TimeInPositionChart({ size = 'medium' }: TimeInPositionC
                   )} />
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>{t('timeInPosition.description')}</p>
+                  <p>Average time spent in positions by hour of day</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>

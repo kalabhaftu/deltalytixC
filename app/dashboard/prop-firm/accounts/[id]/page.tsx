@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useI18n } from "@/lib/translations/client"
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "@/hooks/use-toast"
 import { usePropFirmRealtime } from "@/hooks/use-prop-firm-realtime"
@@ -44,7 +43,6 @@ interface AccountDetailPageProps {
 export default function AccountDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const t = useI18n()
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
   const [showTransitionDialog, setShowTransitionDialog] = useState(false)
@@ -86,13 +84,13 @@ export default function AccountDetailPage() {
         }, 3000)
       } else {
         toast({
-          title: t('propFirm.toast.setupError'),
+          title: "Loading...",
           description: realtimeError,
           variant: "destructive"
         })
       }
     }
-  }, [realtimeError, router, t])
+  }, [realtimeError, router])
 
   // Sync real-time data with legacy state for compatibility
   useEffect(() => {
@@ -135,10 +133,7 @@ export default function AccountDetailPage() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
   }
 
   const formatPercentage = (value: number) => {
@@ -204,10 +199,10 @@ export default function AccountDetailPage() {
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant={getStatusVariant(account.status)} className="text-xs">
-                {t(`propFirm.status.${account.status}` as any, { count: 1 })}
+                {account.status === 'active' ? 'Active' : account.status === 'funded' ? 'Funded' : account.status === 'failed' ? 'Failed' : account.status}
               </Badge>
               <Badge className={cn("text-white", getPhaseColor(currentPhase.phaseType))}>
-                {t(`propFirm.phase.${currentPhase.phaseType}` as any, { count: 1 })}
+                {currentPhase.phaseType === 'phase1' ? 'Phase 1' : currentPhase.phaseType === 'phase2' ? 'Phase 2' : currentPhase.phaseType === 'funded' ? 'Funded' : currentPhase.phaseType}
               </Badge>
               <RealtimeStatusIndicator 
                 isPolling={isPolling} 
@@ -253,7 +248,7 @@ export default function AccountDetailPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t('propFirm.metrics.balance')}
+              Account Balance
             </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -268,7 +263,7 @@ export default function AccountDetailPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t('propFirm.metrics.equity')}
+              Open P&L
             </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -276,7 +271,7 @@ export default function AccountDetailPage() {
             <div className="text-2xl font-bold">{formatCurrency(account.currentEquity)}</div>
             {account.openPnl && account.openPnl !== 0 && (
               <p className={cn("text-xs", account.openPnl > 0 ? "text-green-600" : "text-red-600")}>
-                {t('propFirm.metrics.unrealizedPnl')}: {formatCurrency(account.openPnl)}
+                Unrealized: {formatCurrency(account.openPnl)}
               </p>
             )}
           </CardContent>
@@ -285,7 +280,7 @@ export default function AccountDetailPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t('propFirm.metrics.dailyDrawdown')}
+              Drawdown
             </CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -304,7 +299,7 @@ export default function AccountDetailPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t('propFirm.metrics.maxDrawdown')}
+              Daily Loss
             </CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -327,7 +322,7 @@ export default function AccountDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
-              {t('propFirm.metrics.profitTarget')} - {t(`propFirm.phase.${currentPhase.phaseType}` as any, { count: 1 })}
+              Profit Target - {currentPhase.phaseType === 'phase1' ? 'Phase 1' : currentPhase.phaseType === 'phase2' ? 'Phase 2' : currentPhase.phaseType === 'funded' ? 'Funded' : currentPhase.phaseType}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -344,7 +339,7 @@ export default function AccountDetailPage() {
               {progress.canProgress && (
                 <div className="flex items-center gap-2 text-green-600 text-sm">
                   <TrendingUp className="h-4 w-4" />
-                  Ready to advance to {progress.nextPhaseType && t(`propFirm.phase.${progress.nextPhaseType}` as any, { count: 1 })}
+                  Ready to advance to {progress.nextPhaseType && (progress.nextPhaseType === 'phase1' ? 'Phase 1' : progress.nextPhaseType === 'phase2' ? 'Phase 2' : progress.nextPhaseType === 'funded' ? 'Funded' : progress.nextPhaseType)}
                 </div>
               )}
             </div>
@@ -407,7 +402,7 @@ export default function AccountDetailPage() {
                   onClick={() => router.push(`/dashboard/prop-firm/accounts/${accountId}/payouts/new`)}
                   className="w-full"
                 >
-                  {t('propFirm.payout.request')}
+                  Request Payout
                 </Button>
               )}
             </div>

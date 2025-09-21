@@ -3,7 +3,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { WidgetSize } from '../../types/dashboard'
-import { useI18n } from '@/lib/translations/client'
 import {
   Tooltip,
   TooltipContent,
@@ -18,9 +17,7 @@ interface AveragePositionTimeCardProps {
 
 export default function AveragePositionTimeCard({ size = 'medium' }: AveragePositionTimeCardProps) {
   const { statistics: { averagePositionTime } } = useData()
-  const  t  = useI18n()
-
-    return (
+  return (
       <Card className="h-full">
         <div className="flex items-center justify-center h-full gap-1.5">
           <Clock className="h-3 w-3 text-muted-foreground" />
@@ -35,7 +32,7 @@ export default function AveragePositionTimeCard({ size = 'medium' }: AveragePosi
                 sideOffset={5} 
                 className="max-w-[300px]"
               >
-                {t('widgets.averagePositionTime.tooltip')}
+                {"Average time spent in positions across all your trades."}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

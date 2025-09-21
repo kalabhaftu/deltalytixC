@@ -3,7 +3,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { PiggyBank, HelpCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { WidgetSize } from '../../types/dashboard'
-import { useI18n } from '@/lib/translations/client'
 import {
   Tooltip,
   TooltipContent,
@@ -19,9 +18,7 @@ export default function CumulativePnlCard({ size = 'medium' }: CumulativePnlCard
   const { statistics: { cumulativePnl, cumulativeFees } } = useData()
   const totalPnl = cumulativePnl - cumulativeFees
   const isPositive = totalPnl > 0
-  const t = useI18n()
-
-    return (
+  return (
       <Card className="flex items-center justify-center h-full p-2">
         <div className="flex items-center gap-1.5">
           <PiggyBank className="h-4 w-4 text-muted-foreground" />
@@ -41,7 +38,7 @@ export default function CumulativePnlCard({ size = 'medium' }: CumulativePnlCard
                 sideOffset={5} 
                 className="max-w-[300px]"
               >
-                {t('widgets.cumulativePnl.tooltip')}
+                Loading...
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

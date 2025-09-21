@@ -6,7 +6,6 @@ import { enUS } from 'date-fns/locale'
 import { cn } from "@/lib/utils"
 import { Trade } from "@prisma/client"
 import { CalendarData } from "@/app/dashboard/types/calendar"
-import { useI18n, useCurrentLocale } from "@/lib/translations/client"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Accordion,
@@ -32,8 +31,7 @@ interface WeeklyCalendarPnlProps {
 }
 
 export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendarPnlProps) {
-  const t = useI18n()
-  const locale = useCurrentLocale()
+  const locale = 'en' // Default to English since i18n was removed
   const dateLocale = enUS
 
   const yearStartDate = startOfYear(new Date(year, 0, 1));
@@ -171,7 +169,7 @@ export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendar
                               : "bg-muted/20 dark:bg-muted/10 text-muted-foreground border-border"
                         )}
                       >
-                        <div className="text-[10px] font-medium opacity-80">{t('calendar.week')} {getWeek(weekStart, { locale: dateLocale })}</div>
+                        <div className="text-[10px] font-medium opacity-80">Week {getWeek(weekStart, { locale: dateLocale })}</div>
                         <div className="text-xs font-bold">{formatCurrency(pnl)}</div>
                       </div>
                     </PopoverTrigger>
@@ -205,7 +203,7 @@ export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendar
                                           {format(new Date(date), 'EEEE, MMM d, yyyy', { locale: dateLocale })}
                                         </h5>
                                         <span className="text-xs text-muted-foreground">
-                                          {dayTrades.length} {t('calendar.trades')}
+                                          {dayTrades.length} trades
                                         </span>
                                       </div>
                                       <div className={cn(
@@ -244,7 +242,7 @@ export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendar
                             </Accordion>
                           ) : (
                             <div className="text-sm text-muted-foreground text-center py-4">
-                              {t('calendar.noTrades')}
+                              No trades this week
                             </div>
                           )}
                         </div>

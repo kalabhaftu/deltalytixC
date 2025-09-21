@@ -13,7 +13,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
-import { useI18n } from "@/lib/translations/client"
 import { Trade } from "@prisma/client"
 import { Button } from "@/components/ui/button"
 import { ChartConfig } from "@/components/ui/chart"
@@ -64,7 +63,6 @@ const chartConfig = {
 
 export default function TimeRangePerformanceChart({ size = 'medium' }: TimeRangePerformanceChartProps) {
   const { formattedTrades: trades, timeRange, setTimeRange } = useData()
-  const t = useI18n()
   const [activeRange, setActiveRange] = React.useState<string | null>(null)
 
   const chartData = React.useMemo(() => {
@@ -133,7 +131,7 @@ export default function TimeRangePerformanceChart({ size = 'medium' }: TimeRange
           <div className="grid gap-2">
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('timeRangePerformance.tooltip.timeRange')}
+                Time Range
               </span>
               <span className={cn(
                 "font-bold",
@@ -144,7 +142,7 @@ export default function TimeRangePerformanceChart({ size = 'medium' }: TimeRange
             </div>
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('timeRangePerformance.tooltip.avgPnl')}
+                Avg P&L
               </span>
               <span className="font-bold">
                 {data.avgPnl.toFixed(2)}
@@ -152,7 +150,7 @@ export default function TimeRangePerformanceChart({ size = 'medium' }: TimeRange
             </div>
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('timeRangePerformance.tooltip.winRate')}
+                Win Rate
               </span>
               <span className="font-bold" style={{ color: data.color }}>
                 {data.winRate.toFixed(1)}%
@@ -192,7 +190,7 @@ export default function TimeRangePerformanceChart({ size = 'medium' }: TimeRange
                 size === 'small-long' ? "text-sm" : "text-base"
               )}
             >
-              {t('timeRangePerformance.title')}
+              Time Range Performance
             </CardTitle>
             <TooltipProvider>
               <UITooltip>
@@ -203,7 +201,7 @@ export default function TimeRangePerformanceChart({ size = 'medium' }: TimeRange
                   )} />
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>{t('timeRangePerformance.description')}</p>
+                  <p>Performance metrics across different time ranges</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>
@@ -215,7 +213,7 @@ export default function TimeRangePerformanceChart({ size = 'medium' }: TimeRange
               className="h-8 px-2 lg:px-3"
               onClick={() => setTimeRange({ range: null })}
             >
-              {t('timeRangePerformance.clearFilter')}
+              Clear Filter
             </Button>
           )}
         </div>

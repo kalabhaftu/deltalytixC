@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, Building2, User, AlertCircle, RefreshCw } from 'lucide-react'
 import { cn } from "@/lib/utils"
-import { useI18n } from "@/lib/translations/client"
 import { useToast } from "@/hooks/use-toast"
 import { useAccounts } from "@/hooks/use-accounts"
 
@@ -31,7 +30,6 @@ export default function AccountSelection({
 }: AccountSelectionProps) {
   const { accounts, isLoading, error, refetch } = useAccounts()
   const [hasError, setHasError] = useState(false)
-  const t = useI18n()
   const { toast } = useToast()
 
   // Update error state when hook error changes
@@ -39,24 +37,24 @@ export default function AccountSelection({
     if (error) {
       setHasError(true)
       toast({
-        title: t('import.error.fetchAccounts'),
+        title: "Loading...",
         description: error,
         variant: "destructive"
       })
     } else {
       setHasError(false)
     }
-  }, [error, toast, t])
+  }, [error, toast])
 
   if (isLoading) {
     return (
       <div className="h-full flex flex-col">
         <div className="space-y-2">
           <Label className="text-lg font-semibold">
-            {t('import.account.selectAccount')}
+            Select Account
           </Label>
           <p className="text-sm text-muted-foreground">
-            {t('import.account.loadingAccounts')}
+            Choose the account to import data into
           </p>
         </div>
         <div className="flex-1 overflow-y-auto mt-4 py-2">
@@ -79,12 +77,12 @@ export default function AccountSelection({
     <div className="h-full flex flex-col">
       <div className="space-y-2">
         <Label className="text-lg font-semibold">
-          {t('import.account.selectAccount')}
+          Select Account
         </Label>
         <p className="text-sm text-muted-foreground">
           {accounts.length === 0 
-            ? t('import.account.noAccountsDescription')
-            : t('import.account.selectFromExistingAccounts')
+            ? "No accounts available"
+            : "Choose the account to import data into"
           }
         </p>
       </div>
@@ -94,12 +92,12 @@ export default function AccountSelection({
           <Card className="p-8 text-center">
             <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">
-              {hasError ? t('import.error.fetchAccounts') : t('import.account.noAccounts')}
+              {hasError ? "Loading..." : "Loading..."}
             </h3>
             <p className="text-muted-foreground mb-4">
               {hasError 
-                ? t('import.error.fetchAccountsDescription')
-                : t('import.account.createAccountFirst')
+                ? "Loading..."
+                : "Loading..."
               }
             </p>
             {hasError ? (
@@ -113,7 +111,7 @@ export default function AccountSelection({
               </Button>
             ) : (
               <p className="text-sm text-muted-foreground">
-                {t('import.account.goToAccountsPage')}
+                Unable to load accounts
               </p>
             )}
           </Card>
@@ -145,8 +143,8 @@ export default function AccountSelection({
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {account.accountType === 'prop-firm' 
-                        ? account.propfirm || t('import.account.propFirm')
-                        : (account as any).broker || t('import.account.liveBroker')
+                        ? account.propfirm || "Loading..."
+                        : (account as any).broker || "Loading..."
                       }
                     </p>
                   </div>

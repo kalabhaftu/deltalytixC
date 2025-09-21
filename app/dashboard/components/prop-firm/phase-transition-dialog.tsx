@@ -59,10 +59,7 @@ export function PhaseTransitionDialog({
   const [isLoading, setIsLoading] = useState(false)
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
   }
 
   const getPhaseDisplayName = (phase: string) => {

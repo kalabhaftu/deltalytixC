@@ -6,8 +6,6 @@ import { cn } from "@/lib/utils"
 import { AlertTriangle } from "lucide-react"
 import Image from "next/image"
 import { PlatformConfig } from "../config/platforms"
-import { useI18n } from "@/lib/translations/client"
-
 interface PlatformItemProps {
   platform: PlatformConfig
   isSelected: boolean
@@ -25,8 +23,6 @@ export function PlatformItem({
   onLeave,
   isWeekend
 }: PlatformItemProps) {
-  const t = useI18n()
-
   return (
     <div className={cn(
       (platform.isDisabled || platform.isComingSoon) && "cursor-not-allowed"
@@ -60,11 +56,11 @@ export function PlatformItem({
         </div>
         <div className="flex-1">
           <div className="font-medium flex items-center gap-2">
-            {t(platform.name as keyof typeof t)}
+            {platform.name}
             {platform.isDisabled && (
               <>
                 <Badge variant="secondary" className="ml-2 transition-transform duration-200 hover:scale-105">
-                  {t('import.type.badge.maintenance')}
+                  Disabled
                 </Badge>
                 <AlertTriangle className="h-4 w-4 text-yellow-500 animate-pulse" />
               </>
@@ -72,7 +68,7 @@ export function PlatformItem({
             {platform.isComingSoon && !platform.isDisabled && (
               <>
                 <Badge variant="secondary" className="ml-2 transition-transform duration-200 hover:scale-105 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">
-                  {t('import.type.badge.comingSoon')}
+                  Coming Soon
                 </Badge>
               </>
             )}
@@ -84,7 +80,7 @@ export function PlatformItem({
             )}
           </div>
           <div className="text-sm text-muted-foreground">
-            {t(platform.description as keyof typeof t)}
+            {platform.description}
           </div>
         </div>
       </CommandItem>

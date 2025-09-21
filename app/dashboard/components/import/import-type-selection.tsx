@@ -11,7 +11,6 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useI18n } from "@/lib/translations/client"
 import { platforms, PlatformConfig, PlatformType } from './config/platforms'
 import { PlatformItem } from './components/platform-item'
 import { PlatformTutorial } from './components/platform-tutorial'
@@ -42,8 +41,6 @@ function isWeekend() {
 export default function ImportTypeSelection({ selectedType, setSelectedType, setIsOpen }: ImportTypeSelectionProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [hoveredCategory, setHoveredCategory] = useState<PlatformConfig['category'] | null>(null)
-  const t = useI18n()
-  
   // Set default selection to Manual Trade Entry
   useEffect(() => {
     setSelectedType('manual-trade-entry')
@@ -52,19 +49,19 @@ export default function ImportTypeSelection({ selectedType, setSelectedType, set
   const getTranslatedCategory = (category: PlatformConfig['category']) => {
     switch (category) {
       case 'Direct Account Sync':
-        return t('import.type.category.directSync')
+        return "Loading..."
       case 'Intelligent Import':
-        return t('import.type.category.intelligentImport')
+        return "Loading..."
       case 'Platform CSV Import':
-        return t('import.type.category.platformCsv')
+        return "Loading..."
       default:
         return category
     }
   }
 
   const filteredPlatforms = platforms.filter(platform => 
-    t(platform.name as keyof typeof t).toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t(platform.description as keyof typeof t).toLowerCase().includes(searchQuery.toLowerCase()) ||
+    platform.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    platform.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     getTranslatedCategory(platform.category).toLowerCase().includes(searchQuery.toLowerCase())
   )
 
@@ -79,13 +76,13 @@ export default function ImportTypeSelection({ selectedType, setSelectedType, set
             <div className="flex flex-col h-full">
               <CommandInput 
                 className="h-auto rounded-none shrink-0"
-                placeholder={t('import.type.search')}
+                placeholder="Search platforms..."
                 value={searchQuery}
                 onValueChange={setSearchQuery}
               />
               <ScrollArea className="h-[calc(100%-45px)]">
                 <CommandList className="h-full">
-                  <CommandEmpty>{t('import.type.noResults')}</CommandEmpty>
+                  <CommandEmpty>No platforms found</CommandEmpty>
                   {categories.map(category => {
                     const categoryPlatforms = filteredPlatforms.filter(platform => platform.category === category)
                     if (categoryPlatforms.length === 0) return null

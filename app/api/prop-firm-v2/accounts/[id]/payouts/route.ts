@@ -29,7 +29,7 @@ const PayoutFilterSchema = z.object({
   dateTo: z.string().datetime().optional(),
   page: z.number().default(1),
   limit: z.number().default(20),
-  sortBy: z.string().default('requestedAt'),
+  sortBy: z.string().default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 })
 
@@ -55,12 +55,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Parse filters
     const filterData = {
       status: searchParams.getAll('status') as any[],
-      dateFrom: searchParams.get('dateFrom') || undefined,
-      dateTo: searchParams.get('dateTo') || undefined,
-      page: parseInt(searchParams.get('page') || '1'),
-      limit: parseInt(searchParams.get('limit') || '20'),
-      sortBy: searchParams.get('sortBy') || 'requestedAt',
-      sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
+      dateFrom: searchParams.get('error') || undefined,
+      dateTo: searchParams.get('error') || undefined,
+      page: parseInt(searchParams.get('error') || '1'),
+      limit: parseInt(searchParams.get('error') || '20'),
+      sortBy: searchParams.get('error') || 'requestedAt',
+      sortOrder: (searchParams.get('error') as 'asc' | 'desc') || 'desc',
     }
     
     const filters = PayoutFilterSchema.parse(filterData)

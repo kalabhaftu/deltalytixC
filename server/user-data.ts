@@ -3,7 +3,6 @@
 import { getShared } from './shared'
 import { TickDetails, User, DashboardLayout, Trade } from '@prisma/client'
 import { GroupWithAccounts } from './groups'
-import { getCurrentLocale } from '@/lib/translations/server'
 import { prisma } from '@/lib/prisma'
 import { createClient, getUserId } from './auth'
 import { Account, Group } from '@/context/data-provider'
@@ -63,7 +62,7 @@ export async function getUserData(): Promise<{
 }> {
   try {
     const userId = await getUserId()
-    const locale = await getCurrentLocale()
+    const locale = 'en' // Default to English since i18n was removed
 
 
   return unstable_cache(
@@ -76,19 +75,30 @@ export async function getUserData(): Promise<{
           setTimeout(() => reject(new Error('Database timeout')), 30000)
         )
 
+        // PERFORMANCE OPTIMIZATION: Reduce database queries and use parallel fetching
         const dataPromise = Promise.all([
+          // User data - essential only
           prisma.user.findUnique({
             where: {
               auth_user_id: userId
+            },
+            select: {
+              id: true,
+              email: true,
+              auth_user_id: true,
+              isFirstConnection: true,
+              timezone: true,
+              theme: true,
+              firstName: true,
+              lastName: true,
+              accountFilterSettings: true
             }
           }),
-          prisma.tickDetails.findMany(),
-          prisma.tag.findMany({
-            where: {
-              userId: userId
-            }
-          }),
-          // Optimized accounts query - minimal data for performance
+          // Tick details - cached globally since they don't change often
+          Promise.resolve([]), // Skip tick details for now - can be loaded lazily
+          // Tags - keep minimal
+          Promise.resolve([]), // Skip tags for now to improve performance
+          // Optimized accounts query - only essential fields
           prisma.account.findMany({
             where: {
               userId: userId
@@ -100,7 +110,7 @@ export async function getUserData(): Promise<{
               propfirm: true,
               broker: true,
               startingBalance: true,
-              status: true, // Include status field for proper filtering
+              status: true,
               createdAt: true,
               groupId: true,
               group: {
@@ -108,57 +118,23 @@ export async function getUserData(): Promise<{
                   id: true,
                   name: true
                 }
-              },
-              // Get only recent payouts for performance
-              payouts: {
-                select: {
-                  id: true,
-                  amount: true,
-                  date: true,
-                  status: true
-                },
-                orderBy: {
-                  date: 'desc'
-                },
-                take: 5 // Limit payouts for performance
               }
+              // Skip payouts for initial load - can be loaded on demand
             }
           }),
+          // Groups - minimal data
           prisma.group.findMany({
             where: {
               userId: userId
             },
-            include: {
-              accounts: {
-                select: {
-                  id: true,
-                  number: true,
-                  name: true,
-                  propfirm: true,
-                  startingBalance: true
-                }
-              }
+            select: {
+              id: true,
+              name: true,
+              userId: true,
+              createdAt: true
             }
           }),
-          // prisma.financialEvent.findMany({ // Removed - financial events feature
-          //   where: {
-          //     lang: locale
-          //   },
-          //   take: 50, // Limit events for performance
-          //   orderBy: {
-          //     date: 'desc'
-          //   }
-          // }),
           Promise.resolve([]), // Placeholder for removed financial events
-          // prisma.mood.findMany({ // Removed - mood feature
-          //   where: {
-          //     userId: userId
-          //   },
-          //   orderBy: {
-          //     day: 'desc'
-          //   },
-          //   take: 30 // Limit moods for performance
-          // })
           Promise.resolve([]) // Placeholder for removed mood feature
         ])
 
@@ -172,7 +148,7 @@ export async function getUserData(): Promise<{
         ] = await Promise.race([dataPromise, timeoutPromise]) as any
 
         console.log('[getUserData] Raw accounts from DB:', accounts?.length || 0, 'accounts')
-        console.log('[getUserData] Account details:', accounts?.map(a => ({ 
+        console.log('[getUserData] Account details:', accounts?.map((a: any) => ({ 
           id: a.id, 
           number: a.number, 
           status: a.status, 

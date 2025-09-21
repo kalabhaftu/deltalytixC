@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useI18n } from "@/lib/translations/client"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -72,7 +71,6 @@ export function EnhancedCreateLiveAccountDialog({
   onOpenChange,
   onSuccess
 }: EnhancedCreateLiveAccountDialogProps) {
-  const t = useI18n()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [step, setStep] = useState<'broker' | 'details' | 'confirm'>('broker')
   const [selectedBroker, setSelectedBroker] = useState('')

@@ -10,7 +10,6 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from '@/components/ui/dropzone'
 import { useSupabaseUpload } from '@/hooks/use-supabase-upload'
 import { toast } from 'sonner'
-import { useI18n } from '@/lib/translations/client'
 import { useUserStore } from '@/store/user-store'
 import Image from "next/image"
 import { createClient } from '@/lib/supabase'
@@ -45,7 +44,6 @@ interface TradeImageEditorProps {
 }
 
 export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
-  const t = useI18n()
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
   const { updateTrades } = useData()
@@ -100,7 +98,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
       // Remove the image from Supabase storage
       if (imageUrl) {
         // Extract the path from the full URL
-        const path = imageUrl.split('/storage/v1/object/public/trade-images/')[1]
+        const path = imageUrl.split('T')[1]
         if (path) {
           await supabase.storage.from('trade-images').remove([path])
         }
@@ -122,11 +120,11 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
       // Remove both images from Supabase storage
       const imagesToRemove: string[] = []
       if (trade.imageBase64) {
-        const path = trade.imageBase64.split('/storage/v1/object/public/trade-images/')[1]
+        const path = trade.imageBase64.split('T')[1]
         if (path) imagesToRemove.push(path)
       }
       if (trade.imageBase64Second) {
-        const path = trade.imageBase64Second.split('/storage/v1/object/public/trade-images/')[1]
+        const path = trade.imageBase64Second.split('T')[1]
         if (path) imagesToRemove.push(path)
       }
       
@@ -154,7 +152,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
       setUploadDialogOpen(false)
       
       // Auto-dismiss success toast after 3 seconds
-      const successToast = toast.success(t('trade-table.imageUploadSuccess'), {
+      const successToast = toast.success("Loading...", {
         duration: 3000
       })
       
@@ -163,11 +161,11 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
       firstImageUploadProps.setErrors([])
     } else if (firstImageUploadProps.errors.length > 0) {
       const error = firstImageUploadProps.errors[0].message
-      toast.error(t('trade-table.imageUploadError', { error }), {
+      toast.error("Loading...", {
         duration: 5000
       })
     }
-  }, [firstImageUploadProps.isSuccess, firstImageUploadProps.files, firstImageUploadProps.errors, userId, t, generatedId])
+  }, [firstImageUploadProps.isSuccess, firstImageUploadProps.files, firstImageUploadProps.errors, userId, generatedId])
 
   // Listen for successful uploads from second image upload
   useEffect(() => {
@@ -178,7 +176,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
       setUploadDialogOpen(false)
       
       // Auto-dismiss success toast after 3 seconds
-      toast.success(t('trade-table.imageUploadSuccess'), {
+      toast.success("Loading...", {
         duration: 3000
       })
       
@@ -187,11 +185,11 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
       secondImageUploadProps.setErrors([])
     } else if (secondImageUploadProps.errors.length > 0) {
       const error = secondImageUploadProps.errors[0].message
-      toast.error(t('trade-table.imageUploadError', { error }), {
+      toast.error("Loading...", {
         duration: 5000
       })
     }
-  }, [secondImageUploadProps.isSuccess, secondImageUploadProps.files, secondImageUploadProps.errors, userId, t, generatedId])
+  }, [secondImageUploadProps.isSuccess, secondImageUploadProps.files, secondImageUploadProps.errors, userId, generatedId])
 
   // Reset upload state when dialog closes to ensure clean state for next upload
   useEffect(() => {
@@ -491,11 +489,11 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
               onClick={async () => {
                 await handleRemoveAllImages()
                 setShowDeleteConfirm(false)
-                toast.success(t('trade-table.allImagesDeleted'))
+                toast.success("Loading...")
               }}
               disabled={!trade.imageBase64 && !trade.imageBase64Second}
             >
-              {t('trade-table.deleteAllImages')}
+              Save Changes
             </Button>
             <Button
               variant="outline"
@@ -511,7 +509,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>
-              {isSecondImage ? t('trade-table.uploadSecondImage') : t('trade-table.uploadImage')}
+              {isSecondImage ? "Loading..." : "Loading..."}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">

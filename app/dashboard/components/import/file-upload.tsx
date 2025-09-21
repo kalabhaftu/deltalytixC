@@ -9,7 +9,6 @@ import { XIcon, FileIcon, AlertCircle, ArrowUpCircle } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { useI18n } from "@/lib/translations/client"
 import { platforms } from './config/platforms'
 import { Step } from './import-button'
 
@@ -33,14 +32,12 @@ export default function FileUpload({
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({})
   const [parsedFiles, setParsedFiles] = useState<string[][][]>([])
-  const t = useI18n()
-
   const processFile = useCallback((file: File, index: number) => {
     return new Promise<void>((resolve, reject) => {
       // First read the first line to detect delimiter
       const reader = new FileReader();
       reader.onload = (e) => {
-        const firstLine = e.target?.result?.toString().split('\n')[0] || '';
+        const firstLine = e.target?.result?.toString().split('T')[0] || '';
         const delimiter = firstLine.includes(';') ? ';' : ',';
         
         Papa.parse(file, {
@@ -174,19 +171,19 @@ export default function FileUpload({
           {isDragActive ? (
             <div className="space-y-2 relative">
               <p className="text-xl font-medium text-primary animate-in fade-in slide-in-from-bottom-2">
-                {t('import.upload.dropHere')}
+                Drop files here
               </p>
               <p className="text-sm text-muted-foreground animate-in fade-in slide-in-from-bottom-3">
-                {t('import.upload.weWillHandle')}
+                Release to upload
               </p>
             </div>
           ) : (
             <div className="space-y-2 relative">
               <p className="text-xl font-medium group-hover:text-primary transition-colors">
-                {t('import.upload.dragAndDrop')}
+                Upload Files
               </p>
               <p className="text-sm text-muted-foreground">
-                {t('import.upload.clickToBrowse')}
+                Drag and drop files here or click to browse
               </p>
             </div>
           )}
@@ -195,7 +192,7 @@ export default function FileUpload({
 
       {uploadedFiles.length > 0 && (
         <div className="space-y-2 animate-in slide-in-from-bottom-4 duration-500 w-full max-w-2xl">
-          <h3 className="text-lg font-semibold">{t('import.upload.uploadedFiles')}</h3>
+          <h3 className="text-lg font-semibold">Uploaded Files</h3>
           {uploadedFiles.map((file, index) => (
             <div 
               key={index} 
@@ -232,7 +229,7 @@ export default function FileUpload({
                   className="opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <XIcon className="h-4 w-4" />
-                  <span className="sr-only">{t('import.upload.removeFile')}</span>
+                  <span className="sr-only">Remove file</span>
                 </Button>
               </div>
             </div>
@@ -243,9 +240,9 @@ export default function FileUpload({
       {uploadedFiles.length > 0 && (
         <Alert className="animate-in slide-in-from-bottom-5 duration-700 w-full max-w-2xl">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t('import.upload.note')}</AlertTitle>
+          <AlertTitle>Ready to Process</AlertTitle>
           <AlertDescription>
-            {t('import.upload.noteDescription')}
+            Files uploaded successfully. Click "Process Files" to continue.
           </AlertDescription>
         </Alert>
       )}

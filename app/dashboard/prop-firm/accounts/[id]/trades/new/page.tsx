@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useI18n } from "@/lib/translations/client"
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
@@ -30,7 +29,6 @@ export default function NewTradePage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
-  const t = useI18n()
   const [account, setAccount] = useState<AccountData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -54,8 +52,8 @@ export default function NewTradePage() {
      } catch (error) {
        console.error('Error fetching account details:', error)
        toast({
-         title: t('propFirm.trade.new.fetchError'),
-         description: t('propFirm.trade.new.fetchErrorDescription'),
+         title: "Loading...",
+         description: "Loading...",
          variant: "destructive"
        })
     } finally {
@@ -75,7 +73,7 @@ export default function NewTradePage() {
       <div className="fixed inset-0 flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">{t('propFirm.trade.new.loading')}</p>
+          <p className="text-muted-foreground">Loading account details...</p>
         </div>
       </div>
     )
@@ -86,11 +84,11 @@ export default function NewTradePage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <ArrowLeft className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">{t('propFirm.trade.new.accountNotFound')}</h3>
-          <p className="text-muted-foreground">{t('propFirm.trade.new.accountNotFoundDescription')}</p>
+          <h3 className="text-lg font-semibold mb-2">Account Not Found</h3>
+          <p className="text-muted-foreground">The account you're looking for doesn't exist or you don't have access to it.</p>
           <Button onClick={() => router.back()} className="mt-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {t('propFirm.trade.new.goBack')}
+            Go Back
           </Button>
         </div>
       </div>
@@ -109,7 +107,7 @@ export default function NewTradePage() {
               onClick={() => router.push(`/dashboard/prop-firm/accounts/${accountId}/trades`)}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              {t('propFirm.trade.new.backToTrades')}
+              Back to Trades
             </Button>
             <div>
               <h1 className="text-3xl font-bold">Import Trades</h1>
@@ -123,22 +121,22 @@ export default function NewTradePage() {
         {/* Account Info */}
         <Card className="mb-6">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">{t('propFirm.trade.new.accountInfo')}</CardTitle>
-            <CardDescription>{t('propFirm.trade.new.accountInfoDescription')}</CardDescription>
+            <CardTitle className="text-lg">Account Information</CardTitle>
+            <CardDescription>Overview of your prop firm account details</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-0">
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">{t('propFirm.trade.new.accountNumber')}</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Account Number</Label>
               <p className="text-lg font-semibold">{account.number}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">{t('propFirm.trade.new.status')}</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Status</Label>
               <p className="text-lg font-semibold capitalize">{account.status}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">{t('propFirm.trade.new.currentPhase')}</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Current Phase</Label>
               <p className="text-lg font-semibold capitalize">
-                {account.currentPhase?.phaseType?.replace('_', ' ') || t('propFirm.trade.new.noActivePhase')}
+                {account.currentPhase?.phaseType?.replace('_', ' ') || "Not Available"}
               </p>
             </div>
           </CardContent>

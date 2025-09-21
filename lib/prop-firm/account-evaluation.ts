@@ -703,12 +703,7 @@ export class PropFirmAccountEvaluator {
   private static getDateInTimezone(date: Date, timezone: string): string {
     try {
       // Convert to timezone and get date string
-      const formatter = new Intl.DateTimeFormat('en-CA', { 
-        timeZone: timezone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      })
+      const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: timezone })
       return formatter.format(date) // Returns YYYY-MM-DD format
     } catch (error) {
       logger.warn(`Invalid timezone ${timezone}, falling back to UTC`, { timezone }, 'AccountEvaluator')

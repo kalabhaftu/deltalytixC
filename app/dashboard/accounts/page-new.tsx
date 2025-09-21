@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { useI18n } from "@/lib/translations/client"
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "@/hooks/use-toast"
 import { useAccounts } from "@/hooks/use-accounts"
@@ -80,7 +79,6 @@ interface Account {
 }
 
 export default function AccountsPage() {
-  const t = useI18n()
   const router = useRouter()
   const { user } = useAuth()
   const { accounts, isLoading, refetch: refetchAccounts } = useAccounts()
@@ -640,12 +638,7 @@ function AccountsLoadingSkeleton() {
 // Utilities
 function formatCurrency(amount: number): string {
   if (!isFinite(amount) || isNaN(amount)) return '$0.00'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount)
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
 }
 
 

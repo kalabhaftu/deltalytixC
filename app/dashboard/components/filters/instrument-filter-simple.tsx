@@ -1,7 +1,6 @@
 "use client"
 
 import { useData } from "@/context/data-provider"
-import { useI18n } from "@/lib/translations/client"
 import { useState, useEffect } from "react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -16,7 +15,6 @@ interface InstrumentFilterSimpleProps {
 }
 
 export function InstrumentFilterSimple({ className }: InstrumentFilterSimpleProps) {
-  const t = useI18n()
   const { instruments, setInstruments } = useData()
   const trades = useTradesStore(state => state.trades)
   const [searchTerm, setSearchTerm] = useState("")
@@ -54,13 +52,13 @@ export function InstrumentFilterSimple({ className }: InstrumentFilterSimpleProp
 
   return (
     <div className="space-y-2">
-      <Label className="text-sm font-medium">{t('filters.instruments')}</Label>
+      <Label className="text-sm font-medium">{"Instruments"}</Label>
       <Command className="rounded-lg border" shouldFilter={false}>
         <div className="border-b">
           <div className="flex items-center gap-2 px-3 py-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder={t('filters.searchInstrument')}
+              placeholder="Search instruments..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-8"
@@ -78,7 +76,7 @@ export function InstrumentFilterSimple({ className }: InstrumentFilterSimpleProp
                   checked={availableInstruments.length > 0 && availableInstruments.every(instrument => isItemSelected(instrument))}
                   className="h-4 w-4"
                 />
-                <span className="text-sm font-medium">{t('filters.selectAllInstruments')}</span>
+                <span className="text-sm font-medium">{"Select all instruments"}</span>
               </CommandItem>
               
               {filteredInstruments.map((instrument) => (
@@ -97,7 +95,7 @@ export function InstrumentFilterSimple({ className }: InstrumentFilterSimpleProp
               
               {filteredInstruments.length === 0 && (
                 <CommandEmpty>
-                  {searchTerm ? t('filters.noInstrumentFound') : t('filters.noResults')}
+                  {searchTerm ? "Loading..." : "Loading..."}
                 </CommandEmpty>
               )}
             </CommandGroup>

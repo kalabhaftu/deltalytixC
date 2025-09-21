@@ -2,7 +2,6 @@
 
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { useI18n } from "@/lib/translations/client"
 import { platforms } from "../config/platforms"
 import { ImportType } from "../import-type-selection"
 import { Step } from "../import-button"
@@ -13,7 +12,6 @@ interface ImportDialogHeaderProps {
 }
 
 export function ImportDialogHeader({ step, importType }: ImportDialogHeaderProps) {
-  const t = useI18n()
   const platform = platforms.find(p => p.type === importType) || platforms.find(p => p.platformName === 'csv-ai')
   if (!platform) return null
 
@@ -23,9 +21,9 @@ export function ImportDialogHeader({ step, importType }: ImportDialogHeaderProps
 
   return (
     <DialogHeader className="flex-none p-4 pb-2 border-b space-y-2">
-      <DialogTitle className="text-base">{t(currentStep?.title || 'import.title')}</DialogTitle>
+      <DialogTitle className="text-base">{currentStep?.title || 'Import Trades'}</DialogTitle>
       <DialogDescription className="text-xs text-muted-foreground">
-        {t(currentStep?.description || 'import.description')}
+        {currentStep?.description || 'Import your trading data from supported platforms'}
       </DialogDescription>
       <div className="space-y-1 pt-1">
         <div className="w-full bg-secondary h-1.5 rounded-full">
@@ -45,7 +43,7 @@ export function ImportDialogHeader({ step, importType }: ImportDialogHeaderProps
                 currentStepIndex >= index && "text-primary font-medium"
               )}
             >
-              {t(s.title)}
+              {s.title}
             </div>
           ))}
         </div>

@@ -19,10 +19,32 @@ export default function LandingPage() {
         setVideoLoaded(false);
         setVideoError(false);
 
-        if (videoRef.current) {
-            videoRef.current.load();
-        }
-    }, [theme, effectiveTheme]);
+        // Small delay to ensure theme has fully changed
+        const timer = setTimeout(() => {
+            if (videoRef.current) {
+                const video = videoRef.current;
+                // Clear current sources
+                video.pause();
+                video.currentTime = 0;
+                // Remove all existing sources
+                const sources = video.querySelectorAll('source');
+                sources.forEach(source => source.remove());
+                
+                // Add new source based on theme
+                const newSource = document.createElement('source');
+                newSource.src = effectiveTheme === "dark" 
+                    ? "https://fhvmtnvjiotzztimdxbi.supabase.co/storage/v1/object/public/assets/demo-dark.mp4"
+                    : "https://fhvmtnvjiotzztimdxbi.supabase.co/storage/v1/object/public/assets/demo.mp4";
+                newSource.type = "video/mp4";
+                video.appendChild(newSource);
+                
+                // Force reload with new source
+                video.load();
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [effectiveTheme]);
 
     const handleVideoLoad = () => {
         setVideoLoaded(true);
@@ -53,11 +75,8 @@ export default function LandingPage() {
                                     </Link>
                                 </div>
                             </div>
-                            <div className="flex w-full items-center justify-center  relative  rounded-lg">
+                            <div className="flex w-full items-center justify-center relative rounded-lg">
                                 <div className="relative w-full h-full">
-                                    <span className="absolute inset-[-12px] md:inset-[-24px] bg-primary/15 rounded-[14.5867px] -z-10 animate-pulse"></span>
-                                    <span className="absolute inset-[-4px] md:inset-[-8px] bg-primary/25 rounded-[14.5867px] -z-20 animate-pulse"></span>
-                                    <span className="absolute inset-0 shadow-lg rounded-[14.5867px] -z-30"></span>
                                     {!videoLoaded && !videoError && (
                                         <div className="w-full aspect-video flex items-center justify-center bg-gray-100 dark:bg-black rounded-[14.5867px] border-[1.82333px] border-[#E5E7EB] dark:border-gray-800">
                                             <Skeleton className="w-full aspect-video rounded-[14.5867px]" />
@@ -69,17 +88,17 @@ export default function LandingPage() {
                                         </div>
                                     )}
                                     <video
+                                        key={effectiveTheme}
                                         ref={videoRef}
                                         preload="metadata"
                                         loop
                                         muted
                                         autoPlay
                                         playsInline
-                                        className={`w-full h-full rounded-[14.5867px] border-[1.82333px] border-[#E5E7EB] dark:border-gray-800 ${videoLoaded ? 'block' : 'hidden'}`}
+                                        className={`w-full h-full rounded-[14.5867px] border-2 border-blue-500/40 shadow-[0_0_20px_rgba(59,130,246,0.6)] ${videoLoaded ? 'block' : 'hidden'}`}
                                         onLoadedData={handleVideoLoad}
                                         onError={handleVideoError}
                                     >
-                                        <source src={effectiveTheme === "dark" ? "https://fhvmtnvjiotzztimdxbi.supabase.co/storage/v1/object/public/assets/demo-dark.mp4" : "https://fhvmtnvjiotzztimdxbi.supabase.co/storage/v1/object/public/assets/demo.mp4"} type="video/mp4" />
                                         <track
                                             src="/path/to/captions.vtt"
                                             kind="subtitles"

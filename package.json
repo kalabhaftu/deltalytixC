@@ -9,6 +9,7 @@
     "dev:fast": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096\" NEXT_TELEMETRY_DISABLED=1 next dev --turbo",
     "dev:webpack": "cross-env NEXT_TELEMETRY_DISABLED=1 next dev",
     "dev:stable": "cross-env NEXT_TELEMETRY_DISABLED=1 next dev",
+    "dev:clean:force": "rimraf .next node_modules/.cache && cross-env NEXT_TELEMETRY_DISABLED=1 next dev --turbo",
     "build": "next build",
     "build:analyze": "cross-env ANALYZE=true next build",
     "start": "next start -H 0.0.0.0",

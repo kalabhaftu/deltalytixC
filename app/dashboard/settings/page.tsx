@@ -11,7 +11,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { useUserStore } from '@/store/user-store'
 import { useTheme } from '@/context/theme-provider'
-import { useI18n } from '@/lib/translations/client'
 import { 
   User, 
   Settings, 
@@ -89,7 +88,6 @@ const timezones = [
 ];
 
 export default function SettingsPage() {
-  const t = useI18n()
   const { theme, setTheme, intensity, setIntensity } = useTheme()
   const user = useUserStore(state => state.supabaseUser)
   const timezone = useUserStore(state => state.timezone)
@@ -271,7 +269,7 @@ export default function SettingsPage() {
     } finally {
       setIsDeleting(false)
       setIsDeleteModalOpen(false)
-      setDeleteConfirmText('')
+      setDeleteConfirmText("")
     }
   }
 
@@ -292,8 +290,8 @@ export default function SettingsPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.settings')}</h1>
-        <p className="text-muted-foreground mt-2">{t('dashboard.settings.description')}</p>
+        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-muted-foreground mt-2">Manage your account settings and preferences</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -302,7 +300,7 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              {t('dashboard.profile')}
+              Profile
             </CardTitle>
             <CardDescription>
               Manage your personal information and account details
@@ -475,9 +473,9 @@ export default function SettingsPage() {
                   
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label htmlFor="fixed-position">{t('toolbar.fixedPosition')}</Label>
+                      <Label htmlFor="fixed-position">Fixed Position</Label>
                       <p className="text-sm text-muted-foreground">
-                        {t('toolbar.fixedPositionDescription')}
+                        Keep the toolbar in a fixed position at the top of the screen
                       </p>
                     </div>
                     <Switch
@@ -489,9 +487,9 @@ export default function SettingsPage() {
                   
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label htmlFor="auto-hide-toolbar">{t('toolbar.autoHide')}</Label>
+                      <Label htmlFor="auto-hide-toolbar">Auto Hide</Label>
                       <p className="text-sm text-muted-foreground">
-                        {t('toolbar.autoHideDescription')}
+                        Automatically hide the toolbar when not in use
                       </p>
                     </div>
                     <Switch
@@ -507,7 +505,7 @@ export default function SettingsPage() {
                       onClick={handleResetSettings}
                       className="text-xs"
                     >
-                      {t('toolbar.resetSettings')}
+                      Reset Settings
                     </SecondaryButton>
                   </div>
                 </div>
@@ -620,7 +618,7 @@ export default function SettingsPage() {
               </Label>
               <Input
                 id="delete-confirm"
-                type="text"
+                type=
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="Type the confirmation text here"

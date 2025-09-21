@@ -96,7 +96,7 @@ export async function signInWithGoogle(next: string | null = null) {
 export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  redirect('/')
+  redirect('/authentication')
 }
 
 export async function signInWithEmail(email: string, next: string | null = null) {
@@ -432,8 +432,8 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
 export async function getUserId(): Promise<string> {
   // First try to get user ID from middleware headers
   const headersList = await headers()
-  const userIdFromMiddleware = headersList.get("x-user-id")
-  const authStatus = headersList.get("x-auth-status")
+  const userIdFromMiddleware = headersList.get('x-user-id')
+  const authStatus = headersList.get('x-user-authenticated')
 
   if (userIdFromMiddleware && authStatus === "authenticated") {
     if (process.env.NODE_ENV === 'development') {
@@ -444,7 +444,7 @@ export async function getUserId(): Promise<string> {
 
   // Check if middleware already detected auth failure
   if (authStatus === "unauthenticated") {
-    const authError = headersList.get("x-auth-error")
+    const authError = headersList.get('x-auth-error')
     if (authError && authError.includes("timeout")) {
       throw new Error("Authentication service temporarily unavailable")
     }
@@ -494,7 +494,7 @@ export async function getUserId(): Promise<string> {
 
 export async function getUserEmail(): Promise<string> {
   const headersList = await headers()
-  const userEmail = headersList.get("x-user-email")
+  const userEmail = headersList.get('x-user-email')
   if (process.env.NODE_ENV === 'development') {
     console.log("[Auth] getUserEmail FROM HEADERS", userEmail)
   }

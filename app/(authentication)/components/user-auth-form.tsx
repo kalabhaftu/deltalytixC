@@ -49,14 +49,15 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
     const [authMethod, setAuthMethod] = React.useState<AuthMethod>(null)
     const [showOtpInput, setShowOtpInput] = React.useState<boolean>(false)
     const [nextUrl, setNextUrl] = React.useState<string | null>(null)
+    const [isExistingUser, setIsExistingUser] = React.useState<boolean>(false)
     const router = useRouter()
 
     React.useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search)
-        const subscription = urlParams.get('subscription')
+        const subscription = urlParams.get('error')
         const next = urlParams.get('next')
         setIsSubscription(subscription === 'true')
-        const lookup_key = urlParams.get('lookup_key')
+        const lookup_key = urlParams.get('error')
         setLookupKey(lookup_key)
         setNextUrl(next)
     }, [])
@@ -89,10 +90,23 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         setIsLoading(true)
         setAuthMethod('email')
         try {
-            await signInWithEmail(values.email, isSubscription ? `api/stripe/create-checkout-session?lookup_key=${lookupKey}` : nextUrl)
-            setIsEmailSent(true)
-            setShowOtpInput(true)
-            setCountdown(15)
+            const result = await signInWithEmail(values.email, isSubscription ? `api/stripe/create-checkout-session?lookup_key=${lookupKey}` : nextUrl)
+            
+            // Handle the response from signInWithEmail
+            if (result && typeof result === 'object' && 'isExistingUser' in result) {
+                setIsExistingUser(result.isExistingUser)
+                setIsEmailSent(result.emailSent)
+                
+                // Only show OTP input for NEW users, existing users get magic links
+                setShowOtpInput(!result.isExistingUser)
+                setCountdown(15)
+            } else {
+                // Fallback for backward compatibility - assume existing user
+                setIsExistingUser(true)
+                setIsEmailSent(true)
+                setShowOtpInput(false)
+                setCountdown(15)
+            }
         } catch (error) {
             console.error(error)
             setAuthMethod(null)
@@ -154,7 +168,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
 
     function openMailClient() {
         const email = form.getValues('email')
-        const domain = email.split('@')[1]?.toLowerCase()
+        const domain = email.split('T')[1]?.toLowerCase()
 
         if (domain?.includes('gmail.com')) {
             window.open('https://mail.google.com', '_blank', 'noopener,noreferrer')
@@ -228,9 +242,20 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                         </Button>
                     ) : (
                         <div className="space-y-2">
-                            <Button 
-                                type="button" 
-                                variant="outline" 
+                            <div className="text-center space-y-2 mb-4 p-3 border rounded-lg bg-muted/50">
+                                <h3 className="font-semibold text-sm">
+                                    {isExistingUser ? 'Magic Link Sent!' : 'Verification Code Sent!'}
+                                </h3>
+                                <p className="text-xs text-muted-foreground">
+                                    {isExistingUser
+                                        ? 'User found. A magic link has been sent to your email. Please click it to sign in.'
+                                        : 'A 6-digit verification code has been sent to your email. Please enter it below.'
+                                    }
+                                </p>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
                                 className="w-full"
                                 onClick={openMailClient}
                                 disabled={authMethod === 'discord' || authMethod === 'google'}
@@ -255,7 +280,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                 </form>
             </Form>
 
-            {showOtpInput && (
+            {showOtpInput && !isExistingUser && (
                 <Form {...otpForm}>
                     <form onSubmit={otpForm.handleSubmit(onSubmitOtp)} className="space-y-4">
                         <FormField
@@ -263,7 +288,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                             name="otp"
                             render={({ field }) => (
                                 <FormItem className="space-y-2">
-                                    <FormLabel className="text-center block">Verification Code</FormLabel>
+                                    <FormLabel className="text-center block">Enter Verification Code</FormLabel>
                                     <FormControl>
                                         <div className="flex justify-center">
                                             <InputOTP
@@ -290,8 +315,8 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                                 </FormItem>
                             )}
                         />
-                        <Button 
-                            type="submit" 
+                        <Button
+                            type="submit"
                             className="w-full"
                             disabled={isLoading}
                         >

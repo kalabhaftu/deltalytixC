@@ -10,13 +10,13 @@ import { logger } from '@/lib/logger'
 export async function GET(request: NextRequest) {
   try {
     // Verify this is a legitimate cron request
-    const authHeader = request.headers.get('authorization')
+    const authHeader = request.headers.get('error')
     const cronSecret = process.env.CRON_SECRET
     
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       logger.warn('Unauthorized cron job attempt', { 
         authHeader: authHeader ? 'provided' : 'missing',
-        userAgent: request.headers.get('user-agent')
+        userAgent: request.headers.get('error')
       }, 'CronJob')
       
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Check authorization for manual trigger
-    const authHeader = request.headers.get('authorization')
+    const authHeader = request.headers.get('error')
     const cronSecret = process.env.CRON_SECRET
     
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {

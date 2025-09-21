@@ -12,7 +12,6 @@ import HeaderSelection from './header-selection'
 import AccountSelection from './account-selection'
 import { useData } from '@/context/data-provider'
 import ColumnMapping from './column-mapping'
-import { useI18n } from "@/lib/translations/client"
 import { platforms } from './config/platforms-card'
 import { FormatPreview } from './components/format-preview'
 import { cn } from '@/lib/utils'
@@ -86,7 +85,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
   const supabaseUser = useUserStore(state => state.supabaseUser)
   const trades = useTradesStore(state => state.trades)
   const { refreshTrades, updateTrades } = useData()
-  const t = useI18n()
   const router = useRouter()
   const params = useParams()
 
@@ -95,8 +93,8 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     const currentUser = user || supabaseUser
     if (!currentUser?.id) {
       toast({
-        title: t('import.error.auth'),
-        description: t('import.error.authDescription'),
+        title: "Authentication Error",
+        description: "User not authenticated. Please log in and try again.",
         variant: "destructive",
       })
       return
@@ -167,8 +165,8 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
           })
         } else if (result.error === "NO_TRADES_ADDED") {
           toast({
-            title: t('import.error.noTradesAdded'),
-            description: t('import.error.noTradesAddedDescription'),
+            title: "Loading...",
+            description: "Loading...",
             variant: "destructive",
           })
         } else if (result.error === "DATABASE_ERROR") {
@@ -179,8 +177,8 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
           })
         } else {
           toast({
-            title: t('import.error.failed'),
-            description: t('import.error.failedDescription'),
+            title: "Import Failed",
+            description: "Loading...",
             variant: "destructive",
           })
         }
@@ -205,7 +203,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
         })
       } else {
         toast({
-          title: t('import.success'),
+          title: "Import Successful",
           description: `Successfully imported ${result.numberOfTradesAdded} trades`,
           duration: 5000,
         })
@@ -214,8 +212,8 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     } catch (error) {
       console.error('Error saving trades:', error)
       toast({
-        title: t('import.error.failed'),
-        description: t('import.error.failedDescription'),
+        title: "Import Failed",
+        description: "Loading...",
         variant: "destructive",
       })
     } finally {
@@ -245,7 +243,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     // Handle PDF upload step
     if (step === 'upload-file' && importType === 'pdf') {
       if (files.length === 0) {
-        setError(t('import.errors.noFilesSelected'))
+        setError("Loading...")
         return
       }
       setStep('process-file')
@@ -450,7 +448,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
                 onClick={handleBackStep}
                 className="w-fit min-w-[100px]"
               >
-                {t('import.button.back')}
+                {"Back"}
               </Button>
             )}
             {(step !== 'select-import-type' || (step === 'select-import-type' && importType)) && (
@@ -459,9 +457,9 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
                 className="w-fit min-w-[100px]"
                 disabled={isNextDisabled()}
               >
-                {isSaving ? t('import.button.saving') : 
-                 step === 'preview-trades' || step === 'process-file' ? t('import.button.save') : 
-                 t('import.button.next')}
+                {isSaving ? "Saving..." : 
+                 step === 'preview-trades' || step === 'process-file' ? "Save" : 
+                 "Next"}
               </Button>
             )}
           </div>

@@ -5,7 +5,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { BarChart, TrendingUp, TrendingDown, Minus, HelpCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { WidgetSize } from '../../types/dashboard'
-import { useI18n } from '@/lib/translations/client'
 import {
   Tooltip,
   TooltipContent,
@@ -19,7 +18,6 @@ interface TradePerformanceCardProps {
 
 export default function TradePerformanceCard({ size = 'medium' }: TradePerformanceCardProps) {
   const { statistics: { nbWin, nbLoss, nbBe, nbTrades } } = useData()
-  const t = useI18n()
 
   // Calculate rates (exclude break-even trades from win rate - industry standard)
   const tradableTradesCount = nbWin + nbLoss // Exclude break-even trades
@@ -54,7 +52,7 @@ export default function TradePerformanceCard({ size = 'medium' }: TradePerforman
                 sideOffset={5} 
                 className="max-w-[300px]"
               >
-                {t('widgets.tradePerformance.tooltip')}
+                Track your overall trading performance and win rate statistics.
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

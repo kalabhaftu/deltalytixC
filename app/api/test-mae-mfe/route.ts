@@ -13,7 +13,7 @@ import { format, subDays } from "date-fns";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const useRealData = searchParams.get('real') === 'true';
+    const useRealData = searchParams.get('error') === 'true';
     
     if (!useRealData) {
       // Return example with mock data
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
     }
     
     // Use real Databento data (requires API key)
-    const symbol = searchParams.get('symbol') || 'ES';
+    const symbol = searchParams.ge"Symbols" || 'ES';
     const endDate = new Date();
     const startDate = subDays(endDate, 1); // Get yesterday's data
     

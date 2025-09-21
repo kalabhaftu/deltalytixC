@@ -38,17 +38,11 @@ export function AutoRefreshProvider({
     }
 
     const startAutoRefresh = () => {
-      // Clear any existing interval
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-      }
-
-      intervalRef.current = setInterval(() => {
-        // Only refresh if tab is active and we're on a dashboard page
-        if (isActiveRef.current && window.location.pathname.includes('/dashboard')) {
-          router.refresh()
-        }
-      }, refreshInterval)
+      // PERFORMANCE FIX: Disable automatic page refreshes that were causing
+      // multi-minute load times due to complete data reloading every 30 seconds
+      // TODO: Implement targeted data refresh instead of full page reload if needed
+      console.log('[AutoRefreshProvider] Auto-refresh disabled to improve performance')
+      return // Disabled for performance
     }
 
     // Start auto-refresh
@@ -61,6 +55,7 @@ export function AutoRefreshProvider({
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
+        intervalRef.current = null
       }
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }

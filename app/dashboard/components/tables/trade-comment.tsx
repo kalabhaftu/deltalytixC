@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Trash2, Save } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useI18n } from '@/lib/translations/client'
 import { updateTradeCommentAction } from '@/server/database'
 import {
   Popover,
@@ -22,7 +21,6 @@ interface TradeCommentProps {
 }
 
 export function TradeComment({ tradeIds, comment: initialComment, onCommentChange }: TradeCommentProps) {
-  const t = useI18n()
   const { updateTrades } = useData()
   const [localComment, setLocalComment] = useState(initialComment || '')
   const [isUpdating, setIsUpdating] = useState(false)
@@ -63,7 +61,7 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
     setIsUpdating(true)
     try {
       // Update local state immediately
-      setLocalComment('')
+      setLocalCommen"Loading..."
       
       // Update all trades in the list
       await updateTrades(tradeIds, { comment: null })
@@ -97,14 +95,14 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
                 <div className="truncate">
                   {localComment}
                 </div>
-              ) : t('trade-table.addComment')}
+              ) : "Loading..."}
             </Button>
           </div>
         </PopoverTrigger>
         <PopoverContent className="w-[500px] p-4" align="start" forceMount sideOffset={5}>
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-2">
-              <Label>{t('trade-table.comment')}</Label>
+              <Label>Trade Comment</Label>
               {isUpdating && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <div className="animate-spin rounded-full h-3 w-3 border-2 border-primary border-t-transparent" />
@@ -147,7 +145,7 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
                 className="text-destructive hover:text-destructive"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                {t('common.clear')}
+                Clear Comment
               </Button>
               <Button
                 size="sm"
@@ -155,7 +153,7 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
                 onClick={handleSave}
               >
                 <Save className="h-4 w-4 mr-2" />
-                {t('common.save')}
+                {"Save"}
               </Button>
             </div>
           </div>

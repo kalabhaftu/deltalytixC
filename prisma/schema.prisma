@@ -49,6 +49,7 @@ model Trade {
   phase             AccountPhase? @relation(fields: [phaseId], references: [id])
 
   @@index([accountNumber])
+  @@index([userId])
   @@index([groupId])
   @@index([phaseId])
   @@index([accountId])
@@ -57,6 +58,8 @@ model Trade {
   @@index([accountId, phaseId])
   @@index([exitTime])
   @@index([accountId, exitTime])
+  @@index([userId, accountNumber])
+  @@index([userId, entryTime])
   @@schema("public")
 }
 

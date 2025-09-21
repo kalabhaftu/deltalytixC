@@ -28,8 +28,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn, parsePositionTime, formatCurrency, formatNumber } from '@/lib/utils'
 import { Checkbox } from "@/components/ui/checkbox"
-import { useI18n } from '@/lib/translations/client'
-
 import { formatInTimeZone } from 'date-fns-tz'
 import {
   Tooltip,
@@ -126,7 +124,6 @@ const getDecimalPlaces = (instrument: string, price: number): number => {
 }
 
 export function TradeTableReview() {
-  const t = useI18n()
   const {
     formattedTrades: contextTrades,
     updateTrades,
@@ -406,12 +403,12 @@ export function TradeTableReview() {
             size="sm"
             className="-ml-3 h-8 data-[state=open]:bg-accent"
           >
-          {t('trade-table.accounts')}
+          Total
         </Button>
       ),
       cell: ({ row }) => {
         const trade = row.original
-        const accounts = trade.accountNumber.split(':')
+        const accounts = trade.accountNumber.split(',')
         return (
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
@@ -460,7 +457,7 @@ export function TradeTableReview() {
     {
       accessorKey: "entryDate",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.entryDate')} tableId="trade-table" />
+        <DataTableColumnHeader column={column} title="Entry Date" tableId="trade-table" />
       ),
       cell: ({ row }) => formatInTimeZone(new Date(row.original.entryDate), timezone, 'yyyy-MM-dd'),
       sortingFn: (rowA, rowB, columnId) => {
@@ -472,7 +469,7 @@ export function TradeTableReview() {
     {
       accessorKey: "instrument",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.instrument')} tableId="trade-table" />
+        <DataTableColumnHeader column={column} title="Instrument" tableId="trade-table" />
       ),
       size: 140,
       cell: ({ row }) => {
@@ -487,7 +484,7 @@ export function TradeTableReview() {
     {
       accessorKey: "direction",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.direction')} tableId="trade-table" />
+        <DataTableColumnHeader column={column} title="Direction" tableId="trade-table" />
       ),
       size: 120,
       cell: ({ row }) => {
@@ -512,7 +509,7 @@ export function TradeTableReview() {
     {
       accessorKey: "entryPrice",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.entryPrice')} tableId="trade-table" />
+        <DataTableColumnHeader column={column} title="Entry Price" tableId="trade-table" />
       ),
       cell: ({ row }) => {
         const entryPrice = parseFloat(row.original.entryPrice)
@@ -527,7 +524,7 @@ export function TradeTableReview() {
     {
       accessorKey: "closePrice",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.exitPrice')} tableId="trade-table" />
+        <DataTableColumnHeader column={column} title="Close Price" tableId="trade-table" />
       ),
       cell: ({ row }) => {
         const exitPrice = parseFloat(row.original.closePrice)
@@ -542,7 +539,7 @@ export function TradeTableReview() {
     {
       accessorKey: "timeInPosition",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.positionTime')} tableId="trade-table" />
+        <DataTableColumnHeader column={column} title="Time in Position" tableId="trade-table" />
       ),
       cell: ({ row }) => {
         const timeInPosition = row.original.timeInPosition || 0
@@ -558,7 +555,7 @@ export function TradeTableReview() {
       accessorKey: "entryTime",
       accessorFn: (row) => row.entryDate,
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.entryTime')} tableId="trade-table" />
+        <DataTableColumnHeader column={column} title="Entry Time" tableId="trade-table" />
       ),
       cell: ({ row }) => {
         const dateStr = row.original.entryDate
@@ -568,7 +565,7 @@ export function TradeTableReview() {
     {
       accessorKey: "closeDate",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.exitTime')} tableId="trade-table" />
+        <DataTableColumnHeader column={column} title="Close Date" tableId="trade-table" />
       ),
       cell: ({ row }) => {
         const dateStr = row.original.closeDate
@@ -583,7 +580,7 @@ export function TradeTableReview() {
     {
       accessorKey: "pnl",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.pnl')} tableId="trade-table" />
+        <DataTableColumnHeader column={column} title="PnL" tableId="trade-table" />
       ),
       cell: ({ row }) => {
         const pnl = row.original.pnl
@@ -616,7 +613,7 @@ export function TradeTableReview() {
     {
       accessorKey: "quantity",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.quantity')} tableId="trade-table" />
+        <DataTableColumnHeader column={column} title="Quantity" tableId="trade-table" />
       ),
       cell: ({ row }) => {
         const quantity = row.original.quantity
@@ -668,7 +665,7 @@ export function TradeTableReview() {
       enableSorting: false,
       enableHiding: false,
     }
-  ], [t, timezone])
+  ], [timezone])
 
   const table = useReactTable({
     data: groupedTrades,
@@ -716,7 +713,7 @@ export function TradeTableReview() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
           <div className="flex items-center gap-1.5">
             <CardTitle className="line-clamp-1 text-base">
-              {t('trade-table.title')}
+              Trade History
             </CardTitle>
             <TooltipProvider>
               <Tooltip>
@@ -724,7 +721,7 @@ export function TradeTableReview() {
                   <Info className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>{t('trade-table.description')}</p>
+                  <p>View detailed trade information</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -743,7 +740,7 @@ export function TradeTableReview() {
                 size="sm"
                 onClick={handleGroupTrades}
               >
-                {t('trade-table.groupTrades')}
+                Group Trades
               </Button>
             )}
             {selectedTrades.length > 0 && (
@@ -752,7 +749,7 @@ export function TradeTableReview() {
                 size="sm"
                 onClick={handleUngroupTrades}
               >
-                {t('trade-table.ungroupTrades')}
+                Ungroup Trades
               </Button>
             )}
             <Select
@@ -770,19 +767,19 @@ export function TradeTableReview() {
                         />
                       </TooltipTrigger>
                       <TooltipContent side="top" className="z-50">
-                        <p>{t('trade-table.granularity.tooltip')}</p>
+                        <p>Auto-refresh interval</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  <SelectValue placeholder={t('trade-table.granularity.label')} />
+                  <SelectValue placeholder="Refresh interval" />
                 </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="0">{t('trade-table.granularity.exact')}</SelectItem>
-                <SelectItem value="5">{t('trade-table.granularity.fiveSeconds')}</SelectItem>
-                <SelectItem value="10">{t('trade-table.granularity.tenSeconds')}</SelectItem>
-                <SelectItem value="30">{t('trade-table.granularity.thirtySeconds')}</SelectItem>
-                <SelectItem value="60">{t('trade-table.granularity.oneMinute')}</SelectItem>
+                <SelectItem value="0">Never</SelectItem>
+                <SelectItem value="5">5 seconds</SelectItem>
+                <SelectItem value="10">10 seconds</SelectItem>
+                <SelectItem value="30">30 seconds</SelectItem>
+                <SelectItem value="60">1 minute</SelectItem>
               </SelectContent>
             </Select>
             <ColumnConfigDialog tableId="trade-table" />
@@ -898,7 +895,7 @@ export function TradeTableReview() {
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-t bg-background px-4 py-3 gap-4">
         <div className="text-sm text-muted-foreground">
-          {t('trade-table.totalTrades', { count: groupedTrades.length })}
+          Showing {table.getFilteredRowModel().rows.length} of {table.getCoreRowModel().rows.length} trades
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button
@@ -908,13 +905,10 @@ export function TradeTableReview() {
             disabled={!table.getCanPreviousPage()}
           >
             <ChevronLeft className="h-4 w-4" />
-            {t('trade-table.previous')}
+            Previous
           </Button>
           <span className="text-sm">
-            {t('trade-table.pageInfo', {
-              current: table.getState().pagination.pageIndex + 1,
-              total: table.getPageCount()
-            })}
+            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
           </span>
           <Button
             variant="outline"
@@ -922,7 +916,7 @@ export function TradeTableReview() {
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            {t('trade-table.next')}
+            Next
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

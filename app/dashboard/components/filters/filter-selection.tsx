@@ -4,8 +4,6 @@ import { FilterItem } from '@/app/dashboard/types/filter'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CommandItem } from '@/components/ui/command'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useI18n } from "@/lib/translations/client"
-
 interface FilterSectionProps {
   items: FilterItem[]
   type: 'instrument' | 'propfirm'
@@ -18,11 +16,9 @@ interface FilterSectionProps {
 }
 
 export function FilterSection({ type, items, searchTerm, handleSelect, isItemDisabled, isItemSelected, handleSelectAll, anonymizeAccount }: FilterSectionProps) {
-  const t = useI18n()
-  
   const selectAllText = {
-    propfirm: t('filters.selectAllPropfirms'),
-    instrument: t('filters.selectAllInstruments')
+    propfirm: "Loading...",
+    instrument: "Select all instruments"
   }
 
   const filteredSectionItems = searchTerm

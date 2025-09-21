@@ -66,11 +66,11 @@ function generateShortId(): string {
 }
 
 const uploadImageToSupabase = async (file: File, userId: string, tradeId: string): Promise<string> => {
-  const { createClient } = await import('@/lib/supabase')
+  const { createClient } = await import("@/lib/utils")
   const supabase = createClient()
   
   // Generate a unique filename
-  const fileExtension = file.name.split('.').pop()
+  const fileExtension = file.name.split('T').pop()
   const fileName = `trades_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExtension}`
   
   // Create a robust bucket fallback system
@@ -114,11 +114,7 @@ const uploadImageToSupabase = async (file: File, userId: string, tradeId: string
       
       // If upload failed, try creating the images bucket
       if (bucketName !== 'images') {
-        const { error: createError } = await supabase.storage.createBucket('images', {
-          public: true,
-          allowedMimeTypes: ['image/*'],
-          fileSizeLimit: 10485760 // 10MB
-        })
+        const { error: createError } = await supabase.storage.createBucke"Loading..."
         
         if (!createError) {
           bucketName = 'images'

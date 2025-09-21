@@ -2,7 +2,6 @@
 
 import React, { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { useI18n } from '@/lib/translations/client'
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, FileText, Upload, X } from 'lucide-react'
@@ -18,7 +17,6 @@ export default function PdfUpload({
   setText,
   setFiles,
 }: PdfUploadProps) {
-  const t = useI18n()
   const [files, setLocalFiles] = useState<File[]>([])
   const [rawOcrData, setRawOcrData] = useState<string>('')
   const [showRawData, setShowRawData] = useState(false)
@@ -113,10 +111,10 @@ export default function PdfUpload({
     <div className="flex flex-col h-full">
       <div className="flex-none space-y-4 mb-4">
         <h2 className="text-xl font-semibold text-center">
-          {t('import.upload.title')}
+          Upload IBKR PDF Reports
         </h2>
         <p className="text-sm text-muted-foreground text-center">
-          {t('import.upload.description')}
+          Upload your Interactive Brokers PDF reports to import trading data
         </p>
       </div>
 
@@ -131,10 +129,10 @@ export default function PdfUpload({
             <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
             <div className="space-y-1">
               <p className="text-sm font-medium">
-                {isDragActive ? t('import.upload.dragActive') : t('import.upload.dragInactive')}
+                {isDragActive ? "Drop files here" : "Upload PDF files"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {t('import.upload.supportedFormats')}
+                Drag and drop PDF files here, or click to select
               </p>
             </div>
           </div>
@@ -155,7 +153,7 @@ export default function PdfUpload({
         <div className="flex-1 min-h-0">
           <div className="flex-none mb-2">
             <h3 className="text-sm font-medium">
-              {t('import.upload.selectedFiles')}
+              Selected Files
             </h3>
           </div>
           <ScrollArea className="h-[calc(100%-2rem)] rounded-md border">
@@ -190,7 +188,7 @@ export default function PdfUpload({
       <Dialog open={showRawData} onOpenChange={setShowRawData}>
         <DialogContent className="max-w-3xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>{t('import.upload.rawOcrData')}</DialogTitle>
+            <DialogTitle>Raw OCR Data</DialogTitle>
           </DialogHeader>
           <ScrollArea className="h-[60vh]">
             <pre className="p-4 bg-muted rounded-lg overflow-x-auto">

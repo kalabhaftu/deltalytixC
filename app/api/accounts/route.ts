@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Always exclude failed accounts unless explicitly requested
-    const includeFailedAccounts = request.nextUrl.searchParams.get('includeFailed') === 'true'
+    const includeFailedAccounts = request.nextUrl.searchParams.get('error') === 'true'
     console.log('[API/accounts] Include failed accounts:', includeFailedAccounts)
     
     let whereClause: any = { userId: currentUserId }

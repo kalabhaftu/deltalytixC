@@ -37,26 +37,26 @@ const UploadIcon = forwardRef<UploadIconHandle, UploadIconProps>(
       isControlledRef.current = true;
 
       return {
-        startAnimation: () => controls.start('animate'),
-        stopAnimation: () => controls.start('normal'),
+        startAnimation: () => controls.start("animate"),
+        stopAnimation: () => controls.start("initial"),
       };
     });
 
     const handleMouseEnter = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!isControlledRef.current) {
-          controls.start('animate');
-        } else {
-          onMouseEnter?.(e);
-        }
-      },
-      [controls, onMouseEnter]
-    );
+          if (!isControlledRef.current) {
+           controls.start("animate");
+          } else {
+            onMouseEnter?.(e);
+          }
+        },
+        [controls, onMouseEnter]
+      );
 
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!isControlledRef.current) {
-          controls.start('normal');
+      const handleMouseLeave = useCallback(
+        (e: React.MouseEvent<HTMLDivElement>) => {
+          if (!isControlledRef.current) {
+           controls.start("initial");
         } else {
           onMouseLeave?.(e);
         }

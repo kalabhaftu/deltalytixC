@@ -176,7 +176,7 @@ export function ImageUploadWithCompression({
     if (!file.compressed) return
 
     const url = URL.createObjectURL(file.compressed)
-    const a = document.createElement('a')
+    const a = document.createElemen"Loading..."
     a.href = url
     a.download = `compressed_${file.original.name}`
     document.body.appendChild(a)

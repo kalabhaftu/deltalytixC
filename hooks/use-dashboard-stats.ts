@@ -72,7 +72,7 @@ export function useDashboardStats(): UseDashboardStatsResult {
 
   useEffect(() => {
     fetchStats()
-  }, [fetchStats])
+  }, []) // Remove fetchStats from dependencies to prevent infinite loops
 
   return {
     stats,

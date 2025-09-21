@@ -14,7 +14,6 @@ import { Minus, Maximize2, GripVertical } from 'lucide-react'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import { useData } from '@/context/data-provider'
-import { useI18n } from "@/lib/translations/client"
 import { WidgetSkeleton } from '@/components/ui/widget-skeletons'
 import { WIDGET_REGISTRY, getWidgetComponent } from '../config/widget-registry'
 import { useAutoScroll } from '../hooks/use-auto-scroll'
@@ -114,18 +113,17 @@ const generateResponsiveLayout = (widgets: Widget[]) => {
 }
 
 function DeprecatedWidget({ onRemove }: { onRemove: () => void }) {
-  const t = useI18n()
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>{t('widgets.deprecated.title')}</CardTitle>
+        <CardTitle>Deprecated Widget</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center space-y-4">
         <p className="text-muted-foreground text-center">
-          {t('widgets.deprecated.description')}
+          This widget is no longer supported and will be removed.
         </p>
         <Button variant="destructive" onClick={onRemove}>
-          {t('widgets.deprecated.remove')}
+          Remove Widget
         </Button>
       </CardContent>
     </Card>
@@ -140,7 +138,6 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
   size: WidgetSize
   currentType: WidgetType
 }) {
-  const t = useI18n()
   const { isMobile } = useData()
   const widgetRef = useRef<HTMLDivElement>(null)
   const [isSizePopoverOpen, setIsSizePopoverOpen] = useState(false)
@@ -189,7 +186,7 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
             <div className="flex flex-col items-center gap-2 text-muted-foreground">
               <GripVertical className="h-6 w-4" />
               <p className="text-sm font-medium">
-                {isMobile ? t('widgets.dragToMove') : 'Drag to move • Resize from edges'}
+                {isMobile ? "Loading..." : 'Drag to move • Resize from edges'}
               </p>
             </div>
           </div>
@@ -219,7 +216,7 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
                             "h-4 w-4 rounded",
                             size === 'tiny' ? "bg-primary" : "bg-muted"
                           )} />
-                          <span>{t('widgets.size.mobile.small')}</span>
+                          <span>Tiny</span>
                         </div>
                       </Button>
                       <Button
@@ -233,7 +230,7 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
                             "h-4 w-8 rounded",
                             size === 'medium' ? "bg-primary" : "bg-muted"
                           )} />
-                          <span>{t('widgets.size.mobile.medium')}</span>
+                          <span>Tiny</span>
                         </div>
                       </Button>
                       <Button
@@ -247,7 +244,7 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
                             "h-4 w-12 rounded",
                             size === 'large' ? "bg-primary" : "bg-muted"
                           )} />
-                          <span>{t('widgets.size.mobile.large')}</span>
+                          <span>Large</span>
                         </div>
                       </Button>
                     </>
@@ -264,7 +261,7 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
                             "h-4 w-4 rounded",
                             size === 'tiny' ? "bg-primary" : "bg-muted"
                           )} />
-                          <span>{t('widgets.size.tiny')}</span>
+                          <span>Tiny</span>
                         </div>
                       </Button>
                       <Button
@@ -278,7 +275,7 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
                             "h-4 w-6 rounded",
                             size === 'small' ? "bg-primary" : "bg-muted"
                           )} />
-                          <span>{t('widgets.size.small')}</span>
+                          <span>Small</span>
                         </div>
                       </Button>
                       <Button
@@ -292,7 +289,7 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
                             "h-4 w-8 rounded",
                             size === 'medium' ? "bg-primary" : "bg-muted"
                           )} />
-                          <span>{t('widgets.size.medium')}</span>
+                          <span>Tiny</span>
                         </div>
                       </Button>
                       <Button
@@ -306,7 +303,7 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
                             "h-4 w-10 rounded",
                             size === 'large' ? "bg-primary" : "bg-muted"
                           )} />
-                          <span>{t('widgets.size.large')}</span>
+                          <span>Tiny</span>
                         </div>
                       </Button>
                       <Button
@@ -320,7 +317,7 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
                             "h-4 w-12 rounded",
                             size === 'extra-large' ? "bg-primary" : "bg-muted"
                           )} />
-                          <span>{t('widgets.size.extra-large')}</span>
+                          <span>Extra Large</span>
                         </div>
                       </Button>
                     </>
@@ -339,14 +336,14 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>{t('widgets.removeWidgetConfirm')}</AlertDialogTitle>
+                  <AlertDialogTitle>Remove Widget</AlertDialogTitle>
                   <AlertDialogDescription>
-                    {t('widgets.removeWidgetDescription')}
+                    Are you sure you want to remove this widget? This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>{t('widgets.cancel')}</AlertDialogCancel>
-                  <AlertDialogAction onClick={onRemove}>{t('widgets.removeWidget')}</AlertDialogAction>
+                  <AlertDialogCancel>{"Cancel"}</AlertDialogCancel>
+                  <AlertDialogAction onClick={onRemove}>{"Remove"}</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -376,9 +373,6 @@ export default function WidgetCanvas() {
   const { settings: toolbarSettings } = useToolbarSettingsStore()
   const [isCustomizing, setIsCustomizing] = useState(false)
   const [isUserAction, setIsUserAction] = useState(false)
-  const t = useI18n()
-
-
   // Add this state to track if the layout change is from user interaction
   const activeLayout = useMemo(() => isMobile ? 'mobile' : 'desktop', [isMobile])
   
@@ -409,11 +403,11 @@ export default function WidgetCanvas() {
   // Define handleOutsideClick before using it in useEffect
   const handleOutsideClick = useCallback((e: MouseEvent) => {
     // Check if the click is on a widget or its children
-    const isWidgetClick = (e.target as HTMLElement).closest('.react-grid-item')
-    const isContextMenuClick = (e.target as HTMLElement).closest('[role="menu"]')
-    const isCustomizationSwitchClick = (e.target as HTMLElement).closest('#customize-mode')
-    const isDialogClick = (e.target as HTMLElement).closest('[role="dialog"]')
-    const isDialogTriggerClick = (e.target as HTMLElement).closest('[data-state="open"]')
+    const isWidgetClick = (e.target as HTMLElement).closest('[data-widget]')
+    const isContextMenuClick = (e.target as HTMLElement).closest('[data-context-menu]')
+    const isCustomizationSwitchClick = (e.target as HTMLElement).closest('[data-customization-switch]')
+    const isDialogClick = (e.target as HTMLElement).closest('[data-dialog]')
+    const isDialogTriggerClick = (e.target as HTMLElement).closest('[data-dialog-trigger]')
 
     // If click is outside widgets and not on context menu, customization switch, or dialog elements, turn off customization
     if (!isWidgetClick && !isContextMenuClick && !isCustomizationSwitchClick && !isDialogClick && !isDialogTriggerClick) {
@@ -627,7 +621,7 @@ export default function WidgetCanvas() {
     // Check if widget type already exists
     const existingWidget = currentLayout.find(widget => widget.type === type)
     if (existingWidget) {
-      toast.error(t('widgets.alreadyExists'), {
+      toast.error("Loading...", {
         duration: 3000,
       })
       return
@@ -949,10 +943,10 @@ export default function WidgetCanvas() {
     await saveDashboardLayout(newLayouts);
     
     // Show success toast
-    toast.success(t('widgets.autoArrangeSuccess'), {
+    toast.success("Loading...", {
       duration: 2000,
     });
-  }, [user?.id, layouts, activeLayout, isCustomizing, setLayouts, saveDashboardLayout, t]);
+  }, [user?.id, layouts, activeLayout, isCustomizing, setLayouts, saveDashboardLayout]);
 
   // Reset layout function - restore to default widgets
   const resetLayout = useCallback(async () => {
@@ -968,10 +962,10 @@ export default function WidgetCanvas() {
     await saveDashboardLayout(resetLayouts);
     
     // Show success toast
-    toast.success(t('widgets.resetToDefaults'), {
+    toast.success("Loading...", {
       duration: 2000,
     });
-  }, [user?.id, layouts, activeLayout, isCustomizing, setLayouts, saveDashboardLayout, t]);
+  }, [user?.id, layouts, activeLayout, isCustomizing, setLayouts, saveDashboardLayout]);
 
   // Define renderWidget with all dependencies
   const renderWidget = useCallback((widget: Widget) => {

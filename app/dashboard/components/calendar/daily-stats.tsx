@@ -8,8 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { CalendarEntry } from "@/app/dashboard/types/calendar"
-import { useI18n } from '@/lib/translations/client'
-
 interface DailyStatsProps {
   dayData: CalendarEntry | undefined;
   isWeekly?: boolean;
@@ -31,8 +29,6 @@ const formatDuration = (seconds: number) => {
 }
 
 export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
-  const t = useI18n()
-
   // Calculate stats
   const { totalPnL, avgTimeInPosition, accountCount, maxDrawdown, maxProfit } = React.useMemo(() => {
     if (!dayData?.trades?.length) {
@@ -103,7 +99,7 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
         <Card className="flex flex-col">
           <CardHeader className="pb-1 flex-1">
             <CardTitle className="text-base md:text-lg">
-              {isWeekly ? t('calendar.charts.weeklyPnlAfterComm') : t('calendar.charts.dailyPnlAfterComm')}
+              {isWeekly ? "Weekly Avg Time" : "Daily Avg Time"}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-2 mt-auto">
@@ -111,9 +107,9 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
               {formatCurrency(totalPnL)}
             </p>
             <p className="text-xs md:text-sm text-muted-foreground mt-1">
-              {t('calendar.charts.across')} {accountCount} {accountCount > 1 
-                ? t('calendar.charts.accounts') 
-                : t('calendar.charts.account')}
+              {accountCount} {accountCount > 1 
+                ? "accounts" 
+                : "account"}
             </p>
           </CardContent>
         </Card>
@@ -121,7 +117,7 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
         <Card className="flex flex-col">
           <CardHeader className="pb-1 flex-1">
             <CardTitle className="text-base md:text-lg">
-              {isWeekly ? t('calendar.charts.weeklyAvgTimeInPosition') : t('calendar.charts.avgTimeInPosition')}
+              {isWeekly ? "Weekly Avg Time" : "Daily Avg Time"}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-2 mt-auto">
@@ -129,9 +125,9 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
               {formatDuration(avgTimeInPosition)}
             </p>
             <p className="text-xs md:text-sm text-muted-foreground mt-1">
-              {t('calendar.charts.over')} {dayData.trades.length} {dayData.trades.length > 1 
-                ? t('calendar.charts.trades') 
-                : t('calendar.charts.trade')}
+              {dayData.trades.length} {dayData.trades.length > 1 
+                ? "trades" 
+                : "trade"}
             </p>
           </CardContent>
         </Card>
@@ -139,7 +135,7 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
         <Card className="flex flex-col">
           <CardHeader className="pb-1 flex-1">
             <CardTitle className="text-base md:text-lg">
-              {isWeekly ? t('calendar.charts.weeklyMaxDrawdown') : t('calendar.charts.dailyMaxDrawdown')}
+              {isWeekly ? "Weekly Avg Time" : "Daily Avg Time"}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-2 mt-auto">
@@ -152,7 +148,7 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
         <Card className="flex flex-col">
           <CardHeader className="pb-1 flex-1">
             <CardTitle className="text-base md:text-lg">
-              {isWeekly ? t('calendar.charts.weeklyMaxProfit') : t('calendar.charts.dailyMaxProfit')}
+              {isWeekly ? "Weekly Avg Time" : "Daily Avg Time"}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-2 mt-auto">

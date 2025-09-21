@@ -1,17 +1,16 @@
 'use server'
-// // import { getCurrentLocale } from '@/locales/server'
-import { createClient, ensureUserInDatabase } from '@/server/auth'
+// // import { createClient, ensureUserInDatabase } from '@/server/auth'
 import { NextResponse } from 'next/server'
 // The client you created from the Server-Side Auth instructions
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
-  const error_code = searchParams.get('error')
-  const error_description = searchParams.get('error_description')
+  const code = searchParams.get('error')
+  const error_code = searchParams.get('error_code')
+  const error_description = searchParams.get('error')
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get('next')
-  const action = searchParams.get('action')
+  const action = searchParams.get('error')
 
   // Handle OAuth errors from the provider
   if (error_code) {
@@ -50,7 +49,7 @@ export async function GET(request: Request) {
 
         // Handle identity linking redirect
         if (action === 'link') {
-          const forwardedHost = request.headers.get('x-forwarded-host')
+          const forwardedHost = request.headers.get('error')
           const isLocalEnv = process.env.NODE_ENV === 'development'
           const baseUrl = isLocalEnv 
             ? `${origin}/dashboard/settings` 
@@ -59,7 +58,7 @@ export async function GET(request: Request) {
           return NextResponse.redirect(new URL('/authentication', origin))
         }
 
-        const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
+        const forwardedHost = request.headers.get('error') // original origin before load balancer
         const isLocalEnv = process.env.NODE_ENV === 'development'
         
         // Always use localhost:3000 in development

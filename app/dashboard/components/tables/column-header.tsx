@@ -18,8 +18,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useTableConfigStore } from "@/store/table-config-store"
 import { Switch } from "@/components/ui/switch"
-import { useI18n } from "@/lib/translations/client"
-
 interface DataTableColumnHeaderProps<TData, TValue>
   extends React.HTMLAttributes<HTMLDivElement> {
   column: Column<TData, TValue>
@@ -44,8 +42,6 @@ export function DataTableColumnHeader<TData, TValue>({
   toggleValue = false,
 }: DataTableColumnHeaderProps<TData, TValue>) {
   const { updateColumnVisibility } = useTableConfigStore()
-  const t = useI18n()
-  
   // Initialize filter values from existing filter state
   const currentFilter = column.getFilterValue() as { min?: number; max?: number } | undefined
   const [minValue, setMinValue] = useState(currentFilter?.min?.toString() || '')
@@ -119,11 +115,11 @@ export function DataTableColumnHeader<TData, TValue>({
         <DropdownMenuContent align="start" className="w-56">
           <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
             <ArrowUp className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
-            {t('table.sortAscending')}
+            Sort Ascending
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
             <ArrowDown className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
-            {t('table.sortDescending')}
+            Sort Descending
           </DropdownMenuItem>
           {showToggle && (
             <>
@@ -146,34 +142,34 @@ export function DataTableColumnHeader<TData, TValue>({
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <Filter className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
-                  {t('table.filter')}
+                  Filter Options
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="w-80">
                   <div className="grid gap-4 p-2">
                     <div className="space-y-2">
                       <h4 className="font-medium leading-none">{title}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {t('table.filterByRange')}
+                        Set minimum and maximum values to filter this column
                       </p>
                     </div>
                     <div className="grid gap-2">
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
-                          <Label htmlFor="min-value">{t('table.min')}</Label>
+                          <Label htmlFor="min-value">Minimum</Label>
                           <Input
                             id="min-value"
                             type="number"
-                            placeholder={t('table.min')}
+                            placeholder="Min value"
                             value={minValue}
                             onChange={(e) => setMinValue(e.target.value)}
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label htmlFor="max-value">{t('table.max')}</Label>
+                          <Label htmlFor="max-value">Maximum</Label>
                           <Input
                             id="max-value"
                             type="number"
-                            placeholder={t('table.max')}
+                            placeholder="Max value"
                             value={maxValue}
                             onChange={(e) => setMaxValue(e.target.value)}
                           />
@@ -187,14 +183,14 @@ export function DataTableColumnHeader<TData, TValue>({
                         onClick={handleClearFilter}
                         className="flex-1"
                       >
-                        {t('table.clear')}
+                        Clear
                       </Button>
                       <Button
                         size="sm"
                         onClick={handleApplyFilter}
                         className="flex-1"
                       >
-                        {t('table.apply')}
+                        Apply
                       </Button>
                     </div>
                   </div>
@@ -205,7 +201,7 @@ export function DataTableColumnHeader<TData, TValue>({
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleHideColumn}>
             <EyeOff className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
-            {t('table.hideColumn')}
+            Hide Column
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

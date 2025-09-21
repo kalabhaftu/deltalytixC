@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { useI18n } from '@/lib/translations/client'
 import { Calculator, TrendingUp, TrendingDown } from 'lucide-react'
 import { Trade } from '@prisma/client'
 import { generateTradeHash } from '@/lib/utils'
@@ -106,7 +105,6 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
   const [calculatedDuration, setCalculatedDuration] = useState<string>('')
   
   const { toast } = useToast()
-  const t = useI18n()
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
   const trades = useTradesStore(state => state.trades)
@@ -122,7 +120,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
     resolver: zodResolver(tradeFormSchema),
     defaultValues: {
       entryDate: new Date().toISOString().split('T')[0],
-      entryTime: new Date().toTimeString().split(' ')[0].slice(0, 5),
+      entryTime: new Date().toTimeString().split(' ')[0].slice(0, 5),   
       closeDate: new Date().toISOString().split('T')[0],
       closeTime: new Date().toTimeString().split(' ')[0].slice(0, 5),
       quantity: 1,
@@ -261,7 +259,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
       } as Trade
 
       // Import the save function
-      const { saveTradesAction } = await import('@/server/database')
+        const { saveTradesAction } = await import("@/server/database")
       
       // Save trade
       const result = await saveTradesAction([completeTrade])

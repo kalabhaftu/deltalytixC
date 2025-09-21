@@ -5,7 +5,6 @@ import Image from "next/image"
 import { useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { PlatformConfig } from "../config/platforms"
-import { useI18n } from "@/lib/translations/client"
 import { Button } from "@/components/ui/button"
 
 interface PlatformTutorialProps {
@@ -14,7 +13,6 @@ interface PlatformTutorialProps {
 }
 
 export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutorialProps) {
-  const t = useI18n()
   const videoRef = useRef<HTMLVideoElement>(null)
 
   // Reset and handle video when platform changes
@@ -58,7 +56,7 @@ export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutori
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">{t('import.type.tutorial.title')}</h2>
+        <h2 className="text-2xl font-bold">Tutorial</h2>
         {selectedPlatform.tutorialLink && (
           <Button
             variant="outline"
@@ -67,7 +65,7 @@ export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutori
             onClick={() => window.open(selectedPlatform.tutorialLink, '_blank')}
           >
             <ExternalLink className="h-4 w-4" />
-            {t('import.type.tutorial.viewDocs')}
+              View Documentation
           </Button>
         )}
       </div>
@@ -97,8 +95,8 @@ export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutori
         </div>
         <p className="text-sm text-muted-foreground">
           {selectedPlatform.videoUrl 
-            ? `Watch this tutorial video to learn how to import data from ${selectedPlatform.type.split('-').join(' ')}.`
-            : `Tutorial video for ${selectedPlatform.type.split('-').join(' ')} is not available.`
+             ? `Watch this tutorial video to learn how to import data from ${selectedPlatform.type}.`
+             : `Tutorial video for ${selectedPlatform.type} is not available.`
           }
         </p>
       </div>
@@ -107,7 +105,7 @@ export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutori
       {selectedPlatform.details && (
         <div className="text-sm text-muted-foreground flex items-start gap-2 bg-muted/50 p-4 rounded-lg transition-all duration-300 hover:bg-muted/70 animate-in slide-in-from-bottom-4">
           <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-yellow-500 animate-pulse" />
-          <p>{t(selectedPlatform.details as keyof typeof t)}</p>
+          <p>{selectedPlatform.details}</p>
         </div>
       )}
 

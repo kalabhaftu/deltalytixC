@@ -141,11 +141,7 @@ export class MediaUploadService {
 
       // If no preferred bucket exists, try to create 'images'
       if (!existingBuckets.includes('images')) {
-        const { error: createError } = await this.supabase.storage.createBucket('images', {
-          public: true,
-          allowedMimeTypes: ['image/*'],
-          fileSizeLimit: DEFAULT_MAX_SIZE
-        })
+         const { error: createError } = await this.supabase.storage.createBucket('images')
         
         if (!createError) {
           return 'images'

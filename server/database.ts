@@ -200,7 +200,7 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
 
       // Trigger prop firm account evaluation using the official evaluation system
       try {
-        const { PropFirmAccountEvaluator } = await import('@/lib/prop-firm/account-evaluation')
+        const { PropFirmAccountEvaluator } = await import('@/lib/prop-firm/prop-firm-engine')
         
         // Get the actual saved trades with IDs for linking
         const savedTrades = await prisma.trade.findMany({
@@ -330,9 +330,6 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
 
     const isSubscribed = true // All users now have full access
 
-
-    // Get cached trades
-    // Per page
     const actualUserId = userId || user?.id
     if (!actualUserId) {
       if (process.env.NODE_ENV === 'development') {
@@ -340,56 +337,62 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
       }
       return []
     }
-    
-    const query: TradeCountQuery = {
-      where: { 
-        userId: actualUserId,
-       }
-    }
-    if (!isSubscribed) {
-      const oneWeekAgo = startOfDay(new Date())
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-      query.where.entryDate = { gte: oneWeekAgo.toISOString() }
-    }
-    let count;
-    try {
-      count = await prisma.trade.count(query)
-    } catch (error) {
-      if (error instanceof Error) {
-        // Handle table doesn't exist error
-        if (error.message.includes('does not exist')) {
-          console.log('[getTradesAction] Trade table does not exist yet, returning empty array')
-          return []
-        }
-        // Handle database connection errors
-        if (error.message.includes("Can't reach database server") || 
-            error.message.includes('P1001') ||
-            error.message.includes('connection') ||
-            error.message.includes('timeout')) {
-          console.log('[getTradesAction] Database connection error, returning empty array')
-          return []
-        }
-      }
-      console.error('[getTradesAction] Unexpected error:', error)
-      return [] // Return empty array instead of throwing
-    }
-    // Split pages by chunks of 1000
-    const chunkSize = 1000
-    const totalPages = Math.ceil(count / chunkSize)
-    const trades: Trade[] = []
-    for (let page = 1; page <= totalPages; page++) {
-      const pageTrades = await getCachedTrades(actualUserId, isSubscribed, page, chunkSize)
-      trades.push(...pageTrades)
-    }
-    console.log(`[getTrades] Found ${count} trades fetched ${trades.length}`)
 
-    // Tell the server that the trades have changed
-    // Next page reload will fetch the new trades instead of using the cached data
-    return trades.map(trade => ({
-      ...trade,
-      entryDate: new Date(trade.entryDate).toISOString(),
-      exitDate: trade.closeDate ? new Date(trade.closeDate).toISOString() : null
-    }))
+    // PERFORMANCE OPTIMIZATION: Use single optimized query instead of chunking
+    return unstable_cache(
+      async () => {
+        console.log(`[Cache MISS] Fetching ALL trades for user ${actualUserId}`)
+        
+        try {
+          const query: any = {
+            where: { userId: actualUserId },
+            orderBy: { entryDate: 'desc' },
+            // Limit to most recent 10,000 trades for performance
+            take: 10000
+          }
+
+          if (!isSubscribed) {
+            const oneWeekAgo = startOfDay(new Date())
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+            query.where.entryDate = { gte: oneWeekAgo.toISOString() }
+          }
+
+          const trades = await prisma.trade.findMany(query)
+          
+          console.log(`[getTradesAction] Fetched ${trades.length} trades for user ${actualUserId}`)
+          
+          return trades.map(trade => ({
+            ...trade,
+            entryDate: new Date(trade.entryDate).toISOString(),
+            exitDate: trade.closeDate ? new Date(trade.closeDate).toISOString() : null
+          }))
+        } catch (error) {
+          if (error instanceof Error) {
+            // Handle table doesn't exist error
+            if (error.message.includes('does not exist')) {
+              console.log('[getTradesAction] Trade table does not exist yet, returning empty array')
+              return []
+            }
+            // Handle database connection errors
+            if (error.message.includes("Can't reach database server") || 
+                error.message.includes('P1001') ||
+                error.message.includes('connection') ||
+                error.message.includes('timeout')) {
+              console.log('[getTradesAction] Database connection error, returning empty array')
+              return []
+            }
+          }
+          console.error('[getTradesAction] Unexpected error:', error)
+          return [] // Return empty array instead of throwing
+        }
+      },
+      [`all-trades-${actualUserId}-${isSubscribed}`],
+      { 
+        tags: [`trades-${actualUserId}`], 
+        revalidate: 1800 // 30 minutes cache
+      }
+    )()
+
   } catch (error) {
     console.error('[getTradesAction] Error in main function:', error)
     // Return empty array if there's any error

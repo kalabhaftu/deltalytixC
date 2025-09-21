@@ -33,7 +33,6 @@ export const getPost = cache(async (slug: string, locale: string) => {
           remarkPlugins: [
             (await import('remark-gfm')).default,
             // Add remark-squeeze-paragraphs to remove empty paragraphs
-            (await import('remark-squeeze-paragraphs')).default,
           ],
           rehypePlugins: [
             (await import('rehype-slug')).default,
@@ -44,10 +43,8 @@ export const getPost = cache(async (slug: string, locale: string) => {
                 'aria-label': 'Link to this section'
               }
             }],
-            [(await import('rehype-img-size')).default, {
-              dir: path.join(process.cwd(), 'public')
-            }],
             [(await import('rehype-pretty-code')).default, {
+              dir: path.join(process.cwd(), 'public'),
               theme: {
                 dark: 'github-dark',
                 light: 'github-light',

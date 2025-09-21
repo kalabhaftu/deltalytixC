@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useI18n } from "@/lib/translations/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -45,7 +44,6 @@ interface UserIdentity {
 }
 
 export function LinkedAccounts() {
-  const t = useI18n()
   const [identities, setIdentities] = useState<UserIdentity[]>([])
   const [loading, setLoading] = useState(true)
   const [linking, setLinking] = useState(false)
@@ -55,9 +53,9 @@ export function LinkedAccounts() {
     
     // Check if user just returned from linking an account
     const urlParams = new URLSearchParams(window.location.search)
-    const linked = urlParams.get('linked')
+     const linked = urlParams.get('linked')
     if (linked) {
-      toast.success(t('auth.accountLinked'))
+      toast.success("Account linked successfully")
       // Clean up the URL
       const newUrl = new URL(window.location.href)
       newUrl.searchParams.delete('linked')
@@ -87,7 +85,7 @@ export function LinkedAccounts() {
       // Note: The redirect will happen automatically, so we don't need to handle success here
     } catch (error) {
       console.error('Failed to link Discord:', error)
-      toast.error(t('auth.linkingFailed'))
+      toast.error("Failed to link account")
       setLinking(false)
     }
   }
@@ -99,7 +97,7 @@ export function LinkedAccounts() {
       // Note: The redirect will happen automatically, so we don't need to handle success here
     } catch (error) {
       console.error('Failed to link Google:', error)
-      toast.error(t('auth.linkingFailed'))
+      toast.error("Failed to link account")
       setLinking(false)
     }
   }
@@ -107,11 +105,11 @@ export function LinkedAccounts() {
   const handleUnlink = async (identity: UserIdentity) => {
     try {
       await unlinkIdentity(identity)
-      toast.success(t('auth.accountUnlinked'))
+      toast.success("Account unlinked successfully")
       await loadIdentities() // Reload the list
     } catch (error) {
       console.error('Failed to unlink identity:', error)
-      toast.error(error instanceof Error ? error.message : t('auth.unlinkingFailed'))
+      toast.error(error instanceof Error ? error.message : "Failed to unlink account")
     }
   }
 
@@ -131,11 +129,11 @@ export function LinkedAccounts() {
   const getProviderName = (provider: string) => {
     switch (provider) {
       case 'discord':
-        return t('auth.discordMethod')
+        return "Discord"
       case 'google':
-        return t('auth.googleMethod')
+        return "Google"
       case 'email':
-        return t('auth.emailMethod')
+        return "Email"
       default:
         return provider
     }
@@ -150,10 +148,10 @@ export function LinkedAccounts() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Link className="h-5 w-5" />
-            {t('auth.linkedAccounts')}
+            Linked Accounts
           </CardTitle>
           <CardDescription>
-            {t('auth.linkedAccountsDescription')}
+            Manage your connected social accounts for authentication
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -170,17 +168,17 @@ export function LinkedAccounts() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Link className="h-5 w-5" />
-          {t('auth.linkedAccounts')}
+            Linked Accounts
         </CardTitle>
         <CardDescription>
-          {t('auth.linkedAccountsDescription')}
+            Manage your connected social accounts for authentication
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Current Linked Accounts */}
         {identities.length > 0 && (
           <div>
-            <h4 className="text-sm font-medium mb-3">{t('auth.primaryAccount')}</h4>
+            <h4 className="text-sm font-medium mb-3">Primary Account</h4>
             <div className="space-y-3">
               {identities.map((identity, index) => (
                 <div key={identity.id || index} className="flex items-center justify-between p-3 border rounded-lg">
@@ -195,37 +193,37 @@ export function LinkedAccounts() {
                       </p>
                       {identity.last_sign_in_at && (
                         <p className="text-xs text-muted-foreground">
-                          {t('auth.lastUsed')}: {new Date(identity.last_sign_in_at).toLocaleDateString()}
+                          Last used: {new Date(identity.last_sign_in_at).toLocaleDateString()}
                         </p>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {identity.provider === 'email' && (
-                      <Badge variant="secondary">{t('auth.primary')}</Badge>
+                       <Badge variant="secondary">Primary</Badge>
                     )}
                     {identity.provider !== 'email' && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="outline" size="sm">
                             <Unlink className="mr-2 h-4 w-4" />
-                            {t('auth.unlinkAccount')}
+                            Link Discord
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>{t('auth.unlinkConfirm')}</AlertDialogTitle>
+                             <AlertDialogTitle>Unlink Account?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              {t('auth.unlinkConfirmDescription')}
+                              Are you sure you want to unlink this account? You will need to use another linked account to sign in.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>{t('auth.cancel')}</AlertDialogCancel>
+                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleUnlink(identity)}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
-                              {t('auth.unlinkAccount')}
+                              Unlink Account
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -242,9 +240,9 @@ export function LinkedAccounts() {
 
         {/* Link New Accounts */}
         <div>
-          <h4 className="text-sm font-medium mb-3">{t('auth.linkNewAccount')}</h4>
+           <h4 className="text-sm font-medium mb-3">Link New Account</h4>
           <p className="text-sm text-muted-foreground mb-4">
-            {t('auth.linkAccountDescription')}
+            Connect additional accounts for easier sign-in
           </p>
           <div className="space-y-2">
             {!isDiscordLinked && (
@@ -255,7 +253,7 @@ export function LinkedAccounts() {
                 disabled={linking}
               >
                 <MessageCircle className="mr-2 h-4 w-4" />
-                {t('auth.linkDiscord')}
+                Link Discord
               </Button>
             )}
             {!isGoogleLinked && (
@@ -266,12 +264,12 @@ export function LinkedAccounts() {
                 disabled={linking}
               >
                 <Chrome className="mr-2 h-4 w-4" />
-                {t('auth.linkGoogle')}
+                Link Google
               </Button>
             )}
             {!isDiscordLinked && !isGoogleLinked && (
               <p className="text-sm text-muted-foreground text-center py-4">
-                {t('auth.noLinkedAccounts')}
+                No accounts available to link
               </p>
             )}
           </div>

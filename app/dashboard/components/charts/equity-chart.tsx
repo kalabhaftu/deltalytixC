@@ -31,7 +31,6 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 
 import { useData } from "@/context/data-provider"
-import { useI18n } from "@/lib/translations/client"
 import { useUserStore } from "@/store/user-store"
 import { useEquityChartStore } from "@/store/equity-chart-store"
 import { Payout as PrismaPayout } from '@prisma/client'
@@ -469,7 +468,7 @@ const OptimizedTooltip = React.memo(({
       <div className="grid gap-2">
         <div className="flex flex-col">
           <span className="text-[0.70rem] uppercase text-muted-foreground">
-            {t('equity.tooltip.date')}
+            Date
           </span>
           <span className="font-bold text-muted-foreground">
             {format(new Date(data.date), "MMM d, yyyy")}
@@ -477,7 +476,7 @@ const OptimizedTooltip = React.memo(({
         </div>
         <div className="flex flex-col">
           <span className="text-[0.70rem] uppercase text-muted-foreground">
-            {t('equity.tooltip.totalEquity')}
+            Equity
           </span>
           <span className="font-bold text-foreground">
             {formatCurrency(data.equity || 0)}
@@ -488,7 +487,7 @@ const OptimizedTooltip = React.memo(({
         {resetAccounts.length > 0 && (
           <div className="flex flex-col">
             <span className="text-[0.70rem] uppercase text-muted-foreground">
-              {t('equity.tooltip.resets')}
+              Reset Accounts
             </span>
             <div className="space-y-1">
               {resetAccounts.map(account => (
@@ -498,7 +497,7 @@ const OptimizedTooltip = React.memo(({
                     style={{ backgroundColor: accountColorMap.get(account) || ACCOUNT_COLORS[0] }}
                   />
                   <span className="text-sm text-foreground">
-                    {t('equity.tooltip.accountReset', { account })}
+                    {account}
                   </span>
                 </div>
               ))}
@@ -510,7 +509,7 @@ const OptimizedTooltip = React.memo(({
         {payoutAccounts.length > 0 && (
           <div className="flex flex-col">
             <span className="text-[0.70rem] uppercase text-muted-foreground">
-              {t('equity.tooltip.payouts')}
+              Payout Accounts
             </span>
             <div className="space-y-1">
               {payoutAccounts.map(({ account, amount, status }) => (
@@ -584,7 +583,7 @@ const AccountsLegend = React.memo(({
     <div className="border-t pt-2 mt-2">
       <div className="flex items-center gap-2 mb-2">
         <span className="text-xs font-medium text-muted-foreground">
-          {t('equity.legend.title')}
+          Account Equity
           {isHovered && displayData && (
             <span className="ml-2 text-xs text-primary">
               - {format(new Date(displayData.date), "MMM d, yyyy")}
@@ -592,7 +591,7 @@ const AccountsLegend = React.memo(({
           )}
         </span>
         <span className="text-xs text-muted-foreground">
-          ({accountsWithEquity.length} {t('equity.legend.accounts')})
+          ({accountsWithEquity.length} accounts)
         </span>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-2 max-w-full">
@@ -612,12 +611,12 @@ const AccountsLegend = React.memo(({
                 </span>
                 {hasPayout && (
                   <span className="text-xs" style={{ color: getPayoutColor(payoutStatus) }}>
-                    {t('equity.legend.payout')}: {formatCurrency(payoutAmount)}
+                    Payout: {formatCurrency(payoutAmount)}
                   </span>
                 )}
                 {hasReset && (
                   <span className="text-xs text-red-500">
-                    {t('equity.legend.reset')}
+                    Reset
                   </span>
                 )}
               </div>
@@ -650,8 +649,6 @@ export default function EquityChart({ size = 'medium' }: EquityChartProps) {
     timeoutId = setTimeout(() => setHoveredData(data), 16) // ~60fps
   }, [])
   const yAxisRef = React.useRef<any>(null)
-  const t = useI18n()
-
   // Use optimized hooks
   const { allDates } = useDateBoundaries(trades, timezone)
   
@@ -757,7 +754,7 @@ export default function EquityChart({ size = 'medium' }: EquityChartProps) {
                 size === 'small-long' ? "text-sm" : "text-base"
               )}
             >
-              {t('equity.title')}
+              Equity Curve
             </CardTitle>
             <TooltipProvider>
               <Tooltip>
@@ -768,7 +765,7 @@ export default function EquityChart({ size = 'medium' }: EquityChartProps) {
                   )} />
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>{t('equity.description')}</p>
+                  <p>Account equity progression over time</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -784,7 +781,7 @@ export default function EquityChart({ size = 'medium' }: EquityChartProps) {
               htmlFor="view-mode" 
               className="text-sm"
             >
-              {t('equity.toggle.individual')}
+              Group Mode
             </Label>
           </div>
         </div>

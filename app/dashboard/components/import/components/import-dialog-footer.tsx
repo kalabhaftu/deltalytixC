@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { useI18n } from "@/lib/translations/client"
 import { ImportType } from "../import-type-selection"
 import { platforms } from "../config/platforms"
 import { Step } from "../import-button"
@@ -24,7 +23,6 @@ export function ImportDialogFooter({
   isSaving,
   isNextDisabled
 }: ImportDialogFooterProps) {
-  const t = useI18n()
   const platform = platforms.find(p => p.type === importType) || platforms.find(p => p.platformName === 'csv-ai')
   if (!platform) return null
 
@@ -34,11 +32,11 @@ export function ImportDialogFooter({
   const currentStepIndex = platform.steps.findIndex(s => s.id === step)
 
   const getNextButtonText = () => {
-    if (isSaving) return t('import.button.saving')
+    if (isSaving) return "Saving..."
     if (currentStep.isLastStep) {
-      return t('import.button.save')
+      return "Save"
     }
-    return t('import.button.next')
+    return "Next"
   }
 
   return (
@@ -50,7 +48,7 @@ export function ImportDialogFooter({
             onClick={onBack}
             className="w-fit min-w-[100px]"
           >
-            {t('import.button.back')}
+            {"Back"}
           </Button>
         )}
         <Button 

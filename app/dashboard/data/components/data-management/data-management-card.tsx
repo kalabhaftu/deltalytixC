@@ -17,7 +17,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Trade } from '@prisma/client'
 import ExportButton from '@/components/export-button'
-import { useI18n } from "@/lib/translations/client"
 import { useUserStore } from '@/store/user-store'
 import { useTradesStore } from '@/store/trades-store'
 import { useAccounts } from '@/hooks/use-accounts'
@@ -34,7 +33,6 @@ type AccountWithTrades = {
 }
 
 export function DataManagementCard() {
-  const t = useI18n()
   const user = useUserStore((state) => state.user)
   const trades = useTradesStore((state) => state.trades)
   const { accounts: allAccounts, isLoading: accountsLoading, refetch: refetchAccounts } = useAccounts()
@@ -134,7 +132,7 @@ export function DataManagementCard() {
       setDeleteLoading(false)
       setDeleteDialogOpen(false)
     }
-  }, [user, accountsWithTrades, selectedAccounts, refetchAccounts, refreshTrades, t])
+  }, [user, accountsWithTrades, selectedAccounts, refetchAccounts, refreshTrades])
 
 
   const handleSelectAccount = useCallback((accountNumber: string) => {
@@ -183,7 +181,7 @@ export function DataManagementCard() {
     } finally {
       setRenameLoading(false)
     }
-  }, [user, accountToRename, newAccountNumber, refetchAccounts, refreshTrades, t])
+  }, [user, accountToRename, newAccountNumber, refetchAccounts, refreshTrades])
 
   if (error) return (
     <Alert variant="destructive">
@@ -196,7 +194,7 @@ export function DataManagementCard() {
     <Card>
       <CardHeader>
         <CardTitle className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
-          <span className="text-xl lg:text-2xl">{t('dataManagement.title')}</span>
+          <span className="text-xl lg:text-2xl">Data Management</span>
           <div className="flex flex-wrap gap-2 w-full lg:w-auto">
             <ExportButton trades={trades} />
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -213,7 +211,7 @@ export function DataManagementCard() {
                   {deleteLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('dataManagement.deleting')}
+                      Deleting...
                     </>
                   ) : (
                     <>
@@ -236,16 +234,16 @@ export function DataManagementCard() {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>{t('dataManagement.deleteConfirm.cancel')}</AlertDialogCancel>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={handleDeleteAccounts} disabled={deleteLoading}>
-                    {deleteLoading ? t('dataManagement.deleting') : t('dataManagement.deleteConfirm.continue')}
+                    {deleteLoading ? "Deleting..." : "Delete"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           </div>
         </CardTitle>
-        <CardDescription>{t('dataManagement.description')}</CardDescription>
+        <CardDescription>Manage your trading accounts and data</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -358,14 +356,14 @@ export function DataManagementCard() {
       <Dialog open={renameAccountDialogOpen} onOpenChange={setRenameAccountDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('dataManagement.renameAccount.title')}</DialogTitle>
+            <DialogTitle>Rename Account</DialogTitle>
             <DialogDescription>
-              {t('dataManagement.renameAccount.description')}
+              Enter a new name for this account. This will update all references to this account.
             </DialogDescription>
           </DialogHeader>
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>{t('dataManagement.renameAccount.warning')}</AlertTitle>
+            <AlertTitle>Warning</AlertTitle>
           </Alert>
           <form onSubmit={(e) => {
             e.preventDefault()
@@ -374,7 +372,7 @@ export function DataManagementCard() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <label htmlFor="newAccountNumber" className="text-right">
-                  {t('dataManagement.renameAccount.newNumber')}
+                  Account Number
                 </label>
                 <input
                   id="newAccountNumber"
@@ -383,7 +381,7 @@ export function DataManagementCard() {
                   className="col-span-3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   autoFocus
                   autoComplete="off"
-                  placeholder={t('dataManagement.renameAccount.placeholder')}
+                  placeholder="Enter new account number"
                 />
               </div>
             </div>
@@ -395,10 +393,10 @@ export function DataManagementCard() {
                 {renameLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t('dataManagement.renameDialog.renaming')}
+                    Renaming...
                   </>
                 ) : (
-                  t('dataManagement.rename')
+                  'Rename Account'
                 )}
               </Button>
             </DialogFooter>

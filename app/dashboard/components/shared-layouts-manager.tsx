@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { useI18n } from "@/lib/translations/client"
 import { getUserShared, deleteShared } from "@/server/shared"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
@@ -74,7 +73,6 @@ function SkeletonCard() {
 }
 
 export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
-  const t = useI18n()
   const { toast } = useToast()
   const user = useUserStore(state => state.user)
   const [sharedLayouts, setSharedLayouts] = useState<SharedLayout[]>([])
@@ -93,14 +91,14 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
     } catch (error) {
       console.error('Error loading shared layouts:', error)
       toast({
-        title: t('share.error'),
-        description: t('share.error.loadFailed'),
+        title: "Error",
+        description: "Loading...",
         variant: "destructive",
       })
     } finally {
       setIsLoading(false)
     }
-  }, [user, toast, t])
+  }, [user, toast])
 
   useEffect(() => {
     if (user) {
@@ -119,13 +117,13 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
       await deleteShared(layoutToDelete.slug, user!.id)
       setSharedLayouts(prev => prev.filter(layout => layout.slug !== layoutToDelete.slug))
       toast({
-        title: t('share.deleteSuccess'),
+        title: "Loading...",
       })
     } catch (error) {
       console.error('Error deleting shared layout:', error)
       toast({
-        title: t('share.error'),
-        description: t('share.error.deleteFailed'),
+        title: "Error",
+        description: "Loading...",
         variant: "destructive",
       })
       // Don't need to reopen dialog on error, as the item still exists in the list
@@ -137,7 +135,7 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
     try {
       await navigator.clipboard.writeText(url)
       toast({
-        title: t('share.urlCopied'),
+        title: "URL Copied",
       })
     } catch (error) {
       console.error('Error copying URL:', error)
@@ -180,7 +178,7 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
             className="hover:bg-background/80 transition-colors -ml-2 sm:ml-0"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {t('share.backToShare')}
+            Back to Dashboard
           </Button>
         </div>
       </div>
@@ -192,10 +190,10 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
               <CardContent className="flex flex-col items-center justify-center p-8 sm:p-12 text-center">
                 <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
                 <p className="text-lg sm:text-xl font-medium text-muted-foreground mb-2">
-                  {t('share.noLayouts')}
+                  No Shared Layouts
                 </p>
                 <p className="text-sm text-muted-foreground/80 max-w-md mx-auto">
-                  {t('share.startSharing')}
+                  You haven't shared any dashboard layouts yet. Create and share your first layout to get started.
                 </p>
               </CardContent>
             </Card>
@@ -207,10 +205,10 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
                 <CardHeader className="p-4 pb-2">
                   <div>
                     <CardTitle className="text-base font-medium line-clamp-1 mb-1">
-                      {layout.title || t('share.untitledLayout')}
+                      {layout.title || "Loading..."}
                     </CardTitle>
                     <CardDescription className="line-clamp-2 text-xs text-muted-foreground/80">
-                      {layout.description || t('share.noDescription')}
+                      {layout.description || "Loading..."}
                     </CardDescription>
                   </div>
                 </CardHeader>
@@ -231,14 +229,14 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
                     <div className="flex items-center gap-2 text-muted-foreground/90">
                       <Users className="h-3.5 w-3.5 shrink-0" />
                       <span className="text-xs">
-                        {layout.accountNumbers.length} {t('share.accounts')}
+                        {layout.accountNumbers.length} accounts
                       </span>
                     </div>
                     {layout.viewCount > 0 && (
                       <div className="flex items-center gap-2 text-muted-foreground/75">
                         <div className="h-1 w-1 rounded-full bg-current" />
                         <span className="text-xs">
-                          {t('share.viewCount', { count: layout.viewCount })}
+                          {layout.viewCount} views
                         </span>
                       </div>
                     )}
@@ -253,7 +251,7 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
                       className="h-8 px-3"
                     >
                       <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                      <span className="text-xs">{t('share.visit')}</span>
+                      <span className="text-xs">View</span>
                     </Button>
                     <Button
                       variant="outline"
@@ -262,7 +260,7 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
                       className="h-8 px-3"
                     >
                       <Link className="h-3.5 w-3.5 mr-1.5" />
-                      <span className="text-xs">{t('share.copyUrl')}</span>
+                      <span className="text-xs">{"Copy URL"}</span>
                     </Button>
                   </div>
                   <Button
@@ -275,7 +273,7 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
                     className="h-8 w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   >
                     <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                    <span className="text-xs">{t('share.delete')}</span>
+                    <span className="text-xs">Delete</span>
                   </Button>
                 </CardFooter>
               </Card>
@@ -287,9 +285,9 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px] max-h-[90vh] sm:max-h-[85vh] w-[calc(100%-32px)] sm:w-full">
           <DialogHeader>
-            <DialogTitle>{t('share.deleteConfirmTitle')}</DialogTitle>
+            <DialogTitle>Delete Shared Layout</DialogTitle>
             <DialogDescription>
-              {t('share.deleteConfirmDescription')}
+              Are you sure you want to delete this shared layout? This action cannot be undone and the shared link will no longer work.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -298,14 +296,14 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
               onClick={() => setDeleteDialogOpen(false)}
               className="sm:flex-1"
             >
-              {t('share.cancel')}
+              Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={handleDelete}
               className="sm:flex-1"
             >
-              {t('share.confirmDelete')}
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

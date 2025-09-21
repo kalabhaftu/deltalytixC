@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect, useState, useRef, useMemo } from 'react'
-import { useI18n } from "@/lib/translations/client"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -58,7 +57,6 @@ export default function PdfProcessing({
   setProcessedTrades,
   extractedText
 }: PdfProcessingProps) {
-  const t = useI18n()
   const tableContainerRef = useRef<HTMLDivElement>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
@@ -250,7 +248,7 @@ export default function PdfProcessing({
     {
       accessorKey: "entryDate",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.entryDate')} />
+        <DataTableColumnHeader column={column} title="Entry Date" />
       ),
       cell: ({ row }) => {
         const trade = row.original;
@@ -266,7 +264,7 @@ export default function PdfProcessing({
     {
       accessorKey: "instrument",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.instrument')} />
+        <DataTableColumnHeader column={column} title="Instrument" />
       ),
       cell: ({ row }) => (
         <div className="font-medium">
@@ -278,7 +276,7 @@ export default function PdfProcessing({
     {
       accessorKey: "side",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.direction')} />
+        <DataTableColumnHeader column={column} title="Side" />
       ),
       cell: ({ row }) => (
         <Badge variant={row.original.side === 'long' ? 'default' : 'destructive'}>
@@ -290,7 +288,7 @@ export default function PdfProcessing({
     {
       accessorKey: "quantity",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.quantity')} />
+        <DataTableColumnHeader column={column} title="Quantity" />
       ),
       cell: ({ row }) => (
         <div className="font-medium">
@@ -302,7 +300,7 @@ export default function PdfProcessing({
     {
       accessorKey: "entryPrice",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.entryPrice')} />
+        <DataTableColumnHeader column={column} title="Entry Price" />
       ),
       cell: ({ row }) => (
         <div className="font-medium">
@@ -314,7 +312,7 @@ export default function PdfProcessing({
     {
       accessorKey: "commission",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('calendar.modal.commission')} />
+        <DataTableColumnHeader column={column} title="Commission" />
       ),
       cell: ({ row }) => (
         <div className="font-medium">
@@ -338,7 +336,7 @@ export default function PdfProcessing({
     {
       accessorKey: "timeInPosition",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('trade-table.positionTime')} />
+        <DataTableColumnHeader column={column} title="Time in Position" />
       ),
       cell: ({ row }) => {
         const timeInPosition = row.original.timeInPosition || 0;
@@ -351,7 +349,7 @@ export default function PdfProcessing({
       },
       size: 120,
     },
-  ], [t]);
+  ], []);
 
   // Create table instance
   const table = useReactTable({
@@ -444,7 +442,7 @@ export default function PdfProcessing({
     return (
       <TableRow className="border-t-2 bg-muted/30 font-medium">
         <TableCell className="whitespace-nowrap px-4 py-2.5 text-sm font-semibold">
-          {t('trade-table.total')} ({totals.totalTrades})
+          Total ({totals.totalTrades})
         </TableCell>
         <TableCell className="whitespace-nowrap px-4 py-2.5 text-sm">
           -

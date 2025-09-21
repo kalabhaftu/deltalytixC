@@ -21,10 +21,32 @@ export default function RootPage() {
         setVideoLoaded(false);
         setVideoError(false);
 
-        if (videoRef.current) {
-            videoRef.current.load();
-        }
-    }, [theme, effectiveTheme]);
+        // Small delay to ensure theme has fully changed
+        const timer = setTimeout(() => {
+            if (videoRef.current) {
+                const video = videoRef.current;
+                // Clear current sources
+                video.pause();
+                video.currentTime = 0;
+                // Remove all existing sources
+                const sources = video.querySelectorAll('source');
+                sources.forEach(source => source.remove());
+                
+                // Add new source based on theme
+                const newSource = document.createElement('source');
+                newSource.src = effectiveTheme === "dark" 
+                    ? "https://fhvmtnvjiotzztimdxbi.supabase.co/storage/v1/object/public/assets/demo-dark.mp4"
+                    : "https://fhvmtnvjiotzztimdxbi.supabase.co/storage/v1/object/public/assets/demo.mp4";
+                newSource.type = "video/mp4";
+                video.appendChild(newSource);
+                
+                // Force reload with new source
+                video.load();
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [effectiveTheme]);
 
     const handleVideoLoad = () => {
         setVideoLoaded(true);
@@ -56,16 +78,13 @@ export default function RootPage() {
                                                 </p>
                                             </div>
                                             <div className="flex w-full justify-center pt-2">
-                                                <Link href={"/authentication"} className="group flex justify-center items-center px-8 py-3 h-12 bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl rounded-xl transition-all duration-300 hover:scale-105">
-                                                    <span className="font-medium text-sm text-primary-foreground group-hover:text-primary-foreground/95">Get Started</span>
+                                                <Link href={"/authentication"} className="group flex justify-center items-center px-8 py-3 h-12 bg-primary hover:bg-black dark:hover:bg-white shadow-lg hover:shadow-xl rounded-xl transition-all duration-300 hover:scale-105">
+                                                    <span className="font-medium text-sm text-primary-foreground group-hover:text-white dark:group-hover:text-black transition-colors duration-300">Get Started</span>
                                                 </Link>
                                             </div>
                                         </div>
-                                        <div className="flex w-full items-center justify-center  relative  rounded-lg">
+                                        <div className="flex w-full items-center justify-center relative rounded-lg">
                                             <div className="relative w-full h-full">
-                                                <span className="absolute inset-[-12px] md:inset-[-24px] bg-primary/10 dark:bg-primary/20 rounded-2xl -z-10 animate-glow-subtle"></span>
-                                                <span className="absolute inset-[-4px] md:inset-[-8px] bg-primary/20 dark:bg-primary/30 rounded-2xl -z-20 animate-pulse"></span>
-                                                <span className="absolute inset-0 shadow-2xl dark:shadow-primary/20 rounded-2xl -z-30"></span>
                                                 {!videoLoaded && !videoError && (
                                                     <div className="w-full aspect-video flex items-center justify-center bg-muted/50 rounded-2xl border border-border">
                                                         <Skeleton className="w-full aspect-video rounded-2xl" />
@@ -77,17 +96,17 @@ export default function RootPage() {
                                                     </div>
                                                 )}
                                                 <video
+                                                    key={effectiveTheme}
                                                     ref={videoRef}
                                                     preload="metadata"
                                                     loop
                                                     muted
                                                     autoPlay
                                                     playsInline
-                                                    className={`w-full h-full rounded-2xl border border-border ${videoLoaded ? 'block' : 'hidden'}`}
+                                                    className={`w-full h-full rounded-2xl border-2 border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.5)] ${videoLoaded ? 'block' : 'hidden'}`}
                                                     onLoadedData={handleVideoLoad}
                                                     onError={handleVideoError}
                                                 >
-                                                    <source src={effectiveTheme === "dark" ? "https://fhvmtnvjiotzztimdxbi.supabase.co/storage/v1/object/public/assets/demo-dark.mp4" : "https://fhvmtnvjiotzztimdxbi.supabase.co/storage/v1/object/public/assets/demo.mp4"} type="video/mp4" />
                                                     <track
                                                         src="/path/to/captions.vtt"
                                                         kind="subtitles"
@@ -102,7 +121,9 @@ export default function RootPage() {
                                 </div>
                             </section>
                             <section id="features" className="w-full py-6 md:py-12 lg:py-16 xl:py-24">
-                                <Features />
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+                                    <Features />
+                                </div>
                             </section>
                         </main>
                         </div>

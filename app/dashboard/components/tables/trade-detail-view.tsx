@@ -37,10 +37,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   ].filter((img): img is string => Boolean(img) && typeof img === 'string')
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
   }
 
   const formatDate = (dateString: string) => {

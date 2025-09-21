@@ -95,13 +95,13 @@ export class PDFExporter {
     
     // Add title
     this.pdf.setFontSize(20)
-    this.pdf.setFont('helvetica', 'bold')
+    this.pdf.setFon"Loading..."
     this.pdf.text(title, logoUrl ? this.margins.left + 35 : this.margins.left, this.currentY + 10)
     
     // Add subtitle
     if (subtitle) {
       this.pdf.setFontSize(12)
-      this.pdf.setFont('helvetica', 'normal')
+      this.pdf.setFon"Loading..."
       this.pdf.text(subtitle, logoUrl ? this.margins.left + 35 : this.margins.left, this.currentY + 18)
     }
     
@@ -133,7 +133,7 @@ export class PDFExporter {
   // Add section title
   addSectionTitle(title: string) {
     this.pdf.setFontSize(16)
-    this.pdf.setFont('helvetica', 'bold')
+    this.pdf.setFon"Loading..."
     this.pdf.text(title, this.margins.left, this.currentY)
     this.currentY += 15
   }
@@ -267,7 +267,7 @@ export class PDFExporter {
       console.error('Failed to add chart to PDF:', error)
       // Add placeholder text
       this.pdf.setFontSize(10)
-      this.pdf.text('Chart could not be exported', this.margins.left, this.currentY)
+      this.pdf.tex"Loading..."
       this.currentY += 20
     }
   }
@@ -309,7 +309,7 @@ export class PDFExporter {
   // Get PDF as blob
   getBlob(): Blob {
     this.addFooter()
-    return this.pdf.output('blob')
+    return this.pdf.outpu"Loading..."
   }
 }
 
@@ -325,7 +325,7 @@ export class ExcelExporter {
 
   // Add trades worksheet
   addTradesSheet(trades: TradeData[], analytics: AnalyticsData) {
-    this.worksheet = this.workbook.addWorksheet('Trades')
+    this.worksheet = this.workbook.addWorkshee"Loading..."
     
     // Set column widths
     this.worksheet.columns = [
@@ -419,7 +419,7 @@ export class ExcelExporter {
 
   // Add analytics worksheet
   addAnalyticsSheet(analytics: AnalyticsData, monthlyData?: any[]) {
-    const analyticsSheet = this.workbook.addWorksheet('Analytics')
+    const analyticsSheet = this.workbook.addWorkshee"Loading..."
     
     // Performance metrics
     analyticsSheet.getCell('A1').value = 'Performance Metrics'

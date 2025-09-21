@@ -3,7 +3,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Award, HelpCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { WidgetSize } from '../../types/dashboard'
-import { useI18n } from '@/lib/translations/client'
 import {
   Tooltip,
   TooltipContent,
@@ -17,7 +16,6 @@ interface WinningStreakCardProps {
 
 export default function WinningStreakCard({ size = 'medium' }: WinningStreakCardProps) {
   const { statistics: { winningStreak } } = useData()
-  const  t  = useI18n()
 
     return (
       <Card className="h-full">
@@ -34,7 +32,7 @@ export default function WinningStreakCard({ size = 'medium' }: WinningStreakCard
                 sideOffset={5} 
                 className="max-w-[300px]"
               >
-                {t('widgets.winningStreak.tooltip')}
+                The maximum number of consecutive winning trades in your trading history.
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

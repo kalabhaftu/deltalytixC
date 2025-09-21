@@ -12,31 +12,31 @@ import {
 
 // Lazy load heavy dashboard components
 export const LazyTradeChart = lazy(() => 
-  import('@/app/dashboard/components/trades/trade-chart').then(module => ({
+  import("@/lib/utils").then(module => ({
     default: module.TradeChart
   }))
 )
 
 export const LazyTradeTable = lazy(() => 
-  import('@/app/dashboard/components/trades/trade-table').then(module => ({
+  import("@/lib/utils").then(module => ({
     default: module.TradeTable
   }))
 )
 
 export const LazyAnalyticsPanel = lazy(() => 
-  import('@/app/dashboard/components/analytics/analytics-panel').then(module => ({
+  import("@/lib/utils").then(module => ({
     default: module.AnalyticsPanel
   }))
 )
 
 export const LazyPerformanceMetrics = lazy(() => 
-  import('@/app/dashboard/components/performance/performance-metrics').then(module => ({
+  import("@/lib/utils").then(module => ({
     default: module.PerformanceMetrics
   }))
 )
 
 export const LazyRiskManagement = lazy(() => 
-  import('@/app/dashboard/components/risk/risk-management').then(module => ({
+  import("@/lib/utils").then(module => ({
     default: module.RiskManagement
   }))
 )
@@ -91,12 +91,12 @@ export function LazyRiskManagementWrapper(props: any) {
 
 // Create lazy versions using the hook for better error handling
 export const useLazyTradeChart = () => useLazyComponent(
-  () => import('@/app/dashboard/components/trades/trade-chart').then(m => ({ default: m.TradeChart })),
+  () => import("@/lib/utils").then(m => ({ default: m.TradeChart })),
   <ChartSkeleton />
 )
 
 export const useLazyTradeTable = () => useLazyComponent(
-  () => import('@/app/dashboard/components/trades/trade-table').then(m => ({ default: m.TradeTable })),
+  () => import("@/lib/utils").then(m => ({ default: m.TradeTable })),
   <TableSkeleton />
 )
 

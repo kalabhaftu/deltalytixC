@@ -5,7 +5,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { ArrowLeftRight, ArrowUpFromLine, ArrowDownFromLine, HelpCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { WidgetSize } from '../../types/dashboard'
-import { useI18n } from '@/lib/translations/client'
 import {
   Tooltip,
   TooltipContent,
@@ -19,7 +18,6 @@ interface LongShortPerformanceCardProps {
 
 export default function LongShortPerformanceCard({ size = 'medium' }: LongShortPerformanceCardProps) {
   const { calendarData } = useData()
-  const  t  = useI18n()
 
   // Calculate long/short data
   const chartData = Object.entries(calendarData).map(([date, values]) => ({
@@ -57,7 +55,7 @@ export default function LongShortPerformanceCard({ size = 'medium' }: LongShortP
                 sideOffset={5} 
                 className="max-w-[300px]"
               >
-                {t('widgets.longShortPerformance.tooltip')}
+                Compare your performance between long and short positions.
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

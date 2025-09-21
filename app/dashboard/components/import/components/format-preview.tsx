@@ -16,7 +16,6 @@ import { cn } from "@/lib/utils"; // Assuming you have a utility for className m
 import { Button } from "@/components/ui/button";
 import { ArrowDownToLine, ChevronDown } from "lucide-react";
 import { parsePositionTime } from "@/lib/utils";
-import { useI18n } from "@/lib/translations/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ColumnDef,
@@ -63,7 +62,6 @@ export function FormatPreview({
   headers,
   mappings,
 }: FormatPreviewProps) {
-  const t = useI18n();
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
   // Transform headers using mappings
@@ -125,7 +123,7 @@ export function FormatPreview({
     {
       accessorKey: "entryDate",
       header: ({ column }) => (
-        <div className="font-medium">{t('trade-table.entryDate')}</div>
+        <div className="font-medium">Entry Date</div>
       ),
       cell: ({ row }) => {
         const entryDate = row.original.entryDate ? new Date(row.original.entryDate) : null;
@@ -150,7 +148,7 @@ export function FormatPreview({
     {
       accessorKey: "instrument",
       header: ({ column }) => (
-        <div className="font-medium">{t('trade-table.instrument')}</div>
+        <div className="font-medium">Instrument</div>
       ),
       cell: ({ row }) => {
         const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'instrument')];
@@ -174,7 +172,7 @@ export function FormatPreview({
     {
       accessorKey: "side",
       header: ({ column }) => (
-        <div className="font-medium">{t('trade-table.direction')}</div>
+        <div className="font-medium">Side</div>
       ),
       cell: ({ row }) => {
         const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'side')];
@@ -198,7 +196,7 @@ export function FormatPreview({
     {
       accessorKey: "quantity",
       header: ({ column }) => (
-        <div className="font-medium">{t('trade-table.quantity')}</div>
+        <div className="font-medium">Quantity</div>
       ),
       cell: ({ row }) => {
         const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'quantity')];
@@ -222,7 +220,7 @@ export function FormatPreview({
     {
       accessorKey: "entryPrice",
       header: ({ column }) => (
-        <div className="font-medium">{t('trade-table.entryPrice')}</div>
+        <div className="font-medium">Entry Price</div>
       ),
       cell: ({ row }) => {
         const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'entryPrice')];
@@ -246,7 +244,7 @@ export function FormatPreview({
     {
       accessorKey: "closePrice",
       header: ({ column }) => (
-        <div className="font-medium">{t('trade-table.exitPrice')}</div>
+        <div className="font-medium">Close Price</div>
       ),
       cell: ({ row }) => {
         const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'closePrice')];
@@ -270,7 +268,7 @@ export function FormatPreview({
     {
       accessorKey: "pnl",
       header: ({ column }) => (
-        <div className="font-medium">{t('trade-table.pnl')}</div>
+        <div className="font-medium">P&L</div>
       ),
       cell: ({ row }) => {
         const pnl = row.original.pnl ?? 0;
@@ -297,7 +295,7 @@ export function FormatPreview({
     {
       accessorKey: "commission",
       header: ({ column }) => (
-        <div className="font-medium">{t('calendar.modal.commission')}</div>
+        <div className="font-medium">Commission</div>
       ),
       cell: ({ row }) => {
         const commission = row.original.commission ?? 0;
@@ -322,7 +320,7 @@ export function FormatPreview({
     {
       accessorKey: "timeInPosition",
       header: ({ column }) => (
-        <div className="font-medium">{t('trade-table.positionTime')}</div>
+        <div className="font-medium">Time in Position</div>
       ),
       cell: ({ row }) => {
         const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'timeInPosition')];
@@ -343,7 +341,7 @@ export function FormatPreview({
       },
       size: 120,
     },
-  ], [t, validTrades, headers, mappings]);
+  ], [validTrades, headers, mappings]);
 
   const table = useReactTable({
     data: processedTrades,

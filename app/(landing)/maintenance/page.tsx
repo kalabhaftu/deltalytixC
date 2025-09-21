@@ -1,10 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { getI18n } from "@/lib/translations/server"
 
 export default async function MaintenancePage() {
-  const t = await getI18n()
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -12,17 +10,17 @@ export default async function MaintenancePage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-yellow-500" />
-            {t('maintenance.title')}
+            Scheduled Maintenance
           </CardTitle>
           <CardDescription>
-            {t('maintenance.description')}
+            We are currently performing scheduled maintenance to improve your experience.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Alert>
-            <AlertTitle>{t('maintenance.inMaintenance')}</AlertTitle>
+            <AlertTitle>Maintenance in Progress</AlertTitle>
             <AlertDescription>
-              {t('maintenance.message')}
+              Our systems are currently undergoing maintenance. Please check back soon.
             </AlertDescription>
           </Alert>
         </CardContent>

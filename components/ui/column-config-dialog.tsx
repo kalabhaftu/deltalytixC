@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Settings, RotateCcw } from "lucide-react"
-import { useI18n } from '@/lib/translations/client'
 import { useTableConfigStore, TableColumnConfig } from '@/store/table-config-store'
 import {
   AlertDialog,
@@ -31,7 +30,6 @@ interface ColumnConfigDialogProps {
 }
 
 export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps) {
-  const t = useI18n()
   const {
     tables,
     updateColumnVisibility,
@@ -50,7 +48,7 @@ export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps
 
   const handleReset = () => {
     resetTableConfig(tableId)
-    toast.success(t('trade-table.resetConfigSuccess') as any)
+    toast.success("Loading..." as any)
   }
 
   const defaultTrigger = (
@@ -67,9 +65,9 @@ export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-                                           <DialogTitle>{t('trade-table.resetConfig') as any}</DialogTitle>
+                                           <DialogTitle>{"Loading..." as any}</DialogTitle>
           <DialogDescription>
-                                                   {t('trade-table.resetConfigDescription') as any}
+                                                   {"Loading..." as any}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -98,22 +96,22 @@ export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="w-[180px] h-10">
                 <RotateCcw className="h-4 w-4 mr-2" />
-                                                                   {t('trade-table.resetConfig') as any}
+                                                                   {"Loading..." as any}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>
-                                                                           {t('trade-table.resetConfigConfirmTitle') as any}
+                                                                           {"Loading..." as any}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                                                                           {t('trade-table.resetConfigConfirmDescription') as any}
+                                                                           {"Loading..." as any}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                <AlertDialogCancel>{"Cancel"}</AlertDialogCancel>
                 <AlertDialogAction onClick={handleReset}>
-                                                                           {t('trade-table.confirmReset') as any}
+                                                                           {"Loading..." as any}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

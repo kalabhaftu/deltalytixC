@@ -1,5 +1,0 @@
-[33m436e940[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Remove all unnecessary .md files
-[33m136a41a[m Remove unnecessary .md files
-[33ma41390f[m SECURITY: Remove exposed credentials and clean up documentation
-[33m61bf0b0[m feat: remove cron jobs and French language support
-[33m64181c5[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix TypeScript build errors

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useI18n } from "@/lib/translations/client"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from 'zod'
@@ -43,7 +42,6 @@ interface LiveAccountData {
 
 export default function LiveAccountEditPage({ params }: LiveAccountEditProps) {
   const router = useRouter()
-  const t = useI18n()
   const [account, setAccount] = useState<LiveAccountData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)

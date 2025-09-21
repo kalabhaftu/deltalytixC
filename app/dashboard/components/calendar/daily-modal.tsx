@@ -11,7 +11,6 @@ import { cn, parsePositionTime, formatCurrency } from "@/lib/utils"
 import { Trade } from "@prisma/client"
 import { CalendarEntry } from "@/app/dashboard/types/calendar"
 import { Charts } from "./charts"
-import { useI18n } from "@/lib/translations/client"
 import { DailyStats } from "./daily-stats"
 import { DailyComment } from "./daily-comment"
 import { useUserStore } from "@/store/user-store"
@@ -46,7 +45,6 @@ export function CalendarModal({
   dayData,
   isLoading,
 }: CalendarModalProps) {
-  const t = useI18n()
   const locale = 'en' // Fixed to English since we removed i18n
   const timezone = useUserStore(state => state.timezone)
   const dateLocale = enUS
@@ -67,7 +65,7 @@ export function CalendarModal({
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>{formattedDate}</DialogTitle>
           <DialogDescription>
-            {t('calendar.modal.tradeDetails')}
+            Detailed analysis for the selected day
           </DialogDescription>
         </DialogHeader>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
@@ -76,13 +74,13 @@ export function CalendarModal({
               value="table"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-accent hover:text-accent-foreground"
             >
-              {t('calendar.modal.table')}
+              Trades
             </TabsTrigger>
             <TabsTrigger 
               value="analysis"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-accent hover:text-accent-foreground"
             >
-              {t('calendar.modal.analysis')}
+              Analysis
             </TabsTrigger>
           </TabsList>
           <TabsContent value="table" className="flex-grow overflow-auto p-6 pt-2">
@@ -91,18 +89,18 @@ export function CalendarModal({
                 <div className="space-y-6">
                   {Object.entries(groupTradesByAccount(dayData.trades)).map(([account, trades]) => (
                     <div key={account}>
-                      <h3 className="font-semibold mb-2">{t('calendar.modal.account')}: {account}</h3>
+                      <h3 className="font-semibold mb-2">Account: {account}</h3>
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="sticky top-0 bg-background z-10">{t('calendar.modal.instrument')}</TableHead>
-                            <TableHead className="sticky top-0 bg-background z-10">{t('calendar.modal.side')}</TableHead>
-                            <TableHead className="sticky top-0 bg-background z-10">{t('calendar.modal.quantity')}</TableHead>
-                            <TableHead className="sticky top-0 bg-background z-10">{t('calendar.modal.entryPrice')}</TableHead>
-                            <TableHead className="sticky top-0 bg-background z-10">{t('calendar.modal.exitPrice')}</TableHead>
-                            <TableHead className="sticky top-0 bg-background z-10">{t('calendar.modal.pnl')}</TableHead>
-                            <TableHead className="sticky top-0 bg-background z-10">{t('calendar.modal.commission')}</TableHead>
-                            <TableHead className="sticky top-0 bg-background z-10">{t('calendar.modal.timeInPosition')}</TableHead>
+                            <TableHead className="sticky top-0 bg-background z-10">Instrument</TableHead>
+                            <TableHead className="sticky top-0 bg-background z-10">Side</TableHead>
+                            <TableHead className="sticky top-0 bg-background z-10">Quantity</TableHead>
+                            <TableHead className="sticky top-0 bg-background z-10">Entry Price</TableHead>
+                            <TableHead className="sticky top-0 bg-background z-10">Close Price</TableHead>
+                            <TableHead className="sticky top-0 bg-background z-10">P&L</TableHead>
+                            <TableHead className="sticky top-0 bg-background z-10">Commission</TableHead>
+                            <TableHead className="sticky top-0 bg-background z-10">Time</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -125,7 +123,7 @@ export function CalendarModal({
                             </TableRow>
                           ))}
                           <TableRow className="font-medium">
-                            <TableCell colSpan={5}>{t('calendar.modal.total')}</TableCell>
+                            <TableCell colSpan={5}>Total</TableCell>
                             <TableCell className={cn(
                               trades.reduce((sum, trade) => sum + trade.pnl, 0) >= 0
                                 ? "text-green-600 dark:text-green-400"
@@ -144,7 +142,7 @@ export function CalendarModal({
                   ))}
                 </div>
               ) : (
-                <p>{t('calendar.modal.noTrades')}</p>
+                <p>No trades for this day</p>
               )}
             </ScrollArea>
           </TabsContent>

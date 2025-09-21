@@ -1,32 +1,36 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { WidgetType, WidgetSize } from '../types/dashboard'
-import EquityChart from '../components/charts/equity-chart'
-import TickDistributionChart from '../components/charts/tick-distribution'
-import PNLChart from '../components/charts/pnl-bar-chart'
-import TimeOfDayTradeChart from '../components/charts/pnl-time-bar-chart'
-import TimeInPositionChart from '../components/charts/time-in-position'
-import TimeRangePerformanceChart from '../components/charts/time-range-performance'
-import WeekdayPNLChart from '../components/charts/weekday-pnl'
-import PnLBySideChart from '../components/charts/pnl-by-side'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { WidgetErrorBoundary } from '@/components/error-boundary'
+import { WidgetSkeleton } from '@/components/ui/widget-skeletons'
+
+// Lazy load heavy chart components to improve compilation time
+const EquityChart = lazy(() => import('../components/charts/equity-chart'))
+const TickDistributionChart = lazy(() => import('../components/charts/tick-distribution'))
+const PNLChart = lazy(() => import('../components/charts/pnl-bar-chart'))
+const TimeOfDayTradeChart = lazy(() => import('../components/charts/pnl-time-bar-chart'))
+const TimeInPositionChart = lazy(() => import('../components/charts/time-in-position'))
+const TimeRangePerformanceChart = lazy(() => import('../components/charts/time-range-performance'))
+const WeekdayPNLChart = lazy(() => import('../components/charts/weekday-pnl'))
+const PnLBySideChart = lazy(() => import('../components/charts/pnl-by-side'))
+const CommissionsPnLChart = lazy(() => import('../components/charts/commissions-pnl'))
+const TradeDistributionChart = lazy(() => import('../components/charts/trade-distribution'))
+
+// Keep statistics components as regular imports (they're lighter)
 import AveragePositionTimeCard from '../components/statistics/average-position-time-card'
 import CumulativePnlCard from '../components/statistics/cumulative-pnl-card'
 import LongShortPerformanceCard from '../components/statistics/long-short-card'
 import TradePerformanceCard from '../components/statistics/trade-performance-card'
 import WinningStreakCard from '../components/statistics/winning-streak-card'
 import RiskRewardRatioCard from '../components/statistics/risk-reward-ratio-card'
-import CalendarPnl from '../components/calendar/calendar-widget'
-import CommissionsPnLChart from '../components/charts/commissions-pnl'
-import StatisticsWidget from '../components/statistics/statistics-widget'
-import TradeDistributionChart from '../components/charts/trade-distribution'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import ProfitFactorCard from '../components/statistics/profit-factor-card'
-import { LineChart, Line, XAxis, YAxis } from 'recharts'
-import { useI18n } from '@/lib/translations/client'
-import { WidgetErrorBoundary } from '@/components/error-boundary'
-import { OptimizedChartContainer } from '@/components/ui/optimized-chart'
+import StatisticsWidget from '../components/statistics/statistics-widget'
+
+// Calendar component
+import CalendarPnl from '../components/calendar/calendar-widget'
 
 export interface WidgetConfig {
   type: WidgetType
@@ -44,15 +48,14 @@ export interface WidgetConfig {
 
 
 function CreateCalendarPreview() {
-  const t = useI18n()
   const weekdays = [
-    'calendar.weekdays.sun',
-    'calendar.weekdays.mon',
-    'calendar.weekdays.tue',
-    'calendar.weekdays.wed',
-    'calendar.weekdays.thu',
-    'calendar.weekdays.fri',
-    'calendar.weekdays.sat'
+    'Sun',
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Sat'
   ] as const
 
   return (
@@ -87,7 +90,7 @@ function CreateCalendarPreview() {
         <div className="grid grid-cols-7 gap-1 mb-2">
           {weekdays.map((day) => (
             <div key={day} className="text-center text-xs font-medium text-muted-foreground p-1">
-              {t(day)}
+              {day}
             </div>
           ))}
         </div>
@@ -118,8 +121,16 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     allowedSizes: ['small', 'small-long', 'medium', 'large'],
     category: 'charts',
     previewHeight: 300,
-    getComponent: ({ size }) => <WeekdayPNLChart size={size} />,
-    getPreview: () => <WeekdayPNLChart size="small" />
+    getComponent: ({ size }) => (
+      <Suspense fallback={<WidgetSkeleton type="weekdayPnlChart" size="medium" />}>
+        <WeekdayPNLChart size={size} />
+      </Suspense>
+    ),
+    getPreview: () => (
+      <Suspense fallback={<WidgetSkeleton type="weekdayPnlChart" size="medium" />}>
+        <WeekdayPNLChart size="small" />
+      </Suspense>
+    )
   },
   pnlChart: {
     type: 'pnlChart',
@@ -127,8 +138,16 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     allowedSizes: ['small', 'small-long', 'medium', 'large'],
     category: 'charts',
     previewHeight: 300,
-    getComponent: ({ size }) => <PNLChart size={size} />,
-    getPreview: () => <PNLChart size="small" />
+    getComponent: ({ size }) => (
+      <Suspense fallback={<WidgetSkeleton type="pnlChart" size="medium" />}>
+        <PNLChart size={size} />
+      </Suspense>
+    ),
+    getPreview: () => (
+      <Suspense fallback={<WidgetSkeleton type="pnlChart" size="medium" />}>
+        <PNLChart size="small" />
+      </Suspense>
+    )
   },
   timeOfDayChart: {
     type: 'timeOfDayChart',
@@ -136,8 +155,16 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     allowedSizes: ['small', 'small-long', 'medium', 'large'],
     category: 'charts',
     previewHeight: 300,
-    getComponent: ({ size }) => <TimeOfDayTradeChart size={size} />,
-    getPreview: () => <TimeOfDayTradeChart size="small" />
+    getComponent: ({ size }) => (
+      <Suspense fallback={<WidgetSkeleton type="timeOfDayChart" size="medium" />}>
+        <TimeOfDayTradeChart size={size} />
+      </Suspense>
+    ),
+    getPreview: () => (
+      <Suspense fallback={<WidgetSkeleton type="timeOfDayChart" size="medium" />}>
+        <TimeOfDayTradeChart size="small" />
+      </Suspense>
+    )
   },
   timeInPositionChart: {
     type: 'timeInPositionChart',
@@ -145,8 +172,16 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     allowedSizes: ['small', 'small-long', 'medium', 'large'],
     category: 'charts',
     previewHeight: 300,
-    getComponent: ({ size }) => <TimeInPositionChart size={size} />,
-    getPreview: () => <TimeInPositionChart size="small" />
+    getComponent: ({ size }) => (
+      <Suspense fallback={<WidgetSkeleton type="timeInPositionChart" size="medium" />}>
+        <TimeInPositionChart size={size} />
+      </Suspense>
+    ),
+    getPreview: () => (
+      <Suspense fallback={<WidgetSkeleton type="timeInPositionChart" size="medium" />}>
+        <TimeInPositionChart size="small" />
+      </Suspense>
+    )
   },
   equityChart: {
     type: 'equityChart',
@@ -154,8 +189,16 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     allowedSizes: ['small', 'small-long', 'medium', 'large'],
     category: 'charts',
     previewHeight: 300,
-    getComponent: ({ size }) => <EquityChart size={size} />,
-    getPreview: () => <EquityChart size="small" />
+    getComponent: ({ size }) => (
+      <Suspense fallback={<WidgetSkeleton type="equityChart" size="medium" />}>
+        <EquityChart size={size} />
+      </Suspense>
+    ),
+    getPreview: () => (
+      <Suspense fallback={<WidgetSkeleton type="equityChart" size="medium" />}>
+        <EquityChart size="small" />
+      </Suspense>
+    )
   },
   pnlBySideChart: {
     type: 'pnlBySideChart',
@@ -163,8 +206,16 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     allowedSizes: ['small', 'small-long', 'medium', 'large'],
     category: 'charts',
     previewHeight: 300,
-    getComponent: ({ size }) => <PnLBySideChart size={size} />,
-    getPreview: () => <PnLBySideChart size="small" />
+    getComponent: ({ size }) => (
+      <Suspense fallback={<WidgetSkeleton type="pnlBySideChart" size="medium" />}>
+        <PnLBySideChart size={size} />
+      </Suspense>
+    ),
+    getPreview: () => (
+      <Suspense fallback={<WidgetSkeleton type="pnlBySideChart" size="medium" />}>
+        <PnLBySideChart size="small" />
+      </Suspense>
+    )
   },
   tickDistribution: {
     type: 'tickDistribution',
@@ -172,8 +223,16 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     allowedSizes: ['small', 'small-long', 'medium', 'large'],
     category: 'charts',
     previewHeight: 300,
-    getComponent: ({ size }) => <TickDistributionChart size={size} />,
-    getPreview: () => <TickDistributionChart size="small" />
+    getComponent: ({ size }) => (
+      <Suspense fallback={<WidgetSkeleton type="tickDistribution" size="medium" />}>
+        <TickDistributionChart size={size} />
+      </Suspense>
+    ),
+    getPreview: () => (
+      <Suspense fallback={<WidgetSkeleton type="tickDistribution" size="medium" />}>
+        <TickDistributionChart size="small" />
+      </Suspense>
+    )
   },
   commissionsPnl: {
     type: 'commissionsPnl',
@@ -181,8 +240,16 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     allowedSizes: ['small', 'small-long', 'medium', 'large'],
     category: 'charts',
     previewHeight: 300,
-    getComponent: ({ size }) => <CommissionsPnLChart size={size} />,
-    getPreview: () => <CommissionsPnLChart size="small" />
+    getComponent: ({ size }) => (
+      <Suspense fallback={<WidgetSkeleton type="commissionsPnl" size="medium" />}>
+        <CommissionsPnLChart size={size} />
+      </Suspense>
+    ),
+    getPreview: () => (
+      <Suspense fallback={<WidgetSkeleton type="commissionsPnl" size="medium" />}>
+        <CommissionsPnLChart size="small" />
+      </Suspense>
+    )
   },
   tradeDistribution: {
     type: 'tradeDistribution',
@@ -190,8 +257,16 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     allowedSizes: ['small', 'small-long', 'medium', 'large'],
     category: 'charts',
     previewHeight: 300,
-    getComponent: ({ size }) => <TradeDistributionChart size={size} />,
-    getPreview: () => <TradeDistributionChart size="small" />
+    getComponent: ({ size }) => (
+      <Suspense fallback={<WidgetSkeleton type="tradeDistribution" size="medium" />}>
+        <TradeDistributionChart size={size} />
+      </Suspense>
+    ),
+    getPreview: () => (
+      <Suspense fallback={<WidgetSkeleton type="tradeDistribution" size="medium" />}>
+        <TradeDistributionChart size="small" />
+      </Suspense>
+    )
   },
   averagePositionTime: {
     type: 'averagePositionTime',
@@ -271,8 +346,16 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     allowedSizes: ['small', 'small-long', 'medium', 'large'],
     category: 'charts',
     previewHeight: 300,
-    getComponent: ({ size }) => <TimeRangePerformanceChart size={size} />,
-    getPreview: () => <TimeRangePerformanceChart size="small" />
+    getComponent: ({ size }) => (
+      <Suspense fallback={<WidgetSkeleton type="timeRangePerformance" size="medium" />}>
+        <TimeRangePerformanceChart size={size} />
+      </Suspense>
+    ),
+    getPreview: () => (
+      <Suspense fallback={<WidgetSkeleton type="timeRangePerformance" size="medium" />}>
+        <TimeRangePerformanceChart size="small" />
+      </Suspense>
+    )
   },
   riskRewardRatio: {
     type: 'riskRewardRatio',

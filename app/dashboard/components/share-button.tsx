@@ -13,7 +13,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { useI18n, useCurrentLocale } from "@/lib/translations/client"
 import { addDays, startOfDay, endOfDay, format } from "date-fns"
 import { createShared } from "@/server/shared"
 import { useToast } from "@/hooks/use-toast"
@@ -112,8 +111,7 @@ function triggerConfetti() {
 
 export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
   ({ variant = "ghost", size = "icon", currentLayout }, ref) => {
-    const t = useI18n()
-    const locale = useCurrentLocale()
+    const locale = 'en' // Default to English since i18n was removed
     const dateLocale = undefined
     const isMobile = useIsMobile()
     const { toast } = useToast()
@@ -174,8 +172,8 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
       try {
         if (!user) {
           toast({
-            title: t('share.error'),
-            description: t('share.error.auth'),
+            title: "Error",
+            description: "Loading...",
             variant: "destructive",
           })
           return
@@ -183,8 +181,8 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
 
         if (!shareAllAccounts && selectedAccounts.length === 0) {
           toast({
-            title: t('share.error'),
-            description: t('share.error.noAccount'),
+            title: "Error",
+            description: "Loading...",
             variant: "destructive",
           })
           return
@@ -192,8 +190,8 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
 
         if (!selectedDateRange.from) {
           toast({
-            title: t('share.error'),
-            description: t('share.error.noStartDate'),
+            title: "Error",
+            description: "Loading...",
             variant: "destructive",
           })
           return
@@ -211,8 +209,8 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
 
         if (filteredTrades.length === 0) {
           toast({
-            title: t('share.error'),
-            description: t('share.error.noTrades'),
+            title: "Error",
+            description: "Loading...",
             variant: "destructive",
           })
           return
@@ -339,8 +337,8 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
         setShareUrl(url)
 
         toast({
-          title: t('share.shareSuccess'),
-          description: t('share.shareSuccessDescription'),
+          title: "Share Created",
+          description: "Your trading performance has been shared successfully.",
         })
 
         // Trigger confetti animation
@@ -350,8 +348,8 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
       } catch (error) {
         console.error('Error sharing trades:', error)
         toast({
-          title: t('share.error'),
-          description: error instanceof Error ? error.message : t('share.error.description'),
+          title: "Error",
+          description: error instanceof Error ? error.message : "Loading...",
           variant: "destructive",
         })
       }
@@ -361,7 +359,7 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
       try {
         await navigator.clipboard.writeText(shareUrl)
         toast({
-          title: t('share.urlCopied'),
+          title: "URL Copied",
         })
       } catch (error) {
         console.error('Error copying URL:', error)
@@ -406,7 +404,7 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
             <Share className="h-4 w-4 shrink-0" />
             {!isMobile && (
               <span className="text-sm font-medium">
-                {t("share.button")}
+                Share
               </span>
             )}
           </Button>
@@ -414,9 +412,9 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
         <DialogContent className="sm:max-w-4xl h-[90vh] sm:h-[85vh] w-[95vw]">
           <div className="h-full flex flex-col overflow-y-hidden">
               <DialogHeader>
-                <DialogTitle>{t("share.title")}</DialogTitle>
+                <DialogTitle>Share Dashboard</DialogTitle>
                 <DialogDescription>
-                  {t("share.description")}
+                  Create a shareable link to your dashboard layout
                 </DialogDescription>
               </DialogHeader>
             <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6">
@@ -427,11 +425,11 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
                   <div className="h-full flex items-center justify-center">
                     <div className="w-full max-w-xl space-y-6 -mt-20">
                       <div className="text-center space-y-2">
-                        <h3 className="text-lg font-semibold">{t("share.shareSuccess")}</h3>
-                        <p className="text-muted-foreground">{t("share.shareSuccessDescription")}</p>
+                        <h3 className="text-lg font-semibold">Share Link Created</h3>
+                        <p className="text-muted-foreground">Your dashboard is now shareable with this link</p>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-center block">{t("share.shareUrl")}</Label>
+                        <Label className="text-center block">Share URL</Label>
                         <div className="relative">
                           <Input
                             readOnly
@@ -446,7 +444,7 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
                               className="h-7 w-7"
                             >
                               <Copy className="h-4 w-4" />
-                              <span className="sr-only">{t("share.copyUrl")}</span>
+                              <span className="sr-only">Copy URL</span>
                             </Button>
                             <Button
                               variant="ghost"
@@ -455,7 +453,7 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
                               className="h-7 w-7"
                             >
                               <ExternalLink className="h-4 w-4" />
-                              <span className="sr-only">{t("share.openInNewTab")}</span>
+                              <span className="sr-only">Open in new tab</span>
                             </Button>
                           </div>
                         </div>
@@ -465,9 +463,9 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
                 ) : (
                   <div className="max-w-7xl mx-auto space-y-4">
                     <div className="space-y-2">
-                      <Label>{t("share.titleLabel")}</Label>
+                      <Label>Dashboard Title</Label>
                       <Input
-                        placeholder={t("share.titlePlaceholder")}
+                        placeholder="Enter dashboard title"
                         value={shareTitle}
                         onChange={(e) => setShareTitle(e.target.value)}
                       />
@@ -478,7 +476,7 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
                         checked={shareAllAccounts}
                         onCheckedChange={setShareAllAccounts}
                       />
-                      <Label htmlFor="share-all-accounts">{t("share.shareAllAccounts")}</Label>
+                      <Label htmlFor="share-all-accounts">Share all accounts</Label>
                     </div>
                     {!shareAllAccounts && (
                       <div className="space-y-2 relative">
@@ -491,10 +489,10 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
                               className="w-full justify-between"
                             >
                               <span className="flex items-center gap-2">
-                                {selectedAccounts.length === 0 && t("share.accountsPlaceholder")}
+                                {selectedAccounts.length === 0 && "Select accounts"}
                                 {selectedAccounts.length > 0 && (
                                   <span>
-                                    {selectedAccounts.length} / {accountNumbers.length} {t("share.accounts")}
+                                    {selectedAccounts.length} / {accountNumbers.length} accounts
                                   </span>
                                 )}
                               </span>
@@ -510,11 +508,11 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
                           >
                             <Command shouldFilter={false}>
                               <CommandInput 
-                                placeholder={t("share.searchAccounts")} 
+                                placeholder="Search accounts..." 
                                 value={searchQuery}
                                 onValueChange={setSearchQuery}
                               />
-                              <CommandEmpty>{t("share.noAccountFound")}</CommandEmpty>
+                              <CommandEmpty>No accounts found</CommandEmpty>
                               <CommandList>
                                 <CommandGroup>
                                   <CommandItem
@@ -532,7 +530,7 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
                                       className="h-4 w-4 opacity-0 data-[selected=true]:opacity-100"
                                       data-selected={selectedAccounts.length === accountNumbers.length}
                                     />
-                                    <span className="flex-1">{t("filters.selectAllAccounts")}</span>
+                                    <span className="flex-1">Select all accounts</span>
                                   </CommandItem>
                                   <ScrollArea className="h-48">
                                     {filteredAccounts.map((account) => (
@@ -561,7 +559,7 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
                       <div className="flex flex-col md:flex-row gap-4">
                         <div className="flex-1">
                           <div className="space-y-2">
-                            <Label>{t("share.startDateLabel")}</Label>
+                            <Label>From Date</Label>
                             <div className="border rounded-lg bg-card p-2">
                               <Calendar
                                 mode="single"
@@ -583,7 +581,7 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
                         </div>
                         <div className="flex-1">
                           <div className="space-y-2">
-                            <Label>{t("share.endDateLabel")}</Label>
+                            <Label>To Date</Label>
                             <div className="border rounded-lg bg-card p-2">
                               <Calendar
                                 mode="single"
@@ -622,9 +620,9 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
                       onClick={() => setShowManager(true)}
                     >
                       <Layout className="h-4 w-4 mr-2" />
-                      {t("share.manageLayouts")}
+                      Manage Layouts
                     </Button>
-                    <Button onClick={handleShare}>{t("share.shareButton")}</Button>
+                    <Button onClick={handleShare}>Create Share Link</Button>
                   </div>
                 ) : (
                   <Button onClick={() => {
@@ -632,7 +630,7 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
                     setShareTitle("")
                     setOpen(false)
                   }} className="w-full sm:w-auto">
-                    {t("share.quit")}
+                    Close
                   </Button>
                 )}
               </DialogFooter>

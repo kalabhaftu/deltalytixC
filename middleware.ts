@@ -86,13 +86,13 @@ async function updateSession(request: NextRequest) {
 
   // Add user info to headers only if user exists
   if (user && !error) {
-    response.headers.set("x-user-id", user.id)
-    response.headers.set("x-user-email", user.email || "")
-    response.headers.set("x-auth-status", "authenticated")
+    response.headers.set('x-user-id', user.id)
+    response.headers.set('x-user-email', user.email || '')
+    response.headers.set('x-user-role', user.role || 'user')
   } else {
-    response.headers.set("x-auth-status", "unauthenticated")
+    response.headers.set('x-user-authenticated', 'false')
     if (error) {
-      response.headers.set("x-auth-error", error instanceof Error ? error.message : "Unknown error")
+      response.headers.set('x-auth-error', error.message || 'Authentication failed')
     }
   }
 
@@ -143,7 +143,7 @@ export default async function middleware(req: NextRequest) {
   } else {
     // Authenticated - redirect from auth to dashboard
     if (pathname.includes("/authentication")) {
-      const nextParam = req.nextUrl.searchParams.get("next")
+      const nextParam = req.nextUrl.searchParams.ge"Next"
       const redirectUrl = nextParam ? `/${nextParam}` : "/dashboard"
       return NextResponse.redirect(new URL(redirectUrl, req.url))
     }
@@ -154,39 +154,29 @@ export default async function middleware(req: NextRequest) {
     const geo = geolocation(req)
 
     if (geo.country) {
-      response.headers.set("x-user-country", geo.country)
-      response.cookies.set("user-country", geo.country, {
-        path: "/",
-        maxAge: 60 * 60 * 24, // 24 hours
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-      })
+      response.headers.set('x-geo-country', geo.country)
+      response.cookies.set('geo-country', geo.country)
     }
 
     if (geo.city) {
-      response.headers.set("x-user-city", encodeURIComponent(geo.city))
+      response.headers.set('x-geo-city', geo.city)
     }
 
     if (geo.countryRegion) {
-      response.headers.set("x-user-region", encodeURIComponent(geo.countryRegion))
+      response.headers.set('x-geo-region', geo.countryRegion)
     }
   } catch (geoError) {
     // Fallback to Vercel headers
-    const country = req.headers.get("x-vercel-ip-country")
-    const city = req.headers.get("x-vercel-ip-city")
-    const region = req.headers.get("x-vercel-ip-country-region")
+    const country = req.headers.get('x-vercel-ip-country')
+    const city = req.headers.get('x-vercel-ip-city')
+    const region = req.headers.get('x-vercel-ip-country-region')
 
     if (country) {
-      response.headers.set("x-user-country", country)
-      response.cookies.set("user-country", country, {
-        path: "/",
-        maxAge: 60 * 60 * 24,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-      })
+      response.headers.set('x-geo-country', country)
+      response.cookies.set('geo-country', country)
     }
-    if (city) response.headers.set("x-user-city", encodeURIComponent(city))
-    if (region) response.headers.set("x-user-region", encodeURIComponent(region))
+    if (city) response.headers.set('x-geo-city', city)
+    if (region) response.headers.set('x-geo-region', region)
   }
 
   return response

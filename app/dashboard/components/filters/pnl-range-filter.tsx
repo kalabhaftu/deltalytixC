@@ -8,12 +8,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { useData } from "@/context/data-provider"
-import { useI18n } from "@/lib/translations/client"
 import { useState } from "react"
 import { ChevronDown } from "lucide-react"
 
 export function PnlRangeFilter() {
-  const t = useI18n()
   const { pnlRange, setPnlRange } = useData()
   const [customMin, setCustomMin] = useState<string>("")
   const [customMax, setCustomMax] = useState<string>("")
@@ -34,7 +32,7 @@ export function PnlRangeFilter() {
 
   const getButtonLabel = () => {
     if (pnlRange.min === undefined && pnlRange.max === undefined) {
-      return t('filters.pnl')
+      return "PnL"
     }
     if (pnlRange.min !== undefined && pnlRange.max === undefined) {
       return `PnL ≥ ${pnlRange.min}`
@@ -55,13 +53,13 @@ export function PnlRangeFilter() {
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="start">
         <DropdownMenuItem onClick={() => handlePresetSelect(undefined, undefined)}>
-          {t('filters.allTrades')}
+          {"All trades"}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handlePresetSelect(0, undefined)}>
-          {t('filters.profitableTrades')}
+          {"Profitable trades"}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handlePresetSelect(undefined, 0)}>
-          {t('filters.losingTrades')}
+          {"Losing trades"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <div className="p-2">
@@ -69,14 +67,14 @@ export function PnlRangeFilter() {
             <div className="flex gap-2">
               <Input
                 type="number"
-                placeholder={t('filters.min')}
+                placeholder="Min P&L"
                 value={customMin}
                 onChange={(e) => setCustomMin(e.target.value)}
                 className="w-full"
               />
               <Input
                 type="number"
-                placeholder={t('filters.max')}
+                placeholder="Max P&L"
                 value={customMax}
                 onChange={(e) => setCustomMax(e.target.value)}
                 className="w-full"
@@ -87,7 +85,7 @@ export function PnlRangeFilter() {
               className="w-full"
               variant="secondary"
             >
-              {t('filters.apply')}
+              {"Apply"}
             </Button>
           </div>
         </div>

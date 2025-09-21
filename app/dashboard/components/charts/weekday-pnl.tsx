@@ -15,7 +15,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
-import { useI18n } from "@/lib/translations/client"
 import { Switch } from "@/components/ui/switch"
 
 const daysOfWeek = [0, 1, 2, 3, 4, 5, 6]; // Sunday = 0, Saturday = 6
@@ -36,17 +35,9 @@ interface WeekdayPNLChartProps {
 const formatCurrency = (value: number) =>
   value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 
-const getDayTranslationKey = (day: number): WeekdayTranslationKey => {
-  const keys: WeekdayTranslationKey[] = [
-    'weekdayPnl.days.sunday',
-    'weekdayPnl.days.monday',
-    'weekdayPnl.days.tuesday',
-    'weekdayPnl.days.wednesday',
-    'weekdayPnl.days.thursday',
-    'weekdayPnl.days.friday',
-    'weekdayPnl.days.saturday'
-  ];
-  return keys[day];
+const getDayName = (day: number): string => {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[day] || 'Sunday';
 }
 
 const chartConfig = {
@@ -61,8 +52,6 @@ export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProp
   const [darkMode, setDarkMode] = React.useState(false)
   const [activeDay, setActiveDay] = React.useState<number | null>(null)
   const [showAverage, setShowAverage] = React.useState(false) // Default to actual values
-  const t = useI18n()
-
   React.useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains('dark')
     setDarkMode(isDarkMode)
@@ -139,10 +128,10 @@ export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProp
           <div className="grid gap-2">
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('weekdayPnl.tooltip.day')}
+                Day
               </span>
               <span className="font-bold text-muted-foreground">
-                {t(getDayTranslationKey(data.day))}
+                {getDayName(data.day)}
               </span>
             </div>
             <div className="flex flex-col">
@@ -175,10 +164,10 @@ export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProp
             )}
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('weekdayPnl.tooltip.trades')}
+                Trades
               </span>
               <span className="font-bold text-muted-foreground">
-                {data.tradeCount} {data.tradeCount !== 1 ? t('weekdayPnl.tooltip.trades_plural') : t('weekdayPnl.tooltip.trade')}
+                {data.tradeCount} {data.tradeCount !== 1 ? "trades" : "trade"}
               </span>
             </div>
           </div>
@@ -239,7 +228,7 @@ export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProp
                 className="h-8 px-2 lg:px-3"
                 onClick={() => setWeekdayFilter({ day: null })}
               >
-                {t('weekdayPnl.clearFilter')}
+                Clear Filter
               </Button>
             )}
           </div>
@@ -279,8 +268,8 @@ export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProp
                   fill: 'currentColor'
                 }}
                 tickFormatter={(value) => {
-                  const key = getDayTranslationKey(value);
-                  return size === 'small-long' ? t(key).slice(0, 3) : t(key)
+                  const dayName = getDayName(value);
+                  return size === 'small-long' ? dayName.slice(0, 3) : dayName
                 }}
               />
               <YAxis

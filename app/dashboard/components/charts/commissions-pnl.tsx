@@ -14,8 +14,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
-import { useI18n } from "@/lib/translations/client"
-
 interface CommissionsPnLChartProps {
   size?: WidgetSize
 }
@@ -38,8 +36,6 @@ import { formatPercentage } from '@/lib/utils'
 
 export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLChartProps) {
   const { formattedTrades:trades } = useData()
-  const t = useI18n()
-
   const chartData = React.useMemo(() => {
     // Calculate totals with null safety
     const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
@@ -55,14 +51,14 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
     if (total === 0 || (absPnL === 0 && absCommissions === 0)) {
       return [
         {
-          name: t('commissions.legend.netPnl'),
+          name: "P&L",
           value: 0,
           displayValue: 0,
           percentage: 0,
           fill: chartConfig.pnl.color
         },
         {
-          name: t('commissions.legend.commissions'),
+          name: "Commissions",
           value: 0,
           displayValue: 0,
           percentage: 0,
@@ -76,7 +72,7 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
     
     if (absPnL > 0) {
       data.push({
-        name: t('commissions.legend.netPnl'),
+        name: "P&L",
         value: totalPnL, // Keep original sign for display
         displayValue: absPnL, // Absolute value for pie chart display
         percentage: absPnL / total,
@@ -86,7 +82,7 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
     
     if (absCommissions > 0) {
       data.push({
-        name: t('commissions.legend.commissions'),
+        name: "Commissions",
         value: totalCommissions, // Always positive for commissions
         displayValue: absCommissions, // Absolute value for pie chart display
         percentage: absCommissions / total,
@@ -95,7 +91,7 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
     }
 
     return data
-  }, [trades, t])
+  }, [trades])
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -105,7 +101,7 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
           <div className="grid gap-2">
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('commissions.tooltip.type')}
+                Category
               </span>
               <span className="font-bold text-muted-foreground">
                 {data.name}
@@ -113,7 +109,7 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
             </div>
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('commissions.tooltip.amount')}
+                Amount
               </span>
               <span className="font-bold">
                 {formatCurrency(data.value)}
@@ -121,7 +117,7 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
             </div>
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('commissions.tooltip.percentage')}
+                Percentage
               </span>
               <span className="font-bold text-muted-foreground">
                 {formatPercentage(data.percentage)}
@@ -197,7 +193,7 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
                 size === 'small-long' ? "text-sm" : "text-base"
               )}
             >
-              {t('commissions.title')}
+              Commissions & P&L
             </CardTitle>
             <TooltipProvider>
               <UITooltip>
@@ -208,7 +204,7 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
                   )} />
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>{t('commissions.tooltip.description')}</p>
+                  <p>Breakdown of commissions and P&L by category</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>

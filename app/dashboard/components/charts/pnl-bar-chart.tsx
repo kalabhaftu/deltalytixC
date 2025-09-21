@@ -15,8 +15,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Switch } from "@/components/ui/switch"
-import { useI18n } from "@/lib/translations/client"
-
 interface PNLChartProps {
   size?: WidgetSize
 }
@@ -60,7 +58,6 @@ const positiveColor = "hsl(var(--chart-2))" // Green color
 const negativeColor = "hsl(var(--chart-1))" // Orangish color
 
 const CustomTooltip = ({ active, payload, label, showAverage }: TooltipProps & { showAverage: boolean }) => {
-  const t = useI18n()
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const date = new Date(data.date + 'T00:00:00Z');
@@ -77,8 +74,8 @@ const CustomTooltip = ({ active, payload, label, showAverage }: TooltipProps & {
         <p className={`font-bold ${data.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
           {showAverage ? 'Average P/L per Trade' : 'Total P/L'}: {formatCurrency(data.pnl)}
         </p>
-        <p>{t('pnl.tooltip.longTrades')}: {data.longNumber}</p>
-        <p>{t('pnl.tooltip.shortTrades')}: {data.shortNumber}</p>
+        <p>Long: {data.longNumber}</p>
+        <p>Short: {data.shortNumber}</p>
       </div>
     );
   }
@@ -87,7 +84,6 @@ const CustomTooltip = ({ active, payload, label, showAverage }: TooltipProps & {
 
 export default function PNLChart({ size = 'medium' }: PNLChartProps) {
   const { calendarData } = useData()
-  const t = useI18n()
   const [showAverage, setShowAverage] = React.useState(false) // Default to actual values
 
   const chartData = React.useMemo(() => {

@@ -13,7 +13,6 @@ import HeaderSelection from './header-selection'
 import AccountSelection from './account-selection'
 import { useData } from '@/context/data-provider'
 import ColumnMapping from './column-mapping'
-import { useI18n } from "@/lib/translations/client"
 import { ImportDialogHeader } from './components/import-dialog-header'
 import { ImportDialogFooter } from './components/import-dialog-footer'
 import { platforms } from './config/platforms'
@@ -84,7 +83,6 @@ export default function ImportButton() {
   const supabaseUser = useUserStore(state => state.supabaseUser)
   const trades = useTradesStore(state => state.trades)
   const { refreshTrades, updateTrades } = useData()
-  const t = useI18n()
 
 
   const handleSave = async () => {
@@ -92,8 +90,8 @@ export default function ImportButton() {
     const currentUser = user || supabaseUser
     if (!currentUser?.id) {
       toast({
-        title: t('import.error.auth'),
-        description: t('import.error.authDescription'),
+        title: "Authentication Error",
+        description: "User not authenticated. Please log in and try again.",
         variant: "destructive",
       })
       return
@@ -164,8 +162,8 @@ export default function ImportButton() {
           })
         } else if (result.error === "NO_TRADES_ADDED") {
           toast({
-            title: t('import.error.noTradesAdded'),
-            description: t('import.error.noTradesAddedDescription'),
+             title: "No Trades Added",
+             description: "No new trades were found to import.",
             variant: "destructive",
           })
         } else if (result.error === "DATABASE_ERROR") {
@@ -176,8 +174,8 @@ export default function ImportButton() {
           })
         } else {
           toast({
-            title: t('import.error.failed'),
-            description: t('import.error.failedDescription'),
+         title: "Import Failed",
+         description: "An error occurred while importing trades. Please try again.",
             variant: "destructive",
           })
         }
@@ -202,7 +200,7 @@ export default function ImportButton() {
         })
       } else {
         toast({
-          title: t('import.success'),
+          title: "Import Successful",
           description: `Successfully imported ${result.numberOfTradesAdded} trades`,
           duration: 5000,
         })
@@ -211,8 +209,8 @@ export default function ImportButton() {
     } catch (error) {
       console.error('Error saving trades:', error)
       toast({
-        title: t('import.error.failed'),
-        description: t('import.error.failedDescription'),
+         title: "Import Failed",
+         description: "An error occurred while importing trades. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -243,7 +241,7 @@ export default function ImportButton() {
     // Handle PDF upload step
     if (step === 'upload-file' && importType === 'pdf') {
       if (files.length === 0) {
-        setError(t('import.errors.noFilesSelected'))
+         setError("Please select files to upload")
         return
       }
       setStep('process-file')
@@ -435,7 +433,7 @@ export default function ImportButton() {
           onMouseLeave={() => uploadIconRef.current?.stopAnimation()}
         >
           <UploadIcon ref={uploadIconRef} className="h-4 w-4 mr-2 transition-transform duration-200" /> 
-          <span className='hidden md:block'>{t('import.button')}</span>
+           <span className='hidden md:block'>Import Trades</span>
         </Button>
       </motion.div>
       

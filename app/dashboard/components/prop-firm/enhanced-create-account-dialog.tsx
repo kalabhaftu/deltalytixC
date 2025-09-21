@@ -17,7 +17,6 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useI18n } from "@/lib/translations/client"
 import { Loader2, Building2, DollarSign, Target, Shield, CheckCircle, ArrowRight, Info, AlertTriangle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -166,7 +165,6 @@ export function EnhancedCreateAccountDialog({
   onOpenChange,
   onSuccess
 }: EnhancedCreateAccountDialogProps) {
-  const t = useI18n()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [step, setStep] = useState<'propfirm' | 'details' | 'rules' | 'payout' | 'confirm'>('propfirm')
 

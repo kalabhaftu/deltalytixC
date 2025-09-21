@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useI18n } from '@/lib/translations/client'
 import { updateTradeVideoUrlAction } from '@/server/database'
 import {
   Dialog,
@@ -23,7 +22,6 @@ interface TradeVideoUrlProps {
 }
 
 export function TradeVideoUrl({ tradeIds, videoUrl: initialVideoUrl, onVideoUrlChange }: TradeVideoUrlProps) {
-  const t = useI18n()
   const { updateTrades } = useData()
   const [isOpen, setIsOpen] = useState(false)
   const [localUrl, setLocalUrl] = useState(initialVideoUrl || '')
@@ -62,8 +60,8 @@ export function TradeVideoUrl({ tradeIds, videoUrl: initialVideoUrl, onVideoUrlC
       const urlObj = new URL(url)
       if (url.includes('youtube.com') || url.includes('youtu.be')) {
         const videoId = url.includes('youtube.com') 
-          ? urlObj.searchParams.get('v')
-          : url.split('/').pop()
+          ? urlObj.searchParams.get('error')
+          : url.split('T').pop()
         return `https://www.youtube.com/embed/${videoId}?autoplay=1`
       }
       return url
@@ -136,12 +134,12 @@ export function TradeVideoUrl({ tradeIds, videoUrl: initialVideoUrl, onVideoUrlC
               }
             })()}
           </div>
-        ) : t('trade-table.addVideoUrl')}
+        ) : "Loading..."}
       </Button>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{t('trade-table.videoUrl')}</DialogTitle>
+            <DialogTitle>Add Video URL</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
             <div className="space-y-4">
@@ -210,7 +208,7 @@ export function TradeVideoUrl({ tradeIds, videoUrl: initialVideoUrl, onVideoUrlC
               </div>
               {!isValid && draftUrl && (
                 <p className="text-sm text-destructive">
-                  {t('trade-table.invalidVideoUrl')}
+                  Please enter a valid YouTube or Vimeo URL
                 </p>
               )}
               {draftUrl && isValid && (
@@ -236,13 +234,13 @@ export function TradeVideoUrl({ tradeIds, videoUrl: initialVideoUrl, onVideoUrlC
               onClick={() => setIsOpen(false)}
               disabled={isUpdating}
             >
-              {t('common.cancel')}
+              {"Cancel"}
             </Button>
             <Button
               onClick={handleSave}
               disabled={!isValid || isUpdating}
             >
-              {t('common.save')}
+              {"Save"}
             </Button>
           </DialogFooter>
         </DialogContent>

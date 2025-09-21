@@ -25,7 +25,7 @@ export default function AuthenticationLayout({
     const params = new URLSearchParams(hash.slice(1)); // Remove the # and parse
 
     if (params.get('error')) {
-      const errorDescription = params.get('error_description');
+      const errorDescription = params.get('error');
       toast({
         title: "Authentication Error",
         description: errorDescription?.replace(/\+/g, ' ') || "An error occurred during authentication",

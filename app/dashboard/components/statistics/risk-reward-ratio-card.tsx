@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/tooltip"
 import { WidgetSize } from '../../types/dashboard'
 import { Scale, HelpCircle } from "lucide-react"
-import { useI18n } from '@/lib/translations/client'
 import { useMemo } from "react"
 
 interface RiskRewardRatioCardProps {
@@ -20,8 +19,6 @@ interface RiskRewardRatioCardProps {
 
 export default function RiskRewardRatioCard({ size = 'tiny' }: RiskRewardRatioCardProps) {
   const { formattedTrades } = useData()
-  const t = useI18n()
-  
   const { avgWin, avgLoss, riskRewardRatio, profitPercentage } = useMemo(() => {
     // Filter winning and losing trades
     const winningTrades = formattedTrades.filter(trade => trade.pnl > 0)
@@ -66,7 +63,7 @@ export default function RiskRewardRatioCard({ size = 'tiny' }: RiskRewardRatioCa
                 sideOffset={5} 
                 className="max-w-[300px]"
               >
-                {t('widgets.riskRewardRatio.tooltip')}
+                Loading...
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

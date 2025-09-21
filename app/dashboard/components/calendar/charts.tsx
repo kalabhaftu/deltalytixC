@@ -15,8 +15,6 @@ import {
 } from "@/components/ui/chart"
 import { CalendarEntry } from "@/app/dashboard/types/calendar"
 import { useTheme } from "@/context/theme-provider"
-import { useI18n, useCurrentLocale } from '@/lib/translations/client'
-
 interface ChartsProps {
   dayData: CalendarEntry | undefined;
   isWeekly?: boolean;
@@ -41,8 +39,7 @@ const formatCurrency = (value: number | undefined | null) => {
 export function Charts({ dayData, isWeekly = false }: ChartsProps) {
   const { effectiveTheme } = useTheme()
   const isDarkMode = effectiveTheme === 'dark'
-  const t = useI18n()
-  const locale = useCurrentLocale()
+  const locale = 'en' // Default to English since i18n was removed
   
   // Calculate data for charts
   const { accountPnL, equityChartData, chartData, totalPnL, calculateCommonDomain } = React.useMemo(() => {
@@ -128,7 +125,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
   if (!dayData?.trades?.length) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-muted-foreground">{t('calendar.charts.noTradeData')}</p>
+        <p className="text-muted-foreground">No trading data available for this period</p>
       </div>
     )
   }
@@ -150,7 +147,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
             </p>
           ))}
           <p className="text-muted-foreground text-xs">
-            {t('calendar.charts.tradeNumber')}: {data.tradeNumber}
+            Trade #: {data.tradeNumber}
           </p>
         </div>
       )
@@ -172,7 +169,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
           </p>
           {data.account !== 'total' && (
             <p className="text-muted-foreground">
-              {percentage}% {t('calendar.charts.ofTotal')}
+              {percentage}% of total
             </p>
           )}
         </div>
@@ -186,10 +183,10 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-base md:text-lg">
-            {isWeekly ? t('calendar.charts.weeklyEquityVariation') : t('calendar.charts.equityVariation')}
+            {isWeekly ? "Weekly Equity Chart" : "Daily Equity Chart"}
           </CardTitle>
           <CardDescription className="text-xs md:text-sm">
-            {t('calendar.charts.finalBalance')}: {formatCurrency(equityChartData[equityChartData.length - 1]?.balance || 0)}
+            Final Balance: {formatCurrency(equityChartData[equityChartData.length - 1]?.balance || 0)}
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[200px] md:h-[250px]">
@@ -215,7 +212,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
                     if (isWeekly) {
                       return value;
                     }
-                    const [hours, minutes] = value.split(':');
+                    const [hours, minutes] = value.split('T');
                     return `${hours}:${minutes}`;
                   }}
                 />
@@ -232,7 +229,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
                 />
                 <Bar
                   dataKey="pnl"
-                  name={t('calendar.charts.tradePnl')}
+                  name="P&L"
                   opacity={0.8}
                 >
                   {equityChartData.map((entry, index) => (
@@ -250,7 +247,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
                   strokeWidth={2}
                   dot={false}
                   activeDot={false}
-                  name={t('calendar.charts.balance')}
+                  name="Equity"
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -261,10 +258,10 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-base md:text-lg">
-            {isWeekly ? t('calendar.charts.weeklyPnlDistribution') : t('calendar.charts.dailyPnlDistribution')}
+            {isWeekly ? "Loading..." : "Loading..."}
           </CardTitle>
           <CardDescription className="text-xs md:text-sm">
-            {isWeekly ? t('calendar.charts.weeklyTotalPnlAfterComm') : t('calendar.charts.totalPnlAfterComm')}: {formatCurrency(totalPnL)}
+            {isWeekly ? "Loading..." : "Loading..."}: {formatCurrency(totalPnL)}
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[250px] md:h-[300px] pb-8 md:pb-16">
@@ -321,7 +318,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
                 <Bar 
                   dataKey="value" 
                   barSize={20}
-                  name={t('calendar.charts.accountPnl')}
+                  name="P&L"
                 >
                   {chartData.map((entry, index) => (
                     <Cell

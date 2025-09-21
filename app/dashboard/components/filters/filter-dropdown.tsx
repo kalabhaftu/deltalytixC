@@ -12,7 +12,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Filter } from "lucide-react"
-import { useI18n } from "@/lib/translations/client"
 import { PnlFilter } from "./pnl-filter"
 import { InstrumentFilter } from "./instrument-filter"
 // import { AccountFilter } from "./account-filter" // Removed - using persistent settings instead
@@ -29,7 +28,6 @@ import { AccountGroupBoard } from "./account-group-board"
 import { useModalStateStore } from "@/store/modal-state-store"
 
 export function FilterDropdown() {
-  const t = useI18n()
   const { isMobile } = useData()
   const [open, setOpen] = useState(false)
   const [accountFilterOpen, setAccountFilterOpen] = useState(false)
@@ -56,7 +54,7 @@ export function FilterDropdown() {
             <Filter className="h-4 w-4 shrink-0" />
             {!isMobile && (
               <span className="text-sm font-medium">
-                {t('filters.title')}
+                {"Filters"}
               </span>
             )}
           </Button>
@@ -64,7 +62,7 @@ export function FilterDropdown() {
         <DropdownMenuContent className="w-56">
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              {t('filters.accounts')}
+              {"Accounts"}
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent className="w-[300px]">
@@ -78,7 +76,7 @@ export function FilterDropdown() {
           <DropdownMenuSeparator />
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              {t('filters.pnl')}
+              {"PnL"}
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent>
@@ -89,7 +87,7 @@ export function FilterDropdown() {
           <DropdownMenuSeparator />
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              {t('filters.instrument')}
+              {"Instrument"}
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent>

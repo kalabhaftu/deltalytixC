@@ -135,40 +135,6 @@ export default function Component() {
 
     const MobileNavContent = ({ onLinkClick }: { onLinkClick: () => void }) => (
         <nav className="flex flex-col space-y-4">
-            <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="features">
-                    <AccordionTrigger>Features</AccordionTrigger>
-                    <AccordionContent>
-                        <ul className="space-y-2 list-none">
-                            <MobileNavItem href="/#data-import" onClick={onLinkClick}>Data Import</MobileNavItem>
-                            <MobileNavItem href="/#performance-visualization" onClick={onLinkClick}>Performance Visualization</MobileNavItem>
-                            <MobileNavItem href="/#daily-performance" onClick={onLinkClick}>Daily Performance</MobileNavItem>
-                            <MobileNavItem href="/#ai-journaling" onClick={onLinkClick}>AI-Powered Journaling</MobileNavItem>
-                        </ul>
-                    </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="developers">
-                    <AccordionTrigger>Developers</AccordionTrigger>
-                    <AccordionContent>
-                        <ul className="space-y-2 list-none">
-                            <MobileNavItem href="https://github.com/kalabhaftu/deltalytixC.git" onClick={onLinkClick} target="_blank">Open Source</MobileNavItem>
-                        </ul>
-                    </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem value="updates">
-                    <AccordionTrigger>Updates</AccordionTrigger>
-                    <AccordionContent>
-                        <ul className="space-y-2 list-none">
-                            <MobileNavItem href="/updates" onClick={onLinkClick}>Product Updates</MobileNavItem>
-                            <MobileNavItem href="/community" onClick={onLinkClick}>Community</MobileNavItem>
-                        </ul>
-                    </AccordionContent>
-                </AccordionItem>
-            </Accordion>
-            <Button asChild variant="outline" className="w-full" onClick={onLinkClick}>
-                <Link href={"/authentication"}>Sign In</Link>
-            </Button>
             <div className="py-4 border-t space-y-4">
                 <Popover open={themeOpen} onOpenChange={setThemeOpen}>
                     <PopoverTrigger asChild>
@@ -206,68 +172,12 @@ export default function Component() {
     return (
         <>
             <div className={`fixed inset-0 bg-background/80  backdrop-blur-sm z-40 transition-opacity duration-300 ${hoveredItem ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} />
-            <div className={`h-14 fixed top-0 left-0 right-0 bg-background/95 backdrop-blur-md border-b border-border z-50 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}></div>
-            <header className={`max-w-7xl mx-auto fixed top-0 left-0 right-0 px-4 lg:px-6 h-14 flex items-center justify-between z-50  text-foreground transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+            <div className={`h-14 fixed top-0 left-0 right-0 bg-background/95 backdrop-blur-md z-50 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}></div>
+            <header className={`max-w-7xl mx-auto fixed top-0 left-0 right-0 px-4 lg:px-6 h-14 flex items-center justify-between z-50 text-foreground transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
                 <Link href="/" className="flex items-center space-x-2">
                     <Logo className='w-6 h-6 fill-black dark:fill-white' />
                     <span className="font-bold text-xl">Deltalytix</span>
                 </Link>
-                <div className="hidden lg:block">
-                    <NavigationMenu>
-                        <NavigationMenuList className="list-none">
-                            <NavigationMenuItem onMouseEnter={() => setHoveredItem('features')} onMouseLeave={() => setHoveredItem(null)}>
-                                <NavigationMenuTrigger className='bg-transparent'>Features</NavigationMenuTrigger>
-                                <NavigationMenuContent>
-                                    <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr] list-none">
-                                        <li className="row-span-3">
-                                            <NavigationMenuLink asChild>
-                                                <Link className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md" href="/">
-                                                    <Logo className='w-6 h-6' />
-                                                    <div className="mb-2 mt-4 text-lg font-medium">
-                                                        Deltalytix
-                                                    </div>
-                                                    <p className="text-sm leading-tight text-muted-foreground">
-                                                        Elevate your trading with comprehensive analytics and AI-powered insights.
-                                                    </p>
-                                                </Link>
-                                            </NavigationMenuLink>
-                                        </li>
-                                        <ListItem href="/#data-import" title="Data Import" icon={<Database className="h-4 w-4" />}>
-                                            Import data from various providers.
-                                        </ListItem>
-                                        <ListItem href="/#performance-visualization" title="Performance Visualization" icon={<LineChart className="h-4 w-4" />}>
-                                            Visualize your trading performance.
-                                        </ListItem>
-                                        <ListItem href="/#daily-performance" title="Daily Performance" icon={<Calendar className="h-4 w-4" />}>
-                                            Track your daily trading results with an intuitive calendar view.
-                                        </ListItem>
-                                        <div className='col-span-2'>
-                                            <ListItem href="/#ai-journaling" title="AI-Powered Journaling" icon={<BookOpen className="h-4 w-4" />}>
-                                                Improve your trading emotions with AI-assisted journaling.
-                                            </ListItem>
-                                        </div>
-                                    </ul>
-                                </NavigationMenuContent>
-                            </NavigationMenuItem>
-
-
-                            <NavigationMenuItem onMouseEnter={() => setHoveredItem('developers')} onMouseLeave={() => setHoveredItem(null)}>
-                                <NavigationMenuTrigger className='bg-transparent'>Developers</NavigationMenuTrigger>
-                                <NavigationMenuContent>
-                                    <ul className="grid gap-3 p-4 w-[400px] list-none">
-                                        <ListItem href="https://github.com/kalabhaftu/deltalytixC.git" title="Open Source" icon={<Github className="h-4 w-4" />} target="_blank">
-                                            Explore our open-source projects and contribute.
-                                        </ListItem>
-                                    </ul>
-                                </NavigationMenuContent>
-                            </NavigationMenuItem>
-                        </NavigationMenuList>
-                        <Separator orientation="vertical" className="h-6 mx-4" />
-                        <Button variant="ghost" className="text-sm font-medium hover:text-accent-foreground" asChild>
-                            <Link href={"/authentication"}>Sign In</Link>
-                        </Button>
-                    </NavigationMenu>
-                </div>
 
                 <div className="flex items-center space-x-4">
 

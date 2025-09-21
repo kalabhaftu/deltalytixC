@@ -3,7 +3,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Badge } from "@/components/ui/badge"
 import { motion } from "framer-motion"
-import { useI18n, useCurrentLocale } from '@/lib/translations/client'
 import Image from 'next/image'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -21,8 +20,7 @@ interface TimelineItem {
 export default function CompletedTimeline({ milestones }: { milestones: TimelineItem[] }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const observerRefs = useRef<(HTMLDivElement | null)[]>([])
-  const t = useI18n()
-  const locale = useCurrentLocale()
+  const locale = 'en' // Default to English since i18n was removed
   const dateLocale = enUS
 
   useEffect(() => {

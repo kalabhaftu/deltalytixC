@@ -55,7 +55,7 @@ const parseOrders = (text: string): TradeOrder[] => {
     const isoTimestamp = new Date(`${date}T${time}`).toISOString();
     
     // Generate a short unique ID: side + index + last 2 digits of seconds
-    const timeSeconds = time.split(':')[2];
+    const timeSeconds = time.split('T')[2];
     const orderId = `${side.charAt(0)}${orderIndex}${timeSeconds}`;
 
     orders.push({

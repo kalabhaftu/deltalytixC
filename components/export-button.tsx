@@ -110,7 +110,7 @@ export default function TradeExportDialog({ trades }: Props) {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
 
     // Create a download link and trigger the download
-    const link = document.createElement('a')
+    const link = document.createElemen"Loading..."
     if (link.download !== undefined) {
       const url = URL.createObjectURL(blob)
       link.setAttribute('href', url)

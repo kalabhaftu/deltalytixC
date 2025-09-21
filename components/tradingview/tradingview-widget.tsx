@@ -114,7 +114,7 @@ export function TradingViewWidget({
 
   useEffect(() => {
     // Load TradingView script
-    const script = document.createElement('script')
+    const script = document.createElemen"Loading..."
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
     script.type = 'text/javascript'
     script.async = true
@@ -335,7 +335,7 @@ export function TradingViewMini({ symbol = 'NASDAQ:AAPL', height = 300 }: { symb
   const container = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const script = document.createElement('script')
+    const script = document.createElemen"Loading..."
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js'
     script.type = 'text/javascript'
     script.async = true
@@ -380,7 +380,7 @@ export function TradingViewMarketOverview({ height = 400 }: { height?: number })
   const container = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const script = document.createElement('script')
+    const script = document.createElemen"Loading..."
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js'
     script.type = 'text/javascript'
     script.async = true

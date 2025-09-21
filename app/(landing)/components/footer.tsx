@@ -5,17 +5,15 @@ import { Logo } from '@/components/logo'
 export default function Footer() {
 
   const navigation = {
-    about: [
-      { name: 'Personal Trading Journal', href: '/personal-journal' },
-      { name: 'Free & Open Source', href: '/open-source' },
-      { name: 'Self-Hosted Analytics', href: '/analytics' },
+    products: [
+      { name: 'Personal Trading Journal', href: '#' },
+      { name: 'Self-Hosted Analytics', href: '#' },
+    ],
+    resources: [
+      { name: 'About', href: '#' },
+      { name: 'Updates', href: '#' },
     ],
     social: [
-      { name: 'GitHub', href: '#', icon: (props: React.SVGProps<SVGSVGElement>) => (
-        <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
-          <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-        </svg>
-      )},
       { name: 'YouTube', href: '#', icon: (props: React.SVGProps<SVGSVGElement>) => (
         <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
           <path fillRule="evenodd" d="M19.812 5.418c.861.23 1.538.907 1.768 1.768C21.998 8.746 22 12 22 12s0 3.255-.418 4.814a2.504 2.504 0 0 1-1.768 1.768c-1.56.419-7.814.419-7.814.419s-6.255 0-7.814-.419a2.505 2.505 0 0 1-1.768-1.768C2 15.255 2 12 2 12s0-3.255.417-4.814a2.507 2.507 0 0 1 1.768-1.768C5.744 5 11.998 5 11.998 5s6.255 0 7.814.418ZM15.194 12 10 15V9l5.194 3Z" clipRule="evenodd" />
@@ -30,59 +28,98 @@ export default function Footer() {
   }
 
   return (
-    <footer aria-labelledby="footer-heading" className="py-12 transition-colors duration-300 max-w-7xl mx-auto">
+    <footer aria-labelledby="footer-heading" className="py-16 transition-colors duration-300 max-w-7xl mx-auto">
       <h2 id="footer-heading" className="sr-only">
         Footer
       </h2>
       <div className="container mx-auto px-4">
-        <div className="xl:grid xl:grid-cols-3 xl:gap-8">
-          <div className="space-y-8">
+        {/* Main Footer Content - 3 Column Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+          
+          {/* Column 1: Brand & Socials */}
+          <div className="space-y-6">
             <div className="flex items-center">
-              <Logo className="h-8 w-8 mr-2 fill-black dark:fill-white" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Deltalytix</h3>
+              <Logo className="h-8 w-8 mr-3 fill-foreground transition-colors" />
+              <h3 className="text-xl font-bold text-foreground">Deltalytix</h3>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
               Advanced analytics for modern traders.
             </p>
-            <div className="flex space-x-6">
+            <div className="flex space-x-4">
               {navigation.social.map((item) => (
-                <a key={item.name} href={item.href} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                  <span className="sr-only">{item.name}</span>
-                  <item.icon className="h-6 w-6" aria-hidden="true" />
+                <a 
+                  key={item.name} 
+                  href={item.href} 
+                  className="text-muted-foreground hover:text-foreground transition-colors duration-200 hover:scale-110 transform"
+                  aria-label={item.name}
+                >
+                  <item.icon className="h-5 w-5" aria-hidden="true" />
                 </a>
               ))}
             </div>
           </div>
-          <div className="mt-16 xl:col-span-2 xl:mt-0">
-            <div>
-              <h4 className="text-sm font-semibold leading-6 text-gray-900 dark:text-white">About</h4>
-              <ul role="list" className="mt-6 space-y-4">
-                {navigation.about.map((item) => (
-                  <li key={item.name}>
-                    <span className="text-sm leading-6 text-gray-600 dark:text-gray-400">
-                      {item.name}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-        <div className="mt-16 border-t border-gray-200 dark:border-gray-800 pt-8">
-          <div className="text-center text-sm text-gray-600 dark:text-gray-400 max-w-4xl mx-auto space-y-4">
-            <div className="pb-4">
-              © 2025 Deltalytix. All rights reserved.
-          </div>
-            <div className="border-t border-gray-200 dark:border-gray-800 pt-4 space-y-4">
-              <p>
-                Trading futures and forex is risky and not for everyone. You can lose part or all of your money. Only trade with money you can afford to lose. Past results don&apos;t guarantee future outcomes.
-              </p>
-              <p>
-                Hypothetical results are based on hindsight, not real risk, and often differ from actual trading. Real trading involves losses, discipline, and market factors that can&apos;t be fully shown in simulations.
-              </p>
-          </div>
+
+          {/* Column 2: Products */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold tracking-wider uppercase text-foreground">
+              Products
+            </h4>
+            <ul role="list" className="space-y-3">
+              {navigation.products.map((item) => (
+                <li key={item.name}>
+                  <Link 
+                    href={item.href} 
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 leading-relaxed"
+                  >
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
 
+          {/* Column 3: Resources */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold tracking-wider uppercase text-foreground">
+              Resources
+            </h4>
+            <ul role="list" className="space-y-3">
+              {navigation.resources.map((item) => (
+                <li key={item.name}>
+                  <Link 
+                    href={item.href} 
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 leading-relaxed"
+                  >
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Copyright and Disclaimers */}
+        <div className="mt-12 pt-8 border-t border-border">
+          {/* Copyright */}
+          <div className="text-center mb-6">
+            <p className="text-sm text-muted-foreground">
+              © 2025 Deltalytix. All rights reserved.
+            </p>
+          </div>
+
+          {/* Disclaimers - Improved Readability */}
+          <div className="text-center max-w-4xl mx-auto space-y-3">
+            <p className="text-xs text-muted-foreground/80 leading-relaxed">
+              <strong>Risk Disclaimer:</strong> Trading futures and forex is risky and not for everyone. 
+              You can lose part or all of your money. Only trade with money you can afford to lose. 
+              Past results don't guarantee future outcomes.
+            </p>
+            <p className="text-xs text-muted-foreground/80 leading-relaxed">
+              <strong>Hypothetical Performance:</strong> Hypothetical results are based on hindsight, 
+              not real risk, and often differ from actual trading. Real trading involves losses, 
+              discipline, and market factors that can't be fully shown in simulations.
+            </p>
+          </div>
         </div>
       </div>
     </footer>

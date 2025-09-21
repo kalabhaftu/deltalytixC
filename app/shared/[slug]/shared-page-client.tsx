@@ -8,7 +8,6 @@ import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { useI18n } from "@/lib/translations/client"
 import { ChevronDown } from "lucide-react"
 import { LoadingSpinner } from '@/components/ui/loading'
 import { useEffect, useState } from "react"
@@ -30,7 +29,6 @@ interface SharedPageClientProps {
 // Create a client component for the accounts selection
 function AccountsSelector({ accounts }: { accounts: string[] }) {
   const { accountNumbers, setAccountNumbers } = useData()
-  const t = useI18n()
   const [isExpanded, setIsExpanded] = useState(false)
   const visibleAccounts = isExpanded ? accounts : accounts.slice(0, 2)
   const remainingAccounts = accounts.length - 2
@@ -54,7 +52,7 @@ function AccountsSelector({ accounts }: { accounts: string[] }) {
   return (
     <div className="flex flex-col">
       <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 xs:gap-0 mb-2">
-        <p className="text-sm font-medium">{t('shared.tradingAccounts')}</p>
+        <p className="text-sm font-medium">Select Accounts</p>
         <div className="flex flex-wrap items-center gap-1.5 w-full xs:w-auto justify-end">
           {accounts.length > 2 && (
             <Button
@@ -64,8 +62,8 @@ function AccountsSelector({ accounts }: { accounts: string[] }) {
               className="h-7 text-xs gap-1 min-w-0"
             >
               {isExpanded 
-                ? t('shared.showLessAccounts')
-                : t('shared.showMoreAccounts', { count: remainingAccounts })}
+                ? "Loading..."
+                : "Loading..."}
               <ChevronDown className={cn(
                 "h-3 w-3 transition-transform shrink-0",
                 isExpanded ? "rotate-180" : ""
@@ -78,7 +76,7 @@ function AccountsSelector({ accounts }: { accounts: string[] }) {
             onClick={toggleAll}
             className="h-7 text-xs whitespace-nowrap min-w-0"
           >
-            {accountNumbers.length === accounts.length ? t('shared.deselectAll') : t('shared.selectAll')}
+            {accountNumbers.length === accounts.length ? "Loading..." : "Loading..."}
           </Button>
         </div>
       </div>
@@ -121,14 +119,14 @@ function TopBanner({ t }: { t: any }) {
             <Logo className="fill-black h-6 w-6 dark:fill-white" />
             <div className="flex flex-col">
               <h1 className="font-semibold">Deltalytix</h1>
-              <p className="text-sm text-muted-foreground">{t('shared.tagline')}</p>
+              <p className="text-sm text-muted-foreground">Trading Analytics Dashboard</p>
             </div>
           </div>
           <div className="flex items-center gap-x-2 sm:gap-x-4 pb-2 sm:pb-0">
 
             <Link href="/authentication" className="flex-1 sm:flex-none">
               <Button size="sm" className="bg-primary hover:bg-primary/90 w-full">
-                {t('shared.createAccount')}
+                Get Started
               </Button>
             </Link>
           </div>
@@ -139,7 +137,6 @@ function TopBanner({ t }: { t: any }) {
 }
 
 export function SharedPageClient({ params, initialData }: SharedPageClientProps) {
-  const t = useI18n()
   const { isLoading, sharedParams, setSharedParams, setAccountNumbers } = useData()
 
   // Hydrate the initial data
@@ -166,7 +163,7 @@ export function SharedPageClient({ params, initialData }: SharedPageClientProps)
       <div className="flex flex-col min-h-screen">
         <TopBanner t={t} />
         <div className="w-full mx-auto flex-1 flex items-center justify-center pt-[120px] sm:pt-[60px]">
-          <LoadingSpinner size="lg" text={t('shared.loading')} />
+          <LoadingSpinner size="lg" text="Loading dashboard..." />
         </div>
       </div>
     )
@@ -179,9 +176,9 @@ export function SharedPageClient({ params, initialData }: SharedPageClientProps)
         <div className="w-full mx-auto flex-1 flex items-center justify-center p-4 pt-[120px] sm:pt-[76px]">
           <Card className="max-w-lg w-full">
             <CardHeader>
-              <CardTitle>{t('shared.notFound')}</CardTitle>
+              <CardTitle>Dashboard Not Found</CardTitle>
               <CardDescription>
-                {t('shared.notFoundDescription')}
+                The shared dashboard you're looking for doesn't exist or has been removed.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -201,24 +198,24 @@ export function SharedPageClient({ params, initialData }: SharedPageClientProps)
             <CardHeader className="space-y-3">
               <div className="flex flex-col space-y-2">
                 <CardTitle className="text-xl sm:text-2xl">
-                  {sharedParams.title || t('shared.title')}
+                  {sharedParams.title || "Loading..."}
                 </CardTitle>
                 <CardDescription className="text-sm sm:text-base">
-                  {sharedParams.description || t('shared.description')}
+                  {sharedParams.description || "Loading..."}
                 </CardDescription>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <Card className="p-4 border-none shadow-none bg-muted/50">
-                  <p className="text-sm font-medium mb-1">{t('shared.sharedOn')}</p>
+                  <p className="text-sm font-medium mb-1">Created</p>
                   <p className="text-sm text-muted-foreground">
                     {format(new Date(sharedParams.createdAt || new Date()), "PPP")}
                   </p>
                 </Card>
                 <Card className="p-4 border-none shadow-none bg-muted/50">
                   <p className="text-sm font-medium mb-1">
-                    {dateRange.to ? t('shared.period') : t('shared.since')}
+                    {dateRange.to ? "Date Range" : "From Date"}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {dateRange.to ? (

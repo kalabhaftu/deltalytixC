@@ -15,8 +15,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useI18n } from "@/lib/translations/client"
-
 interface TradeDistributionProps {
   size?: WidgetSize
 }
@@ -36,7 +34,6 @@ interface TooltipProps {
 }
 
 const CustomTooltip = ({ active, payload }: TooltipProps) => {
-  const t = useI18n()
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -44,7 +41,7 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
         <div className="grid gap-2">
           <div className="flex flex-col">
             <span className="text-[0.70rem] uppercase text-muted-foreground">
-              {t('tradeDistribution.tooltip.type')}
+              Instrument
             </span>
             <span className="font-bold text-muted-foreground">
               {data.name}
@@ -52,7 +49,7 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
           </div>
           <div className="flex flex-col">
             <span className="text-[0.70rem] uppercase text-muted-foreground">
-              {t('tradeDistribution.tooltip.percentage')}
+              Percentage
             </span>
             <span className="font-bold">
               {data.value.toFixed(2)}%
@@ -67,8 +64,6 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
 
 export default function TradeDistributionChart({ size = 'medium' }: TradeDistributionProps) {
   const { statistics: { nbWin, nbLoss, nbBe, nbTrades } } = useData()
-  const t = useI18n()
-
   const chartData = React.useMemo(() => {
     // Note: For distribution chart, we show percentage of all trades
     // This is different from win rate calculation which excludes break-even trades
@@ -77,11 +72,11 @@ export default function TradeDistributionChart({ size = 'medium' }: TradeDistrib
     const beRate = Number((nbBe / nbTrades * 100).toFixed(2))
 
     return [
-      { name: t('tradeDistribution.winWithCount', { count: nbWin, total: nbTrades }), value: winRate, color: 'hsl(var(--success))', count: nbWin },
-      { name: t('tradeDistribution.breakevenWithCount', { count: nbBe, total: nbTrades }), value: beRate, color: 'hsl(var(--muted-foreground))', count: nbBe },
-      { name: t('tradeDistribution.lossWithCount', { count: nbLoss, total: nbTrades }), value: lossRate, color: 'hsl(var(--destructive))', count: nbLoss }
+      { name: "Wins", value: winRate, color: 'hsl(var(--success))', count: nbWin },
+      { name: "Break Even", value: beRate, color: 'hsl(var(--muted-foreground))', count: nbBe },
+      { name: "Losses", value: lossRate, color: 'hsl(var(--destructive))', count: nbLoss }
     ]
-  }, [nbWin, nbLoss, nbBe, nbTrades, t])
+  }, [nbWin, nbLoss, nbBe, nbTrades])
 
   // Calculate responsive radius based on size and screen
   const getRadius = React.useMemo(() => {
@@ -119,7 +114,7 @@ export default function TradeDistributionChart({ size = 'medium' }: TradeDistrib
                 size === 'small-long' ? "text-sm" : "text-base"
               )}
             >
-              {t('tradeDistribution.title')}
+              Trade Distribution
             </CardTitle>
             <TooltipProvider>
               <UITooltip>
@@ -130,7 +125,7 @@ export default function TradeDistributionChart({ size = 'medium' }: TradeDistrib
                   )} />
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>{t('tradeDistribution.description')}</p>
+                  <p>Distribution of trades by instrument</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>

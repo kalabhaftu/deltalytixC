@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { useI18n } from "@/lib/translations/client"
 import { useData } from "@/context/data-provider"
 import { Pencil, Trash2, LayoutGrid, RotateCcw } from "lucide-react"
 import { ShareButton } from "./share-button"
@@ -54,7 +53,6 @@ export function Toolbar({
   onAutoArrange,
   onReset
 }: ToolbarProps) {
-  const t = useI18n()
   const { isMobile } = useData()
   const { settings, setAutoHide, setFixedPosition } = useToolbarSettingsStore()
   
@@ -66,7 +64,7 @@ export function Toolbar({
     
     // Show toast notification
     toast.success(
-      newValue ? t('toolbar.autoHideEnabled') : t('toolbar.autoHideDisabled'),
+      newValue ? "Loading..." : "Loading...",
       {
         duration: 2000,
       }
@@ -80,7 +78,7 @@ export function Toolbar({
     
     // Show toast notification
     toast.success(
-      newValue ? t('toolbar.fixedPositionEnabled') : t('toolbar.fixedPositionDisabled'),
+      newValue ? "Loading..." : "Loading...",
       {
         duration: 2000,
       }
@@ -278,7 +276,7 @@ export function Toolbar({
                 )} />
                 {!isMobile && (
                   <span className="text-sm font-medium">
-                    {isCustomizing ? t('widgets.done') : t('widgets.edit')}
+                    {isCustomizing ? "Done" : "Edit"}
                   </span>
                 )}
               </Button>
@@ -323,7 +321,7 @@ export function Toolbar({
                   <LayoutGrid className="h-4 w-4 shrink-0" />
                   {!isMobile && (
                     <span className="text-sm font-medium">
-                      {t('widgets.autoArrange')}
+                      Auto Arrange
                     </span>
                   )}
                 </Button>
@@ -351,7 +349,7 @@ export function Toolbar({
                   <RotateCcw className="h-4 w-4 shrink-0" />
                   {!isMobile && (
                     <span className="text-sm font-medium">
-                      {t('widgets.reset')}
+                      Reset
                     </span>
                   )}
                 </Button>
@@ -378,18 +376,18 @@ export function Toolbar({
                   </AlertDialogTrigger>
                   <AlertDialogContent className="bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl">
                     <AlertDialogHeader>
-                      <AlertDialogTitle>{t('widgets.deleteAllConfirmTitle')}</AlertDialogTitle>
+                      <AlertDialogTitle>Reset Layout</AlertDialogTitle>
                       <AlertDialogDescription>
-                        {t('widgets.deleteAllConfirmDescription')}
+                        This will reset all widgets to their default positions and sizes. This action cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel className="hover:bg-accent/80 transition-colors duration-200">{t('common.cancel')}</AlertDialogCancel>
+                      <AlertDialogCancel className="hover:bg-accent/80 transition-colors duration-200">{"Cancel"}</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={onRemoveAll}
                         className="bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground hover:shadow-lg hover:shadow-destructive/20 transition-all duration-200"
                       >
-                        {t('widgets.confirmDeleteAll')}
+                        Reset Layout
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -419,7 +417,7 @@ export function Toolbar({
                 />
               )}
             </div>
-            <span className="text-sm font-medium">{t('toolbar.autoHide')}</span>
+            <span className="text-sm font-medium">{"Auto Hide"}</span>
           </div>
         </ContextMenuItem>
         <ContextMenuItem 
@@ -440,7 +438,7 @@ export function Toolbar({
                 />
               )}
             </div>
-            <span className="text-sm font-medium">{t('toolbar.fixedPosition')}</span>
+            <span className="text-sm font-medium">{"Fixed Position"}</span>
           </div>
         </ContextMenuItem>
       </ContextMenuContent>

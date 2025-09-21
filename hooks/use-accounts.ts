@@ -46,7 +46,8 @@ interface UseAccountsOptions {
 let accountsCache: UnifiedAccount[] | null = null
 let accountsPromise: Promise<UnifiedAccount[]> | null = null
 let lastFetchTime = 0
-const CACHE_DURATION = 1000 // 1 second - very short cache for real-time updates
+const CACHE_DURATION = 300000 // 5 minutes - much longer cache for better performance
+let isCurrentlyFetching = false // Prevent multiple simultaneous requests
 
 // Function to clear cache when accounts are deleted
 export function clearAccountsCache() {
@@ -64,25 +65,30 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
   const { toast } = useToast()
 
   const fetchAccounts = useCallback(async (forceRefresh = false) => {
-    // Check cache first
+    // Check cache first - much more aggressive caching
     const now = Date.now()
     if (!forceRefresh && accountsCache && (now - lastFetchTime) < CACHE_DURATION) {
       setAccounts(accountsCache)
       setIsLoading(false)
       setError(null)
+      console.log('[useAccounts] Using cached accounts, skipping fetch')
       return
     }
 
-    // If there's already a request in progress, wait for it
-    if (accountsPromise && !forceRefresh) {
-      try {
-        const cachedAccounts = await accountsPromise
-        setAccounts(cachedAccounts)
-        setIsLoading(false)
-        setError(null)
-        return
-      } catch (err) {
-        // If the promise failed, continue with new request
+    // Prevent multiple simultaneous requests
+    if (isCurrentlyFetching && !forceRefresh) {
+      console.log('[useAccounts] Request already in progress, waiting...')
+      // If there's already a request in progress, wait for it
+      if (accountsPromise) {
+        try {
+          const cachedAccounts = await accountsPromise
+          setAccounts(cachedAccounts)
+          setIsLoading(false)
+          setError(null)
+          return
+        } catch (err) {
+          // If the promise failed, continue with new request
+        }
       }
     }
 
@@ -93,6 +99,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
 
     // Create new abort controller
     abortControllerRef.current = new AbortController()
+    isCurrentlyFetching = true
 
     try {
       setIsLoading(true)
@@ -140,27 +147,21 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
       const fetchedAccounts = await accountsPromise
 
       if (fetchedAccounts) {
-        console.log('[useAccounts] Setting accounts state:', fetchedAccounts.length, 'accounts')
-        console.log('[useAccounts] Account details:', fetchedAccounts.map(a => ({
-          id: a.id,
-          number: a.number,
-          status: a.status,
-          accountType: a.accountType
-        })))
-
         // Update cache
         accountsCache = fetchedAccounts
         lastFetchTime = now
 
         setAccounts(fetchedAccounts)
         setError(null)
+        console.log('[useAccounts] Successfully cached', fetchedAccounts.length, 'accounts')
       }
     } catch (err) {
       if (err instanceof Error) {
         if (err.name === 'AbortError') {
-          // Request was cancelled, don't update state
+          console.log('[useAccounts] Request was cancelled')
           return
         }
+        console.error('[useAccounts] Fetch error:', err.message)
         setError(err.message)
         toast({
           title: 'Error',
@@ -173,6 +174,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
     } finally {
       setIsLoading(false)
       accountsPromise = null
+      isCurrentlyFetching = false
     }
   }, [toast])
 
@@ -187,7 +189,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
         abortControllerRef.current.abort()
       }
     }
-  }, [fetchAccounts])
+  }, []) // Remove fetchAccounts from dependencies to prevent infinite loops
 
   return {
     accounts,

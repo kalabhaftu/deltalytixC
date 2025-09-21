@@ -7,7 +7,6 @@ import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { useData } from "@/context/data-provider"
 import { Trade } from "@prisma/client"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
-import { useI18n } from "@/lib/translations/client"
 import { formatInTimeZone } from 'date-fns-tz'
 
 interface ContractQuantityChartProps {
@@ -23,8 +22,6 @@ const chartConfig = {
 
 export default function ContractQuantityChart({ size = 'medium' }: ContractQuantityChartProps) {
   const { formattedTrades:trades } = useData()
-  const t = useI18n()
-
   const chartData = React.useMemo(() => {
     const hourlyData: { [hour: string]: { totalQuantity: number; count: number } } = {}
     
@@ -62,9 +59,9 @@ export default function ContractQuantityChart({ size = 'medium' }: ContractQuant
       const data = payload[0].payload
       return (
         <div className="bg-background p-2 border rounded shadow-sm">
-          <p className="font-semibold">{`${label}${t('contracts.tooltip.hour')} - ${(label + 1) % 24}${t('contracts.tooltip.hour')}`}</p>
-          <p className="font-bold">{t('contracts.tooltip.totalContracts')}: {data.totalQuantity}</p>
-          <p>{t('contracts.tooltip.numberOfTrades')}: {data.tradeCount}</p>
+          <p className="font-semibold">{`${label}:00 - ${(label + 1) % 24}:00`}</p>
+          <p className="font-bold">Total Quantity: {data.totalQuantity}</p>
+          <p>Trades: {data.tradeCount}</p>
         </div>
       )
     }
@@ -74,8 +71,8 @@ export default function ContractQuantityChart({ size = 'medium' }: ContractQuant
   return (
     <Card>
       <CardHeader className="sm:min-h-[120px] flex flex-col items-stretch space-y-0 border-b p-6">
-        <CardTitle>{t('contracts.title')}</CardTitle>
-        <CardDescription>{t('contracts.description')}</CardDescription>
+        <CardTitle>Contract Quantity by Hour</CardTitle>
+        <CardDescription>Distribution of contract quantities traded by hour of day</CardDescription>
       </CardHeader>
       <CardContent className="px-2 sm:p-6">
         <ChartContainer
@@ -100,7 +97,7 @@ export default function ContractQuantityChart({ size = 'medium' }: ContractQuant
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              tickFormatter={(value: number) => `${value}${t('contracts.tooltip.hour')}`}
+              tickFormatter={(value: number) => `${value}:00`}
               ticks={[0, 3, 6, 9, 12, 15, 18, 21]}
             />
             <YAxis
@@ -108,7 +105,7 @@ export default function ContractQuantityChart({ size = 'medium' }: ContractQuant
               axisLine={false}
               tickMargin={8}
               tickFormatter={(value: number) => value.toFixed(0)}
-              label={{ value: t('contracts.axis.contracts'), angle: -90, position: 'insideLeft' }}
+              label={{ value: "Quantity", angle: -90, position: 'insideLeft' }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Bar

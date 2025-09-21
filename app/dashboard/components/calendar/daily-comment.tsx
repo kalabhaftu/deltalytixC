@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useI18n } from "@/lib/translations/client"
 import { useToast } from "@/hooks/use-toast"
 import { CalendarEntry } from "@/app/dashboard/types/calendar"
 
@@ -16,7 +15,6 @@ interface DailyCommentProps {
 }
 
 export function DailyComment({ dayData, selectedDate }: DailyCommentProps) {
-  const t = useI18n()
   const { toast } = useToast()
   const [comment, setComment] = React.useState<string>("")
   const [isSavingComment, setIsSavingComment] = React.useState(false)
@@ -29,7 +27,7 @@ export function DailyComment({ dayData, selectedDate }: DailyCommentProps) {
     if (storedComment) {
       setComment(storedComment)
     } else {
-      setComment("")
+      setComment('')
     }
   }, [selectedDate])
 
@@ -43,13 +41,13 @@ export function DailyComment({ dayData, selectedDate }: DailyCommentProps) {
       localStorage.setItem(storageKey, comment)
 
       toast({
-        title: t('success'),
+        title: "Success",
         description: 'Comment saved locally',
       })
     } catch (error) {
       console.error('Error saving comment:', error)
       toast({
-        title: t('error'),
+        title: "Error",
         description: 'Failed to save comment',
         variant: "destructive",
       })

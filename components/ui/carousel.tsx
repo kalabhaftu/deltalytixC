@@ -89,8 +89,8 @@ const Carousel = React.forwardRef<
       (event: React.KeyboardEvent<HTMLDivElement>) => {
         // Don't handle arrow keys if the target is an editor element
         if (event.target instanceof HTMLElement && 
-            (event.target.closest('.ProseMirror') || 
-             event.target.closest('[contenteditable="true"]'))) {
+            (event.target.closes"Loading..." || 
+             event.target.closes"Loading...")) {
           return
         }
 

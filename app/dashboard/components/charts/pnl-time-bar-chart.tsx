@@ -15,7 +15,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
-import { useI18n } from "@/lib/translations/client"
 import { formatInTimeZone } from 'date-fns-tz'
 import { Button } from "@/components/ui/button"
 import { useUserStore } from "@/store/user-store"
@@ -38,8 +37,6 @@ export default function TimeOfDayTradeChart({ size = 'medium' }: TimeOfDayTradeC
   const { formattedTrades: trades, hourFilter, setHourFilter } = useData()
   const timezone = useUserStore(state => state.timezone)
   const [activeHour, setActiveHour] = React.useState<number | null>(null)
-  const t = useI18n()
-
   const handleClick = React.useCallback(() => {
     if (activeHour === null) return
     if (hourFilter.hour === activeHour) {
@@ -99,7 +96,7 @@ export default function TimeOfDayTradeChart({ size = 'medium' }: TimeOfDayTradeC
           <div className="grid gap-2">
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('pnlTime.tooltip.time')}
+                Time Period
               </span>
               <span className="font-bold text-muted-foreground">
                 {`${label}:00 - ${(label + 1) % 24}:00`}
@@ -107,7 +104,7 @@ export default function TimeOfDayTradeChart({ size = 'medium' }: TimeOfDayTradeC
             </div>
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('pnlTime.tooltip.averagePnl')}
+                Avg P&L
               </span>
               <span className="font-bold">
                 {formatCurrency(data.avgPnl)}
@@ -115,10 +112,10 @@ export default function TimeOfDayTradeChart({ size = 'medium' }: TimeOfDayTradeC
             </div>
             <div className="flex flex-col">
               <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t('pnlTime.tooltip.trades')}
+                Trades
               </span>
               <span className="font-bold text-muted-foreground">
-                {data.tradeCount} {data.tradeCount === 1 ? t('pnlTime.tooltip.trade') : t('pnlTime.tooltip.trades_plural')}
+                {data.tradeCount} {data.tradeCount === 1 ? "trade" : "trades"}
               </span>
             </div>
           </div>
@@ -144,7 +141,7 @@ export default function TimeOfDayTradeChart({ size = 'medium' }: TimeOfDayTradeC
                 size === 'small-long' ? "text-sm" : "text-base"
               )}
             >
-              {t('pnlTime.title')}
+              P&L by Hour
             </CardTitle>
             <TooltipProvider>
               <UITooltip>
@@ -155,7 +152,7 @@ export default function TimeOfDayTradeChart({ size = 'medium' }: TimeOfDayTradeC
                   )} />
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>{t('pnlTime.description')}</p>
+                  <p>P&L performance by hour of day</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>
@@ -167,7 +164,7 @@ export default function TimeOfDayTradeChart({ size = 'medium' }: TimeOfDayTradeC
               className="h-8 px-2 lg:px-3"
               onClick={() => setHourFilter({ hour: null })}
             >
-              {t('pnlTime.clearFilter')}
+              Clear Filter
             </Button>
           )}
         </div>

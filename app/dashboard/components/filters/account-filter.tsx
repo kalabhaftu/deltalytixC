@@ -4,7 +4,6 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { useI18n } from "@/lib/translations/client"
 import { useState, useEffect } from "react"
 import { Building2, User, X, Filter } from "lucide-react"
 import { useData } from "@/context/data-provider"
@@ -27,8 +26,6 @@ export function AccountFilter({ showAccountNumbers, className }: AccountFilterPr
   const { accounts } = useAccounts()
   const [searchTerm, setSearchTerm] = useState("")
   const [filters, setFilters] = useState<DashboardFilters>({ showAll: true, accountType: 'all' })
-  const t = useI18n()
-
   // Load saved filters from localStorage
   useEffect(() => {
     try {

@@ -3,7 +3,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Scale, HelpCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { WidgetSize } from '../../types/dashboard'
-import { useI18n } from '@/lib/translations/client'
 import {
   Tooltip,
   TooltipContent,
@@ -17,7 +16,6 @@ interface ProfitFactorCardProps {
 
 export default function ProfitFactorCard({ size = 'medium' }: ProfitFactorCardProps) {
   const { statistics: { profitFactor, nbTrades } } = useData()
-  const  t  = useI18n()
 
     return (
       <Card className="h-full">
@@ -36,7 +34,7 @@ export default function ProfitFactorCard({ size = 'medium' }: ProfitFactorCardPr
                 sideOffset={5} 
                 className="max-w-[300px]"
               >
-                {t('widgets.profitFactor.tooltip')}
+                The ratio of gross profit to gross loss. A value above 1.0 indicates profitability.
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

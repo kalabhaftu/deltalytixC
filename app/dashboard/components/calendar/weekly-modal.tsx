@@ -8,8 +8,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CalendarData } from "@/app/dashboard/types/calendar"
 import { Charts } from "./charts"
-import { useI18n, useCurrentLocale } from "@/lib/translations/client"
-
 interface WeeklyModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -25,8 +23,7 @@ export function WeeklyModal({
   calendarData,
   isLoading,
 }: WeeklyModalProps) {
-  const t = useI18n()
-  const locale = useCurrentLocale()
+  const locale = 'en' // Default to English since i18n was removed
   const dateLocale = enUS
   const [activeTab, setActiveTab] = useState("charts")
 
@@ -72,7 +69,7 @@ export function WeeklyModal({
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>{dateRange}</DialogTitle>
           <DialogDescription>
-            {t('calendar.modal.weeklyDetails')}
+            Detailed analysis for the selected week
           </DialogDescription>
         </DialogHeader>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
@@ -81,7 +78,7 @@ export function WeeklyModal({
               value="charts"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-accent hover:text-accent-foreground"
             >
-              {t('calendar.modal.charts')}
+              Charts
             </TabsTrigger>
           </TabsList>
           <TabsContent value="charts" className="flex-grow overflow-auto p-6 pt-2">
