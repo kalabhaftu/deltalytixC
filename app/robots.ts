@@ -11,6 +11,5 @@ export default function robots(): MetadataRoute.Robots {
         '/authentication/',
       ],
     },
-    sitemap: 'https://deltalytix.app/sitemap.xml',
   }
 } 

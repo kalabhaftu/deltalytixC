@@ -15,7 +15,6 @@ import Script from "next/script"
 export const metadata: Metadata = {
   title: "Deltalytix",
   description: "Next generation trading dashboard",
-  metadataBase: new URL('https://deltalytix.app'), 
   openGraph: {
     title: "Deltalytix",
     description: "Deltalytix is a next generation trading dashboard that provides real-time insights and analytics for traders.",
