@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       updatedAt: new Date().toISOString()
     }
 
-    console.log('[API/account-filters] Returning default settings:', settings)
+    // Removed settings logging for security
 
     return NextResponse.json({
       success: true,
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     // Add timestamp and return without saving to DB for now
     settings.updatedAt = new Date().toISOString()
 
-    console.log('[API/account-filters] Received settings update:', settings)
+    // Removed settings update logging for security
 
     return NextResponse.json({
       success: true,

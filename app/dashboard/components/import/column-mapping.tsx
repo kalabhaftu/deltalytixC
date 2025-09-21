@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils'
 import { z } from 'zod'
 
 type MappingObject = z.infer<typeof mappingSchema>
-type MappingKey = keyof MappingObject
 
 type ColumnConfig = {
   [key: string]: {

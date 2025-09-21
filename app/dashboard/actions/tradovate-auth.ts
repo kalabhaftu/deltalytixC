@@ -61,8 +61,6 @@ export async function getTradovateAccessToken(): Promise<TradovateAuthResponse> 
             deviceId: deviceId
         };
 
-        console.log('requestBody', requestBody);
-
         const response = await fetch('https://live.tradovateapi.com/v1/auth/accessTokenRequest', {
             method: 'POST',
             headers: {
@@ -82,8 +80,7 @@ export async function getTradovateAccessToken(): Promise<TradovateAuthResponse> 
         }
 
         const data: TradovateApiResponse = await response.json();
-        console.log('response', data);
-        
+
         // Check if captcha is required
         if (data['p-captcha'] === true) {
             return {

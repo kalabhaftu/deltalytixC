@@ -33,9 +33,9 @@ export async function GET(request: NextRequest) {
     let currentUserId: string
     try {
       currentUserId = await getUserId()
-      console.log('[API/accounts] User authenticated:', currentUserId)
+      console.log('[API/accounts] User authenticated successfully')
     } catch (authError) {
-      console.error('Authentication error in accounts API:', authError)
+      console.error('Authentication error in accounts API')
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
@@ -44,8 +44,7 @@ export async function GET(request: NextRequest) {
 
     // Always exclude failed accounts unless explicitly requested
     const includeFailedAccounts = request.nextUrl.searchParams.get('error') === 'true'
-    console.log('[API/accounts] Include failed accounts:', includeFailedAccounts)
-    
+
     let whereClause: any = { userId: currentUserId }
     
     if (!includeFailedAccounts) {
@@ -58,8 +57,6 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    console.log('[API/accounts] Where clause:', JSON.stringify(whereClause))
-
     // Simplified query - only fetch essential data for current user
     const accounts = await prisma.account.findMany({
       where: whereClause,
@@ -97,12 +94,6 @@ export async function GET(request: NextRequest) {
     })
     
     console.log('[API/accounts] Raw accounts from DB:', accounts.length, 'accounts found')
-    console.log('[API/accounts] Account details:', accounts.map(a => ({ 
-      id: a.id, 
-      number: a.number, 
-      status: a.status, 
-      userId: a.userId 
-    })))
 
     // Transform accounts with minimal processing
     const transformedAccounts = accounts.map(account => ({
@@ -127,12 +118,6 @@ export async function GET(request: NextRequest) {
     }))
 
     console.log('[API/accounts] Transformed accounts:', transformedAccounts.length, 'accounts')
-    console.log('[API/accounts] Response data:', transformedAccounts.map(a => ({ 
-      id: a.id, 
-      number: a.number, 
-      status: a.status, 
-      accountType: a.accountType 
-    })))
 
     return NextResponse.json({
       success: true,

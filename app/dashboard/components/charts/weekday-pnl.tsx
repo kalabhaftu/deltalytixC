@@ -19,15 +19,6 @@ import { Switch } from "@/components/ui/switch"
 
 const daysOfWeek = [0, 1, 2, 3, 4, 5, 6]; // Sunday = 0, Saturday = 6
 
-type WeekdayTranslationKey =
-  | 'weekdayPnl.days.sunday'
-  | 'weekdayPnl.days.monday'
-  | 'weekdayPnl.days.tuesday'
-  | 'weekdayPnl.days.wednesday'
-  | 'weekdayPnl.days.thursday'
-  | 'weekdayPnl.days.friday'
-  | 'weekdayPnl.days.saturday';
-
 interface WeekdayPNLChartProps {
   size?: WidgetSize
 }

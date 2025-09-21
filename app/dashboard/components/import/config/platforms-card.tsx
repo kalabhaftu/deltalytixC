@@ -15,25 +15,7 @@ import ManualTradeFormCard from '../manual-trade-entry/manual-trade-form-card'
 import { Step } from '../import-button'
 import { Sparkles, Plus } from 'lucide-react'
 
-type TranslationKey =
-  | 'import.steps.selectPlatform'
-  | 'import.steps.selectPlatformDescription'
-  | 'import.steps.uploadFile'
-  | 'import.steps.uploadFileDescription'
-  | 'import.steps.selectHeaders'
-  | 'import.steps.selectHeadersDescription'
-  | 'import.steps.mapColumns'
-  | 'import.steps.mapColumnsDescription'
-  | 'import.steps.selectAccount'
-  | 'import.steps.selectAccountDescription'
-  | 'import.steps.reviewTrades'
-  | 'import.steps.reviewTradesDescription'
-  | 'import.steps.processTrades'
-  | 'import.steps.processTradesDescription'
-  | 'import.steps.connectAccount'
-  | 'import.steps.connectAccountDescription'
-  | 'import.steps.processFile'
-  | 'import.steps.processFileDescription'
+type StepText = string
 
 export interface ProcessedData {
   headers: string[]
@@ -84,8 +66,8 @@ export interface PlatformConfig {
   tutorialLink?: string
   steps: {
     id: Step
-    title: TranslationKey
-    description: TranslationKey
+    title: StepText
+    description: StepText
     component: StepComponent
     isLastStep?: boolean
   }[]
@@ -139,14 +121,14 @@ export const platforms: PlatformConfig[] = [
     steps: [
       {
         id: 'select-import-type',
-        title: 'import.steps.selectPlatform',
-        description: 'import.steps.selectPlatformDescription',
+        title: 'Select Platform',
+        description: 'Choose the platform you want to import from',
         component: ImportTypeSelection
       },
       {
         id: 'preview-trades',
-        title: 'import.steps.reviewTrades',
-        description: 'import.steps.reviewTradesDescription',
+        title: 'Review Trades',
+        description: 'Review the trades that will be imported',
         component: ManualTradeFormCard,
         isLastStep: true
       }
@@ -217,26 +199,26 @@ export const platforms: PlatformConfig[] = [
     steps: [
       {
         id: 'select-import-type',
-        title: 'import.steps.selectPlatform',
-        description: 'import.steps.selectPlatformDescription',
+        title: 'Select Platform',
+        description: 'Choose the platform you want to import from',
         component: ImportTypeSelection
       },
       {
         id: 'upload-file',
-        title: 'import.steps.uploadFile',
-        description: 'import.steps.uploadFileDescription',
+        title: 'Upload File',
+        description: 'Upload the CSV file you want to import',
         component: FileUpload
       },
       {
         id: 'select-headers',
-        title: 'import.steps.selectHeaders',
-        description: 'import.steps.selectHeadersDescription',
+        title: 'Select Headers',
+        description: 'Select the headers that contain the trade data',
         component: HeaderSelection
       },
       {
         id: 'preview-trades',
-        title: 'import.steps.processTrades',
-        description: 'import.steps.processTradesDescription',
+        title: 'Process Trades',
+        description: 'Processing your trades',
         component: TradezellaProcessor,
         isLastStep: true
       }
@@ -260,32 +242,32 @@ export const platforms: PlatformConfig[] = [
     steps: [
       {
         id: 'select-import-type',
-        title: 'import.steps.selectPlatform',
-        description: 'import.steps.selectPlatformDescription',
+        title: 'Select Platform',
+        description: 'Choose the platform you want to import from',
         component: ImportTypeSelection
       },
       {
         id: 'upload-file',
-        title: 'import.steps.uploadFile',
-        description: 'import.steps.uploadFileDescription',
+        title: 'Upload File',
+        description: 'Upload the CSV file you want to import',
         component: FileUpload
       },
       {
         id: 'select-headers',
-        title: 'import.steps.selectHeaders',
-        description: 'import.steps.selectHeadersDescription',
+        title: 'Select Headers',
+        description: 'Select the headers that contain the trade data',
         component: HeaderSelection
       },
       {
         id: 'select-account',
-        title: 'import.steps.selectAccount',
-        description: 'import.steps.selectAccountDescription',
+        title: 'Select Account',
+        description: 'Select the account you want to import the trades to',
         component: AccountSelection
       },
       {
         id: 'preview-trades',
-        title: 'import.steps.processTrades',
-        description: 'import.steps.processTradesDescription',
+        title: 'Process Trades',
+        description: 'Processing your trades',
         component: TopstepProcessor,
         isLastStep: true
       }
@@ -308,26 +290,26 @@ export const platforms: PlatformConfig[] = [
     steps: [
       {
         id: 'select-import-type',
-        title: 'import.steps.selectPlatform',
-        description: 'import.steps.selectPlatformDescription',
+        title: 'Select Platform',
+        description: 'Choose the platform you want to import from',
         component: ImportTypeSelection
       },
       {
         id: 'upload-file',
-        title: 'import.steps.uploadFile',
-        description: 'import.steps.uploadFileDescription',
+        title: 'Upload File',
+        description: 'Upload the CSV file you want to import',
         component: FileUpload
       },
       {
         id: 'select-account',
-        title: 'import.steps.selectAccount',
-        description: 'import.steps.selectAccountDescription',
+        title: 'Select Account',
+        description: 'Select the account you want to import the trades to',
         component: AccountSelection
       },
       {
         id: 'preview-trades',
-        title: 'import.steps.processTrades',
-        description: 'import.steps.processTradesDescription',
+        title: 'Process Trades',
+        description: 'Processing your trades',
         component: MatchTraderProcessor,
         isLastStep: true
       }
@@ -349,26 +331,26 @@ export const platforms: PlatformConfig[] = [
     steps: [
       {
         id: 'select-import-type',
-        title: 'import.steps.selectPlatform',
-        description: 'import.steps.selectPlatformDescription',
+        title: 'Select Platform',
+        description: 'Choose the platform you want to import from',
         component: ImportTypeSelection
       },
       {
         id: 'upload-file',
-        title: 'import.steps.uploadFile',
-        description: 'import.steps.uploadFileDescription',
+        title: 'Upload File',
+        description: 'Upload the PDF file you want to import',
         component: PdfUpload
       },
       {
         id: 'process-file',
-        title: 'import.steps.processFile',
-        description: 'import.steps.processFileDescription',
+        title: 'Process File',
+        description: 'Processing your file',
         component: PdfProcessing
       },
       {
         id: 'select-account',
-        title: 'import.steps.selectAccount',
-        description: 'import.steps.selectAccountDescription',
+        title: 'Select Account',
+        description: 'Select the account you want to import the trades to',
         component: AccountSelection
       },
     ]
