@@ -67,19 +67,19 @@ export function TradeProgressChart({
 }: TradeProgressChartProps) {
   const chartConfig = {
     balance: {
-      label: "Loading...",
+      label: "Balance",
       color: "#2563eb",
     },
     drawdown: {
-      label: "Loading...",
+      label: "Drawdown",
       color: "#dc2626",
     },
     target: {
-      label: "Loading...",
+      label: "Target",
       color: "#16a34a",
     },
     payout: {
-      label: "Loading...",
+      label: "Payout",
       color: "#9333ea",
     }
   }
@@ -319,7 +319,7 @@ export function TradeProgressChart({
                 stroke="#666"
                 strokeDasharray="3 3"
                 label={{
-                  value: "Loading...",
+                  value: "Balance",
                   position: "right",
                   fill: "#666",
                   fontSize: 12,

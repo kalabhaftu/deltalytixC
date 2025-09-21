@@ -129,8 +129,8 @@ export const AddWidgetSheet = forwardRef<HTMLButtonElement, AddWidgetSheetProps>
     const handleAddWidget = (type: WidgetType) => {
       const config = WIDGET_REGISTRY[type]
       onAddWidget(type, config.defaultSize)
-      toast("Loading...", {
-        description: "Loading...",
+      toast("Widget added", {
+        description: "The widget has been added to your dashboard",
       })
     }
 
@@ -217,14 +217,14 @@ export const AddWidgetSheet = forwardRef<HTMLButtonElement, AddWidgetSheetProps>
             <Plus className="h-4 w-4 shrink-0" />
             {!isMobile && (
               <span className="text-sm font-medium">
-                {"Add"}
+                {"Add Widget"}
               </span>
             )}
           </Button>
         </SheetTrigger>
         <SheetContent side="right" className="w-[90vw] sm:max-w-[640px] flex flex-col h-[100dvh] overflow-hidden">
           <SheetHeader>
-            <SheetTitle>{"Add"}</SheetTitle>
+            <SheetTitle>{"Add Widget"}</SheetTitle>
           </SheetHeader>
           <Tabs defaultValue="other" className="flex-1 flex flex-col mt-6 min-h-0">
             <TabsList className="w-full">

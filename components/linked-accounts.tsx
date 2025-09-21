@@ -156,7 +156,7 @@ export function LinkedAccounts() {
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            Loading...
+            Loading linked accounts...
           </div>
         </CardContent>
       </Card>

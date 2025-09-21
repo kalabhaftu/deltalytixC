@@ -20,13 +20,13 @@ import { Account } from "@/context/data-provider"
 
 
 const WEEKDAYS = [
-  'calendar.weekdays.sun',
-  'calendar.weekdays.mon',
-  'calendar.weekdays.tue',
-  'calendar.weekdays.wed',
-  'calendar.weekdays.thu',
-  'calendar.weekdays.fri',
-  'calendar.weekdays.sat'
+  'Sun',
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat'
 ] as const
 
 
@@ -262,10 +262,10 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 min-h-0 p-1.5 sm:p-4">
+      <CardContent className="flex-1 min-h-0 p-1 sm:p-2">
         {viewMode === 'daily' ? (
           <>
-            <div className="grid grid-cols-8 gap-x-[1px] mb-1">
+            <div className="grid grid-cols-8 gap-x-2 mb-2">
               {WEEKDAYS.map((day) => (
                 <div key={day} className="text-center font-medium text-[9px] sm:text-[11px] text-muted-foreground">
                   {day}
@@ -275,7 +275,7 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
                 Weekly
               </div>
             </div>
-            <div className="grid grid-cols-8 gap-1">
+            <div className="grid grid-cols-8 gap-2 h-fit min-h-[500px] max-h-[700px] overflow-hidden">
               {calendarDays.map((date, index) => {
                 const dateString = format(date, 'yyyy-MM-dd')
                 const dayData = calendarData[dateString]

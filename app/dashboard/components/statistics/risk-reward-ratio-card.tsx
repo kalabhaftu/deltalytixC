@@ -63,7 +63,7 @@ export default function RiskRewardRatioCard({ size = 'tiny' }: RiskRewardRatioCa
                 sideOffset={5} 
                 className="max-w-[300px]"
               >
-                Loading...
+                Ratio between your average win and average loss. A ratio above 1 indicates your wins are larger than your losses, which is a positive indicator of your trading strategy.
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

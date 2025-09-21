@@ -236,55 +236,55 @@ export default function TradeTable() {
                 />
               </TableHead>
             <TableHead className="w-[100px]">
-              <Button variant="ghost" onClick={() => handleSor"Instruments"}>
+              <Button variant="ghost" onClick={() => handleSort('instrument')}>
                 Instrument
                 {sortConfig.key === 'instrument' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead>
-              <Button variant="ghost" onClick={() => handleSor"Loading..."}>
+              <Button variant="ghost" onClick={() => handleSort('accountNumber')}>
                 Account
                 {sortConfig.key === 'accountNumber' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead>
-              <Button variant="ghost" onClick={() => handleSor"Side"}>
+              <Button variant="ghost" onClick={() => handleSort('side')}>
                 Side
                 {sortConfig.key === 'side' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead>
-              <Button variant="ghost" onClick={() => handleSor"Quantity"}>
+              <Button variant="ghost" onClick={() => handleSort('quantity')}>
                 Quantity
                 {sortConfig.key === 'quantity' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead>
-              <Button variant="ghost" onClick={() => handleSor"Loading..."}>
+              <Button variant="ghost" onClick={() => handleSort('entryPrice')}>
                 Entry Price
                 {sortConfig.key === 'entryPrice' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead>
-              <Button variant="ghost" onClick={() => handleSor"Loading..."}>
+              <Button variant="ghost" onClick={() => handleSort('closePrice')}>
                 Close Price
                 {sortConfig.key === 'closePrice' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead>
-              <Button variant="ghost" onClick={() => handleSor"Loading..."}>
+              <Button variant="ghost" onClick={() => handleSort('entryDate')}>
                 Entry Date
                 {sortConfig.key === 'entryDate' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead>
-              <Button variant="ghost" onClick={() => handleSor"Loading..."}>
+              <Button variant="ghost" onClick={() => handleSort('closeDate')}>
                 Close Date
                 {sortConfig.key === 'closeDate' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead>
-              <Button variant="ghost" onClick={() => handleSor"PnL"}>
+              <Button variant="ghost" onClick={() => handleSort('pnl')}>
                 PNL
                 {sortConfig.key === 'pnl' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>

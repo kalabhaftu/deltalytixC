@@ -7,32 +7,18 @@ import { Logo } from '@/components/logo'
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Home, Search, Sun, Moon, Monitor } from "lucide-react"
 
-// Define translations locally to avoid I18nProvider dependency
-const translations = {
-  en: {
-    title: '404 - Page Not Found',
-    heading: 'Oops! Page not found',
-    description: 'The page you\'re looking for doesn\'t exist or has been moved.',
-    goHome: 'Go back home',
-    goBack: 'Go back',
-    searchPlaceholder: 'Search for a page...',
-    searchComingSoon: 'Search functionality coming soon'
-  },
-  fr: {
-    title: '404 - Page introuvable',
-    heading: 'Oups ! Page introuvable',
-    description: 'La page que vous recherchez n&apos;existe pas ou a été déplacée.',
-    goHome: 'Retour à l&apos;accueil',
-    goBack: 'Retourner',
-    searchPlaceholder: 'Rechercher une page...',
-    searchComingSoon: 'Fonctionnalité de recherche bientôt disponible'
-  }
+// English-only text constants
+const text = {
+  title: '404 - Page Not Found',
+  heading: 'Oops! Page not found',
+  description: 'The page you\'re looking for doesn\'t exist or has been moved.',
+  goHome: 'Go back home',
+  goBack: 'Go back',
+  searchPlaceholder: 'Search for a page...',
+  searchComingSoon: 'Search functionality coming soon'
 }
 
-function getLocaleFromGeolocation(): 'en' {
-  // Always return English since we only support English now
-  return 'en'
-}
+// Removed unnecessary locale detection - English only
 
 function getThemeFromLocalStorage(): 'light' | 'dark' | 'system' {
   if (typeof window === 'undefined') return 'system'
@@ -64,25 +50,19 @@ function applyThemeToDocument(effectiveTheme: 'light' | 'dark', intensity: numbe
   root.style.setProperty('--theme-intensity', `${intensity}%`)
 }
 
-function detectLocaleFromBrowser(): 'en' {
-  // Always return English since we only support English now
-  return 'en'
-}
+// Removed unnecessary locale detection - English only
 
 function NotFoundContent() {
   const router = useRouter()
-  const [locale, setLocale] = useState<'en'>('en')
   const [isClient, setIsClient] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
   const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light')
 
   useEffect(() => {
     setIsClient(true)
-    const detectedLocale = detectLocaleFromBrowser()
-    setLocale(detectedLocale)
     
     // Set page title
-    document.title = translations[detectedLocale].title + ' | Deltalytix'
+    document.title = text.title + ' | Deltalytix'
     
     // Apply theme from localStorage
     const savedTheme = getThemeFromLocalStorage()
@@ -105,8 +85,6 @@ function NotFoundContent() {
     mediaQuery.addEventListener('change', handleThemeChange)
     return () => mediaQuery.removeEventListener('change', handleThemeChange)
   }, [])
-
-  const t = translations[locale]
 
   const handleGoBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -136,7 +114,7 @@ function NotFoundContent() {
     return <Sun className="w-4 h-4" />
   }
 
-  // Show fallback during hydration with English as default (respects system theme)
+  // Show fallback during hydration with English text
   if (!isClient) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 relative">
@@ -146,16 +124,16 @@ function NotFoundContent() {
         <Logo className="w-16 h-16 mb-8 fill-primary" />
         <h1 className="text-6xl font-bold mb-4 text-foreground">404</h1>
         <h2 className="text-2xl font-semibold text-muted-foreground mb-6 text-center">
-          Page introuvable
+          {text.heading}
         </h2>
         <p className="text-muted-foreground mb-8 text-center max-w-md leading-relaxed">
-          La page que vous recherchez n&apos;existe pas ou a été déplacée.
+          {text.description}
         </p>
         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
           <Button asChild variant="default" className="flex-1">
             <Link href="/">
               <Home className="w-4 h-4 mr-2" />
-              Retour à l&apos;accueil
+              {text.goHome}
             </Link>
           </Button>
         </div>
@@ -183,12 +161,12 @@ function NotFoundContent() {
       
       {/* Heading */}
       <h2 className="text-2xl font-semibold text-muted-foreground mb-6 text-center">
-        {t.heading}
+        {text.heading}
       </h2>
       
       {/* Description */}
       <p className="text-muted-foreground mb-8 text-center max-w-md leading-relaxed">
-        {t.description}
+        {text.description}
       </p>
       
       {/* Action buttons */}
@@ -196,17 +174,17 @@ function NotFoundContent() {
         <Button asChild variant="default" className="flex-1">
           <Link href="/">
             <Home className="w-4 h-4 mr-2" />
-            {t.goHome}
+            {text.goHome}
           </Link>
         </Button>
         
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={handleGoBack}
           className="flex-1"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          {t.goBack}
+          {text.goBack}
         </Button>
       </div>
       
@@ -216,13 +194,13 @@ function NotFoundContent() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <input
             type="text"
-            placeholder={t.searchPlaceholder}
+            placeholder={text.searchPlaceholder}
             className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
             disabled
           />
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          {t.searchComingSoon}
+          {text.searchComingSoon}
         </p>
       </div>
     </div>

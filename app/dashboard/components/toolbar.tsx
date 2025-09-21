@@ -61,10 +61,10 @@ export function Toolbar({
     const newValue = !settings.autoHide
     console.log('Toggling auto-hide from', settings.autoHide, 'to', newValue)
     setAutoHide(newValue)
-    
+
     // Show toast notification
     toast.success(
-      newValue ? "Loading..." : "Loading...",
+      newValue ? "Auto-hide enabled" : "Auto-hide disabled",
       {
         duration: 2000,
       }
@@ -75,10 +75,10 @@ export function Toolbar({
   const handleFixedPositionToggle = () => {
     const newValue = !settings.fixedPosition
     setFixedPosition(newValue)
-    
+
     // Show toast notification
     toast.success(
-      newValue ? "Loading..." : "Loading...",
+      newValue ? "Fixed position enabled" : "Fixed position disabled",
       {
         duration: 2000,
       }

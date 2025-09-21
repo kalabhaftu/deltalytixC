@@ -88,9 +88,9 @@ const Carousel = React.forwardRef<
     const handleKeyDown = React.useCallback(
       (event: React.KeyboardEvent<HTMLDivElement>) => {
         // Don't handle arrow keys if the target is an editor element
-        if (event.target instanceof HTMLElement && 
-            (event.target.closes"Loading..." || 
-             event.target.closes"Loading...")) {
+        if (event.target instanceof HTMLElement &&
+            (event.target.closest('input') ||
+             event.target.closest('textarea'))) {
           return
         }
 

@@ -39,15 +39,15 @@ export const BaseAccountSchema = z.object({
   
   // Drawdown configuration
   dailyDrawdownAmount: z.number().min(0).optional(),
-  dailyDrawdownType: DrawdownTypeSchema.defaul"Loading...",
+  dailyDrawdownType: DrawdownTypeSchema.default("percentage"),
   maxDrawdownAmount: z.number().min(0).optional(),
-  maxDrawdownType: DrawdownTypeSchema.defaul"Loading...",
-  drawdownModeMax: DrawdownModeSchema.defaul"Loading...",
+  maxDrawdownType: DrawdownTypeSchema.default("percentage"),
+  drawdownModeMax: DrawdownModeSchema.default("trailing"),
   
   // Evaluation settings
-  evaluationType: EvaluationTypeSchema.defaul"Loading...",
-  timezone: TimezoneSchema.defaul"Loading...",
-  dailyResetTime: TimeSchema.defaul"Loading...",
+  evaluationType: EvaluationTypeSchema.default("standard"),
+  timezone: TimezoneSchema.default("UTC"),
+  dailyResetTime: TimeSchema.default("17:00"),
   
   // Phase 1 profit target (required for evaluation accounts)
   profitTarget: z.number().min(0).optional(),

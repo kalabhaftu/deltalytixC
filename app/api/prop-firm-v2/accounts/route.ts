@@ -104,13 +104,13 @@ export async function GET(request: NextRequest) {
       status: searchParams.getAll('status'),
       phaseType: searchParams.getAll('phaseType'),
       firmType: searchParams.getAll('firmType'),
-      includeFailed: searchParams.get('error') === 'true',
-      includeDemo: searchParams.get('error') !== 'false',
-      search: searchParams.ge"Search" || undefined,
-      page: parseInt(searchParams.get('error') || '1'),
-      limit: parseInt(searchParams.get('error') || '20'),
-      sortBy: searchParams.get('error') || 'createdAt',
-      sortOrder: (searchParams.get('error') as 'asc' | 'desc') || 'desc',
+      includeFailed: searchParams.get('includeFailed') === 'true',
+      includeDemo: searchParams.get('includeDemo') !== 'false',
+      search: searchParams.get("search") || undefined,
+      page: parseInt(searchParams.get('page') || '1'),
+      limit: parseInt(searchParams.get('limit') || '20'),
+      sortBy: searchParams.get('sortBy') || 'createdAt',
+      sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
     }
     
     const filters = AccountFilterSchema.parse(filterData)

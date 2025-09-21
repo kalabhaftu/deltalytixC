@@ -138,7 +138,7 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
                     : "text-base"
               )}
             >
-                Loading...
+                Statistics Overview
             </CardTitle>
             <TooltipProvider>
               <Tooltip>

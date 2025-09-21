@@ -49,11 +49,11 @@ export default function ImportTypeSelection({ selectedType, setSelectedType, set
   const getTranslatedCategory = (category: PlatformConfig['category']) => {
     switch (category) {
       case 'Direct Account Sync':
-        return "Loading..."
+        return "Direct Account Sync"
       case 'Intelligent Import':
-        return "Loading..."
+        return "Intelligent Import"
       case 'Platform CSV Import':
-        return "Loading..."
+        return "Platform CSV Import"
       default:
         return category
     }

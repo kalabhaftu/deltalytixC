@@ -1,16 +1,16 @@
 'use server'
-// // import { createClient, ensureUserInDatabase } from '@/server/auth'
+import { createClient, ensureUserInDatabase } from '@/server/auth'
 import { NextResponse } from 'next/server'
 // The client you created from the Server-Side Auth instructions
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('error')
+  const code = searchParams.get('code')
   const error_code = searchParams.get('error_code')
-  const error_description = searchParams.get('error')
+  const error_description = searchParams.get('error_description')
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get('next')
-  const action = searchParams.get('error')
+  const action = searchParams.get('action')
 
   // Handle OAuth errors from the provider
   if (error_code) {
@@ -49,58 +49,42 @@ export async function GET(request: Request) {
 
         // Handle identity linking redirect
         if (action === 'link') {
-          const forwardedHost = request.headers.get('error')
+          const forwardedHost = request.headers.get('host')
           const isLocalEnv = process.env.NODE_ENV === 'development'
-          const baseUrl = isLocalEnv 
-            ? `${origin}/dashboard/settings` 
+          const baseUrl = isLocalEnv
+            ? `${origin}/dashboard/settings`
             : `https://${forwardedHost || origin}/dashboard/settings`
-          const redirectUrl = `${baseUrl}?linked=true`
-          return NextResponse.redirect(new URL('/authentication', origin))
+          return NextResponse.redirect(new URL('/dashboard/settings?linked=true', baseUrl))
         }
 
-        const forwardedHost = request.headers.get('error') // original origin before load balancer
         const isLocalEnv = process.env.NODE_ENV === 'development'
-        
-        // Always use localhost:3000 in development
-        if (isLocalEnv) {
-          const baseUrl = 'http://localhost:3000'
-          if (decodedNext) {
-            return NextResponse.redirect(new URL('/authentication', origin))
-          }
-          return NextResponse.redirect(new URL('/authentication', origin))
-        } else if (forwardedHost) {
-          if (decodedNext) {
-            return NextResponse.redirect(new URL('/authentication', origin))
-          }
-          return NextResponse.redirect(new URL('/authentication', origin))
-        } else {
-          if (decodedNext) {
-            return NextResponse.redirect(new URL('/authentication', origin))
-          }
-          return NextResponse.redirect(new URL('/authentication', origin))
-        }
+        const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
+
+        // Redirect to dashboard after successful authentication
+        const redirectPath = decodedNext || '/dashboard'
+        return NextResponse.redirect(new URL(redirectPath, baseUrl))
       }
       console.log('Auth exchange error:', error)
       
       // Handle specific auth errors
       const isLocalEnv = process.env.NODE_ENV === 'development'
       const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
-      
+
       if (error?.message?.includes('timeout') || error?.message?.includes('fetch failed')) {
-        return NextResponse.redirect(new URL('/authentication', origin))
+        return NextResponse.redirect(new URL('/authentication', baseUrl))
       }
-      
-      return NextResponse.redirect(new URL('/authentication', origin))
+
+      return NextResponse.redirect(new URL('/authentication', baseUrl))
     } catch (networkError) {
       console.log('Network error during auth exchange:', networkError)
       const isLocalEnv = process.env.NODE_ENV === 'development'
       const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
-      return NextResponse.redirect(new URL('/authentication', origin))
+      return NextResponse.redirect(new URL('/authentication', baseUrl))
     }
   }
 
   // return the user to the authentication page
   const isLocalEnv = process.env.NODE_ENV === 'development'
   const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
-          return NextResponse.redirect(redirectUrl)
+  return NextResponse.redirect(new URL('/authentication', baseUrl))
 }

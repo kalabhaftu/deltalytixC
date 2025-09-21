@@ -186,7 +186,7 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
             <div className="flex flex-col items-center gap-2 text-muted-foreground">
               <GripVertical className="h-6 w-4" />
               <p className="text-sm font-medium">
-                {isMobile ? "Loading..." : 'Drag to move • Resize from edges'}
+                {isMobile ? "Tap to configure" : 'Drag to move • Resize from edges'}
               </p>
             </div>
           </div>
@@ -230,7 +230,7 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
                             "h-4 w-8 rounded",
                             size === 'medium' ? "bg-primary" : "bg-muted"
                           )} />
-                          <span>Tiny</span>
+                          <span>Medium</span>
                         </div>
                       </Button>
                       <Button
@@ -289,7 +289,7 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
                             "h-4 w-8 rounded",
                             size === 'medium' ? "bg-primary" : "bg-muted"
                           )} />
-                          <span>Tiny</span>
+                          <span>Medium</span>
                         </div>
                       </Button>
                       <Button
@@ -303,7 +303,7 @@ function WidgetWrapper({ children, onRemove, onChangeSize, isCustomizing, size, 
                             "h-4 w-10 rounded",
                             size === 'large' ? "bg-primary" : "bg-muted"
                           )} />
-                          <span>Tiny</span>
+                          <span>Large</span>
                         </div>
                       </Button>
                       <Button
@@ -621,7 +621,8 @@ export default function WidgetCanvas() {
     // Check if widget type already exists
     const existingWidget = currentLayout.find(widget => widget.type === type)
     if (existingWidget) {
-      toast.error("Loading...", {
+      toast.error("Widget already exists", {
+        description: "This widget is already added to your dashboard",
         duration: 3000,
       })
       return
@@ -943,7 +944,7 @@ export default function WidgetCanvas() {
     await saveDashboardLayout(newLayouts);
     
     // Show success toast
-    toast.success("Loading...", {
+    toast.success("Widgets automatically arranged", {
       duration: 2000,
     });
   }, [user?.id, layouts, activeLayout, isCustomizing, setLayouts, saveDashboardLayout]);
@@ -962,15 +963,16 @@ export default function WidgetCanvas() {
     await saveDashboardLayout(resetLayouts);
     
     // Show success toast
-    toast.success("Loading...", {
+    toast.success("Layout reset to defaults", {
       duration: 2000,
     });
   }, [user?.id, layouts, activeLayout, isCustomizing, setLayouts, saveDashboardLayout]);
 
   // Define renderWidget with all dependencies
   const renderWidget = useCallback((widget: Widget) => {
-    // Show contextual skeleton while data is loading
-    if (isLoading) {
+    // Only show skeleton if layouts exist but data is still loading AND the widget is not already showing a Suspense fallback
+    // This prevents "doubled" skeleton loading when Suspense fallback is already shown
+    if (isLoading && layouts && !isCustomizing) {
       const effectiveSize = (() => {
         if (isMobile && widget.size !== 'tiny') {
           return 'small' as WidgetSize
@@ -1005,7 +1007,7 @@ export default function WidgetCanvas() {
     })()
 
     return getWidgetComponent(widget.type as WidgetType, effectiveSize)
-  }, [isMobile, removeWidget, isLoading]);
+  }, [isMobile, removeWidget, isLoading, layouts, isCustomizing]);
 
   useEffect(() => {
     if (isCustomizing) {

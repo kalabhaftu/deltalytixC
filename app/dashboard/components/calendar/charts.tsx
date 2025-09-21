@@ -258,10 +258,10 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-base md:text-lg">
-            {isWeekly ? "Loading..." : "Loading..."}
+            {isWeekly ? "Weekly Performance" : "Daily Performance"}
           </CardTitle>
           <CardDescription className="text-xs md:text-sm">
-            {isWeekly ? "Loading..." : "Loading..."}: {formatCurrency(totalPnL)}
+            {isWeekly ? "Weekly" : "Daily"} P&L: {formatCurrency(totalPnL)}
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[250px] md:h-[300px] pb-8 md:pb-16">

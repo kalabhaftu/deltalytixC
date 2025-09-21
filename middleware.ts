@@ -143,7 +143,7 @@ export default async function middleware(req: NextRequest) {
   } else {
     // Authenticated - redirect from auth to dashboard
     if (pathname.includes("/authentication")) {
-      const nextParam = req.nextUrl.searchParams.ge"Next"
+      const nextParam = req.nextUrl.searchParams.get("next")
       const redirectUrl = nextParam ? `/${nextParam}` : "/dashboard"
       return NextResponse.redirect(new URL(redirectUrl, req.url))
     }

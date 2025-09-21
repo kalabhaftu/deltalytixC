@@ -114,7 +114,7 @@ const uploadImageToSupabase = async (file: File, userId: string, tradeId: string
       
       // If upload failed, try creating the images bucket
       if (bucketName !== 'images') {
-        const { error: createError } = await supabase.storage.createBucke"Loading..."
+        const { error: createError } = await supabase.storage.createBucket('images')
         
         if (!createError) {
           bucketName = 'images'

@@ -346,7 +346,7 @@ export function AccountGroupBoard() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete Group</AlertDialogTitle>
                           <AlertDialogDescription>
-                            {"Loading..."}
+                            {"Are you sure you want to delete this account group? This action cannot be undone."}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

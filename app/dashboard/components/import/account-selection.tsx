@@ -37,7 +37,7 @@ export default function AccountSelection({
     if (error) {
       setHasError(true)
       toast({
-        title: "Loading...",
+        title: "Error",
         description: error,
         variant: "destructive"
       })
@@ -92,12 +92,12 @@ export default function AccountSelection({
           <Card className="p-8 text-center">
             <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">
-              {hasError ? "Loading..." : "Loading..."}
+              {hasError ? "Error Loading Accounts" : "No Accounts Found"}
             </h3>
             <p className="text-muted-foreground mb-4">
-              {hasError 
-                ? "Loading..."
-                : "Loading..."
+              {hasError
+                ? "There was an error loading your accounts. Please try again."
+                : "No accounts are available for import. Please create an account first."
               }
             </p>
             {hasError ? (
@@ -142,9 +142,9 @@ export default function AccountSelection({
                       {account.number}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {account.accountType === 'prop-firm' 
-                        ? account.propfirm || "Loading..."
-                        : (account as any).broker || "Loading..."
+                      {account.accountType === 'prop-firm'
+                        ? account.propfirm || "Unknown Prop Firm"
+                        : (account as any).broker || "Unknown Broker"
                       }
                     </p>
                   </div>

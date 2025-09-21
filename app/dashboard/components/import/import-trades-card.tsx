@@ -165,8 +165,8 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
           })
         } else if (result.error === "NO_TRADES_ADDED") {
           toast({
-            title: "Loading...",
-            description: "Loading...",
+            title: "No trades added",
+            description: "No trades were added during the import process",
             variant: "destructive",
           })
         } else if (result.error === "DATABASE_ERROR") {
@@ -178,7 +178,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
         } else {
           toast({
             title: "Import Failed",
-            description: "Loading...",
+            description: "An unexpected error occurred during import",
             variant: "destructive",
           })
         }
@@ -213,7 +213,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
       console.error('Error saving trades:', error)
       toast({
         title: "Import Failed",
-        description: "Loading...",
+        description: "An error occurred while saving trades. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -243,7 +243,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     // Handle PDF upload step
     if (step === 'upload-file' && importType === 'pdf') {
       if (files.length === 0) {
-        setError("Loading...")
+        setError("Please select a PDF file to continue")
         return
       }
       setStep('process-file')

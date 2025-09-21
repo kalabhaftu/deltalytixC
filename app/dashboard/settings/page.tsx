@@ -355,7 +355,7 @@ export default function SettingsPage() {
               <PrimaryButton 
                 onClick={handleProfileUpdate}
                 loading={isUpdatingProfile || isLoadingProfile}
-                loadingText={isLoadingProfile ? "Loading..." : "Updating..."}
+                loadingText={isLoadingProfile ? "Loading profile..." : "Updating profile..."}
               >
                 Update Profile
               </PrimaryButton>
@@ -618,7 +618,7 @@ export default function SettingsPage() {
               </Label>
               <Input
                 id="delete-confirm"
-                type=
+                type="text"
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="Type the confirmation text here"

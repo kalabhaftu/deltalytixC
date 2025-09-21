@@ -172,7 +172,7 @@ export function FilterDropdowns({ showAccountNumbers }: FilterDropdownsProps) {
         type="instrument"
         items={allItems.filter(item => item.type === 'instrument')}
         selectedItems={instruments}
-        onSelect={(value) => handleSelec"Instruments"}
+        onSelect={(value) => handleSelect("instrument")}
         onSelectAll={() => handleSelectAll('instrument')}
         isItemDisabled={isItemDisabled}
         isItemSelected={isItemSelected}

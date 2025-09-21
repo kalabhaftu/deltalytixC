@@ -205,7 +205,7 @@ const DropzoneEmptyState = ({ className }: { className?: string }) => {
         </p>
         {maxFileSize !== Number.POSITIVE_INFINITY && (
           <p className="text-xs text-muted-foreground">
-             `Maximum file size: ${formatBytes(maxFileSize, 2)}`)}
+             `Maximum file size: ${formatBytes(maxFileSize, 2)}`
           </p>
         )}
       </div>

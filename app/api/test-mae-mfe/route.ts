@@ -87,7 +87,7 @@ export async function GET(request: Request) {
     }
     
     // Use real Databento data (requires API key)
-    const symbol = searchParams.ge"Symbols" || 'ES';
+    const symbol = searchParams.get("symbol") || 'ES';
     const endDate = new Date();
     const startDate = subDays(endDate, 1); // Get yesterday's data
     

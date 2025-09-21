@@ -74,13 +74,13 @@ export default function MobileCalendarPnl({ calendarData }: { calendarData: Cale
 
   // Define weekday headers (assuming Sunday start)
   const weekdayHeaders = [
-    { key: 'sunday', label: "Loading..." },
-    { key: 'monday', label: "Loading..." },
-    { key: 'tuesday', label: "Loading..." },
-    { key: 'wednesday', label: "Loading..." },
-    { key: 'thursday', label: "Loading..." },
-    { key: 'friday', label: "Loading..." },
-    { key: 'saturday', label: "Loading..." }
+    { key: 'sunday', label: "Sun" },
+    { key: 'monday', label: "Mon" },
+    { key: 'tuesday', label: "Tue" },
+    { key: 'wednesday', label: "Wed" },
+    { key: 'thursday', label: "Thu" },
+    { key: 'friday', label: "Fri" },
+    { key: 'saturday', label: "Sat" }
   ]
 
   const handlePrevMonth = () => setCurrentDate(subMonths(currentDate, 1))
@@ -154,7 +154,7 @@ export default function MobileCalendarPnl({ calendarData }: { calendarData: Cale
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 auto-rows-fr gap-[1px] h-[calc(100%-20px)]">
+        <div className="grid grid-cols-7 auto-rows-fr gap-[1px] h-fit min-h-[400px] max-h-[600px]">
           {calendarDayStrings.map((dateString) => { // Iterate over date strings
             const dayData = calendarData[dateString] // Direct lookup using the string key
 

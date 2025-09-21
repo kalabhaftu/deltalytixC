@@ -421,7 +421,6 @@ const OptimizedTooltip = React.memo(({
   showIndividual,
   size,
   accountColorMap,
-  t,
   onHover
 }: {
   active?: boolean
@@ -430,7 +429,6 @@ const OptimizedTooltip = React.memo(({
   showIndividual: boolean
   size: WidgetSize
   accountColorMap: Map<string, string>
-  t: any
   onHover?: (data: ChartDataPoint | null) => void
 }) => {
   // Only update hovered data for legend in individual mode
@@ -548,14 +546,12 @@ const AccountsLegend = React.memo(({
   selectedAccounts,
   chartData,
   hoveredData,
-  t 
 }: {
   accountNumbers: string[]
   accountColorMap: Map<string, string>
   selectedAccounts: Set<string>
   chartData: ChartDataPoint[]
   hoveredData: ChartDataPoint | null
-  t: any
 }) => {
   if (!accountNumbers.length || accountNumbers.length <= 1) return null
 
@@ -848,7 +844,6 @@ export default function EquityChart({ size = 'medium' }: EquityChartProps) {
                         showIndividual={showIndividual}
                         size={size}
                         accountColorMap={accountColorMap}
-                        t={t}
                         onHover={throttledSetHoveredData}
                       />
                     )}
@@ -866,7 +861,6 @@ export default function EquityChart({ size = 'medium' }: EquityChartProps) {
               selectedAccounts={selectedAccounts}
               chartData={chartData}
               hoveredData={hoveredData}
-              t={t}
             />
           )}
         </div>

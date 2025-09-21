@@ -61,7 +61,7 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
     setIsUpdating(true)
     try {
       // Update local state immediately
-      setLocalCommen"Loading..."
+      setLocalComment("")
       
       // Update all trades in the list
       await updateTrades(tradeIds, { comment: null })
@@ -95,7 +95,7 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
                 <div className="truncate">
                   {localComment}
                 </div>
-              ) : "Loading..."}
+              ) : "Add comment"}
             </Button>
           </div>
         </PopoverTrigger>

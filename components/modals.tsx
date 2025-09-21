@@ -20,17 +20,10 @@ export default function Modals() {
   const user = useUserStore((state) => state.user)
   const isLoading = useUserStore((state) => state.isLoading)
   const trades = useTradesStore((state) => state.trades)
-  const [isAlreadySubscribedOpen, setIsAlreadySubscribedOpen] = useState(false)
   const [isTradesDialogOpen, setIsTradesDialogOpen] = useState(false)
   const searchParams = useSearchParams()
   const { accountGroupBoardOpen, setAccountGroupBoardOpen } = useModalStateStore()
 
-  useEffect(() => {
-     const error = searchParams.get('error')
-    if (error === 'already_subscribed') {
-      setIsAlreadySubscribedOpen(true)
-    }
-  }, [searchParams])
 
   useEffect(() => {
     if (!isLoading) {
@@ -56,30 +49,6 @@ export default function Modals() {
             <DialogTitle>Manage Accounts</DialogTitle>
           </DialogHeader>
           <AccountGroupBoard/>
-        </DialogContent>
-      </Dialog>
-      
-
-      <Dialog open={isAlreadySubscribedOpen} onOpenChange={setIsAlreadySubscribedOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Subscription Management</DialogTitle>
-            <DialogDescription>
-              Manage your subscription settings and billing information.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-center">
-            <Button
-              onClick={() => {
-                setTimeout(() => {
-                   redirect('/dashboard/billing')
-                }, 100)
-                  setIsAlreadySubscribedOpen(false)
-              }}
-            >
-              Manage Subscription
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
 

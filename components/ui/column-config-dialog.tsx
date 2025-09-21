@@ -48,7 +48,7 @@ export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps
 
   const handleReset = () => {
     resetTableConfig(tableId)
-    toast.success("Loading..." as any)
+    toast.success("Column configuration reset successfully" as any)
   }
 
   const defaultTrigger = (
@@ -65,9 +65,9 @@ export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-                                           <DialogTitle>{"Loading..." as any}</DialogTitle>
+                                           <DialogTitle>{"Column Configuration" as any}</DialogTitle>
           <DialogDescription>
-                                                   {"Loading..." as any}
+                                                   {"Configure which columns to show or hide in the table" as any}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -96,22 +96,22 @@ export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="w-[180px] h-10">
                 <RotateCcw className="h-4 w-4 mr-2" />
-                                                                   {"Loading..." as any}
+                                                                   {"Reset to Default" as any}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>
-                                                                           {"Loading..." as any}
+                                                                           {"Reset Table Configuration" as any}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                                                                           {"Loading..." as any}
+                                                                           {"Are you sure you want to reset the table configuration to default settings?" as any}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>{"Cancel"}</AlertDialogCancel>
                 <AlertDialogAction onClick={handleReset}>
-                                                                           {"Loading..." as any}
+                                                                           {"Reset" as any}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

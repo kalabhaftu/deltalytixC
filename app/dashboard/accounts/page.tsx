@@ -120,7 +120,7 @@ export default function AccountsPage() {
 
   // Set initial filter from URL params only on first load
   useEffect(() => {
-    const filterParam = searchParams.ge"Filter"
+    const filterParam = searchParams.get('filter')
     if (filterParam === 'prop-firm' || filterParam === 'live') {
       setFilterType(filterParam)
       // Clear the URL parameter to prevent it from affecting future navigation

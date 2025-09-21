@@ -38,7 +38,7 @@ export default function CumulativePnlCard({ size = 'medium' }: CumulativePnlCard
                 sideOffset={5} 
                 className="max-w-[300px]"
               >
-                Loading...
+                Your total profit or loss across all trades, including fees. This metric shows your overall trading performance and helps you track your long-term profitability.
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

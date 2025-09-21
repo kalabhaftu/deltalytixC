@@ -269,23 +269,17 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
 }
 
 // Create cache function dynamically for each user/subscription combination
-function getCachedTrades(userId: string, isSubscribed: boolean, page: number, chunkSize: number): Promise<Trade[]> {
+function getCachedTrades(userId: string, page: number, chunkSize: number): Promise<Trade[]> {
   return unstable_cache(
     async () => {
-      console.log(`[Cache MISS] Fetching trades for user ${userId}, subscribed: ${isSubscribed}`)
-      
+      console.log(`[Cache MISS] Fetching trades for user ${userId}`)
+
       try {
         const query: TradeQuery = {
           where: { userId },
           orderBy: { entryDate: 'desc' },
           skip: (page - 1) * chunkSize,
           take: chunkSize
-        }
-
-        if (!isSubscribed) {
-          const oneWeekAgo = startOfDay(new Date())
-          oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-          query.where.entryDate = { gte: oneWeekAgo.toISOString() }
         }
 
         return await prisma.trade.findMany(query)
@@ -297,7 +291,7 @@ function getCachedTrades(userId: string, isSubscribed: boolean, page: number, ch
             return []
           }
           // Handle database connection errors
-          if (error.message.includes("Can't reach database server") || 
+          if (error.message.includes("Can't reach database server") ||
               error.message.includes('P1001') ||
               error.message.includes('connection') ||
               error.message.includes('timeout')) {
@@ -310,8 +304,8 @@ function getCachedTrades(userId: string, isSubscribed: boolean, page: number, ch
       }
     },
     // Static string array - this is the cache key
-    [`trades-${userId}-${isSubscribed}-${page}`],
-    { 
+    [`trades-${userId}-${page}`],
+    {
       tags: [`trades-${userId}`], // User-specific tag for revalidation
       revalidate: 3600 // Revalidate every hour (3600 seconds)
     }
@@ -328,8 +322,6 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
         return []
       }
 
-    const isSubscribed = true // All users now have full access
-
     const actualUserId = userId || user?.id
     if (!actualUserId) {
       if (process.env.NODE_ENV === 'development') {
@@ -342,19 +334,13 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
     return unstable_cache(
       async () => {
         console.log(`[Cache MISS] Fetching ALL trades for user ${actualUserId}`)
-        
+
         try {
           const query: any = {
             where: { userId: actualUserId },
             orderBy: { entryDate: 'desc' },
             // Limit to most recent 10,000 trades for performance
             take: 10000
-          }
-
-          if (!isSubscribed) {
-            const oneWeekAgo = startOfDay(new Date())
-            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-            query.where.entryDate = { gte: oneWeekAgo.toISOString() }
           }
 
           const trades = await prisma.trade.findMany(query)
@@ -386,7 +372,7 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
           return [] // Return empty array instead of throwing
         }
       },
-      [`all-trades-${actualUserId}-${isSubscribed}`],
+      [`all-trades-${actualUserId}`],
       { 
         tags: [`trades-${actualUserId}`], 
         revalidate: 1800 // 30 minutes cache

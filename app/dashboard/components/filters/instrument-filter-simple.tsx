@@ -95,7 +95,7 @@ export function InstrumentFilterSimple({ className }: InstrumentFilterSimpleProp
               
               {filteredInstruments.length === 0 && (
                 <CommandEmpty>
-                  {searchTerm ? "Loading..." : "Loading..."}
+                  {searchTerm ? "No instruments found matching your search" : "No instruments found"}
                 </CommandEmpty>
               )}
             </CommandGroup>

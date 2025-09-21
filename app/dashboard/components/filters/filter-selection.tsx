@@ -17,7 +17,7 @@ interface FilterSectionProps {
 
 export function FilterSection({ type, items, searchTerm, handleSelect, isItemDisabled, isItemSelected, handleSelectAll, anonymizeAccount }: FilterSectionProps) {
   const selectAllText = {
-    propfirm: "Loading...",
+    propfirm: "Select all prop firms",
     instrument: "Select all instruments"
   }
 

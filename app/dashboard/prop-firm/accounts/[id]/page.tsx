@@ -84,7 +84,7 @@ export default function AccountDetailPage() {
         }, 3000)
       } else {
         toast({
-          title: "Loading...",
+          title: "Connection Error",
           description: realtimeError,
           variant: "destructive"
         })

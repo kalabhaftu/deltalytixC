@@ -173,7 +173,7 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
         if (!user) {
           toast({
             title: "Error",
-            description: "Loading...",
+            description: "Please sign in to share trades",
             variant: "destructive",
           })
           return
@@ -182,7 +182,7 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
         if (!shareAllAccounts && selectedAccounts.length === 0) {
           toast({
             title: "Error",
-            description: "Loading...",
+            description: "Please select at least one account",
             variant: "destructive",
           })
           return
@@ -191,7 +191,7 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
         if (!selectedDateRange.from) {
           toast({
             title: "Error",
-            description: "Loading...",
+            description: "Please select a start date",
             variant: "destructive",
           })
           return
@@ -210,7 +210,7 @@ export const ShareButton = forwardRef<HTMLButtonElement, ShareButtonProps>(
         if (filteredTrades.length === 0) {
           toast({
             title: "Error",
-            description: "Loading...",
+            description: "No trades found for the selected criteria",
             variant: "destructive",
           })
           return

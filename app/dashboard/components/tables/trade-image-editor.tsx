@@ -152,7 +152,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
       setUploadDialogOpen(false)
       
       // Auto-dismiss success toast after 3 seconds
-      const successToast = toast.success("Loading...", {
+      const successToast = toast.success("Image uploaded successfully", {
         duration: 3000
       })
       
@@ -161,7 +161,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
       firstImageUploadProps.setErrors([])
     } else if (firstImageUploadProps.errors.length > 0) {
       const error = firstImageUploadProps.errors[0].message
-      toast.error("Loading...", {
+      toast.error("Image upload failed", {
         duration: 5000
       })
     }
@@ -176,7 +176,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
       setUploadDialogOpen(false)
       
       // Auto-dismiss success toast after 3 seconds
-      toast.success("Loading...", {
+      toast.success("Second image uploaded successfully", {
         duration: 3000
       })
       
@@ -185,7 +185,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
       secondImageUploadProps.setErrors([])
     } else if (secondImageUploadProps.errors.length > 0) {
       const error = secondImageUploadProps.errors[0].message
-      toast.error("Loading...", {
+      toast.error("Second image upload failed", {
         duration: 5000
       })
     }
@@ -489,7 +489,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
               onClick={async () => {
                 await handleRemoveAllImages()
                 setShowDeleteConfirm(false)
-                toast.success("Loading...")
+                toast.success("All images deleted successfully")
               }}
               disabled={!trade.imageBase64 && !trade.imageBase64Second}
             >
@@ -509,7 +509,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>
-              {isSecondImage ? "Loading..." : "Loading..."}
+              {isSecondImage ? "Upload Second Image" : "Upload Image"}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">

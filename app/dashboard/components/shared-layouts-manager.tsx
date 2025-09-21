@@ -92,7 +92,7 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
       console.error('Error loading shared layouts:', error)
       toast({
         title: "Error",
-        description: "Loading...",
+        description: "Failed to load shared layouts",
         variant: "destructive",
       })
     } finally {
@@ -117,13 +117,13 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
       await deleteShared(layoutToDelete.slug, user!.id)
       setSharedLayouts(prev => prev.filter(layout => layout.slug !== layoutToDelete.slug))
       toast({
-        title: "Loading...",
+        title: "Layout shared successfully",
       })
     } catch (error) {
       console.error('Error deleting shared layout:', error)
       toast({
         title: "Error",
-        description: "Loading...",
+        description: "Failed to delete shared layout",
         variant: "destructive",
       })
       // Don't need to reopen dialog on error, as the item still exists in the list
@@ -205,10 +205,10 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
                 <CardHeader className="p-4 pb-2">
                   <div>
                     <CardTitle className="text-base font-medium line-clamp-1 mb-1">
-                      {layout.title || "Loading..."}
+                      {layout.title || "Untitled Layout"}
                     </CardTitle>
                     <CardDescription className="line-clamp-2 text-xs text-muted-foreground/80">
-                      {layout.description || "Loading..."}
+                      {layout.description || "No description provided"}
                     </CardDescription>
                   </div>
                 </CardHeader>

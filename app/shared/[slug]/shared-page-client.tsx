@@ -61,9 +61,9 @@ function AccountsSelector({ accounts }: { accounts: string[] }) {
               onClick={() => setIsExpanded(!isExpanded)}
               className="h-7 text-xs gap-1 min-w-0"
             >
-              {isExpanded 
-                ? "Loading..."
-                : "Loading..."}
+              {isExpanded
+                ? "Show less"
+                : "Show more"}
               <ChevronDown className={cn(
                 "h-3 w-3 transition-transform shrink-0",
                 isExpanded ? "rotate-180" : ""
@@ -76,7 +76,7 @@ function AccountsSelector({ accounts }: { accounts: string[] }) {
             onClick={toggleAll}
             className="h-7 text-xs whitespace-nowrap min-w-0"
           >
-            {accountNumbers.length === accounts.length ? "Loading..." : "Loading..."}
+            {accountNumbers.length === accounts.length ? "Deselect all" : "Select all"}
           </Button>
         </div>
       </div>
@@ -108,7 +108,7 @@ function AccountsSelector({ accounts }: { accounts: string[] }) {
   )
 }
 
-function TopBanner({ t }: { t: any }) {
+function TopBanner() {
 
 
   return (
@@ -161,7 +161,7 @@ export function SharedPageClient({ params, initialData }: SharedPageClientProps)
   if (isLoading) {
     return (
       <div className="flex flex-col min-h-screen">
-        <TopBanner t={t} />
+        <TopBanner />
         <div className="w-full mx-auto flex-1 flex items-center justify-center pt-[120px] sm:pt-[60px]">
           <LoadingSpinner size="lg" text="Loading dashboard..." />
         </div>
@@ -172,7 +172,7 @@ export function SharedPageClient({ params, initialData }: SharedPageClientProps)
   if (!sharedParams) {
     return (
       <div className="flex flex-col min-h-screen">
-        <TopBanner t={t} />
+        <TopBanner />
         <div className="w-full mx-auto flex-1 flex items-center justify-center p-4 pt-[120px] sm:pt-[76px]">
           <Card className="max-w-lg w-full">
             <CardHeader>
@@ -191,7 +191,7 @@ export function SharedPageClient({ params, initialData }: SharedPageClientProps)
 
   return (
     <div className="flex flex-col min-h-screen">
-      <TopBanner t={t} />
+      <TopBanner />
       <div className="w-full mx-auto px-8 flex-1 pt-[120px] sm:pt-[60px]">
         <main className="w-full py-6 lg:py-8">
           <Card className="mb-6">
