@@ -102,7 +102,6 @@ model User {
   lastName          String?
   accountFilterSettings String?        // JSON string storing account filter preferences
   accounts          Account[]
-  businesses        Business[]
   dashboardLayout   DashboardLayout?
   groups            Group[]
   notifications     Notification[]
@@ -192,7 +191,6 @@ model Account {
   user                       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   phases                     AccountPhase[]
   transitions                AccountTransition[]
-  auditLogs                  AuditLog[]
   breaches                   Breach[]
   dailyAnchors               DailyAnchor[]
   equitySnapshots            EquitySnapshot[]
@@ -337,57 +335,6 @@ model HistoricalData {
   @@schema("public")
 }
 
-model AuditLog {
-  id           String   @id @default(uuid())
-  userId       String?
-  action       String
-  resource     String?
-  resourceId   String?
-  details      Json?
-  ipAddress    String?
-  userAgent    String?
-  success      Boolean  @default(true)
-  errorMessage String?
-  timestamp    DateTime @default(now())
-  riskLevel    String   @default("LOW")
-  flags        String[] @default([])
-  accountId    String?
-  entity       String?
-  entityId     String?
-  oldValues    Json?
-  newValues    Json?
-  metadata     Json?
-  account      Account? @relation(fields: [accountId], references: [id])
-
-  @@index([userId])
-  @@index([action])
-  @@index([timestamp])
-  @@index([riskLevel])
-  @@index([accountId])
-  @@index([entity, entityId])
-  @@schema("public")
-}
-
-model SecurityEvent {
-  id          String    @id @default(uuid())
-  type        String
-  severity    String
-  source      String
-  description String
-  details     Json?
-  resolved    Boolean   @default(false)
-  resolvedAt  DateTime?
-  resolvedBy  String?
-  createdAt   DateTime  @default(now())
-
-  @@index([type])
-  @@index([severity])
-  @@index([source])
-  @@index([createdAt])
-  @@index([resolved])
-  @@schema("public")
-}
-
 model FilterPreset {
   id          String   @id @default(uuid())
   userId      String
@@ -511,55 +458,6 @@ model AccountTransition {
   @@index([accountId])
   @@index([transitionTime])
   @@index([accountId, transitionTime])
-  @@schema("public")
-}
-
-model Business {
-  id          String               @id @default(uuid())
-  name        String
-  userId      String
-  traderIds   String[]             @default([])
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  invitations BusinessInvitation[]
-  managers    BusinessManager[]
-
-  @@unique([name, userId])
-  @@index([userId])
-  @@schema("public")
-}
-
-model BusinessManager {
-  id         String   @id @default(uuid())
-  businessId String
-  managerId  String
-  access     String   @default("viewer")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-
-  @@unique([businessId, managerId])
-  @@index([businessId])
-  @@index([managerId])
-  @@schema("public")
-}
-
-model BusinessInvitation {
-  id         String   @id @default(uuid())
-  businessId String
-  email      String
-  invitedBy  String
-  status     String   @default("PENDING")
-  expiresAt  DateTime @default(dbgenerated("(now() + '7 days'::interval)"))
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-
-  @@unique([businessId, email])
-  @@index([businessId])
-  @@index([email])
-  @@index([status])
   @@schema("public")
 }
 

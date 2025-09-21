@@ -8,8 +8,10 @@ interface UnifiedAccount {
   number: string
   name: string
   propfirm: string
-  broker: string | null
+  broker: string | undefined  // Changed from string | null to match Account interface
   startingBalance: number
+  currentBalance?: number     // Added missing field
+  currentEquity?: number      // Added missing field
   status: 'active' | 'failed' | 'funded' | 'passed'
   createdAt: string
   userId: string
@@ -97,7 +99,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
       setError(null)
 
       // Create the promise and store it globally
-      accountsPromise = (async () => {
+      accountsPromise = (async (): Promise<UnifiedAccount[]> => {
         console.log('[useAccounts] Fetching accounts using server action')
         
         try {
@@ -105,18 +107,20 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
           console.log('[useAccounts] Server action returned:', accounts.length, 'accounts')
           
           // Transform accounts to match the expected interface
-          const transformedAccounts = accounts.map(account => ({
+          const transformedAccounts: UnifiedAccount[] = accounts.map(account => ({
             id: account.id,
             number: account.number,
-            name: account.name,
+            name: account.name || account.number, // Ensure name is never null
             propfirm: account.propfirm,
-            broker: account.broker,
+            broker: account.broker || undefined, // Convert null to undefined
             startingBalance: account.startingBalance,
+            currentBalance: account.startingBalance, // Add currentBalance field
+            currentEquity: account.startingBalance,  // Add currentEquity field
             status: account.status || 'active',
             createdAt: account.createdAt.toISOString(),
             userId: account.userId,
             groupId: account.groupId,
-            group: account.group,
+            group: account.groupId ? { id: account.groupId, name: 'Group' } : null, // Construct basic group info
             accountType: account.propfirm ? 'prop-firm' : 'live',
             displayName: account.name || account.number,
             tradeCount: 0, // Will be calculated separately if needed
@@ -135,20 +139,22 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
 
       const fetchedAccounts = await accountsPromise
 
-      console.log('[useAccounts] Setting accounts state:', fetchedAccounts.length, 'accounts')
-      console.log('[useAccounts] Account details:', fetchedAccounts.map(a => ({ 
-        id: a.id, 
-        number: a.number, 
-        status: a.status, 
-        accountType: a.accountType 
-      })))
+      if (fetchedAccounts) {
+        console.log('[useAccounts] Setting accounts state:', fetchedAccounts.length, 'accounts')
+        console.log('[useAccounts] Account details:', fetchedAccounts.map(a => ({
+          id: a.id,
+          number: a.number,
+          status: a.status,
+          accountType: a.accountType
+        })))
 
-      // Update cache
-      accountsCache = fetchedAccounts
-      lastFetchTime = now
+        // Update cache
+        accountsCache = fetchedAccounts
+        lastFetchTime = now
 
-      setAccounts(fetchedAccounts)
-      setError(null)
+        setAccounts(fetchedAccounts)
+        setError(null)
+      }
     } catch (err) {
       if (err instanceof Error) {
         if (err.name === 'AbortError') {

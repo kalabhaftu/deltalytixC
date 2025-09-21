@@ -190,41 +190,36 @@ async function ensurePropFirmEvaluationTables() {
     if (accountPhaseTableExists.length === 0) {
       console.log('[DB Migration] Creating AccountPhase table and related tables...')
       
-      // Create enums first (PostgreSQL doesn't support IF NOT EXISTS for types, so we need to check first)
-      try {
-        await prisma.$executeRaw`CREATE TYPE "AccountStatus" AS ENUM ('active', 'failed', 'passed', 'funded')`
-      } catch (e) {
-        // Type already exists, continue
-      }
-      try {
-        await prisma.$executeRaw`CREATE TYPE "PhaseType" AS ENUM ('phase_1', 'phase_2', 'funded')`
-      } catch (e) {
-        // Type already exists, continue
-      }
-      try {
-        await prisma.$executeRaw`CREATE TYPE "PhaseStatus" AS ENUM ('active', 'passed', 'failed')`
-      } catch (e) {
-        // Type already exists, continue
-      }
-      try {
-        await prisma.$executeRaw`CREATE TYPE "DrawdownType" AS ENUM ('absolute', 'percent')`
-      } catch (e) {
-        // Type already exists, continue
-      }
-      try {
-        await prisma.$executeRaw`CREATE TYPE "DrawdownMode" AS ENUM ('static', 'trailing')`
-      } catch (e) {
-        // Type already exists, continue
-      }
-      try {
-        await prisma.$executeRaw`CREATE TYPE "EvaluationType" AS ENUM ('one_step', 'two_step')`
-      } catch (e) {
-        // Type already exists, continue
-      }
-      try {
-        await prisma.$executeRaw`CREATE TYPE "BreachType" AS ENUM ('daily_drawdown', 'max_drawdown')`
-      } catch (e) {
-        // Type already exists, continue
+      // Create enums first - check if they exist before creating
+      const enumTypes = [
+        { name: 'AccountStatus', values: ['active', 'failed', 'passed', 'funded'] },
+        { name: 'PhaseType', values: ['phase_1', 'phase_2', 'funded'] },
+        { name: 'PhaseStatus', values: ['active', 'passed', 'failed'] },
+        { name: 'DrawdownType', values: ['absolute', 'percent'] },
+        { name: 'DrawdownMode', values: ['static', 'trailing'] },
+        { name: 'EvaluationType', values: ['one_step', 'two_step'] },
+        { name: 'BreachType', values: ['daily_drawdown', 'max_drawdown'] }
+      ]
+
+      for (const enumType of enumTypes) {
+        try {
+          // Check if the enum type already exists
+          const typeExists = await prisma.$queryRaw`
+            SELECT EXISTS (
+              SELECT 1 FROM pg_type WHERE typname = ${enumType.name.toLowerCase()}
+            ) as exists
+          ` as any[]
+
+          if (!typeExists[0].exists) {
+            console.log(`[DB Migration] Creating enum type ${enumType.name}...`)
+            await prisma.$executeRaw`CREATE TYPE "${enumType.name}" AS ENUM (${enumType.values.map(v => `'${v}'`).join(', ')})`
+          } else {
+            console.log(`[DB Migration] Enum type ${enumType.name} already exists, skipping...`)
+          }
+        } catch (e) {
+          console.warn(`[DB Migration] Error creating enum ${enumType.name}:`, e)
+          // Continue with other enums even if one fails
+        }
       }
       
       // Add columns to Account table

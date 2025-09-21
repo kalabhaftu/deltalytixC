@@ -5,7 +5,7 @@ import { type UseSupabaseUploadReturn } from '@/hooks/use-supabase-upload'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, File, Loader2, Upload, X } from 'lucide-react'
 import { createContext, type PropsWithChildren, useCallback, useContext } from 'react'
-import { useI18n } from '@/locales/client'
+import { useI18n } from '@/lib/translations/client'
 
 export const formatBytes = (
   bytes: number,

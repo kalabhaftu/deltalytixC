@@ -4,14 +4,14 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { useUserStore } from '@/store/user-store'
-import LoadingOverlay from '../app/[locale]/dashboard/components/loading-overlay'
-import ImportButton from '../app/[locale]/dashboard/components/import/import-button'
-import { useI18n } from "@/locales/client"
+import LoadingOverlay from '../app/dashboard/components/loading-overlay'
+import ImportButton from '../app/dashboard/components/import/import-button'
+import { useI18n } from "@/lib/translations/client"
 import { signOut } from '@/server/auth'
 
 import { redirect, useSearchParams } from 'next/navigation'
 import OnboardingModal from './onboarding-modal'
-import { AccountGroupBoard } from '@/app/[locale]/dashboard/components/filters/account-group-board'
+import { AccountGroupBoard } from '@/app/dashboard/components/filters/account-group-board'
 import { useModalStateStore } from '@/store/modal-state-store'
 import { useTradesStore } from '@/store/trades-store'
 

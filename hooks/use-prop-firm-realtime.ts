@@ -82,7 +82,7 @@ export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePro
         }
       }, 10000) // 10 second timeout
 
-      const response = await fetch(`/api/prop-firm/accounts/${accountId}`, {
+      const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}`, {
         signal: abortControllerRef.current.signal,
         headers: {
           'Cache-Control': 'no-cache'

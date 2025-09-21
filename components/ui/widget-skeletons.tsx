@@ -17,7 +17,7 @@ import React from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import { WidgetSize, WidgetType } from '@/app/[locale]/dashboard/types/dashboard'
+import { WidgetSize, WidgetType } from '@/app/dashboard/types/dashboard'
 
 interface WidgetSkeletonProps {
   type: WidgetType

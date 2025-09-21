@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { useData } from '@/context/data-provider'
-import { useI18n } from '@/locales/client'
+import { useI18n } from '@/lib/translations/client'
 import { logger } from '@/lib/logger'
 
 export default function OnboardingModal() {

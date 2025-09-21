@@ -1,10 +1,10 @@
-// Temporarily disable Google Fonts due to network issues
+import { Inter } from "next/font/google"
 
-// Use system fonts as fallback due to network issues
-export const inter = {
+export const inter = Inter({
+  subsets: ["latin"],
   variable: "--font-inter",
-  className: "",
-}
+  display: 'swap',
+})
 
 // CSS class name that includes both Next.js font and fallback
 export const fontClassName = `${inter.variable} font-sans`

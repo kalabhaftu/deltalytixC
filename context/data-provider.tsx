@@ -35,7 +35,7 @@ import {
 import {
   WidgetType,
   WidgetSize,
-} from '@/app/[locale]/dashboard/types/dashboard';
+} from '@/app/dashboard/types/dashboard';
 import {
   deletePayoutAction,
   deleteAccountAction,
@@ -68,7 +68,6 @@ import { AccountFilterSettings } from '@/types/account-filter-settings';
 import { calculateStatistics, formatCalendarData } from '@/lib/utils';
 import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { useCurrentLocale } from '@/locales/client';
 
 // Types from trades-data.tsx
 type StatisticsProps = {
@@ -591,7 +590,7 @@ export const DataProvider: React.FC<{
   const trades = useTradesStore(state => state.trades);
   const setTrades = useTradesStore(state => state.setTrades);
   const dashboardLayout = useUserStore(state => state.dashboardLayout);
-  const locale = useCurrentLocale()
+  const locale = 'en' // Fixed to English since we removed i18n
   const isLoading = useUserStore(state => state.isLoading)
   const setIsLoading = useUserStore(state => state.setIsLoading)
 

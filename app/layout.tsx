@@ -255,6 +255,7 @@ export default async function RootLayout({
             <DatabaseInit />
             <AuthProvider>
               {/* Analytics components removed to comply with essential-only cookie policy */}
+              <ConsentBanner />
               <Toaster />
               {children}
             </AuthProvider>

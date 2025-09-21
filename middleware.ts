@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createI18nMiddleware } from "next-international/middleware"
 import { createServerClient } from "@supabase/ssr"
 import { geolocation } from "@vercel/functions"
 import { logger } from "@/lib/logger"
@@ -11,11 +10,6 @@ const publicRoutes = ["/login", "/signup", "/"]
 // Maintenance mode flag - Set to true to enable maintenance mode
 const MAINTENANCE_MODE = false
 
-const I18nMiddleware = createI18nMiddleware({
-  locales: ["en"],
-  defaultLocale: "en",
-  urlMappingStrategy: "rewrite",
-})
 
 async function updateSession(request: NextRequest) {
   // Create a proper NextResponse first
@@ -123,46 +117,15 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Apply i18n middleware first
-  const response = I18nMiddleware(req)
 
-  // Then update session
-  const { response: authResponse, user, error } = await updateSession(req)
-
-  // Merge responses - copy headers from auth response to i18n response
-  authResponse.headers.forEach((value, key) => {
-    response.headers.set(key, value)
-  })
-
-  // Copy cookies from auth response
-  authResponse.cookies.getAll().forEach((cookie) => {
-    response.cookies.set(cookie.name, cookie.value, {
-      path: cookie.path,
-      domain: cookie.domain,
-      expires: cookie.expires,
-      httpOnly: cookie.httpOnly,
-      secure: cookie.secure,
-      sameSite: cookie.sameSite as 'strict' | 'lax' | 'none' | undefined,
-    })
-  })
+  // Update session
+  const { response, user, error } = await updateSession(req)
 
   // Maintenance mode check
   if (MAINTENANCE_MODE && !pathname.includes("/maintenance") && pathname.includes("/dashboard")) {
     return NextResponse.redirect(new URL("/maintenance", req.url))
   }
 
-  // Admin route check with better error handling
-  if (pathname.includes("/admin")) {
-    if (!user || error) {
-      const authUrl = new URL("/authentication", req.url)
-      authUrl.searchParams.set("error", "admin_access_required")
-      return NextResponse.redirect(authUrl)
-    }
-
-    if (process.env.NODE_ENV !== "development") {
-      return NextResponse.redirect(new URL("/dashboard", req.url))
-    }
-  }
 
   // Authentication checks with better error handling
   if (!user || error) {

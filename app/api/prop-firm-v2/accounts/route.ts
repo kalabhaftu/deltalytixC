@@ -120,12 +120,7 @@ export async function GET(request: NextRequest) {
     const where: any = {
       userId,
       // Only include prop firm accounts (exclude regular trading accounts)
-      OR: [
-        { firmType: { not: null } },
-        { phase1AccountId: { not: null } },
-        { phase2AccountId: { not: null } },
-        { fundedAccountId: { not: null } },
-      ]
+      propfirm: { not: '' }
     }
     
     // Apply filters
@@ -137,20 +132,16 @@ export async function GET(request: NextRequest) {
       where.status = { not: 'failed' }
     }
     
-    if (!filters.includeDemo) {
-      where.isDemo = false
-    }
+    // Demo filter not available in current schema
     
     if (filters.firmType && filters.firmType.length > 0) {
-      where.firmType = { in: filters.firmType }
+      where.propfirm = { in: filters.firmType }
     }
     
     if (filters.search) {
       where.OR = [
         { name: { contains: filters.search, mode: 'insensitive' } },
-        { phase1AccountId: { contains: filters.search, mode: 'insensitive' } },
-        { phase2AccountId: { contains: filters.search, mode: 'insensitive' } },
-        { fundedAccountId: { contains: filters.search, mode: 'insensitive' } },
+        { number: { contains: filters.search, mode: 'insensitive' } },
       ]
     }
     
@@ -191,33 +182,26 @@ export async function GET(request: NextRequest) {
           currentEquity = currentPhase.currentEquity || account.startingBalance
           
           // Get daily snapshot for drawdown calculation
-          const latestSnapshot = await prisma.dailyEquitySnapshot?.findFirst({
+          const latestSnapshot = await prisma.equitySnapshot?.findFirst({
             where: { phaseId: currentPhase.id },
-            orderBy: { date: 'desc' }
+            orderBy: { timestamp: 'desc' }
           })
           
           // Calculate drawdown
           drawdownData = PropFirmEngine.calculateDrawdown(
             currentPhase as any,
             currentEquity,
-            latestSnapshot?.openingBalance || account.startingBalance,
-            account.trailingDrawdownEnabled
+            latestSnapshot?.balance || account.startingBalance,
+            account.trailingDrawdown
           )
         }
         
         return {
           id: account.id,
           name: account.name,
-          firmType: account.firmType,
+          propfirm: account.propfirm,
           accountSize: account.accountSize,
-          currency: account.currency || 'USD',
           status: account.status,
-          isDemo: account.isDemo,
-          
-          // Phase account IDs
-          phase1AccountId: account.phase1AccountId,
-          phase2AccountId: account.phase2AccountId,
-          fundedAccountId: account.fundedAccountId,
           
           // Current metrics
           currentEquity,
@@ -235,8 +219,6 @@ export async function GET(request: NextRequest) {
           
           // Dates
           createdAt: account.createdAt,
-          challengeStartDate: account.challengeStartDate,
-          fundedDate: account.fundedDate,
           
           // User info
           owner: account.user,
@@ -281,98 +263,39 @@ export async function POST(request: NextRequest) {
         data: {
           userId,
           name: validatedData.name || `${validatedData.firmType} ${validatedData.accountSize}K`,
-          firmType: validatedData.firmType,
-          accountSize: validatedData.accountSize,
-          currency: validatedData.currency,
-          leverage: validatedData.leverage,
+          propfirm: validatedData.firmType,
+          accountSize: validatedData.accountSize.toString(),
           startingBalance: validatedData.accountSize * 1000, // Convert K to actual amount
+          number: `${Date.now()}`, // Generate a unique account number
           
-          // Phase account IDs
-          phase1AccountId: validatedData.phase1AccountId,
-          phase2AccountId: validatedData.phase2AccountId,
-          fundedAccountId: validatedData.fundedAccountId,
-          
-          // Phase credentials
-          phase1Login: validatedData.phase1Login,
-          phase2Login: validatedData.phase2Login,
-          fundedLogin: validatedData.fundedLogin,
-          phase1Password: validatedData.phase1Password,
-          phase2Password: validatedData.phase2Password,
-          fundedPassword: validatedData.fundedPassword,
-          
-          // Phase servers
-          phase1Server: validatedData.phase1Server,
-          phase2Server: validatedData.phase2Server,
-          fundedServer: validatedData.fundedServer,
-          
-          // Profit targets
-          phase1ProfitTarget: validatedData.phase1ProfitTarget,
-          phase2ProfitTarget: validatedData.phase2ProfitTarget,
-          
-          // Drawdown configuration
-          phase1MaxDrawdown: validatedData.phase1MaxDrawdown,
-          phase2MaxDrawdown: validatedData.phase2MaxDrawdown,
-          fundedMaxDrawdown: validatedData.fundedMaxDrawdown,
-          phase1DailyDrawdown: validatedData.phase1DailyDrawdown,
-          phase2DailyDrawdown: validatedData.phase2DailyDrawdown,
-          fundedDailyDrawdown: validatedData.fundedDailyDrawdown,
-          trailingDrawdownEnabled: validatedData.trailingDrawdownEnabled,
-          
-          // Trading days
-          minTradingDaysPhase1: validatedData.minTradingDaysPhase1,
-          minTradingDaysPhase2: validatedData.minTradingDaysPhase2,
-          maxTradingDaysPhase1: validatedData.maxTradingDaysPhase1,
-          maxTradingDaysPhase2: validatedData.maxTradingDaysPhase2,
-          
-          // Payout configuration
-          initialProfitSplit: validatedData.initialProfitSplit,
-          maxProfitSplit: validatedData.maxProfitSplit,
-          profitSplitIncrementPerPayout: validatedData.profitSplitIncrementPerPayout,
-          minPayoutAmount: validatedData.minPayoutAmount,
-          maxPayoutAmount: validatedData.maxPayoutAmount,
-          payoutFrequencyDays: validatedData.payoutFrequencyDays,
-          minDaysBeforeFirstPayout: validatedData.minDaysBeforeFirstPayout,
-          
-          // Trading rules
-          consistencyRule: validatedData.consistencyRule,
-          newsTradinAllowed: validatedData.newsTradinAllowed,
-          weekendHoldingAllowed: validatedData.weekendHoldingAllowed,
-          hedgingAllowed: validatedData.hedgingAllowed,
-          eaAllowed: validatedData.eaAllowed,
-          maxPositions: validatedData.maxPositions,
-          
-          // Metadata
-          isDemo: validatedData.isDemo,
-          tradingPlatform: validatedData.tradingPlatform,
-          notes: validatedData.notes,
+          // Map to existing Prisma fields where possible
+          trailingDrawdown: validatedData.trailingDrawdownEnabled,
+          tradingNewsAllowed: validatedData.newsTradinAllowed,
+          profitSplitPercent: validatedData.initialProfitSplit,
+          payoutCycleDays: validatedData.payoutFrequencyDays,
+          minDaysToFirstPayout: validatedData.minDaysBeforeFirstPayout,
+          consistencyPercentage: validatedData.consistencyRule,
+          dailyDrawdownAmount: (validatedData.accountSize * 1000 * validatedData.phase1DailyDrawdown) / 100,
+          maxDrawdownAmount: (validatedData.accountSize * 1000 * validatedData.phase1MaxDrawdown) / 100,
+          profitTarget: (validatedData.accountSize * 1000 * validatedData.phase1ProfitTarget) / 100,
           status: 'active',
-          challengeStartDate: new Date(),
         }
       })
       
       // Create Phase 1 automatically
-      const phase1 = await tx.propFirmPhase?.create({
+      const phase1 = await tx.accountPhase?.create({
         data: {
           accountId: account.id,
           phaseType: 'phase_1',
-          status: 'active',
-          brokerAccountId: validatedData.phase1AccountId || `${account.id}-phase1`,
-          brokerLogin: validatedData.phase1Login,
-          brokerPassword: validatedData.phase1Password,
-          brokerServer: validatedData.phase1Server,
-          startingBalance: account.startingBalance,
-          currentBalance: account.startingBalance,
-          currentEquity: account.startingBalance,
-          highWaterMark: account.startingBalance,
+          phaseStatus: 'active',
           profitTarget: (account.startingBalance * validatedData.phase1ProfitTarget) / 100,
-          profitTargetPercent: validatedData.phase1ProfitTarget,
-          maxDrawdownAmount: (account.startingBalance * validatedData.phase1MaxDrawdown) / 100,
-          maxDrawdownPercent: validatedData.phase1MaxDrawdown,
-          dailyDrawdownAmount: (account.startingBalance * validatedData.phase1DailyDrawdown) / 100,
-          dailyDrawdownPercent: validatedData.phase1DailyDrawdown,
-          minTradingDays: validatedData.minTradingDaysPhase1,
-          maxTradingDays: validatedData.maxTradingDaysPhase1,
-          startedAt: new Date(),
+          currentEquity: account.startingBalance,
+          currentBalance: account.startingBalance,
+          netProfitSincePhaseStart: 0,
+          highestEquitySincePhaseStart: account.startingBalance,
+          totalTrades: 0,
+          winningTrades: 0,
+          totalCommission: 0,
         }
       }) || null
       

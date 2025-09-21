@@ -1,7 +1,7 @@
 'use server'
 import { Trade, Prisma, DashboardLayout } from '@prisma/client'
 import { revalidatePath, revalidateTag } from 'next/cache'
-import { Widget, Layouts } from '@/app/[locale]/dashboard/types/dashboard'
+import { Widget, Layouts } from '@/app/dashboard/types/dashboard'
 import { createClient, getUserId } from './auth'
 import { startOfDay } from 'date-fns'
 
@@ -236,7 +236,7 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         numberOfTradesAdded: result.count,
         details: {
           totalProcessed: cleanedData.length,
-          duplicatesSkipped: cleanedData.length - newTrades.length,
+          duplicatesSkipped: cleanedData.length - result.count,
           newTradesAdded: result.count
         }
       }

@@ -3,7 +3,7 @@
 import { getShared } from './shared'
 import { TickDetails, User, DashboardLayout, Trade } from '@prisma/client'
 import { GroupWithAccounts } from './groups'
-import { getCurrentLocale } from '@/locales/server'
+import { getCurrentLocale } from '@/lib/translations/server'
 import { prisma } from '@/lib/prisma'
 import { createClient, getUserId } from './auth'
 import { Account, Group } from '@/context/data-provider'

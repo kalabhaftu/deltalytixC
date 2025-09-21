@@ -3,7 +3,7 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format } from "date-fns"
 import { formatInTimeZone } from 'date-fns-tz'
-import { StatisticsProps } from "@/app/[locale]/dashboard/types/statistics"
+import { StatisticsProps } from "@/app/dashboard/types/statistics"
 import { Account } from "@/context/data-provider"
 
 export function cn(...inputs: ClassValue[]) {
