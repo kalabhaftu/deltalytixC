@@ -501,6 +501,21 @@ export async function getUserEmail(): Promise<string> {
   return userEmail || ""
 }
 
+/**
+ * Get user ID safely - returns null for unauthenticated users instead of throwing
+ * Use this in server actions that should handle unauthenticated users gracefully
+ */
+export async function getUserIdSafe(): Promise<string | null> {
+  try {
+    return await getUserId()
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("not authenticated")) {
+      return null // Return null for unauthenticated users instead of throwing
+    }
+    throw error // Re-throw other errors (like service unavailable)
+  }
+}
+
 // Identity linking functions
 export async function linkDiscordAccount() {
   const supabase = await createClient()

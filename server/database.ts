@@ -2,7 +2,7 @@
 import { Trade, Prisma, DashboardLayout } from '@prisma/client'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { Widget, Layouts } from '@/app/dashboard/types/dashboard'
-import { createClient, getUserId } from './auth'
+import { createClient, getUserId, getUserIdSafe } from './auth'
 import { startOfDay } from 'date-fns'
 
 import { prisma } from '@/lib/prisma'
@@ -530,13 +530,20 @@ export async function saveDashboardLayoutAction(layouts: DashboardLayout): Promi
 
 export async function groupTradesAction(tradeIds: string[]): Promise<boolean> {
   try {
-    const userId = await getUserId()
+    const userId = await getUserIdSafe()
+
+    // If user is not authenticated, return false
+    if (!userId) {
+      console.log('[groupTrades] User not authenticated, returning false')
+      return false
+    }
+
     // Generate a new group ID
     const groupId = crypto.randomUUID()
 
     // Update all selected trades with the new group ID
     await prisma.trade.updateMany({
-      where: { 
+      where: {
         id: { in: tradeIds },
         userId // Ensure we only update the user's own trades
       },
@@ -553,10 +560,17 @@ export async function groupTradesAction(tradeIds: string[]): Promise<boolean> {
 
 export async function ungroupTradesAction(tradeIds: string[]): Promise<boolean> {
   try {
-    const userId = await getUserId()
+    const userId = await getUserIdSafe()
+
+    // If user is not authenticated, return false
+    if (!userId) {
+      console.log('[ungroupTrades] User not authenticated, returning false')
+      return false
+    }
+
     // Remove group ID from selected trades
     await prisma.trade.updateMany({
-      where: { 
+      where: {
         id: { in: tradeIds },
         userId // Ensure we only update the user's own trades
       },

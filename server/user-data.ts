@@ -4,7 +4,7 @@ import { getShared } from './shared'
 import { TickDetails, User, DashboardLayout, Trade } from '@prisma/client'
 import { GroupWithAccounts } from './groups'
 import { prisma } from '@/lib/prisma'
-import { createClient, getUserId } from './auth'
+import { createClient, getUserId, getUserIdSafe } from './auth'
 import { Account, Group } from '@/context/data-provider'
 import { revalidateTag, unstable_cache } from 'next/cache'
 
@@ -61,14 +61,26 @@ export async function getUserData(): Promise<{
   // moodHistory: Mood[]; // Removed - mood feature
 }> {
   try {
-    const userId = await getUserId()
+    const userId = await getUserIdSafe()
+
+    // If user is not authenticated, return empty data instead of throwing error
+    if (!userId) {
+      console.log('[getUserData] User not authenticated, returning empty data')
+      return {
+        userData: null,
+        tickDetails: [],
+        accounts: [],
+        groups: []
+      }
+    }
+
     const locale = 'en' // Default to English since i18n was removed
 
 
   return unstable_cache(
     async () => {
       console.log(`[Cache MISS] Fetching user data for user ${userId}`)
-      
+
       try {
         // Add timeout for database operations - increased for better connectivity
         const timeoutPromise = new Promise((_, reject) =>

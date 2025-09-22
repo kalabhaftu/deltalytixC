@@ -1,6 +1,6 @@
 'use server'
 
-import { getUserId } from '@/server/auth'
+import { getUserId, getUserIdSafe } from '@/server/auth'
 import { PrismaClient, Trade, Payout } from '@prisma/client'
 import { Account } from '@/context/data-provider'
 import { unstable_cache } from 'next/cache'
@@ -266,14 +266,21 @@ export async function deleteAccountAction(account: Account) {
 
 export async function getAccountsAction() {
   try {
-    const userId = await getUserId()
+    const userId = await getUserIdSafe()
+
+    // If user is not authenticated, return empty array instead of throwing error
+    if (!userId) {
+      console.log('[getAccountsAction] User not authenticated, returning empty array')
+      return []
+    }
+
     console.log('[getAccountsAction] User ID:', userId)
-    
+
     // PERFORMANCE OPTIMIZATION: Use caching and minimal fields
     return unstable_cache(
       async () => {
         console.log(`[Cache MISS] Fetching accounts for user ${userId}`)
-        
+
         const accounts = await prisma.account.findMany({
           where: {
             userId: userId,
