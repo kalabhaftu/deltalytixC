@@ -68,17 +68,14 @@ const nextConfig = {
     pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
     // Force static generation for route groups
     outputFileTracing: true,
-    // Ensure proper build tracing
-    experimental: {
-      ...nextConfig.experimental,
-      // Force client reference manifest generation
-      clientReferenceManifest: true,
-      // Enable proper route group handling
-      serverComponentsExternalPackages: ['@supabase/ssr', '@supabase/supabase-js'],
-    },
     // Disable problematic features that might cause issues
     images: {
-      ...nextConfig.images,
+      remotePatterns: [
+        {
+          protocol: 'https',
+          hostname: '**',
+        },
+      ],
       // Ensure image optimization works properly
       unoptimized: false,
     },
