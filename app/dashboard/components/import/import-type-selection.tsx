@@ -49,11 +49,11 @@ export default function ImportTypeSelection({ selectedType, setSelectedType, set
   const getTranslatedCategory = (category: PlatformConfig['category']) => {
     switch (category) {
       case 'Direct Account Sync':
-        return "Direct Account Sync"
+        return 'Direct Account Sync'
       case 'Intelligent Import':
-        return "Intelligent Import"
+        return 'Intelligent Import'
       case 'Platform CSV Import':
-        return "Platform CSV Import"
+        return 'Platform CSV Import'
       default:
         return category
     }
@@ -74,7 +74,7 @@ export default function ImportTypeSelection({ selectedType, setSelectedType, set
         <div className="h-full min-h-0">
           <Command className="border rounded-lg h-full">
             <div className="flex flex-col h-full">
-              <CommandInput 
+              <CommandInput
                 className="h-auto rounded-none shrink-0"
                 placeholder="Search platforms..."
                 value={searchQuery}

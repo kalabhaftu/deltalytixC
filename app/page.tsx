@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useTheme } from '@/context/theme-provider'
+import { useUserStore } from '@/store/user-store'
 import Features from './(landing)/components/features'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Toaster } from "@/components/ui/toaster";
@@ -13,9 +14,13 @@ import { ThemeProvider } from "@/context/theme-provider";
 
 export default function RootPage() {
     const { theme, effectiveTheme } = useTheme();
+    const user = useUserStore(state => state.user);
     const [videoLoaded, setVideoLoaded] = useState(false);
     const [videoError, setVideoError] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
+
+    // Check if user is authenticated
+    const isAuthenticated = user !== null;
 
     useEffect(() => {
         setVideoLoaded(false);
@@ -78,10 +83,17 @@ export default function RootPage() {
                                                 </p>
                                             </div>
                                             <div className="flex w-full justify-center pt-2">
-                                                <Link href={"/authentication"} className="group flex justify-center items-center px-8 py-3 h-12 bg-primary hover:bg-black dark:hover:bg-white shadow-lg hover:shadow-xl rounded-xl transition-all duration-300 hover:scale-105">
-                                                    <span className="font-medium text-sm text-primary-foreground group-hover:text-white dark:group-hover:text-black transition-colors duration-300">Get Started</span>
+                                                <Link href={isAuthenticated ? "/dashboard" : "/authentication"} className="group flex justify-center items-center px-8 py-3 h-12 bg-primary hover:bg-black dark:hover:bg-white shadow-lg hover:shadow-xl rounded-xl transition-all duration-300 hover:scale-105">
+                                                    <span className="font-medium text-sm text-primary-foreground group-hover:text-white dark:group-hover:text-black transition-colors duration-300">{isAuthenticated ? "Go to Dashboard" : "Get Started"}</span>
                                                 </Link>
                                             </div>
+                                            {isAuthenticated && (
+                                                <div className="text-center mt-4">
+                                                    <p className="text-sm text-green-600 dark:text-green-400">
+                                                        ✓ You are already logged in! Click above to access your dashboard.
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex w-full items-center justify-center relative rounded-lg">
                                             <div className="relative w-full h-full">

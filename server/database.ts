@@ -275,7 +275,6 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
 function getCachedTrades(userId: string, page: number, chunkSize: number): Promise<Trade[]> {
   return unstable_cache(
     async () => {
-      console.log(`[Cache MISS] Fetching trades for user ${userId}`)
 
       try {
         const query: TradeQuery = {
@@ -328,7 +327,6 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
     const actualUserId = userId || user?.id
     if (!actualUserId) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('[getTradesAction] No user ID available, returning empty array')
       }
       return []
     }
@@ -336,7 +334,6 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
     // PERFORMANCE OPTIMIZATION: Use single optimized query instead of chunking
     return unstable_cache(
       async () => {
-        console.log(`[Cache MISS] Fetching ALL trades for user ${actualUserId}`)
 
         try {
           const query: any = {
@@ -348,7 +345,6 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
 
           const trades = await prisma.trade.findMany(query)
           
-          console.log(`[getTradesAction] Fetched ${trades.length} trades for user ${actualUserId}`)
           
           return trades.map(trade => ({
             ...trade,
@@ -465,7 +461,6 @@ export async function loadDashboardLayoutAction(): Promise<Layouts | null> {
     })
     
     if (!dashboard) {
-      console.log('[loadDashboardLayout] No layout found for user:', userId)
       return null
     }
 

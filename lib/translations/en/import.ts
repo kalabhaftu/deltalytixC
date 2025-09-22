@@ -49,6 +49,13 @@ export default {
       connectAccountDescription: 'Connect your account to import trades',
       processFile: 'Process File',
       processFileDescription: 'Processing your file',
+      uploadPdf: 'Upload PDF',
+      uploadPdfDescription: 'Upload the PDF file you want to import',
+    },
+    categories: {
+      directAccountSync: 'Direct Account Sync',
+      intelligentImport: 'Intelligent Import',
+      platformCsvImport: 'Platform CSV Import',
     },
     account: {
       selectAccount: 'Select Account',

@@ -192,13 +192,13 @@ export default function TradeDistributionChart({ size = 'medium' }: TradeDistrib
                       const y = cy + labelRadius * Math.sin((angle * Math.PI) / 180);
                       return (
                         <text
-                          key={index}
+                          key={`label-${index}`}
                           x={x}
                           y={y}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           className="fill-muted-foreground font-medium translate-y-2"
-                          style={{ 
+                          style={{
                             fontSize: size === 'small-long' ? '10px' : '12px'
                           }}
                         >

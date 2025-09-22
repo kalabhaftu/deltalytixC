@@ -35,6 +35,15 @@ interface TradingViewWidgetProps {
   height?: number
   className?: string
   onSymbolChange?: (symbol: string) => void
+  tradeData?: {
+    entryTime: Date
+    exitTime: Date
+    entryPrice: number
+    exitPrice: number
+    side: string
+    pnl: number
+  }
+  showControls?: boolean
 }
 
 export function TradingViewWidget({
@@ -42,21 +51,37 @@ export function TradingViewWidget({
   height = 600,
   className = '',
   onSymbolChange,
+  tradeData,
+  showControls = true,
 }: TradingViewWidgetProps) {
   const container = useRef<HTMLDivElement>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [currentSymbol, setCurrentSymbol] = useState(symbol)
+  // Calculate appropriate interval based on trade duration
+  const calculateInterval = () => {
+    if (!tradeData) return 'D'
+    
+    const timeDiff = tradeData.exitTime.getTime() - tradeData.entryTime.getTime()
+    const hours = timeDiff / (1000 * 60 * 60)
+    
+    if (hours <= 1) return '1'
+    if (hours <= 4) return '5'
+    if (hours <= 24) return '15'
+    if (hours <= 72) return '60'
+    return 'D'
+  }
+
   const [config, setConfig] = useState<TradingViewConfig>({
     symbol: currentSymbol,
-    interval: 'D',
+    interval: tradeData ? calculateInterval() : 'D',
     theme: 'light',
     style: '1',
     locale: 'en',
     timezone: 'Etc/UTC',
     toolbar_bg: '#f1f3f6',
     enable_publishing: false,
-    hide_top_toolbar: false,
+    hide_top_toolbar: !showControls,
     hide_legend: false,
     range: 'YTD',
     studies: ['MASimple@tv-basicstudies'],
@@ -118,6 +143,45 @@ export function TradingViewWidget({
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
     script.type = 'text/javascript'
     script.async = true
+    
+    // Prepare trade markers if trade data is available and valid
+    const tradeMarkers = tradeData ? (() => {
+      try {
+        // Validate trade data
+        if (!tradeData.entryTime || !tradeData.exitTime ||
+            isNaN(tradeData.entryTime.getTime()) ||
+            isNaN(tradeData.exitTime.getTime()) ||
+            isNaN(tradeData.entryPrice) ||
+            isNaN(tradeData.exitPrice)) {
+          return []
+        }
+
+        const side = tradeData.side?.toUpperCase() || 'LONG'
+
+        return [
+          {
+            time: Math.floor(tradeData.entryTime.getTime() / 1000),
+            position: side === 'LONG' ? 'belowBar' : 'aboveBar',
+            color: side === 'LONG' ? '#26a69a' : '#ef5350',
+            shape: side === 'LONG' ? 'arrowUp' : 'arrowDown',
+            text: `Entry: ${tradeData.entryPrice.toFixed(5)}`,
+            size: 1
+          },
+          {
+            time: Math.floor(tradeData.exitTime.getTime() / 1000),
+            position: side === 'LONG' ? 'aboveBar' : 'belowBar',
+            color: tradeData.pnl >= 0 ? '#26a69a' : '#ef5350',
+            shape: side === 'LONG' ? 'arrowDown' : 'arrowUp',
+            text: `Exit: ${tradeData.exitPrice.toFixed(5)} (${tradeData.pnl >= 0 ? '+' : ''}$${tradeData.pnl.toFixed(2)})`,
+            size: 1
+          }
+        ]
+      } catch (error) {
+        console.warn('Error creating trade markers:', error)
+        return []
+      }
+    })() : []
+
     script.innerHTML = JSON.stringify({
       autosize: true,
       symbol: config.symbol,
@@ -134,20 +198,50 @@ export function TradingViewWidget({
       save_image: false,
       studies: config.studies,
       container_id: 'tradingview_widget',
+      drawings_access: {
+        type: 'black',
+        tools: [
+          {
+            name: 'Trend Line',
+            grayed: false
+          }
+        ]
+      },
+      ...(tradeMarkers.length > 0 && {
+        drawings_access: {
+          type: 'black',
+          tools: [
+            {
+              name: 'Trend Line',
+              grayed: false
+            }
+          ]
+        }
+      })
     })
 
     if (container.current) {
+      // Clear previous content
       container.current.innerHTML = ''
-      container.current.appendChild(script)
-      setIsLoaded(true)
-    }
 
-    return () => {
-      if (container.current) {
-        container.current.innerHTML = ''
+      // Only append script if we're not in the middle of a component unmount
+      const timeoutId = setTimeout(() => {
+        if (container.current && !container.current.hasChildNodes()) {
+          container.current.appendChild(script)
+          setIsLoaded(true)
+        }
+      }, 100)
+
+      return () => {
+        clearTimeout(timeoutId)
+        if (container.current) {
+          container.current.innerHTML = ''
+        }
       }
+    } else {
+      return () => {} // No cleanup needed if no container
     }
-  }, [config])
+  }, [config.symbol, config.interval, tradeData]) // Only depend on essential config changes
 
   const updateConfig = (key: keyof TradingViewConfig, value: any) => {
     setConfig(prev => ({
@@ -194,7 +288,8 @@ export function TradingViewWidget({
         </div>
         
         {/* Chart Controls */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+        {showControls && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
           <div>
             <Label className="text-sm">Symbol</Label>
             <Select value={currentSymbol} onValueChange={handleSymbolChange}>
@@ -271,44 +366,47 @@ export function TradingViewWidget({
             </Select>
           </div>
         </div>
+        )}
 
         {/* Additional Controls */}
-        <div className="flex flex-wrap items-center gap-4 mt-2">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="hide-toolbar"
-              checked={config.hide_top_toolbar}
-              onCheckedChange={(checked) => updateConfig('hide_top_toolbar', checked)}
-            />
-            <Label htmlFor="hide-toolbar" className="text-sm">Hide Toolbar</Label>
-          </div>
+        {showControls && (
+          <div className="flex flex-wrap items-center gap-4 mt-2">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="hide-toolbar"
+                checked={config.hide_top_toolbar}
+                onCheckedChange={(checked) => updateConfig('hide_top_toolbar', checked)}
+              />
+              <Label htmlFor="hide-toolbar" className="text-sm">Hide Toolbar</Label>
+            </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="hide-legend"
-              checked={config.hide_legend}
-              onCheckedChange={(checked) => updateConfig('hide_legend', checked)}
-            />
-            <Label htmlFor="hide-legend" className="text-sm">Hide Legend</Label>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="hide-legend"
+                checked={config.hide_legend}
+                onCheckedChange={(checked) => updateConfig('hide_legend', checked)}
+              />
+              <Label htmlFor="hide-legend" className="text-sm">Hide Legend</Label>
+            </div>
           </div>
-        </div>
+        )}
       </CardHeader>
 
       <CardContent className="p-0">
         <div
           ref={container}
           id="tradingview_widget"
-          style={{ 
+          style={{
             height: isFullscreen ? 'calc(100vh - 120px)' : `${height}px`,
             width: '100%'
           }}
           className="relative"
         >
           {!isLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                <p className="text-sm text-gray-500">Loading TradingView chart...</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Loading TradingView chart...</p>
               </div>
             </div>
           )}
@@ -316,16 +414,18 @@ export function TradingViewWidget({
       </CardContent>
 
       {/* Chart Information */}
-      <div className="p-4 border-t bg-gray-50">
-        <div className="flex items-center justify-between text-sm text-gray-600">
-          <div>
-            Powered by TradingView • Real-time data
-          </div>
-          <div>
-            Symbol: {currentSymbol} • Interval: {intervals.find(i => i.value === config.interval)?.label}
+      {showControls && (
+        <div className="p-4 border-t bg-gray-50">
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <div>
+              Powered by TradingView • Real-time data
+            </div>
+            <div>
+              Symbol: {currentSymbol} • Interval: {intervals.find(i => i.value === config.interval)?.label}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </Card>
   )
 }

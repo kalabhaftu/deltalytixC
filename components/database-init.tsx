@@ -2,38 +2,47 @@
 
 import { useEffect, useRef } from 'react'
 
-// Simple component to initialize database on app start
+// Optimized database initialization - only run in development and skip unnecessary calls
 export function DatabaseInit() {
   const initialized = useRef(false)
 
   useEffect(() => {
     // Prevent multiple initializations
-    if (initialized.current) return
+    if (initialized.current || process.env.NODE_ENV !== 'development') return
     initialized.current = true
 
-    // Run database initialization on client side
+    // Simplified database check - only test connection if needed
     const initializeDatabase = async () => {
       try {
-        // Make a request to initialize the database
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+        // Only initialize if we actually need to test the connection
+        // In production, let the first API call handle initialization
+        if (process.env.NODE_ENV === 'production') return
 
-        await fetch('/api/admin/init-db', {
+        // Quick connection test with very short timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 2000) // 2 second timeout
+
+        const response = await fetch('/api/admin/init-db', {
           method: 'POST',
           signal: controller.signal,
         })
 
         clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          console.warn('[DB Init] Database initialization returned error status')
+        }
       } catch (error) {
         if (error instanceof Error && error.name !== 'AbortError') {
-          console.warn('[DB Init] Failed to initialize database:', error)
+          console.warn('[DB Init] Database connection test failed:', error.message)
         }
+        // Don't retry - let the app handle database connections naturally
       }
     }
 
-    // Add a small delay to prevent immediate execution
-    const timer = setTimeout(initializeDatabase, 1000)
-    
+    // Delay initialization to not block initial page load
+    const timer = setTimeout(initializeDatabase, 5000) // 5 second delay
+
     return () => {
       clearTimeout(timer)
     }

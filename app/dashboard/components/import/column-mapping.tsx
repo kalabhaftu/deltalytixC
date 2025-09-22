@@ -10,6 +10,12 @@ import { mappingSchema } from '@/app/api/ai/mappings/schema'
 import { cn } from '@/lib/utils'
 import { z } from 'zod'
 
+// Temporary translation function
+const useTranslations = () => {
+  const t = (key: string) => key
+  return { t }
+}
+
 type MappingObject = z.infer<typeof mappingSchema>
 
 type ColumnConfig = {
@@ -47,7 +53,6 @@ interface ColumnMappingProps {
 }
 
 export default function ColumnMapping({ headers, csvData, mappings, setMappings, error, importType }: ColumnMappingProps) {
-
   const { object, submit, isLoading } = useObject({
     api: '/api/ai/mappings',
     schema: mappingSchema,
@@ -155,10 +160,10 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Your File Column</TableHead>
-              <TableHead>Your Sample Data</TableHead>
-              <TableHead>Destination Column</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead>Instrument</TableHead>
+              <TableHead>Entry Date</TableHead>
+              <TableHead>Close Date</TableHead>
+              <TableHead>Quantity</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -176,12 +181,25 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
                     value={Object.entries(object || {}).find(([_, value]) => value === header)?.[0] || ""}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select one" />
+                      <SelectValue placeholder="Side" />
                     </SelectTrigger>
                     <SelectContent>
                       {destinationColumns.map((column, i) => (
                         <SelectItem key={i} value={column} disabled={Object.values(mappings).includes(column) && mappings[header] !== column}>
-                          {column}
+                          {column === 'accountNumber' ? 'Account Number' :
+                           column === 'instrument' ? 'Instrument' :
+                           column === 'entryId' ? 'Entry ID' :
+                           column === 'closeId' ? 'Close ID' :
+                           column === 'quantity' ? 'Quantity' :
+                           column === 'entryPrice' ? 'Entry Price' :
+                           column === 'closePrice' ? 'Close Price' :
+                           column === 'entryDate' ? 'Entry Date' :
+                           column === 'closeDate' ? 'Close Date' :
+                           column === 'pnl' ? 'PnL' :
+                           column === 'timeInPosition' ? 'Time in Position' :
+                           column === 'side' ? 'Side' :
+                           column === 'commission' ? 'Commission' :
+                           column}
                           {columnConfig[column].required && (
                             <span className="ml-1 text-yellow-500">*</span>
                           )}

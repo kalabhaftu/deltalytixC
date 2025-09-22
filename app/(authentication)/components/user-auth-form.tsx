@@ -217,6 +217,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                                         autoComplete="email"
                                         autoCorrect="off"
                                         disabled={isLoading || isEmailSent || authMethod === 'discord' || authMethod === 'google'}
+                                        className="transition-all duration-200 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                                         {...field}
                                     />
                                 </FormControl>
@@ -225,9 +226,10 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                         )}
                     />
                     {!isEmailSent ? (
-                        <Button 
+                        <Button
                             disabled={isLoading || countdown > 0 || authMethod === 'discord' || authMethod === 'google'}
                             type="submit"
+                            className="transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
                         >
                             {isLoading && authMethod === 'email' && (
                                 <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
@@ -236,7 +238,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                         </Button>
                     ) : (
                         <div className="space-y-2">
-                            <div className="text-center space-y-2 mb-4 p-3 border rounded-lg bg-muted/50">
+                            <div className="text-center space-y-2 mb-4 p-4 border rounded-lg bg-muted/50 dark:bg-muted/20 transition-all duration-200">
                                 <h3 className="font-semibold text-sm">
                                     {isExistingUser ? 'Magic Link Sent!' : 'Verification Code Sent!'}
                                 </h3>
@@ -250,7 +252,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="w-full"
+                                className="w-full transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
                                 onClick={openMailClient}
                                 disabled={authMethod === 'discord' || authMethod === 'google'}
                             >
@@ -260,7 +262,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                             <Button
                                 type="submit"
                                 variant="ghost"
-                                className="w-full"
+                                className="w-full transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
                                 disabled={countdown > 0 || authMethod === 'discord' || authMethod === 'google'}
                             >
                                 {countdown > 0 ? (
@@ -311,7 +313,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                         />
                         <Button
                             type="submit"
-                            className="w-full"
+                            className="w-full transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
                             disabled={isLoading}
                         >
                             {isLoading ? (
@@ -346,11 +348,12 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                             </span>
                         </div>
                     </div>
-            <Button 
-                variant="outline" 
-                type="button" 
-                disabled={isLoading || authMethod === 'email'} 
+            <Button
+                variant="outline"
+                type="button"
+                disabled={isLoading || authMethod === 'email'}
                 onClick={onSubmitDiscord}
+                className="transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] hover:bg-discord/5 hover:border-discord/20"
             >
                 {isLoading && authMethod === 'discord' ? (
                     <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
@@ -359,11 +362,12 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                 )}{" "}
                 Discord
             </Button>
-            <Button 
-                variant="outline" 
-                type="button" 
-                disabled={isLoading || authMethod === 'email'} 
+            <Button
+                variant="outline"
+                type="button"
+                disabled={isLoading || authMethod === 'email'}
                 onClick={onSubmitGoogle}
+                className="transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] hover:bg-blue-500/5 hover:border-blue-500/20"
             >
                 {isLoading && authMethod === 'google' ? (
                     <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />

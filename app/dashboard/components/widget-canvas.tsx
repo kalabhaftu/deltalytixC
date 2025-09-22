@@ -373,11 +373,48 @@ export default function WidgetCanvas() {
   const { settings: toolbarSettings } = useToolbarSettingsStore()
   const [isCustomizing, setIsCustomizing] = useState(false)
   const [isUserAction, setIsUserAction] = useState(false)
+  const [widgetsLoaded, setWidgetsLoaded] = useState<Set<string>>(new Set())
+  const [layoutInitialized, setLayoutInitialized] = useState(false)
   // Add this state to track if the layout change is from user interaction
   const activeLayout = useMemo(() => isMobile ? 'mobile' : 'desktop', [isMobile])
+
+  // Track layout initialization
+  useEffect(() => {
+    if (layouts && !layoutInitialized) {
+      setLayoutInitialized(true)
+    }
+  }, [layouts, layoutInitialized])
+
+  // Progressive widget loading - load widgets one by one
+  useEffect(() => {
+    if (!layouts?.[activeLayout]) return
+
+    const widgets = Array.isArray(layouts[activeLayout]) ? layouts[activeLayout] : []
+
+    // Load widgets progressively (6 at a time every 100ms)
+    const loadBatch = (startIndex: number, batchSize: number) => {
+      const endIndex = Math.min(startIndex + batchSize, widgets.length)
+
+      // Update widgets loaded state
+      setWidgetsLoaded(prev => {
+        const newLoaded = new Set(prev)
+        for (let i = startIndex; i < endIndex; i++) {
+          newLoaded.add(widgets[i].i)
+        }
+        return newLoaded
+      })
+
+      if (endIndex < widgets.length) {
+        setTimeout(() => loadBatch(endIndex, 2), 100)
+      }
+    }
+
+    // Start loading immediately
+    loadBatch(0, 6)
+  }, [layouts, activeLayout])
   
-  // Move all memoized values up, out of conditional rendering paths
-  const ResponsiveGridLayout = useMemo(() => WidthProvider(Responsive), [])
+  // Use ResponsiveGridLayout with WidthProvider
+  const GridLayoutWithProvider = useMemo(() => WidthProvider(Responsive), [])
 
   // Group all useMemo hooks together
   const widgetDimensions = useMemo(() => {
@@ -970,19 +1007,6 @@ export default function WidgetCanvas() {
 
   // Define renderWidget with all dependencies
   const renderWidget = useCallback((widget: Widget) => {
-    // Only show skeleton if layouts exist but data is still loading AND the widget is not already showing a Suspense fallback
-    // This prevents "doubled" skeleton loading when Suspense fallback is already shown
-    if (isLoading && layouts && !isCustomizing) {
-      const effectiveSize = (() => {
-        if (isMobile && widget.size !== 'tiny') {
-          return 'small' as WidgetSize
-        }
-        return widget.size as WidgetSize
-      })()
-      
-      return <WidgetSkeleton type={widget.type as WidgetType} size={effectiveSize} />
-    }
-
     // Ensure widget.type is a valid WidgetType
     if (!Object.keys(WIDGET_REGISTRY).includes(widget.type)) {
       return (
@@ -1007,7 +1031,19 @@ export default function WidgetCanvas() {
     })()
 
     return getWidgetComponent(widget.type as WidgetType, effectiveSize)
-  }, [isMobile, removeWidget, isLoading, layouts, isCustomizing]);
+  }, [isMobile, removeWidget])
+
+  // Define renderWidgetPlaceholder for loading state
+  const renderWidgetPlaceholder = useCallback((widget: Widget) => {
+    const effectiveSize = (() => {
+      if (isMobile && widget.size !== 'tiny') {
+        return 'small' as WidgetSize
+      }
+      return widget.size as WidgetSize
+    })()
+
+    return <WidgetSkeleton type={widget.type as WidgetType} size={effectiveSize} />
+  }, [isMobile]);
 
   useEffect(() => {
     if (isCustomizing) {
@@ -1070,32 +1106,7 @@ export default function WidgetCanvas() {
         onAutoArrange={autoArrangeWidgets}
         onReset={resetLayout}
       />
-      {!layouts ? (
-        // Loading skeleton to prevent layout shifts with contextual widget skeletons
-        <div className="relative mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { type: 'equityChart', size: 'medium' },
-              { type: 'cumulativePnl', size: 'tiny' },
-              { type: 'tradePerformance', size: 'tiny' },
-              { type: 'pnlChart', size: 'medium' },
-              { type: 'statisticsWidget', size: 'medium' },
-              { type: 'calendarWidget', size: 'extra-large' }
-            ].map((widget, i) => (
-              <div
-                key={i}
-                style={{ height: isMobile ? '240px' : '280px' }}
-              >
-                <WidgetSkeleton 
-                  type={widget.type as WidgetType} 
-                  size={widget.size as WidgetSize}
-                  className="h-full"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
+      {layouts ? (
         <div className="relative">
           <div id="tooltip-portal" className="fixed inset-0 pointer-events-none z-[9999]" />
           {/* Add custom CSS for resize handles when customizing */}
@@ -1171,7 +1182,7 @@ export default function WidgetCanvas() {
               }
             `}</style>
           )}
-          <ResponsiveGridLayout
+          <GridLayoutWithProvider
             layouts={responsiveLayout}
             breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
             cols={{ lg: 12, md: 12, sm: 12, xs: 12, xxs: 12 }}
@@ -1193,11 +1204,12 @@ export default function WidgetCanvas() {
             {currentLayout.map((widget) => {
               const typedWidget = widget as unknown as Widget
               const dimensions = widgetDimensions[typedWidget.i]
-              
+              const isLoaded = widgetsLoaded.has(typedWidget.i)
+
               return (
-                <div 
-                  key={typedWidget.i} 
-                  className="h-full" 
+                <div
+                  key={typedWidget.i}
+                  className="h-full"
                   data-customizing={isCustomizing}
                   data-grid-dimensions={`${dimensions.w}x${dimensions.h}`}
                 >
@@ -1208,12 +1220,30 @@ export default function WidgetCanvas() {
                     size={typedWidget.size as WidgetSize}
                     currentType={typedWidget.type as WidgetType}
                   >
-                    {renderWidget(typedWidget)}
+                    {isLoaded ? renderWidget(typedWidget) : renderWidgetPlaceholder(typedWidget)}
                   </WidgetWrapper>
                 </div>
               )
             })}
-          </ResponsiveGridLayout>
+          </GridLayoutWithProvider>
+        </div>
+      ) : layoutInitialized ? (
+        // Show empty state only after layout is initialized but empty
+        <div className="flex items-center justify-center h-64 mt-6">
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">No widgets configured</p>
+            <Button onClick={() => addWidget('statisticsWidget' as WidgetType)} variant="outline">
+              Add Widget
+            </Button>
+          </div>
+        </div>
+      ) : (
+        // Show loading state while layout is being initialized
+        <div className="flex items-center justify-center h-64 mt-6">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading dashboard...</p>
+          </div>
         </div>
       )}
     </div>

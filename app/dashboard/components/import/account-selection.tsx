@@ -7,6 +7,12 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { useAccounts } from "@/hooks/use-accounts"
 
+// Temporary translation function
+const useTranslations = () => {
+  const t = (key: string) => key
+  return { t }
+}
+
 interface UnifiedAccount {
   id: string
   number: string
@@ -54,7 +60,7 @@ export default function AccountSelection({
             Select Account
           </Label>
           <p className="text-sm text-muted-foreground">
-            Choose the account to import data into
+            Choose an existing account or create a new one
           </p>
         </div>
         <div className="flex-1 overflow-y-auto mt-4 py-2">
@@ -75,34 +81,34 @@ export default function AccountSelection({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="space-y-2">
-        <Label className="text-lg font-semibold">
-          Select Account
-        </Label>
-        <p className="text-sm text-muted-foreground">
-          {accounts.length === 0 
-            ? "No accounts available"
-            : "Choose the account to import data into"
-          }
-        </p>
-      </div>
+        <div className="space-y-2">
+          <Label className="text-lg font-semibold">
+            Select Account
+          </Label>
+          <p className="text-sm text-muted-foreground">
+            {accounts.length === 0
+              ? "No accounts found"
+              : "Choose an existing account or create a new one"
+            }
+          </p>
+        </div>
 
       {accounts.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <Card className="p-8 text-center">
             <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">
-              {hasError ? "Error Loading Accounts" : "No Accounts Found"}
+              {hasError ? "Failed to fetch accounts" : "No accounts found"}
             </h3>
             <p className="text-muted-foreground mb-4">
               {hasError
                 ? "There was an error loading your accounts. Please try again."
-                : "No accounts are available for import. Please create an account first."
+                : "You need to create an account first before importing trades"
               }
             </p>
             {hasError ? (
-              <Button 
-                onClick={() => refetch()} 
+              <Button
+                onClick={() => refetch()}
                 disabled={isLoading}
                 className="mb-4"
               >
@@ -111,7 +117,7 @@ export default function AccountSelection({
               </Button>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Unable to load accounts
+                Go to Accounts page to create new accounts
               </p>
             )}
           </Card>

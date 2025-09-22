@@ -65,7 +65,6 @@ export async function getUserData(): Promise<{
 
     // If user is not authenticated, return empty data instead of throwing error
     if (!userId) {
-      console.log('[getUserData] User not authenticated, returning empty data')
       return {
         userData: null,
         tickDetails: [],
@@ -79,12 +78,10 @@ export async function getUserData(): Promise<{
 
   return unstable_cache(
     async () => {
-      console.log(`[Cache MISS] Fetching user data for user ${userId}`)
-
       try {
-        // Add timeout for database operations - increased for better connectivity
+        // Add timeout for database operations - reduced for better performance
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Database timeout')), 30000)
+          setTimeout(() => reject(new Error('Database timeout')), 10000)
         )
 
         // PERFORMANCE OPTIMIZATION: Reduce database queries and use parallel fetching
@@ -159,13 +156,6 @@ export async function getUserData(): Promise<{
           moodHistory
         ] = await Promise.race([dataPromise, timeoutPromise]) as any
 
-        console.log('[getUserData] Raw accounts from DB:', accounts?.length || 0, 'accounts')
-        console.log('[getUserData] Account details:', accounts?.map((a: any) => ({ 
-          id: a.id, 
-          number: a.number, 
-          status: a.status, 
-          userId: a.userId 
-        })))
 
         return { userData, tickDetails, /* tags, */ accounts, groups, /* moodHistory */ } // Removed tags and mood features
       } catch (error) {
@@ -181,10 +171,10 @@ export async function getUserData(): Promise<{
         }
       }
     },
-    [`user-data-${userId}-${locale}`],
+      [`user-data-${userId}-${locale}`],
     {
       tags: [`user-data-${userId}-${locale}`, `user-data-${userId}`],
-      revalidate: 300 // 5 minutes instead of 24 hours for better UX
+      revalidate: 60 // 1 minute cache for faster updates
     }
   )()
   } catch (error) {
@@ -202,58 +192,65 @@ export async function getUserData(): Promise<{
   }
 }
 
-export async function getDashboardLayout(userId: string): Promise<DashboardLayout | null> {
-  console.log('getDashboardLayout')
-  try {
-    // Add timeout wrapper to prevent hanging
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('getDashboardLayout timeout')), 5000)
-    )
-    
-    const operationPromise = prisma.dashboardLayout.findUnique({
-      where: {
-        userId: userId
-      }
-    })
-    
-    return await Promise.race([operationPromise, timeoutPromise]) as DashboardLayout | null
-  } catch (error) {
-    if (error instanceof Error) {
-      // Handle prepared statement errors (common with Turbopack)
-      if (error.message.includes('prepared statement') && error.message.includes('already exists')) {
-        console.log('[getDashboardLayout] Prepared statement error (Turbopack), retrying...')
-        // Disconnect and reconnect to clear prepared statements
-        await prisma.$disconnect()
-        try {
-          return await prisma.dashboardLayout.findUnique({
-            where: {
-              userId: userId
-            }
-          })
-        } catch (retryError) {
-          console.error('[getDashboardLayout] Retry failed:', retryError)
+export const getDashboardLayout = unstable_cache(
+  async function getDashboardLayout(userId: string): Promise<DashboardLayout | null> {
+    console.log('getDashboardLayout')
+    try {
+      // Add timeout wrapper to prevent hanging
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('getDashboardLayout timeout')), 5000)
+      )
+
+      const operationPromise = prisma.dashboardLayout.findUnique({
+        where: {
+          userId: userId
+        }
+      })
+
+      return await Promise.race([operationPromise, timeoutPromise]) as DashboardLayout | null
+    } catch (error) {
+      if (error instanceof Error) {
+        // Handle prepared statement errors (common with Turbopack)
+        if (error.message.includes('prepared statement') && error.message.includes('already exists')) {
+          console.log('[getDashboardLayout] Prepared statement error (Turbopack), retrying...')
+          // Disconnect and reconnect to clear prepared statements
+          await prisma.$disconnect()
+          try {
+            return await prisma.dashboardLayout.findUnique({
+              where: {
+                userId: userId
+              }
+            })
+          } catch (retryError) {
+            console.error('[getDashboardLayout] Retry failed:', retryError)
+            return null
+          }
+        }
+        // Handle table doesn't exist error
+        if (error.message.includes('does not exist')) {
+          console.log('[getDashboardLayout] DashboardLayout table does not exist yet, returning null')
+          return null
+        }
+        // Handle database connection errors and timeouts
+        if (error.message.includes("Can't reach database server") ||
+            error.message.includes('P1001') ||
+            error.message.includes('connection') ||
+            error.message.includes('timeout') ||
+            error.message.includes('getDashboardLayout timeout')) {
+          console.log('[getDashboardLayout] Database connection error, returning null')
           return null
         }
       }
-      // Handle table doesn't exist error
-      if (error.message.includes('does not exist')) {
-        console.log('[getDashboardLayout] DashboardLayout table does not exist yet, returning null')
-        return null
-      }
-      // Handle database connection errors and timeouts
-      if (error.message.includes("Can't reach database server") || 
-          error.message.includes('P1001') ||
-          error.message.includes('connection') ||
-          error.message.includes('timeout') ||
-          error.message.includes('getDashboardLayout timeout')) {
-        console.log('[getDashboardLayout] Database connection error, returning null')
-        return null
-      }
+      console.error('[getDashboardLayout] Unexpected error:', error)
+      throw error
     }
-    console.error('[getDashboardLayout] Unexpected error:', error)
-    throw error
+  },
+  ['dashboard-layout'],
+  {
+    revalidate: 300, // 5 minutes cache
+    tags: ['dashboard-layout']
   }
-}
+)
 
 export async function updateIsFirstConnectionAction(isFirstConnection: boolean) {
   const supabase = await createClient()

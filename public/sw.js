@@ -1,27 +1,21 @@
-// Deltalytix Service Worker
+// Deltalytix Service Worker - Optimized for performance
 // Provides offline functionality, caching, and background sync
 
-const CACHE_NAME = 'deltalytix-v1.0.0'
-const STATIC_CACHE = 'deltalytix-static-v1.0.0'
-const API_CACHE = 'deltalytix-api-v1.0.0'
-const IMAGE_CACHE = 'deltalytix-images-v1.0.0'
+const CACHE_NAME = 'deltalytix-v1.0.1' // Updated version
+const STATIC_CACHE = 'deltalytix-static-v1.0.1'
+const API_CACHE = 'deltalytix-api-v1.0.1'
+const IMAGE_CACHE = 'deltalytix-images-v1.0.1'
 
-// Files to cache immediately
+// Minimal files to cache for performance
 const STATIC_FILES = [
   '/',
-  '/manifest.json',
-  '/icon-192x192.png',
-  '/icon-512x512.png',
   '/offline.html',
-  // Add critical CSS and JS files
 ]
 
-// API endpoints to cache
+// API endpoints to cache (reduced for performance)
 const CACHE_API_PATTERNS = [
-  /^\/api\/trades/,
-  /^\/api\/accounts/,
-  /^\/api\/analytics\/basic/,
-  /^\/api\/user\/profile/,
+  /^\/api\/trades\/basic/, // Only cache basic trade endpoints
+  /^\/api\/accounts\/basic/,
 ]
 
 // Background sync tags

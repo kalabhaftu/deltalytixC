@@ -196,7 +196,6 @@ export async function deleteTradesByIdsAction(tradeIds: string[]): Promise<void>
       })()
     ])
     
-    console.log(`[deleteTradesByIds] Deleted ${result.count} trades for user ${userId}`)
   } catch (error) {
     console.error('[deleteTradesByIds] Error deleting trades:', error)
     throw error
@@ -270,17 +269,12 @@ export async function getAccountsAction() {
 
     // If user is not authenticated, return empty array instead of throwing error
     if (!userId) {
-      console.log('[getAccountsAction] User not authenticated, returning empty array')
       return []
     }
-
-    console.log('[getAccountsAction] User ID:', userId)
 
     // PERFORMANCE OPTIMIZATION: Use caching and minimal fields
     return unstable_cache(
       async () => {
-        console.log(`[Cache MISS] Fetching accounts for user ${userId}`)
-
         const accounts = await prisma.account.findMany({
           where: {
             userId: userId,
@@ -301,17 +295,12 @@ export async function getAccountsAction() {
           }
         })
 
-        console.log('[getAccountsAction] Raw accounts from DB:', accounts.length, 'accounts')
-        console.log('[getAccountsAction] First few accounts:', accounts.slice(0, 3))
-
         if (accounts.length === 0) {
-          console.log('[getAccountsAction] No accounts found for user:', userId)
           // Try to see if there are any accounts at all in the database
           const allAccounts = await prisma.account.findMany({
             select: { id: true, userId: true, number: true, propfirm: true },
             take: 5
           })
-          console.log('[getAccountsAction] Sample accounts in DB:', allAccounts)
         }
 
         return accounts.map(account => ({
@@ -320,14 +309,13 @@ export async function getAccountsAction() {
         }))
       },
       [`accounts-${userId}`],
-      { 
-        tags: [`accounts-${userId}`], 
-        revalidate: 900 // 15 minutes cache
+      {
+        tags: [`accounts-${userId}`],
+        revalidate: 60 // 1 minute cache for faster updates
       }
     )()
   } catch (error) {
     console.error('Error fetching accounts:', error)
-    console.log('[getAccountsAction] Returning empty array due to error')
     // Return empty array instead of throwing error to prevent frontend crashes
     return []
   }

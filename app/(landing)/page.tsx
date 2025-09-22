@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useTheme } from '@/context/theme-provider'
+import { useUserStore } from '@/store/user-store'
 import Features from './components/features'
 
 import { Skeleton } from '@/components/ui/skeleton'
@@ -11,48 +12,47 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function LandingPage() {
     const { theme, effectiveTheme } = useTheme();
+    const user = useUserStore(state => state.user);
     const [videoLoaded, setVideoLoaded] = useState(false);
     const [videoError, setVideoError] = useState(false);
+    const [videoKey, setVideoKey] = useState(0);
     const videoRef = useRef<HTMLVideoElement>(null);
 
+    // Check if user is authenticated
+    const isAuthenticated = user !== null;
+
+    const videoSrc = effectiveTheme === "dark"
+        ? "https://fhvmtnvjiotzztimdxbi.supabase.co/storage/v1/object/public/assets/demo-dark.mp4"
+        : "https://fhvmtnvjiotzztimdxbi.supabase.co/storage/v1/object/public/assets/demo.mp4";
+
+
+    // Reset video state and force re-render when theme changes
     useEffect(() => {
         setVideoLoaded(false);
         setVideoError(false);
-
-        // Small delay to ensure theme has fully changed
-        const timer = setTimeout(() => {
-            if (videoRef.current) {
-                const video = videoRef.current;
-                // Clear current sources
-                video.pause();
-                video.currentTime = 0;
-                // Remove all existing sources
-                const sources = video.querySelectorAll('source');
-                sources.forEach(source => source.remove());
-                
-                // Add new source based on theme
-                const newSource = document.createElement('source');
-                newSource.src = effectiveTheme === "dark" 
-                    ? "https://fhvmtnvjiotzztimdxbi.supabase.co/storage/v1/object/public/assets/demo-dark.mp4"
-                    : "https://fhvmtnvjiotzztimdxbi.supabase.co/storage/v1/object/public/assets/demo.mp4";
-                newSource.type = "video/mp4";
-                video.appendChild(newSource);
-                
-                // Force reload with new source
-                video.load();
-            }
-        }, 100);
-
-        return () => clearTimeout(timer);
+        setVideoKey(prev => prev + 1); // Force video element to re-mount immediately
     }, [effectiveTheme]);
 
-    const handleVideoLoad = () => {
-        setVideoLoaded(true);
-    };
+    // Additional effect to ensure video loads with correct theme
+    useEffect(() => {
+        if (videoRef.current && videoLoaded) {
+            const video = videoRef.current;
+            const currentSrc = video.src;
+            const expectedSrc = videoSrc;
 
-    const handleVideoError = () => {
+            if (currentSrc !== expectedSrc) {
+                video.load();
+            }
+        }
+    }, [videoSrc, videoLoaded]);
+
+    const handleVideoLoad = useCallback(() => {
+        setVideoLoaded(true);
+    }, []);
+
+    const handleVideoError = useCallback(() => {
         setVideoError(true);
-    };
+    }, []);
 
     return (
         <div className="flex flex-col min-h-[100dvh] text-gray-900 dark:text-white transition-colors duration-300">
@@ -70,10 +70,17 @@ export default function LandingPage() {
                                     </p>
                                 </div>
                                 <div className="flex w-full justify-center">
-                                    <Link href={"/authentication"} className="flex justify-center items-center px-8 py-2.5 h-10 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl rounded-xl transition-all duration-200">
-                                        <span className="font-medium text-sm text-white">Get Started</span>
+                                    <Link href={isAuthenticated ? "/dashboard" : "/authentication"} className="flex justify-center items-center px-8 py-2.5 h-10 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl rounded-xl transition-all duration-200">
+                                        <span className="font-medium text-sm text-white">{isAuthenticated ? "Go to Dashboard" : "Get Started"}</span>
                                     </Link>
                                 </div>
+                                {isAuthenticated && (
+                                    <div className="text-center mt-4">
+                                        <p className="text-sm text-green-600 dark:text-green-400">
+                                            ✓ You are already logged in! Click above to access your dashboard.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                             <div className="flex w-full items-center justify-center relative rounded-lg">
                                 <div className="relative w-full h-full">
@@ -88,14 +95,15 @@ export default function LandingPage() {
                                         </div>
                                     )}
                                     <video
-                                        key={effectiveTheme}
                                         ref={videoRef}
+                                        key={`${effectiveTheme}-${videoSrc}`}
+                                        src={videoSrc}
                                         preload="metadata"
                                         loop
                                         muted
                                         autoPlay
                                         playsInline
-                                        className={`w-full h-full rounded-[14.5867px] border-2 border-blue-500/40 shadow-[0_0_20px_rgba(59,130,246,0.6)] ${videoLoaded ? 'block' : 'hidden'}`}
+                                        className={`w-full h-full rounded-[14.5867px] border-2 border-blue-500/40 shadow-[0_0_20px_rgba(59,130,246,0.6)] transition-opacity duration-300 ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
                                         onLoadedData={handleVideoLoad}
                                         onError={handleVideoError}
                                     >

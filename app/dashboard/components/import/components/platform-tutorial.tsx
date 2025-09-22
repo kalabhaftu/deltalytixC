@@ -94,7 +94,7 @@ export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutori
             </video>
         </div>
         <p className="text-sm text-muted-foreground">
-          {selectedPlatform.videoUrl 
+          {selectedPlatform.videoUrl
              ? `Watch this tutorial video to learn how to import data from ${selectedPlatform.type}.`
              : `Tutorial video for ${selectedPlatform.type} is not available.`
           }

@@ -278,10 +278,7 @@ export default function SettingsPage() {
   const getThemeIcon = () => {
     if (theme === 'light') return <Sun className="h-4 w-4" />;
     if (theme === 'dark') return <Moon className="h-4 w-4" />;
-    if (typeof window !== 'undefined') {
-      const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      return isDarkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />;
-    }
+    // For system theme, show laptop icon consistently (no window check during SSR)
     return <Laptop className="h-4 w-4" />;
   };
 

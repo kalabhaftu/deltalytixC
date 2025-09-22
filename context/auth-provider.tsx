@@ -12,6 +12,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   session: Session | null
   user: any | null
+  checkAuth: () => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,12 +20,53 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   session: null,
   user: null,
+  checkAuth: async () => false,
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [session, setSession] = useState<Session | null>(null)
   const router = useRouter()
+  const [authCheckCache, setAuthCheckCache] = useState<{timestamp: number, isAuthenticated: boolean} | null>(null)
+
+  // Check if auth status is still valid (cache for 30 seconds)
+  const isAuthCheckValid = () => {
+    if (!authCheckCache) return false
+    return Date.now() - authCheckCache.timestamp < 30000 // 30 seconds
+  }
+
+  // Perform auth check with caching
+  const performAuthCheck = async (): Promise<boolean> => {
+    if (isAuthCheckValid()) {
+      return authCheckCache!.isAuthenticated
+    }
+
+    try {
+      const response = await fetch('/api/auth/check')
+      const data = await response.json()
+
+      if (response.ok && data.authenticated) {
+        setAuthCheckCache({
+          timestamp: Date.now(),
+          isAuthenticated: true
+        })
+        return true
+      } else {
+        setAuthCheckCache({
+          timestamp: Date.now(),
+          isAuthenticated: false
+        })
+        return false
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error)
+      setAuthCheckCache({
+        timestamp: Date.now(),
+        isAuthenticated: false
+      })
+      return false
+    }
+  }
 
   useEffect(() => {
     const supabase = createClient()
@@ -32,9 +74,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Initial session check
     const checkSession = async () => {
       try {
-        const { data: { session: initialSession }, error } = await supabase.auth.getSession()
+        const { data: { session }, error } = await supabase.auth.getSession()
         if (error) throw error
-        setSession(initialSession)
+        setSession(session)
       } catch (error) {
         console.error('Error checking session:', error)
         toast({
@@ -78,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!session,
         session,
         user: session?.user || null,
+        checkAuth: performAuthCheck,
       }}
     >
       {children}
@@ -90,5 +133,8 @@ export const useAuth = () => {
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider')
   }
-  return context
+  return {
+    ...context,
+    checkAuth: context.checkAuth,
+  }
 } 

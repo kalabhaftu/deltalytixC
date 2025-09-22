@@ -109,11 +109,11 @@ export const platforms: PlatformConfig[] = [
   {
     platformName: 'manual-trade-entry',
     type: 'manual-trade-entry',
-    name: 'import.type.manualTradeEntry.name',
-    description: 'import.type.manualTradeEntry.description',
+    name: 'Manual Trade Entry',
+    description: 'Add a single trade manually with complete details',
     category: 'Intelligent Import',
     videoUrl: '',
-    details: 'import.type.manualTradeEntry.details',
+    details: 'Perfect for manual journal entries with all trade context and analysis',
     logo: {
       component: () => <Plus className="w-4 h-4" />,
     },
@@ -137,8 +137,8 @@ export const platforms: PlatformConfig[] = [
   {
     platformName: 'csv-ai',
     type: '',
-    name: 'import.type.csvAi.name',
-    description: 'import.type.csvAi.description',
+    name: 'CSV-AI',
+    description: 'Import trades from any CSV file using AI',
     category: 'Intelligent Import',
     videoUrl: '',
     details: '',
@@ -150,32 +150,32 @@ export const platforms: PlatformConfig[] = [
     steps: [
       {
         id: 'select-import-type',
-        title: 'import.steps.selectPlatform',
-        description: 'import.steps.selectPlatformDescription',
+        title: 'Select Platform',
+        description: 'Choose the platform you want to import from',
         component: ImportTypeSelection
       },
       {
         id: 'upload-file',
-        title: 'import.steps.uploadFile',
-        description: 'import.steps.uploadFileDescription',
+        title: 'Upload File',
+        description: 'Upload the CSV file you want to import',
         component: FileUpload
       },
       {
         id: 'map-columns',
-        title: 'import.steps.mapColumns',
-        description: 'import.steps.mapColumnsDescription',
+        title: 'Map Columns',
+        description: 'Map the columns in your CSV to the required fields',
         component: ColumnMapping
       },
       {
         id: 'select-account',
-        title: 'import.steps.selectAccount',
-        description: 'import.steps.selectAccountDescription',
+        title: 'Select Account',
+        description: 'Select the account you want to import the trades to',
         component: AccountSelection
       },
       {
         id: 'preview-trades',
-        title: 'import.steps.reviewTrades',
-        description: 'import.steps.reviewTradesDescription',
+        title: 'Review Trades',
+        description: 'Review the trades that will be imported',
         component: FormatPreview,
         isLastStep: true
       }
@@ -184,8 +184,8 @@ export const platforms: PlatformConfig[] = [
   {
     platformName: 'tradezella',
     type: 'tradezella',
-    name: 'import.type.tradezella.name',
-    description: 'import.type.tradezella.description',
+    name: 'Tradezella',
+    description: 'Import trades from Tradezella CSV file',
     category: 'Platform CSV Import',
     videoUrl: '',
     details: '',

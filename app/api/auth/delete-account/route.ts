@@ -18,7 +18,6 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    console.log(`[Account Deletion] Starting deletion process for user: ${userId}`)
 
     // Create Supabase admin client for user deletion
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -178,7 +177,6 @@ export async function DELETE(request: NextRequest) {
       console.log(`[Account Deletion] Successfully deleted user from Supabase Auth`)
     }
 
-    console.log(`[Account Deletion] Account deletion completed successfully for user: ${userId}`)
 
     return NextResponse.json({
       success: true,

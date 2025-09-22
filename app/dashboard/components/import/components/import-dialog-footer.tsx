@@ -43,15 +43,15 @@ export function ImportDialogFooter({
     <div className="flex-none p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-[68px]">
       <div className="flex justify-end items-center gap-4">
         {currentStepIndex > 0 && (
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={onBack}
             className="w-fit min-w-[100px]"
           >
-            {"Back"}
+            Back
           </Button>
         )}
-        <Button 
+        <Button
           onClick={onNext}
           className={cn(
             "w-fit min-w-[100px]",

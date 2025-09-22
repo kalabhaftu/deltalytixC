@@ -422,8 +422,8 @@ export default function ImportButton() {
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >
-        <Button 
-          onClick={() => setIsOpen(true)} 
+        <Button
+          onClick={() => setIsOpen(true)}
           variant="default"
           className={cn(
             "justify-start text-left font-medium w-full transition-all duration-200 bg-gradient-to-r from-primary to-primary/80 hover:shadow-lg hover:shadow-primary/20 border-border/50 backdrop-blur-sm",
@@ -432,7 +432,7 @@ export default function ImportButton() {
           onMouseEnter={() => uploadIconRef.current?.startAnimation()}
           onMouseLeave={() => uploadIconRef.current?.stopAnimation()}
         >
-          <UploadIcon ref={uploadIconRef} className="h-4 w-4 mr-2 transition-transform duration-200" /> 
+          <UploadIcon ref={uploadIconRef} className="h-4 w-4 mr-2 transition-transform duration-200" />
            <span className='hidden md:block'>Import Trades</span>
         </Button>
       </motion.div>

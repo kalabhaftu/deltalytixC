@@ -94,17 +94,6 @@ export default function AccountsPage() {
   const { user } = useAuth()
   const { accounts, isLoading, refetch: refetchAccounts } = useAccounts()
 
-  // Debug logging
-  console.log('[AccountsPage] Component rendered')
-  console.log('[AccountsPage] User:', user?.id)
-  console.log('[AccountsPage] Accounts from hook:', accounts?.length || 0, 'accounts')
-  console.log('[AccountsPage] Is loading:', isLoading)
-  console.log('[AccountsPage] Accounts details:', accounts?.map(a => ({ 
-    id: a.id, 
-    number: a.number, 
-    status: a.status, 
-    accountType: a.accountType 
-  })))
 
   // State
   const [searchQuery, setSearchQuery] = useState('')
@@ -135,12 +124,6 @@ export default function AccountsPage() {
   const { settings: accountFilterSettings } = useAccountFilterSettings()
   
   const filteredAccounts = useMemo(() => {
-    console.log('[AccountsPage] Filtering accounts...')
-    console.log('[AccountsPage] Input accounts:', accounts?.length || 0)
-    console.log('[AccountsPage] Account filter settings:', accountFilterSettings)
-    console.log('[AccountsPage] Search query:', searchQuery)
-    console.log('[AccountsPage] Filter type:', filterType)
-    console.log('[AccountsPage] Filter status:', filterStatus)
     
     // First apply user's account filter settings
     let accountsToShow = accounts
@@ -150,7 +133,6 @@ export default function AccountsPage() {
       accountsToShow = accounts.filter(account => 
         account.status !== 'failed' && account.status !== 'passed'
       )
-      console.log('[AccountsPage] After active-only filter:', accountsToShow.length, 'accounts')
     } else if (accountFilterSettings.showMode === 'custom') {
       // Custom filtering
       accountsToShow = accounts.filter(account => {
@@ -179,10 +161,8 @@ export default function AccountsPage() {
         
         return true
       })
-      console.log('[AccountsPage] After custom filter:', accountsToShow.length, 'accounts')
     } else if (accountFilterSettings.showMode === 'all-accounts') {
       // Show all accounts - no filtering
-      console.log('[AccountsPage] All accounts mode - no filtering applied')
     }
     
     // Then apply search/type/status filters on top
@@ -198,15 +178,7 @@ export default function AccountsPage() {
 
       return matchesSearch && matchesType && matchesStatus
     })
-    
-    console.log('[AccountsPage] Final filtered accounts:', finalFiltered.length, 'accounts')
-    console.log('[AccountsPage] Final accounts details:', finalFiltered.map(a => ({ 
-      id: a.id, 
-      number: a.number, 
-      status: a.status, 
-      accountType: a.accountType 
-    })))
-    
+
     return finalFiltered
   }, [accounts, accountFilterSettings, searchQuery, filterType, filterStatus])
 

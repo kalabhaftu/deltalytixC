@@ -27,16 +27,16 @@ export function ImportDialogHeader({ step, importType }: ImportDialogHeaderProps
       </DialogDescription>
       <div className="space-y-1 pt-1">
         <div className="w-full bg-secondary h-1.5 rounded-full">
-          <div 
+          <div
             className="bg-primary h-1.5 rounded-full transition-all duration-300 ease-in-out"
-            style={{ 
+            style={{
               width: `${(currentStepIndex / (totalSteps - 1)) * 100}%`
             }}
           />
         </div>
         <div className="flex justify-between text-[10px] text-muted-foreground px-1">
           {platform.steps.map((s, index) => (
-            <div 
+            <div
               key={s.id}
               className={cn(
                 "transition-colors whitespace-nowrap",
@@ -50,4 +50,4 @@ export function ImportDialogHeader({ step, importType }: ImportDialogHeaderProps
       </div>
     </DialogHeader>
   )
-} 
+}

@@ -1,4 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 // Middleware for authentication and routing
 const protectedRoutes = ["/dashboard", "/profile", "/settings"]
@@ -32,33 +34,97 @@ export default async function middleware(req: NextRequest) {
     pathname === route || pathname.startsWith(route + "/")
   )
 
-  // For protected routes, redirect to authentication if not authenticated
+  // For protected routes, check authentication directly
   if (isProtectedRoute) {
-    // Check authentication by trying to access a protected API
-    const authCheckUrl = req.nextUrl.origin + "/api/auth/check"
-    try {
-      const response = await fetch(authCheckUrl, {
-        headers: {
-          'Authorization': req.headers.get('Authorization') || '',
-          'Cookie': req.headers.get('Cookie') || '',
-        },
-        signal: AbortSignal.timeout(3000) // 3 second timeout (reduced from 5)
-      })
+    // Check if this might be a post-authentication request
+    const referrer = req.headers.get('referer')
+    const isPostAuthRequest = referrer && (
+      referrer.includes('/api/auth/callback') ||
+      referrer.includes('/auth/callback') ||
+      referrer.includes('code=') ||
+      referrer.includes('error=')
+    )
 
-      if (!response.ok) {
-        // User is not authenticated, redirect to authentication
+    // Skip auth check for post-authentication requests
+    if (isPostAuthRequest) {
+      return NextResponse.next()
+    }
+
+    try {
+      // Direct auth check instead of API call to avoid circular dependencies
+      const cookieStore = await cookies()
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseKey) {
+        // Configuration error - allow request to proceed and let app handle it
+        return NextResponse.next()
+      }
+
+      const supabase = createServerClient(
+        supabaseUrl,
+        supabaseKey,
+        {
+          cookies: {
+            getAll() {
+              return cookieStore.getAll()
+            },
+            setAll(cookiesToSet) {
+              try {
+                cookiesToSet.forEach(({ name, value, options }) =>
+                  cookieStore.set(name, value, options)
+                )
+              } catch {
+                // Ignore cookie setting errors
+              }
+            },
+          },
+        }
+      )
+
+      // Fast session check with timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 1000) // 1 second timeout
+
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser()
+        clearTimeout(timeoutId)
+
+        if (error || !user) {
+          // User not authenticated, redirect to authentication
+          const authUrl = new URL('/authentication', req.url)
+          authUrl.searchParams.set('next', pathname)
+          return NextResponse.redirect(authUrl)
+        }
+
+        // Add user info to headers for server components
+        const response = NextResponse.next()
+        response.headers.set('x-user-id', user.id)
+        response.headers.set('x-user-authenticated', 'authenticated')
+        if (user.email) {
+          response.headers.set('x-user-email', user.email)
+        }
+        return response
+
+      } catch (sessionError) {
+        clearTimeout(timeoutId)
+
+        if (sessionError instanceof Error &&
+            (sessionError.name === 'AbortError' || sessionError.message.includes('timeout'))) {
+          // Timeout - allow request to proceed rather than block user
+          return NextResponse.next()
+        }
+
+        // Other errors - redirect to auth
         const authUrl = new URL('/authentication', req.url)
         authUrl.searchParams.set('next', pathname)
         return NextResponse.redirect(authUrl)
       }
-    } catch (error) {
-      // Only log if it's not a timeout (timeouts are expected in some cases)
-      if (!(error instanceof Error) || (!error.message.includes('AbortError') && !error.message.includes('timeout'))) {
-        console.log('[Middleware] Auth check failed, redirecting to authentication:', error)
-      }
-      const authUrl = new URL('/authentication', req.url)
-      authUrl.searchParams.set('next', pathname)
-      return NextResponse.redirect(authUrl)
+
+    } catch (middlewareError) {
+      // If middleware auth check fails, allow request to proceed
+      // This prevents blocking users due to middleware issues
+      return NextResponse.next()
     }
   }
 

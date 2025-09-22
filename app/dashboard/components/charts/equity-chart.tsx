@@ -414,9 +414,9 @@ const renderDot = (props: any) => {
 }
 
 // Enhanced tooltip component for grouped mode
-const OptimizedTooltip = React.memo(({ 
-  active, 
-  payload, 
+const OptimizedTooltip = React.memo(({
+  active,
+  payload,
   data,
   showIndividual,
   size,
@@ -431,12 +431,10 @@ const OptimizedTooltip = React.memo(({
   accountColorMap: Map<string, string>
   onHover?: (data: ChartDataPoint | null) => void
 }) => {
-  // Only update hovered data for legend in individual mode
-  React.useEffect(() => {
-    if (onHover && showIndividual) {
-      onHover(active && data ? data : null)
-    }
-  }, [active, data, onHover, showIndividual])
+  // Call onHover directly without useEffect to avoid infinite loops
+  if (onHover && showIndividual) {
+    onHover(active && data ? data : null)
+  }
 
   // Don't show tooltip in individual mode - legend shows all the data
   if (showIndividual) return null

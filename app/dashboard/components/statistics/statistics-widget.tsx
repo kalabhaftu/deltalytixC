@@ -30,9 +30,7 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
 
   // Number formatter for currency with thousands separators based on locale
   const formatCurrency = (value: number) => {
-    const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)
-    
-    return `$${formatted}`
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)
   }
 
   // Calculate statistics

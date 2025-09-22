@@ -613,6 +613,9 @@ export const DataProvider: React.FC<{
   const [isFirstConnection, setIsFirstConnection] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Track active data loading to prevent concurrent calls
+  let activeLoadPromise: Promise<void> | null = null
+
   // Load data from the server
   const loadData = useCallback(async () => {
     // PERFORMANCE FIX: Add loading state check to prevent redundant calls
@@ -620,9 +623,17 @@ export const DataProvider: React.FC<{
       console.log('[DataProvider] Already loading, skipping redundant call')
       return
     }
-    
-    try {
-      setIsLoading(true);
+
+    // Prevent concurrent data loading
+    if (activeLoadPromise) {
+      console.log('[DataProvider] Data load already in progress, waiting...')
+      return activeLoadPromise
+    }
+
+    // Create the load promise
+    activeLoadPromise = (async () => {
+      try {
+        setIsLoading(true);
 
       if (isSharedView) {
         const sharedData = await loadSharedData(params.slug as string);
@@ -707,32 +718,35 @@ export const DataProvider: React.FC<{
 
       setSupabaseUser(user);
 
-      // CRITICAL: Get dashboard layout first with cache-first strategy
-      // But check if the layout is already in the state
+      // CRITICAL: Set default dashboard layout immediately to prevent "no widgets" flash
+      // This ensures the dashboard always has a layout to render
       if (!dashboardLayout) {
-        let dashboardLayoutResponse = null
+        // Set default layout immediately to prevent flash
+        setDashboardLayout(defaultLayouts)
+        console.log('[DataProvider] Set default layout immediately')
 
-        // Try to load from localStorage first for instant rendering
+        // Try to load from localStorage for better user experience
         try {
           const cachedLayout = localStorage.getItem(`dashboard-layout-${user.id}`)
           if (cachedLayout) {
             const parsedLayout = JSON.parse(cachedLayout)
             if (parsedLayout.desktop && parsedLayout.mobile) {
-              // Use cached layout immediately for instant skeleton rendering
+              // Use cached layout to replace default
               setDashboardLayout(parsedLayout)
               console.log('[DataProvider] Loaded layout from localStorage cache')
             }
           }
         } catch (error) {
-          // Ignore localStorage errors and continue with database fetch
+          // Ignore localStorage errors
           console.warn('Failed to load layout from localStorage:', error)
         }
+      }
 
-        // Always fetch from database in background to ensure fresh data
-        dashboardLayoutResponse = await getDashboardLayout(user.id)
+      // Asynchronously fetch layout from database in the background
+      // This won't cause layout shifts since we already have a default
+      getDashboardLayout(user.id).then((dashboardLayoutResponse) => {
         if (dashboardLayoutResponse) {
-          // Only update state if the database layout is different from cache
-          // This prevents unnecessary re-renders and layout shifts
+          // Update layout from database (this will be a background update)
           const cachedLayout = localStorage.getItem(`dashboard-layout-${user.id}`)
           const cachedLayoutObj = cachedLayout ? JSON.parse(cachedLayout) : null
 
@@ -740,22 +754,21 @@ export const DataProvider: React.FC<{
               JSON.stringify(cachedLayoutObj.desktop) !== JSON.stringify(dashboardLayoutResponse.desktop) ||
               JSON.stringify(cachedLayoutObj.mobile) !== JSON.stringify(dashboardLayoutResponse.mobile)) {
             setDashboardLayout(dashboardLayoutResponse)
-            console.log('[DataProvider] Updated layout from database')
-          }
+            console.log('[DataProvider] Updated layout from database (background)')
 
-          // Save layout to localStorage for instant loading on next visit
-          try {
-            localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(dashboardLayoutResponse))
-          } catch (error) {
-            // Ignore localStorage errors
-            console.warn('Failed to save layout to localStorage:', error)
+            // Save layout to localStorage for instant loading on next visit
+            try {
+              localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(dashboardLayoutResponse))
+            } catch (error) {
+              // Ignore localStorage errors
+              console.warn('Failed to save layout to localStorage:', error)
+            }
           }
         }
-        else if (!localStorage.getItem(`dashboard-layout-${user.id}`)) {
-          // Only use default layouts if no cached layout was available
-          setDashboardLayout(defaultLayouts)
-        }
-      }
+      }).catch((error) => {
+        console.warn('[DataProvider] Failed to fetch dashboard layout from database:', error)
+        // Don't do anything - we already have the default layout set
+      })
 
       // Step 2: Fetch trades (with caching server side)
       // I think we could make basic computations server side to offload inital stats computations
@@ -792,13 +805,6 @@ export const DataProvider: React.FC<{
         balanceToDate: calculateAccountBalance(account, Array.isArray(trades) ? trades : [])
       }));
       
-      console.log('[DataProvider] Setting accounts:', accountsWithBalance.length, 'accounts')
-      console.log('[DataProvider] Account details:', accountsWithBalance.map(a => ({ 
-        id: a.id, 
-        number: a.number, 
-        status: a.status, 
-        userId: a.userId 
-      })))
       
       setAccounts(accountsWithBalance);
 
@@ -836,8 +842,23 @@ export const DataProvider: React.FC<{
       }
     } finally {
       setIsLoading(false);
+      // Clear the active load promise to allow new loads
+      activeLoadPromise = null;
     }
-  }, [isSharedView, adminView?.userId]); // Remove setIsLoading from deps to prevent infinite loops
+
+    // Set a timeout to ensure loading doesn't get stuck
+    setTimeout(() => {
+      if (activeLoadPromise) {
+        console.warn('[DataProvider] Loading timeout reached, forcing completion');
+        setIsLoading(false);
+        activeLoadPromise = null;
+      }
+    }, 10000); // 10 second timeout
+  })();
+
+  // Return the promise for any waiting calls
+  return activeLoadPromise
+}, [isSharedView, adminView?.userId]); // Remove setIsLoading from deps to prevent infinite loops
 
   // Load data on mount and when isSharedView changes
   useEffect(() => {

@@ -249,6 +249,84 @@ function ComplexStatisticsSkeleton({ className }: { className?: string }) {
 }
 
 /**
+ * Chat widget skeleton for communication widgets
+ */
+function ChatSkeleton({ className }: { className?: string }) {
+  return (
+    <Card className={cn('h-full flex flex-col', className)}>
+      <CardHeader className="p-3 sm:p-4 border-b shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-4 rounded-full" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <div className="flex items-center gap-1">
+            <Skeleton className="h-6 w-6 rounded" />
+            <Skeleton className="h-6 w-6 rounded" />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 p-0">
+        <div className="p-4 space-y-3 h-full flex flex-col justify-end">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className={`flex items-start gap-2 ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
+              <div className={`flex flex-col gap-1 max-w-[80%] ${i % 2 === 0 ? '' : 'items-end'}`}>
+                <Skeleton className="h-3 w-12" />
+                <Skeleton className={`h-8 ${i % 2 === 0 ? 'w-32' : 'w-24'}`} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+/**
+ * Prop firm widget skeleton for account management
+ */
+function PropFirmSkeleton({ className }: { className?: string }) {
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="p-3 sm:p-4 border-b">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-4 rounded" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+          <Skeleton className="h-5 w-16" />
+        </div>
+      </CardHeader>
+      <CardContent className="p-3 sm:p-4">
+        <div className="space-y-3">
+          {/* Account info */}
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-4 w-12" />
+          </div>
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-3 w-18" />
+            <Skeleton className="h-4 w-14" />
+          </div>
+          {/* Progress bar */}
+          <div className="space-y-1">
+            <Skeleton className="h-2 w-full rounded-full" />
+            <div className="flex justify-between">
+              <Skeleton className="h-2 w-8" />
+              <Skeleton className="h-2 w-6" />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+/**
  * Line chart skeleton for equity and performance charts
  */
 function LineChartSkeleton({ size = 'medium', className }: { size?: WidgetSize; className?: string }) {
@@ -369,6 +447,16 @@ export function WidgetSkeleton({ type, size = 'medium', className }: WidgetSkele
   // Table widgets
   if (type === 'tradeTableReview') {
     return <TableSkeleton size={size} className={className} />
+  }
+
+  // Chat widget
+  if (type === 'chatWidget') {
+    return <ChatSkeleton className={className} />
+  }
+
+  // Prop firm widget
+  if (type === 'propFirm') {
+    return <PropFirmSkeleton className={className} />
   }
 
   // Default fallback to chart skeleton for other widgets

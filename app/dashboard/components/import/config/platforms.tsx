@@ -108,11 +108,11 @@ export const platforms: PlatformConfig[] = [
   {
     platformName: 'manual-trade-entry',
     type: 'manual-trade-entry',
-    name: 'import.type.manualTradeEntry.name',
-    description: 'import.type.manualTradeEntry.description',
+    name: 'Manual Trade Entry',
+    description: 'Add a single trade manually with complete details',
     category: 'Intelligent Import',
     videoUrl: '',
-    details: 'import.type.manualTradeEntry.details',
+    details: 'Perfect for manual journal entries with all trade context and analysis',
     logo: {
       component: () => <Plus className="w-4 h-4" />,
     },
@@ -120,8 +120,8 @@ export const platforms: PlatformConfig[] = [
     steps: [
       {
         id: 'select-import-type',
-        title: 'import.steps.selectPlatform',
-        description: 'import.steps.selectPlatformDescription',
+        title: 'Select Platform',
+        description: 'Choose the platform you want to import from',
         component: ImportTypeSelection
       }
     ]
@@ -129,8 +129,8 @@ export const platforms: PlatformConfig[] = [
   {
     platformName: 'csv-ai',
     type: '',
-    name: 'import.type.csvAi.name',
-    description: 'import.type.csvAi.description',
+    name: 'CSV-AI',
+    description: 'Import trades from any CSV file using AI',
     category: 'Intelligent Import',
     videoUrl: '',
     details: '',
@@ -176,8 +176,8 @@ export const platforms: PlatformConfig[] = [
   {
     platformName: 'tradezella',
     type: 'tradezella',
-    name: 'import.type.tradezella.name',
-    description: 'import.type.tradezella.description',
+    name: 'Tradezella',
+    description: 'Import trades from Tradezella CSV file',
     category: 'Platform CSV Import',
     videoUrl: '',
     details: '',
@@ -219,10 +219,10 @@ export const platforms: PlatformConfig[] = [
   {
     platformName: 'topstep',
     type: 'topstep',
-    name: 'import.type.topstep.name',
-    description: 'import.type.topstep.description',
+    name: 'Topstep',
+    description: 'Import trades from Topstep CSV file',
     category: 'Platform CSV Import',
-    details: 'import.type.topstep.details',
+    details: 'Only TopstepX trades are supported',
     logo: {
       path: '/logos/topstep.png',
       alt: 'Topstep Logo'
@@ -268,10 +268,10 @@ export const platforms: PlatformConfig[] = [
   {
     platformName: 'match-trader',
     type: 'match-trader',
-    name: 'import.type.matchTrader.name',
-    description: 'import.type.matchTrader.description',
+    name: 'Match Trader',
+    description: 'Import trades from Match Trader CSV file',
     category: 'Platform CSV Import',
-    details: 'import.type.matchTrader.details',
+    details: 'Fast import for Match Trader CSV files with auto-detection',
     logo: {
       path: '/logos/match-trader.png',
       alt: 'Match Trader Logo'
@@ -310,11 +310,11 @@ export const platforms: PlatformConfig[] = [
   {
     platformName: 'ibkr-pdf-import',
     type: 'ibkr-pdf-import',
-    name: 'import.type.pdfImport.name',
-    description: 'import.type.pdfImport.description',
+    name: 'PDF Import',
+    description: 'Import trades from IBKR PDF file',
     category: 'Intelligent Import',
     videoUrl: process.env.NEXT_PUBLIC_PDF_IMPORT_TUTORIAL_VIDEO || '',
-    details: 'import.type.pdfImport.details',
+    details: 'Only IBKR PDF files are supported',
     logo: {
       path: '/logos/ibkr.png',
       alt: 'IBKR Logo'
@@ -329,7 +329,7 @@ export const platforms: PlatformConfig[] = [
       },
       {
         id: 'upload-file',
-        title: 'Upload File',
+        title: 'Upload PDF',
         description: 'Upload the PDF file you want to import',
         component: PdfUpload
       },

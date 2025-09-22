@@ -5,7 +5,7 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb', // Increased from default 1MB to 10MB
     },
-    // Turbopack configuration (equivalent to webpack optimizations)
+    // Optimized Turbopack configuration
     turbo: {
       rules: {
         '*.svg': {
@@ -23,9 +23,15 @@ const nextConfig = {
       },
     ],
   },
-  // Disable source maps in development to reduce memory usage
+  // Disable source maps in development to reduce memory usage and compilation time
   productionBrowserSourceMaps: false,
-  
+
+  // Performance optimizations
+  compiler: {
+    // Remove console logs in production for better performance
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+
   // Optimize webpack cache (only applies when NOT using Turbopack)
   webpack: (config, { dev, isServer }) => {
     // Only apply webpack config when not using Turbopack
@@ -36,6 +42,16 @@ const nextConfig = {
         cacheDirectory: '.next/cache/webpack',
       }
     }
+
+    // Optimize for better performance
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+        moduleIds: 'deterministic',
+        chunkIds: 'deterministic',
+      }
+    }
+
     return config
   },
 }

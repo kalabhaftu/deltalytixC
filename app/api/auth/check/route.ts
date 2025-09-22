@@ -1,6 +1,9 @@
 /**
  * Authentication check API for middleware
  * GET /api/auth/check - Check if user is authenticated
+ *
+ * OPTIMIZED: Removed expensive database calls and simplified auth check
+ * This route should only be used as a fallback, not primary auth method
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -8,9 +11,9 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
-  // Set a shorter timeout for auth checks to prevent slow responses
+  // Set a very short timeout since this is just a fallback check
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 500) // 500ms timeout
 
   try {
     const cookieStore = await cookies()
@@ -19,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     if (!supabaseUrl || !supabaseKey) {
       return NextResponse.json(
-        { error: 'Supabase configuration error' },
+        { error: 'Configuration error' },
         { status: 500 }
       )
     }
@@ -38,71 +41,73 @@ export async function GET(request: NextRequest) {
                 cookieStore.set(name, value, options)
               )
             } catch {
-              // The `setAll` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
+              // Ignore cookie setting errors in middleware context
             }
           },
         },
       }
     )
 
-    // Check if user is authenticated with timeout
+    // Simple auth check without expensive operations
     const authPromise = supabase.auth.getUser()
     const { data: { user }, error } = await authPromise
 
     clearTimeout(timeoutId)
 
     if (error) {
-      // Don't log timeout errors as they're expected in some cases
+      // Only log non-timeout errors
       if (!error.message.includes('AbortError') && !error.message.includes('timeout')) {
         console.log('[Auth Check] Supabase error:', error.message)
       }
       return NextResponse.json(
-        { error: 'Authentication check failed' },
+        { error: 'Auth check failed' },
         { status: 401 }
       )
     }
 
     if (!user) {
-      console.log('[Auth Check] No authenticated user')
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
       )
     }
 
-    // Fast response without unnecessary logging
+    // Minimal response
     return NextResponse.json(
-      { authenticated: true, userId: user.id },
+      {
+        authenticated: true,
+        userId: user.id
+      },
       { status: 200 }
     )
 
   } catch (error) {
     clearTimeout(timeoutId)
 
-    // Handle specific error types
+    // Handle timeout errors gracefully
     if (error instanceof Error) {
       if (error.name === 'AbortError' || error.message.includes('timeout')) {
-        // Timeout - return unauthenticated rather than error
         return NextResponse.json(
-          { error: 'Authentication timeout' },
-          { status: 401 }
+          { error: 'Auth timeout' },
+          { status: 408 }
         )
       }
 
       if (error.message.includes('fetch failed') || error.message.includes('ConnectTimeoutError')) {
-        // Network issues - return unauthenticated
         return NextResponse.json(
-          { error: 'Network error during auth check' },
-          { status: 401 }
+          { error: 'Network error' },
+          { status: 503 }
         )
       }
     }
 
-    console.error('[Auth Check] Unexpected error:', error)
+    // Log unexpected errors only in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Auth Check] Unexpected error:', error)
+    }
+
     return NextResponse.json(
-      { error: 'Authentication check failed' },
+      { error: 'Auth check failed' },
       { status: 500 }
     )
   }

@@ -240,9 +240,9 @@ export default function FileUpload({
       {uploadedFiles.length > 0 && (
         <Alert className="animate-in slide-in-from-bottom-5 duration-700 w-full max-w-2xl">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Ready to Process</AlertTitle>
+          <AlertTitle>Note</AlertTitle>
           <AlertDescription>
-            Files uploaded successfully. Click &ldquo;Process Files&rdquo; to continue.
+            All uploaded files will be processed using the selected import type.
           </AlertDescription>
         </Alert>
       )}

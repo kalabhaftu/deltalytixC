@@ -17,7 +17,7 @@ import {
   OnChangeFn,
 } from "@tanstack/react-table"
 import { Button } from '@/components/ui/button'
-import { ChevronRight, ChevronDown, ChevronLeft, Info, Search, Filter, X } from 'lucide-react'
+import { ChevronRight, ChevronDown, ChevronLeft, Info, Search, Filter, X, BarChart3 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Trade } from '@prisma/client'
 import {
@@ -68,6 +68,7 @@ import { calculateTicksAndPointsForTrades, calculateTicksAndPointsForGroupedTrad
 import { Input } from '@/components/ui/input'
 import EnhancedEditTrade from './enhanced-edit-trade'
 import TradeDetailView from './trade-detail-view'
+import TradeChartModal from './trade-chart-modal'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,7 +81,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 
-interface ExtendedTrade extends Trade {
+export interface ExtendedTrade extends Trade {
   imageUrl?: string | undefined
   tags: string[]
   imageBase64: string | null
@@ -159,6 +160,8 @@ export function TradeTableReview() {
   const [selectedTradeForEdit, setSelectedTradeForEdit] = useState<Trade | null>(null)
   const [isDetailViewOpen, setIsDetailViewOpen] = useState(false)
   const [selectedTradeForView, setSelectedTradeForView] = useState<ExtendedTrade | null>(null)
+  const [isChartModalOpen, setIsChartModalOpen] = useState(false)
+  const [selectedTradeForChart, setSelectedTradeForChart] = useState<ExtendedTrade | null>(null)
 
   // Sync local state with store
   React.useEffect(() => {
@@ -659,6 +662,31 @@ export function TradeTableReview() {
             >
               Edit
             </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!trade.entryDate || !trade.closeDate || !trade.entryPrice || !trade.closePrice}
+                    onClick={() => {
+                      setSelectedTradeForChart(trade)
+                      setIsChartModalOpen(true)
+                    }}
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>
+                    {!trade.entryDate || !trade.closeDate || !trade.entryPrice || !trade.closePrice
+                      ? 'Trade data incomplete'
+                      : 'View on Chart'
+                    }
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         )
       },
@@ -939,6 +967,15 @@ export function TradeTableReview() {
         }}
         trade={selectedTradeForEdit}
         onSave={handleEnhancedEditSave}
+      />
+
+      <TradeChartModal
+        isOpen={isChartModalOpen}
+        onClose={() => {
+          setIsChartModalOpen(false)
+          setSelectedTradeForChart(null)
+        }}
+        trade={selectedTradeForChart}
       />
     </Card>
   )

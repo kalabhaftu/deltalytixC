@@ -71,13 +71,11 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
       setAccounts(accountsCache)
       setIsLoading(false)
       setError(null)
-      console.log('[useAccounts] Using cached accounts, skipping fetch')
       return
     }
 
     // Prevent multiple simultaneous requests
     if (isCurrentlyFetching && !forceRefresh) {
-      console.log('[useAccounts] Request already in progress, waiting...')
       // If there's already a request in progress, wait for it
       if (accountsPromise) {
         try {
@@ -107,11 +105,8 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
 
       // Create the promise and store it globally
       accountsPromise = (async (): Promise<UnifiedAccount[]> => {
-        console.log('[useAccounts] Fetching accounts using server action')
-        
         try {
           const accounts = await getAccountsAction()
-          console.log('[useAccounts] Server action returned:', accounts?.length || 0, 'accounts')
 
           // Safety check - if accounts is undefined, treat as empty array
           if (!accounts) {
@@ -142,7 +137,6 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
             currentPhase: null
           }))
           
-          console.log('[useAccounts] Transformed accounts:', transformedAccounts.length, 'accounts')
           return transformedAccounts
         } catch (error) {
           console.error('[useAccounts] Server action error:', error)
@@ -159,12 +153,10 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
 
         setAccounts(fetchedAccounts)
         setError(null)
-        console.log('[useAccounts] Successfully cached', fetchedAccounts.length, 'accounts')
       }
     } catch (err) {
       if (err instanceof Error) {
         if (err.name === 'AbortError') {
-          console.log('[useAccounts] Request was cancelled')
           return
         }
         console.error('[useAccounts] Fetch error:', err.message)

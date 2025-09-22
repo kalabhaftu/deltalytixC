@@ -71,6 +71,9 @@
     --chart-6: 150 63% 45%;
     --chart-7: 260 60% 55%;
     --chart-8: 320 70% 60%;
+    /* Brand colors for social buttons */
+    --discord: 114 137 218;
+    --google: 66 133 244;
   }
 
   .dark {
@@ -111,6 +114,9 @@
     --chart-6: 190 65% 50%;
     --chart-7: 120 60% 45%;
     --chart-8: 60 75% 55%;
+    /* Brand colors for social buttons - same in dark mode */
+    --discord: 114 137 218;
+    --google: 66 133 244;
   }
 }
 

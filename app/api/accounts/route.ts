@@ -33,7 +33,6 @@ export async function GET(request: NextRequest) {
     let currentUserId: string
     try {
       currentUserId = await getUserId()
-      console.log('[API/accounts] User authenticated successfully')
     } catch (authError) {
       console.error('Authentication error in accounts API')
       return NextResponse.json(
@@ -93,7 +92,6 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     })
     
-    console.log('[API/accounts] Raw accounts from DB:', accounts.length, 'accounts found')
 
     // Transform accounts with minimal processing
     const transformedAccounts = accounts.map(account => ({
@@ -117,7 +115,6 @@ export async function GET(request: NextRequest) {
       currentPhase: null
     }))
 
-    console.log('[API/accounts] Transformed accounts:', transformedAccounts.length, 'accounts')
 
     return NextResponse.json({
       success: true,

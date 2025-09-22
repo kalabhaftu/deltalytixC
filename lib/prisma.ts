@@ -4,32 +4,28 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
+// Simplified Prisma client configuration for better performance
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  errorFormat: 'pretty',
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  // Enhanced connection configuration with robust error handling
+  // Simple connection configuration without complex pooling for development
   ...(process.env.NODE_ENV === 'development' && {
     datasources: {
       db: {
-        url: (process.env.DATABASE_URL || process.env.DIRECT_URL || '') + 
-             ((process.env.DATABASE_URL || process.env.DIRECT_URL || '').includes('?') ? '&' : '?') + 
-             'connect_timeout=30&pool_timeout=30&connection_limit=5&statement_cache_size=0&prepared_statements=false&pgbouncer=true&sslmode=require'
+        url: process.env.DATABASE_URL || process.env.DIRECT_URL || ''
       }
     }
   }),
-  // Use connection pooler for production with optimized timeouts
+  // Production configuration with basic connection pooling
   ...(process.env.NODE_ENV === 'production' && {
     datasources: {
       db: {
-        url: (process.env.DATABASE_URL || process.env.DIRECT_URL || '') + 
-             ((process.env.DATABASE_URL || process.env.DIRECT_URL || '').includes('?') ? '&' : '?') + 
-             'connect_timeout=30&pool_timeout=30&connection_limit=10&statement_cache_size=0&pgbouncer=true&sslmode=require'
+        url: process.env.DATABASE_URL || process.env.DIRECT_URL || ''
       }
     }
   })
 })
 
-// Add connection error handling and cleanup
+// Cleanup connections on process exit
 process.on('beforeExit', async () => {
   await prisma.$disconnect()
 })

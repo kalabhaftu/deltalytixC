@@ -217,7 +217,6 @@ interface SupabaseUser {
 }
 
 export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) {
-  console.log('[ensureUserInDatabase] Starting with user:', { id: user?.id, email: user?.email });
   
   if (!user) {
     console.log('[ensureUserInDatabase] ERROR: No user provided');
@@ -393,7 +392,6 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
     // After successful OTP verification, ensure user exists in database (if DB is available)
     if (data.user) {
       try {
-        console.log('[verifyOtp] Attempting to sync user to database:', data.user.id)
 
         // Check if user already exists in our database with this email
         const existingUser = await prisma.user.findUnique({
@@ -402,7 +400,6 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
 
         if (existingUser && existingUser.auth_user_id !== data.user.id) {
           // User exists with different auth ID - update the auth_user_id instead of creating conflict
-          console.log('[verifyOtp] Updating existing user with new auth_user_id')
           await prisma.user.update({
             where: { email: email },
             data: { auth_user_id: data.user.id }
@@ -437,7 +434,6 @@ export async function getUserId(): Promise<string> {
 
   if (userIdFromMiddleware && authStatus === "authenticated") {
     if (process.env.NODE_ENV === 'development') {
-      console.log("[Auth] Using user ID from middleware")
     }
     return userIdFromMiddleware
   }

@@ -1,24 +1,42 @@
 'use client'
 
-import { TradeTableReview } from './components/tables/trade-table-review'
-import WidgetCanvas from './components/widget-canvas'
 import dynamic from 'next/dynamic'
-
-// Dynamically import accounts page for better performance
-const AccountsPage = dynamic(() => import('./accounts/page'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary shadow-lg"></div>
-    </div>
-  )
-})
 import { useEffect, useRef, useState } from 'react'
-import { useAccounts } from "@/hooks/use-accounts"
-import { useData } from "@/context/data-provider"
-import { DashboardErrorBoundary, ErrorBoundaryWrapper } from '@/components/error-boundary'
-import { DashboardSidebar } from './components/sidebar/dashboard-sidebar'
+import { useUserStore } from "@/store/user-store"
 import { cn } from "@/lib/utils"
+
+// Import components normally
+import { DashboardErrorBoundary, ErrorBoundaryWrapper } from '@/components/error-boundary'
+
+// Dynamically import heavy components for better performance
+const TradeTableReview = dynamic(() =>
+  import('./components/tables/trade-table-review').then(module => ({ default: module.TradeTableReview })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary shadow-lg"></div>
+      </div>
+    )
+  }
+)
+
+const WidgetCanvas = dynamic(() => import('./components/widget-canvas'), {
+  ssr: false
+})
+
+const AccountsPage = dynamic(() => import('./accounts/page'), {
+  ssr: false
+})
+
+const DashboardSidebar = dynamic(() =>
+  import('./components/sidebar/dashboard-sidebar').then(module => ({ default: module.DashboardSidebar })),
+  {
+    ssr: false
+  }
+)
+
+// Dynamic imports for heavy dependencies
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function Home() {
@@ -26,7 +44,9 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('widgets')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const { accounts } = useAccounts()
+
+  // Simple user check
+  const user = useUserStore(state => state.user)
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
@@ -191,24 +211,25 @@ export default function Home() {
     }
   }
 
+
   return (
     <DashboardErrorBoundary>
       <div className="flex w-full min-h-screen bg-gradient-to-br from-background via-background to-background/95">
         {/* Sidebar */}
-        <DashboardSidebar 
-          activeTab={activeTab} 
+        <DashboardSidebar
+          activeTab={activeTab}
           onTabChange={setActiveTab}
           onCollapsedChange={setSidebarCollapsed}
         />
-        
+
         {/* Main Content */}
-        <motion.main 
-          ref={mainRef} 
+        <motion.main
+          ref={mainRef}
           className={cn(
             "flex-1 transition-all duration-300 ease-in-out relative",
             isMobile ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-64"
           )}
-          style={{ 
+          style={{
             paddingTop: `var(--navbar-height, 64px)`,
             minHeight: `calc(100vh - var(--navbar-height, 64px))`
           }}
