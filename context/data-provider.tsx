@@ -707,12 +707,42 @@ export const DataProvider: React.FC<{
 
       setSupabaseUser(user);
 
-      // CRITICAL: Get dashboard layout first
+      // CRITICAL: Get dashboard layout first with cache-first strategy
       // But check if the layout is already in the state
       if (!dashboardLayout) {
-        const dashboardLayoutResponse = await getDashboardLayout(user.id)
+        let dashboardLayoutResponse = null
+
+        // Try to load from localStorage first for instant rendering
+        try {
+          const cachedLayout = localStorage.getItem(`dashboard-layout-${user.id}`)
+          if (cachedLayout) {
+            const parsedLayout = JSON.parse(cachedLayout)
+            if (parsedLayout.desktop && parsedLayout.mobile) {
+              // Use cached layout immediately for instant skeleton rendering
+              setDashboardLayout(parsedLayout)
+              console.log('[DataProvider] Loaded layout from localStorage cache')
+            }
+          }
+        } catch (error) {
+          // Ignore localStorage errors and continue with database fetch
+          console.warn('Failed to load layout from localStorage:', error)
+        }
+
+        // Always fetch from database in background to ensure fresh data
+        dashboardLayoutResponse = await getDashboardLayout(user.id)
         if (dashboardLayoutResponse) {
-          setDashboardLayout(dashboardLayoutResponse)
+          // Only update state if the database layout is different from cache
+          // This prevents unnecessary re-renders and layout shifts
+          const cachedLayout = localStorage.getItem(`dashboard-layout-${user.id}`)
+          const cachedLayoutObj = cachedLayout ? JSON.parse(cachedLayout) : null
+
+          if (!cachedLayoutObj ||
+              JSON.stringify(cachedLayoutObj.desktop) !== JSON.stringify(dashboardLayoutResponse.desktop) ||
+              JSON.stringify(cachedLayoutObj.mobile) !== JSON.stringify(dashboardLayoutResponse.mobile)) {
+            setDashboardLayout(dashboardLayoutResponse)
+            console.log('[DataProvider] Updated layout from database')
+          }
+
           // Save layout to localStorage for instant loading on next visit
           try {
             localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(dashboardLayoutResponse))
@@ -721,7 +751,8 @@ export const DataProvider: React.FC<{
             console.warn('Failed to save layout to localStorage:', error)
           }
         }
-        else {
+        else if (!localStorage.getItem(`dashboard-layout-${user.id}`)) {
+          // Only use default layouts if no cached layout was available
           setDashboardLayout(defaultLayouts)
         }
       }
