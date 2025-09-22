@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-// Simple middleware for personal use
-// Define protected and public routes
+// Middleware for authentication and routing
 const protectedRoutes = ["/dashboard", "/profile", "/settings"]
-const publicRoutes = ["/login", "/signup", "/"]
+const publicRoutes = ["/", "/authentication", "/not-found"]
 
 export default async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
@@ -23,8 +22,44 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Simple authentication check for personal use
-  // For now, allow all access - you can add simple auth later if needed
+  // Check if this is a protected route
+  const isProtectedRoute = protectedRoutes.some(route =>
+    pathname === route || pathname.startsWith(route + "/")
+  )
+
+  // Check if this is a public route
+  const isPublicRoute = publicRoutes.some(route =>
+    pathname === route || pathname.startsWith(route + "/")
+  )
+
+  // For protected routes, redirect to authentication if not authenticated
+  if (isProtectedRoute) {
+    // Check authentication by trying to access a protected API
+    const authCheckUrl = req.nextUrl.origin + "/api/auth/check"
+    try {
+      const response = await fetch(authCheckUrl, {
+        headers: {
+          'Authorization': req.headers.get('Authorization') || '',
+          'Cookie': req.headers.get('Cookie') || '',
+        },
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      })
+
+      if (!response.ok) {
+        // User is not authenticated, redirect to authentication
+        console.log('[Middleware] Redirecting unauthenticated user to authentication')
+        const authUrl = new URL('/authentication', req.url)
+        authUrl.searchParams.set('next', pathname)
+        return NextResponse.redirect(authUrl)
+      }
+    } catch (error) {
+      console.log('[Middleware] Auth check failed, redirecting to authentication:', error)
+      const authUrl = new URL('/authentication', req.url)
+      authUrl.searchParams.set('next', pathname)
+      return NextResponse.redirect(authUrl)
+    }
+  }
+
   return NextResponse.next()
 }
 
