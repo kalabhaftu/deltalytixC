@@ -101,18 +101,12 @@ export default function LandingPage() {
                                         preload="metadata"
                                         loop
                                         muted
-                                        autoPlay
                                         playsInline
                                         className={`w-full h-full rounded-[14.5867px] border-2 border-blue-500/40 shadow-[0_0_20px_rgba(59,130,246,0.6)] transition-opacity duration-300 ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
                                         onLoadedData={handleVideoLoad}
                                         onError={handleVideoError}
+                                        style={{ display: videoLoaded ? 'block' : 'none' }}
                                     >
-                                        <track
-                                            src="/path/to/captions.vtt"
-                                            kind="subtitles"
-                                            srcLang="en"
-                                            label="English"
-                                        />
                                         Your browser does not support the video tag.
                                     </video>
                                 </div>

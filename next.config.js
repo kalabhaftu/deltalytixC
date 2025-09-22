@@ -59,6 +59,42 @@ const nextConfig = {
   generateBuildId: async () => {
     return 'build-' + Date.now()
   },
+
+  // Vercel-specific configuration
+  ...(process.env.VERCEL && {
+    // Force proper route group handling
+    trailingSlash: false,
+    // Ensure all pages are properly generated
+    pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
+    // Force static generation for route groups
+    outputFileTracing: true,
+    // Ensure proper build tracing
+    experimental: {
+      ...nextConfig.experimental,
+      // Force client reference manifest generation
+      clientReferenceManifest: true,
+      // Enable proper route group handling
+      serverComponentsExternalPackages: ['@supabase/ssr', '@supabase/supabase-js'],
+    },
+    // Disable problematic features that might cause issues
+    images: {
+      ...nextConfig.images,
+      // Ensure image optimization works properly
+      unoptimized: false,
+    },
+    // Additional build optimizations
+    webpack: (config, { dev, isServer }) => {
+      // Ensure proper handling of route groups
+      if (!dev && isServer) {
+        config.optimization = {
+          ...config.optimization,
+          // Ensure proper module handling
+          providedExports: true,
+        }
+      }
+      return config
+    },
+  }),
 }
 
 // Increase event emitter max listeners to prevent warnings
