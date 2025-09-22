@@ -1,6 +1,5 @@
 import { openai } from "@ai-sdk/openai"
 import { getUserId } from "@/server/auth"
-import { withRateLimit } from "@/lib/rate-limiting"
 
 export const maxDuration = 60 // Allow up to 60 seconds for AI processing
 

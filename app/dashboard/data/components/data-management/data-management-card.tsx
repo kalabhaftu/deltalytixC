@@ -95,7 +95,7 @@ export function DataManagementCard() {
         const account = accountsWithTrades.find(acc => acc.number === accountNumber)
         if (account) {
           const endpoint = account.accountType === 'prop-firm' 
-            ? `/api/prop-firm/accounts/${account.id}`
+            ? `/api/prop-firm-v2/accounts/${account.id}`
             : `/api/accounts/${account.id}`
           
           const response = await fetch(endpoint, {

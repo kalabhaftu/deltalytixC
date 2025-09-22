@@ -13,6 +13,7 @@ import Script from "next/script"
 // Font configuration now imported from lib/fonts.ts
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://deltalytix.com'),
   title: "Deltalytix",
   description: "Next generation trading dashboard",
   openGraph: {

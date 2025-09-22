@@ -251,7 +251,7 @@ export function EnhancedCreateAccountDialog({
 
       console.log('Sending payload:', payload)
 
-      const response = await fetch('/api/prop-firm/accounts', {
+      const response = await fetch('/api/prop-firm-v2/accounts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -858,7 +858,7 @@ export function EnhancedCreateAccountDialog({
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Profit Target</p>
-                          <p className="font-medium">{getValues('profitTarget')}%</p>
+                          <p className="font-medium">{getValues('profitTargetPhase1')}%</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Daily Drawdown</p>

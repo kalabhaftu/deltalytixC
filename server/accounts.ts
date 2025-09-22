@@ -277,6 +277,7 @@ export async function getAccountsAction() {
         const accounts = await prisma.account.findMany({
           where: {
             userId: userId,
+            // Include all accounts regardless of propfirm status
           },
           select: {
             id: true,
@@ -294,7 +295,18 @@ export async function getAccountsAction() {
         })
 
         console.log('[getAccountsAction] Raw accounts from DB:', accounts.length, 'accounts')
-        
+        console.log('[getAccountsAction] First few accounts:', accounts.slice(0, 3))
+
+        if (accounts.length === 0) {
+          console.log('[getAccountsAction] No accounts found for user:', userId)
+          // Try to see if there are any accounts at all in the database
+          const allAccounts = await prisma.account.findMany({
+            select: { id: true, userId: true, number: true, propfirm: true },
+            take: 5
+          })
+          console.log('[getAccountsAction] Sample accounts in DB:', allAccounts)
+        }
+
         return accounts.map(account => ({
           ...account,
           payouts: [], // Empty for performance - load on demand if needed
@@ -308,7 +320,9 @@ export async function getAccountsAction() {
     )()
   } catch (error) {
     console.error('Error fetching accounts:', error)
-    throw new Error('Failed to fetch accounts')
+    console.log('[getAccountsAction] Returning empty array due to error')
+    // Return empty array instead of throwing error to prevent frontend crashes
+    return []
   }
 }
 

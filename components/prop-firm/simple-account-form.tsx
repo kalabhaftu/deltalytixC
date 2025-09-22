@@ -40,7 +40,7 @@ export function SimpleAccountForm() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/prop-firm/accounts', {
+      const response = await fetch('/api/prop-firm-v2/accounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

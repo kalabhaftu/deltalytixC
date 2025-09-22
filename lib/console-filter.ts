@@ -17,42 +17,76 @@ const SUPPRESS_PATTERNS = [
   // Recharts ResponsiveContainer warnings
   /The width\(\d+\) and height\(\d+\) are both fixed numbers/,
   /maybe you don't need to use a ResponsiveContainer/,
-  
+
   // React DevTools promotion (keeps showing up)
   /Download the React DevTools for a better development experience/,
-  
+
   // Vercel Analytics debug messages (only in dev)
   /\[Vercel Web Analytics\]/,
   /\[Vercel Speed Insights\]/,
-  
+
   // Fast Refresh messages (too noisy)
   /\[Fast Refresh\]/,
-  
+
   // RRWEB console recording (recording our console!)
   /rrweb-plugin-console-record\.js/,
-  
+
   // Select controlled/uncontrolled warnings
   /Select is changing from uncontrolled to controlled/,
   /Components should not switch from controlled to uncontrolled/,
-  
+
   // Data logs from CSV processing (verbose arrays)
   /^\(\d+\)\s+\[.*\]\s+\(\d+\)\s+\[Array/,
   /^\(\d+\)\s+\['ID',.*\]\s+\(\d+\)\s+\[Array/,
-  
+
   // React performance warnings that are development noise
   /react_stack_bottom_frame/,
   /commitPassiveMountOnFiber/,
   /recursivelyTraversePassiveMountEffects/,
-  
+
   // Import button debug logs (now removed from code)
   /\[ImportButton\] Saving trades:/,
   /Available tick details:/,
-  
+
   // Data provider debug logs (now removed from code)
   /\[refreshTrades\] Production environment - forcing cache miss/,
   /Error refreshing trades:/,
   /Error loading data:/,
-  /Error details:/
+  /Error details:/,
+
+  // AccountsPage repetitive logs
+  /\[AccountsPage\] Component rendered/,
+  /\[AccountsPage\] User:/,
+  /\[AccountsPage\] Accounts from hook:/,
+  /\[AccountsPage\] Is loading:/,
+  /\[AccountsPage\] Accounts details:/,
+  /\[AccountsPage\] Filtering accounts/,
+  /\[AccountsPage\] Input accounts:/,
+  /\[AccountsPage\] Account filter settings:/,
+  /\[AccountsPage\] Search query:/,
+  /\[AccountsPage\] Filter type:/,
+  /\[AccountsPage\] Filter status:/,
+  /\[AccountsPage\] After active-only filter:/,
+  /\[AccountsPage\] Final filtered accounts:/,
+  /\[AccountsPage\] Final accounts details:/,
+  /\[AccountsPage\] All accounts mode - no filtering applied/,
+
+  // useAccounts hook logs
+  /\[useAccounts\] Fetching accounts using server action/,
+  /\[useAccounts\] Server action returned:/,
+  /\[useAccounts\] Transformed accounts:/,
+  /\[useAccounts\] Successfully cached:/,
+  /\[useAccounts\] Using cached accounts, skipping fetch/,
+
+  // DataProvider logs
+  /\[DataProvider\] Setting accounts:/,
+  /\[DataProvider\] Account details:/,
+
+  // AutoRefreshProvider logs
+  /\[AutoRefreshProvider\] Auto-refresh disabled to improve performance/,
+
+  // CSS preload warnings
+  /The resource .* was preloaded using link preload but not used within a few seconds/
 ]
 
 // Important patterns to ALWAYS show (even if they match suppress patterns)

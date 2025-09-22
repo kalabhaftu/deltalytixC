@@ -111,7 +111,13 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
         
         try {
           const accounts = await getAccountsAction()
-          console.log('[useAccounts] Server action returned:', accounts.length, 'accounts')
+          console.log('[useAccounts] Server action returned:', accounts?.length || 0, 'accounts')
+
+          // Safety check - if accounts is undefined, treat as empty array
+          if (!accounts) {
+            console.warn('[useAccounts] Server action returned undefined, treating as empty array')
+            return []
+          }
           
           // Transform accounts to match the expected interface
           const transformedAccounts: UnifiedAccount[] = accounts.map(account => ({

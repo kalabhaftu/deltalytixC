@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       const { meta } = post
 
       const ogImage = meta.image || '/og-image.png' // Fallback OG image
-      const url = `https://delatlytix.com/${locale}/updates/${slug}`
+      const url = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/${locale}/updates/${slug}`
 
       return {
         title: meta.title,
@@ -63,8 +63,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         alternates: {
           canonical: url,
           languages: {
-            'en': `https://delatlytix.com/en/updates/${slug}`,
-            'fr': `https://delatlytix.com/fr/updates/${slug}`,
+            'en': `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/en/updates/${slug}`,
+            'fr': `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/fr/updates/${slug}`,
           },
         },
         openGraph: {
@@ -74,7 +74,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
           publishedTime: meta.date,
           modifiedTime: meta.updatedAt || meta.date,
           url,
-          siteName: 'Delatlytix',
+          siteName: 'Deltalytix',
           locale: locale,
           images: [
             {
@@ -126,7 +126,7 @@ export default async function Page({ params }: PageProps) {
 
       const { meta, content } = post
       const formattedDate = format(new Date(meta.date), 'MMMM d, yyyy')
-      const url = `https://delatlytix.com/${locale}/updates/${slug}`
+      const url = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/${locale}/updates/${slug}`
 
       // Prepare JSON-LD structured data
       const jsonLd = {
@@ -139,15 +139,15 @@ export default async function Page({ params }: PageProps) {
         dateModified: meta.updatedAt || meta.date,
         author: {
           '@type': 'Organization',
-          name: 'Delatlytix',
-          url: 'https://delatlytix.com'
+          name: 'Deltalytix',
+          url: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
         },
         publisher: {
           '@type': 'Organization',
-          name: 'Delatlytix',
+          name: 'Deltalytix',
           logo: {
             '@type': 'ImageObject',
-            url: 'https://delatlytix.com/logo.png'
+            url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/logo.png`
           }
         },
         mainEntityOfPage: {

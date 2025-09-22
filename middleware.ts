@@ -1,108 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createServerClient } from "@supabase/ssr"
-import { geolocation } from "@vercel/functions"
-import { logger } from "@/lib/logger"
 
+// Simple middleware for personal use
 // Define protected and public routes
 const protectedRoutes = ["/dashboard", "/profile", "/settings"]
 const publicRoutes = ["/login", "/signup", "/"]
 
-// Maintenance mode flag - Set to true to enable maintenance mode
-const MAINTENANCE_MODE = false
-
-
-async function updateSession(request: NextRequest) {
-  // Create a proper NextResponse first
-  const response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
-
-  // Check if Supabase environment variables are properly defined (not just placeholders)
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  
-  if (!supabaseUrl || !supabaseKey || 
-      supabaseUrl.includes('[YOUR_PROJECT_REF]') || 
-      supabaseKey.includes('your-anon-key') ||
-      supabaseUrl === 'https://[YOUR_PROJECT_REF].supabase.co' ||
-      supabaseKey === 'your-anon-key-from-supabase') {
-    console.log("⚠️ Supabase environment variables contain placeholders. Skipping authentication.")
-    console.log("📝 Please configure your .env file with actual Supabase credentials")
-    return { response, user: null, error: "Supabase not configured" }
-  }
-
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            // Use more permissive cookie options for better compatibility
-            response.cookies.set(name, value, {
-              ...options,
-              secure: process.env.NODE_ENV === "production",
-              sameSite: "lax", // More permissive than 'strict'
-              httpOnly: false, // Allow client-side access if needed
-            })
-          })
-        },
-      },
-    },
-  )
-
-  let user: { id: string; email?: string } | null = null
-  let error: unknown = null
-
-  try {
-    // Add timeout to prevent hanging requests - increased timeout for stability
-    const authPromise = supabase.auth.getUser()
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Auth timeout")), 8000) // Increased to 8 seconds
-    )
-
-    const result = await Promise.race([authPromise, timeoutPromise]) as { data?: { user?: { id: string; email?: string } | null }; error?: unknown }
-    user = result.data?.user || null
-    error = result.error
-  } catch (authError) {
-    // Handle timeout errors more gracefully - don't log every timeout as an error
-    if (authError instanceof Error && authError.message === "Auth timeout") {
-      // Only log timeout errors in development mode
-      if (process.env.NODE_ENV === 'development') {
-        console.log("[Auth] Auth timeout - treating as unauthenticated")
-      }
-    } else {
-      logger.authError("Auth check failed", authError)
-    }
-    // Don't throw - gracefully handle auth failures
-    user = null
-    error = authError
-  }
-
-  // Add user info to headers only if user exists
-  if (user && !error) {
-    response.headers.set('x-user-id', user.id)
-    response.headers.set('x-user-email', user.email || '')
-    response.headers.set('x-user-role', user.role || 'user')
-  } else {
-    response.headers.set('x-user-authenticated', 'false')
-    if (error) {
-      response.headers.set('x-auth-error', error.message || 'Authentication failed')
-    }
-  }
-
-  return { response, user, error }
-}
-
 export default async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
 
-  // More specific static asset exclusions - must be first!
+  // Skip middleware for static assets and API routes
   if (
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/api/") ||
@@ -117,69 +23,9 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-
-  // Update session
-  const { response, user, error } = await updateSession(req)
-
-  // Maintenance mode check
-  if (MAINTENANCE_MODE && !pathname.includes("/maintenance") && pathname.includes("/dashboard")) {
-    return NextResponse.redirect(new URL("/maintenance", req.url))
-  }
-
-
-  // Authentication checks with better error handling
-  if (!user || error) {
-    const isPublicRoute = !pathname.includes("/dashboard")
-    if (!isPublicRoute) {
-      const encodedSearchParams = `${pathname.substring(1)}${req.nextUrl.search}`
-      const authUrl = new URL("/authentication", req.url)
-
-      if (encodedSearchParams) {
-        authUrl.searchParams.append("next", encodedSearchParams)
-      }
-
-      return NextResponse.redirect(authUrl)
-    }
-  } else {
-    // Authenticated - redirect from auth to dashboard
-    if (pathname.includes("/authentication")) {
-      const nextParam = req.nextUrl.searchParams.get("next")
-      const redirectUrl = nextParam ? `/${nextParam}` : "/dashboard"
-      return NextResponse.redirect(new URL(redirectUrl, req.url))
-    }
-  }
-
-  // Geolocation handling with better error handling
-  try {
-    const geo = geolocation(req)
-
-    if (geo.country) {
-      response.headers.set('x-geo-country', geo.country)
-      response.cookies.set('geo-country', geo.country)
-    }
-
-    if (geo.city) {
-      response.headers.set('x-geo-city', geo.city)
-    }
-
-    if (geo.countryRegion) {
-      response.headers.set('x-geo-region', geo.countryRegion)
-    }
-  } catch (geoError) {
-    // Fallback to Vercel headers
-    const country = req.headers.get('x-vercel-ip-country')
-    const city = req.headers.get('x-vercel-ip-city')
-    const region = req.headers.get('x-vercel-ip-country-region')
-
-    if (country) {
-      response.headers.set('x-geo-country', country)
-      response.cookies.set('geo-country', country)
-    }
-    if (city) response.headers.set('x-geo-city', city)
-    if (region) response.headers.set('x-geo-region', region)
-  }
-
-  return response
+  // Simple authentication check for personal use
+  // For now, allow all access - you can add simple auth later if needed
+  return NextResponse.next()
 }
 
 export const config = {

@@ -83,7 +83,7 @@ export function PhaseTransitionDialog({
 
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/prop-firm/accounts/${accountId}/transition`, {
+      const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}/transition`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ export function PhaseTransitionDialog({
   const handleSkipTransition = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/prop-firm/accounts/${accountId}/transition`, {
+      const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}/transition`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
