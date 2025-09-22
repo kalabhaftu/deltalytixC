@@ -713,6 +713,13 @@ export const DataProvider: React.FC<{
         const dashboardLayoutResponse = await getDashboardLayout(user.id)
         if (dashboardLayoutResponse) {
           setDashboardLayout(dashboardLayoutResponse)
+          // Save layout to localStorage for instant loading on next visit
+          try {
+            localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(dashboardLayoutResponse))
+          } catch (error) {
+            // Ignore localStorage errors
+            console.warn('Failed to save layout to localStorage:', error)
+          }
         }
         else {
           setDashboardLayout(defaultLayouts)
@@ -1332,6 +1339,14 @@ export const DataProvider: React.FC<{
     setDashboardLayout(layout)
     await saveDashboardLayoutAction(layout)
     revalidateCache([`user-data-${user.id}`])
+
+    // Update localStorage to keep cache fresh for next visit
+    try {
+      localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(layout))
+    } catch (error) {
+      // Ignore localStorage errors
+      console.warn('Failed to update layout in localStorage:', error)
+    }
   }, [user?.id, setDashboardLayout])
 
   const contextValue: DataContextType = {
