@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { VisuallyHidden } from '@/components/ui/visually-hidden'
 import { Badge } from '@/components/ui/badge'
 import { Eye, Calendar, Clock, TrendingUp, TrendingDown, DollarSign, Hash, User, X } from 'lucide-react'
 import { cn, formatCurrency, formatNumber } from '@/lib/utils'
@@ -298,9 +299,9 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
       {selectedImage && (
         <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
           <DialogContent className="max-w-[95vw] max-h-[95vh] p-2">
-            <DialogHeader className="sr-only">
+            <VisuallyHidden>
               <DialogTitle>Image Viewer</DialogTitle>
-            </DialogHeader>
+            </VisuallyHidden>
             <div className="relative w-full h-[85vh]">
               <Button
                 variant="outline"

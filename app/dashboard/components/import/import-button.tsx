@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { VisuallyHidden } from "@/components/ui/visually-hidden"
 import { useToast } from "@/hooks/use-toast"
 import { UploadIcon, type UploadIconHandle } from '@/components/animated-icons/upload'
 import { Trade } from '@prisma/client'
@@ -439,7 +440,9 @@ export default function ImportButton() {
       
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="flex flex-col max-w-[85vw] h-[85vh] p-0 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl">
-          <DialogTitle className="sr-only">Import Data</DialogTitle>
+          <VisuallyHidden>
+            <DialogTitle>Import Data</DialogTitle>
+          </VisuallyHidden>
           <ImportDialogHeader step={step} importType={importType} />
           
           <div className="flex-1 overflow-hidden">

@@ -66,19 +66,6 @@ const nextConfig = {
     trailingSlash: false,
     // Ensure all pages are properly generated
     pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
-    // Force static generation for route groups
-    outputFileTracing: true,
-    // Disable problematic features that might cause issues
-    images: {
-      remotePatterns: [
-        {
-          protocol: 'https',
-          hostname: '**',
-        },
-      ],
-      // Ensure image optimization works properly
-      unoptimized: false,
-    },
     // Additional build optimizations
     webpack: (config, { dev, isServer }) => {
       // Ensure proper handling of route groups

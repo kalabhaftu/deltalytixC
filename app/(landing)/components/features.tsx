@@ -136,7 +136,7 @@ export default function Features() {
                           className="rounded-md hidden dark:block"
                         />
                       </>
-                    ) : typeof feature.image === 'string' && feature.image === 'TradingChatAssistant' && mounted ? (
+                    ) : typeof feature.image === 'string' && feature.image === 'TradingChatAssistant' ? (
                       <TradingChatAssistant />
                     ) : (
                       <div className="text-center text-muted-foreground">
