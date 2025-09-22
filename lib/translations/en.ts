@@ -3,7 +3,6 @@ import landing from './en/landing'
 import auth from './en/auth'
 import dropzone from './en/dropzone'
 import propfirm from './en/propfirm'
-import chat from './en/chat'
 import importTranslations from './en/import'
 import accounts from './en/accounts'
 export default {
@@ -12,7 +11,6 @@ export default {
     ...auth,
     ...dropzone,
     ...propfirm,
-    ...chat,
     ...importTranslations,
     ...accounts,
     'footer.heading': 'Footer',
@@ -299,13 +297,6 @@ export default {
     'error': 'Error',
     'success': 'Success',
     'auth.required': 'Authentication Required',
-    'chat.title': 'Chat',
-    'chat.resetConversation': 'Reset conversation',
-    'chat.camera': 'Camera',
-    'chat.folder': 'Folder',
-    'chat.aiThinking': 'AI is thinking...',
-    'chat.writeMessage': 'Write a message...',
-    'chat.noTradesAvailable': 'No trades available',
 
     'import.account.selectAccount': 'Select Account',
     'import.account.selectAccountDescription': 'Choose an existing account or add a new one',
@@ -995,135 +986,6 @@ export default {
     'calendar.charts.addComment': 'Add Comment',
     'calendar.charts.saveComment': 'Save Comment',
 
-
-    'community': {
-        'title': 'Community',
-        'description': 'Share your ideas, report bugs, and discuss features with the community.',
-        'newPost': 'New Post',
-        'searchPosts': 'Search posts...',
-        'filterByType': 'Filter by type',
-        'filterByStatus': 'Filter by status',
-        'types': {
-            'all': 'All Types',
-            'featureRequest': 'Feature Requests',
-            'bugReport': 'Bug Reports',
-            'discussion': 'Discussions'
-        },
-        'status': {
-            'all': 'All Status',
-            'open': 'Open',
-            'completed': 'Completed'
-        },
-        'noPosts': 'No posts found',
-        'post': {
-            'edit': 'Edit',
-            'delete': 'Delete',
-            'cancel': 'Cancel',
-            'save': 'Save',
-            'screenshot': 'Screenshot',
-            'screenshots': 'Screenshots',
-            'score': 'Score',
-            'comments': 'Comments',
-            'postedBy': 'Posted by {user} {time} ago',
-            'notFound': 'The post you are looking for could not be found.',
-            'open': 'Open post',
-            'copyLink': 'Copy link',
-            'actions': 'Actions',
-            'linkCopied': 'Link copied to clipboard',
-            'status': 'Change Status'
-        },
-        'createPost': {
-            'title': 'Create Post',
-            'description': 'Share your ideas, report bugs, or start a discussion with the community.',
-            'type': 'Type',
-            'selectType': 'Select a post type',
-            'postTitle': 'Title',
-            'titlePlaceholder': 'Enter your post title',
-            'content': 'Content',
-            'contentPlaceholder': 'Write your post content here...',
-            'screenshots': 'Screenshots (optional)',
-            'addScreenshot': 'Add Screenshot',
-            'maxScreenshots': 'Maximum 3 screenshots allowed',
-            'imageSizeError': 'Image must be less than 5MB',
-            'imageTypeError': 'Invalid file type. Please upload a JPEG, PNG or WebP image',
-            'createButton': 'Create Post',
-            'success': 'Post created successfully',
-            'error': 'Failed to create post'
-        },
-        'comments': {
-            'writeComment': 'Write a comment...',
-            'writeReply': 'Write a reply...',
-            'reply': 'Reply',
-            'edit': 'Edit',
-            'delete': 'Delete',
-            'cancel': 'Cancel',
-            'save': 'Save',
-            'comment': 'Comment',
-            'signInPrompt': 'Please sign in to comment',
-            'noComments': 'No comments yet. Be the first to comment!',
-            'timeAgo': '{time} ago',
-            'success': {
-                'add': 'Comment added',
-                'reply': 'Reply added',
-                'update': 'Comment updated',
-                'delete': 'Comment deleted'
-            },
-            'error': {
-                'add': 'Failed to add comment',
-                'reply': 'Failed to add reply',
-                'update': 'Failed to update comment',
-                'delete': 'Failed to delete comment'
-            }
-        },
-        'actions': {
-            'vote': 'vote on posts',
-            'comment': 'leave comments',
-            'createPost': 'create a post'
-        }
-    },
-    'support': {
-        'greeting': "Hello! Welcome to Deltalytix support. How can I assist you with your trading journal today? Please explain your issue or question, and I'll do my best to help.",
-        'description': 'How can we help you with your trading journal?',
-        'requestHumanSupport': 'Request Human Support',
-        'contactInformation': 'Contact Information',
-        'contactInformationDescription': 'Please provide your contact information so we can get back to you.',
-        'emailSent': 'Our team will get back to you soon.',
-        'emailError': 'Please try again later.',
-        'emailConfirmation': "Thank you, {name}. I've sent your support request to our team. They will review your case and get back to you at {email} as soon as possible. Is there anything else I can help you with?",
-        'form': {
-            'name': 'Name',
-            'email': 'Email',
-            'additionalInfo': 'Additional Information',
-            'additionalInfoPlaceholder': "Any additional details you'd like to share...",
-            'submit': 'Submit',
-            'cancel': 'Cancel'
-        }
-    },
-    'maintenance': {
-        'title': 'System Maintenance',
-        'description': 'We are currently performing scheduled maintenance to improve our services.',
-        'message': 'Please check back later. We apologize for any inconvenience.',
-        'status': 'System Status',
-        'inMaintenance': 'Under Maintenance',
-        'estimatedCompletion': 'Estimated completion',
-        'contact': 'Contact Support',
-        'contactDescription': 'If you need immediate assistance, please contact our support team.',
-        'updates': 'Status Updates',
-        'lastUpdate': 'Last update: {time}',
-        'nextUpdate': 'Next update: {time}'
-    },
-    'newsletter': {
-        'unsubscribed': {
-            'title': 'Successfully Unsubscribed',
-            'description': 'You have been successfully unsubscribed from our newsletter.',
-            'email': 'Unsubscribed email'
-        },
-        'preferences': {
-            'title': 'Newsletter Preferences',
-            'description': 'Manage your email preferences and subscription settings',
-            'comingSoon': 'Manage your newsletter preferences and subscription settings.'
-        }
-    },
     'disclaimer.risk.title': 'Risk Warning',
     'disclaimer.risk.content': 'Trading in futures and forex markets involves significant risks and is not suitable for all investors. An investor could potentially lose all or a portion of their initial investment. Risk capital is money that can be lost without jeopardizing one\'s financial security or lifestyle. Only risk capital should be used for trading, and only those with sufficient risk capital should consider trading. Past performance is not necessarily indicative of future results.',
     'disclaimer.hypothetical.title': 'Hypothetical Performance Warning',

@@ -39,13 +39,13 @@ export const BaseAccountSchema = z.object({
   
   // Drawdown configuration
   dailyDrawdownAmount: z.number().min(0).optional(),
-  dailyDrawdownType: DrawdownTypeSchema.default("percentage"),
+  dailyDrawdownType: DrawdownTypeSchema.default("percent"),
   maxDrawdownAmount: z.number().min(0).optional(),
-  maxDrawdownType: DrawdownTypeSchema.default("percentage"),
+  maxDrawdownType: DrawdownTypeSchema.default("percent"),
   drawdownModeMax: DrawdownModeSchema.default("trailing"),
   
   // Evaluation settings
-  evaluationType: EvaluationTypeSchema.default("standard"),
+  evaluationType: EvaluationTypeSchema.default("one_step"),
   timezone: TimezoneSchema.default("UTC"),
   dailyResetTime: TimeSchema.default("17:00"),
   

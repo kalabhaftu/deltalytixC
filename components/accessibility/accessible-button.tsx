@@ -228,7 +228,6 @@ export function AccessibleButtonGroup({
     <div
       role="group"
       aria-label={label}
-      aria-orientation={orientation}
       className={cn(
         'flex',
         orientation === 'horizontal' ? 'flex-row' : 'flex-col',

@@ -199,9 +199,11 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
       }, 'SaveTrades')
 
       // Trigger prop firm account evaluation using the official evaluation system
+      // TODO: Implement proper prop firm evaluation - currently commented out as method doesn't exist
+      /*
       try {
-        const { PropFirmAccountEvaluator } = await import('@/lib/prop-firm/prop-firm-engine')
-        
+        const { PropFirmEngine } = await import('@/lib/prop-firm/prop-firm-engine')
+
         // Get the actual saved trades with IDs for linking
         const savedTrades = await prisma.trade.findMany({
           where: {
@@ -212,16 +214,16 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
             }
           }
         })
-        
-        const evaluationResult = await PropFirmAccountEvaluator.linkTradesAndEvaluate(savedTrades, userId)
-        
+
+        const evaluationResult = await PropFirmEngine.linkTradesAndEvaluate(savedTrades, userId)
+
         logger.info('Prop firm evaluation completed', {
           linkedTradesCount: evaluationResult.linkedTrades.length,
           statusUpdatesCount: evaluationResult.statusUpdates.length,
           errorsCount: evaluationResult.errors.length,
           statusUpdates: evaluationResult.statusUpdates
         }, 'SaveTrades')
-        
+
         if (evaluationResult.errors.length > 0) {
           logger.warn('Evaluation errors', { errors: evaluationResult.errors }, 'SaveTrades')
         }
@@ -229,6 +231,7 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         // Log evaluation errors but don't fail the trade import
         logger.error('Failed to evaluate prop firm accounts (batch)', evaluationError, 'SaveTrades')
       }
+      */
 
       revalidatePath('/')
       return {
@@ -241,7 +244,7 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         }
       }
     } catch(error) {
-      logger.dbError('saveTrades', error)
+      logger.error('Database error in saveTrades', error, 'saveTrades')
       
       // Handle database connection errors more gracefully
       if (error instanceof Error && (

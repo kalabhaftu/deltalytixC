@@ -193,7 +193,7 @@ export function SharedLayoutsManager({ onBack }: SharedLayoutsManagerProps) {
                   No Shared Layouts
                 </p>
                 <p className="text-sm text-muted-foreground/80 max-w-md mx-auto">
-                  You haven't shared any dashboard layouts yet. Create and share your first layout to get started.
+                  You haven&apos;t shared any dashboard layouts yet. Create and share your first layout to get started.
                 </p>
               </CardContent>
             </Card>

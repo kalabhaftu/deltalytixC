@@ -85,7 +85,7 @@ export default function NewTradePage() {
         <div className="text-center">
           <ArrowLeft className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Account Not Found</h3>
-          <p className="text-muted-foreground">The account you're looking for doesn't exist or you don't have access to it.</p>
+          <p className="text-muted-foreground">The account you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.</p>
           <Button onClick={() => router.back()} className="mt-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Go Back

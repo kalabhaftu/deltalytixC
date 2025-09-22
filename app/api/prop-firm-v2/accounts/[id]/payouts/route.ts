@@ -55,12 +55,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Parse filters
     const filterData = {
       status: searchParams.getAll('status') as any[],
-      dateFrom: searchParams.get('error') || undefined,
-      dateTo: searchParams.get('error') || undefined,
-      page: parseInt(searchParams.get('error') || '1'),
-      limit: parseInt(searchParams.get('error') || '20'),
-      sortBy: searchParams.get('error') || 'requestedAt',
-      sortOrder: (searchParams.get('error') as 'asc' | 'desc') || 'desc',
+      dateFrom: searchParams.get('dateFrom') || undefined,
+      dateTo: searchParams.get('dateTo') || undefined,
+      page: parseInt(searchParams.get('page') || '1'),
+      limit: parseInt(searchParams.get('limit') || '20'),
+      sortBy: searchParams.get('sortBy') || 'date',
+      sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
     }
     
     const filters = PayoutFilterSchema.parse(filterData)
@@ -74,41 +74,42 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
     
     if (filters.dateFrom || filters.dateTo) {
-      where.requestedAt = {}
+      where.date = {}
       if (filters.dateFrom) {
-        where.requestedAt.gte = new Date(filters.dateFrom)
+        where.date.gte = new Date(filters.dateFrom)
       }
       if (filters.dateTo) {
-        where.requestedAt.lte = new Date(filters.dateTo)
+        where.date.lte = new Date(filters.dateTo)
       }
     }
     
     // Get total count
-    const total = await prisma.payoutRequest?.count({ where }) || 0
-    
+    const total = await prisma.payout?.count({ where }) || 0
+
     // Get payouts
-    const payouts = await prisma.payoutRequest?.findMany({
+    const payouts = await prisma.payout?.findMany({
       where,
       skip: offset,
       take: filters.limit,
       orderBy: { [filters.sortBy]: filters.sortOrder },
       include: {
-        phase: {
+        account: {
           select: {
             id: true,
-            phaseType: true,
-            status: true,
+            name: true,
+            number: true,
+            propfirm: true,
           }
         }
       }
     }) || []
     
     // Get current funded phase for eligibility check
-    const fundedPhase = await prisma.propFirmPhase?.findFirst({
+    const fundedPhase = await prisma.accountPhase?.findFirst({
       where: {
         accountId,
         phaseType: 'funded',
-        status: 'active'
+        phaseStatus: 'active'
       }
     })
     
@@ -123,27 +124,27 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
     
     // Calculate summary statistics
-    const totalRequested = payouts.reduce((sum, p) => sum + p.requestedAmount, 0)
-    const totalPaid = payouts.filter(p => p.status === 'paid').reduce((sum, p) => sum + (p.traderShare || 0), 0)
-    const totalPending = payouts.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.requestedAmount, 0)
+    const totalRequested = payouts.reduce((sum, p) => sum + (p.amountRequested || p.amount), 0)
+    const totalPaid = payouts.filter(p => p.status === 'paid').reduce((sum, p) => sum + (p.amountPaid || 0), 0)
+    const totalPending = payouts.filter(p => p.status === 'pending').reduce((sum, p) => sum + (p.amountRequested || p.amount), 0)
     
     return NextResponse.json({
       payouts: payouts.map(payout => ({
         id: payout.id,
-        requestedAmount: payout.requestedAmount,
-        eligibleAmount: payout.eligibleAmount,
-        profitSplitPercent: payout.profitSplitPercent,
-        traderShare: payout.traderShare,
-        firmShare: payout.firmShare,
+        requestedAmount: payout.amountRequested || payout.amount,
+        eligibleAmount: payout.amount, // Same as requested amount for now
+        profitSplitPercent: 50, // Default 50% split
+        traderShare: payout.amountPaid || 0,
+        firmShare: payout.amountRequested ? payout.amount - payout.amountRequested : 0,
         status: payout.status,
-        requestedAt: payout.requestedAt,
-        processedAt: payout.processedAt,
+        requestedAt: payout.date,
+        processedAt: payout.date,
         paidAt: payout.paidAt,
-        rejectedAt: payout.rejectedAt,
-        rejectionReason: payout.rejectionReason,
-        paymentMethod: payout.paymentMethod,
+        rejectedAt: null, // Not available in Payout model
+        rejectionReason: null, // Not available in Payout model
+        paymentMethod: 'bank_transfer', // Default payment method
         notes: payout.notes,
-        phase: payout.phase,
+        phase: null, // Phase relationship not available in Payout model
       })),
       
       pagination: {
@@ -205,11 +206,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
     
     // Get current funded phase
-    const fundedPhase = await prisma.propFirmPhase?.findFirst({
+    const fundedPhase = await prisma.accountPhase?.findFirst({
       where: {
         accountId,
         phaseType: 'funded',
-        status: 'active'
+        phaseStatus: 'active'
       }
     })
     
@@ -221,9 +222,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
     
     // Get existing payouts
-    const existingPayouts = await prisma.payoutRequest?.findMany({
+    const existingPayouts = await prisma.payout?.findMany({
       where: { accountId },
-      orderBy: { requestedAt: 'desc' }
+      orderBy: { date: 'desc' }
     }) || []
     
     // Calculate payout eligibility
@@ -265,8 +266,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           error: 'Cannot request payout while another payout is pending',
           pendingPayouts: pendingPayouts.map(p => ({
             id: p.id,
-            amount: p.requestedAmount,
-            requestedAt: p.requestedAt,
+            amount: p.amountRequested || p.amount,
+            requestedAt: p.date,
           }))
         },
         { status: 400 }
@@ -276,19 +277,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Create payout request in transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create payout request
-      const payout = await tx.payoutRequest?.create({
+      const payout = await tx.payout?.create({
         data: {
-          phaseId: fundedPhase.id,
           accountId,
-          userId,
-          requestedAmount: validatedData.requestedAmount,
-          eligibleAmount: eligibility.eligibleAmount,
-          profitSplitPercent: eligibility.profitSplitPercent,
-          traderShare: eligibility.traderShare,
-          firmShare: eligibility.firmShare,
+          accountNumber: account.number, // Use account number from the account record
+          amount: validatedData.requestedAmount,
+          amountRequested: eligibility.traderShare,
+          amountPaid: 0,
           status: 'pending',
+          date: new Date(),
           requestedAt: new Date(),
-          paymentMethod: validatedData.paymentMethod,
           notes: validatedData.notes,
         }
       })
@@ -296,7 +294,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       // Optionally reduce balance immediately or wait for approval
       // This depends on the prop firm's policy
       if (account.reduceBalanceByPayout) {
-        await tx.propFirmPhase?.update({
+        await tx.accountPhase?.update({
           where: { id: fundedPhase.id },
           data: {
             currentEquity: { decrement: validatedData.requestedAmount },

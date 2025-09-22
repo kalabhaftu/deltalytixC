@@ -263,7 +263,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
       } as Trade
 
       // Import the save function
-      const { saveTradesAction } = await import("@/lib/utils")
+      const { saveTradesAction } = await import("@/server/database")
       
       // Save trade
       const result = await saveTradesAction([completeTrade])

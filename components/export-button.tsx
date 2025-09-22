@@ -182,7 +182,7 @@ export default function TradeExportDialog({ trades }: Props) {
       setDateRange({ from: undefined, to: undefined })
     } else {
       setIsAllTime(false)
-      setDateRange(selector.getRange())
+      setDateRange(selector.getRange() || { from: undefined, to: undefined })
     }
   }
 

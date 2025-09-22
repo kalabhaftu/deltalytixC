@@ -81,7 +81,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
     
     // Get all phases for this account
-    const phases = await prisma.propFirmPhase?.findMany({
+    const phases = await prisma.accountPhase?.findMany({
       where: { accountId },
       orderBy: { createdAt: 'asc' },
       include: {
@@ -89,19 +89,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           orderBy: { entryTime: 'desc' },
           take: 10 // Latest 10 trades for preview
         },
-        dailySnapshots: {
-          orderBy: { date: 'desc' },
+        equitySnapshots: {
+          orderBy: { timestamp: 'desc' },
           take: 30 // Last 30 days
         },
         breaches: {
-          where: { isActive: true },
-          orderBy: { breachedAt: 'desc' }
+          orderBy: { breachTime: 'desc' }
         }
       }
     }) || []
     
     // Get current active phase
-    const currentPhase = phases.find(p => p.status === 'active') || phases[phases.length - 1]
+    const currentPhase = phases.find(p => p.phaseStatus === 'active') || phases[phases.length - 1]
     
     // Get all trades for this account
     const allTrades = await prisma.trade.findMany({
@@ -111,9 +110,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
     
     // Get payout history
-    const payouts = await prisma.payoutRequest?.findMany({
+    const payouts = await prisma.payout?.findMany({
       where: { accountId },
-      orderBy: { requestedAt: 'desc' }
+      orderBy: { date: 'desc' }
     }) || []
     
     // Calculate comprehensive metrics if we have a current phase
@@ -124,16 +123,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     let tradingStats = null
     
     if (currentPhase) {
-      // Get latest daily snapshot for drawdown calculation
-      const latestSnapshot = currentPhase.dailySnapshots?.[0]
-      const dailyStartBalance = latestSnapshot?.openingBalance || currentPhase.startingBalance
+      // Get latest equity snapshot for drawdown calculation
+      const latestSnapshot = currentPhase.equitySnapshots?.[0]
+      const dailyStartBalance = latestSnapshot?.balance || currentPhase.currentBalance
       
       // Calculate drawdown
       drawdownData = PropFirmEngine.calculateDrawdown(
         currentPhase as any,
         currentPhase.currentEquity,
         dailyStartBalance,
-        account.trailingDrawdownEnabled
+        account.trailingDrawdown
       )
       
       // Calculate phase progress
@@ -161,10 +160,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         totalPnL: allTrades.reduce((sum, t) => sum + (t.realizedPnl || t.pnl || 0), 0),
         totalCommission: allTrades.reduce((sum, t) => sum + (t.commission || t.fees || 0), 0),
         currentEquity: currentPhase.currentEquity,
-        startingBalance: currentPhase.startingBalance,
-        currentProfit: currentPhase.currentEquity - currentPhase.startingBalance,
-        profitPercent: ((currentPhase.currentEquity - currentPhase.startingBalance) / currentPhase.startingBalance) * 100,
-        daysTraded: currentPhase.daysTraded,
+        startingBalance: currentPhase.currentBalance,
+        currentProfit: currentPhase.currentEquity - currentPhase.currentBalance,
+        profitPercent: ((currentPhase.currentEquity - currentPhase.currentBalance) / currentPhase.currentBalance) * 100,
+        daysTraded: 0, // Not available in current schema
         winRate: riskMetrics.winRate,
         profitFactor: riskMetrics.profitFactor,
       }
@@ -172,78 +171,24 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     
     // Prepare response
     const response = {
-      // Account details
+      // Account details - using current schema fields
       account: {
         id: account.id,
         name: account.name,
-        firmType: account.firmType,
-        accountSize: account.accountSize,
-        currency: account.currency || 'USD',
-        leverage: account.leverage || 100,
+        propfirm: account.propfirm, // Use propfirm instead of firmType
         status: account.status,
-        isDemo: account.isDemo,
-        
-        // Phase account IDs
-        phase1AccountId: account.phase1AccountId,
-        phase2AccountId: account.phase2AccountId,
-        fundedAccountId: account.fundedAccountId,
-        
-        // Phase credentials (masked for security)
-        phase1Login: account.phase1Login,
-        phase2Login: account.phase2Login,
-        fundedLogin: account.fundedLogin,
-        // Passwords are intentionally excluded for security
-        
-        // Phase servers
-        phase1Server: account.phase1Server,
-        phase2Server: account.phase2Server,
-        fundedServer: account.fundedServer,
-        
-        // Configuration
-        phase1ProfitTarget: account.phase1ProfitTarget,
-        phase2ProfitTarget: account.phase2ProfitTarget,
-        phase1MaxDrawdown: account.phase1MaxDrawdown,
-        phase2MaxDrawdown: account.phase2MaxDrawdown,
-        fundedMaxDrawdown: account.fundedMaxDrawdown,
-        phase1DailyDrawdown: account.phase1DailyDrawdown,
-        phase2DailyDrawdown: account.phase2DailyDrawdown,
-        fundedDailyDrawdown: account.fundedDailyDrawdown,
-        trailingDrawdownEnabled: account.trailingDrawdownEnabled,
-        
-        // Trading rules
-        minTradingDaysPhase1: account.minTradingDaysPhase1,
-        minTradingDaysPhase2: account.minTradingDaysPhase2,
-        maxTradingDaysPhase1: account.maxTradingDaysPhase1,
-        maxTradingDaysPhase2: account.maxTradingDaysPhase2,
-        consistencyRule: account.consistencyRule,
-        newsTradinAllowed: account.newsTradinAllowed,
-        weekendHoldingAllowed: account.weekendHoldingAllowed,
-        hedgingAllowed: account.hedgingAllowed,
-        eaAllowed: account.eaAllowed,
-        maxPositions: account.maxPositions,
-        
-        // Payout configuration
-        initialProfitSplit: account.initialProfitSplit,
-        maxProfitSplit: account.maxProfitSplit,
-        profitSplitIncrementPerPayout: account.profitSplitIncrementPerPayout,
-        minPayoutAmount: account.minPayoutAmount,
-        maxPayoutAmount: account.maxPayoutAmount,
-        payoutFrequencyDays: account.payoutFrequencyDays,
-        minDaysBeforeFirstPayout: account.minDaysBeforeFirstPayout,
-        
-        // Dates
+        startingBalance: account.startingBalance,
+        profitTarget: account.profitTarget,
+        dailyDrawdownAmount: account.dailyDrawdownAmount,
+        maxDrawdownAmount: account.maxDrawdownAmount,
+        trailingDrawdown: account.trailingDrawdown,
+        profitSplitPercent: account.profitSplitPercent,
+        payoutCycleDays: account.payoutCycleDays,
+        minDaysToFirstPayout: account.minDaysToFirstPayout,
+        maxFundedAccounts: account.maxFundedAccounts,
+        tradingNewsAllowed: account.tradingNewsAllowed,
         createdAt: account.createdAt,
-        purchaseDate: account.purchaseDate,
-        challengeStartDate: account.challengeStartDate,
-        challengeEndDate: account.challengeEndDate,
-        fundedDate: account.fundedDate,
-        
-        // Metadata
-        tradingPlatform: account.tradingPlatform,
-        notes: account.notes,
-        syncEnabled: account.syncEnabled,
-        lastSyncAt: account.lastSyncAt,
-        
+
         // User info
         owner: account.user,
       },
@@ -265,7 +210,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       summary: {
         totalPhases: phases.length,
         currentPhaseType: currentPhase?.phaseType,
-        currentPhaseStatus: currentPhase?.status,
+        currentPhaseStatus: currentPhase?.phaseStatus,
         totalTrades: allTrades.length,
         totalPayouts: payouts.length,
         isBreached: drawdownData?.isBreached || false,
@@ -312,10 +257,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Update account
     const updatedAccount = await prisma.account.update({
       where: { id: accountId },
-      data: {
-        ...validatedData,
-        updatedAt: new Date(),
-      },
+      data: validatedData,
       include: {
         user: {
           select: { id: true, email: true, firstName: true, lastName: true }

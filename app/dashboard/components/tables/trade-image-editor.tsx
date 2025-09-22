@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
+import Image from "next/image"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ZoomIn, ZoomOut, X, Upload } from "lucide-react"
@@ -11,7 +12,6 @@ import { Dropzone, DropzoneContent, DropzoneEmptyState } from '@/components/ui/d
 import { useSupabaseUpload } from '@/hooks/use-supabase-upload'
 import { toast } from 'sonner'
 import { useUserStore } from '@/store/user-store'
-import Image from "next/image"
 import { createClient } from '@/lib/supabase'
 import { useData } from '@/context/data-provider'
 import {
@@ -346,9 +346,11 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                         contentClass="!w-full !h-full flex items-center justify-center"
                       >
                         <div className="flex items-center justify-center w-full h-full">
-                          <img
+                          <Image
                             src={imageArray[selectedImageIndex]}
                             alt="Trade image"
+                            width={800}
+                            height={600}
                             className="max-w-full max-h-full object-contain select-none"
                             style={{ margin: 'auto' }}
                           />

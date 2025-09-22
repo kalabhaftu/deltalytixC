@@ -11,33 +11,33 @@ import {
 } from './lazy-wrapper'
 
 // Lazy load heavy dashboard components
-export const LazyTradeChart = lazy(() => 
-  import("@/lib/utils").then(module => ({
-    default: module.TradeChart
+export const LazyTradeChart = lazy(() =>
+  import("@/app/dashboard/components/trades/trade-chart").then(module => ({
+    default: module.default
   }))
 )
 
-export const LazyTradeTable = lazy(() => 
-  import("@/lib/utils").then(module => ({
-    default: module.TradeTable
+export const LazyTradeTable = lazy(() =>
+  import("@/app/dashboard/components/trades/trade-table").then(module => ({
+    default: module.default
   }))
 )
 
-export const LazyAnalyticsPanel = lazy(() => 
-  import("@/lib/utils").then(module => ({
-    default: module.AnalyticsPanel
+export const LazyAnalyticsPanel = lazy(() =>
+  import("@/app/dashboard/components/analytics/analytics-panel").then(module => ({
+    default: module.default
   }))
 )
 
-export const LazyPerformanceMetrics = lazy(() => 
-  import("@/lib/utils").then(module => ({
-    default: module.PerformanceMetrics
+export const LazyPerformanceMetrics = lazy(() =>
+  import("@/app/dashboard/components/performance/performance-metrics").then(module => ({
+    default: module.default
   }))
 )
 
-export const LazyRiskManagement = lazy(() => 
-  import("@/lib/utils").then(module => ({
-    default: module.RiskManagement
+export const LazyRiskManagement = lazy(() =>
+  import("@/app/dashboard/components/risk/risk-management").then(module => ({
+    default: module.default
   }))
 )
 
@@ -91,12 +91,12 @@ export function LazyRiskManagementWrapper(props: any) {
 
 // Create lazy versions using the hook for better error handling
 export const useLazyTradeChart = () => useLazyComponent(
-  () => import("@/lib/utils").then(m => ({ default: m.TradeChart })),
+  () => import("@/app/dashboard/components/trades/trade-chart").then(m => ({ default: m.default })),
   <ChartSkeleton />
 )
 
 export const useLazyTradeTable = () => useLazyComponent(
-  () => import("@/lib/utils").then(m => ({ default: m.TradeTable })),
+  () => import("@/app/dashboard/components/trades/trade-table").then(m => ({ default: m.default })),
   <TableSkeleton />
 )
 

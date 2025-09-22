@@ -91,12 +91,12 @@ export async function GET(request: NextRequest) {
       // Get filtered accounts to extract their numbers for trade filtering
       const filteredAccounts = await prisma.account.findMany({
         where: accountWhereClause,
-        select: { 
-          id: true, 
-          number: true, 
+        select: {
+          id: true,
+          number: true,
           startingBalance: true,
           status: true,
-          accountType: true
+          propfirm: true
         }
       })
 

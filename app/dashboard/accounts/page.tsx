@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "@/hooks/use-toast"
 import { useAccounts } from "@/hooks/use-accounts"
@@ -91,7 +91,6 @@ interface Account {
 
 export default function AccountsPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { user } = useAuth()
   const { accounts, isLoading, refetch: refetchAccounts } = useAccounts()
 
@@ -120,15 +119,16 @@ export default function AccountsPage() {
 
   // Set initial filter from URL params only on first load
   useEffect(() => {
-    const filterParam = searchParams.get('filter')
+    const urlParams = new URLSearchParams(window.location.search)
+    const filterParam = urlParams.get('filter')
     if (filterParam === 'prop-firm' || filterParam === 'live') {
       setFilterType(filterParam)
       // Clear the URL parameter to prevent it from affecting future navigation
-      const url = new URL(window.location.href)
-      url.searchParams.delete('filter')
-      window.history.replaceState({}, '', url.toString())
+      urlParams.delete('filter')
+      const newUrl = `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`
+      window.history.replaceState({}, '', newUrl)
     }
-  }, []) // Remove searchParams dependency to only run on mount
+  }, []) // Only run on mount
 
 
   // Get filtered accounts based on user's filter settings

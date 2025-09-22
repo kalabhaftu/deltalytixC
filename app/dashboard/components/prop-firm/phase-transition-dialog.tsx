@@ -247,7 +247,7 @@ export function PhaseTransitionDialog({
                 <div className="flex items-start gap-2">
                   <Mail className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Your prop firm should've sent you a new account ID for {getPhaseDisplayName(nextPhaseType)}. 
+                    Your prop firm should&apos;ve sent you a new account ID for {getPhaseDisplayName(nextPhaseType)}.
                     Check your email or their dashboard!
                   </p>
                 </div>
@@ -268,7 +268,7 @@ export function PhaseTransitionDialog({
               />
               <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
                 <CreditCard className="h-3 w-3" />
-                Usually found in your prop firm's trader portal or email
+                Usually found in your prop firm&apos;s trader portal or email
               </p>
             </div>
           </div>

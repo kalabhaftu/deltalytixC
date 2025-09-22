@@ -8,7 +8,7 @@ import LoadingOverlay from '../app/dashboard/components/loading-overlay'
 import ImportButton from '../app/dashboard/components/import/import-button'
 import { signOut } from '@/server/auth'
 
-import { redirect, useSearchParams } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import OnboardingModal from './onboarding-modal'
 import { AccountGroupBoard } from '@/app/dashboard/components/filters/account-group-board'
 import { useModalStateStore } from '@/store/modal-state-store'
@@ -21,7 +21,6 @@ export default function Modals() {
   const isLoading = useUserStore((state) => state.isLoading)
   const trades = useTradesStore((state) => state.trades)
   const [isTradesDialogOpen, setIsTradesDialogOpen] = useState(false)
-  const searchParams = useSearchParams()
   const { accountGroupBoardOpen, setAccountGroupBoardOpen } = useModalStateStore()
 
 

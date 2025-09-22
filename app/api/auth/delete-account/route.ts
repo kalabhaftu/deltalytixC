@@ -70,25 +70,9 @@ export async function DELETE(request: NextRequest) {
       // Delete all related data in the correct order
       console.log(`[Account Deletion] Deleting business data...`)
       
-      // Business-related deletions
-      if (user?.email) {
-        await tx.businessInvitation.deleteMany({
-          where: { 
-            OR: [
-              { invitedBy: userId },
-              { email: user.email }
-            ]
-          }
-        })
-      }
-      
-      await tx.businessManager.deleteMany({
-        where: { managerId: userId }
-      })
-      
-      await tx.business.deleteMany({
-        where: { userId }
-      })
+      // Business-related deletions - models don't exist in current schema
+      // TODO: Add business models to Prisma schema if needed
+      console.log(`[Account Deletion] Skipping business data deletion - models not in schema`)
 
       console.log(`[Account Deletion] Deleting trading data...`)
       

@@ -11,7 +11,6 @@ export default function Footer() {
     ],
     resources: [
       { name: 'About', href: '#' },
-      { name: 'Updates', href: '#' },
     ],
     social: [
       { name: 'YouTube', href: '#', icon: (props: React.SVGProps<SVGSVGElement>) => (
@@ -110,14 +109,14 @@ export default function Footer() {
           {/* Disclaimers - Improved Readability */}
           <div className="text-center max-w-4xl mx-auto space-y-3">
             <p className="text-xs text-muted-foreground/80 leading-relaxed">
-              <strong>Risk Disclaimer:</strong> Trading futures and forex is risky and not for everyone. 
-              You can lose part or all of your money. Only trade with money you can afford to lose. 
-              Past results don't guarantee future outcomes.
+              <strong>Risk Disclaimer:</strong> Trading futures and forex is risky and not for everyone.
+              You can lose part or all of your money. Only trade with money you can afford to lose.
+              Past results don&apos;t guarantee future outcomes.
             </p>
             <p className="text-xs text-muted-foreground/80 leading-relaxed">
-              <strong>Hypothetical Performance:</strong> Hypothetical results are based on hindsight, 
-              not real risk, and often differ from actual trading. Real trading involves losses, 
-              discipline, and market factors that can't be fully shown in simulations.
+              <strong>Hypothetical Performance:</strong> Hypothetical results are based on hindsight,
+              not real risk, and often differ from actual trading. Real trading involves losses,
+              discipline, and market factors that can&apos;t be fully shown in simulations.
             </p>
           </div>
         </div>

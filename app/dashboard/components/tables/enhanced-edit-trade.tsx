@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -66,7 +67,7 @@ function generateShortId(): string {
 }
 
 const uploadImageToSupabase = async (file: File, userId: string, tradeId: string): Promise<string> => {
-  const { createClient } = await import("@/lib/utils")
+  const { createClient } = await import("@/lib/supabase")
   const supabase = createClient()
   
   // Generate a unique filename
@@ -434,10 +435,11 @@ export default function EnhancedEditTrade({
                         
                         {watchedValues.imageBase64 ? (
                           <div className="relative w-full h-full group">
-                            <img
+                            <Image
                               src={watchedValues.imageBase64}
                               alt="Screenshot 1"
-                              className="w-full h-full object-cover rounded cursor-pointer"
+                              fill
+                              className="object-cover rounded cursor-pointer"
                               onClick={() => setFullscreenImage(watchedValues.imageBase64!)}
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
@@ -491,10 +493,11 @@ export default function EnhancedEditTrade({
                         
                         {watchedValues.imageBase64Second ? (
                           <div className="relative w-full h-full group">
-                            <img
+                            <Image
                               src={watchedValues.imageBase64Second}
                               alt="Screenshot 2"
-                              className="w-full h-full object-cover rounded cursor-pointer"
+                              fill
+                              className="object-cover rounded cursor-pointer"
                               onClick={() => setFullscreenImage(watchedValues.imageBase64Second!)}
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
@@ -548,10 +551,11 @@ export default function EnhancedEditTrade({
                         
                         {watchedValues.imageBase64Third ? (
                           <div className="relative w-full h-full group">
-                            <img
+                            <Image
                               src={watchedValues.imageBase64Third}
                               alt="Screenshot 3"
-                              className="w-full h-full object-cover rounded cursor-pointer"
+                              fill
+                              className="object-cover rounded cursor-pointer"
                               onClick={() => setFullscreenImage(watchedValues.imageBase64Third!)}
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
@@ -605,10 +609,11 @@ export default function EnhancedEditTrade({
                         
                         {watchedValues.imageBase64Fourth ? (
                           <div className="relative w-full h-full group">
-                            <img
+                            <Image
                               src={watchedValues.imageBase64Fourth}
                               alt="Screenshot 4"
-                              className="w-full h-full object-cover rounded cursor-pointer"
+                              fill
+                              className="object-cover rounded cursor-pointer"
                               onClick={() => setFullscreenImage(watchedValues.imageBase64Fourth!)}
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
@@ -672,10 +677,12 @@ export default function EnhancedEditTrade({
           onClick={() => setFullscreenImage(null)}
         >
           <div className="w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-            <img 
-              src={fullscreenImage} 
-              alt="Fullscreen view" 
-              className="max-w-full max-h-full object-contain" 
+            <Image
+              src={fullscreenImage}
+              alt="Fullscreen view"
+              width={1200}
+              height={800}
+              className="max-w-full max-h-full object-contain"
             />
           </div>
           <Button

@@ -42,18 +42,20 @@ export default async function middleware(req: NextRequest) {
           'Authorization': req.headers.get('Authorization') || '',
           'Cookie': req.headers.get('Cookie') || '',
         },
-        signal: AbortSignal.timeout(5000) // 5 second timeout
+        signal: AbortSignal.timeout(3000) // 3 second timeout (reduced from 5)
       })
 
       if (!response.ok) {
         // User is not authenticated, redirect to authentication
-        console.log('[Middleware] Redirecting unauthenticated user to authentication')
         const authUrl = new URL('/authentication', req.url)
         authUrl.searchParams.set('next', pathname)
         return NextResponse.redirect(authUrl)
       }
     } catch (error) {
-      console.log('[Middleware] Auth check failed, redirecting to authentication:', error)
+      // Only log if it's not a timeout (timeouts are expected in some cases)
+      if (!(error instanceof Error) || (!error.message.includes('AbortError') && !error.message.includes('timeout'))) {
+        console.log('[Middleware] Auth check failed, redirecting to authentication:', error)
+      }
       const authUrl = new URL('/authentication', req.url)
       authUrl.searchParams.set('next', pathname)
       return NextResponse.redirect(authUrl)

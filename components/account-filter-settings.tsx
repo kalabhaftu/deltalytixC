@@ -99,7 +99,7 @@ export function AccountFilterSettingsCard({ className }: AccountFilterSettingsPr
       
       await updateSettings(updates)
       
-      const typeMessages = {
+      const typeMessages: Record<string, string> = {
         'live': 'Live accounts',
         'prop-firm': 'Prop firm accounts',
         'phase-1': 'Phase 1 accounts',

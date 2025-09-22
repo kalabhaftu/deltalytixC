@@ -178,7 +178,7 @@ export function SharedPageClient({ params, initialData }: SharedPageClientProps)
             <CardHeader>
               <CardTitle>Dashboard Not Found</CardTitle>
               <CardDescription>
-                The shared dashboard you're looking for doesn't exist or has been removed.
+                The shared dashboard you&apos;re looking for doesn&apos;t exist or has been removed.
               </CardDescription>
             </CardHeader>
           </Card>

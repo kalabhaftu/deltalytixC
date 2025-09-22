@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Building2, User, X, Filter } from "lucide-react"
 import { useData } from "@/context/data-provider"
 import { useAccounts } from "@/hooks/use-accounts"
@@ -26,22 +26,9 @@ export function AccountFilter({ showAccountNumbers, className }: AccountFilterPr
   const { accounts } = useAccounts()
   const [searchTerm, setSearchTerm] = useState("")
   const [filters, setFilters] = useState<DashboardFilters>({ showAll: true, accountType: 'all' })
-  // Load saved filters from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('dashboardAccountFilters')
-      if (saved) {
-        const parsedFilters = JSON.parse(saved)
-        setFilters(parsedFilters)
-        applyFilters(parsedFilters)
-      }
-    } catch (error) {
-      console.error('Failed to load saved dashboard filters:', error)
-    }
-  }, [])
 
-  // Apply filters to account numbers
-  const applyFilters = (filterState: DashboardFilters) => {
+  // Apply filters to account numbers - must be defined before useEffects that use it
+  const applyFilters = useCallback((filterState: DashboardFilters) => {
     if (!accounts) return
 
     if (filterState.showAll) {
@@ -66,7 +53,21 @@ export function AccountFilter({ showAccountNumbers, className }: AccountFilterPr
 
       setAccountNumbers(filteredAccountNumbers)
     }
-  }
+  }, [accounts, setAccountNumbers])
+
+  // Load saved filters from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('dashboardAccountFilters')
+      if (saved) {
+        const parsedFilters = JSON.parse(saved)
+        setFilters(parsedFilters)
+        applyFilters(parsedFilters)
+      }
+    } catch (error) {
+      console.error('Failed to load saved dashboard filters:', error)
+    }
+  }, [applyFilters])
 
   // Save filters to localStorage when changed
   useEffect(() => {
@@ -76,7 +77,7 @@ export function AccountFilter({ showAccountNumbers, className }: AccountFilterPr
     } catch (error) {
       console.error('Failed to save dashboard filters:', error)
     }
-  }, [filters])
+  }, [filters, applyFilters])
 
   const handleAccountTypeChange = (value: string) => {
     if (value === 'all') {
@@ -138,7 +139,7 @@ export function AccountFilter({ showAccountNumbers, className }: AccountFilterPr
   }
 
   const selectedAccount = accounts?.find(a => a.id === filters.accountId)
-  const availablePhases = selectedAccount?.phases || []
+  const availablePhases = [] // Phases not available in UnifiedAccount interface
 
   // Filter accounts by type and search
   const filteredAccountsByType = accounts?.filter(account => {
@@ -223,7 +224,7 @@ export function AccountFilter({ showAccountNumbers, className }: AccountFilterPr
           </Select>
         )}
 
-        {selectedAccount && selectedAccount.accountType === 'prop-firm' && availablePhases.length > 0 && (
+        {selectedAccount && selectedAccount.accountType === 'prop-firm' && false && ( // Phases not available in UnifiedAccount interface
           <Select
             value={filters.phaseId || "all"}
             onValueChange={handlePhaseChange}
@@ -277,11 +278,6 @@ export function AccountFilter({ showAccountNumbers, className }: AccountFilterPr
                 <Badge variant="outline" className="text-xs">
                   {selectedAccount.number}
                   {selectedAccount.name && ` (${selectedAccount.name})`}
-                </Badge>
-              )}
-              {filters.phaseId && (
-                <Badge variant="outline" className="text-xs">
-                  {availablePhases.find((p: any) => p.id === filters.phaseId)?.phaseType?.replace('_', ' ') || 'Unknown Phase'}
                 </Badge>
               )}
             </div>

@@ -21,7 +21,9 @@ import type {
 export interface TradeAccountLink {
   tradeId: string
   accountId: string
+  accountNumber: string
   phaseId: string
+  reason?: string
 }
 
 export interface AccountStatusUpdate {
@@ -103,7 +105,7 @@ export class PropFirmAccountEvaluator {
               tradeId: trade.id,
               accountId: matchingAccount.id,
               accountNumber: trade.accountNumber,
-              phaseId: null,
+              phaseId: '',
               reason: 'Failed account - linked for historical data'
             })
             
@@ -176,6 +178,7 @@ export class PropFirmAccountEvaluator {
           linkedTrades.push({
             tradeId: trade.id,
             accountId: matchingAccount.id,
+            accountNumber: trade.accountNumber,
             phaseId: currentPhase.id
           })
 
@@ -323,22 +326,22 @@ export class PropFirmAccountEvaluator {
             }
           })
 
-          // Create audit log
-          await tx.auditLog.create({
-            data: {
-              userId: account.userId,
-              action: 'ACCOUNT_FAILED',
-              entity: 'ACCOUNT',
-              entityId: accountId,
-              details: {
-                reason: 'drawdown_breach',
-                breachType: drawdownResult.breachType,
-                breachAmount: drawdownResult.breachAmount,
-                previousStatus,
-                newStatus
-              }
-            }
-          })
+          // Create audit log - commented out as auditLog model doesn't exist in schema
+          // await tx.auditLog.create({
+          //   data: {
+          //     userId: account.userId,
+          //     action: 'ACCOUNT_FAILED',
+          //     entity: 'ACCOUNT',
+          //     entityId: accountId,
+          //     details: {
+          //       reason: 'drawdown_breach',
+          //       breachType: drawdownResult.breachType,
+          //       breachAmount: drawdownResult.breachAmount,
+          //       previousStatus,
+          //       newStatus
+          //     }
+          //   }
+          // })
         })
 
         logger.warn('Account failed due to drawdown breach', {
@@ -464,23 +467,23 @@ export class PropFirmAccountEvaluator {
             }
           })
 
-          // Create audit log
-          await tx.auditLog.create({
-            data: {
-              userId: account.userId,
-              action: 'PHASE_PROGRESSION',
-              entity: 'ACCOUNT',
-              entityId: accountId,
-              details: {
-                fromPhase: currentPhase.phaseType,
-                toPhase: nextPhaseType,
-                profitTarget: currentPhase.profitTarget,
-                netProfit,
-                previousStatus,
-                newStatus: newAccountStatus
-              }
-            }
-          })
+          // Create audit log - commented out as auditLog model doesn't exist in schema
+          // await tx.auditLog.create({
+          //   data: {
+          //     userId: account.userId,
+          //     action: 'PHASE_PROGRESSION',
+          //     entity: 'ACCOUNT',
+          //     entityId: accountId,
+          //     details: {
+          //       fromPhase: currentPhase.phaseType,
+          //       toPhase: nextPhaseType,
+          //       profitTarget: currentPhase.profitTarget,
+          //       netProfit,
+          //       previousStatus,
+          //       newStatus: newAccountStatus
+          //     }
+          //   }
+          // })
         })
 
         logger.info('Account progressed to next phase', {

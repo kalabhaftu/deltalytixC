@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { Check, ChevronDown, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -46,6 +46,19 @@ export default function EnhancedInput({
     }
   }, [])
 
+  // Validate input function - must be defined before useEffects that use it
+  const validateInput = useCallback((inputValue: string) => {
+    if (!validate) {
+      setIsValid(true)
+      return true
+    }
+
+    const result = validate(inputValue)
+    setIsValid(result.valid)
+    setValidationMessage(result.message || "")
+    return result.valid
+  }, [validate])
+
   // Handle click outside to hide suggestions
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -66,7 +79,7 @@ export default function EnhancedInput({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [value, skipNextBlur]) // validateInput is defined after this useEffect
+  }, [value, skipNextBlur, validateInput])
 
   // Filter suggestions based on input
   useEffect(() => {
@@ -99,18 +112,6 @@ export default function EnhancedInput({
       setValidationMessage(result.message || "")
     }
   }, [initialValue, validate, hasInteracted])
-
-  const validateInput = (inputValue: string) => {
-    if (!validate) {
-      setIsValid(true)
-      return true
-    }
-
-    const result = validate(inputValue)
-    setIsValid(result.valid)
-    setValidationMessage(result.message || "")
-    return result.valid
-  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value

@@ -242,7 +242,7 @@ export default function FileUpload({
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Ready to Process</AlertTitle>
           <AlertDescription>
-            Files uploaded successfully. Click "Process Files" to continue.
+            Files uploaded successfully. Click &ldquo;Process Files&rdquo; to continue.
           </AlertDescription>
         </Alert>
       )}

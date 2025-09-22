@@ -91,7 +91,7 @@ export function AccountGroupBoard() {
     } finally {
       setIsCreating(false)
     }
-  }, [newGroupName, user?.id, saveGroup])
+  }, [newGroupName, user?.id, saveGroup, notify])
 
   const handleUpdateGroup = useCallback(async (groupId: string, newName: string) => {
     try {
@@ -103,7 +103,7 @@ export function AccountGroupBoard() {
       console.error("Error updating group:", error)
       notify({ title: "Error", description: "Failed to update group", variant: "destructive" })
     }
-  }, [renameGroup])
+  }, [renameGroup, notify])
 
   const handleMoveAccount = useCallback(async (account: Account | UngroupedAccount, groupId: string | null) => {
     try {
@@ -143,7 +143,7 @@ export function AccountGroupBoard() {
       console.error("Error moving account:", error)
       notify({ title: "Error", description: "Failed to move account", variant: "destructive" })
     }
-  }, [groups, user?.id, saveGroup, moveAccountToGroup, saveAccount, existingAccounts])
+  }, [groups, user?.id, saveGroup, moveAccountToGroup, saveAccount, existingAccounts, notify])
 
   const handleDeleteGroup = useCallback(async (groupId: string, groupName: string) => {
     try {
@@ -156,7 +156,7 @@ export function AccountGroupBoard() {
     } finally {
       setIsDeleting(false)
     }
-  }, [deleteGroup])
+  }, [deleteGroup, notify])
 
   const anonymizeAccount = useCallback((account: string) => {
     // This is a placeholder - use your actual anonymization function

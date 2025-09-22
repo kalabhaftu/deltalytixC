@@ -90,15 +90,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Build where clause
     const where: any = {
       accountId,
-      // Use either propFirmPhaseId or accountId for trade linking
+      // Use either accountPhaseId or accountId for trade linking
       OR: [
-        { propFirmPhaseId: { not: null } },
+        { accountPhaseId: { not: null } },
         { accountId: accountId },
       ]
     }
     
     if (filters.phaseId) {
-      where.propFirmPhaseId = filters.phaseId
+      where.accountPhaseId = filters.phaseId
     }
     
     if (filters.symbol) {
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       orderBy: { [filters.sortBy]: filters.sortOrder },
       include: {
         account: {
-          select: { id: true, name: true, firmType: true }
+          select: { id: true, name: true, propfirm: true }
         }
       }
     })
@@ -174,14 +174,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const statistics = calculateTradeStatistics(allTrades)
     
     // Get phase information
-    const phases = await prisma.propFirmPhase?.findMany({
+    const phases = await prisma.accountPhase?.findMany({
       where: { accountId },
       select: {
         id: true,
         phaseType: true,
-        status: true,
-        startedAt: true,
-        completedAt: true,
+        phaseStatus: true,
+        phaseStartAt: true,
+        phaseEndAt: true,
         _count: {
           select: { trades: true }
         }
@@ -206,7 +206,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         comment: trade.comment,
         strategy: trade.strategy,
         tags: trade.tags || [],
-        phaseId: trade.propFirmPhaseId || trade.phaseId,
+        phaseId: trade.phaseId,
         equityAtOpen: trade.equityAtOpen,
         equityAtClose: trade.equityAtClose,
         closeReason: trade.closeReason,
@@ -279,12 +279,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Get target phase (specified or active)
     let targetPhase = null
     if (validatedData.phaseId) {
-      targetPhase = await prisma.propFirmPhase?.findFirst({
+      targetPhase = await prisma.accountPhase?.findFirst({
         where: { id: validatedData.phaseId, accountId }
       })
     } else {
-      targetPhase = await prisma.propFirmPhase?.findFirst({
-        where: { accountId, status: 'active' }
+      targetPhase = await prisma.accountPhase?.findFirst({
+        where: { accountId, phaseStatus: 'active' }
       })
     }
     
@@ -318,7 +318,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         data: {
           // New prop firm fields
           accountId,
-          propFirmPhaseId: targetPhase.id,
+          phaseId: targetPhase.id,
           symbol: validatedData.symbol,
           side: validatedData.side,
           quantity: validatedData.quantity,
@@ -334,7 +334,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           equityAtClose: isClosedTrade ? targetPhase.currentEquity + realizedPnl : null,
           
           // Legacy fields for compatibility
-          accountNumber: account.phase1AccountId || account.id,
+          accountNumber: account.number,
           instrument: validatedData.symbol,
           entryPrice: validatedData.entryPrice.toString(),
           closePrice: validatedData.exitPrice?.toString() || '',
@@ -348,20 +348,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       // Update phase statistics if trade is closed
       if (isClosedTrade) {
         const isWin = realizedPnl > 0
-        const updatedPhase = await tx.propFirmPhase?.update({
+        const updatedPhase = await tx.accountPhase?.update({
           where: { id: targetPhase.id },
           data: {
             totalTrades: { increment: 1 },
             winningTrades: { increment: isWin ? 1 : 0 },
-            losingTrades: { increment: isWin ? 0 : 1 },
             totalCommission: { increment: validatedData.commission + validatedData.fees },
-            totalSwap: { increment: validatedData.swap },
             currentEquity: { increment: realizedPnl },
             currentBalance: { increment: realizedPnl },
-            highWaterMark: targetPhase.currentEquity + realizedPnl > targetPhase.highWaterMark ? 
+            highestEquitySincePhaseStart: targetPhase.currentEquity + realizedPnl > targetPhase.highestEquitySincePhaseStart ?
               { set: targetPhase.currentEquity + realizedPnl } : undefined,
-            bestTrade: realizedPnl > targetPhase.bestTrade ? { set: realizedPnl } : undefined,
-            worstTrade: realizedPnl < targetPhase.worstTrade ? { set: realizedPnl } : undefined,
           }
         })
         
@@ -371,34 +367,32 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           { ...targetPhase, currentEquity: newEquity } as any,
           newEquity,
           targetPhase.currentBalance, // Using current balance as daily anchor for now
-          account.trailingDrawdownEnabled
+          account.trailingDrawdown
         )
         
         // Check for breaches
         if (drawdown.isBreached) {
           // Create breach record
-          await tx.drawdownBreach?.create({
+          await tx.breach?.create({
             data: {
               phaseId: targetPhase.id,
               accountId,
               breachType: drawdown.breachType!,
               breachAmount: drawdown.breachAmount!,
-              limitAmount: drawdown.breachType === 'daily_drawdown' ? 
+              breachThreshold: drawdown.breachType === 'daily_drawdown' ?
                 drawdown.dailyDrawdownLimit : drawdown.maxDrawdownLimit,
-              equityAtBreach: newEquity,
-              balanceAtBreach: targetPhase.currentBalance + realizedPnl,
-              tradeIdTrigger: trade.id,
-              breachedAt: new Date(),
-              isActive: true,
+              equity: newEquity,
+              description: `Breach triggered by trade ${trade.id}`,
+              breachTime: new Date(),
             }
           })
           
           // Update phase status to failed
-          await tx.propFirmPhase?.update({
+          await tx.accountPhase?.update({
             where: { id: targetPhase.id },
             data: {
-              status: 'failed',
-              failedAt: new Date(),
+              phaseStatus: 'failed',
+              phaseEndAt: new Date(),
             }
           })
           
@@ -417,11 +411,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         )
         
         if (progress.readyToAdvance && !drawdown.isBreached) {
-          await tx.propFirmPhase?.update({
+          await tx.accountPhase?.update({
             where: { id: targetPhase.id },
             data: {
-              status: 'passed',
-              completedAt: new Date(),
+              phaseStatus: 'passed',
+              phaseEndAt: new Date(),
             }
           })
           

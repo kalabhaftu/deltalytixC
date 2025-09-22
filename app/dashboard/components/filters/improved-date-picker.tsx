@@ -9,27 +9,23 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Calendar as CalendarComponent } from '@/components/ui/calendar'
+import { DateRange as DayPickerDateRange } from 'react-day-picker'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths, startOfDay, endOfDay } from 'date-fns'
 
-type DateRange = {
-  from: Date
-  to: Date
-} | undefined
-
 interface ImprovedDatePickerProps {
-  onDateRangeChange?: (range: DateRange) => void
+  onDateRangeChange?: (range: DayPickerDateRange | undefined) => void
   className?: string
 }
 
 export default function ImprovedDatePicker({ onDateRangeChange, className }: ImprovedDatePickerProps) {
-  const [date, setDate] = useState<DateRange>()
+  const [date, setDate] = useState<DayPickerDateRange>()
   const [isOpen, setIsOpen] = useState(false)
 
-  const handleDateSelect = (range: DateRange) => {
-    setDate(range)
-    onDateRangeChange?.(range)
+  const handleDateSelect = (range: DayPickerDateRange) => {
+    setDate(range || undefined)
+    onDateRangeChange?.(range || undefined)
     if (range?.from && range?.to) {
       setIsOpen(false)
     }
@@ -82,7 +78,7 @@ export default function ImprovedDatePicker({ onDateRangeChange, className }: Imp
     }
   ]
 
-  const formatDateRange = (range: DateRange) => {
+  const formatDateRange = (range: DayPickerDateRange) => {
     if (!range?.from) return 'Pick Date'
     if (!range.to) return format(range.from, 'MMM d, yyyy')
     return `${format(range.from, 'MMM d')} - ${format(range.to, 'MMM d, yyyy')}`
@@ -100,7 +96,7 @@ export default function ImprovedDatePicker({ onDateRangeChange, className }: Imp
           )}
         >
           <Calendar className="mr-2 h-4 w-4" />
-          <span className="hidden sm:inline">{formatDateRange(date)}</span>
+          <span className="hidden sm:inline">{date ? formatDateRange(date) : 'Pick Date'}</span>
           <span className="sm:hidden">Date</span>
           <ChevronDown className="ml-2 h-3 w-3 opacity-50" />
         </Button>
@@ -138,6 +134,7 @@ export default function ImprovedDatePicker({ onDateRangeChange, className }: Imp
             </div>
             <CalendarComponent
               mode="range"
+              required
               defaultMonth={date?.from}
               selected={date}
               onSelect={handleDateSelect}

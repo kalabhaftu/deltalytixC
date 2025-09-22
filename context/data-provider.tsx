@@ -966,12 +966,12 @@ export const DataProvider: React.FC<{
       
       accounts.forEach(account => {
         // Filter by account type
-        if (account.accountType === 'live' && !accountFilterSettings.showLiveAccounts) {
+        if (account.propfirm === 'live' && !accountFilterSettings.showLiveAccounts) {
           excludedNumbers.push(account.number)
           return
         }
         
-        if (account.accountType === 'prop-firm' && !accountFilterSettings.showPropFirmAccounts) {
+        if (account.propfirm === 'prop-firm' && !accountFilterSettings.showPropFirmAccounts) {
           excludedNumbers.push(account.number)
           return
         }
