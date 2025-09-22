@@ -4,14 +4,26 @@ import { BarChart3, Calendar, Database, Brain } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Image from "next/image"
 import { ImportFeature } from "./import-feature"
-import TradingChatAssistant from "./chat-feature"
 import { useState, useEffect, useRef } from "react"
+import dynamic from "next/dynamic"
+
+const TradingChatAssistant = dynamic(() => import('./chat-feature'), {
+  ssr: false,
+  loading: () => <div className="w-full h-full flex items-center justify-center">Loading...</div>
+})
 
 export default function Features() {
   const [visibleCards, setVisibleCards] = useState<Set<number>>(new Set())
   const cardRefs = useRef<(HTMLDivElement | null)[]>([])
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -29,7 +41,7 @@ export default function Features() {
     })
 
     return () => observer.disconnect()
-  }, [])
+  }, [mounted])
 
   const features = [
     {
@@ -38,7 +50,7 @@ export default function Features() {
       icon: <Brain className="h-5 w-5 text-muted-foreground transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />,
       description: "Improve your trading emotions with AI-assisted journaling. Our advanced algorithms analyze your entries to identify emotional patterns and biases.",
       stat: "Emotional Intelligence",
-      image: <TradingChatAssistant />
+      image: 'TradingChatAssistant'
     },
     {
       id: "performance-visualization",
@@ -124,8 +136,12 @@ export default function Features() {
                           className="rounded-md hidden dark:block"
                         />
                       </>
+                    ) : typeof feature.image === 'string' && feature.image === 'TradingChatAssistant' && mounted ? (
+                      <TradingChatAssistant />
                     ) : (
-                      feature.image
+                      <div className="text-center text-muted-foreground">
+                        {feature.image || 'Feature visualization'}
+                      </div>
                     )}
                   </div>
                 </div>

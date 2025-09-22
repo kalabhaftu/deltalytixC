@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-export default async function MaintenancePage() {
+export default function MaintenancePage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">

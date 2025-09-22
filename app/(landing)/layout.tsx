@@ -7,30 +7,16 @@ import { Metadata } from 'next';
 
 type Locale = 'en';
 
-export async function generateMetadata(props: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
-  const params = await props.params;
-  const descriptions: Record<string, string> = {
-    en: 'Centralize and visualize your trading performance across multiple brokers. Track, analyze, and improve your trading journey with powerful analytics.',
-    fr: 'Centralisez et visualisez vos performances de trading à travers différents brokers. Suivez, analysez et améliorez votre parcours de trading avec des analyses puissantes.',
-  };
-
-  const description = descriptions[params.locale] || descriptions.en;
-
-  return {
-    title: 'Deltalytix',
-    description,
-  };
+export const metadata: Metadata = {
+  title: 'Deltalytix',
+  description: 'Centralize and visualize your trading performance across multiple brokers. Track, analyze, and improve your trading journey with powerful analytics.',
 }
 
-export default async function RootLayout(
-  props: Readonly<{
-    children: React.ReactNode;
-    params: { locale: string };
-  }>
-) {
-  const {
-    children
-  } = props;
+export default function RootLayout({
+  children
+}: {
+  children: React.ReactNode;
+}) {
 
   return (
     <ThemeProvider>

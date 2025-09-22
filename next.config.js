@@ -55,8 +55,6 @@ const nextConfig = {
     return config
   },
 
-  // Build optimization
-  output: 'standalone',
   // Ensure proper file generation
   generateBuildId: async () => {
     return 'build-' + Date.now()
