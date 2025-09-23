@@ -6,16 +6,13 @@ import { Button } from "@/components/ui/button"
 import { useTheme } from '@/context/theme-provider'
 import { useUserStore } from '@/store/user-store'
 import Features from './components/features'
-
 import { Skeleton } from '@/components/ui/skeleton'
-
 
 export default function LandingPage() {
     const { theme, effectiveTheme } = useTheme();
     const user = useUserStore(state => state.user);
     const [videoLoaded, setVideoLoaded] = useState(false);
     const [videoError, setVideoError] = useState(false);
-    const [videoKey, setVideoKey] = useState(0);
     const videoRef = useRef<HTMLVideoElement>(null);
 
     // Check if user is authenticated
@@ -25,26 +22,14 @@ export default function LandingPage() {
         ? "https://fhvmtnvjiotzztimdxbi.supabase.co/storage/v1/object/public/assets/demo-dark.mp4"
         : "https://fhvmtnvjiotzztimdxbi.supabase.co/storage/v1/object/public/assets/demo.mp4";
 
-
-    // Reset video state and force re-render when theme changes
+    // Simplified video loading logic
     useEffect(() => {
-        setVideoLoaded(false);
-        setVideoError(false);
-        setVideoKey(prev => prev + 1); // Force video element to re-mount immediately
-    }, [effectiveTheme]);
-
-    // Additional effect to ensure video loads with correct theme
-    useEffect(() => {
-        if (videoRef.current && videoLoaded) {
+        if (videoRef.current) {
             const video = videoRef.current;
-            const currentSrc = video.src;
-            const expectedSrc = videoSrc;
-
-            if (currentSrc !== expectedSrc) {
-                video.load();
-            }
+            video.src = videoSrc;
+            video.load();
         }
-    }, [videoSrc, videoLoaded]);
+    }, [videoSrc]);
 
     const handleVideoLoad = useCallback(() => {
         setVideoLoaded(true);
@@ -96,7 +81,6 @@ export default function LandingPage() {
                                     )}
                                     <video
                                         ref={videoRef}
-                                        key={`${effectiveTheme}-${videoSrc}`}
                                         src={videoSrc}
                                         preload="metadata"
                                         loop

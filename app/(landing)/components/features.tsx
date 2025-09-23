@@ -7,6 +7,7 @@ import { ImportFeature } from "./import-feature"
 import { useState, useEffect, useRef } from "react"
 import dynamic from "next/dynamic"
 
+// Optimized dynamic import for Vercel compatibility
 const TradingChatAssistant = dynamic(() => import('./chat-feature'), {
   ssr: false,
   loading: () => <div className="w-full h-full flex items-center justify-center">Loading...</div>

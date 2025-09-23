@@ -66,6 +66,13 @@ const nextConfig = {
     trailingSlash: false,
     // Ensure all pages are properly generated
     pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
+    // Enable client reference manifest generation
+    experimental: {
+      ...nextConfig.experimental,
+      clientReferenceManifest: true,
+      // Ensure proper handling of route groups
+      serverComponentsExternalPackages: ['@supabase/ssr', '@supabase/supabase-js'],
+    },
     // Additional build optimizations
     webpack: (config, { dev, isServer }) => {
       // Ensure proper handling of route groups
