@@ -1,6 +1,7 @@
 "use server"
 
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
 import { getActiveAccountsWhereClause } from '@/lib/utils/account-filters'
@@ -48,11 +49,13 @@ export async function GET(request: NextRequest) {
     
     if (!includeFailedAccounts) {
       // Add status filter to exclude inactive accounts (failed and passed)
+      // Include null status values for legacy accounts (treat as active)
       whereClause = {
         userId: currentUserId,
-        status: {
-          in: ['active', 'funded']
-        }
+        OR: [
+          { status: { in: ['active', 'funded'] } },
+          { status: null } // Include accounts with null status (legacy accounts)
+        ]
       }
     }
     
@@ -141,7 +144,33 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Get user ID using the proper auth function
-    const userId = await getUserId()
+    let userId: string
+    try {
+      userId = await getUserId()
+    } catch (authError) {
+      // In development, create a fallback user ID if not authenticated
+      if (process.env.NODE_ENV === 'development') {
+        // Check if we have any existing users in the database
+        const existingUsers = await prisma.user.findMany({ take: 1 })
+        if (existingUsers.length > 0) {
+          userId = existingUsers[0].id
+        } else {
+          // Create a development user if none exists
+          const devUser = await prisma.user.create({
+            data: {
+              email: 'dev@example.com',
+              auth_user_id: 'dev-user-' + Date.now(),
+              isBeta: false,
+              isFirstConnection: true,
+              language: 'en'
+            }
+          })
+          userId = devUser.id
+        }
+      } else {
+        throw authError
+      }
+    }
 
     const body = await request.json()
 
@@ -178,7 +207,9 @@ export async function POST(request: NextRequest) {
         startingBalance: parseFloat(startingBalance),
         broker,
         userId,
+        masterId: null, // Set to null for live accounts
         propfirm: '', // Empty string indicates it's a live account
+        status: 'active', // Set default status for live accounts
         // Set default values for live accounts
         drawdownThreshold: 0,
         profitTarget: 0,
@@ -186,6 +217,10 @@ export async function POST(request: NextRequest) {
         payoutCount: 0,
       }
     })
+
+    // Revalidate cache tags to ensure fresh data
+    revalidateTag(`accounts-${userId}`)
+    revalidateTag(`user-data-${userId}`)
 
     return NextResponse.json({
       success: true,

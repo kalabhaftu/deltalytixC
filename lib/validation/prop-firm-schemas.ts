@@ -34,8 +34,8 @@ export const AccountNumberSchema = z.string().min(1).max(50).regex(/^[A-Za-z0-9-
 export const BaseAccountSchema = z.object({
   number: AccountNumberSchema,
   name: z.string().min(1).max(100).optional(),
-  propfirm: z.string().min(1).max(50),
-  startingBalance: z.number().min(1000).max(10000000), // Min $1k, max $10M
+  firmType: z.string().min(1).max(50),
+  accountSize: z.number().min(1000).max(10000000), // Min $1k, max $10M
   
   // Drawdown configuration
   dailyDrawdownAmount: z.number().min(0).optional(),
@@ -60,7 +60,7 @@ export const CreateAccountSchema = BaseAccountSchema
     return data.dailyDrawdownAmount <= 100
   }
   if (data.dailyDrawdownType === 'absolute' && data.dailyDrawdownAmount !== undefined) {
-    return data.dailyDrawdownAmount <= data.startingBalance
+    return data.dailyDrawdownAmount <= data.accountSize
   }
   return true
 }, {
@@ -73,7 +73,7 @@ export const CreateAccountSchema = BaseAccountSchema
     return data.maxDrawdownAmount <= 100
   }
   if (data.maxDrawdownType === 'absolute' && data.maxDrawdownAmount !== undefined) {
-    return data.maxDrawdownAmount <= data.startingBalance
+    return data.maxDrawdownAmount <= data.accountSize
   }
   return true
 }, {
@@ -234,7 +234,7 @@ export const ResetAccountSchema = z.object({
 export const AccountFilterSchema = z.object({
   status: z.array(AccountStatusSchema).optional(),
   phaseType: z.array(PhaseTypeSchema).optional(),
-  propfirm: z.array(z.string().min(1).max(50)).max(10).optional(),
+  firmType: z.array(z.string().min(1).max(50)).max(10).optional(),
   evaluationType: z.array(EvaluationTypeSchema).optional(),
   page: z.number().int().min(1).default(1),
   limit: z.number().int().min(1).max(100).default(20),

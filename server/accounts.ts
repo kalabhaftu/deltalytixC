@@ -272,38 +272,49 @@ export async function getAccountsAction() {
       return []
     }
 
-    // PERFORMANCE OPTIMIZATION: Use caching and minimal fields
+    // PERFORMANCE OPTIMIZATION: Use caching and minimal fields with error handling
     return unstable_cache(
       async () => {
-        const accounts = await prisma.account.findMany({
-          where: {
-            userId: userId,
-            // Include all accounts regardless of propfirm status
-          },
-          select: {
-            id: true,
-            number: true,
-            name: true,
-            propfirm: true,
-            broker: true,
-            startingBalance: true,
-            status: true,
-            createdAt: true,
-            userId: true,
-            groupId: true,
-            // Skip payouts for performance - can be loaded on demand
-          }
-        })
+        let accounts = [];
+        try {
+          accounts = await prisma.account.findMany({
+            where: {
+              userId: userId,
+              // Include all accounts regardless of propfirm status
+            },
+            select: {
+              id: true,
+              number: true,
+              name: true,
+              propfirm: true,
+              broker: true,
+              startingBalance: true,
+              status: true,
+              createdAt: true,
+              userId: true,
+              groupId: true,
+              // Skip payouts for performance - can be loaded on demand
+            }
+          })
+        } catch (dbError) {
+          console.error('[getAccountsAction] Database error:', dbError)
+          // Return empty array instead of throwing to prevent app crash
+          return []
+        }
 
         if (accounts.length === 0) {
           // Try to see if there are any accounts at all in the database
-          const allAccounts = await prisma.account.findMany({
-            select: { id: true, userId: true, number: true, propfirm: true },
-            take: 5
-          })
+          try {
+            const allAccounts = await prisma.account.findMany({
+              select: { id: true, userId: true, number: true, propfirm: true },
+              take: 5
+            })
+          } catch (dbError) {
+            console.error('[getAccountsAction] Secondary database error:', dbError)
+          }
         }
 
-        return accounts.map(account => ({
+        return accounts.map((account: any) => ({
           ...account,
           payouts: [], // Empty for performance - load on demand if needed
         }))

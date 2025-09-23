@@ -8,7 +8,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { TradingViewWidget } from '@/components/tradingview/tradingview-widget'
+import { WorkingPositionChart } from '@/components/tradingview/working-position-chart'
+import { TradingViewErrorBoundary } from '@/components/tradingview/tradingview-error-boundary'
 import { ExtendedTrade } from './trade-table-review'
 
 interface TradeChartModalProps {
@@ -18,6 +19,10 @@ interface TradeChartModalProps {
 }
 
 export function TradeChartModal({ isOpen, onClose, trade }: TradeChartModalProps) {
+  // Add a key to force remount when trade changes
+  const modalKey = React.useMemo(() => {
+    return trade ? `${trade.id}_${trade.entryDate}_${trade.closeDate}` : 'empty'
+  }, [trade?.id, trade?.entryDate, trade?.closeDate])
   // Validate required trade data
   if (!trade || !trade.entryDate || !trade.closeDate || !trade.entryPrice || !trade.closePrice) {
     return (
@@ -115,30 +120,31 @@ export function TradeChartModal({ isOpen, onClose, trade }: TradeChartModalProps
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>
-            Trade Chart: {symbol} ({side})
+            {side.toUpperCase()} Position: {symbol}
           </DialogTitle>
           <DialogDescription>
-            Entry: {entryTime.toLocaleString()} | Exit: {exitTime.toLocaleString()} |
-            Entry Price: {entryPrice.toFixed(5)} | Exit Price: {exitPrice.toFixed(5)} |
+            Professional TradingView Position Visualization • Entry: {entryTime.toLocaleString()} • Exit: {exitTime.toLocaleString()} • 
             P&L: {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden">
-          <TradingViewWidget
-            symbol={symbol}
-            height={600}
-            onSymbolChange={() => {}}
-            showControls={false}
-            tradeData={{
-              entryTime,
-              exitTime,
-              entryPrice,
-              exitPrice,
-              side,
-              pnl: trade.pnl
-            }}
-          />
+          <TradingViewErrorBoundary key={modalKey}>
+            <WorkingPositionChart
+              key={modalKey}
+              symbol={symbol}
+              height={600}
+              showControls={false}
+              tradeData={{
+                entryTime,
+                exitTime,
+                entryPrice,
+                exitPrice,
+                side,
+                pnl: trade.pnl
+              }}
+            />
+          </TradingViewErrorBoundary>
         </div>
       </DialogContent>
     </Dialog>

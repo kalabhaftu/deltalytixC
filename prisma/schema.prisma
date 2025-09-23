@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
   schemas  = ["public"]
 }
 
@@ -35,6 +36,7 @@ model Trade {
   imageBase64Fourth String?
   phaseId           String?
   accountId         String?
+  propFirmPhaseId   String?
   symbol            String?
   strategy          String?
   fees              Float?        @default(0)
@@ -47,6 +49,7 @@ model Trade {
   closeReason       String?
   account           Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   phase             AccountPhase? @relation(fields: [phaseId], references: [id])
+  propFirmPhase     PropFirmPhase? @relation(fields: [propFirmPhaseId], references: [id], onDelete: SetNull)
 
   @@index([accountNumber])
   @@index([userId])
@@ -110,6 +113,7 @@ model User {
   notifications     Notification[]
   orders            Order[]
   tags              Tag[]
+  payoutRequests    PayoutRequest[]
 
   @@index([email])
   @@schema("public")
@@ -133,6 +137,7 @@ model Account {
   id                         String              @id @default(uuid())
   number                     String
   propfirm                   String              @default("")
+  masterId                   String?             // Master account ID for linked accounts
   groupId                    String?
   drawdownThreshold          Float               @default(0)
   trailingDrawdown           Boolean             @default(false)
@@ -159,6 +164,72 @@ model Account {
   isRecursively              String?
   payoutBonus                Float?
   profitSharing              Float?
+
+  // Prop Firm specific fields
+  firmType                   PropFirmType?
+  currency                   String              @default("USD")
+  leverage                   Int                 @default(100)
+  isDemo                     Boolean             @default(true)
+  serverInfo                 String?
+  tradingPlatform            String?
+  lastSyncAt                 DateTime?
+  syncEnabled                Boolean             @default(true)
+  notes                      String?
+
+  // Phase-specific account details
+  phase1AccountId            String?
+  phase2AccountId            String?
+  fundedAccountId            String?
+  phase1Login                String?
+  phase2Login                String?
+  fundedLogin                String?
+  phase1Password             String?
+  phase2Password             String?
+  fundedPassword             String?
+  phase1Server               String?
+  phase2Server               String?
+  fundedServer               String?
+  purchaseDate               DateTime?
+  challengeStartDate         DateTime?
+  challengeEndDate           DateTime?
+  fundedDate                 DateTime?
+
+  // Drawdown configuration
+  phase1ProfitTarget         Float               @default(10.00)
+  phase2ProfitTarget         Float               @default(5.00)
+  phase1MaxDrawdown          Float               @default(10.00)
+  phase2MaxDrawdown          Float               @default(10.00)
+  fundedMaxDrawdown          Float               @default(5.00)
+  phase1DailyDrawdown        Float               @default(5.00)
+  phase2DailyDrawdown        Float               @default(5.00)
+  fundedDailyDrawdown        Float               @default(3.00)
+  trailingDrawdownEnabled    Boolean             @default(true)
+  minTradingDaysPhase1       Int                 @default(4)
+  minTradingDaysPhase2       Int                 @default(4)
+  maxTradingDaysPhase1       Int                 @default(30)
+  maxTradingDaysPhase2       Int                 @default(60)
+
+  // Payout configuration
+  initialProfitSplit         Float               @default(80.00)
+  maxProfitSplit             Float               @default(90.00)
+  profitSplitIncrementPerPayout Float          @default(5.00)
+  minPayoutAmount            Float               @default(50.00)
+  maxPayoutAmount            Float?
+  payoutFrequencyDays        Int                 @default(14)
+  minDaysBeforeFirstPayout   Int                 @default(7)
+  scaleOnPayout              Boolean             @default(false)
+  maxSimultaneousAccounts    Int                 @default(1)
+
+  // Trading rules
+  newsTradinAllowed          Boolean             @default(false)
+  weekendHoldingAllowed      Boolean             @default(false)
+  hedgingAllowed             Boolean             @default(true)
+  eaAllowed                  Boolean             @default(true)
+  martingaleAllowed          Boolean             @default(false)
+  maxLotSize                 Float?
+  maxDailyLossStreak         Int?
+  maxPositions               Int                 @default(10)
+  consistencyRule            Float               @default(30.00)
   payoutPolicy               String?
   balanceRequired            Float?
   minTradingDaysForPayout    Int?
@@ -199,6 +270,10 @@ model Account {
   equitySnapshots            EquitySnapshot[]
   payouts                    Payout[]
   trades                     Trade[]
+  propFirmPhases             PropFirmPhase[]
+  dailyEquitySnapshots       DailyEquitySnapshot[]
+  drawdownBreaches           DrawdownBreach[]
+  payoutRequests             PayoutRequest[]
 
   @@unique([number, userId])
   @@index([number])
@@ -209,6 +284,9 @@ model Account {
   @@index([propfirm, status])
   @@index([timezone])
   @@index([userId, propfirm, status, evaluationType])
+  @@index([firmType])
+  @@index([status, firmType])
+  @@index([userId, status])
   @@schema("public")
 }
 
@@ -481,10 +559,27 @@ enum PhaseType {
   @@schema("public")
 }
 
+enum PropFirmType {
+  FTMO
+  MyForexFunds
+  FundeNext
+  TheForexFirm
+  TopTierTrader
+  SurgeTrader
+  TrueForexFunds
+  FundingTraders
+  E8Funding
+  FastTrackTrading
+  Other
+
+  @@schema("public")
+}
+
 enum PhaseStatus {
   active
   passed
   failed
+  pending
 
   @@schema("public")
 }
@@ -514,5 +609,173 @@ enum BreachType {
   daily_drawdown
   max_drawdown
 
+  @@schema("public")
+}
+
+// Prop Firm Phase Model
+model PropFirmPhase {
+  id                           String              @id @default(uuid())
+  accountId                    String
+  phaseType                    PhaseType
+  status                       PhaseStatus         @default(pending)
+
+  // Phase-specific account details
+  brokerAccountId              String
+  brokerLogin                  String?
+  brokerPassword               String?
+  brokerServer                 String?
+  startingBalance              Float
+  currentBalance               Float
+  currentEquity                Float
+  highWaterMark                Float
+
+  // Phase targets and limits
+  profitTarget                 Float
+  profitTargetPercent          Float
+  maxDrawdownAmount            Float
+  maxDrawdownPercent           Float
+  dailyDrawdownAmount          Float
+  dailyDrawdownPercent         Float
+
+  // Phase progress tracking
+  startedAt                    DateTime?
+  completedAt                  DateTime?
+  failedAt                     DateTime?
+  daysTraded                   Int                 @default(0)
+  minTradingDays               Int
+  maxTradingDays               Int?
+
+  // Statistics
+  totalTrades                  Int                 @default(0)
+  winningTrades                Int                 @default(0)
+  losingTrades                 Int                 @default(0)
+  totalVolume                  Float               @default(0)
+  totalCommission              Float               @default(0)
+  totalSwap                    Float               @default(0)
+  bestTrade                    Float               @default(0)
+  worstTrade                   Float               @default(0)
+  currentStreak                Int                 @default(0)
+  bestStreak                   Int                 @default(0)
+  worstStreak                  Int                 @default(0)
+
+  // Risk metrics
+  maxDrawdownEncountered       Float               @default(0)
+  maxDailyLoss                 Float               @default(0)
+  avgTradeSize                 Float               @default(0)
+  profitFactor                 Float               @default(0)
+  winRate                      Float               @default(0)
+  riskRewardRatio              Float               @default(0)
+
+  // Metadata
+  createdAt                    DateTime            @default(now())
+  updatedAt                    DateTime            @updatedAt
+
+  // Relations
+  account                      Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  dailyEquitySnapshots         DailyEquitySnapshot[]
+  drawdownBreaches             DrawdownBreach[]
+  payoutRequests               PayoutRequest[]
+  trades                       Trade[]
+
+  @@index([accountId])
+  @@index([status])
+  @@index([phaseType])
+  @@index([brokerAccountId])
+  @@unique([accountId, phaseType])
+  @@schema("public")
+}
+
+// Daily Equity Snapshot Model
+model DailyEquitySnapshot {
+  id                           String              @id @default(uuid())
+  phaseId                      String
+  accountId                    String
+  date                         DateTime            @db.Date
+  openingBalance               Float
+  closingBalance               Float
+  highWaterMark                Float
+  dailyPnL                     Float
+  floatingPnL                  Float               @default(0)
+  commission                   Float               @default(0)
+  swap                         Float               @default(0)
+  volume                       Float               @default(0)
+  trades                       Int                 @default(0)
+  maxDrawdownFromHWM           Float               @default(0)
+  dailyDrawdownUsed            Float               @default(0)
+  maxDrawdownUsed              Float               @default(0)
+  isBreached                   Boolean             @default(false)
+  breachType                   String?
+  breachAmount                 Float?
+  createdAt                    DateTime            @default(now())
+
+  // Relations
+  phase                        PropFirmPhase       @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  account                      Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([phaseId, date])
+  @@index([phaseId, date])
+  @@index([accountId, date])
+  @@index([date])
+  @@schema("public")
+}
+
+// Drawdown Breach Model
+model DrawdownBreach {
+  id                           String              @id @default(uuid())
+  phaseId                      String
+  accountId                    String
+  breachType                   BreachType
+  breachAmount                 Float
+  limitAmount                  Float
+  equityAtBreach               Float
+  balanceAtBreach              Float
+  tradeIdTrigger               String?
+  breachedAt                   DateTime            @default(now())
+  resolvedAt                   DateTime?
+  isActive                     Boolean             @default(true)
+  notes                        String?
+
+  // Relations
+  phase                        PropFirmPhase       @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  account                      Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([phaseId])
+  @@index([accountId])
+  @@index([breachedAt])
+  @@index([isActive])
+  @@schema("public")
+}
+
+// Payout Request Model
+model PayoutRequest {
+  id                           String              @id @default(uuid())
+  phaseId                      String
+  accountId                    String
+  userId                       String
+  requestedAmount              Float
+  eligibleAmount               Float
+  profitSplitPercent           Float
+  traderShare                  Float
+  firmShare                    Float
+  status                       String              @default("pending")
+  requestedAt                  DateTime            @default(now())
+  processedAt                  DateTime?
+  paidAt                       DateTime?
+  rejectedAt                   DateTime?
+  rejectionReason              String?
+  paymentMethod                String?
+  paymentDetails               Json?
+  notes                        String?
+
+  // Relations
+  phase                        PropFirmPhase       @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  account                      Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user                         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([phaseId])
+  @@index([accountId])
+  @@index([userId])
+  @@index([status])
+  @@index([requestedAt])
   @@schema("public")
 }

@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "@/hooks/use-toast"
+import { clearAccountsCache } from "@/hooks/use-accounts"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -129,6 +130,9 @@ export function EnhancedCreateLiveAccountDialog({
         description: `Your ${finalBroker} account has been added to your dashboard.`,
         variant: "default"
       })
+
+      // Clear cache to ensure immediate refresh
+      clearAccountsCache()
 
       reset()
       setStep('broker')

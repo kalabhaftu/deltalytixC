@@ -4,8 +4,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "@/hooks/use-toast"
-import { useAccounts } from "@/hooks/use-accounts"
-import { useAccountFilterSettings } from '@/hooks/use-account-filter-settings'
+import { useAccounts, clearAccountsCache } from "@/hooks/use-accounts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -120,53 +119,11 @@ export default function AccountsPage() {
   }, []) // Only run on mount
 
 
-  // Get filtered accounts based on user's filter settings
-  const { settings: accountFilterSettings } = useAccountFilterSettings()
-  
+  // Filter accounts - Accounts page has its own built-in filtering and does NOT use advanced filtering settings
+  // Advanced filtering settings are only applied to dashboard widgets and tables page  
   const filteredAccounts = useMemo(() => {
-    
-    // First apply user's account filter settings
-    let accountsToShow = accounts
-    
-    if (accountFilterSettings.showMode === 'active-only') {
-      // Default: exclude failed and passed accounts
-      accountsToShow = accounts.filter(account => 
-        account.status !== 'failed' && account.status !== 'passed'
-      )
-    } else if (accountFilterSettings.showMode === 'custom') {
-      // Custom filtering
-      accountsToShow = accounts.filter(account => {
-        // Filter by account type
-        if (account.accountType === 'live' && !accountFilterSettings.showLiveAccounts) {
-          return false
-        }
-        
-        if (account.accountType === 'prop-firm' && !accountFilterSettings.showPropFirmAccounts) {
-          return false
-        }
-        
-        // Filter by status
-        if (account.status === 'failed' && !accountFilterSettings.showFailedAccounts) {
-          return false
-        }
-        
-        if (account.status === 'passed' && !accountFilterSettings.showPassedAccounts) {
-          return false
-        }
-        
-        // Only apply includeStatuses filter if it's not empty
-        if (accountFilterSettings.includeStatuses && accountFilterSettings.includeStatuses.length > 0 && account.status && !accountFilterSettings.includeStatuses.includes(account.status)) {
-          return false
-        }
-        
-        return true
-      })
-    } else if (accountFilterSettings.showMode === 'all-accounts') {
-      // Show all accounts - no filtering
-    }
-    
-    // Then apply search/type/status filters on top
-    const finalFiltered = accountsToShow.filter(account => {
+    // Apply only the search/type/status filters from the accounts page UI
+    return accounts.filter(account => {
       const matchesSearch = !searchQuery || 
         account.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         account.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -178,9 +135,7 @@ export default function AccountsPage() {
 
       return matchesSearch && matchesType && matchesStatus
     })
-
-    return finalFiltered
-  }, [accounts, accountFilterSettings, searchQuery, filterType, filterStatus])
+  }, [accounts, searchQuery, filterType, filterStatus])
 
   const accountStats = {
     total: filteredAccounts.length, // Count based on user's filter settings
@@ -212,6 +167,8 @@ export default function AccountsPage() {
   }, [refetchAccounts])
 
   const handleAccountCreated = useCallback(() => {
+    // Clear cache to ensure immediate refresh
+    clearAccountsCache()
     refetchAccounts()
     setCreateLiveDialogOpen(false)
     setCreatePropFirmDialogOpen(false)
@@ -277,6 +234,8 @@ export default function AccountsPage() {
         description: `${accountName} and all associated trades have been permanently deleted.`,
       })
 
+      // Clear cache to ensure immediate refresh
+      clearAccountsCache()
       refetchAccounts()
       setDeletingAccount(null)
       setDeleteConfirmText('')
@@ -796,78 +755,78 @@ function EmptyState({
 
 function AccountsLoadingSkeleton() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 py-8 max-w-7xl">
-        {/* Header skeleton - FIXED HEIGHT to prevent CLS */}
-        <div className="mb-8 h-24">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+    <div className="bg-background h-screen overflow-hidden">
+      <div className="container mx-auto px-6 py-8 max-w-7xl h-full flex flex-col">
+        {/* Header skeleton - FIXED HEIGHT */}
+        <div className="mb-6 flex-shrink-0">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
-              <div className="h-10 bg-muted rounded-md w-64 mb-2 animate-pulse" />
-              <div className="h-6 bg-muted rounded-md w-96 animate-pulse" />
+              <div className="h-8 bg-muted rounded-md w-48 mb-2 animate-pulse" />
+              <div className="h-4 bg-muted rounded-md w-64 animate-pulse" />
             </div>
             <div className="flex items-center gap-3">
               <div className="h-10 bg-muted rounded-md w-20 animate-pulse" />
-              <div className="h-10 bg-muted rounded-md w-32 animate-pulse" />
+              <div className="h-10 bg-muted rounded-md w-28 animate-pulse" />
             </div>
           </div>
         </div>
         
-        {/* Stats cards skeleton - FIXED HEIGHT to prevent CLS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Stats cards skeleton - FIXED HEIGHT */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 flex-shrink-0">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden h-24">
-              <CardContent className="p-6">
+            <Card key={i} className="overflow-hidden h-20">
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <div className="h-4 bg-muted rounded w-20 animate-pulse" />
-                    <div className="h-8 bg-muted rounded w-16 animate-pulse" />
+                  <div className="space-y-1">
+                    <div className="h-3 bg-muted rounded w-16 animate-pulse" />
+                    <div className="h-6 bg-muted rounded w-12 animate-pulse" />
                   </div>
-                  <div className="h-12 w-12 bg-muted rounded-full animate-pulse" />
+                  <div className="h-8 w-8 bg-muted rounded-full animate-pulse" />
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
         
-        {/* Filter section skeleton - FIXED HEIGHT to prevent CLS */}
-        <Card className="p-6 mb-8 h-20">
-          <div className="flex flex-col lg:flex-row gap-4">
+        {/* Filter section skeleton - FIXED HEIGHT */}
+        <Card className="p-4 mb-6 flex-shrink-0">
+          <div className="flex flex-col lg:flex-row gap-3">
             <div className="flex-1 h-10 bg-muted rounded-md animate-pulse" />
             <div className="flex gap-3">
-              <div className="h-10 bg-muted rounded-md w-40 animate-pulse" />
               <div className="h-10 bg-muted rounded-md w-32 animate-pulse" />
+              <div className="h-10 bg-muted rounded-md w-24 animate-pulse" />
             </div>
           </div>
         </Card>
         
-        {/* Account cards skeleton - FIXED HEIGHT to prevent CLS */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden h-64">
-              <CardHeader className="pb-4">
+        {/* Account cards skeleton - Reduced number and height for viewport fit */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 flex-1 overflow-hidden">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden h-48">
+              <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="h-4 w-4 bg-muted rounded animate-pulse" />
-                      <div className="h-5 bg-muted rounded w-32 animate-pulse" />
+                      <div className="h-4 bg-muted rounded w-24 animate-pulse" />
                     </div>
-                    <div className="h-4 bg-muted rounded w-24 animate-pulse" />
+                    <div className="h-3 bg-muted rounded w-20 animate-pulse" />
                   </div>
-                  <div className="h-6 bg-muted rounded-full w-16 animate-pulse" />
+                  <div className="h-5 bg-muted rounded-full w-12 animate-pulse" />
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="h-3 bg-muted rounded w-20 animate-pulse" />
-                    <div className="h-5 bg-muted rounded w-16 animate-pulse" />
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <div className="h-3 bg-muted rounded w-16 animate-pulse" />
+                    <div className="h-4 bg-muted rounded w-12 animate-pulse" />
                   </div>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-muted rounded w-12 animate-pulse" />
-                    <div className="h-5 bg-muted rounded w-8 animate-pulse" />
+                  <div className="space-y-1">
+                    <div className="h-3 bg-muted rounded w-10 animate-pulse" />
+                    <div className="h-4 bg-muted rounded w-6 animate-pulse" />
                   </div>
                 </div>
-                <div className="h-10 bg-muted rounded animate-pulse" />
+                <div className="h-8 bg-muted rounded animate-pulse" />
               </CardContent>
             </Card>
           ))}

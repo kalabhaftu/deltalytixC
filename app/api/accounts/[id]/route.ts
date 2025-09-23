@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
 
@@ -12,7 +13,8 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const resolvedParams = await params
+    const accountId = resolvedParams.id
 
     const account = await prisma.account.findFirst({
       where: {
@@ -60,7 +62,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const resolvedParams = await params
+    const accountId = resolvedParams.id
     const body = await request.json()
 
     const { name, broker } = body
@@ -124,7 +127,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const resolvedParams = await params
+    const accountId = resolvedParams.id
 
     // Check if account exists and belongs to user
     const existingAccount = await prisma.account.findFirst({
@@ -159,6 +163,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         }
       })
     })
+
+    // Revalidate cache tags to ensure fresh data
+    revalidateTag(`accounts-${userId}`)
+    revalidateTag(`user-data-${userId}`)
 
     return NextResponse.json({
       success: true,

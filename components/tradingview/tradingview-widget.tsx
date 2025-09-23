@@ -138,110 +138,144 @@ export function TradingViewWidget({
   ]
 
   useEffect(() => {
-    // Load TradingView script
-    const script = document.createElement("script")
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
-    script.type = 'text/javascript'
-    script.async = true
+    let isComponentMounted = true
+    let widgetScript: HTMLScriptElement | null = null
     
-    // Prepare trade markers if trade data is available and valid
-    const tradeMarkers = tradeData ? (() => {
+    const initializeWidget = async () => {
+      if (!container.current || !isComponentMounted) return
+
       try {
-        // Validate trade data
-        if (!tradeData.entryTime || !tradeData.exitTime ||
-            isNaN(tradeData.entryTime.getTime()) ||
-            isNaN(tradeData.exitTime.getTime()) ||
-            isNaN(tradeData.entryPrice) ||
-            isNaN(tradeData.exitPrice)) {
-          return []
+        // Generate unique container ID for each widget instance
+        const containerId = `tradingview_widget_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        container.current.id = containerId
+
+        // Clear previous content safely
+        while (container.current.firstChild) {
+          container.current.removeChild(container.current.firstChild)
         }
 
-        const side = tradeData.side?.toUpperCase() || 'LONG'
-
-        return [
-          {
-            time: Math.floor(tradeData.entryTime.getTime() / 1000),
-            position: side === 'LONG' ? 'belowBar' : 'aboveBar',
-            color: side === 'LONG' ? '#26a69a' : '#ef5350',
-            shape: side === 'LONG' ? 'arrowUp' : 'arrowDown',
-            text: `Entry: ${tradeData.entryPrice.toFixed(5)}`,
-            size: 1
-          },
-          {
-            time: Math.floor(tradeData.exitTime.getTime() / 1000),
-            position: side === 'LONG' ? 'aboveBar' : 'belowBar',
-            color: tradeData.pnl >= 0 ? '#26a69a' : '#ef5350',
-            shape: side === 'LONG' ? 'arrowDown' : 'arrowUp',
-            text: `Exit: ${tradeData.exitPrice.toFixed(5)} (${tradeData.pnl >= 0 ? '+' : ''}$${tradeData.pnl.toFixed(2)})`,
-            size: 1
-          }
-        ]
-      } catch (error) {
-        console.warn('Error creating trade markers:', error)
-        return []
-      }
-    })() : []
-
-    script.innerHTML = JSON.stringify({
-      autosize: true,
-      symbol: config.symbol,
-      interval: config.interval,
-      timezone: config.timezone,
-      theme: config.theme,
-      style: config.style,
-      locale: config.locale,
-      toolbar_bg: config.toolbar_bg,
-      enable_publishing: config.enable_publishing,
-      range: config.range,
-      hide_top_toolbar: config.hide_top_toolbar,
-      hide_legend: config.hide_legend,
-      save_image: false,
-      studies: config.studies,
-      container_id: 'tradingview_widget',
-      drawings_access: {
-        type: 'black',
-        tools: [
-          {
-            name: 'Trend Line',
-            grayed: false
-          }
-        ]
-      },
-      ...(tradeMarkers.length > 0 && {
-        drawings_access: {
-          type: 'black',
-          tools: [
-            {
-              name: 'Trend Line',
-              grayed: false
+        // Prepare trade markers if trade data is available and valid
+        const tradeMarkers = tradeData ? (() => {
+          try {
+            // Validate trade data
+            if (!tradeData.entryTime || !tradeData.exitTime ||
+                isNaN(tradeData.entryTime.getTime()) ||
+                isNaN(tradeData.exitTime.getTime()) ||
+                isNaN(tradeData.entryPrice) ||
+                isNaN(tradeData.exitPrice)) {
+              return []
             }
-          ]
+
+            const side = tradeData.side?.toUpperCase() || 'LONG'
+
+            return [
+              {
+                time: Math.floor(tradeData.entryTime.getTime() / 1000),
+                position: side === 'LONG' ? 'belowBar' : 'aboveBar',
+                color: side === 'LONG' ? '#26a69a' : '#ef5350',
+                shape: side === 'LONG' ? 'arrowUp' : 'arrowDown',
+                text: `Entry: ${tradeData.entryPrice.toFixed(5)}`,
+                size: 1
+              },
+              {
+                time: Math.floor(tradeData.exitTime.getTime() / 1000),
+                position: side === 'LONG' ? 'aboveBar' : 'belowBar',
+                color: tradeData.pnl >= 0 ? '#26a69a' : '#ef5350',
+                shape: side === 'LONG' ? 'arrowDown' : 'arrowUp',
+                text: `Exit: ${tradeData.exitPrice.toFixed(5)} (${tradeData.pnl >= 0 ? '+' : ''}$${tradeData.pnl.toFixed(2)})`,
+                size: 1
+              }
+            ]
+          } catch (error) {
+            console.warn('Error creating trade markers:', error)
+            return []
+          }
+        })() : []
+
+        // Wait a bit to ensure DOM is stable
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        if (!isComponentMounted || !container.current) return
+
+        // Create and configure widget script
+        widgetScript = document.createElement('script')
+        widgetScript.type = 'text/javascript'
+        widgetScript.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
+        widgetScript.async = true
+
+        const widgetConfig = {
+          autosize: true,
+          symbol: config.symbol,
+          interval: config.interval,
+          timezone: config.timezone,
+          theme: config.theme,
+          style: config.style,
+          locale: config.locale,
+          toolbar_bg: config.toolbar_bg,
+          enable_publishing: config.enable_publishing,
+          range: config.range,
+          hide_top_toolbar: config.hide_top_toolbar,
+          hide_legend: config.hide_legend,
+          save_image: false,
+          studies: config.studies,
+          container_id: containerId
         }
-      })
-    })
 
-    if (container.current) {
-      // Clear previous content
-      container.current.innerHTML = ''
+        widgetScript.innerHTML = JSON.stringify(widgetConfig)
 
-      // Only append script if we're not in the middle of a component unmount
-      const timeoutId = setTimeout(() => {
-        if (container.current && !container.current.hasChildNodes()) {
-          container.current.appendChild(script)
-          setIsLoaded(true)
+        // Add error handling for script loading
+        widgetScript.onerror = (error) => {
+          console.error('TradingView script failed to load:', error)
+          setIsLoaded(false)
         }
-      }, 100)
 
-      return () => {
-        clearTimeout(timeoutId)
-        if (container.current) {
-          container.current.innerHTML = ''
+        widgetScript.onload = () => {
+          if (isComponentMounted) {
+            setIsLoaded(true)
+          }
+        }
+
+        // Append script to container
+        if (container.current && isComponentMounted) {
+          container.current.appendChild(widgetScript)
+        }
+
+      } catch (error) {
+        console.error('Error initializing TradingView widget:', error)
+        setIsLoaded(false)
+      }
+    }
+
+    // Initialize widget with a small delay to ensure DOM is ready
+    const initTimeout = setTimeout(initializeWidget, 50)
+
+    return () => {
+      isComponentMounted = false
+      clearTimeout(initTimeout)
+      
+      // Clean up safely
+      if (widgetScript && widgetScript.parentNode) {
+        try {
+          widgetScript.parentNode.removeChild(widgetScript)
+        } catch (error) {
+          // Silently handle removal errors
         }
       }
-    } else {
-      return () => {} // No cleanup needed if no container
+
+      if (container.current) {
+        try {
+          // Clear container content safely
+          while (container.current.firstChild) {
+            container.current.removeChild(container.current.firstChild)
+          }
+        } catch (error) {
+          // Silently handle cleanup errors
+        }
+      }
+      
+      setIsLoaded(false)
     }
-  }, [config.symbol, config.interval, tradeData]) // Only depend on essential config changes
+  }, [config.symbol, config.interval, tradeData])
 
   const updateConfig = (key: keyof TradingViewConfig, value: any) => {
     setConfig(prev => ({
@@ -395,7 +429,6 @@ export function TradingViewWidget({
       <CardContent className="p-0">
         <div
           ref={container}
-          id="tradingview_widget"
           style={{
             height: isFullscreen ? 'calc(100vh - 120px)' : `${height}px`,
             width: '100%'

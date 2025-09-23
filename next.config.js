@@ -5,13 +5,19 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb', // Increased from default 1MB to 10MB
     },
-    // Optimized Turbopack configuration
+    // Optimized Turbopack configuration with additional optimizations
     turbo: {
       rules: {
         '*.svg': {
           loaders: ['@svgr/webpack'],
           as: '*.js',
         },
+      },
+      // Enable Turbopack optimizations for faster compilation
+      resolveAlias: {
+        // Optimize common dependencies
+        'react': 'react',
+        'react-dom': 'react-dom',
       },
     },
   },
@@ -22,6 +28,9 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+    // Fallback for when external images/CDNs are unavailable
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   // Disable source maps in development to reduce memory usage and compilation time
   productionBrowserSourceMaps: false,

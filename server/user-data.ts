@@ -85,9 +85,11 @@ export async function getUserData(): Promise<{
         )
 
         // PERFORMANCE OPTIMIZATION: Reduce database queries and use parallel fetching
-        const dataPromise = Promise.all([
-          // User data - essential only
-          prisma.user.findUnique({
+    const dataPromise = Promise.all([
+      // User data - essential only with error handling
+      (async () => {
+        try {
+          return await prisma.user.findUnique({
             where: {
               auth_user_id: userId
             },
@@ -102,13 +104,20 @@ export async function getUserData(): Promise<{
               lastName: true,
               accountFilterSettings: true
             }
-          }),
-          // Tick details - cached globally since they don't change often
-          Promise.resolve([]), // Skip tick details for now - can be loaded lazily
-          // Tags - keep minimal
-          Promise.resolve([]), // Skip tags for now to improve performance
-          // Optimized accounts query - only essential fields
-          prisma.account.findMany({
+          })
+        } catch (error) {
+          console.error('[getUserData] User query failed:', error)
+          return null
+        }
+      })(),
+      // Tick details - cached globally since they don't change often
+      Promise.resolve([]), // Skip tick details for now - can be loaded lazily
+      // Tags - keep minimal
+      Promise.resolve([]), // Skip tags for now to improve performance
+      // Optimized accounts query - only essential fields with error handling
+      (async () => {
+        try {
+          return await prisma.account.findMany({
             where: {
               userId: userId
             },
@@ -130,9 +139,16 @@ export async function getUserData(): Promise<{
               }
               // Skip payouts for initial load - can be loaded on demand
             }
-          }),
-          // Groups - minimal data
-          prisma.group.findMany({
+          })
+        } catch (error) {
+          console.error('[getUserData] Accounts query failed:', error)
+          return []
+        }
+      })(),
+      // Groups - minimal data with error handling
+      (async () => {
+        try {
+          return await prisma.group.findMany({
             where: {
               userId: userId
             },
@@ -142,10 +158,15 @@ export async function getUserData(): Promise<{
               userId: true,
               createdAt: true
             }
-          }),
-          Promise.resolve([]), // Placeholder for removed financial events
-          Promise.resolve([]) // Placeholder for removed mood feature
-        ])
+          })
+        } catch (error) {
+          console.error('[getUserData] Groups query failed:', error)
+          return []
+        }
+      })(),
+      Promise.resolve([]), // Placeholder for removed financial events
+      Promise.resolve([]) // Placeholder for removed mood feature
+    ])
 
         const [
           userData,

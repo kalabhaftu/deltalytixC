@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { PrismaClient } from '@prisma/client'
 import { getUserId } from '@/server/auth-utils'
 import { PropFirmEngine } from '@/lib/prop-firm/prop-firm-engine'
@@ -19,6 +20,7 @@ const CreateAccountSchema = z.object({
   currency: z.string().default('USD'),
   leverage: z.number().default(100),
   name: z.string().optional(),
+  evaluationType: z.enum(['one_step', 'two_step']).optional(),
   
   // Phase account IDs
   phase1AccountId: z.string().optional(),
@@ -258,7 +260,7 @@ export async function POST(request: NextRequest) {
     
     // Create account with phases in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create the main account
+      // Create the main account using proper Prisma client
       const account = await tx.account.create({
         data: {
           userId,
@@ -267,40 +269,59 @@ export async function POST(request: NextRequest) {
           accountSize: validatedData.accountSize.toString(),
           startingBalance: validatedData.accountSize * 1000, // Convert K to actual amount
           number: `${Date.now()}`, // Generate a unique account number
-          
-          // Map to existing Prisma fields where possible
-          trailingDrawdown: validatedData.trailingDrawdownEnabled,
-          tradingNewsAllowed: validatedData.newsTradinAllowed,
-          profitSplitPercent: validatedData.initialProfitSplit,
-          payoutCycleDays: validatedData.payoutFrequencyDays,
-          minDaysToFirstPayout: validatedData.minDaysBeforeFirstPayout,
-          consistencyPercentage: validatedData.consistencyRule,
-          dailyDrawdownAmount: (validatedData.accountSize * 1000 * validatedData.phase1DailyDrawdown) / 100,
-          maxDrawdownAmount: (validatedData.accountSize * 1000 * validatedData.phase1MaxDrawdown) / 100,
-          profitTarget: (validatedData.accountSize * 1000 * validatedData.phase1ProfitTarget) / 100,
+          broker: validatedData.firmType, // Use firmType as broker for now
+
+          // Map to existing Prisma fields
+          trailingDrawdown: validatedData.trailingDrawdownEnabled || false,
+          tradingNewsAllowed: validatedData.newsTradinAllowed !== undefined ? validatedData.newsTradinAllowed : true,
+          profitSplitPercent: validatedData.initialProfitSplit || 80,
+          payoutCycleDays: validatedData.payoutFrequencyDays || 14,
+          minDaysToFirstPayout: validatedData.minDaysBeforeFirstPayout || 7,
+          consistencyPercentage: validatedData.consistencyRule || 30,
+          dailyDrawdownAmount: (validatedData.accountSize * 1000 * (validatedData.phase1DailyDrawdown || 5)) / 100,
+          maxDrawdownAmount: (validatedData.accountSize * 1000 * (validatedData.phase1MaxDrawdown || 10)) / 100,
+          profitTarget: (validatedData.accountSize * 1000 * (validatedData.phase1ProfitTarget || 10)) / 100,
           status: 'active',
+          evaluationType: validatedData.evaluationType || 'two_step',
+          dailyDrawdownType: 'percent',
+          maxDrawdownType: 'percent',
+          drawdownModeMax: 'static',
+          timezone: 'UTC',
+          dailyResetTime: '00:00',
+          ddIncludeOpenPnl: false,
+          progressionIncludeOpenPnl: false,
+          allowManualPhaseOverride: false,
+          resetOnPayout: false,
+          reduceBalanceByPayout: true,
+          autoRenewal: false,
+          paymentFrequency: 'MONTHLY',
+          renewalNotice: 3,
         }
       })
-      
-      // Create Phase 1 automatically
-      const phase1 = await tx.accountPhase?.create({
+
+      // Create Phase 1 using proper Prisma client
+      const phase1 = await tx.accountPhase.create({
         data: {
           accountId: account.id,
           phaseType: 'phase_1',
           phaseStatus: 'active',
-          profitTarget: (account.startingBalance * validatedData.phase1ProfitTarget) / 100,
-          currentEquity: account.startingBalance,
-          currentBalance: account.startingBalance,
+          profitTarget: (validatedData.accountSize * 1000 * (validatedData.phase1ProfitTarget || 10)) / 100,
+          currentEquity: validatedData.accountSize * 1000,
+          currentBalance: validatedData.accountSize * 1000,
           netProfitSincePhaseStart: 0,
-          highestEquitySincePhaseStart: account.startingBalance,
+          highestEquitySincePhaseStart: validatedData.accountSize * 1000,
           totalTrades: 0,
           winningTrades: 0,
           totalCommission: 0,
         }
-      }) || null
-      
+      })
+
       return { account, phase1 }
     })
+
+    // Revalidate cache tags to ensure fresh data
+    revalidateTag(`accounts-${userId}`)
+    revalidateTag(`user-data-${userId}`)
     
     return NextResponse.json({
       success: true,

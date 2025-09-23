@@ -137,6 +137,29 @@ export default async function RootLayout({
           `}
         </Script>
 
+        {/* DOM patches for third-party widget compatibility */}
+        <Script id="dom-patches" strategy="beforeInteractive">
+          {`
+            (function() {
+              if (typeof Node === 'function' && Node.prototype) {
+                var originalRemoveChild = Node.prototype.removeChild;
+                Node.prototype.removeChild = function(child) {
+                  try {
+                    if (child.parentNode !== this) {
+                      console.warn('DOM Warning: Attempted to remove a child from a different parent');
+                      return child;
+                    }
+                    return originalRemoveChild.call(this, child);
+                  } catch (error) {
+                    console.warn('DOM Warning: Error removing child node', error);
+                    return child;
+                  }
+                };
+              }
+            })();
+          `}
+        </Script>
+
         {/* Prevent Google Translate DOM manipulation */}
         <Script id="prevent-google-translate" strategy="beforeInteractive">
           {`

@@ -72,6 +72,7 @@ const MatchTraderProcessor = ({
           timeInPosition,
           side: side.toUpperCase(), // Normalize to uppercase (BUY/SELL)
           commission,
+          propFirmPhaseId: null,
           userId: currentUser.id,
           createdAt: new Date(),
           comment: null, // Don't set reason as comment - reasons should be displayed separately

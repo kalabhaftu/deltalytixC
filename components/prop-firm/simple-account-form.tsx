@@ -44,10 +44,20 @@ export function SimpleAccountForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
-          dailyDrawdownType: 'percent',
-          maxDrawdownType: 'percent',
-          drawdownModeMax: 'static'
+          firmType: formData.propfirm,
+          accountSize: formData.startingBalance,
+          name: formData.name,
+          number: formData.number,
+          evaluationType: formData.evaluationType,
+          phase1ProfitTarget: 10, // Default values
+          phase1MaxDrawdown: formData.maxDrawdownAmount,
+          phase1DailyDrawdown: formData.dailyDrawdownAmount,
+          trailingDrawdownEnabled: false,
+          newsTradinAllowed: true,
+          initialProfitSplit: formData.profitSplitPercent || 80,
+          payoutFrequencyDays: formData.payoutCycleDays || 14,
+          minDaysBeforeFirstPayout: 7,
+          consistencyRule: 30,
         })
       })
 

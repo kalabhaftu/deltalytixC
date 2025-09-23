@@ -58,10 +58,11 @@ export async function GET(request: NextRequest) {
       
       // Apply filter settings if they exist, otherwise default to active accounts only
       if (!accountFilterSettings || accountFilterSettings.showMode === 'active-only') {
-        // Default: exclude failed and passed accounts
-        accountWhereClause.status = {
-          in: ['active', 'funded']
-        }
+        // Default: exclude failed and passed accounts, include null status (legacy accounts)
+        accountWhereClause.OR = [
+          { status: { in: ['active', 'funded'] } },
+          { status: null } // Include accounts with null status (legacy accounts)
+        ]
       } else if (accountFilterSettings.showMode === 'all-accounts') {
         // Show all accounts - no additional filtering
       } else if (accountFilterSettings.showMode === 'custom') {

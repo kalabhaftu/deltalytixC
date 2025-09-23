@@ -21,6 +21,7 @@ import { Loader2, Building2, DollarSign, Target, Shield, CheckCircle, ArrowRight
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { clearAccountsCache } from "@/hooks/use-accounts"
 
 // Base schema
 const baseSchema = z.object({
@@ -234,19 +235,18 @@ export function EnhancedCreateAccountDialog({
       const payload = {
         name: data.name.trim(),
         number: data.number.trim(),
-        propfirm: finalPropfirm,
-        startingBalance: data.startingBalance,
+        firmType: finalPropfirm,
+        accountSize: data.startingBalance,
         evaluationType: data.evaluationType,
-        profitTarget: data.profitTargetPhase1, // Use Phase 1 target for API compatibility
-        profitTargetPhase1: data.profitTargetPhase1,
-        profitTargetPhase2: data.profitTargetPhase2,
-        dailyDrawdownAmount: data.dailyDrawdown,
-        maxDrawdownAmount: data.maxDrawdown,
-        dailyDrawdownType: 'percent' as const,
-        maxDrawdownType: 'percent' as const,
-        drawdownModeMax: 'static' as const,
-        timezone: 'UTC',
-        dailyResetTime: '00:00',
+        phase1ProfitTarget: data.profitTargetPhase1,
+        phase1MaxDrawdown: data.maxDrawdown,
+        phase1DailyDrawdown: data.dailyDrawdown,
+        trailingDrawdownEnabled: true,
+        newsTradinAllowed: true,
+        initialProfitSplit: data.profitSplitPercent || 80,
+        payoutFrequencyDays: data.payoutCycleDays || 14,
+        minDaysBeforeFirstPayout: data.minDaysToFirstPayout || 7,
+        consistencyRule: 30,
       }
 
       console.log('Sending payload:', payload)
@@ -273,6 +273,9 @@ export function EnhancedCreateAccountDialog({
         description: `Your ${finalPropfirm} evaluation account has been added.`,
         variant: "default"
       })
+
+      // Clear cache to ensure immediate refresh
+      clearAccountsCache()
 
       reset()
       setStep('propfirm')

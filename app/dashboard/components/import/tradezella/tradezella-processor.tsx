@@ -127,6 +127,7 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
         entryDate: item.entryDate || '',
         closeDate: item.closeDate || '',
         pnl: item.pnl || 0,
+        propFirmPhaseId: null,
         timeInPosition: item.timeInPosition || 0,
         userId: currentUser.id,
         side: item.side || '',

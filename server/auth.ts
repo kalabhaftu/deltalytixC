@@ -231,10 +231,17 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
   }
 
   try {
-    // First try to find user by auth_user_id
-    const existingUserByAuthId = await prisma.user.findUnique({
-      where: { auth_user_id: user.id },
-    });
+    // First try to find user by auth_user_id with error handling
+    let existingUserByAuthId;
+    try {
+      existingUserByAuthId = await prisma.user.findUnique({
+        where: { auth_user_id: user.id },
+      });
+    } catch (dbError) {
+      console.error('[ensureUserInDatabase] Database query failed:', dbError)
+      // Return false to allow graceful degradation
+      return false
+    }
 
     // If user exists by auth_user_id, update email if needed
     if (existingUserByAuthId) {

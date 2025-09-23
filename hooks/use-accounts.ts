@@ -115,7 +115,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
           }
           
           // Transform accounts to match the expected interface
-          const transformedAccounts: UnifiedAccount[] = accounts.map(account => ({
+          const transformedAccounts: UnifiedAccount[] = accounts.map((account: any) => ({
             id: account.id,
             number: account.number,
             name: account.name || account.number, // Ensure name is never null
@@ -125,7 +125,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
             currentBalance: account.startingBalance, // Add currentBalance field
             currentEquity: account.startingBalance,  // Add currentEquity field
             status: account.status || 'active',
-            createdAt: account.createdAt.toISOString(),
+            createdAt: account.createdAt instanceof Date ? account.createdAt.toISOString() : account.createdAt,
             userId: account.userId,
             groupId: account.groupId,
             group: account.groupId ? { id: account.groupId, name: 'Group' } : null, // Construct basic group info
