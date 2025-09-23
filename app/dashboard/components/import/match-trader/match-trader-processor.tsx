@@ -83,6 +83,10 @@ const MatchTraderProcessor = ({
           imageBase64Second: null,
           imageBase64Third: null,
           imageBase64Fourth: null,
+          imageBase64Fifth: null,
+          imageBase64Sixth: null,
+          cardPreviewImage: null,
+          tradingModel: null,
           groupId: null,
           // Prisma optional fields
           symbol: null,

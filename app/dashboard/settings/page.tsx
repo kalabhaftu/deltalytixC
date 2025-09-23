@@ -46,12 +46,12 @@ import { useToolbarSettingsStore } from "@/store/toolbar-settings-store"
 import { toast } from "@/hooks/use-toast"
 import { PrimaryButton, SecondaryButton, DestructiveButton } from "@/components/ui/button-styles"
 
-import { 
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { ChevronDown, Layout } from "lucide-react"
+import { ChevronDown, Layout, ChevronLeft, ChevronRight, X } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -69,6 +69,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
 
@@ -112,29 +113,132 @@ export default function SettingsPage() {
   
   // Toolbar settings
   const { settings, setFixedPosition, setAutoHide, resetSettings } = useToolbarSettingsStore()
-  
+
+  // Journal hover effect setting (local state for now, can be moved to store later)
+  const [journalHoverEffect, setJournalHoverEffect] = useState<'simple' | 'detailed'>('simple')
+
+  // Trading models settings
+  const [isTradingModelsOpen, setIsTradingModelsOpen] = useState(false)
+  const [customModelName, setCustomModelName] = useState('')
+  const [customModels, setCustomModels] = useState<string[]>([])
+  const [scrollPosition, setScrollPosition] = useState(0)
+  const [deleteModelName, setDeleteModelName] = useState<string | null>(null)
+
+  // Load custom models from localStorage on component mount
+  useEffect(() => {
+    const savedModels = localStorage.getItem('customTradingModels')
+    if (savedModels) {
+      setCustomModels(JSON.parse(savedModels))
+    }
+  }, [])
+
+  // Save custom models to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('customTradingModels', JSON.stringify(customModels))
+  }, [customModels])
+
+  const handleAddModel = () => {
+    const trimmedName = customModelName.trim()
+    if (trimmedName && !customModels.includes(trimmedName)) {
+      setCustomModels([...customModels, trimmedName])
+      setCustomModelName('')
+      toast({
+        title: "Model Added",
+        description: `"${trimmedName}" has been added to your trading models.`,
+        duration: 3000,
+      })
+    } else if (customModels.includes(trimmedName)) {
+      toast({
+        title: "Model Already Exists",
+        description: `"${trimmedName}" is already in your models list.`,
+        variant: "destructive",
+        duration: 3000,
+      })
+    }
+  }
+
+  const handleDeleteModel = (modelName: string) => {
+    setDeleteModelName(modelName)
+  }
+
+  const confirmDeleteModel = () => {
+    if (!deleteModelName) return
+
+    setCustomModels(customModels.filter(model => model !== deleteModelName))
+    toast({
+      title: "Model Deleted",
+      description: `"${deleteModelName}" has been permanently removed from your models.`,
+      duration: 3000,
+    })
+    setDeleteModelName(null)
+  }
+
+  const handleScroll = (direction: 'left' | 'right') => {
+    const totalModels = [...defaultModelsDisplay, ...customModels].length
+    const maxScroll = Math.max(0, totalModels - 4)
+
+    if (direction === 'left' && scrollPosition > 0) {
+      setScrollPosition(scrollPosition - 1)
+    } else if (direction === 'right' && scrollPosition < maxScroll) {
+      setScrollPosition(scrollPosition + 1)
+    }
+  }
+
+  const defaultModelsDisplay = ['ICT 2022', 'MSNR', 'TTFM', 'Price Action']
+  const allModels = [...defaultModelsDisplay, ...customModels]
+  const visibleModels = allModels.slice(scrollPosition, scrollPosition + 4)
+  const canScrollLeft = scrollPosition > 0
+  const canScrollRight = scrollPosition < Math.max(0, allModels.length - 4)
+
+  // Map display names to enum values for database operations
+  const mapDisplayToEnum = (displayName: string) => {
+    const enumMap: Record<string, 'ICT_2022' | 'MSNR' | 'TTFM' | 'PRICE_ACTION'> = {
+      'ICT 2022': 'ICT_2022',
+      'MSNR': 'MSNR',
+      'TTFM': 'TTFM',
+      'Price Action': 'PRICE_ACTION'
+    }
+    return enumMap[displayName] || null
+  }
+
   const handleToolbarSettingChange = (setting: string, value: boolean) => {
     if (setting === 'fixedPosition') {
       setFixedPosition(value)
     } else if (setting === 'autoHide') {
       setAutoHide(value)
     }
-    
+
     toast({
       title: "Toolbar Settings Updated",
       description: `${setting === 'fixedPosition' ? 'Fixed position' : 'Auto-hide'} ${value ? 'enabled' : 'disabled'}.`,
       duration: 2000,
     })
   }
-  
-  const handleResetSettings = () => {
-    resetSettings()
+
+  const handleJournalHoverChange = (value: 'simple' | 'detailed') => {
+    setJournalHoverEffect(value)
+    // Save to localStorage for now (can be persisted to database later)
+    localStorage.setItem('journal-hover-effect', value)
+
     toast({
-      title: "Settings Reset",
-      description: "Toolbar settings have been reset to default values.",
+      title: "Journal Settings Updated",
+      description: `Journal hover effect changed to ${value} mode.`,
       duration: 2000,
     })
   }
+
+  const handleResetSettings = () => {
+    resetSettings()
+    setJournalHoverEffect('simple')
+    localStorage.removeItem('journal-hover-effect')
+
+    toast({
+      title: "Settings Reset",
+      description: "All settings have been reset to default values.",
+      duration: 2000,
+    })
+  }
+
   
 
   
@@ -507,6 +611,37 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 
+                {/* Journal Card Hover Effect */}
+                <div className="space-y-3 pl-6 border-l-2 border-border/30">
+                  <Label className="text-sm font-medium text-muted-foreground">Journal Card Hover Effect</Label>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="journal-hover-effect">Hover Style</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Choose how trade cards behave when hovered in the journal
+                      </p>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="w-[200px] justify-start">
+                          <Settings className="mr-2 h-4 w-4" />
+                          {journalHoverEffect === 'simple' ? 'Simple' : 'Detailed'}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => handleJournalHoverChange('simple')}>
+                          <div className="mr-2 h-4 w-4" />
+                          <span>Simple</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleJournalHoverChange('detailed')}>
+                          <div className="mr-2 h-4 w-4" />
+                          <span>Detailed</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+
                 {/* Future UI Settings Placeholder */}
                 <div className="space-y-3 pl-6 border-l-2 border-border/30">
                   <Label className="text-sm font-medium text-muted-foreground">More UI Settings</Label>
@@ -527,6 +662,148 @@ export default function SettingsPage() {
 
         {/* Account Filter Settings */}
         <AccountFilterSettingsCard />
+
+        {/* Trading Models Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Trading Models
+            </CardTitle>
+            <CardDescription>
+              Manage your trading models and strategies
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Collapsible open={isTradingModelsOpen} onOpenChange={setIsTradingModelsOpen}>
+              <CollapsibleTrigger asChild>
+                <div className="flex items-center justify-between cursor-pointer hover:bg-accent/50 rounded-lg p-2 -m-2 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    <Label className="text-base font-medium cursor-pointer">Trading Models Management</Label>
+                  </div>
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isTradingModelsOpen ? 'rotate-180' : ''}`} />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 mt-4">
+                {/* All Models with Scroll */}
+                <div className="space-y-3 pl-6 border-l-2 border-border/30">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Your Models ({allModels.length})
+                    </Label>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleScroll('left')}
+                        disabled={!canScrollLeft}
+                        className="h-6 w-6 p-0"
+                      >
+                        <ChevronLeft className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleScroll('right')}
+                        disabled={!canScrollRight}
+                        className="h-6 w-6 p-0"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {visibleModels.map((model, index) => {
+                      const isDefaultModel = defaultModelsDisplay.includes(model)
+                      const isCustomModel = customModels.includes(model)
+                      return (
+                        <div
+                          key={`${model}-${index}`}
+                          className="group relative p-2 bg-muted rounded text-sm flex items-center justify-between"
+                        >
+                          <span className="flex-1 truncate">{model}</span>
+                          {isCustomModel && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100 hover:bg-destructive/20"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Trading Model</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete "{model}"? This action cannot be undone and will remove this model from all your trades.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={confirmDeleteModel}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                          {isDefaultModel && (
+                            <span className="text-xs text-muted-foreground ml-1 opacity-0 group-hover:opacity-100">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {allModels.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No models available</p>
+                  )}
+                </div>
+
+                {/* Model Request */}
+                <div className="space-y-3 pl-6 border-l-2 border-border/30">
+                  <Label className="text-sm font-medium text-muted-foreground">Request New Model</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Suggest a new trading model..."
+                      value={customModelName}
+                      onChange={(e) => setCustomModelName(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleAddModel()
+                        }
+                      }}
+                    />
+                    <Button
+                      onClick={handleAddModel}
+                      disabled={!customModelName.trim()}
+                    >
+                      Suggest
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="text-sm text-muted-foreground pl-6 border-l-2 border-border/30">
+                  <p>
+                    {allModels.length > 4 ?
+                      `Showing ${scrollPosition + 1}-${Math.min(scrollPosition + 4, allModels.length)} of ${allModels.length} models. Use arrows to navigate.` :
+                      `All ${allModels.length} models are visible.`
+                    }
+                    {customModels.length > 0 && ` You have ${customModels.length} custom model${customModels.length !== 1 ? 's' : ''}.`}
+                    These models are available when creating or editing trades.
+                  </p>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </CardContent>
+        </Card>
 
         {/* Linked Accounts Section */}
         <LinkedAccounts />

@@ -434,24 +434,31 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
 
 // Optimized function that uses middleware data when available
 export async function getUserId(): Promise<string> {
-  // First try to get user ID from middleware headers
-  const headersList = await headers()
-  const userIdFromMiddleware = headersList.get('x-user-id')
-  const authStatus = headersList.get('x-user-authenticated')
+  try {
+    // First try to get user ID from middleware headers
+    const headersList = await headers()
+    const userIdFromMiddleware = headersList.get('x-user-id')
+    const authStatus = headersList.get('x-user-authenticated')
 
-  if (userIdFromMiddleware && authStatus === "authenticated") {
-    if (process.env.NODE_ENV === 'development') {
-    }
-    return userIdFromMiddleware
-  }
+    console.log('[getUserId] Headers:', { userIdFromMiddleware, authStatus, path: headersList.get('x-path') })
 
-  // Check if middleware already detected auth failure
-  if (authStatus === "unauthenticated") {
-    const authError = headersList.get('x-auth-error')
-    if (authError && authError.includes("timeout")) {
-      throw new Error("Authentication service temporarily unavailable")
+    if (userIdFromMiddleware && authStatus === "authenticated") {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[getUserId] Using middleware headers:', userIdFromMiddleware)
+      }
+      return userIdFromMiddleware
     }
-    throw new Error("User not authenticated")
+
+    // Check if middleware already detected auth failure
+    if (authStatus === "unauthenticated") {
+      const authError = headersList.get('x-auth-error')
+      if (authError && authError.includes("timeout")) {
+        throw new Error("Authentication service temporarily unavailable")
+      }
+      throw new Error("User not authenticated")
+    }
+  } catch (headerError) {
+    console.warn('[getUserId] Headers not available, falling back to Supabase call')
   }
 
   // Fallback to Supabase call (for API routes or edge cases) with timeout

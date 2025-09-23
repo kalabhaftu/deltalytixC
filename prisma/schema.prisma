@@ -9,6 +9,15 @@ datasource db {
   schemas  = ["public"]
 }
 
+enum TradingModel {
+  ICT_2022
+  MSNR
+  TTFM
+  PRICE_ACTION
+
+  @@schema("public")
+}
+
 model Trade {
   id                String        @id @default(uuid())
   accountNumber     String
@@ -34,6 +43,9 @@ model Trade {
   groupId           String?       @default("")
   imageBase64Third  String?
   imageBase64Fourth String?
+  imageBase64Fifth  String?       // Fifth screenshot
+  imageBase64Sixth  String?       // Sixth screenshot
+  cardPreviewImage  String?       // Optimized preview image for journal cards
   phaseId           String?
   accountId         String?
   propFirmPhaseId   String?
@@ -47,9 +59,11 @@ model Trade {
   equityAtClose     Float?
   rawBrokerId       String?
   closeReason       String?
+  tradingModel      TradingModel?   // Trading model used (ICT 2022, MSNR, TTFM, Price Action)
   account           Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   phase             AccountPhase? @relation(fields: [phaseId], references: [id])
   propFirmPhase     PropFirmPhase? @relation(fields: [propFirmPhaseId], references: [id], onDelete: SetNull)
+  tradeAnalytics    TradeAnalytics?
 
   @@index([accountNumber])
   @@index([userId])
@@ -255,7 +269,7 @@ model Account {
   maxDrawdownType            DrawdownType        @default(percent)
   drawdownModeMax            DrawdownMode        @default(static)
   evaluationType             EvaluationType      @default(two_step)
-  status                     AccountStatus       @default(active)
+  status                     AccountStatus?      @default(active)
   autoRenewal                Boolean             @default(false)
   broker                     String?
   paymentFrequency           String?             @default("MONTHLY")
@@ -390,6 +404,8 @@ model TradeAnalytics {
   dataSource         String   @default("DATABENTO")
   computedAt         DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
+  trade              Trade    @relation(fields: [tradeId], references: [id], onDelete: Cascade)
 
   @@index([tradeId])
   @@index([computedAt])

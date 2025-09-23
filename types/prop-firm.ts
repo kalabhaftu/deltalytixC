@@ -6,7 +6,7 @@
 import type { DatabaseRecord } from './api'
 
 // Enums from Prisma schema
-export type AccountStatus = 'active' | 'failed' | 'passed' | 'funded'
+export type AccountStatus = 'active' | 'failed' | 'passed' | 'funded' | null
 export type PhaseType = 'phase_1' | 'phase_2' | 'funded'
 export type PhaseStatus = 'active' | 'passed' | 'failed'
 export type DrawdownType = 'absolute' | 'percent'

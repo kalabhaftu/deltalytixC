@@ -8,7 +8,9 @@ import { BarChart3 } from 'lucide-react'
 // TradingView Charting Library types
 declare global {
   interface Window {
-    TradingView: any
+    TradingView: {
+      widget: new (config: any) => any
+    }
   }
 }
 

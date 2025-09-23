@@ -274,7 +274,9 @@ export function ProfessionalChartWithPosition({
 
 declare global {
   interface Window {
-    TradingView: any
+    TradingView: {
+      widget: new (config: any) => any
+    }
   }
 }
 

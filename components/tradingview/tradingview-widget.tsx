@@ -11,7 +11,9 @@ import { TrendingUp, Settings, Maximize2, Minimize2, RefreshCw } from 'lucide-re
 
 declare global {
   interface Window {
-    TradingView: any
+    TradingView: {
+      widget: new (config: any) => any
+    }
   }
 }
 

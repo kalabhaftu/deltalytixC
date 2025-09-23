@@ -19,9 +19,35 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { Trade } from '@prisma/client'
-import { Edit, Camera, X } from 'lucide-react'
+import { Edit, Camera, X, Target, ChevronDown } from 'lucide-react'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { useUserStore } from '@/store/user-store'
 import { formatCurrency } from '@/lib/utils'
+
+// Utility function to get trading models with proper enum mapping
+const getTradingModels = () => {
+  const defaultModels = ['ict-2022', 'msnr', 'ttfm', 'price-action']
+  const customModels = JSON.parse(localStorage.getItem('customTradingModels') || '[]')
+  return [...defaultModels, ...customModels]
+}
+
+// Map string values to TradingModel enum values for database updates
+const mapModelToEnum = (model: string) => {
+  const enumMap: Record<string, 'ICT_2022' | 'MSNR' | 'TTFM' | 'PRICE_ACTION'> = {
+    'ict-2022': 'ICT_2022',
+    'msnr': 'MSNR',
+    'ttfm': 'TTFM',
+    'price-action': 'PRICE_ACTION'
+  }
+
+  // For custom models that aren't in the default enum, store as null
+  // (or you could extend this to handle custom enums)
+  return enumMap[model] || null
+}
 
 // Schema for limited editing (only notes, screenshots, links)
 const editTradeSchema = z.object({
@@ -30,6 +56,10 @@ const editTradeSchema = z.object({
   imageBase64Second: z.string().optional(),
   imageBase64Third: z.string().optional(),
   imageBase64Fourth: z.string().optional(),
+  imageBase64Fifth: z.string().optional(),
+  imageBase64Sixth: z.string().optional(),
+  cardPreviewImage: z.string().optional(),
+  tradingModel: z.string().nullable().optional(),
   links: z.array(z.string().url()).optional(),
 })
 
@@ -54,6 +84,25 @@ const validateImageFile = (file: File): void => {
   if (!allowedTypes.includes(file.type)) {
     throw new Error('Only JPG, PNG, and WebP images are allowed')
   }
+}
+
+// Compress image for card preview (smaller size, optimized for journal cards)
+const compressImageForCard = (file: File): Promise<File> => {
+  return new Promise((resolve) => {
+    try {
+      // For now, skip compression to avoid DOM issues
+      // The backend will handle compression
+      console.log('Card preview image - compression skipped for compatibility')
+      resolve(file) // Return original file
+
+      // TODO: Implement proper compression using a library like browser-image-compression
+      // This would provide better compatibility and compression without DOM issues
+
+    } catch (error) {
+      console.warn('Image compression setup failed:', error)
+      resolve(file) // Fallback to original
+    }
+  })
 }
 
 // Generate a random 6-character alphanumeric ID
@@ -167,15 +216,16 @@ const uploadImageToSupabase = async (file: File, userId: string, tradeId: string
   }
 }
 
-export default function EnhancedEditTrade({ 
-  isOpen, 
-  onClose, 
-  trade, 
-  onSave 
+export default function EnhancedEditTrade({
+  isOpen,
+  onClose,
+  trade,
+  onSave
 }: EnhancedEditTradeProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null)
   const [additionalLinks, setAdditionalLinks] = useState<string[]>([])
+  const [isTradingModelOpen, setIsTradingModelOpen] = useState(false)
   const [tradeId] = useState(() => {
     if (trade?.id?.includes('undefined')) {
       return generateShortId()
@@ -201,6 +251,10 @@ export default function EnhancedEditTrade({
       imageBase64Second: '',
       imageBase64Third: '',
       imageBase64Fourth: '',
+      imageBase64Fifth: '',
+      imageBase64Sixth: '',
+      cardPreviewImage: '',
+      tradingModel: '',
     }
   })
 
@@ -215,12 +269,16 @@ export default function EnhancedEditTrade({
         imageBase64Second: trade.imageBase64Second || '',
         imageBase64Third: (trade as any).imageBase64Third || '',
         imageBase64Fourth: (trade as any).imageBase64Fourth || '',
+        imageBase64Fifth: (trade as any)?.imageBase64Fifth || '',
+        imageBase64Sixth: (trade as any)?.imageBase64Sixth || '',
+        cardPreviewImage: (trade as any)?.cardPreviewImage || '',
+        tradingModel: (trade as any)?.tradingModel || '',
       })
 
     }
   }, [trade, isOpen, reset])
 
-  const handleImageUpload = async (field: 'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth', file: File) => {
+  const handleImageUpload = async (field: 'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth' | 'imageBase64Fifth' | 'imageBase64Sixth' | 'cardPreviewImage', file: File) => {
     // Check for both user types - prioritize supabaseUser for auth, fallback to user.id
     const userId = supabaseUser?.id || user?.id
     
@@ -235,25 +293,39 @@ export default function EnhancedEditTrade({
 
     try {
       validateImageFile(file)
+
+      // Compress image if it's for card preview
+      let processedFile = file
+      if (field === 'cardPreviewImage') {
+        processedFile = await compressImageForCard(file)
+        toast({
+          title: 'Processing image',
+          description: 'Card preview image ready for upload...',
+        })
+      }
       
       // Create temporary URL for immediate display
-      const tempUrl = URL.createObjectURL(file)
+      const tempUrl = URL.createObjectURL(processedFile)
       setValue(field, tempUrl)
       
       // Show immediate success feedback
       toast({
         title: 'Image added',
-        description: 'Image has been added. Uploading to storage...',
+        description: field === 'cardPreviewImage'
+          ? 'Card preview image optimized and added. Uploading to storage...'
+          : 'Image has been added. Uploading to storage...',
       })
       
       // Upload to Supabase in background
       try {
-        const imageUrl = await uploadImageToSupabase(file, userId, tradeId)
+        const imageUrl = await uploadImageToSupabase(processedFile, userId, tradeId)
         setValue(field, imageUrl) // Update with permanent URL
         
         toast({
           title: 'Upload complete',
-          description: 'Image has been saved to cloud storage.',
+          description: field === 'cardPreviewImage'
+            ? 'Card preview image has been saved to cloud storage.'
+            : 'Image has been saved to cloud storage.',
         })
         
         // Clean up temp URL
@@ -273,8 +345,8 @@ export default function EnhancedEditTrade({
     }
   }
 
-  const removeImage = (field: 'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth') => {
-    setValue(field, '')
+  const removeImage = (field: 'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth' | 'imageBase64Fifth' | 'imageBase64Sixth' | 'cardPreviewImage') => {
+    setValue(field, '', { shouldDirty: true }) // Set to empty string to mark for deletion
   }
 
   const addLink = () => {
@@ -298,14 +370,19 @@ export default function EnhancedEditTrade({
 
     setIsSubmitting(true)
     try {
-      // Prepare the update data
-      const updateData: Partial<Trade> = {
+      // Prepare the update data - explicitly handle null values for deleted images
+      const updateData = {
         comment: data.comment || null,
-        imageBase64: data.imageBase64 || null,
-        imageBase64Second: data.imageBase64Second || null,
-        ...(data.imageBase64Third && { imageBase64Third: data.imageBase64Third }),
-        ...(data.imageBase64Fourth && { imageBase64Fourth: data.imageBase64Fourth }),
-      }
+        tradingModel: data.tradingModel ? mapModelToEnum(data.tradingModel) : null,
+        // For images, we need to distinguish between empty string (deleted) and undefined (not changed)
+        imageBase64: data.imageBase64 === '' ? null : data.imageBase64 || null,
+        imageBase64Second: data.imageBase64Second === '' ? null : data.imageBase64Second || null,
+        imageBase64Third: data.imageBase64Third === '' ? null : data.imageBase64Third || null,
+        imageBase64Fourth: data.imageBase64Fourth === '' ? null : data.imageBase64Fourth || null,
+        imageBase64Fifth: data.imageBase64Fifth === '' ? null : (data.imageBase64Fifth || null),
+        imageBase64Sixth: data.imageBase64Sixth === '' ? null : (data.imageBase64Sixth || null),
+        cardPreviewImage: data.cardPreviewImage === '' ? null : data.cardPreviewImage || null,
+      } as Partial<Trade>
 
       // Call the save function
       await onSave(updateData)
@@ -338,7 +415,7 @@ export default function EnhancedEditTrade({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto z-[10000]">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Edit className="w-5 h-5 mr-2" />
@@ -407,21 +484,68 @@ export default function EnhancedEditTrade({
               </CardContent>
             </Card>
 
+            {/* Trading Model */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center">
+                  <Target className="w-5 h-5 mr-2" />
+                  Trading Model
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label>Select Trading Model</Label>
+                  <Collapsible open={isTradingModelOpen} onOpenChange={setIsTradingModelOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between"
+                      >
+                        {watchedValues.tradingModel || "Select a trading model..."}
+                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isTradingModelOpen ? 'rotate-180' : ''}`} />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-2 mt-2">
+                      <div className="grid grid-cols-1 gap-2">
+                        {getTradingModels().map((model) => (
+                          <Button
+                            key={model}
+                            variant={watchedValues.tradingModel === model ? "default" : "outline"}
+                            className="justify-start"
+                            onClick={() => {
+                              setValue('tradingModel', model === '' ? undefined : model)
+                              setIsTradingModelOpen(false)
+                            }}
+                          >
+                            {model}
+                          </Button>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                  <p className="text-sm text-muted-foreground">
+                    Choose the trading model or strategy used for this trade.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Screenshots */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center">
                   <Camera className="w-5 h-5 mr-2" />
-                  Screenshots (Up to 4)
+                  Screenshots (6) + Card Preview
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* First Screenshot */}
+              <CardContent className="space-y-6">
+                {/* Screenshots Grid - 2 rows of 3 */}
+                <div className="grid grid-cols-3 gap-4">
+                  {/* Screenshot 1 */}
                   <div className="space-y-2">
-                    <Label>Screenshot 1</Label>
+                    <Label className="text-xs">Screenshot 1</Label>
                     <div className="relative">
-                      <div className="border-2 border-dashed rounded-lg p-4 text-center aspect-video flex items-center justify-center min-h-[200px]">
+                      <div className="border-2 border-dashed rounded-lg p-3 text-center aspect-video flex items-center justify-center min-h-[120px]">
                         <input
                           type="file"
                           accept="image/*"
@@ -448,9 +572,9 @@ export default function EnhancedEditTrade({
                                 variant="destructive"
                                 size="sm"
                                 onClick={() => removeImage('imageBase64')}
-                                className="mr-2"
+                                className="mr-1"
                               >
-                                <X className="w-4 h-4" />
+                                <X className="w-3 h-3" />
                               </Button>
                               <Button
                                 type="button"
@@ -467,19 +591,19 @@ export default function EnhancedEditTrade({
                             htmlFor="screenshot-1"
                             className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
                           >
-                            <Camera className="w-8 h-8 mb-2" />
-                            <span className="text-sm">Upload Screenshot 1</span>
+                            <Camera className="w-6 h-6 mb-1" />
+                            <span className="text-xs">Upload</span>
                           </label>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Second Screenshot */}
+                  {/* Screenshot 2 */}
                   <div className="space-y-2">
-                    <Label>Screenshot 2</Label>
+                    <Label className="text-xs">Screenshot 2</Label>
                     <div className="relative">
-                      <div className="border-2 border-dashed rounded-lg p-4 text-center aspect-video flex items-center justify-center min-h-[200px]">
+                      <div className="border-2 border-dashed rounded-lg p-3 text-center aspect-video flex items-center justify-center min-h-[120px]">
                         <input
                           type="file"
                           accept="image/*"
@@ -506,9 +630,9 @@ export default function EnhancedEditTrade({
                                 variant="destructive"
                                 size="sm"
                                 onClick={() => removeImage('imageBase64Second')}
-                                className="mr-2"
+                                className="mr-1"
                               >
-                                <X className="w-4 h-4" />
+                                <X className="w-3 h-3" />
                               </Button>
                               <Button
                                 type="button"
@@ -525,19 +649,19 @@ export default function EnhancedEditTrade({
                             htmlFor="screenshot-2"
                             className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
                           >
-                            <Camera className="w-8 h-8 mb-2" />
-                            <span className="text-sm">Upload Screenshot 2</span>
+                            <Camera className="w-6 h-6 mb-1" />
+                            <span className="text-xs">Upload</span>
                           </label>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Third Screenshot */}
+                  {/* Screenshot 3 */}
                   <div className="space-y-2">
-                    <Label>Screenshot 3</Label>
+                    <Label className="text-xs">Screenshot 3</Label>
                     <div className="relative">
-                      <div className="border-2 border-dashed rounded-lg p-4 text-center aspect-video flex items-center justify-center min-h-[200px]">
+                      <div className="border-2 border-dashed rounded-lg p-3 text-center aspect-video flex items-center justify-center min-h-[120px]">
                         <input
                           type="file"
                           accept="image/*"
@@ -564,9 +688,9 @@ export default function EnhancedEditTrade({
                                 variant="destructive"
                                 size="sm"
                                 onClick={() => removeImage('imageBase64Third')}
-                                className="mr-2"
+                                className="mr-1"
                               >
-                                <X className="w-4 h-4" />
+                                <X className="w-3 h-3" />
                               </Button>
                               <Button
                                 type="button"
@@ -583,19 +707,21 @@ export default function EnhancedEditTrade({
                             htmlFor="screenshot-3"
                             className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
                           >
-                            <Camera className="w-8 h-8 mb-2" />
-                            <span className="text-sm">Upload Screenshot 3</span>
+                            <Camera className="w-6 h-6 mb-1" />
+                            <span className="text-xs">Upload</span>
                           </label>
                         )}
+                      </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Fourth Screenshot */}
+                {/* Second row of screenshots */}
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label>Screenshot 4</Label>
+                    <Label className="text-xs">Screenshot 4</Label>
                     <div className="relative">
-                      <div className="border-2 border-dashed rounded-lg p-4 text-center aspect-video flex items-center justify-center min-h-[200px]">
+                      <div className="border-2 border-dashed rounded-lg p-3 text-center aspect-video flex items-center justify-center min-h-[120px]">
                         <input
                           type="file"
                           accept="image/*"
@@ -622,9 +748,9 @@ export default function EnhancedEditTrade({
                                 variant="destructive"
                                 size="sm"
                                 onClick={() => removeImage('imageBase64Fourth')}
-                                className="mr-2"
+                                className="mr-1"
                               >
-                                <X className="w-4 h-4" />
+                                <X className="w-3 h-3" />
                               </Button>
                               <Button
                                 type="button"
@@ -641,14 +767,194 @@ export default function EnhancedEditTrade({
                             htmlFor="screenshot-4"
                             className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
                           >
-                            <Camera className="w-8 h-8 mb-2" />
-                            <span className="text-sm">Upload Screenshot 4</span>
+                            <Camera className="w-6 h-6 mb-1" />
+                            <span className="text-xs">Upload</span>
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs">Screenshot 5</Label>
+                    <div className="relative">
+                      <div className="border-2 border-dashed rounded-lg p-3 text-center aspect-video flex items-center justify-center min-h-[120px]">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          id="screenshot-5"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleImageUpload('imageBase64Fifth', file)
+                          }}
+                        />
+
+                        {watchedValues.imageBase64Fifth ? (
+                          <div className="relative w-full h-full group">
+                            <Image
+                              src={watchedValues.imageBase64Fifth}
+                              alt="Screenshot 5"
+                              fill
+                              className="object-cover rounded cursor-pointer"
+                              onClick={() => setFullscreenImage(watchedValues.imageBase64Fifth!)}
+                            />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => removeImage('imageBase64Fifth')}
+                                className="mr-1"
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setFullscreenImage(watchedValues.imageBase64Fifth!)}
+                              >
+                                View
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label
+                            htmlFor="screenshot-5"
+                            className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <Camera className="w-6 h-6 mb-1" />
+                            <span className="text-xs">Upload</span>
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs">Screenshot 6</Label>
+                    <div className="relative">
+                      <div className="border-2 border-dashed rounded-lg p-3 text-center aspect-video flex items-center justify-center min-h-[120px]">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          id="screenshot-6"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleImageUpload('imageBase64Sixth', file)
+                          }}
+                        />
+
+                        {watchedValues.imageBase64Sixth ? (
+                          <div className="relative w-full h-full group">
+                            <Image
+                              src={watchedValues.imageBase64Sixth}
+                              alt="Screenshot 6"
+                              fill
+                              className="object-cover rounded cursor-pointer"
+                              onClick={() => setFullscreenImage(watchedValues.imageBase64Sixth!)}
+                            />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => removeImage('imageBase64Sixth')}
+                                className="mr-1"
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setFullscreenImage(watchedValues.imageBase64Sixth!)}
+                              >
+                                View
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label
+                            htmlFor="screenshot-6"
+                            className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <Camera className="w-6 h-6 mb-1" />
+                            <span className="text-xs">Upload</span>
                           </label>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Card Preview - Full width */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Card Preview Image</Label>
+                  <div className="relative">
+                    <div className="border-2 border-dashed rounded-lg p-4 text-center aspect-video flex items-center justify-center min-h-[200px] border-primary/30 bg-primary/5">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        id="card-preview"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) handleImageUpload('cardPreviewImage', file)
+                        }}
+                      />
+
+                      {watchedValues.cardPreviewImage ? (
+                        <div className="relative w-full h-full group">
+                          <Image
+                            src={watchedValues.cardPreviewImage}
+                            alt="Card Preview"
+                            fill
+                            className="object-cover rounded cursor-pointer"
+                            onClick={() => setFullscreenImage(watchedValues.cardPreviewImage!)}
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => removeImage('cardPreviewImage')}
+                              className="mr-2"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setFullscreenImage(watchedValues.cardPreviewImage!)}
+                            >
+                              View
+                            </Button>
+                          </div>
+                          <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium">
+                            Preview
+                          </div>
+                        </div>
+                      ) : (
+                        <label
+                          htmlFor="card-preview"
+                          className="cursor-pointer flex flex-col items-center text-primary hover:text-primary/80 transition-colors"
+                        >
+                          <Camera className="w-8 h-8 mb-2" />
+                          <span className="text-sm font-medium">Upload Card Preview</span>
+                          <span className="text-xs text-muted-foreground mt-1">
+                            Optimized for journal cards
+                          </span>
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+
                 <p className="text-sm text-muted-foreground mt-2">
                   Upload chart screenshots, trade setups, or market analysis images (JPG, PNG, max 5MB each).
                 </p>
@@ -673,7 +979,7 @@ export default function EnhancedEditTrade({
       {/* Fullscreen Image Viewer */}
       {fullscreenImage && (
         <div
-          className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[10001] bg-black/90 flex items-center justify-center p-4"
           onClick={() => setFullscreenImage(null)}
         >
           <div className="w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>

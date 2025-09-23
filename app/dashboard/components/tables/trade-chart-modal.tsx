@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { WorkingPositionChart } from '@/components/tradingview/working-position-chart'
+import { TradingViewAdvancedChart } from '@/components/tradingview/tradingview-advanced-chart'
 import { TradingViewErrorBoundary } from '@/components/tradingview/tradingview-error-boundary'
 import { ExtendedTrade } from './trade-table-review'
 
@@ -130,18 +130,19 @@ export function TradeChartModal({ isOpen, onClose, trade }: TradeChartModalProps
 
         <div className="flex-1 overflow-hidden">
           <TradingViewErrorBoundary key={modalKey}>
-            <WorkingPositionChart
+            <TradingViewAdvancedChart
               key={modalKey}
-              symbol={symbol}
               height={600}
-              showControls={false}
               tradeData={{
                 entryTime,
                 exitTime,
                 entryPrice,
                 exitPrice,
+                stopLoss: trade.stopLoss ? parseFloat(trade.stopLoss) : undefined,
+                takeProfit: trade.takeProfit ? parseFloat(trade.takeProfit) : undefined,
                 side,
-                pnl: trade.pnl
+                pnl: trade.pnl,
+                symbol
               }}
             />
           </TradingViewErrorBoundary>

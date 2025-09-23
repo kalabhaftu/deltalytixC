@@ -29,6 +29,14 @@ const AccountsPage = dynamic(() => import('./accounts/page'), {
   ssr: false
 })
 
+const JournalPage = dynamic(() => import('./journal/page'), {
+  ssr: false
+})
+
+const BacktestingPage = dynamic(() => import('./backtesting/page'), {
+  ssr: false
+})
+
 const DashboardSidebar = dynamic(() =>
   import('./components/sidebar/dashboard-sidebar').then(module => ({ default: module.DashboardSidebar })),
   {
@@ -188,6 +196,38 @@ export default function Home() {
               className="w-full"
             >
               <AccountsPage />
+            </motion.div>
+          </ErrorBoundaryWrapper>
+        )
+      case 'journal':
+        return (
+          <ErrorBoundaryWrapper context="Journal">
+            <motion.div
+              key="journal"
+              initial="initial"
+              animate="in"
+              exit="out"
+              variants={pageVariants}
+              transition={pageTransition}
+              className="w-full"
+            >
+              <JournalPage />
+            </motion.div>
+          </ErrorBoundaryWrapper>
+        )
+      case 'backtesting':
+        return (
+          <ErrorBoundaryWrapper context="Backtesting">
+            <motion.div
+              key="backtesting"
+              initial="initial"
+              animate="in"
+              exit="out"
+              variants={pageVariants}
+              transition={pageTransition}
+              className="w-full"
+            >
+              <BacktestingPage />
             </motion.div>
           </ErrorBoundaryWrapper>
         )

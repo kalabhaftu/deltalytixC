@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { ChevronRight, ChevronDown, ChevronLeft, Info, Search, Filter, X, BarChart3 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
-import { Trade } from '@prisma/client'
+import { Trade, TradingModel } from '@prisma/client'
 import {
   Popover,
   PopoverContent,
@@ -86,12 +86,28 @@ export interface ExtendedTrade extends Trade {
   tags: string[]
   imageBase64: string | null
   imageBase64Second: string | null
+  imageBase64Third: string | null
+  imageBase64Fourth: string | null
+  imageBase64Fifth: string | null
+  imageBase64Sixth: string | null
+  cardPreviewImage: string | null
+  tradingModel: TradingModel | null
   comment: string | null
   videoUrl: string | null
   trades: ExtendedTrade[]
   phaseId: string | null
   accountId: string | null
   strategy: string | null
+  stopLoss?: string | null
+  takeProfit?: string | null
+  fees: number | null
+  realizedPnl: number | null
+  entryTime: Date | null
+  exitTime: Date | null
+  equityAtOpen: number | null
+  equityAtClose: number | null
+  rawBrokerId: string | null
+  closeReason: string | null
 }
 
 const supabase = createClient()
@@ -279,6 +295,10 @@ export function TradeTableReview() {
           strategy: trade.strategy ?? null,
           imageBase64Third: trade.imageBase64Third ?? null,
           imageBase64Fourth: trade.imageBase64Fourth ?? null,
+          imageBase64Fifth: (trade as any).imageBase64Fifth ?? null,
+          imageBase64Sixth: (trade as any).imageBase64Sixth ?? null,
+          cardPreviewImage: (trade as any).cardPreviewImage ?? null,
+          tradingModel: (trade as any).tradingModel as TradingModel | null,
           comment: trade.comment,
           videoUrl: null,
           id: '',
@@ -302,7 +322,11 @@ export function TradeTableReview() {
           propFirmPhaseId: null,
           trades: [{
             ...trade,
-            trades: []
+            trades: [],
+            imageBase64Fifth: (trade as any).imageBase64Fifth ?? null,
+            imageBase64Sixth: (trade as any).imageBase64Sixth ?? null,
+            cardPreviewImage: (trade as any).cardPreviewImage ?? null,
+            tradingModel: (trade as any).tradingModel as TradingModel | null,
           }],
           createdAt: new Date(),
           groupId: trade.groupId || null,
@@ -312,7 +336,11 @@ export function TradeTableReview() {
         const group = groups.get(key)!
         group.trades.push({
           ...trade,
-          trades: []
+          trades: [],
+          imageBase64Fifth: (trade as any).imageBase64Fifth ?? null,
+          imageBase64Sixth: (trade as any).imageBase64Sixth ?? null,
+          cardPreviewImage: (trade as any).cardPreviewImage ?? null,
+          tradingModel: (trade as any).tradingModel as TradingModel | null,
         })
         group.pnl += trade.pnl || 0
         group.commission += trade.commission || 0

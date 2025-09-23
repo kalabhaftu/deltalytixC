@@ -3,16 +3,15 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 // Middleware for authentication and routing
-const protectedRoutes = ["/dashboard", "/profile", "/settings"]
-const publicRoutes = ["/", "/authentication", "/not-found"]
+const protectedRoutes = ["/dashboard", "/profile", "/settings", "/api/trades", "/api/settings"]
+const publicRoutes = ["/", "/authentication", "/not-found", "/api/auth"]
 
 export default async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
 
-  // Skip middleware for static assets and API routes
+  // Skip middleware for static assets but handle API routes for auth
   if (
     pathname.startsWith("/_next/") ||
-    pathname.startsWith("/api/") ||
     pathname.includes(".") ||
     pathname === "/favicon.ico" ||
     pathname === "/robots.txt" ||

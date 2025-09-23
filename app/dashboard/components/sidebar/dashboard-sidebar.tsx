@@ -4,13 +4,16 @@ import { useState, useEffect } from 'react'
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
-import { 
-  LayoutDashboard, 
-  Table, 
-  Users, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  Table,
+  Grid3X3,
+  Users,
+  BarChart3,
   Shield,
-  ChevronLeft, 
+  BookOpen,
+  TrendingUp,
+  ChevronLeft,
   ChevronRight,
   Menu
 } from "lucide-react"
@@ -33,18 +36,28 @@ interface NavigationItem {
 const navigationItems: NavigationItem[] = [
   {
     id: 'widgets',
-    label: 'Widgets',
-    icon: LayoutDashboard
+    label: 'Dashboard',
+    icon: BarChart3
   },
   {
     id: 'table',
     label: 'Table',
-    icon: Table
+    icon: Grid3X3
   },
   {
     id: 'accounts',
     label: 'Accounts',
     icon: Users
+  },
+  {
+    id: 'journal',
+    label: 'Journal',
+    icon: BookOpen
+  },
+  {
+    id: 'backtesting',
+    label: 'Backtesting',
+    icon: TrendingUp
   },
 ]
 

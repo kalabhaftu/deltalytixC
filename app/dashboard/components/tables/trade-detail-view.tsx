@@ -34,7 +34,10 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
     trade.imageBase64,
     trade.imageBase64Second,
     trade.imageBase64Third,
-    trade.imageBase64Fourth
+    trade.imageBase64Fourth,
+    (trade as any).imageBase64Fifth,
+    (trade as any).imageBase64Sixth,
+    (trade as any).cardPreviewImage
   ].filter((img): img is string => Boolean(img) && typeof img === 'string')
 
   const formatCurrency = (amount: number) => {
@@ -225,28 +228,31 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                     <CardTitle className="text-lg">Screenshots ({images.length})</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 gap-4">
-                      {images.map((image, index) => (
-                        <div key={index} className="relative group">
-                          <div 
-                            className="aspect-video relative rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-primary transition-colors"
-                            onClick={() => setSelectedImage(image)}
-                          >
-                            <Image
-                              src={image}
-                              alt={`Trade screenshot ${index + 1}`}
-                              fill
-                              className="object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <Eye className="w-8 h-8 text-white" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {images.map((image, index) => {
+                        const isPreview = index === images.length - 1 && (trade as any).cardPreviewImage
+                        return (
+                          <div key={index} className="relative group">
+                            <div
+                              className="aspect-video relative rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-primary transition-colors"
+                              onClick={() => setSelectedImage(image)}
+                            >
+                              <Image
+                                src={image}
+                                alt={isPreview ? 'Card Preview' : `Trade screenshot ${index + 1}`}
+                                fill
+                                className="object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <Eye className="w-8 h-8 text-white" />
+                              </div>
                             </div>
+                            <p className="text-xs text-muted-foreground mt-1 text-center">
+                              {isPreview ? 'Card Preview' : `Screenshot ${index + 1}`}
+                            </p>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1 text-center">
-                            Screenshot {index + 1}
-                          </p>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </CardContent>
                 </Card>

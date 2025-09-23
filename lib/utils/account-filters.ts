@@ -3,7 +3,7 @@
  * This ensures consistent exclusion of failed accounts from all operations
  */
 
-export type AccountStatus = 'active' | 'failed' | 'funded' | 'passed'
+export type AccountStatus = 'active' | 'failed' | 'funded' | 'passed' | null
 
 export interface AccountWithStatus {
   status?: AccountStatus | null
