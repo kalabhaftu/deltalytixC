@@ -2,50 +2,60 @@
  * Comprehensive Prop Firm Trading Engine
  * Handles all aspects of prop firm account management, drawdown calculations,
  * phase progressions, and payout eligibility
+ *
+ * Account Structure:
+ * - Master Account ID (UUID) - Internal system identifier
+ * - Display Name - User-friendly account name (e.g., "My Maven")
+ * - Phase Account Numbers - User-provided numbers for each phase
+ * - Active Phase - Current phase where trades are added
  */
 
 import { Decimal } from '@prisma/client/runtime/library'
 
 // Types
 export interface PropFirmAccount {
-  id: string
+  // Master account details
+  id: string // Master ID (internal)
   userId: string
+  name: string // Display name (e.g., "My Maven")
   firmType: string
   accountSize: number
   currency: string
   leverage: number
-  
-  // Phase account IDs
-  phase1AccountId?: string
-  phase2AccountId?: string
-  fundedAccountId?: string
-  
-  // Phase credentials
-  phase1Login?: string
-  phase2Login?: string
-  fundedLogin?: string
-  
-  // Drawdown configuration
-  phase1MaxDrawdown: number
-  phase2MaxDrawdown: number
-  fundedMaxDrawdown: number
-  phase1DailyDrawdown: number
-  phase2DailyDrawdown: number
-  fundedDailyDrawdown: number
-  trailingDrawdownEnabled: boolean
-  
-  // Profit targets
-  phase1ProfitTarget: number
-  phase2ProfitTarget: number
-  
+  evaluationType: 'one_step' | 'two_step'
+
+  // Phase account numbers (user-provided)
+  phase1AccountId?: string // Phase 1 account number (e.g., "753251")
+  phase2AccountId?: string // Phase 2 account number (e.g., "756009")
+  fundedAccountId?: string // Funded account number (e.g., "760314")
+
+  // Status and dates
+  status: 'active' | 'failed' | 'passed' | 'funded'
+  createdAt: Date
+  purchaseDate?: Date
+  challengeStartDate?: Date
+  challengeEndDate?: Date
+  fundedDate?: Date
+
+  // Phase-specific configurations
+  phase1ProfitTarget: number // e.g., 8%
+  phase2ProfitTarget: number // e.g., 5%
+  phase1MaxDrawdown: number  // e.g., 10%
+  phase2MaxDrawdown: number  // e.g., 10%
+  fundedMaxDrawdown: number  // e.g., 5%
+  phase1DailyDrawdown: number // e.g., 5%
+  phase2DailyDrawdown: number // e.g., 5%
+  fundedDailyDrawdown: number // e.g., 3%
+
   // Trading rules
   minTradingDaysPhase1: number
   minTradingDaysPhase2: number
   maxTradingDaysPhase1?: number
   maxTradingDaysPhase2?: number
   consistencyRule: number
-  
-  // Payout configuration
+  trailingDrawdownEnabled: boolean
+
+  // Payout configuration (for funded accounts)
   initialProfitSplit: number
   maxProfitSplit: number
   profitSplitIncrementPerPayout: number
@@ -53,14 +63,6 @@ export interface PropFirmAccount {
   maxPayoutAmount?: number
   payoutFrequencyDays: number
   minDaysBeforeFirstPayout: number
-  
-  // Current state
-  status: 'active' | 'failed' | 'passed' | 'funded'
-  createdAt: Date
-  purchaseDate?: Date
-  challengeStartDate?: Date
-  challengeEndDate?: Date
-  fundedDate?: Date
 }
 
 export interface PropFirmPhase {
@@ -68,33 +70,32 @@ export interface PropFirmPhase {
   accountId: string
   phaseType: 'phase_1' | 'phase_2' | 'funded'
   status: 'active' | 'passed' | 'failed' | 'pending'
-  
-  // Account details
-  brokerAccountId: string
-  brokerLogin?: string
-  brokerPassword?: string
-  brokerServer?: string
+
+  // Phase account number (user-provided)
+  accountNumber: string
+
+  // Phase configuration
   startingBalance: number
   currentBalance: number
   currentEquity: number
   highWaterMark: number
-  
-  // Targets and limits
+
+  // Targets and limits (calculated from account)
   profitTarget: number
   profitTargetPercent: number
   maxDrawdownAmount: number
   maxDrawdownPercent: number
   dailyDrawdownAmount: number
   dailyDrawdownPercent: number
-  
+  minTradingDays: number
+  maxTradingDays?: number
+
   // Progress tracking
-  startedAt?: Date
+  startedAt: Date
   completedAt?: Date
   failedAt?: Date
   daysTraded: number
-  minTradingDays: number
-  maxTradingDays?: number
-  
+
   // Statistics
   totalTrades: number
   winningTrades: number
@@ -107,7 +108,7 @@ export interface PropFirmPhase {
   currentStreak: number
   bestStreak: number
   worstStreak: number
-  
+
   // Risk metrics
   maxDrawdownEncountered: number
   maxDailyLoss: number
@@ -136,6 +137,14 @@ export interface PropFirmTrade {
   equityAtClose?: number
   comment?: string
   strategy?: string
+  // Legacy fields for compatibility
+  accountNumber?: string
+  instrument?: string
+  closePrice?: string
+  entryDate?: string
+  closeDate?: string
+  pnl?: number
+  userId?: string
 }
 
 export interface DrawdownCalculation {
@@ -189,6 +198,420 @@ export interface PayoutEligibility {
  * Main Prop Firm Engine Class
  */
 export class PropFirmEngine {
+
+  /**
+   * Get the current active phase for an account
+   * Trades should be added to this phase
+   */
+  static getCurrentActivePhase(account: PropFirmAccount, phases: PropFirmPhase[]): PropFirmPhase | null {
+    return phases.find(phase => phase.status === 'active') || null
+  }
+
+  /**
+   * Get the next phase type based on evaluation type
+   */
+  static getNextPhaseType(currentPhaseType: 'phase_1' | 'phase_2' | 'funded', evaluationType: 'one_step' | 'two_step'): 'phase_1' | 'phase_2' | 'funded' | null {
+    if (evaluationType === 'one_step') {
+      return currentPhaseType === 'phase_1' ? 'funded' : null
+    } else {
+      // two_step
+      switch (currentPhaseType) {
+        case 'phase_1': return 'phase_2'
+        case 'phase_2': return 'funded'
+        default: return null
+      }
+    }
+  }
+
+  /**
+   * Check if account has valid account number for current phase
+   */
+  static hasValidAccountNumberForCurrentPhase(account: PropFirmAccount, currentPhase: PropFirmPhase): boolean {
+    switch (currentPhase.phaseType) {
+      case 'phase_1':
+        return !!account.phase1AccountId
+      case 'phase_2':
+        return !!account.phase2AccountId
+      case 'funded':
+        return !!account.fundedAccountId
+      default:
+        return false
+    }
+  }
+
+  /**
+   * Create a new phase for the account
+   */
+  static createNewPhase(
+    account: PropFirmAccount,
+    phaseType: 'phase_1' | 'phase_2' | 'funded'
+  ): Omit<PropFirmPhase, 'id' | 'createdAt' | 'updatedAt'> {
+    const baseBalance = account.accountSize
+
+    // Get phase-specific configuration
+    let profitTarget: number
+    let maxDrawdownAmount: number
+    let dailyDrawdownAmount: number
+    let minTradingDays: number
+    let maxTradingDays: number | undefined
+
+    switch (phaseType) {
+      case 'phase_1':
+        profitTarget = (baseBalance * account.phase1ProfitTarget) / 100
+        maxDrawdownAmount = (baseBalance * account.phase1MaxDrawdown) / 100
+        dailyDrawdownAmount = (baseBalance * account.phase1DailyDrawdown) / 100
+        minTradingDays = account.minTradingDaysPhase1
+        maxTradingDays = account.maxTradingDaysPhase1
+        break
+      case 'phase_2':
+        profitTarget = (baseBalance * account.phase2ProfitTarget) / 100
+        maxDrawdownAmount = (baseBalance * account.phase2MaxDrawdown) / 100
+        dailyDrawdownAmount = (baseBalance * account.phase2DailyDrawdown) / 100
+        minTradingDays = account.minTradingDaysPhase2
+        maxTradingDays = account.maxTradingDaysPhase2
+        break
+      case 'funded':
+        // Funded accounts don't have profit targets, but maintain drawdown limits
+        profitTarget = 0
+        maxDrawdownAmount = (baseBalance * account.fundedMaxDrawdown) / 100
+        dailyDrawdownAmount = (baseBalance * account.fundedDailyDrawdown) / 100
+        minTradingDays = 0
+        maxTradingDays = undefined
+        break
+    }
+
+    return {
+      accountId: account.id,
+      phaseType,
+      status: 'active',
+      accountNumber: this.getAccountNumberForPhase(account, phaseType),
+      startingBalance: baseBalance,
+      currentBalance: baseBalance,
+      currentEquity: baseBalance,
+      highWaterMark: baseBalance,
+      profitTarget,
+      profitTargetPercent: phaseType === 'funded' ? 0 : (profitTarget / baseBalance) * 100,
+      maxDrawdownAmount,
+      maxDrawdownPercent: (maxDrawdownAmount / baseBalance) * 100,
+      dailyDrawdownAmount,
+      dailyDrawdownPercent: (dailyDrawdownAmount / baseBalance) * 100,
+      minTradingDays,
+      maxTradingDays,
+      startedAt: new Date(),
+      daysTraded: 0,
+      totalTrades: 0,
+      winningTrades: 0,
+      losingTrades: 0,
+      totalVolume: 0,
+      totalCommission: 0,
+      totalSwap: 0,
+      bestTrade: 0,
+      worstTrade: 0,
+      currentStreak: 0,
+      bestStreak: 0,
+      worstStreak: 0,
+      maxDrawdownEncountered: 0,
+      maxDailyLoss: 0,
+      avgTradeSize: 0,
+      profitFactor: 0,
+      winRate: 0,
+      riskRewardRatio: 0
+    }
+  }
+
+  /**
+   * Get account number for a specific phase
+   */
+  static getAccountNumberForPhase(account: PropFirmAccount, phaseType: 'phase_1' | 'phase_2' | 'funded'): string {
+    switch (phaseType) {
+      case 'phase_1':
+        return account.phase1AccountId || 'Not Set'
+      case 'phase_2':
+        return account.phase2AccountId || 'Not Set'
+      case 'funded':
+        return account.fundedAccountId || 'Not Set'
+      default:
+        return 'Unknown'
+    }
+  }
+
+  /**
+   * Check if current phase should advance to next phase
+   */
+  static shouldAdvancePhase(account: PropFirmAccount, phase: PropFirmPhase, trades: PropFirmTrade[]): boolean {
+    // Funded accounts don't advance
+    if (phase.phaseType === 'funded') {
+      return false
+    }
+
+    // Check if profit target is met
+    const profitProgress = phase.currentEquity - phase.startingBalance
+    const profitTargetMet = profitProgress >= phase.profitTarget
+
+    if (!profitTargetMet) {
+      return false
+    }
+
+    // Check minimum trading days
+    const tradingDays = this.calculateTradingDays(trades)
+    const minDaysMet = tradingDays >= phase.minTradingDays
+
+    if (!minDaysMet) {
+      return false
+    }
+
+    // Check consistency rule
+    const consistencyMet = this.checkConsistencyRule(trades, account.consistencyRule)
+
+    return consistencyMet
+  }
+
+  /**
+   * Check consistency rule (max daily profit ≤ X% of total profit)
+   */
+  static checkConsistencyRule(trades: PropFirmTrade[], maxPercent: number): boolean {
+    if (trades.length === 0) return true
+
+    // Group trades by day and calculate daily profits
+    const dailyProfits = new Map<string, number>()
+
+    trades.forEach(trade => {
+      if (trade.realizedPnl && trade.exitTime) {
+        const date = trade.exitTime.toISOString().split('T')[0]
+        const current = dailyProfits.get(date) || 0
+        dailyProfits.set(date, current + trade.realizedPnl)
+      }
+    })
+
+    const totalProfit = Array.from(dailyProfits.values()).reduce((sum, profit) => sum + profit, 0)
+    if (totalProfit <= 0) return true
+
+    const maxDailyProfit = Math.max(...Array.from(dailyProfits.values()).filter(p => p > 0))
+    const percentageOfTotal = (maxDailyProfit / totalProfit) * 100
+
+    return percentageOfTotal <= maxPercent
+  }
+
+  /**
+   * Calculate trading days from trades array
+   */
+  static calculateTradingDays(trades: PropFirmTrade[]): number {
+    const tradingDays = new Set<string>()
+
+    trades.forEach(trade => {
+      if (trade.entryTime) {
+        const date = trade.entryTime.toISOString().split('T')[0]
+        tradingDays.add(date)
+      }
+    })
+
+    return tradingDays.size
+  }
+
+  /**
+   * Get phase display information
+   */
+  static getPhaseDisplayInfo(phase: PropFirmPhase): {
+    label: string
+    color: string
+    status: string
+  } {
+    const phaseLabels = {
+      phase_1: 'Phase 1',
+      phase_2: 'Phase 2',
+      funded: 'Funded'
+    }
+
+    const statusColors = {
+      active: 'bg-green-500',
+      passed: 'bg-blue-500',
+      failed: 'bg-red-500',
+      pending: 'bg-yellow-500'
+    }
+
+    return {
+      label: phaseLabels[phase.phaseType] || phase.phaseType,
+      color: statusColors[phase.status] || 'bg-gray-500',
+      status: phase.status
+    }
+  }
+
+  /**
+   * Process a trade and update phase accordingly
+   */
+  static async processTrade(
+    account: PropFirmAccount,
+    phase: PropFirmPhase,
+    tradeData: {
+      symbol: string
+      side: 'long' | 'short'
+      quantity: number
+      entryPrice: number
+      exitPrice?: number
+      entryTime: Date
+      exitTime?: Date
+      commission: number
+      swap: number
+      fees: number
+      comment?: string
+      strategy?: string
+    }
+  ): Promise<{
+    trade: PropFirmTrade
+    updatedPhase: PropFirmPhase
+    shouldAdvance: boolean
+    breachDetected: boolean
+    breachType?: 'daily_drawdown' | 'max_drawdown'
+  }> {
+    // Calculate P&L
+    const isClosedTrade = tradeData.exitTime && tradeData.exitPrice
+    let realizedPnl = 0
+
+    if (isClosedTrade) {
+      const priceDiff = tradeData.side === 'long'
+        ? tradeData.exitPrice! - tradeData.entryPrice
+        : tradeData.entryPrice - tradeData.exitPrice!
+
+      realizedPnl = priceDiff * tradeData.quantity
+      realizedPnl -= (tradeData.commission + tradeData.swap + tradeData.fees)
+    }
+
+    // Create trade record
+    const trade: PropFirmTrade = {
+      id: `trade_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      phaseId: phase.id,
+      accountId: account.id,
+      symbol: tradeData.symbol,
+      side: tradeData.side,
+      quantity: tradeData.quantity,
+      entryPrice: tradeData.entryPrice,
+      exitPrice: tradeData.exitPrice,
+      entryTime: tradeData.entryTime,
+      exitTime: tradeData.exitTime,
+      commission: tradeData.commission,
+      swap: tradeData.swap,
+      fees: tradeData.fees,
+      realizedPnl: isClosedTrade ? realizedPnl : null,
+      equityAtOpen: phase.currentEquity,
+      equityAtClose: isClosedTrade ? phase.currentEquity + realizedPnl : null,
+      comment: tradeData.comment,
+      strategy: tradeData.strategy,
+      // Legacy fields
+      accountNumber: phase.accountNumber,
+      instrument: tradeData.symbol,
+      closePrice: tradeData.exitPrice?.toString(),
+      entryDate: tradeData.entryTime.toISOString().split('T')[0],
+      closeDate: tradeData.exitTime?.toISOString().split('T')[0] || '',
+      pnl: realizedPnl,
+      userId: account.userId
+    }
+
+    // Update phase statistics
+    const updatedPhase: PropFirmPhase = {
+      ...phase,
+      currentEquity: phase.currentEquity + realizedPnl,
+      currentBalance: phase.currentBalance + realizedPnl,
+      totalTrades: phase.totalTrades + 1,
+      totalCommission: phase.totalCommission + tradeData.commission + tradeData.fees,
+      totalVolume: phase.totalVolume + tradeData.quantity
+    }
+
+    // Update statistics if trade is closed
+    if (isClosedTrade) {
+      if (realizedPnl > 0) {
+        updatedPhase.winningTrades++
+        if (realizedPnl > updatedPhase.bestTrade) {
+          updatedPhase.bestTrade = realizedPnl
+        }
+      } else {
+        updatedPhase.losingTrades++
+        if (realizedPnl < updatedPhase.worstTrade) {
+          updatedPhase.worstTrade = realizedPnl
+        }
+      }
+
+      // Update high water mark
+      if (updatedPhase.currentEquity > updatedPhase.highWaterMark) {
+        updatedPhase.highWaterMark = updatedPhase.currentEquity
+      }
+    }
+
+    // Check for advancement
+    const shouldAdvance = this.shouldAdvancePhase(account, updatedPhase, [trade])
+
+    // Check for breaches
+    const drawdown = this.calculateDrawdown(
+      updatedPhase,
+      updatedPhase.currentEquity,
+      phase.startingBalance, // Daily start balance
+      account.trailingDrawdownEnabled
+    )
+
+    const breachDetected = drawdown.isBreached
+    const breachType = drawdown.breachType
+
+    return {
+      trade,
+      updatedPhase,
+      shouldAdvance,
+      breachDetected,
+      breachType
+    }
+  }
+
+  /**
+   * Handle phase transition
+   */
+  static async transitionPhase(
+    account: PropFirmAccount,
+    currentPhase: PropFirmPhase,
+    nextPhaseType: 'phase_1' | 'phase_2' | 'funded'
+  ): Promise<PropFirmPhase> {
+    // Mark current phase as passed
+    currentPhase.status = 'passed'
+    currentPhase.completedAt = new Date()
+
+    // Create new phase
+    const newPhase = this.createNewPhase(account, nextPhaseType)
+
+    return {
+      ...newPhase,
+      id: `phase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    } as PropFirmPhase
+  }
+
+  /**
+   * Validate account for trade addition
+   */
+  static validateAccountForTrade(account: PropFirmAccount, currentPhase: PropFirmPhase): {
+    isValid: boolean
+    error?: string
+  } {
+    if (!currentPhase) {
+      return {
+        isValid: false,
+        error: 'No active phase found. Account may need to be created or phase may have failed.'
+      }
+    }
+
+    if (!this.hasValidAccountNumberForCurrentPhase(account, currentPhase)) {
+      return {
+        isValid: false,
+        error: `Account number not set for ${currentPhase.phaseType}. Please set the account number before adding trades.`
+      }
+    }
+
+    if (currentPhase.status !== 'active') {
+      return {
+        isValid: false,
+        error: `Current phase ${currentPhase.phaseType} is not active. Status: ${currentPhase.status}`
+      }
+    }
+
+    return { isValid: true }
+  }
   
   /**
    * Calculate comprehensive drawdown status

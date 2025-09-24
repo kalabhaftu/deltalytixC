@@ -195,22 +195,28 @@ export default function AccountDetailPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold">
-              {account.name || account.number}
+              {account.name}
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant={getStatusVariant(account.status)} className="text-xs">
                 {account.status === 'active' ? 'Active' : account.status === 'funded' ? 'Funded' : account.status === 'failed' ? 'Failed' : account.status}
               </Badge>
-              <Badge className={cn("text-white", getPhaseColor(currentPhase.phaseType))}>
-                {currentPhase.phaseType === 'phase1' ? 'Phase 1' : currentPhase.phaseType === 'phase2' ? 'Phase 2' : currentPhase.phaseType === 'funded' ? 'Funded' : currentPhase.phaseType}
-              </Badge>
-              <RealtimeStatusIndicator 
-                isPolling={isPolling} 
-                lastUpdated={lastUpdated} 
-                error={realtimeError} 
+              {currentPhase?.phaseDisplayInfo && (
+                <Badge className={cn("text-white", currentPhase.phaseDisplayInfo.color)}>
+                  {currentPhase.phaseDisplayInfo.label} ({currentPhase.accountNumber})
+                </Badge>
+              )}
+              <RealtimeStatusIndicator
+                isPolling={isPolling}
+                lastUpdated={lastUpdated}
+                error={realtimeError}
               />
               <span className="text-muted-foreground">•</span>
               <span className="text-sm text-muted-foreground">{account.propfirm}</span>
+              <span className="text-muted-foreground">•</span>
+              <span className="text-sm text-muted-foreground">
+                Master ID: {account.id}
+              </span>
             </div>
           </div>
         </div>

@@ -15,71 +15,54 @@ const prisma = new PrismaClient()
 
 // Validation schemas
 const CreateAccountSchema = z.object({
+  // Basic account info
+  name: z.string().min(1, 'Account name is required'),
   firmType: z.enum(['FTMO', 'MyForexFunds', 'FundedNext', 'TheForexFirm', 'TopTierTrader', 'SurgeTrader', 'TrueForexFunds', 'FundingTraders', 'E8Funding', 'FastTrackTrading', 'Maven', 'Other']),
-  accountSize: z.number().positive(),
-  currency: z.string().default('USD'),
-  leverage: z.number().default(100),
-  name: z.string().optional(),
-  evaluationType: z.enum(['one_step', 'two_step']).optional(),
-  
-  // Phase account IDs
+  accountSize: z.number().positive('Account size must be positive'),
+  evaluationType: z.enum(['one_step', 'two_step']).default('two_step'),
+
+  // Phase account numbers (user-provided)
   phase1AccountId: z.string().optional(),
-  phase2AccountId: z.string().optional(),
-  fundedAccountId: z.string().optional(),
-  
-  // Phase credentials
-  phase1Login: z.string().optional(),
-  phase2Login: z.string().optional(),
-  fundedLogin: z.string().optional(),
-  phase1Password: z.string().optional(),
-  phase2Password: z.string().optional(),
-  fundedPassword: z.string().optional(),
-  
-  // Phase servers
-  phase1Server: z.string().optional(),
-  phase2Server: z.string().optional(),
-  fundedServer: z.string().optional(),
-  
-  // Profit targets (percentages)
-  phase1ProfitTarget: z.number().default(10),
-  phase2ProfitTarget: z.number().default(5),
-  
-  // Drawdown limits (percentages)
-  phase1MaxDrawdown: z.number().default(10),
-  phase2MaxDrawdown: z.number().default(10),
-  fundedMaxDrawdown: z.number().default(5),
-  phase1DailyDrawdown: z.number().default(5),
-  phase2DailyDrawdown: z.number().default(5),
-  fundedDailyDrawdown: z.number().default(3),
-  
-  // Trading days
-  minTradingDaysPhase1: z.number().default(4),
-  minTradingDaysPhase2: z.number().default(4),
-  maxTradingDaysPhase1: z.number().optional(),
-  maxTradingDaysPhase2: z.number().optional(),
-  
-  // Payout configuration
-  initialProfitSplit: z.number().default(80),
-  maxProfitSplit: z.number().default(90),
-  profitSplitIncrementPerPayout: z.number().default(5),
-  minPayoutAmount: z.number().default(50),
-  maxPayoutAmount: z.number().optional(),
-  payoutFrequencyDays: z.number().default(14),
-  minDaysBeforeFirstPayout: z.number().default(7),
-  
+
+  // Phase configurations (percentages)
+  phase1ProfitTarget: z.number().min(0).max(100).default(8),
+  phase2ProfitTarget: z.number().min(0).max(100).default(5),
+  phase1MaxDrawdown: z.number().min(0).max(100).default(10),
+  phase2MaxDrawdown: z.number().min(0).max(100).default(10),
+  fundedMaxDrawdown: z.number().min(0).max(100).default(5),
+  phase1DailyDrawdown: z.number().min(0).max(100).default(5),
+  phase2DailyDrawdown: z.number().min(0).max(100).default(5),
+  fundedDailyDrawdown: z.number().min(0).max(100).default(3),
+
   // Trading rules
-  consistencyRule: z.number().default(30),
+  minTradingDaysPhase1: z.number().min(1).default(4),
+  minTradingDaysPhase2: z.number().min(1).default(4),
+  maxTradingDaysPhase1: z.number().min(1).optional(),
+  maxTradingDaysPhase2: z.number().min(1).optional(),
+  consistencyRule: z.number().min(0).max(100).default(30),
   trailingDrawdownEnabled: z.boolean().default(true),
-  newsTradinAllowed: z.boolean().default(false),
+
+  // Payout configuration
+  initialProfitSplit: z.number().min(0).max(100).default(80),
+  maxProfitSplit: z.number().min(0).max(100).default(90),
+  profitSplitIncrementPerPayout: z.number().min(0).max(100).default(5),
+  minPayoutAmount: z.number().min(0).default(50),
+  maxPayoutAmount: z.number().min(0).optional(),
+  payoutFrequencyDays: z.number().min(1).default(14),
+  minDaysBeforeFirstPayout: z.number().min(0).default(7),
+
+  // Trading permissions
+  newsTradingAllowed: z.boolean().default(false),
   weekendHoldingAllowed: z.boolean().default(false),
   hedgingAllowed: z.boolean().default(true),
   eaAllowed: z.boolean().default(true),
-  maxPositions: z.number().default(10),
-  
-  // Metadata
-  isDemo: z.boolean().default(true),
-  tradingPlatform: z.string().optional(),
+  maxPositions: z.number().min(1).default(10),
+
+  // Optional fields
+  currency: z.string().default('USD'),
+  leverage: z.number().min(1).default(100),
   notes: z.string().optional(),
+  isDemo: z.boolean().default(true),
 })
 
 const AccountFilterSchema = z.object({
@@ -172,56 +155,75 @@ export async function GET(request: NextRequest) {
     // Transform accounts to include calculated metrics
     const enhancedAccounts = await Promise.all(
       accounts.map(async (account) => {
-        // Get current phase or create virtual phase data
+        // Get current phase
         const currentPhase = account.phases?.[0]
-        
+
         // Calculate basic metrics
         let currentEquity = account.startingBalance
         let drawdownData = null
         let progressData = null
-        
+
         if (currentPhase) {
           currentEquity = currentPhase.currentEquity || account.startingBalance
-          
+
           // Get daily snapshot for drawdown calculation
           const latestSnapshot = await prisma.equitySnapshot?.findFirst({
             where: { phaseId: currentPhase.id },
             orderBy: { timestamp: 'desc' }
           })
-          
+
           // Calculate drawdown
           drawdownData = PropFirmEngine.calculateDrawdown(
             currentPhase as any,
             currentEquity,
             latestSnapshot?.balance || account.startingBalance,
-            account.trailingDrawdown
+            account.trailingDrawdownEnabled
           )
         }
-        
+
+        // Get phase display info
+        const phaseDisplayInfo = currentPhase ?
+          PropFirmEngine.getPhaseDisplayInfo(currentPhase as any) : null
+
         return {
-          id: account.id,
-          name: account.name,
+          // Account info
+          id: account.id, // Master ID
+          name: account.name, // Display name (e.g., "My Maven")
           propfirm: account.propfirm,
           accountSize: account.accountSize,
           status: account.status,
-          
-          // Current metrics
-          currentEquity,
-          startingBalance: account.startingBalance,
+          evaluationType: account.evaluationType,
+
+          // Phase info
           currentPhase: currentPhase ? {
             id: currentPhase.id,
             phaseType: currentPhase.phaseType,
             status: currentPhase.phaseStatus,
+            accountNumber: currentPhase.accountNumber, // Phase account number
             profitTarget: currentPhase.profitTarget,
-            daysTraded: currentPhase.totalTrades > 0 ? 1 : 0, // Simplified for now
+            currentEquity: currentPhase.currentEquity,
+            startingBalance: currentPhase.startingBalance,
+            totalTrades: currentPhase.totalTrades,
+            winningTrades: currentPhase.winningTrades,
+            daysTraded: currentPhase.daysTraded,
+            phaseDisplayInfo: phaseDisplayInfo,
           } : null,
-          
+
+          // Account numbers
+          phase1AccountId: account.phase1AccountId,
+          phase2AccountId: account.phase2AccountId,
+          fundedAccountId: account.fundedAccountId,
+
+          // Current metrics
+          currentEquity,
+          startingBalance: account.startingBalance,
+
           // Drawdown info
           drawdown: drawdownData,
-          
+
           // Dates
           createdAt: account.createdAt,
-          
+
           // User info
           owner: account.user,
         }
@@ -258,34 +260,61 @@ export async function POST(request: NextRequest) {
     // Validate request data
     const validatedData = CreateAccountSchema.parse(body)
     
-    // Create account with phases in a transaction
+    // Create account with initial phase in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create the main account using proper Prisma client
+      // Create the main account
       const account = await tx.account.create({
         data: {
           userId,
-          name: validatedData.name || `${validatedData.firmType} $${validatedData.accountSize.toLocaleString()}`,
+          name: validatedData.name,
           propfirm: validatedData.firmType,
-          accountSize: validatedData.accountSize.toString(),
+          accountSize: validatedData.accountSize,
           startingBalance: validatedData.accountSize,
-          number: `${Date.now()}`, // Generate a unique account number
-          broker: validatedData.firmType, // Use firmType as broker for now
-
-          // Map to existing Prisma fields
-          trailingDrawdown: validatedData.trailingDrawdownEnabled || false,
-          tradingNewsAllowed: validatedData.newsTradinAllowed !== undefined ? validatedData.newsTradinAllowed : true,
-          profitSplitPercent: validatedData.initialProfitSplit || 80,
-          payoutCycleDays: validatedData.payoutFrequencyDays || 14,
-          minDaysToFirstPayout: validatedData.minDaysBeforeFirstPayout || 7,
-          consistencyPercentage: validatedData.consistencyRule || 30,
-          dailyDrawdownAmount: (validatedData.accountSize * (validatedData.phase1DailyDrawdown || 5)) / 100,
-          maxDrawdownAmount: (validatedData.accountSize * (validatedData.phase1MaxDrawdown || 10)) / 100,
-          profitTarget: (validatedData.accountSize * (validatedData.phase1ProfitTarget || 10)) / 100,
+          number: `${Date.now()}`, // Master ID (internal)
+          currency: validatedData.currency,
+          leverage: validatedData.leverage,
+          evaluationType: validatedData.evaluationType,
           status: 'active',
-          evaluationType: validatedData.evaluationType || 'two_step',
+
+          // Phase account numbers
+          phase1AccountId: validatedData.phase1AccountId,
+
+          // Phase configurations
+          phase1ProfitTarget: validatedData.phase1ProfitTarget,
+          phase2ProfitTarget: validatedData.phase2ProfitTarget,
+          phase1MaxDrawdown: validatedData.phase1MaxDrawdown,
+          phase2MaxDrawdown: validatedData.phase2MaxDrawdown,
+          fundedMaxDrawdown: validatedData.fundedMaxDrawdown,
+          phase1DailyDrawdown: validatedData.phase1DailyDrawdown,
+          phase2DailyDrawdown: validatedData.phase2DailyDrawdown,
+          fundedDailyDrawdown: validatedData.fundedDailyDrawdown,
+          minTradingDaysPhase1: validatedData.minTradingDaysPhase1,
+          minTradingDaysPhase2: validatedData.minTradingDaysPhase2,
+          maxTradingDaysPhase1: validatedData.maxTradingDaysPhase1,
+          maxTradingDaysPhase2: validatedData.maxTradingDaysPhase2,
+          consistencyRule: validatedData.consistencyRule,
+          trailingDrawdownEnabled: validatedData.trailingDrawdownEnabled,
+
+          // Payout configuration
+          initialProfitSplit: validatedData.initialProfitSplit,
+          maxProfitSplit: validatedData.maxProfitSplit,
+          profitSplitIncrementPerPayout: validatedData.profitSplitIncrementPerPayout,
+          minPayoutAmount: validatedData.minPayoutAmount,
+          maxPayoutAmount: validatedData.maxPayoutAmount,
+          payoutFrequencyDays: validatedData.payoutFrequencyDays,
+          minDaysBeforeFirstPayout: validatedData.minDaysBeforeFirstPayout,
+
+          // Trading permissions
+          tradingNewsAllowed: validatedData.newsTradingAllowed,
+          weekendHoldingAllowed: validatedData.weekendHoldingAllowed,
+          hedgingAllowed: validatedData.hedgingAllowed,
+          eaAllowed: validatedData.eaAllowed,
+          maxPositions: validatedData.maxPositions,
+
+          // System defaults
           dailyDrawdownType: 'percent',
           maxDrawdownType: 'percent',
-          drawdownModeMax: 'static',
+          drawdownModeMax: 'trailing',
           timezone: 'UTC',
           dailyResetTime: '00:00',
           ddIncludeOpenPnl: false,
@@ -296,16 +325,19 @@ export async function POST(request: NextRequest) {
           autoRenewal: false,
           paymentFrequency: 'MONTHLY',
           renewalNotice: 3,
+          isDemo: validatedData.isDemo,
+          notes: validatedData.notes,
         }
       })
 
-      // Create Phase 1 using proper Prisma client
+      // Create initial Phase 1
       const phase1 = await tx.accountPhase.create({
         data: {
           accountId: account.id,
           phaseType: 'phase_1',
           phaseStatus: 'active',
-          profitTarget: (validatedData.accountSize * (validatedData.phase1ProfitTarget || 10)) / 100,
+          accountNumber: validatedData.phase1AccountId || 'Not Set',
+          profitTarget: (validatedData.accountSize * validatedData.phase1ProfitTarget) / 100,
           currentEquity: validatedData.accountSize,
           currentBalance: validatedData.accountSize,
           netProfitSincePhaseStart: 0,
@@ -313,6 +345,9 @@ export async function POST(request: NextRequest) {
           totalTrades: 0,
           winningTrades: 0,
           totalCommission: 0,
+          minTradingDays: validatedData.minTradingDaysPhase1,
+          maxDrawdownAmount: (validatedData.accountSize * validatedData.phase1MaxDrawdown) / 100,
+          dailyDrawdownAmount: (validatedData.accountSize * validatedData.phase1DailyDrawdown) / 100,
         }
       })
 

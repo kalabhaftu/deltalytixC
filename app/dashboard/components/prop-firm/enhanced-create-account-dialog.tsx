@@ -23,22 +23,47 @@ import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { clearAccountsCache } from "@/hooks/use-accounts"
 
-// Base schema
+// Base schema - Updated for new phase account number system
 const baseSchema = z.object({
   name: z.string().min(3, 'Account name must be at least 3 characters').max(50, 'Account name too long'),
-  number: z.string().min(6, 'Account number must be at least 6 characters').max(20, 'Account number too long'),
+  // Phase account numbers (user-provided)
+  phase1AccountId: z.string().min(6, 'Phase 1 account number must be at least 6 characters').max(20, 'Account number too long').optional(),
+  phase2AccountId: z.string().min(6, 'Phase 2 account number must be at least 6 characters').max(20, 'Account number too long').optional(),
+  fundedAccountId: z.string().min(6, 'Funded account number must be at least 6 characters').max(20, 'Account number too long').optional(),
+
+  // Basic info
   propfirm: z.string().min(1, 'Please select a prop firm'),
   customPropfirm: z.string().optional(),
   startingBalance: z.number().min(1000, 'Starting balance must be at least $1,000'),
-  evaluationType: z.enum(['one_step', 'two_step', 'instant_funding']),
-  profitTargetPhase1: z.number().min(1, 'Phase 1 profit target is required'),
-  profitTargetPhase2: z.number().min(1, 'Phase 2 profit target is required').optional(),
-  dailyDrawdown: z.number().min(1, 'Daily drawdown limit is required'),
-  maxDrawdown: z.number().min(1, 'Maximum drawdown limit is required'),
+  evaluationType: z.enum(['one_step', 'two_step']),
+
+  // Phase configurations (percentages)
+  phase1ProfitTarget: z.number().min(1, 'Phase 1 profit target is required').max(100),
+  phase2ProfitTarget: z.number().min(1, 'Phase 2 profit target is required').max(100),
+  phase1MaxDrawdown: z.number().min(1, 'Phase 1 max drawdown is required').max(100),
+  phase2MaxDrawdown: z.number().min(1, 'Phase 2 max drawdown is required').max(100),
+  fundedMaxDrawdown: z.number().min(1, 'Funded max drawdown is required').max(100),
+  phase1DailyDrawdown: z.number().min(1, 'Phase 1 daily drawdown is required').max(100),
+  phase2DailyDrawdown: z.number().min(1, 'Phase 2 daily drawdown is required').max(100),
+  fundedDailyDrawdown: z.number().min(1, 'Funded daily drawdown is required').max(100),
+
+  // Trading rules
+  minTradingDaysPhase1: z.number().min(1).max(30).default(4),
+  minTradingDaysPhase2: z.number().min(1).max(30).default(4),
+  consistencyRule: z.number().min(0).max(100).default(30),
+  trailingDrawdownEnabled: z.boolean().default(true),
+
   // Payout configuration
   payoutCycleDays: z.number().min(1).max(365).default(14),
   profitSplitPercent: z.number().min(0).max(100).default(80),
   minDaysToFirstPayout: z.number().min(0).max(90).default(4),
+
+  // Trading permissions
+  newsTradingAllowed: z.boolean().default(false),
+  weekendHoldingAllowed: z.boolean().default(false),
+  hedgingAllowed: z.boolean().default(true),
+  eaAllowed: z.boolean().default(true),
+  maxPositions: z.number().min(1).max(100).default(10),
 })
 
 // Dynamic schema that validates Phase 2 target for two-step evaluations
@@ -245,19 +270,46 @@ export function EnhancedCreateAccountDialog({
 
       const payload = {
         name: data.name.trim(),
-        number: data.number.trim(),
         firmType: finalPropfirm,
         accountSize: data.startingBalance,
         evaluationType: data.evaluationType,
-        phase1ProfitTarget: data.profitTargetPhase1,
-        phase1MaxDrawdown: data.maxDrawdown,
-        phase1DailyDrawdown: data.dailyDrawdown,
-        trailingDrawdownEnabled: true,
-        newsTradinAllowed: true,
-        initialProfitSplit: data.profitSplitPercent || 80,
-        payoutFrequencyDays: data.payoutCycleDays || 14,
-        minDaysBeforeFirstPayout: data.minDaysToFirstPayout || 7,
-        consistencyRule: 30,
+
+        // Phase account numbers
+        phase1AccountId: data.phase1AccountId?.trim() || undefined,
+
+        // Phase configurations (percentages)
+        phase1ProfitTarget: data.phase1ProfitTarget,
+        phase2ProfitTarget: data.phase2ProfitTarget,
+        phase1MaxDrawdown: data.phase1MaxDrawdown,
+        phase2MaxDrawdown: data.phase2MaxDrawdown,
+        fundedMaxDrawdown: data.fundedMaxDrawdown,
+        phase1DailyDrawdown: data.phase1DailyDrawdown,
+        phase2DailyDrawdown: data.phase2DailyDrawdown,
+        fundedDailyDrawdown: data.fundedDailyDrawdown,
+
+        // Trading rules
+        minTradingDaysPhase1: data.minTradingDaysPhase1,
+        minTradingDaysPhase2: data.minTradingDaysPhase2,
+        consistencyRule: data.consistencyRule,
+        trailingDrawdownEnabled: data.trailingDrawdownEnabled,
+
+        // Payout configuration
+        initialProfitSplit: data.profitSplitPercent,
+        payoutFrequencyDays: data.payoutCycleDays,
+        minDaysBeforeFirstPayout: data.minDaysToFirstPayout,
+
+        // Trading permissions
+        newsTradingAllowed: data.newsTradingAllowed,
+        weekendHoldingAllowed: data.weekendHoldingAllowed,
+        hedgingAllowed: data.hedgingAllowed,
+        eaAllowed: data.eaAllowed,
+        maxPositions: data.maxPositions,
+
+        // Optional fields
+        currency: 'USD',
+        leverage: 100,
+        notes: undefined,
+        isDemo: true,
       }
 
       console.log('Sending payload:', payload)
@@ -560,15 +612,21 @@ export function EnhancedCreateAccountDialog({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="number">Account Number *</Label>
+                      <Label htmlFor="phase1AccountId" className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Phase 1 Account Number (Optional)
+                      </Label>
                       <Input
-                        id="number"
-                        placeholder="e.g., PROP-123456"
-                        {...register('number')}
+                        id="phase1AccountId"
+                        placeholder="e.g., 753251"
+                        {...register('phase1AccountId')}
                       />
-                      {errors.number && (
-                        <p className="text-sm text-red-500">{errors.number.message}</p>
+                      {errors.phase1AccountId && (
+                        <p className="text-sm text-red-500">{errors.phase1AccountId.message}</p>
                       )}
+                      <p className="text-sm text-muted-foreground">
+                        Leave empty to set later. Required before adding trades to Phase 1.
+                      </p>
                     </div>
 
                     <div className="space-y-2">

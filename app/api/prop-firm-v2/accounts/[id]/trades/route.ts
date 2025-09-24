@@ -16,7 +16,7 @@ interface RouteParams {
   params: { id: string }
 }
 
-// Trade creation schema
+// Trade creation schema - CSV import trades
 const CreateTradeSchema = z.object({
   symbol: z.string().min(1),
   side: z.enum(['long', 'short']),
@@ -31,7 +31,7 @@ const CreateTradeSchema = z.object({
   comment: z.string().optional(),
   strategy: z.string().optional(),
   tags: z.array(z.string()).default([]),
-  phaseId: z.string().optional(), // If not provided, will use active phase
+  // No phaseId needed - trades go to current active phase of selected account
 })
 
 const TradeFilterSchema = z.object({
@@ -262,187 +262,186 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const resolvedParams = await params
     const accountId = resolvedParams.id
     const body = await request.json()
-    
+
     // Validate trade data
     const validatedData = CreateTradeSchema.parse(body)
-    
-    // Verify account ownership
+
+    // Verify account ownership and get account with phases
     const account = await prisma.account.findFirst({
-      where: { id: accountId, userId }
+      where: { id: accountId, userId },
+      include: {
+        phases: {
+          where: { phaseStatus: 'active' },
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }
+      }
     })
-    
+
     if (!account) {
       return NextResponse.json(
         { error: 'Account not found' },
         { status: 404 }
       )
     }
-    
-    // Get target phase (specified or active)
-    let targetPhase = null
-    if (validatedData.phaseId) {
-      targetPhase = await prisma.accountPhase?.findFirst({
-        where: { id: validatedData.phaseId, accountId }
-      })
-    } else {
-      targetPhase = await prisma.accountPhase?.findFirst({
-        where: { accountId, phaseStatus: 'active' }
-      })
-    }
-    
-    if (!targetPhase) {
+
+    // Get current active phase
+    const currentPhase = account.phases?.[0]
+    if (!currentPhase) {
       return NextResponse.json(
-        { error: 'No active phase found. Please create a phase first.' },
+        { error: 'No active phase found. Account may need to be created or may have failed.' },
+        { status: 400 }
+      )
+    }
+
+    // Validate account for trade addition
+    const validation = PropFirmEngine.validateAccountForTrade(account as any, currentPhase as any)
+    if (!validation.isValid) {
+      return NextResponse.json(
+        { error: validation.error },
         { status: 400 }
       )
     }
     
-    // Calculate trade metrics
-    const entryTime = new Date(validatedData.entryTime)
-    const exitTime = validatedData.exitTime ? new Date(validatedData.exitTime) : null
-    const isClosedTrade = exitTime && validatedData.exitPrice
-    
-    let realizedPnl = 0
-    if (isClosedTrade) {
-      // Calculate PnL based on side
-      const priceDiff = validatedData.side === 'long' ? 
-        validatedData.exitPrice! - validatedData.entryPrice :
-        validatedData.entryPrice - validatedData.exitPrice!
-      
-      realizedPnl = priceDiff * validatedData.quantity
-      realizedPnl -= (validatedData.commission + validatedData.swap + validatedData.fees)
+    // Process trade using the new engine
+    const tradeData = {
+      symbol: validatedData.symbol,
+      side: validatedData.side as 'long' | 'short',
+      quantity: validatedData.quantity,
+      entryPrice: validatedData.entryPrice,
+      exitPrice: validatedData.exitPrice,
+      entryTime: new Date(validatedData.entryTime),
+      exitTime: validatedData.exitTime ? new Date(validatedData.exitTime) : null,
+      commission: validatedData.commission,
+      swap: validatedData.swap,
+      fees: validatedData.fees,
+      comment: validatedData.comment,
+      strategy: validatedData.strategy,
     }
-    
-    // Create trade and update phase in transaction
+
     const result = await prisma.$transaction(async (tx) => {
-      // Create the trade
-      const trade = await tx.trade.create({
+      // Process trade with engine
+      const tradeResult = await PropFirmEngine.processTrade(
+        account as any,
+        currentPhase as any,
+        tradeData
+      )
+
+      const { trade, updatedPhase, shouldAdvance, breachDetected, breachType } = tradeResult
+
+      // Update phase in database
+      await tx.accountPhase.update({
+        where: { id: currentPhase.id },
         data: {
-          // New prop firm fields
+          currentEquity: updatedPhase.currentEquity,
+          currentBalance: updatedPhase.currentBalance,
+          netProfitSincePhaseStart: updatedPhase.currentEquity - updatedPhase.startingBalance,
+          highestEquitySincePhaseStart: Math.max(updatedPhase.highestEquitySincePhaseStart, updatedPhase.currentEquity),
+          totalTrades: updatedPhase.totalTrades,
+          winningTrades: updatedPhase.winningTrades,
+          totalCommission: updatedPhase.totalCommission,
+        }
+      })
+
+      // Create the trade record
+      const dbTrade = await tx.trade.create({
+        data: {
           accountId,
-          phaseId: targetPhase.id,
-          symbol: validatedData.symbol,
-          side: validatedData.side,
-          quantity: validatedData.quantity,
-          entryTime,
-          exitTime,
-          commission: validatedData.commission,
-          fees: validatedData.fees,
-          realizedPnl: isClosedTrade ? realizedPnl : null,
-          comment: validatedData.comment,
-          strategy: validatedData.strategy,
-          tags: validatedData.tags,
-          equityAtOpen: targetPhase.currentEquity,
-          equityAtClose: isClosedTrade ? targetPhase.currentEquity + realizedPnl : null,
-          
-          // Legacy fields for compatibility
-          accountNumber: account.number,
-          instrument: validatedData.symbol,
-          entryPrice: validatedData.entryPrice.toString(),
-          closePrice: validatedData.exitPrice?.toString() || '',
-          entryDate: entryTime.toISOString().split('T')[0],
-          closeDate: exitTime?.toISOString().split('T')[0] || '',
-          pnl: realizedPnl,
+          phaseId: currentPhase.id,
+          symbol: trade.symbol,
+          side: trade.side,
+          quantity: trade.quantity,
+          entryPrice: trade.entryPrice.toString(),
+          closePrice: trade.exitPrice?.toString() || '',
+          entryTime: trade.entryTime,
+          exitTime: trade.exitTime,
+          commission: trade.commission,
+          fees: trade.fees,
+          realizedPnl: trade.realizedPnl,
+          comment: trade.comment,
+          strategy: trade.strategy,
+          tags: trade.tags,
+          equityAtOpen: trade.equityAtOpen,
+          equityAtClose: trade.equityAtClose,
+
+          // Legacy compatibility
+          accountNumber: currentPhase.accountNumber,
+          instrument: trade.symbol,
+          entryDate: trade.entryTime.toISOString().split('T')[0],
+          closeDate: trade.exitTime?.toISOString().split('T')[0] || '',
+          pnl: trade.realizedPnl || 0,
           userId,
         }
       })
-      
-      // Update phase statistics if trade is closed
-      if (isClosedTrade) {
-        const isWin = realizedPnl > 0
-        const updatedPhase = await tx.accountPhase?.update({
-          where: { id: targetPhase.id },
+
+      // Handle breach if detected
+      if (breachDetected && breachType) {
+        await tx.breach.create({
           data: {
-            totalTrades: { increment: 1 },
-            winningTrades: { increment: isWin ? 1 : 0 },
-            totalCommission: { increment: validatedData.commission + validatedData.fees },
-            currentEquity: { increment: realizedPnl },
-            currentBalance: { increment: realizedPnl },
-            highestEquitySincePhaseStart: targetPhase.currentEquity + realizedPnl > targetPhase.highestEquitySincePhaseStart ?
-              { set: targetPhase.currentEquity + realizedPnl } : undefined,
+            accountId,
+            phaseId: currentPhase.id,
+            breachType,
+            breachAmount: Math.abs(updatedPhase.currentEquity - updatedPhase.startingBalance - updatedPhase.profitTarget),
+            breachThreshold: breachType === 'daily_drawdown' ?
+              currentPhase.dailyDrawdownAmount : currentPhase.maxDrawdownAmount,
+            equity: updatedPhase.currentEquity,
+            description: `Breach detected on trade ${dbTrade.id}`,
           }
         })
-        
-        // Calculate drawdown after trade
-        const newEquity = targetPhase.currentEquity + realizedPnl
-        const drawdown = PropFirmEngine.calculateDrawdown(
-          { ...targetPhase, currentEquity: newEquity } as any,
-          newEquity,
-          targetPhase.currentBalance, // Using current balance as daily anchor for now
-          account.trailingDrawdown
-        )
-        
-        // Check for breaches
-        if (drawdown.isBreached) {
-          // Create breach record
-          await tx.breach?.create({
-            data: {
-              phaseId: targetPhase.id,
-              accountId,
-              breachType: drawdown.breachType!,
-              breachAmount: drawdown.breachAmount!,
-              breachThreshold: drawdown.breachType === 'daily_drawdown' ?
-                drawdown.dailyDrawdownLimit : drawdown.maxDrawdownLimit,
-              equity: newEquity,
-              description: `Breach triggered by trade ${trade.id}`,
-              breachTime: new Date(),
-            }
-          })
-          
-          // Update phase status to failed
-          await tx.accountPhase?.update({
-            where: { id: targetPhase.id },
-            data: {
-              phaseStatus: 'failed',
-              phaseEndAt: new Date(),
-            }
-          })
-          
-          // Update account status to failed
-          await tx.account.update({
-            where: { id: accountId },
-            data: { status: 'failed' }
-          })
-        }
-        
-        // Check if phase should advance (profit target met + other conditions)
-        const progress = PropFirmEngine.calculatePhaseProgress(
-          account as any,
-          { ...targetPhase, currentEquity: newEquity } as any,
-          [] // We'd need to fetch all trades for proper calculation
-        )
-        
-        if (progress.readyToAdvance && !drawdown.isBreached) {
-          await tx.accountPhase?.update({
-            where: { id: targetPhase.id },
+
+        // Mark phase as failed
+        await tx.accountPhase.update({
+          where: { id: currentPhase.id },
+          data: { phaseStatus: 'failed' }
+        })
+
+        // Mark account as failed
+        await tx.account.update({
+          where: { id: accountId },
+          data: { status: 'failed' }
+        })
+      }
+
+      // Handle phase advancement
+      if (shouldAdvance) {
+        const nextPhaseType = PropFirmEngine.getNextPhaseType(currentPhase.phaseType, account.evaluationType as any)
+
+        if (nextPhaseType) {
+          // Mark current phase as passed
+          await tx.accountPhase.update({
+            where: { id: currentPhase.id },
             data: {
               phaseStatus: 'passed',
-              phaseEndAt: new Date(),
+              phaseEndAt: new Date()
             }
           })
-          
-          if (targetPhase.phaseType === 'phase_2') {
-            await tx.account.update({
-              where: { id: accountId },
-              data: { status: 'funded' }
-            })
-          }
+
+          // Create new phase
+          const newPhaseData = PropFirmEngine.createNewPhase(account as any, nextPhaseType)
+          await tx.accountPhase.create({
+            data: {
+              ...newPhaseData,
+              accountId,
+            }
+          })
         }
-        
-        return { trade, updatedPhase, drawdown, progress }
       }
-      
-      return { trade, updatedPhase: null, drawdown: null, progress: null }
+
+      return { dbTrade, updatedPhase, breachDetected, shouldAdvance }
     })
     
     return NextResponse.json({
       success: true,
-      trade: result.trade,
+      trade: result.dbTrade,
       phase: result.updatedPhase,
-      drawdown: result.drawdown,
-      progress: result.progress,
-      message: isClosedTrade ? 'Trade added and phase updated' : 'Open trade added',
-      warnings: result.drawdown?.isBreached ? ['Drawdown breach detected!'] : [],
+      breachDetected: result.breachDetected,
+      shouldAdvance: result.shouldAdvance,
+      message: result.breachDetected ?
+        'Trade added but account failed due to rule breach!' :
+        result.shouldAdvance ?
+        'Trade added and phase advanced successfully!' :
+        'Trade added successfully',
+      warnings: result.breachDetected ? ['Account failed due to rule breach!'] : [],
     })
     
   } catch (error) {

@@ -455,6 +455,7 @@ model AccountPhase {
   accountId                    String
   phaseType                    PhaseType
   phaseStatus                  PhaseStatus         @default(active)
+  accountNumber                String              @default("Not Set") // Phase account number (e.g., "753251")
   profitTarget                 Float?
   phaseStartAt                 DateTime            @default(now())
   phaseEndAt                   DateTime?
@@ -479,6 +480,7 @@ model AccountPhase {
   @@index([phaseStatus])
   @@index([phaseStatus, phaseType])
   @@index([accountId, phaseStatus])
+  @@index([accountNumber])
   @@schema("public")
 }
 
