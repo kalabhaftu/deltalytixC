@@ -6,7 +6,8 @@ import { TradeCard } from './components/trade-card'
 import { Trade } from '@prisma/client'
 import EnhancedEditTrade from '@/app/dashboard/components/tables/enhanced-edit-trade'
 import TradeDetailView from '@/app/dashboard/components/tables/trade-detail-view'
-import { Search, Filter, SortDesc } from 'lucide-react'
+import { useData } from '@/context/data-provider'
+import { Search, Filter, SortDesc, Lightbulb } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,224 +24,66 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { DataSerializer } from '@/lib/data-serialization'
+import { getCanonicalAssetName } from '@/lib/asset-aliases'
 
-// Fetch trades from API
-// Fetch trades with pagination
-async function fetchTrades(page: number = 1, limit: number = 200) {
-  try {
-    console.log(`Client: Fetching trades page ${page} with limit ${limit}...`)
-    const response = await fetch(`/api/trades?page=${page}&limit=${limit}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-
-    console.log('Client: Response status:', response.status)
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        console.error('Client: Authentication required - redirecting to login')
-        window.location.href = '/authentication?next=/dashboard/journal'
-        throw new Error('Authentication required')
-      }
-
-      const errorText = await response.text()
-      console.error('Client: Response error text:', errorText)
-      throw new Error(`Failed to fetch trades: ${response.status} ${response.statusText}`)
-    }
-
-    const result = await response.json()
-    console.log('Client: Response data:', result)
-
-    // Handle paginated response
-    if (result && typeof result === 'object' && 'data' in result) {
-      const tradesArray = Array.isArray(result.data) ? result.data : []
-      console.log(`Client: Received trades data, count: ${tradesArray.length}, page: ${result.page || page}, hasMore: ${result.hasMore || false}`)
-
-      return {
-        trades: tradesArray,
-        page: result.page || page,
-        hasMore: result.hasMore || false,
-        total: result.total || tradesArray.length
-      }
-    }
-
-    // Fallback for backward compatibility
-    if (Array.isArray(result)) {
-      console.log('Client: Received array response, count:', result.length)
-      return {
-        trades: result,
-        page: page,
-        hasMore: false,
-        total: result.length
-      }
-    }
-
-    console.warn('Client: Unexpected response format:', result)
-    return {
-      trades: [],
-      page: page,
-      hasMore: false,
-      total: 0
-    }
-  } catch (error) {
-    console.error('Client: Error fetching trades:', error)
-
-    // If it's an authentication error, don't show error in UI - redirect handled above
-    if (error instanceof Error && error.message === 'Authentication required') {
-      return {
-        trades: [],
-        page: page,
-        hasMore: false,
-        total: 0
-      }
-    }
-
-    // For other errors, show user-friendly message
-    throw error
-  }
-}
 
 export default function JournalPage() {
-  const [trades, setTrades] = useState<Trade[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
+  // Use main DataProvider for data management
+  const {
+    formattedTrades: allTrades,
+    refreshTrades,
+    isLoading: loading,
+    error
+  } = useData()
+
   const [searchTerm, setSearchTerm] = useState('')
   const [filterBy, setFilterBy] = useState<'all' | 'wins' | 'losses' | 'buys' | 'sells'>('all')
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [viewingTrade, setViewingTrade] = useState<Trade | null>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<string>('')
+  const [hasAttemptedInitialLoad, setHasAttemptedInitialLoad] = useState(false)
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalTrades, setTotalTrades] = useState(0)
-  const tradesPerPage = 200 // Load 200 trades at a time for better performance
-
+  // Load trades when component mounts - only once
   useEffect(() => {
-    loadTradesPage(1)
-  }, [])
+    console.log('JournalPage: Initial load check -', {
+      allTradesLength: allTrades.length,
+      loading,
+      error,
+      hasAttemptedInitialLoad
+    })
 
-  // Load trades for a specific page
-  const loadTradesPage = async (page: number) => {
-    if (page === 1) {
-      setLoading(true)
-    } else {
-      setLoadingMore(true)
+    // Only load if we have no trades, not currently loading, and haven't attempted initial load yet
+    if (allTrades.length === 0 && !loading && !hasAttemptedInitialLoad) {
+      console.log('JournalPage: Starting initial trade load...')
+      setHasAttemptedInitialLoad(true)
+      refreshTrades()
     }
+  }, [allTrades.length, loading, refreshTrades, hasAttemptedInitialLoad])
 
-    try {
-      const result = await fetchTrades(page, tradesPerPage)
-
-      if (page === 1) {
-        setTrades(result.trades)
-        setTotalTrades(result.total)
-      } else {
-        setTrades(prevTrades => [...prevTrades, ...result.trades])
-      }
-
-      setCurrentPage(page)
-      setHasMore(result.hasMore)
-
-      // Cache the first page for faster subsequent loads
-      if (page === 1 && result.trades.length > 0) {
-        try {
-          safeLocalStorageSet('journal-trades-page-1', result.trades)
-          safeLocalStorageSet('journal-trades-timestamp', Date.now().toString())
-          safeLocalStorageSet('journal-trades-total', result.total.toString())
-        } catch (error) {
-          console.warn('Failed to cache trades:', error)
-        }
-      }
-
-      console.log(`Loaded page ${page} with ${result.trades.length} trades. Total: ${result.total}`)
-    } catch (error) {
-      console.error('Failed to load trades page:', error)
-      setError(error instanceof Error ? error.message : 'Failed to load trades')
-
-      // Try to load from cache on error
-      if (page === 1) {
-        try {
-          const cachedTrades = localStorage.getItem('journal-trades-page-1')
-          const cachedTotal = localStorage.getItem('journal-trades-total')
-
-          if (cachedTrades) {
-            setTrades(JSON.parse(cachedTrades))
-            setTotalTrades(parseInt(cachedTotal || '0'))
-            console.log('Loaded from cache due to error')
-          }
-        } catch (cacheError) {
-          console.warn('Failed to load from cache:', cacheError)
-        }
-      }
-    } finally {
-      setLoading(false)
-      setLoadingMore(false)
-    }
+  // Show debug info about the data provider state
+  const getDebugInfo = () => {
+    return `DataProvider State:
+- Loaded: ${allTrades.length} trades
+- Loading: ${loading}
+- Error: ${error || 'None'}
+- Filtered: ${filteredTrades.length} trades`
   }
 
-  // Load more trades when user scrolls to bottom
-  const loadMoreTrades = () => {
-    if (!loading && !loadingMore && hasMore) {
-      loadTradesPage(currentPage + 1)
-    }
+  // Function to refresh trades
+  const manualRefresh = () => {
+    console.log('Manual refresh triggered')
+    setHasAttemptedInitialLoad(false) // Reset the flag so refresh will work
+    refreshTrades()
+    setDebugInfo('Refreshing trades...')
   }
 
-  // Utility function to safely save to localStorage with quota checking
-  const safeLocalStorageSet = (key: string, value: any): boolean => {
-    try {
-      const dataString = JSON.stringify(value)
-      const estimatedSize = new Blob([dataString]).size
-      const MAX_STORAGE_SIZE = 4 * 1024 * 1024 // 4MB safety limit
-
-      if (estimatedSize > MAX_STORAGE_SIZE) {
-        console.warn(`Cannot save ${key}: Data size (${(estimatedSize / 1024 / 1024).toFixed(2)}MB) exceeds localStorage limit`)
-        return false
-      }
-
-      localStorage.setItem(key, dataString)
-      return true
-    } catch (error) {
-      console.error(`Failed to save ${key} to localStorage:`, error)
-      return false
-    }
+  // Debug function to show current state
+  const testApiConnection = () => {
+    setDebugInfo(getDebugInfo())
   }
 
-  // Function to clear cached data and reload
-  const clearCacheAndReload = () => {
-    const keysToRemove = [
-      'journal-trades-page-1',
-      'journal-trades-timestamp',
-      'journal-trades-total'
-    ]
-
-    keysToRemove.forEach(key => localStorage.removeItem(key))
-    setDebugInfo('Cache cleared. Reloading trades...')
-    window.location.reload()
-  }
-
-  // Debug function to test API connection
-  const testApiConnection = async () => {
-    setDebugInfo('Testing API connection...')
-    try {
-      const response = await fetch('/api/trades?test=1', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      const result = await response.json()
-      setDebugInfo(`API Status: ${response.status}\nResponse: ${JSON.stringify(result, null, 2)}`)
-    } catch (error) {
-      setDebugInfo(`API Error: ${error}`)
-    }
-  }
 
   // Handle trade deletion
   const handleDeleteTrade = async (tradeId: string) => {
@@ -250,11 +93,8 @@ export default function JournalPage() {
       })
 
       if (response.ok) {
-        // Remove trade from local state and cache
-        const updatedTrades = Array.isArray(trades) ? trades.filter(t => t?.id !== tradeId) : []
-        setTrades(updatedTrades)
-        localStorage.setItem('journal-trades', JSON.stringify(updatedTrades))
-        localStorage.setItem('journal-trades-timestamp', Date.now().toString())
+        // Refresh trades from the server to get updated data
+        await refreshTrades()
         console.log('Trade deleted successfully')
       } else {
         console.error('Failed to delete trade')
@@ -282,13 +122,8 @@ export default function JournalPage() {
       })
 
       if (response.ok) {
-        // Update trade in local state and cache
-        const updatedTrades = Array.isArray(trades) ? trades.map(t =>
-          t?.id === updatedTrade.id ? { ...t, ...updatedTrade } : t
-        ) : []
-        setTrades(updatedTrades)
-        localStorage.setItem('journal-trades', JSON.stringify(updatedTrades))
-        localStorage.setItem('journal-trades-timestamp', Date.now().toString())
+        // Refresh trades from the server to get updated data
+        await refreshTrades()
         setIsEditDialogOpen(false)
         setEditingTrade(null)
         console.log('Trade updated successfully')
@@ -309,26 +144,38 @@ export default function JournalPage() {
   // Get unique journaled instruments for filtering
   const journaledInstruments = useMemo(() => {
     const instruments = new Set<string>()
-    if (Array.isArray(trades)) {
-      trades.forEach(trade => {
-        if (trade?.instrument) {
-          instruments.add(trade.instrument)
-        }
-      })
-    }
+    allTrades.forEach(trade => {
+      if (trade?.instrument) {
+        instruments.add(trade.instrument)
+      }
+    })
     return Array.from(instruments).sort()
-  }, [trades])
+  }, [allTrades])
 
   // Filter trades based on selected filter
   const filteredTrades = useMemo(() => {
-    let filtered = Array.isArray(trades) ? trades : []
+    let filtered = allTrades
 
     if (searchTerm) {
-      filtered = filtered.filter(trade =>
-        trade?.instrument?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trade?.side?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trade?.accountNumber?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      const lowerSearchTerm = searchTerm.toLowerCase()
+      const canonicalAsset = getCanonicalAssetName(searchTerm)
+
+      filtered = filtered.filter(trade => {
+        // For asset searches (indices, commodities, forex, crypto)
+        // Check if the trade's instrument matches the canonical name
+        if (canonicalAsset !== searchTerm) {
+          // This is an alias search (e.g., "nasdaq" → "NAS100")
+          return trade?.instrument === canonicalAsset
+        }
+
+        // For direct searches (BUY/SELL, account numbers, exact instrument names)
+        const instrumentMatch = trade?.instrument?.toLowerCase().includes(lowerSearchTerm)
+        const sideMatch = trade?.side?.toLowerCase().includes(lowerSearchTerm)
+        const accountMatch = trade?.accountNumber?.toLowerCase().includes(lowerSearchTerm)
+        const modelMatch = (trade as any)?.tradingModel?.toLowerCase().includes(lowerSearchTerm)
+
+        return instrumentMatch || sideMatch || accountMatch || modelMatch
+      })
     }
 
     // Apply specific filters
@@ -367,7 +214,7 @@ export default function JournalPage() {
       const dateB = new Date(b?.entryDate || 0).getTime()
       return dateB - dateA
     })
-  }, [trades, searchTerm, filterBy])
+  }, [allTrades, searchTerm, filterBy])
 
   return (
     <motion.div
@@ -392,11 +239,31 @@ export default function JournalPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            placeholder="Search trades..."
+            placeholder="Search instruments (NQ, USTECH, YM, GOLD, SILVER, buy, sell...)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
+          {searchTerm && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md p-2 text-xs text-muted-foreground z-50">
+              <div className="flex items-center gap-1 mb-1">
+                <Lightbulb className="w-3 h-3" />
+                <span>Search suggestions:</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                <span className="bg-muted px-2 py-1 rounded">NQ</span>
+                <span className="bg-muted px-2 py-1 rounded">USTECH</span>
+                <span className="bg-muted px-2 py-1 rounded">YM</span>
+                <span className="bg-muted px-2 py-1 rounded">ES</span>
+                <span className="bg-muted px-2 py-1 rounded">GOLD</span>
+                <span className="bg-muted px-2 py-1 rounded">SILVER</span>
+                <span className="bg-muted px-2 py-1 rounded">WTI</span>
+                <span className="bg-muted px-2 py-1 rounded">BRENT</span>
+                <span className="bg-muted px-2 py-1 rounded">buy</span>
+                <span className="bg-muted px-2 py-1 rounded">sell</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <DropdownMenu>
@@ -430,20 +297,10 @@ export default function JournalPage() {
           <span>
             {loading ? 'Loading...' :
              filteredTrades.length === 0 ? '0 trades' :
-             `${filteredTrades.length} of ${totalTrades} trades`}
+             `${filteredTrades.length} trades loaded`}
           </span>
-          {loadingMore && (
-            <span className="text-blue-600 text-xs">Loading more...</span>
-          )}
-          {hasMore && !loading && !loadingMore && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={loadMoreTrades}
-              className="text-xs"
-            >
-              Load More ({tradesPerPage} more)
-            </Button>
+          {loading && (
+            <span className="text-blue-600 text-xs">Loading trades...</span>
           )}
           {debugInfo && (
             <Button
@@ -466,10 +323,10 @@ export default function JournalPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={clearCacheAndReload}
+                  onClick={manualRefresh}
                   className="text-xs"
                 >
-                  Clear Cache
+                  Refresh Trades
                 </Button>
                 <Button
                   variant="ghost"
@@ -477,7 +334,7 @@ export default function JournalPage() {
                   onClick={testApiConnection}
                   className="text-xs"
                 >
-                  Test API
+                  Show State
                 </Button>
               </div>
             </div>
@@ -511,19 +368,40 @@ export default function JournalPage() {
             <p className="text-muted-foreground">{error}</p>
             <div className="flex gap-2 mt-4">
               <Button
-                onClick={() => loadTradesPage(1)}
+                onClick={() => {
+                  refreshTrades()
+                  window.location.reload()
+                }}
                 className="mt-4"
               >
                 Retry
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setError(null)}
+                onClick={() => {
+                  refreshTrades()
+                  window.location.reload()
+                }}
                 className="mt-4"
               >
-                Dismiss
+                Dismiss & Reload
               </Button>
             </div>
+          </div>
+        ) : loading ? (
+          // Show skeleton loading cards instead of empty state
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="overflow-hidden">
+                <Skeleton className="aspect-video w-full" />
+                <CardContent className="p-4 space-y-3">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-4 w-1/2" />
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : filteredTrades.length === 0 ? (
           <div className="text-center py-12">
@@ -536,8 +414,8 @@ export default function JournalPage() {
             <p className="text-muted-foreground">
               {searchTerm
                 ? 'Try adjusting your search terms'
-                : totalTrades > 0
-                  ? `${totalTrades} trades available - try clearing filters or loading more`
+                : allTrades.length > 0
+                  ? `${allTrades.length} trades loaded - try clearing filters or refreshing`
                   : 'Your trading journal will appear here once you have trades'
               }
             </p>

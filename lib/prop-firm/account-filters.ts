@@ -190,7 +190,7 @@ export class PropFirmAccountFilters {
         totalEquity += activePhase.currentEquity
       } else {
         // If no active phase, use account starting balance
-        totalEquity += account.accountSize * 1000 // Convert K to actual amount
+        totalEquity += account.accountSize
       }
     })
     
@@ -324,7 +324,7 @@ export class PropFirmAccountFilters {
           groupKey = account.status
           break
         case 'accountSize':
-          groupKey = `${account.accountSize}K`
+          groupKey = `$${account.accountSize.toLocaleString()}`
           break
         case 'currency':
           groupKey = account.currency
@@ -370,15 +370,15 @@ export class PropFirmAccountFilters {
       summary.byFirmType[account.firmType] = (summary.byFirmType[account.firmType] || 0) + 1
       
       // Count by account size
-      const sizeKey = `${account.accountSize}K`
+      const sizeKey = `$${account.accountSize.toLocaleString()}`
       summary.byAccountSize[sizeKey] = (summary.byAccountSize[sizeKey] || 0) + 1
-      
+
       // Add to totals
-      summary.totalAccountValue += account.accountSize * 1000
+      summary.totalAccountValue += account.accountSize
     })
-    
-    summary.averageAccountSize = accounts.length > 0 ? 
-      summary.totalAccountValue / (accounts.length * 1000) : 0
+
+    summary.averageAccountSize = accounts.length > 0 ?
+      summary.totalAccountValue / accounts.length : 0
     
     return summary
   }

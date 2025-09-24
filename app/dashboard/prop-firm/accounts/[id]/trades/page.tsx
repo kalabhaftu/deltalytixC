@@ -101,7 +101,7 @@ export default function AccountTradesPage() {
 
       const data = await response.json()
       if (data.success) {
-        setTrades(data.data)
+        setTrades(data.trades)
       } else {
         throw new Error(data.error || 'Failed to fetch trades')
       }

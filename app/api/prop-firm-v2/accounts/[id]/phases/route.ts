@@ -33,7 +33,8 @@ const PhaseActionSchema = z.object({
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const resolvedParams = await params
+    const accountId = resolvedParams.id
     
     // Verify account ownership
     const account = await prisma.account.findFirst({
@@ -171,7 +172,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const resolvedParams = await params
+    const accountId = resolvedParams.id
     const body = await request.json()
     
     // Validate request

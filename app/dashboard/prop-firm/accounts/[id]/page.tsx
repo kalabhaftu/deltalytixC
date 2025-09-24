@@ -428,10 +428,10 @@ export default function AccountDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {(!accountData.recentActivity?.trades || accountData.recentActivity.trades.length === 0) ? (
+                  {(!accountData.recentTrades || accountData.recentTrades.length === 0) ? (
                     <p className="text-muted-foreground text-center py-4">No recent trades</p>
                   ) : (
-                    accountData.recentActivity.trades.slice(0, 5).map((trade: PropFirmTrade) => (
+                    accountData.recentTrades.slice(0, 5).map((trade: PropFirmTrade) => (
                       <div key={trade.id} className="flex justify-between items-center">
                         <div>
                           <div className="font-medium">{trade.symbol || trade.instrument}</div>
@@ -487,13 +487,13 @@ export default function AccountDetailPage() {
               <CardTitle className="flex items-center justify-between">
                 <span>All Trades</span>
                 <Badge variant="secondary">
-                  {accountData.recentActivity?.trades?.length || 0} Total
+                  {accountData.recentTrades?.length || 0} Total
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {(!accountData.recentActivity?.trades || accountData.recentActivity.trades.length === 0) ? (
+                {(!accountData.recentTrades || accountData.recentTrades.length === 0) ? (
                   <div className="text-center py-8">
                     <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <p className="text-muted-foreground">No trades found</p>
@@ -502,9 +502,9 @@ export default function AccountDetailPage() {
                   <>
                     {/* Phase Breakdown */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                      {accountData.account.phases?.map((phase: any) => {
-                        const phaseTradeCount = accountData.recentActivity.trades.filter((t: any) => t.phaseId === phase.id).length
-                        const phasePnL = accountData.recentActivity.trades
+                      {accountData.phases?.map((phase: any) => {
+                        const phaseTradeCount = accountData.recentTrades.filter((t: any) => t.phaseId === phase.id).length
+                        const phasePnL = accountData.recentTrades
                           .filter((t: any) => t.phaseId === phase.id)
                           .reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0)
                         
@@ -552,11 +552,11 @@ export default function AccountDetailPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {accountData.recentActivity.trades.slice(0, 20).map((trade: PropFirmTrade, index: number) => (
+                            {accountData.recentTrades.slice(0, 20).map((trade: PropFirmTrade, index: number) => (
                               <tr key={trade.id} className={cn("border-b", index % 2 === 0 ? "bg-background" : "bg-muted/25")}>
                                 <td className="p-3 font-medium">{trade.symbol || trade.instrument}</td>
                                 <td className="p-3">
-                                  <Badge variant={trade.side?.toUpperCase() === 'BUY' ? 'default' : 'secondary'}>
+                                  <Badge variant={(trade.side?.toUpperCase() || 'N/A') === 'BUY' ? 'default' : 'secondary'}>
                                     {trade.side?.toUpperCase() || 'N/A'}
                                   </Badge>
                                 </td>
@@ -582,10 +582,10 @@ export default function AccountDetailPage() {
                       </div>
                     </div>
 
-                    {accountData.recentActivity.trades.length > 20 && (
+                    {accountData.recentTrades.length > 20 && (
                       <div className="text-center py-4">
                         <Button variant="outline" size="sm">
-                          View All Trades ({accountData.recentActivity.trades.length})
+                          View All Trades ({accountData.recentTrades.length})
                         </Button>
                       </div>
                     )}
@@ -610,13 +610,13 @@ export default function AccountDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Total Trades</p>
-                    <p className="text-2xl font-bold">{accountData.recentActivity?.trades?.length || 0}</p>
+                    <p className="text-2xl font-bold">{accountData.recentTrades?.length || 0}</p>
                   </div>
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Win Rate</p>
                     <p className="text-2xl font-bold text-green-600">
                       {(() => {
-                        const trades = accountData.recentActivity?.trades || []
+                        const trades = accountData.recentTrades || []
                         const winningTrades = trades.filter((t: any) => (t.realizedPnl || t.pnl) > 0).length
                         const losingTrades = trades.filter((t: any) => (t.realizedPnl || t.pnl) < 0).length
                         const tradableTradesCount = winningTrades + losingTrades
@@ -626,22 +626,22 @@ export default function AccountDetailPage() {
                   </div>
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Total P&L</p>
-                    <p className={cn("text-2xl font-bold", 
-                      (accountData.recentActivity?.trades?.reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0) || 0) >= 0 
+                    <p className={cn("text-2xl font-bold",
+                      (accountData.recentTrades?.reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0) || 0) >= 0
                         ? "text-green-600" : "text-red-600"
                     )}>
-                      {formatCurrency(accountData.recentActivity?.trades?.reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0) || 0)}
+                      {formatCurrency(accountData.recentTrades?.reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0) || 0)}
                     </p>
                   </div>
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Avg Trade</p>
                     <p className={cn("text-2xl font-bold",
-                      (accountData.recentActivity?.trades?.length > 0 
-                        ? (accountData.recentActivity.trades.reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0) / accountData.recentActivity.trades.length)
+                      (accountData.recentTrades?.length > 0
+                        ? (accountData.recentTrades.reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0) / accountData.recentTrades.length)
                         : 0) >= 0 ? "text-green-600" : "text-red-600"
                     )}>
-                      {accountData.recentActivity?.trades?.length > 0 
-                        ? formatCurrency(accountData.recentActivity.trades.reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0) / accountData.recentActivity.trades.length)
+                      {accountData.recentTrades?.length > 0
+                        ? formatCurrency(accountData.recentTrades.reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0) / accountData.recentTrades.length)
                         : formatCurrency(0)
                       }
                     </p>
@@ -657,14 +657,14 @@ export default function AccountDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {accountData.account.phases?.map((phase: any) => {
-                    const phaseTrades = accountData.recentActivity?.trades?.filter((t: any) => t.phaseId === phase.id) || []
+                  {accountData.phases?.map((phase: any) => {
+                    const phaseTrades = accountData.recentTrades?.filter((t: any) => t.phaseId === phase.id) || []
                     const phasePnL = phaseTrades.reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0)
                     // Calculate win rate excluding break-even trades (industry standard)
                     const winningTrades = phaseTrades.filter((t: any) => (t.realizedPnl || t.pnl) > 0).length
                     const losingTrades = phaseTrades.filter((t: any) => (t.realizedPnl || t.pnl) < 0).length
                     const tradableTradesCount = winningTrades + losingTrades
-                    const phaseWinRate = tradableTradesCount > 0 
+                    const phaseWinRate = tradableTradesCount > 0
                       ? Math.round((winningTrades / tradableTradesCount) * 100)
                       : 0
                     
@@ -735,7 +735,7 @@ export default function AccountDetailPage() {
             </CardHeader>
             <CardContent>
                 {(() => {
-                  const instrumentStats = (accountData.recentActivity?.trades || []).reduce((acc: any, trade: any) => {
+                  const instrumentStats = (accountData.recentTrades || []).reduce((acc: any, trade: any) => {
                     const symbol = trade.symbol || trade.instrument || 'Unknown'
                     if (!acc[symbol]) {
                       acc[symbol] = { trades: 0, pnl: 0, wins: 0, losses: 0 }
@@ -861,12 +861,12 @@ export default function AccountDetailPage() {
                 <CardTitle className="flex items-center justify-between">
                   <span>Payout History</span>
                   <Badge variant="outline">
-                    {accountData.account.payouts?.length || 0} Total
+                    {accountData.payoutHistory?.length || 0} Total
                   </Badge>
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                {(!accountData.account.payouts || accountData.account.payouts.length === 0) ? (
+                {(!accountData.payoutHistory || accountData.payoutHistory.length === 0) ? (
                   <div className="text-center py-8">
                     <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <p className="text-muted-foreground">No payout history</p>
@@ -878,7 +878,7 @@ export default function AccountDetailPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {accountData.account.payouts.map((payout: any) => (
+                    {accountData.payoutHistory.map((payout: any) => (
                       <div key={payout.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div>
                           <div className="font-medium">
@@ -945,7 +945,7 @@ export default function AccountDetailPage() {
                         account.status === 'funded' ? 'default' :
                         account.status === 'failed' ? 'destructive' : 'secondary'
                       }>
-                        {account.status.toUpperCase()}
+                        {account.status?.toUpperCase() || 'UNKNOWN'}
                       </Badge>
                     </div>
                   </div>
@@ -1004,7 +1004,7 @@ export default function AccountDetailPage() {
                     </div>
                     <div>
                       <label className="text-sm text-muted-foreground">Drawdown Mode</label>
-                      <p className="font-medium">{account.drawdownModeMax.toUpperCase()}</p>
+                      <p className="font-medium">{account.drawdownModeMax?.toUpperCase() || 'STATIC'}</p>
                     </div>
                   </div>
                   <div className="space-y-4">
@@ -1075,7 +1075,7 @@ export default function AccountDetailPage() {
             )}
 
             {/* Breach History */}
-            {accountData.recentActivity?.breaches && accountData.recentActivity.breaches.length > 0 && (
+            {accountData.phases && accountData.phases.some((phase: any) => phase.breaches?.length > 0) && (
           <Card>
             <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-red-600">
@@ -1084,8 +1084,8 @@ export default function AccountDetailPage() {
                   </CardTitle>
             </CardHeader>
             <CardContent>
-                  <div className="space-y-4">
-                    {accountData.recentActivity.breaches.map((breach: any) => (
+                <div className="space-y-4">
+                  {accountData.phases.flatMap((phase: any) => phase.breaches || []).map((breach: any) => (
                       <div key={breach.id} className="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-red-50">
                         <div>
                           <div className="font-medium text-red-800">

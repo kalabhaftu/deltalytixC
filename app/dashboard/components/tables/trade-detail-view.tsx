@@ -305,9 +305,9 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
       {selectedImage && (
         <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
           <DialogContent className="max-w-[95vw] max-h-[95vh] p-2">
-            <VisuallyHidden>
+            <DialogHeader>
               <DialogTitle>Image Viewer</DialogTitle>
-            </VisuallyHidden>
+            </DialogHeader>
             <div className="relative w-full h-[85vh]">
               <Button
                 variant="outline"

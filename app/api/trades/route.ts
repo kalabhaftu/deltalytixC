@@ -30,7 +30,8 @@ export async function GET(request: NextRequest) {
     const test = searchParams.get('test') === '1'
 
     // For streaming responses, use a smaller page size to avoid memory issues
-    const actualLimit = stream ? Math.min(limit, 50) : limit
+    // For large requests (like loading all trades), cap at 5000 to prevent memory issues
+    const actualLimit = stream ? Math.min(limit, 50) : Math.min(limit, 5000)
 
     console.log(`API: Fetching trades with pagination - page: ${page}, limit: ${actualLimit}, offset: ${offset}, stream: ${stream}`)
 
@@ -40,9 +41,16 @@ export async function GET(request: NextRequest) {
 
       // Test database connectivity
       let dbStatus = 'unknown'
+      let tradeCount = 0
       try {
         await prisma.$queryRaw`SELECT 1 as test_connection`
         dbStatus = 'connected'
+
+        // Get actual trade count
+        const countResult = await prisma.trade.count({
+          where: { userId }
+        })
+        tradeCount = countResult
       } catch (error) {
         console.error('API: Database connection test failed:', error)
         dbStatus = 'disconnected'
@@ -59,7 +67,9 @@ export async function GET(request: NextRequest) {
           page,
           limit,
           offset,
-          databaseStatus: dbStatus
+          databaseStatus: dbStatus,
+          tradeCount: tradeCount,
+          requestUrl: request.url
         }
       })
     }

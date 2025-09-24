@@ -15,7 +15,8 @@ export async function POST(
 ) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const resolvedParams = await params
+    const accountId = resolvedParams.id
 
     // Parse request body
     const { reason, forceTransition } = await request.json()

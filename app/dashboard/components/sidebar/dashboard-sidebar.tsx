@@ -65,6 +65,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isHydrated, setIsHydrated] = useState(false)
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   // Load saved state from localStorage after hydration
   useEffect(() => {
@@ -125,7 +126,13 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
                           ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]" 
                           : "hover:bg-accent/80 hover:shadow-md hover:scale-[1.02] hover:translate-x-1"
                       )}
-                      onClick={() => onTabChange(item.id)}
+                      onClick={() => {
+                        onTabChange(item.id)
+                        // Close mobile sheet when navigation item is selected
+                        if (isMobile) {
+                          setIsSheetOpen(false)
+                        }
+                      }}
                     >
                       <Icon className={cn(
                         "h-5 w-5 shrink-0 transition-all duration-300",
@@ -183,7 +190,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
   // Mobile sidebar with sheet
   if (isMobile) {
     return (
-      <Sheet>
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}

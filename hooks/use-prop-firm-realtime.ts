@@ -100,10 +100,11 @@ export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePro
       }
 
       const data = await response.json()
-      
-      if (data.success && data.data) {
-        const accountData = data.data.account
-        const drawdownData = data.data.drawdown
+
+      // Handle both direct data response and wrapped response formats
+      if (data.account && data.drawdown) {
+        const accountData = data.account
+        const drawdownData = data.drawdown
 
         // Check for status changes and show notifications
         if (account && account.status !== accountData.status) {

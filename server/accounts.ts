@@ -314,8 +314,27 @@ export async function getAccountsAction() {
           }
         }
 
+        // Get trade counts for all accounts
+        const accountIds = accounts.map(account => account.id)
+        const tradeCounts = await prisma.trade.groupBy({
+          by: ['accountId'],
+          where: {
+            accountId: { in: accountIds }
+          },
+          _count: {
+            id: true
+          }
+        })
+
+        // Create a map of account ID to trade count
+        const tradeCountMap = new Map()
+        tradeCounts.forEach(tc => {
+          tradeCountMap.set(tc.accountId, tc._count.id)
+        })
+
         return accounts.map((account: any) => ({
           ...account,
+          tradeCount: tradeCountMap.get(account.id) || 0,
           payouts: [], // Empty for performance - load on demand if needed
         }))
       },

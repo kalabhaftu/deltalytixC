@@ -53,7 +53,8 @@ const TradeFilterSchema = z.object({
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const resolvedParams = await params
+    const accountId = resolvedParams.id
     const { searchParams } = new URL(request.url)
     
     // Verify account ownership
@@ -70,18 +71,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     
     // Parse filters
     const filterData = {
-      phaseId: searchParams.get('error') || undefined,
+      phaseId: searchParams.get('phaseId') || undefined,
       symbol: searchParams.get('symbol') || undefined,
       side: searchParams.get('side') as 'long' | 'short' | undefined,
-      strategy: searchParams.get('error') || undefined,
-      dateFrom: searchParams.get('error') || undefined,
-      dateTo: searchParams.get('error') || undefined,
-      minPnl: searchParams.get('error') ? parseFloat(searchParams.get('error')!) : undefined,
-      maxPnl: searchParams.get('error') ? parseFloat(searchParams.get('error')!) : undefined,
-      page: parseInt(searchParams.get('error') || '1'),
-      limit: parseInt(searchParams.get('error') || '50'),
-      sortBy: searchParams.get('error') || 'entryTime',
-      sortOrder: (searchParams.get('error') as 'asc' | 'desc') || 'desc',
+      strategy: searchParams.get('strategy') || undefined,
+      dateFrom: searchParams.get('dateFrom') || undefined,
+      dateTo: searchParams.get('dateTo') || undefined,
+      minPnl: searchParams.get('minPnl') ? parseFloat(searchParams.get('minPnl')!) : undefined,
+      maxPnl: searchParams.get('maxPnl') ? parseFloat(searchParams.get('maxPnl')!) : undefined,
+      page: parseInt(searchParams.get('page') || '1'),
+      limit: parseInt(searchParams.get('limit') || '50'),
+      sortBy: searchParams.get('sortBy') || 'entryTime',
+      sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
     }
     
     const filters = TradeFilterSchema.parse(filterData)
@@ -258,7 +259,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const resolvedParams = await params
+    const accountId = resolvedParams.id
     const body = await request.json()
     
     // Validate trade data

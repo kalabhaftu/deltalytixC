@@ -32,7 +32,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useTheme } from '@/context/theme-provider'
 import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
-import { useModalStateStore } from '@/store/modal-state-store'   
+import { useModalStateStore } from '@/store/modal-state-store'
 import { useUserStore } from '@/store/user-store'
 
 export default function Navbar() {
@@ -55,6 +55,7 @@ export default function Navbar() {
 
   const handleThemeChange = (value: string) => {
     setTheme(value as "light" | "dark" | "system")
+    setIsLogoPopoverOpen(false)
   }
 
   const getThemeIcon = () => {
@@ -160,9 +161,10 @@ export default function Navbar() {
                         </CommandItem>
                       </CommandGroup>
                     </CommandList>
-                    <Separator />
-                    <div className="p-4">
-                    <div className="mb-2 text-sm font-medium">Theme Intensity</div>
+                    {/* Theme intensity slider - hidden on mobile */}
+                    <Separator className="hidden sm:block" />
+                    <div className="p-4 hidden sm:block">
+                      <div className="mb-2 text-sm font-medium">Theme Intensity</div>
                       <Slider
                         value={[intensity]}
                         onValueChange={([value]) => setIntensity(value)}

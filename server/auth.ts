@@ -481,10 +481,23 @@ export async function getUserId(): Promise<string> {
       if (error.message?.includes("timeout")) {
         throw new Error("Authentication service temporarily unavailable")
       }
+
+      // Temporary workaround for development
+      if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEV_MODE === 'true') {
+        console.log('[Auth] Development mode: Using test user ID (Supabase error)')
+        return 'test-user-12345-abcdef'
+      }
+
       throw new Error("User not authenticated")
     }
 
     if (!user) {
+      // Temporary workaround for development
+      if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEV_MODE === 'true') {
+        console.log('[Auth] Development mode: Using test user ID (no user found)')
+        return 'test-user-12345-abcdef'
+      }
+
       throw new Error("User not authenticated")
     }
 

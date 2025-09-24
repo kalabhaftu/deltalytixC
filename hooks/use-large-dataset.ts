@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { DataSerializer } from '@/lib/data-serialization'
+import { Trade } from '@prisma/client'
 
 export interface LargeDatasetConfig {
   pageSize: number
@@ -201,5 +202,119 @@ export const useLargeDataset = <T>(
     loadMore,
     refresh,
     clearCache
+  }
+}
+
+// Shared trades data hook for dashboard and journal
+export const useSharedTrades = () => {
+  const [allTrades, setAllTrades] = useState<Trade[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [totalCount, setTotalCount] = useState(0)
+
+  const pageSize = 200 // Load 200 trades at a time
+
+  // Simplified helper function for fetching trades
+  const fetchTrades = useCallback(async (limit: number = pageSize): Promise<Trade[]> => {
+    try {
+      console.log(`fetchTrades: Fetching ${limit} trades`)
+
+      const response = await fetch(`/api/trades?limit=${limit}&page=1`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch trades: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      if (result && result.success && result.data) {
+        const tradesArray = Array.isArray(result.data) ? result.data : []
+        console.log(`fetchTrades: Successfully fetched ${tradesArray.length} trades`)
+        return tradesArray
+      }
+
+      throw new Error('Invalid response format')
+    } catch (error) {
+      console.error('Error fetching trades:', error)
+      throw error
+    }
+  }, [])
+
+  const loadAllTrades = useCallback(async () => {
+    if (loading) {
+      console.log('loadAllTrades: Already loading, skipping')
+      return
+    }
+
+    console.log('loadAllTrades: Starting to load all trades')
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Clear existing trades and start fresh
+      setAllTrades([])
+
+      // Load all trades at once using the simplified helper
+      const tradesArray = await fetchTrades(5000) // Load up to 5000 trades at once
+      console.log(`loadAllTrades: Loaded ${tradesArray.length} trades in one request`)
+
+      setAllTrades(tradesArray)
+      setTotalCount(tradesArray.length)
+
+      console.log(`loadAllTrades: Successfully loaded ${tradesArray.length} trades`)
+      setLoading(false)
+    } catch (error) {
+      console.error('loadAllTrades: Error loading trades:', error)
+      setError(error instanceof Error ? error.message : 'Failed to load trades')
+      setLoading(false)
+    }
+  }, [loading, fetchTrades])
+
+  const loadMoreTrades = useCallback(async () => {
+    if (loading) return
+
+    console.log(`loadMoreTrades: Loading more trades - current: ${allTrades.length}`)
+
+    setLoading(true)
+
+    try {
+      // Load additional trades using the simplified helper
+      const moreTrades = await fetchTrades(pageSize)
+
+      if (moreTrades.length === 0) {
+        console.log('loadMoreTrades: No more trades to load')
+      } else {
+        // Append to existing trades
+        setAllTrades(prev => [...prev, ...moreTrades])
+        console.log(`loadMoreTrades: Loaded ${moreTrades.length} additional trades`)
+      }
+
+      setLoading(false)
+    } catch (error) {
+      console.error('loadMoreTrades: Error loading more trades:', error)
+      setError(error instanceof Error ? error.message : 'Failed to load more trades')
+      setLoading(false)
+    }
+  }, [loading, allTrades.length, fetchTrades, pageSize])
+
+  const clearTrades = useCallback(() => {
+    setAllTrades([])
+    setTotalCount(0)
+    setError(null)
+  }, [])
+
+  return {
+    allTrades,
+    loading,
+    error,
+    totalCount,
+    loadAllTrades,
+    loadMoreTrades,
+    clearTrades
   }
 }

@@ -147,10 +147,21 @@ const PROP_FIRMS = [
       evaluationType: 'two_step' as const
     }
   },
+  {
+    name: 'Maven',
+    category: 'Popular',
+    color: 'blue',
+    typical: {
+      profitTarget: 10,
+      dailyDrawdown: 5,
+      maxDrawdown: 10,
+      evaluationType: 'two_step' as const
+    }
+  },
 ]
 
 const OTHER_PROP_FIRMS = [
-  'TrueForexFunds', 'Equity Edge', 'Maven', 'Funding Pips', 'Top Step',
+  'TrueForexFunds', 'Equity Edge', 'Funding Pips', 'Top Step',
   'Apex Trader Funding', 'Leeloo Trading', 'City Traders Imperium',
   'Smart Prop Trader', 'Funded Trading Plus', 'Blue Guardian'
 ]
@@ -251,13 +262,35 @@ export function EnhancedCreateAccountDialog({
 
       console.log('Sending payload:', payload)
 
-      const response = await fetch('/api/prop-firm-v2/accounts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      })
+      // Add retry logic for authentication errors
+      let response: Response | undefined
+      let retryCount = 0
+      const maxRetries = 2
+
+      while (retryCount <= maxRetries) {
+        try {
+          response = await fetch('/api/prop-firm-v2/accounts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+          })
+          break // Success, exit retry loop
+        } catch (fetchError) {
+          if (retryCount < maxRetries) {
+            console.log(`Fetch attempt ${retryCount + 1} failed, retrying...`)
+            retryCount++
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)) // Exponential backoff
+          } else {
+            throw fetchError
+          }
+        }
+      }
+
+      if (!response) {
+        throw new Error('Failed to connect to server after multiple retries')
+      }
 
       console.log('Response status:', response.status)
       const result = await response.json()
@@ -265,6 +298,14 @@ export function EnhancedCreateAccountDialog({
 
       if (!response.ok) {
         console.error('API Error:', result)
+
+        // Handle specific authentication errors
+        if (result.error?.includes('Authentication service temporarily unavailable') ||
+            result.error?.includes('ConnectTimeoutError') ||
+            result.error?.includes('fetch failed')) {
+          throw new Error('Authentication service is currently unavailable. Please check your internet connection and try again in a few moments.')
+        }
+
         throw new Error(result.error || 'Failed to create prop firm account')
       }
 
@@ -288,9 +329,26 @@ export function EnhancedCreateAccountDialog({
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined
       })
+
+      let errorMessage = "An unexpected error occurred"
+
+      if (error instanceof Error) {
+        if (error.message.includes('Authentication service temporarily unavailable') ||
+            error.message.includes('ConnectTimeoutError') ||
+            error.message.includes('fetch failed')) {
+          errorMessage = 'Authentication service is currently unavailable. Please check your internet connection and try again in a few moments.'
+        } else if (error.message.includes('Network connection error')) {
+          errorMessage = 'Network connection error. Please check your internet connection and try again.'
+        } else if (error.message.includes('Validation error')) {
+          errorMessage = 'Please check that all required fields are filled correctly.'
+        } else {
+          errorMessage = error.message
+        }
+      }
+
       toast({
         title: "Failed to create account",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {

@@ -58,7 +58,8 @@ const UpdateAccountSchema = z.object({
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const resolvedParams = await params
+    const accountId = resolvedParams.id
     
     // Get account with all related data
     const account = await prisma.account.findFirst({
@@ -110,10 +111,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
     
     // Get payout history
-    const payouts = await prisma.payout?.findMany({
-      where: { accountId },
-      orderBy: { date: 'desc' }
-    }) || []
+    let payouts: any[] = []
+    try {
+      payouts = await prisma.payout.findMany({
+        where: { accountId },
+        orderBy: { date: 'desc' }
+      })
+    } catch (error) {
+      // Payout model might not exist, use empty array
+      console.warn('Payout model not available:', error)
+      payouts = []
+    }
     
     // Calculate comprehensive metrics if we have a current phase
     let drawdownData = null
@@ -236,7 +244,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const resolvedParams = await params
+    const accountId = resolvedParams.id
     const body = await request.json()
     
     // Validate request data
@@ -294,7 +303,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const accountId = params.id
+    const resolvedParams = await params
+    const accountId = resolvedParams.id
     
     // Check if account exists and belongs to user
     const existingAccount = await prisma.account.findFirst({

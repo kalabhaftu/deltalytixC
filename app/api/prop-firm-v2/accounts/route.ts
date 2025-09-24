@@ -15,7 +15,7 @@ const prisma = new PrismaClient()
 
 // Validation schemas
 const CreateAccountSchema = z.object({
-  firmType: z.enum(['FTMO', 'MyForexFunds', 'FundedNext', 'TheForexFirm', 'TopTierTrader', 'SurgeTrader', 'TrueForexFunds', 'FundingTraders', 'E8Funding', 'FastTrackTrading', 'Other']),
+  firmType: z.enum(['FTMO', 'MyForexFunds', 'FundedNext', 'TheForexFirm', 'TopTierTrader', 'SurgeTrader', 'TrueForexFunds', 'FundingTraders', 'E8Funding', 'FastTrackTrading', 'Maven', 'Other']),
   accountSize: z.number().positive(),
   currency: z.string().default('USD'),
   leverage: z.number().default(100),
@@ -264,10 +264,10 @@ export async function POST(request: NextRequest) {
       const account = await tx.account.create({
         data: {
           userId,
-          name: validatedData.name || `${validatedData.firmType} ${validatedData.accountSize}K`,
+          name: validatedData.name || `${validatedData.firmType} $${validatedData.accountSize.toLocaleString()}`,
           propfirm: validatedData.firmType,
           accountSize: validatedData.accountSize.toString(),
-          startingBalance: validatedData.accountSize * 1000, // Convert K to actual amount
+          startingBalance: validatedData.accountSize,
           number: `${Date.now()}`, // Generate a unique account number
           broker: validatedData.firmType, // Use firmType as broker for now
 
@@ -278,9 +278,9 @@ export async function POST(request: NextRequest) {
           payoutCycleDays: validatedData.payoutFrequencyDays || 14,
           minDaysToFirstPayout: validatedData.minDaysBeforeFirstPayout || 7,
           consistencyPercentage: validatedData.consistencyRule || 30,
-          dailyDrawdownAmount: (validatedData.accountSize * 1000 * (validatedData.phase1DailyDrawdown || 5)) / 100,
-          maxDrawdownAmount: (validatedData.accountSize * 1000 * (validatedData.phase1MaxDrawdown || 10)) / 100,
-          profitTarget: (validatedData.accountSize * 1000 * (validatedData.phase1ProfitTarget || 10)) / 100,
+          dailyDrawdownAmount: (validatedData.accountSize * (validatedData.phase1DailyDrawdown || 5)) / 100,
+          maxDrawdownAmount: (validatedData.accountSize * (validatedData.phase1MaxDrawdown || 10)) / 100,
+          profitTarget: (validatedData.accountSize * (validatedData.phase1ProfitTarget || 10)) / 100,
           status: 'active',
           evaluationType: validatedData.evaluationType || 'two_step',
           dailyDrawdownType: 'percent',
@@ -305,11 +305,11 @@ export async function POST(request: NextRequest) {
           accountId: account.id,
           phaseType: 'phase_1',
           phaseStatus: 'active',
-          profitTarget: (validatedData.accountSize * 1000 * (validatedData.phase1ProfitTarget || 10)) / 100,
-          currentEquity: validatedData.accountSize * 1000,
-          currentBalance: validatedData.accountSize * 1000,
+          profitTarget: (validatedData.accountSize * (validatedData.phase1ProfitTarget || 10)) / 100,
+          currentEquity: validatedData.accountSize,
+          currentBalance: validatedData.accountSize,
           netProfitSincePhaseStart: 0,
-          highestEquitySincePhaseStart: validatedData.accountSize * 1000,
+          highestEquitySincePhaseStart: validatedData.accountSize,
           totalTrades: 0,
           winningTrades: 0,
           totalCommission: 0,
@@ -332,14 +332,37 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('Error creating prop firm account:', error)
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation error', details: error.errors },
         { status: 400 }
       )
     }
-    
+
+    // Handle authentication-specific errors
+    if (error instanceof Error) {
+      if (error.message === "Authentication service temporarily unavailable") {
+        return NextResponse.json(
+          {
+            error: 'Authentication service is currently unavailable. Please check your internet connection and try again in a few moments.',
+            details: 'Supabase authentication timeout'
+          },
+          { status: 503 } // Service Unavailable
+        )
+      }
+
+      if (error.message.includes("fetch failed") || error.message.includes("ConnectTimeoutError")) {
+        return NextResponse.json(
+          {
+            error: 'Network connection error. Please check your internet connection and try again.',
+            details: 'Connection timeout'
+          },
+          { status: 503 } // Service Unavailable
+        )
+      }
+    }
+
     return NextResponse.json(
       { error: 'Failed to create account', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
