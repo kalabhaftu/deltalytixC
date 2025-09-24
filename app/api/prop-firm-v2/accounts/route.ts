@@ -202,10 +202,9 @@ export async function GET(request: NextRequest) {
             accountNumber: currentPhase.accountNumber, // Phase account number
             profitTarget: currentPhase.profitTarget,
             currentEquity: currentPhase.currentEquity,
-            startingBalance: currentPhase.startingBalance,
+            startingBalance: currentPhase.currentBalance,
             totalTrades: currentPhase.totalTrades,
             winningTrades: currentPhase.winningTrades,
-            daysTraded: currentPhase.daysTraded,
             phaseDisplayInfo: phaseDisplayInfo,
           } : null,
 
@@ -268,7 +267,7 @@ export async function POST(request: NextRequest) {
           userId,
           name: validatedData.name,
           propfirm: validatedData.firmType,
-          accountSize: validatedData.accountSize,
+          accountSize: validatedData.accountSize.toString(),
           startingBalance: validatedData.accountSize,
           number: `${Date.now()}`, // Master ID (internal)
           currency: validatedData.currency,
@@ -345,9 +344,6 @@ export async function POST(request: NextRequest) {
           totalTrades: 0,
           winningTrades: 0,
           totalCommission: 0,
-          minTradingDays: validatedData.minTradingDaysPhase1,
-          maxDrawdownAmount: (validatedData.accountSize * validatedData.phase1MaxDrawdown) / 100,
-          dailyDrawdownAmount: (validatedData.accountSize * validatedData.phase1DailyDrawdown) / 100,
         }
       })
 

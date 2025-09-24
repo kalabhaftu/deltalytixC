@@ -18,40 +18,41 @@ export interface PropFirmAccount {
   id: string // Master ID (internal)
   userId: string
   name: string // Display name (e.g., "My Maven")
-  firmType: string
-  accountSize: number
+  propfirm: string // Firm type
+  accountSize: string // Account size as string in DB
+  startingBalance: number // Numeric version for calculations
   currency: string
   leverage: number
   evaluationType: 'one_step' | 'two_step'
+  status: 'active' | 'failed' | 'passed' | 'funded' | null
 
   // Phase account numbers (user-provided)
-  phase1AccountId?: string // Phase 1 account number (e.g., "753251")
-  phase2AccountId?: string // Phase 2 account number (e.g., "756009")
-  fundedAccountId?: string // Funded account number (e.g., "760314")
+  phase1AccountId?: string | null
+  phase2AccountId?: string | null
+  fundedAccountId?: string | null
 
   // Status and dates
-  status: 'active' | 'failed' | 'passed' | 'funded'
   createdAt: Date
-  purchaseDate?: Date
-  challengeStartDate?: Date
-  challengeEndDate?: Date
-  fundedDate?: Date
+  purchaseDate?: Date | null
+  challengeStartDate?: Date | null
+  challengeEndDate?: Date | null
+  fundedDate?: Date | null
 
   // Phase-specific configurations
-  phase1ProfitTarget: number // e.g., 8%
-  phase2ProfitTarget: number // e.g., 5%
-  phase1MaxDrawdown: number  // e.g., 10%
-  phase2MaxDrawdown: number  // e.g., 10%
-  fundedMaxDrawdown: number  // e.g., 5%
-  phase1DailyDrawdown: number // e.g., 5%
-  phase2DailyDrawdown: number // e.g., 5%
-  fundedDailyDrawdown: number // e.g., 3%
+  phase1ProfitTarget: number
+  phase2ProfitTarget: number
+  phase1MaxDrawdown: number
+  phase2MaxDrawdown: number
+  fundedMaxDrawdown: number
+  phase1DailyDrawdown: number
+  phase2DailyDrawdown: number
+  fundedDailyDrawdown: number
 
   // Trading rules
   minTradingDaysPhase1: number
   minTradingDaysPhase2: number
-  maxTradingDaysPhase1?: number
-  maxTradingDaysPhase2?: number
+  maxTradingDaysPhase1?: number | null
+  maxTradingDaysPhase2?: number | null
   consistencyRule: number
   trailingDrawdownEnabled: boolean
 
@@ -60,18 +61,19 @@ export interface PropFirmAccount {
   maxProfitSplit: number
   profitSplitIncrementPerPayout: number
   minPayoutAmount: number
-  maxPayoutAmount?: number
+  maxPayoutAmount?: number | null
   payoutFrequencyDays: number
   minDaysBeforeFirstPayout: number
+
+  // Additional Prisma fields
+  phases?: any[]
 }
 
 export interface PropFirmPhase {
   id: string
   accountId: string
   phaseType: 'phase_1' | 'phase_2' | 'funded'
-  status: 'active' | 'passed' | 'failed' | 'pending'
-
-  // Phase account number (user-provided)
+  phaseStatus: 'active' | 'passed' | 'failed' | 'pending'
   accountNumber: string
 
   // Phase configuration
@@ -80,42 +82,31 @@ export interface PropFirmPhase {
   currentEquity: number
   highWaterMark: number
 
-  // Targets and limits (calculated from account)
-  profitTarget: number
-  profitTargetPercent: number
+  // Targets and limits
+  profitTarget: number | null
   maxDrawdownAmount: number
-  maxDrawdownPercent: number
   dailyDrawdownAmount: number
-  dailyDrawdownPercent: number
   minTradingDays: number
-  maxTradingDays?: number
+  maxTradingDays?: number | null
 
   // Progress tracking
   startedAt: Date
-  completedAt?: Date
-  failedAt?: Date
+  completedAt?: Date | null
+  failedAt?: Date | null
   daysTraded: number
 
   // Statistics
   totalTrades: number
   winningTrades: number
-  losingTrades: number
-  totalVolume: number
   totalCommission: number
-  totalSwap: number
-  bestTrade: number
-  worstTrade: number
-  currentStreak: number
-  bestStreak: number
-  worstStreak: number
 
-  // Risk metrics
-  maxDrawdownEncountered: number
-  maxDailyLoss: number
-  avgTradeSize: number
-  profitFactor: number
-  winRate: number
-  riskRewardRatio: number
+  // Additional fields from Prisma model
+  phaseStartAt: Date
+  phaseEndAt?: Date | null
+  netProfitSincePhaseStart: number
+  highestEquitySincePhaseStart: number
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface PropFirmTrade {
@@ -137,6 +128,7 @@ export interface PropFirmTrade {
   equityAtClose?: number
   comment?: string
   strategy?: string
+  tags: string[]
   // Legacy fields for compatibility
   accountNumber?: string
   instrument?: string
@@ -204,7 +196,7 @@ export class PropFirmEngine {
    * Trades should be added to this phase
    */
   static getCurrentActivePhase(account: PropFirmAccount, phases: PropFirmPhase[]): PropFirmPhase | null {
-    return phases.find(phase => phase.status === 'active') || null
+    return phases.find(phase => phase.phaseStatus === 'active') || null
   }
 
   /**
@@ -245,8 +237,8 @@ export class PropFirmEngine {
   static createNewPhase(
     account: PropFirmAccount,
     phaseType: 'phase_1' | 'phase_2' | 'funded'
-  ): Omit<PropFirmPhase, 'id' | 'createdAt' | 'updatedAt'> {
-    const baseBalance = account.accountSize
+  ): Omit<PropFirmPhase, 'id' | 'createdAt' | 'updatedAt' | 'phaseStartAt'> {
+    const baseBalance = Number(account.accountSize)
 
     // Get phase-specific configuration
     let profitTarget: number
@@ -261,14 +253,14 @@ export class PropFirmEngine {
         maxDrawdownAmount = (baseBalance * account.phase1MaxDrawdown) / 100
         dailyDrawdownAmount = (baseBalance * account.phase1DailyDrawdown) / 100
         minTradingDays = account.minTradingDaysPhase1
-        maxTradingDays = account.maxTradingDaysPhase1
+        maxTradingDays = account.maxTradingDaysPhase1 || undefined
         break
       case 'phase_2':
         profitTarget = (baseBalance * account.phase2ProfitTarget) / 100
         maxDrawdownAmount = (baseBalance * account.phase2MaxDrawdown) / 100
         dailyDrawdownAmount = (baseBalance * account.phase2DailyDrawdown) / 100
         minTradingDays = account.minTradingDaysPhase2
-        maxTradingDays = account.maxTradingDaysPhase2
+        maxTradingDays = account.maxTradingDaysPhase2 || undefined
         break
       case 'funded':
         // Funded accounts don't have profit targets, but maintain drawdown limits
@@ -283,39 +275,24 @@ export class PropFirmEngine {
     return {
       accountId: account.id,
       phaseType,
-      status: 'active',
+      phaseStatus: 'active',
       accountNumber: this.getAccountNumberForPhase(account, phaseType),
       startingBalance: baseBalance,
       currentBalance: baseBalance,
       currentEquity: baseBalance,
       highWaterMark: baseBalance,
       profitTarget,
-      profitTargetPercent: phaseType === 'funded' ? 0 : (profitTarget / baseBalance) * 100,
       maxDrawdownAmount,
-      maxDrawdownPercent: (maxDrawdownAmount / baseBalance) * 100,
       dailyDrawdownAmount,
-      dailyDrawdownPercent: (dailyDrawdownAmount / baseBalance) * 100,
       minTradingDays,
       maxTradingDays,
       startedAt: new Date(),
       daysTraded: 0,
       totalTrades: 0,
       winningTrades: 0,
-      losingTrades: 0,
-      totalVolume: 0,
       totalCommission: 0,
-      totalSwap: 0,
-      bestTrade: 0,
-      worstTrade: 0,
-      currentStreak: 0,
-      bestStreak: 0,
-      worstStreak: 0,
-      maxDrawdownEncountered: 0,
-      maxDailyLoss: 0,
-      avgTradeSize: 0,
-      profitFactor: 0,
-      winRate: 0,
-      riskRewardRatio: 0
+      netProfitSincePhaseStart: 0,
+      highestEquitySincePhaseStart: baseBalance
     }
   }
 
@@ -346,7 +323,7 @@ export class PropFirmEngine {
 
     // Check if profit target is met
     const profitProgress = phase.currentEquity - phase.startingBalance
-    const profitTargetMet = profitProgress >= phase.profitTarget
+    const profitTargetMet = phase.profitTarget ? profitProgress >= phase.profitTarget : false
 
     if (!profitTargetMet) {
       return false
@@ -392,6 +369,7 @@ export class PropFirmEngine {
     return percentageOfTotal <= maxPercent
   }
 
+
   /**
    * Calculate trading days from trades array
    */
@@ -431,8 +409,8 @@ export class PropFirmEngine {
 
     return {
       label: phaseLabels[phase.phaseType] || phase.phaseType,
-      color: statusColors[phase.status] || 'bg-gray-500',
-      status: phase.status
+      color: statusColors[phase.phaseStatus] || 'bg-gray-500',
+      status: phase.phaseStatus
     }
   }
 
@@ -491,11 +469,12 @@ export class PropFirmEngine {
       commission: tradeData.commission,
       swap: tradeData.swap,
       fees: tradeData.fees,
-      realizedPnl: isClosedTrade ? realizedPnl : null,
+      realizedPnl: isClosedTrade ? realizedPnl : undefined,
       equityAtOpen: phase.currentEquity,
-      equityAtClose: isClosedTrade ? phase.currentEquity + realizedPnl : null,
+      equityAtClose: isClosedTrade ? phase.currentEquity + realizedPnl : undefined,
       comment: tradeData.comment,
       strategy: tradeData.strategy,
+      tags: [],
       // Legacy fields
       accountNumber: phase.accountNumber,
       instrument: tradeData.symbol,
@@ -512,22 +491,13 @@ export class PropFirmEngine {
       currentEquity: phase.currentEquity + realizedPnl,
       currentBalance: phase.currentBalance + realizedPnl,
       totalTrades: phase.totalTrades + 1,
-      totalCommission: phase.totalCommission + tradeData.commission + tradeData.fees,
-      totalVolume: phase.totalVolume + tradeData.quantity
+      totalCommission: phase.totalCommission + tradeData.commission + tradeData.fees
     }
 
     // Update statistics if trade is closed
     if (isClosedTrade) {
       if (realizedPnl > 0) {
         updatedPhase.winningTrades++
-        if (realizedPnl > updatedPhase.bestTrade) {
-          updatedPhase.bestTrade = realizedPnl
-        }
-      } else {
-        updatedPhase.losingTrades++
-        if (realizedPnl < updatedPhase.worstTrade) {
-          updatedPhase.worstTrade = realizedPnl
-        }
       }
 
       // Update high water mark
@@ -568,8 +538,8 @@ export class PropFirmEngine {
     nextPhaseType: 'phase_1' | 'phase_2' | 'funded'
   ): Promise<PropFirmPhase> {
     // Mark current phase as passed
-    currentPhase.status = 'passed'
-    currentPhase.completedAt = new Date()
+    currentPhase.phaseStatus = 'passed'
+    currentPhase.phaseEndAt = new Date()
 
     // Create new phase
     const newPhase = this.createNewPhase(account, nextPhaseType)
@@ -603,10 +573,10 @@ export class PropFirmEngine {
       }
     }
 
-    if (currentPhase.status !== 'active') {
+    if (currentPhase.phaseStatus !== 'active') {
       return {
         isValid: false,
-        error: `Current phase ${currentPhase.phaseType} is not active. Status: ${currentPhase.status}`
+        error: `Current phase ${currentPhase.phaseType} is not active. Status: ${currentPhase.phaseStatus}`
       }
     }
 
@@ -686,7 +656,7 @@ export class PropFirmEngine {
     
     const currentProfit = phase.currentEquity - phase.startingBalance
     const profitProgress = Math.max(0, currentProfit)
-    const profitProgressPercent = phase.profitTarget > 0 ? (profitProgress / phase.profitTarget) * 100 : 0
+    const profitProgressPercent = phase.profitTarget ? (profitProgress / phase.profitTarget!) * 100 : 0
     
     // Calculate trading days
     const tradingDays = this.calculateTradingDays(trades)
@@ -696,7 +666,7 @@ export class PropFirmEngine {
     const consistencyMet = this.checkConsistency(trades, currentProfit, account.consistencyRule)
     
     // Check if ready to advance
-    const profitTargetMet = profitProgress >= phase.profitTarget
+    const profitTargetMet = phase.profitTarget ? profitProgress >= phase.profitTarget : false
     const readyToAdvance = profitTargetMet && minTradingDaysMet && consistencyMet
     
     // Calculate failure reasons
@@ -866,24 +836,11 @@ export class PropFirmEngine {
     const activeAccounts = this.filterActiveAccounts(accounts)
     
     return activeAccounts.reduce((total, account) => {
-      const activePhase = phases.find(p => p.accountId === account.id && p.status === 'active')
+      const activePhase = phases.find(p => p.accountId === account.id && p.phaseStatus === 'active')
       return total + (activePhase?.currentEquity || 0)
     }, 0)
   }
   
-  /**
-   * Calculate trading days from trades array
-   */
-  private static calculateTradingDays(trades: PropFirmTrade[]): number {
-    const tradingDays = new Set<string>()
-    
-    trades.forEach(trade => {
-      const date = trade.entryTime.toISOString().split('T')[0]
-      tradingDays.add(date)
-    })
-    
-    return tradingDays.size
-  }
   
   /**
    * Check consistency rule (largest daily profit should not exceed X% of total profit)

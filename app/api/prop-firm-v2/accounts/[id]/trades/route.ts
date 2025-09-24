@@ -311,7 +311,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       entryPrice: validatedData.entryPrice,
       exitPrice: validatedData.exitPrice,
       entryTime: new Date(validatedData.entryTime),
-      exitTime: validatedData.exitTime ? new Date(validatedData.exitTime) : null,
+      exitTime: validatedData.exitTime ? new Date(validatedData.exitTime) : undefined,
       commission: validatedData.commission,
       swap: validatedData.swap,
       fees: validatedData.fees,
@@ -381,9 +381,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             accountId,
             phaseId: currentPhase.id,
             breachType,
-            breachAmount: Math.abs(updatedPhase.currentEquity - updatedPhase.startingBalance - updatedPhase.profitTarget),
+            breachAmount: updatedPhase.profitTarget ? Math.abs(updatedPhase.currentEquity - updatedPhase.startingBalance - updatedPhase.profitTarget) : 0,
             breachThreshold: breachType === 'daily_drawdown' ?
-              currentPhase.dailyDrawdownAmount : currentPhase.maxDrawdownAmount,
+              (currentPhase.phaseType === 'phase_1' ? account.phase1DailyDrawdown :
+               currentPhase.phaseType === 'phase_2' ? account.phase2DailyDrawdown :
+               account.fundedDailyDrawdown) :
+              (currentPhase.phaseType === 'phase_1' ? account.phase1MaxDrawdown :
+               currentPhase.phaseType === 'phase_2' ? account.phase2MaxDrawdown :
+               account.fundedMaxDrawdown),
             equity: updatedPhase.currentEquity,
             description: `Breach detected on trade ${dbTrade.id}`,
           }

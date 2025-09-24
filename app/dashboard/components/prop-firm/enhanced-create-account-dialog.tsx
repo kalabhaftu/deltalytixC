@@ -27,9 +27,9 @@ import { clearAccountsCache } from "@/hooks/use-accounts"
 const baseSchema = z.object({
   name: z.string().min(3, 'Account name must be at least 3 characters').max(50, 'Account name too long'),
   // Phase account numbers (user-provided)
-  phase1AccountId: z.string().min(6, 'Phase 1 account number must be at least 6 characters').max(20, 'Account number too long').optional(),
-  phase2AccountId: z.string().min(6, 'Phase 2 account number must be at least 6 characters').max(20, 'Account number too long').optional(),
-  fundedAccountId: z.string().min(6, 'Funded account number must be at least 6 characters').max(20, 'Account number too long').optional(),
+  phase1AccountId: z.string().optional(),
+  phase2AccountId: z.string().optional(),
+  fundedAccountId: z.string().optional(),
 
   // Basic info
   propfirm: z.string().min(1, 'Please select a prop firm'),
@@ -70,7 +70,7 @@ const baseSchema = z.object({
 const createPropFirmAccountSchema = baseSchema.refine(
   (data) => {
     if (data.evaluationType === 'two_step') {
-      return data.profitTargetPhase2 !== undefined && data.profitTargetPhase2 > 0
+      return data.phase2ProfitTarget !== undefined && data.phase2ProfitTarget > 0
     }
     return true
   },
@@ -209,15 +209,30 @@ export function EnhancedCreateAccountDialog({
     resolver: zodResolver(createPropFirmAccountSchema),
     defaultValues: {
       name: '',
-      number: '',
       propfirm: '',
       customPropfirm: '',
       startingBalance: 100000,
       evaluationType: 'two_step',
-      profitTargetPhase1: 8,
-      profitTargetPhase2: 5,
-      dailyDrawdown: 5,
-      maxDrawdown: 10,
+      phase1ProfitTarget: 8,
+      phase2ProfitTarget: 5,
+      phase1DailyDrawdown: 5,
+      phase1MaxDrawdown: 10,
+      phase2MaxDrawdown: 10,
+      fundedMaxDrawdown: 5,
+      phase2DailyDrawdown: 5,
+      fundedDailyDrawdown: 3,
+      minTradingDaysPhase1: 4,
+      minTradingDaysPhase2: 4,
+      consistencyRule: 30,
+      trailingDrawdownEnabled: true,
+      payoutCycleDays: 14,
+      profitSplitPercent: 80,
+      minDaysToFirstPayout: 4,
+      newsTradingAllowed: false,
+      weekendHoldingAllowed: false,
+      hedgingAllowed: true,
+      eaAllowed: true,
+      maxPositions: 10,
     }
   })
 
@@ -237,7 +252,7 @@ export function EnhancedCreateAccountDialog({
   // Clear Phase 2 target when switching to one-step evaluation
   useEffect(() => {
     if (watchedEvaluationType !== 'two_step') {
-      setValue('profitTargetPhase2', undefined)
+      setValue('phase2ProfitTarget', 0)
     }
   }, [watchedEvaluationType, setValue])
 
@@ -250,14 +265,14 @@ export function EnhancedCreateAccountDialog({
       setValue('evaluationType', propfirm.typical.evaluationType)
       // Set profit targets based on evaluation type
       if (propfirm.typical.evaluationType === 'two_step') {
-        setValue('profitTargetPhase1', 8) // Standard Phase 1: 8%
-        setValue('profitTargetPhase2', 5) // Standard Phase 2: 5%
+        setValue('phase1ProfitTarget', 8) // Standard Phase 1: 8%
+        setValue('phase2ProfitTarget', 5) // Standard Phase 2: 5%
       } else {
-        setValue('profitTargetPhase1', propfirm.typical.profitTarget)
-        setValue('profitTargetPhase2', undefined)
+        setValue('phase1ProfitTarget', propfirm.typical.profitTarget)
+        setValue('phase2ProfitTarget', 0)
       }
-      setValue('dailyDrawdown', propfirm.typical.dailyDrawdown)
-      setValue('maxDrawdown', propfirm.typical.maxDrawdown)
+      setValue('phase1DailyDrawdown', propfirm.typical.dailyDrawdown)
+      setValue('phase1MaxDrawdown', propfirm.typical.maxDrawdown)
     }
   }
 
@@ -713,11 +728,11 @@ export function EnhancedCreateAccountDialog({
                             min="1"
                             max="20"
                             className="pl-10"
-                            {...register('profitTargetPhase1', { valueAsNumber: true })}
+                            {...register('phase1ProfitTarget', { valueAsNumber: true })}
                           />
                         </div>
-                        {errors.profitTargetPhase1 && (
-                          <p className="text-sm text-red-500">{errors.profitTargetPhase1.message}</p>
+                        {errors.phase1ProfitTarget && (
+                          <p className="text-sm text-red-500">{errors.phase1ProfitTarget.message}</p>
                         )}
                       </div>
 
@@ -733,11 +748,11 @@ export function EnhancedCreateAccountDialog({
                               min="1"
                               max="20"
                               className="pl-10"
-                              {...register('profitTargetPhase2', { valueAsNumber: true })}
+                              {...register('phase2ProfitTarget', { valueAsNumber: true })}
                             />
                           </div>
-                          {errors.profitTargetPhase2 && (
-                            <p className="text-sm text-red-500">{errors.profitTargetPhase2.message}</p>
+                          {errors.phase2ProfitTarget && (
+                            <p className="text-sm text-red-500">{errors.phase2ProfitTarget.message}</p>
                           )}
                         </div>
                       )}
@@ -758,11 +773,11 @@ export function EnhancedCreateAccountDialog({
                           min="1"
                           max="10"
                           className="pl-10"
-                          {...register('dailyDrawdown', { valueAsNumber: true })}
+                          {...register('phase1DailyDrawdown', { valueAsNumber: true })}
                         />
                       </div>
-                      {errors.dailyDrawdown && (
-                        <p className="text-sm text-red-500">{errors.dailyDrawdown.message}</p>
+                      {errors.phase1DailyDrawdown && (
+                        <p className="text-sm text-red-500">{errors.phase1DailyDrawdown.message}</p>
                       )}
                     </div>
 
@@ -777,11 +792,11 @@ export function EnhancedCreateAccountDialog({
                           min="1"
                           max="15"
                           className="pl-10"
-                          {...register('maxDrawdown', { valueAsNumber: true })}
+                          {...register('phase1MaxDrawdown', { valueAsNumber: true })}
                         />
                       </div>
-                      {errors.maxDrawdown && (
-                        <p className="text-sm text-red-500">{errors.maxDrawdown.message}</p>
+                      {errors.phase1MaxDrawdown && (
+                        <p className="text-sm text-red-500">{errors.phase1MaxDrawdown.message}</p>
                       )}
                     </div>
                   </div>
@@ -797,14 +812,14 @@ export function EnhancedCreateAccountDialog({
                           <ul className="text-sm text-muted-foreground space-y-1">
                             {watchedEvaluationType === 'two_step' ? (
                               <>
-                                <li>• Phase 1: Reach ${((watchedBalance || 0) * (watch('profitTargetPhase1') || 0) / 100).toLocaleString()} profit target</li>
-                                <li>• Phase 2: Reach ${((watchedBalance || 0) * (watch('profitTargetPhase2') || 0) / 100).toLocaleString()} profit target</li>
+                                <li>• Phase 1: Reach ${((watchedBalance || 0) * (watch('phase1ProfitTarget') || 0) / 100).toLocaleString()} profit target</li>
+                                <li>• Phase 2: Reach ${((watchedBalance || 0) * (watch('phase2ProfitTarget') || 0) / 100).toLocaleString()} profit target</li>
                               </>
                             ) : (
-                              <li>• Reach ${((watchedBalance || 0) * (watch('profitTargetPhase1') || 0) / 100).toLocaleString()} profit target</li>
+                              <li>• Reach ${((watchedBalance || 0) * (watch('phase1ProfitTarget') || 0) / 100).toLocaleString()} profit target</li>
                             )}
-                            <li>• Don&apos;t lose more than ${((watchedBalance || 0) * (watch('dailyDrawdown') || 0) / 100).toLocaleString()} in a single day</li>
-                            <li>• Don&apos;t lose more than ${((watchedBalance || 0) * (watch('maxDrawdown') || 0) / 100).toLocaleString()} total</li>
+                            <li>• Don&apos;t lose more than ${((watchedBalance || 0) * (watch('phase1DailyDrawdown') || 0) / 100).toLocaleString()} in a single day</li>
+                            <li>• Don&apos;t lose more than ${((watchedBalance || 0) * (watch('phase1MaxDrawdown') || 0) / 100).toLocaleString()} total</li>
                           </ul>
                         </div>
                       </div>
@@ -977,11 +992,11 @@ export function EnhancedCreateAccountDialog({
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Profit Target</p>
-                          <p className="font-medium">{getValues('profitTargetPhase1')}%</p>
+                          <p className="font-medium">{getValues('phase1ProfitTarget')}%</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Daily Drawdown</p>
-                          <p className="font-medium text-destructive">{getValues('dailyDrawdown')}%</p>
+                          <p className="font-medium text-destructive">{getValues('phase1DailyDrawdown')}%</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Profit Split</p>
