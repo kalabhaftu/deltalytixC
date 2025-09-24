@@ -33,19 +33,65 @@ export default async function middleware(req: NextRequest) {
     pathname === route || pathname.startsWith(route + "/")
   )
 
+  // If user is authenticated and trying to access auth page, redirect to dashboard
+  if (isPublicRoute && pathname === '/authentication') {
+    try {
+      const cookieStore = await cookies()
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (supabaseUrl && supabaseKey) {
+        const supabase = createServerClient(
+          supabaseUrl,
+          supabaseKey,
+          {
+            cookies: {
+              getAll() {
+                return cookieStore.getAll()
+              },
+              setAll(cookiesToSet) {
+                try {
+                  cookiesToSet.forEach(({ name, value, options }) =>
+                    cookieStore.set(name, value, options)
+                  )
+                } catch {
+                  // Ignore cookie setting errors
+                }
+              },
+            },
+          }
+        )
+
+        const { data: { user }, error } = await supabase.auth.getUser()
+
+        if (!error && user) {
+          console.log('Middleware: Authenticated user accessing auth page, redirecting to dashboard')
+          const nextParam = req.nextUrl.searchParams.get('next')
+          const redirectUrl = nextParam || '/dashboard'
+          return NextResponse.redirect(new URL(redirectUrl, req.url))
+        }
+      }
+    } catch (error) {
+      console.warn('Middleware: Error checking auth for auth page redirect:', error)
+      // Continue to allow access to auth page if there's an error
+    }
+  }
+
   // For protected routes, check authentication directly
   if (isProtectedRoute) {
     // Check if this might be a post-authentication request
     const referrer = req.headers.get('referer')
+    const url = req.nextUrl
     const isPostAuthRequest = referrer && (
       referrer.includes('/api/auth/callback') ||
       referrer.includes('/auth/callback') ||
-      referrer.includes('code=') ||
-      referrer.includes('error=')
+      url.searchParams.has('code') ||
+      url.searchParams.has('error')
     )
 
     // Skip auth check for post-authentication requests
     if (isPostAuthRequest) {
+      console.log('Middleware: Skipping auth check for post-auth request')
       return NextResponse.next()
     }
 
@@ -90,6 +136,7 @@ export default async function middleware(req: NextRequest) {
         clearTimeout(timeoutId)
 
         if (error || !user) {
+          console.log('Middleware: User not authenticated, redirecting to auth')
           // User not authenticated, redirect to authentication
           const authUrl = new URL('/authentication', req.url)
           authUrl.searchParams.set('next', pathname)

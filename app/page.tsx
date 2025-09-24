@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useTheme } from '@/context/theme-provider'
-import { useUserStore } from '@/store/user-store'
+import { useAuth } from '@/context/auth-provider'
 import Features from './(landing)/components/features'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Toaster } from "@/components/ui/toaster";
@@ -14,13 +14,10 @@ import { ThemeProvider } from "@/context/theme-provider";
 
 export default function RootPage() {
     const { theme, effectiveTheme } = useTheme();
-    const user = useUserStore(state => state.user);
+    const { isAuthenticated, session } = useAuth();
     const [videoLoaded, setVideoLoaded] = useState(false);
     const [videoError, setVideoError] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
-
-    // Check if user is authenticated
-    const isAuthenticated = user !== null;
 
     useEffect(() => {
         setVideoLoaded(false);

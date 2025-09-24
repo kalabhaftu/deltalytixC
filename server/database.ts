@@ -315,7 +315,16 @@ function getCachedTrades(userId: string, page: number, chunkSize: number): Promi
 }
 
 
-export async function getTradesAction(userId: string | null = null): Promise<Trade[]> {
+export async function getTradesAction(userId: string | null = null, options?: {
+  page?: number
+  limit?: number
+  offset?: number
+  filters?: {
+    dateRange?: { from: Date; to: Date }
+    instruments?: string[]
+    accountNumbers?: string[]
+  }
+}): Promise<Trade[]> {
     try {
       const supabase = await createClient()
       const { data: { user } } = await supabase.auth.getUser()
@@ -331,21 +340,43 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
       return []
     }
 
-    // PERFORMANCE OPTIMIZATION: Use single optimized query instead of chunking
+    const page = options?.page || 1
+    const limit = options?.limit || 100
+    const offset = options?.offset || (page - 1) * limit
+
+    // PERFORMANCE OPTIMIZATION: Use paginated queries for better memory efficiency
     return unstable_cache(
       async () => {
-
         try {
+          let whereClause: any = { userId: actualUserId }
+
+          // Apply filters if provided
+          if (options?.filters?.dateRange?.from && options?.filters?.dateRange?.to) {
+            whereClause.entryDate = {
+              gte: options.filters.dateRange.from,
+              lte: options.filters.dateRange.to
+            }
+          }
+
+          if (options?.filters?.instruments?.length) {
+            whereClause.instrument = { in: options.filters.instruments }
+          }
+
+          if (options?.filters?.accountNumbers?.length) {
+            whereClause.accountNumber = { in: options.filters.accountNumbers }
+          }
+
           const query: any = {
-            where: { userId: actualUserId },
+            where: whereClause,
             orderBy: { entryDate: 'desc' },
-            // Limit to most recent 10,000 trades for performance
-            take: 10000
+            skip: offset,
+            take: limit
           }
 
           const trades = await prisma.trade.findMany(query)
-          
-          
+
+          console.log(`[getTradesAction] Loaded ${trades.length} trades (page ${page}, offset ${offset}, limit ${limit})`)
+
           return trades.map(trade => ({
             ...trade,
             entryDate: new Date(trade.entryDate).toISOString(),
@@ -359,7 +390,7 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
               return []
             }
             // Handle database connection errors
-            if (error.message.includes("Can't reach database server") || 
+            if (error.message.includes("Can't reach database server") ||
                 error.message.includes('P1001') ||
                 error.message.includes('connection') ||
                 error.message.includes('timeout')) {
@@ -371,9 +402,9 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
           return [] // Return empty array instead of throwing
         }
       },
-      [`all-trades-${actualUserId}`],
-      { 
-        tags: [`trades-${actualUserId}`], 
+      [`trades-${actualUserId}-${page}-${limit}-${offset}-${JSON.stringify(options?.filters || {})}`],
+      {
+        tags: [`trades-${actualUserId}`],
         revalidate: 1800 // 30 minutes cache
       }
     )()
@@ -382,6 +413,85 @@ export async function getTradesAction(userId: string | null = null): Promise<Tra
     console.error('[getTradesAction] Error in main function:', error)
     // Return empty array if there's any error
     return []
+  }
+}
+
+// New function for progressive loading with statistics
+export async function getTradesProgressiveAction(userId: string | null = null, options?: {
+  batchSize?: number
+  offset?: number
+  filters?: {
+    dateRange?: { from: Date; to: Date }
+    instruments?: string[]
+    accountNumbers?: string[]
+  }
+}): Promise<{
+  trades: Trade[]
+  total: number
+  hasMore: boolean
+  progress: number
+}> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user && !userId) {
+      return { trades: [], total: 0, hasMore: false, progress: 0 }
+    }
+
+    const actualUserId = userId || user?.id
+    if (!actualUserId) {
+      return { trades: [], total: 0, hasMore: false, progress: 0 }
+    }
+
+    const batchSize = options?.batchSize || 50
+    const offset = options?.offset || 0
+
+    // Get total count for progress calculation
+    let whereClause: any = { userId: actualUserId }
+
+    if (options?.filters?.dateRange?.from && options?.filters?.dateRange?.to) {
+      whereClause.entryDate = {
+        gte: options.filters.dateRange.from,
+        lte: options.filters.dateRange.to
+      }
+    }
+
+    if (options?.filters?.instruments?.length) {
+      whereClause.instrument = { in: options.filters.instruments }
+    }
+
+    if (options?.filters?.accountNumbers?.length) {
+      whereClause.accountNumber = { in: options.filters.accountNumbers }
+    }
+
+    const total = await prisma.trade.count({ where: whereClause })
+    const hasMore = offset + batchSize < total
+    const progress = total > 0 ? Math.min(((offset + batchSize) / total) * 100, 100) : 100
+
+    const query: any = {
+      where: whereClause,
+      orderBy: { entryDate: 'desc' },
+      skip: offset,
+      take: batchSize
+    }
+
+    const trades = await prisma.trade.findMany(query)
+
+    console.log(`[getTradesProgressiveAction] Loaded ${trades.length} trades (batch: ${batchSize}, offset: ${offset}, total: ${total}, progress: ${progress}%)`)
+
+    return {
+      trades: trades.map(trade => ({
+        ...trade,
+        entryDate: new Date(trade.entryDate).toISOString(),
+        exitDate: trade.closeDate ? new Date(trade.closeDate).toISOString() : null
+      })),
+      total,
+      hasMore,
+      progress
+    }
+  } catch (error) {
+    console.error('[getTradesProgressiveAction] Error:', error)
+    return { trades: [], total: 0, hasMore: false, progress: 0 }
   }
 }
 

@@ -27,11 +27,12 @@ import {
 } from "@/components/ui/collapsible"
 import { useUserStore } from '@/store/user-store'
 import { formatCurrency } from '@/lib/utils'
+import { DataSerializer } from '@/lib/data-serialization'
 
 // Utility function to get trading models with proper enum mapping
 const getTradingModels = () => {
   const defaultModels = ['ict-2022', 'msnr', 'ttfm', 'price-action']
-  const customModels = JSON.parse(localStorage.getItem('customTradingModels') || '[]')
+  const customModels = DataSerializer.getTradingModels()
   return [...defaultModels, ...customModels]
 }
 

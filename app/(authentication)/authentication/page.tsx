@@ -9,15 +9,15 @@ import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import { UserAuthForm } from "../components/user-auth-form"
 import { Logo } from "@/components/logo"
-import { useUserStore } from "@/store/user-store"
+import { useAuth } from "@/context/auth-provider"
 
 export default function AuthenticationPage() {
-  const user = useUserStore(state => state.user)
+  const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
 
   // Check if user is already authenticated and redirect to dashboard
   useEffect(() => {
-    if (user) {
+    if (isAuthenticated && !isLoading) {
       // User is already logged in, redirect to dashboard
       const currentUrl = window.location.href
       const url = new URL(currentUrl)
@@ -27,10 +27,10 @@ export default function AuthenticationPage() {
       const redirectUrl = nextParam || '/dashboard'
       router.push(redirectUrl)
     }
-  }, [user, router])
+  }, [isAuthenticated, isLoading, router])
 
   // If user is authenticated, show loading state while redirecting
-  if (user) {
+  if (isAuthenticated && !isLoading) {
     return (
       <div className="min-h-screen bg-background overflow-hidden">
         <div className="flex relative h-screen flex-col items-center justify-center bg-background">

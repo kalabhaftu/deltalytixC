@@ -45,6 +45,7 @@ import { AccountFilterSettingsCard } from "@/components/account-filter-settings"
 import { useToolbarSettingsStore } from "@/store/toolbar-settings-store"
 import { toast } from "@/hooks/use-toast"
 import { PrimaryButton, SecondaryButton, DestructiveButton } from "@/components/ui/button-styles"
+import { DataSerializer } from "@/lib/data-serialization"
 
 import {
   Collapsible,
@@ -124,30 +125,31 @@ export default function SettingsPage() {
   const [scrollPosition, setScrollPosition] = useState(0)
   const [deleteModelName, setDeleteModelName] = useState<string | null>(null)
 
-  // Load custom models from localStorage on component mount
+  // Load custom models from DataSerializer on component mount
   useEffect(() => {
-    const savedModels = localStorage.getItem('customTradingModels')
-    if (savedModels) {
-      setCustomModels(JSON.parse(savedModels))
-    }
+    const savedModels = DataSerializer.getTradingModels()
+    setCustomModels(savedModels)
   }, [])
 
-  // Save custom models to localStorage whenever they change
+  // Save custom models using DataSerializer whenever they change
   useEffect(() => {
-    localStorage.setItem('customTradingModels', JSON.stringify(customModels))
+    DataSerializer.saveTradingModels(customModels)
   }, [customModels])
 
   const handleAddModel = () => {
     const trimmedName = customModelName.trim()
-    if (trimmedName && !customModels.includes(trimmedName)) {
-      setCustomModels([...customModels, trimmedName])
+    if (!trimmedName) return
+
+    try {
+      const updatedModels = DataSerializer.addTradingModel(trimmedName)
+      setCustomModels(updatedModels)
       setCustomModelName('')
       toast({
         title: "Model Added",
         description: `"${trimmedName}" has been added to your trading models.`,
         duration: 3000,
       })
-    } else if (customModels.includes(trimmedName)) {
+    } catch (error) {
       toast({
         title: "Model Already Exists",
         description: `"${trimmedName}" is already in your models list.`,
@@ -164,7 +166,8 @@ export default function SettingsPage() {
   const confirmDeleteModel = () => {
     if (!deleteModelName) return
 
-    setCustomModels(customModels.filter(model => model !== deleteModelName))
+    const updatedModels = DataSerializer.removeTradingModel(deleteModelName)
+    setCustomModels(updatedModels)
     toast({
       title: "Model Deleted",
       description: `"${deleteModelName}" has been permanently removed from your models.`,

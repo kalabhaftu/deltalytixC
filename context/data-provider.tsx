@@ -770,11 +770,42 @@ export const DataProvider: React.FC<{
         // Don't do anything - we already have the default layout set
       })
 
-      // Step 2: Fetch trades (with caching server side)
-      // I think we could make basic computations server side to offload inital stats computations
-      // WE SHOULD NOT USE CLIENT SIDE CACHING FOR TRADES (PREVENTS DATA LEAKAGE / OVERLOAD IN CACHE)
-      const trades = await getTradesAction()
-      setTrades(Array.isArray(trades) ? trades : []);
+      // Step 2: Fetch trades progressively (with caching server side)
+      // Load initial batch of trades for better performance
+      const initialTrades = await getTradesAction(null, {
+        page: 1,
+        limit: 100 // Start with smaller batch
+      })
+      setTrades(Array.isArray(initialTrades) ? initialTrades : [])
+
+      // Background load remaining trades progressively
+      setTimeout(async () => {
+        try {
+          let allTrades = [...initialTrades]
+          let page = 2
+          const batchSize = 100
+
+          while (allTrades.length < 1000) { // Limit to 1000 trades for initial load
+            const batch = await getTradesAction(null, {
+              page,
+              limit: batchSize
+            })
+
+            if (batch.length === 0) break
+
+            allTrades = [...allTrades, ...batch]
+            setTrades([...allTrades])
+            page++
+
+            // Small delay to prevent overwhelming the database
+            await new Promise(resolve => setTimeout(resolve, 100))
+          }
+
+          console.log(`[DataProvider] Progressive loading completed: ${allTrades.length} trades loaded`)
+        } catch (error) {
+          console.warn('[DataProvider] Progressive loading failed, continuing with initial batch:', error)
+        }
+      }, 1000) // Start background loading after 1 second;
 
       // Step 3: Fetch user data
       const data = await getUserData()

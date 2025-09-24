@@ -144,7 +144,7 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
           <div>
             <p className="text-xs text-muted-foreground mb-1">Quantity</p>
             <p className="font-semibold text-foreground">
-              {trade.quantity} lots
+              {trade.quantity?.toFixed(2)} lots
             </p>
           </div>
         </div>

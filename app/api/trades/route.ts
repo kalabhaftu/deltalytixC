@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTrades, deleteTrade } from '@/server/trades'
 import { getUserIdSafe } from '@/server/auth'
+import { prisma } from '@/lib/prisma'
+import { DataSerializer } from '@/lib/data-serialization'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     console.log('API: Fetching trades...')
 
@@ -20,13 +22,68 @@ export async function GET() {
       })
     }
 
-    const trades = await getTrades()
-    console.log('API: Returning trades:', trades.length)
-    return NextResponse.json({
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '200')
+    const offset = (page - 1) * limit
+    const stream = searchParams.get('stream') === 'true'
+    const test = searchParams.get('test') === '1'
+
+    // For streaming responses, use a smaller page size to avoid memory issues
+    const actualLimit = stream ? Math.min(limit, 50) : limit
+
+    console.log(`API: Fetching trades with pagination - page: ${page}, limit: ${actualLimit}, offset: ${offset}, stream: ${stream}`)
+
+    // If test is requested, return a simple test response
+    if (test) {
+      console.log('API: Test mode - returning test response')
+
+      // Test database connectivity
+      let dbStatus = 'unknown'
+      try {
+        await prisma.$queryRaw`SELECT 1 as test_connection`
+        dbStatus = 'connected'
+      } catch (error) {
+        console.error('API: Database connection test failed:', error)
+        dbStatus = 'disconnected'
+      }
+
+      return NextResponse.json({
+        success: true,
+        test: true,
+        message: 'API is working',
+        timestamp: new Date().toISOString(),
+        debug: {
+          userId,
+          stream,
+          page,
+          limit,
+          offset,
+          databaseStatus: dbStatus
+        }
+      })
+    }
+
+    // Regular paginated response (removed streaming for simplicity)
+    const trades = await getTradesPaginated(offset, actualLimit)
+
+    // Get total count for better UX
+    const totalCount = await getTotalTradeCount()
+
+    const responseData = {
       success: true,
       data: trades,
-      count: trades.length
-    })
+      count: trades.length,
+      page,
+      limit: actualLimit,
+      hasMore: trades.length === actualLimit && offset + trades.length < totalCount,
+      total: totalCount
+    }
+
+    console.log(`API: Returning ${trades.length} trades for page ${page}, total: ${totalCount}, hasMore: ${responseData.hasMore}`)
+
+    const response = NextResponse.json(responseData)
+    return response
   } catch (error) {
     console.error('API: Failed to fetch trades:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -52,6 +109,49 @@ export async function GET() {
       { status: 500 }
     )
   }
+}
+
+// Helper function for paginated trades
+async function getTradesPaginated(offset: number, limit: number) {
+  const userId = await getUserIdSafe()
+
+  if (!userId) {
+    throw new Error('User not authenticated')
+  }
+
+  const trades = await prisma.trade.findMany({
+    where: { userId },
+    include: {
+      account: true,
+      phase: true,
+      propFirmPhase: true,
+      tradeAnalytics: true
+    },
+    orderBy: {
+      entryTime: 'desc'
+    },
+    skip: offset,
+    take: limit
+  })
+
+  console.log(`API: Returning ${trades.length} trades (paginated)`)
+  return trades
+}
+
+
+// Helper function to get total count
+async function getTotalTradeCount() {
+  const userId = await getUserIdSafe()
+
+  if (!userId) {
+    return 0
+  }
+
+  const count = await prisma.trade.count({
+    where: { userId }
+  })
+
+  return count
 }
 
 export async function PUT(request: NextRequest) {
@@ -145,4 +245,154 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// New endpoint for progressive data loading
+export async function POST(request: NextRequest) {
+  try {
+    const userId = await getUserIdSafe()
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    const { action, batchSize = 50, offset = 0, filters = {} } = body
+
+    console.log(`API: Progressive data request - action: ${action}, batchSize: ${batchSize}, offset: ${offset}`)
+
+    switch (action) {
+      case 'getBatch':
+        const trades = await getTradesBatch(offset, batchSize, filters)
+        const total = await getTotalTradeCount()
+        const hasMore = offset + batchSize < total
+
+        return NextResponse.json({
+          success: true,
+          data: trades,
+          batchSize,
+          offset,
+          total,
+          hasMore,
+          progress: Math.min(((offset + trades.length) / total) * 100, 100)
+        })
+
+      case 'getStats':
+        const stats = await getTradesStatistics(offset, batchSize)
+        return NextResponse.json({
+          success: true,
+          data: stats
+        })
+
+      default:
+        return NextResponse.json(
+          { success: false, error: 'Invalid action' },
+          { status: 400 }
+        )
+    }
+  } catch (error) {
+    console.error('API: Progressive data error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to process progressive request' },
+      { status: 500 }
+    )
+  }
+}
+
+// Helper function for batch loading
+async function getTradesBatch(offset: number, limit: number, filters: any = {}) {
+  const userId = await getUserIdSafe()
+
+  if (!userId) {
+    throw new Error('User not authenticated')
+  }
+
+  let whereClause: any = { userId }
+
+  // Apply filters if provided
+  if (filters.dateRange?.from && filters.dateRange?.to) {
+    whereClause.entryTime = {
+      gte: filters.dateRange.from,
+      lte: filters.dateRange.to
+    }
+  }
+
+  if (filters.instruments?.length > 0) {
+    whereClause.instrument = { in: filters.instruments }
+  }
+
+  if (filters.accountNumbers?.length > 0) {
+    whereClause.accountNumber = { in: filters.accountNumbers }
+  }
+
+  const trades = await prisma.trade.findMany({
+    where: whereClause,
+    include: {
+      account: true,
+      phase: true,
+      propFirmPhase: true,
+      tradeAnalytics: true
+    },
+    orderBy: {
+      entryTime: 'desc'
+    },
+    skip: offset,
+    take: limit
+  })
+
+  return trades
+}
+
+// Helper function for progressive statistics
+async function getTradesStatistics(offset: number, limit: number) {
+  const userId = await getUserIdSafe()
+
+  if (!userId) {
+    throw new Error('User not authenticated')
+  }
+
+  const trades = await prisma.trade.findMany({
+    where: { userId },
+    select: {
+      pnl: true,
+      commission: true,
+      quantity: true,
+      entryTime: true,
+      exitTime: true,
+      side: true,
+      instrument: true
+    },
+    orderBy: {
+      entryTime: 'desc'
+    },
+    skip: offset,
+    take: limit
+  })
+
+  const stats = trades.reduce((acc, trade) => {
+    const netPnl = trade.pnl - trade.commission
+    acc.totalPnL += netPnl
+    acc.totalTrades += 1
+    acc.totalCommission += trade.commission
+    acc.winningTrades += netPnl > 0 ? 1 : 0
+    acc.losingTrades += netPnl < 0 ? 1 : 0
+    acc.totalVolume += Math.abs(trade.quantity)
+    return acc
+  }, {
+    totalPnL: 0,
+    totalTrades: 0,
+    totalCommission: 0,
+    winningTrades: 0,
+    losingTrades: 0,
+    totalVolume: 0,
+    winRate: 0
+  })
+
+  const winRate = stats.totalTrades > 0 ? (stats.winningTrades / stats.totalTrades) * 100 : 0
+  stats.winRate = winRate
+
+  return stats
 }

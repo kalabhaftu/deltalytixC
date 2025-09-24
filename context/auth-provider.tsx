@@ -6,6 +6,7 @@ import { toast } from '@/hooks/use-toast'
 import { Session } from '@supabase/supabase-js'
 import { signOut } from '@/server/auth'
 import { createClient } from '@/lib/supabase'
+import { useUserStore } from '@/store/user-store'
 
 interface AuthContextType {
   isLoading: boolean
@@ -28,6 +29,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const router = useRouter()
   const [authCheckCache, setAuthCheckCache] = useState<{timestamp: number, isAuthenticated: boolean} | null>(null)
+
+  // Get user store setters
+  const setUser = useUserStore(state => state.setUser)
+  const setSupabaseUser = useUserStore(state => state.setSupabaseUser)
+  const resetUser = useUserStore(state => state.resetUser)
 
   // Check if auth status is still valid (cache for 30 seconds)
   const isAuthCheckValid = () => {
@@ -77,8 +83,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session }, error } = await supabase.auth.getSession()
         if (error) throw error
         setSession(session)
+
+        // Synchronize with user store
+        if (session?.user) {
+          setSupabaseUser(session.user)
+          // Note: We don't set the database user here as it requires a database call
+          // The database user will be set when the user data is loaded
+        } else {
+          setSupabaseUser(null)
+          setUser(null)
+        }
       } catch (error) {
         console.error('Error checking session:', error)
+        setSession(null)
+        setSupabaseUser(null)
+        setUser(null)
         toast({
           title: 'Session Error',
           description: 'Failed to check authentication status',
@@ -97,7 +116,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session)
-        
+
+        // Synchronize with user store
+        if (session?.user) {
+          setSupabaseUser(session.user)
+          // Note: We don't set the database user here as it requires a database call
+          // The database user will be set when the user data is loaded
+        } else {
+          setSupabaseUser(null)
+          setUser(null)
+        }
+
         // Add error handling for router refresh
         try {
           router.refresh()

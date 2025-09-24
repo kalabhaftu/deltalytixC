@@ -23,12 +23,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { DataSerializer } from '@/lib/data-serialization'
 
 // Fetch trades from API
-async function fetchTrades() {
+// Fetch trades with pagination
+async function fetchTrades(page: number = 1, limit: number = 200) {
   try {
-    console.log('Client: Fetching trades from API...')
-    const response = await fetch('/api/trades', {
+    console.log(`Client: Fetching trades page ${page} with limit ${limit}...`)
+    const response = await fetch(`/api/trades?page=${page}&limit=${limit}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -51,13 +53,49 @@ async function fetchTrades() {
 
     const result = await response.json()
     console.log('Client: Response data:', result)
-    return result.data || []
+
+    // Handle paginated response
+    if (result && typeof result === 'object' && 'data' in result) {
+      const tradesArray = Array.isArray(result.data) ? result.data : []
+      console.log(`Client: Received trades data, count: ${tradesArray.length}, page: ${result.page || page}, hasMore: ${result.hasMore || false}`)
+
+      return {
+        trades: tradesArray,
+        page: result.page || page,
+        hasMore: result.hasMore || false,
+        total: result.total || tradesArray.length
+      }
+    }
+
+    // Fallback for backward compatibility
+    if (Array.isArray(result)) {
+      console.log('Client: Received array response, count:', result.length)
+      return {
+        trades: result,
+        page: page,
+        hasMore: false,
+        total: result.length
+      }
+    }
+
+    console.warn('Client: Unexpected response format:', result)
+    return {
+      trades: [],
+      page: page,
+      hasMore: false,
+      total: 0
+    }
   } catch (error) {
     console.error('Client: Error fetching trades:', error)
 
     // If it's an authentication error, don't show error in UI - redirect handled above
     if (error instanceof Error && error.message === 'Authentication required') {
-      return []
+      return {
+        trades: [],
+        page: page,
+        hasMore: false,
+        total: 0
+      }
     }
 
     // For other errors, show user-friendly message
@@ -68,54 +106,141 @@ async function fetchTrades() {
 export default function JournalPage() {
   const [trades, setTrades] = useState<Trade[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterBy, setFilterBy] = useState<'all' | 'wins' | 'losses' | 'buys' | 'sells'>('all')
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [viewingTrade, setViewingTrade] = useState<Trade | null>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [debugInfo, setDebugInfo] = useState<string>('')
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalTrades, setTotalTrades] = useState(0)
+  const tradesPerPage = 200 // Load 200 trades at a time for better performance
 
   useEffect(() => {
-    // Load trades from localStorage first for better performance
-    const loadTrades = async () => {
+    loadTradesPage(1)
+  }, [])
+
+  // Load trades for a specific page
+  const loadTradesPage = async (page: number) => {
+    if (page === 1) {
       setLoading(true)
-      try {
-        // Try to load from localStorage first
-        const cachedTrades = localStorage.getItem('journal-trades')
-        const lastFetch = localStorage.getItem('journal-trades-timestamp')
-        const now = Date.now()
-        const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
-
-        // Use cached data if it's less than 5 minutes old
-        if (cachedTrades && lastFetch && (now - parseInt(lastFetch)) < CACHE_DURATION) {
-          setTrades(JSON.parse(cachedTrades))
-          setLoading(false)
-        }
-
-        // Always fetch fresh data in background
-        const tradesData = await fetchTrades()
-
-        // Update localStorage with fresh data
-        localStorage.setItem('journal-trades', JSON.stringify(tradesData))
-        localStorage.setItem('journal-trades-timestamp', now.toString())
-
-        setTrades(tradesData)
-      } catch (error) {
-        console.error('Failed to load trades:', error)
-        // Try to use cached data as fallback
-        const cachedTrades = localStorage.getItem('journal-trades')
-        if (cachedTrades) {
-          setTrades(JSON.parse(cachedTrades))
-        } else {
-          setTrades([])
-        }
-      } finally {
-        setLoading(false)
-      }
+    } else {
+      setLoadingMore(true)
     }
 
-    loadTrades()
-  }, [])
+    try {
+      const result = await fetchTrades(page, tradesPerPage)
+
+      if (page === 1) {
+        setTrades(result.trades)
+        setTotalTrades(result.total)
+      } else {
+        setTrades(prevTrades => [...prevTrades, ...result.trades])
+      }
+
+      setCurrentPage(page)
+      setHasMore(result.hasMore)
+
+      // Cache the first page for faster subsequent loads
+      if (page === 1 && result.trades.length > 0) {
+        try {
+          safeLocalStorageSet('journal-trades-page-1', result.trades)
+          safeLocalStorageSet('journal-trades-timestamp', Date.now().toString())
+          safeLocalStorageSet('journal-trades-total', result.total.toString())
+        } catch (error) {
+          console.warn('Failed to cache trades:', error)
+        }
+      }
+
+      console.log(`Loaded page ${page} with ${result.trades.length} trades. Total: ${result.total}`)
+    } catch (error) {
+      console.error('Failed to load trades page:', error)
+      setError(error instanceof Error ? error.message : 'Failed to load trades')
+
+      // Try to load from cache on error
+      if (page === 1) {
+        try {
+          const cachedTrades = localStorage.getItem('journal-trades-page-1')
+          const cachedTotal = localStorage.getItem('journal-trades-total')
+
+          if (cachedTrades) {
+            setTrades(JSON.parse(cachedTrades))
+            setTotalTrades(parseInt(cachedTotal || '0'))
+            console.log('Loaded from cache due to error')
+          }
+        } catch (cacheError) {
+          console.warn('Failed to load from cache:', cacheError)
+        }
+      }
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
+    }
+  }
+
+  // Load more trades when user scrolls to bottom
+  const loadMoreTrades = () => {
+    if (!loading && !loadingMore && hasMore) {
+      loadTradesPage(currentPage + 1)
+    }
+  }
+
+  // Utility function to safely save to localStorage with quota checking
+  const safeLocalStorageSet = (key: string, value: any): boolean => {
+    try {
+      const dataString = JSON.stringify(value)
+      const estimatedSize = new Blob([dataString]).size
+      const MAX_STORAGE_SIZE = 4 * 1024 * 1024 // 4MB safety limit
+
+      if (estimatedSize > MAX_STORAGE_SIZE) {
+        console.warn(`Cannot save ${key}: Data size (${(estimatedSize / 1024 / 1024).toFixed(2)}MB) exceeds localStorage limit`)
+        return false
+      }
+
+      localStorage.setItem(key, dataString)
+      return true
+    } catch (error) {
+      console.error(`Failed to save ${key} to localStorage:`, error)
+      return false
+    }
+  }
+
+  // Function to clear cached data and reload
+  const clearCacheAndReload = () => {
+    const keysToRemove = [
+      'journal-trades-page-1',
+      'journal-trades-timestamp',
+      'journal-trades-total'
+    ]
+
+    keysToRemove.forEach(key => localStorage.removeItem(key))
+    setDebugInfo('Cache cleared. Reloading trades...')
+    window.location.reload()
+  }
+
+  // Debug function to test API connection
+  const testApiConnection = async () => {
+    setDebugInfo('Testing API connection...')
+    try {
+      const response = await fetch('/api/trades?test=1', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const result = await response.json()
+      setDebugInfo(`API Status: ${response.status}\nResponse: ${JSON.stringify(result, null, 2)}`)
+    } catch (error) {
+      setDebugInfo(`API Error: ${error}`)
+    }
+  }
 
   // Handle trade deletion
   const handleDeleteTrade = async (tradeId: string) => {
@@ -126,7 +251,7 @@ export default function JournalPage() {
 
       if (response.ok) {
         // Remove trade from local state and cache
-        const updatedTrades = trades.filter(t => t.id !== tradeId)
+        const updatedTrades = Array.isArray(trades) ? trades.filter(t => t?.id !== tradeId) : []
         setTrades(updatedTrades)
         localStorage.setItem('journal-trades', JSON.stringify(updatedTrades))
         localStorage.setItem('journal-trades-timestamp', Date.now().toString())
@@ -158,9 +283,9 @@ export default function JournalPage() {
 
       if (response.ok) {
         // Update trade in local state and cache
-        const updatedTrades = trades.map(t =>
-          t.id === updatedTrade.id ? { ...t, ...updatedTrade } : t
-        )
+        const updatedTrades = Array.isArray(trades) ? trades.map(t =>
+          t?.id === updatedTrade.id ? { ...t, ...updatedTrade } : t
+        ) : []
         setTrades(updatedTrades)
         localStorage.setItem('journal-trades', JSON.stringify(updatedTrades))
         localStorage.setItem('journal-trades-timestamp', Date.now().toString())
@@ -184,23 +309,25 @@ export default function JournalPage() {
   // Get unique journaled instruments for filtering
   const journaledInstruments = useMemo(() => {
     const instruments = new Set<string>()
-    trades.forEach(trade => {
-      if (trade.instrument) {
-        instruments.add(trade.instrument)
-      }
-    })
+    if (Array.isArray(trades)) {
+      trades.forEach(trade => {
+        if (trade?.instrument) {
+          instruments.add(trade.instrument)
+        }
+      })
+    }
     return Array.from(instruments).sort()
   }, [trades])
 
   // Filter trades based on selected filter
   const filteredTrades = useMemo(() => {
-    let filtered = trades
+    let filtered = Array.isArray(trades) ? trades : []
 
     if (searchTerm) {
       filtered = filtered.filter(trade =>
-        trade.instrument.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trade.side?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trade.accountNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+        trade?.instrument?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        trade?.side?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        trade?.accountNumber?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
@@ -208,24 +335,26 @@ export default function JournalPage() {
     switch (filterBy) {
       case 'wins':
         filtered = filtered.filter(trade => {
+          if (!trade || typeof trade.pnl !== 'number') return false
           const netPnL = trade.pnl - (trade.commission || 0)
           return netPnL > 0
         })
         break
       case 'losses':
         filtered = filtered.filter(trade => {
+          if (!trade || typeof trade.pnl !== 'number') return false
           const netPnL = trade.pnl - (trade.commission || 0)
           return netPnL < 0
         })
         break
       case 'buys':
         filtered = filtered.filter(trade =>
-          trade.side?.toUpperCase() === 'BUY'
+          trade?.side?.toUpperCase() === 'BUY'
         )
         break
       case 'sells':
         filtered = filtered.filter(trade =>
-          trade.side?.toUpperCase() === 'SELL'
+          trade?.side?.toUpperCase() === 'SELL'
         )
         break
       default:
@@ -233,9 +362,11 @@ export default function JournalPage() {
     }
 
     // Sort by newest first (entryDate descending)
-    return filtered.sort((a, b) =>
-      new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime()
-    )
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a?.entryDate || 0).getTime()
+      const dateB = new Date(b?.entryDate || 0).getTime()
+      return dateB - dateA
+    })
   }, [trades, searchTerm, filterBy])
 
   return (
@@ -296,9 +427,63 @@ export default function JournalPage() {
 
 
         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-          <Filter className="w-4 h-4" />
-          <span>{filteredTrades.length} trades</span>
+          <span>
+            {loading ? 'Loading...' :
+             filteredTrades.length === 0 ? '0 trades' :
+             `${filteredTrades.length} of ${totalTrades} trades`}
+          </span>
+          {loadingMore && (
+            <span className="text-blue-600 text-xs">Loading more...</span>
+          )}
+          {hasMore && !loading && !loadingMore && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadMoreTrades}
+              className="text-xs"
+            >
+              Load More ({tradesPerPage} more)
+            </Button>
+          )}
+          {debugInfo && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDebugInfo('')}
+              className="text-xs"
+            >
+              Hide Debug
+            </Button>
+          )}
         </div>
+
+        {/* Debug Panel */}
+        {debugInfo && (
+          <div className="bg-muted/50 p-3 rounded-lg text-xs font-mono">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-muted-foreground">Debug Info:</span>
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearCacheAndReload}
+                  className="text-xs"
+                >
+                  Clear Cache
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={testApiConnection}
+                  className="text-xs"
+                >
+                  Test API
+                </Button>
+              </div>
+            </div>
+            <pre className="whitespace-pre-wrap text-xs">{debugInfo}</pre>
+          </div>
+        )}
       </div>
 
       {/* Trades Grid */}
@@ -317,6 +502,29 @@ export default function JournalPage() {
               </Card>
             ))}
           </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+              <span className="text-destructive text-xl">⚠️</span>
+            </div>
+            <h3 className="text-lg font-semibold text-destructive mb-2">Failed to Load Trades</h3>
+            <p className="text-muted-foreground">{error}</p>
+            <div className="flex gap-2 mt-4">
+              <Button
+                onClick={() => loadTradesPage(1)}
+                className="mt-4"
+              >
+                Retry
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setError(null)}
+                className="mt-4"
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
         ) : filteredTrades.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center mb-4">
@@ -328,7 +536,9 @@ export default function JournalPage() {
             <p className="text-muted-foreground">
               {searchTerm
                 ? 'Try adjusting your search terms'
-                : 'Your trading journal will appear here once you have trades'
+                : totalTrades > 0
+                  ? `${totalTrades} trades available - try clearing filters or loading more`
+                  : 'Your trading journal will appear here once you have trades'
               }
             </p>
           </div>
