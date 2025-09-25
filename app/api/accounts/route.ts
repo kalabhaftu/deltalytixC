@@ -66,26 +66,11 @@ export async function GET(request: NextRequest) {
         id: true,
         number: true,
         name: true,
-        propfirm: true,
         broker: true,
         startingBalance: true,
-        status: true, // Include status field for proper filtering
         createdAt: true,
         userId: true,
         groupId: true,
-        group: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        user: {
-          select: {
-            id: true,
-            email: true
-          }
-        },
-        // Simplified - only get trade count, phases loaded separately if needed
         _count: {
           select: {
             trades: true
@@ -101,21 +86,18 @@ export async function GET(request: NextRequest) {
       id: account.id,
       number: account.number,
       name: account.name,
-      propfirm: account.propfirm,
       broker: account.broker,
       startingBalance: account.startingBalance,
-      status: account.status || 'active', // Include status, default to 'active' for legacy accounts
       createdAt: account.createdAt,
       userId: account.userId,
       groupId: account.groupId,
-      group: account.group,
-      accountType: 'live', // propfirm field doesn't exist
+      accountType: 'live',
       displayName: account.name || account.number,
-      tradeCount: 0, // _count.trades doesn't exist
-      owner: { id: currentUserId, email: '' }, // user field doesn't exist
+      tradeCount: account._count.trades,
+      owner: { id: currentUserId, email: '' },
       isOwner: currentUserId === account.userId,
-      // Simplified - phases loaded separately for performance
-      currentPhase: 'live'
+      currentPhase: 'live',
+      status: 'active'
     }))
 
 

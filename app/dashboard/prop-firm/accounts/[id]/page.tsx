@@ -99,19 +99,41 @@ export default function AccountDetailPage() {
       const compatibleData = {
         account: realtimeAccount,
         currentPhase: {
-          phaseType: realtimeAccount.currentPhase || 'evaluation',
-          phaseStatus: 'active' // Assume active if we're getting real-time data
+          phaseNumber: realtimeAccount.currentPhase || 1,
+          status: 'active' // Assume active if we're getting real-time data
         },
         drawdown: realtimeDrawdown,
         progress: {
           profitProgress: realtimeAccount.profitTargetProgress || 0,
           canProgress: false, // Will be determined by backend
-          nextPhaseType: null
+          nextPhaseNumber: null
         }
       }
       setAccountData(compatibleData)
     }
   }, [realtimeAccount, realtimeDrawdown])
+
+  // Phase transition detection - check if current phase meets requirements
+  useEffect(() => {
+    if (realtimeAccount && realtimeAccount.phases) {
+      const currentActivePhase = realtimeAccount.phases.find(phase => 
+        phase.phaseNumber === realtimeAccount.currentPhase && phase.status === 'active'
+      )
+      
+      if (currentActivePhase && currentActivePhase.profitTargetPercent > 0) {
+        // Calculate current progress (this is simplified - in real app you'd get this from the backend)
+        const currentPnL = realtimeAccount.currentPnL || 0
+        const accountSize = realtimeAccount.accountSize || 0
+        const currentProgress = accountSize > 0 ? (currentPnL / accountSize) * 100 : 0
+        
+        // Check if profit target is met (simplified check)
+        if (currentProgress >= currentActivePhase.profitTargetPercent && !showTransitionDialog) {
+          // Trigger phase transition dialog
+          setShowTransitionDialog(true)
+        }
+      }
+    }
+  }, [realtimeAccount, showTransitionDialog])
 
   const getStatusVariant = (status: AccountStatus): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
@@ -212,7 +234,7 @@ export default function AccountDetailPage() {
                 error={realtimeError}
               />
               <span className="text-muted-foreground">•</span>
-              <span className="text-sm text-muted-foreground">{account.propfirm}</span>
+              <span className="text-sm text-muted-foreground">{realtimeAccount?.propFirmName || 'Prop Firm'}</span>
               <span className="text-muted-foreground">•</span>
               <span className="text-sm text-muted-foreground">
                 Master ID: {account.id}
@@ -328,7 +350,7 @@ export default function AccountDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
-              Profit Target - {currentPhase.phaseType === 'phase1' ? 'Phase 1' : currentPhase.phaseType === 'phase2' ? 'Phase 2' : currentPhase.phaseType === 'funded' ? 'Funded' : currentPhase.phaseType}
+              Profit Target - {currentPhase.phaseNumber === 1 ? 'Phase 1' : currentPhase.phaseNumber === 2 ? 'Phase 2' : currentPhase.phaseNumber >= 3 ? 'Funded' : `Phase ${currentPhase.phaseNumber}`}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -354,7 +376,7 @@ export default function AccountDetailPage() {
       )}
 
       {/* Payout Eligibility for Funded Accounts */}
-      {currentPhase.phaseType === 'funded' && payoutEligibility && (
+      {currentPhase.phaseNumber >= 3 && payoutEligibility && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -517,11 +539,11 @@ export default function AccountDetailPage() {
                         return (
                           <Card key={phase.id} className="p-4">
                             <div className="flex items-center justify-between mb-2">
-                              <Badge variant={phase.phaseStatus === 'active' ? 'default' : phase.phaseStatus === 'passed' ? 'secondary' : 'destructive'}>
-                                {(phase?.phaseType || 'evaluation').replace('_', ' ').toUpperCase()}
+                              <Badge variant={phase.status === 'active' ? 'default' : phase.status === 'passed' ? 'secondary' : 'destructive'}>
+                                {phase.phaseNumber === 1 ? 'PHASE 1' : phase.phaseNumber === 2 ? 'PHASE 2' : phase.phaseNumber >= 3 ? 'FUNDED' : `PHASE ${phase.phaseNumber}`}
                               </Badge>
                               <span className="text-sm text-muted-foreground">
-                                {phase.phaseStatus}
+                                {phase.status}
                               </span>
                             </div>
                             <div className="space-y-1">
@@ -574,7 +596,7 @@ export default function AccountDetailPage() {
                                 </td>
                                 <td className="p-3">
                                   <Badge variant="outline" className="text-xs">
-                                    {(trade.phase?.phaseType || 'evaluation').replace('_', ' ')}
+                                    {trade.phase?.phaseNumber === 1 ? 'Phase 1' : trade.phase?.phaseNumber === 2 ? 'Phase 2' : trade.phase?.phaseNumber >= 3 ? 'Funded' : `Phase ${trade.phase?.phaseNumber || 1}`}
                                   </Badge>
                                 </td>
                                 <td className="p-3 text-sm text-muted-foreground">
@@ -678,11 +700,11 @@ export default function AccountDetailPage() {
                       <Card key={phase.id} className="p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <Badge variant={phase.phaseStatus === 'active' ? 'default' : phase.phaseStatus === 'passed' ? 'secondary' : 'destructive'}>
-                              {(phase?.phaseType || 'evaluation').replace('_', ' ').toUpperCase()}
+                            <Badge variant={phase.status === 'active' ? 'default' : phase.status === 'passed' ? 'secondary' : 'destructive'}>
+                              {phase.phaseNumber === 1 ? 'PHASE 1' : phase.phaseNumber === 2 ? 'PHASE 2' : phase.phaseNumber >= 3 ? 'FUNDED' : `PHASE ${phase.phaseNumber}`}
                             </Badge>
                             <span className="text-sm text-muted-foreground">
-                              {phase.phaseStatus} • Started {new Date(phase.createdAt).toLocaleDateString()}
+                              {phase.status} • Started {new Date(phase.startDate).toLocaleDateString()}
                             </span>
                           </div>
                           {phase.profitTarget && (
@@ -803,7 +825,7 @@ export default function AccountDetailPage() {
         <TabsContent value="payouts">
           <div className="space-y-6">
             {/* Payout Eligibility */}
-            {currentPhase.phaseType === 'funded' && (
+            {currentPhase.phaseNumber >= 3 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -876,7 +898,7 @@ export default function AccountDetailPage() {
                   <div className="text-center py-8">
                     <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <p className="text-muted-foreground">No payout history</p>
-                    {currentPhase.phaseType !== 'funded' && (
+                    {currentPhase.phaseNumber < 3 && (
                       <p className="text-sm text-muted-foreground mt-2">
                         Payouts are only available for funded accounts
                       </p>
@@ -938,7 +960,7 @@ export default function AccountDetailPage() {
                     </div>
                     <div>
                       <label className="text-sm text-muted-foreground">Prop Firm</label>
-                      <p className="font-medium">{account.propfirm}</p>
+                      <p className="font-medium">{realtimeAccount?.propFirmName || 'Prop Firm'}</p>
                     </div>
                     <div>
                       <label className="text-sm text-muted-foreground">Starting Balance</label>
@@ -958,15 +980,15 @@ export default function AccountDetailPage() {
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm text-muted-foreground">Current Phase</label>
-                      <p className="font-medium">{(currentPhase?.phaseType || 'evaluation').replace('_', ' ').toUpperCase()}</p>
+                      <p className="font-medium">{currentPhase?.phaseNumber === 1 ? 'PHASE 1' : currentPhase?.phaseNumber === 2 ? 'PHASE 2' : currentPhase?.phaseNumber >= 3 ? 'FUNDED' : `PHASE ${currentPhase?.phaseNumber || 1}`}</p>
                     </div>
                     <div>
                       <label className="text-sm text-muted-foreground">Phase Status</label>
                       <Badge variant={
-                        currentPhase?.phaseStatus === 'active' ? 'default' :
-                        currentPhase?.phaseStatus === 'passed' ? 'secondary' : 'destructive'
+                        currentPhase?.status === 'active' ? 'default' :
+                        currentPhase?.status === 'passed' ? 'secondary' : 'destructive'
                       }>
-                        {(currentPhase?.phaseStatus || 'active').toUpperCase()}
+                        {(currentPhase?.status || 'active').toUpperCase()}
                       </Badge>
                     </div>
                     <div>
@@ -1119,14 +1141,24 @@ export default function AccountDetailPage() {
       </Tabs>
 
       {/* Phase Transition Dialog */}
-      {showTransitionDialog && accountData && (
+      {showTransitionDialog && realtimeAccount && realtimeAccount.phases && (
         <PhaseTransitionDialog
           isOpen={showTransitionDialog}
           onClose={() => setShowTransitionDialog(false)}
-          // accountId={accountId} // accountId prop doesn't exist
-          currentPhase={accountData.currentPhase}
-          nextPhaseType={accountData.progress?.nextPhaseType}
-          startingBalance={accountData.account.startingBalance}
+          masterAccountId={accountId}
+          currentPhase={{
+            phaseNumber: realtimeAccount.currentPhase || 1,
+            profitTargetPercent: realtimeAccount.phases.find(p => p.phaseNumber === realtimeAccount.currentPhase)?.profitTargetPercent || 0,
+            currentPnL: realtimeAccount.currentPnL || 0,
+            phaseId: realtimeAccount.phases.find(p => p.phaseNumber === realtimeAccount.currentPhase)?.phaseId || ''
+          }}
+          nextPhaseNumber={(realtimeAccount.currentPhase || 1) + 1}
+          propFirmName={realtimeAccount.propFirmName || 'Prop Firm'}
+          accountName={realtimeAccount.accountName || 'Account'}
+          onSuccess={() => {
+            setShowTransitionDialog(false)
+            refetch() // Refresh data after successful transition
+          }}
         />
       )}
     </div>

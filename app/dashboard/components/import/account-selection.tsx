@@ -26,9 +26,9 @@ interface UnifiedAccount {
   startingBalance: number
   status: string
   currentPhase?: {
-    phaseType: string
-    phaseStatus: string
-    accountNumber: string
+    phaseNumber: number
+    status: string
+    phaseId: string | null
   }
 }
 
@@ -191,7 +191,7 @@ export default function AccountSelection({
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {account.accountType === 'prop-firm'
-                        ? account.propfirm || "Unknown Prop Firm"
+                        ? account.displayName || "Unknown Prop Firm"
                         : (account as any).broker || "Unknown Broker"
                       }
                     </p>
@@ -199,19 +199,19 @@ export default function AccountSelection({
                       <div className="flex items-center gap-2 mt-2">
                         <Badge
                           variant={
-                            account.currentPhase.phaseStatus === 'active' ? 'default' :
-                            account.currentPhase.phaseStatus === 'passed' ? 'secondary' :
+                            account.currentPhase.status === 'active' ? 'default' :
+                            account.currentPhase.status === 'passed' ? 'secondary' :
                             'destructive'
                           }
                           className="text-xs"
                         >
-                          {account.currentPhase.phaseStatus === 'active' && <Target className="h-3 w-3 mr-1" />}
-                          {account.currentPhase.phaseStatus === 'passed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                          {account.currentPhase.phaseStatus === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                          {account.currentPhase.phaseType.toUpperCase()}
+                          {account.currentPhase.status === 'active' && <Target className="h-3 w-3 mr-1" />}
+                          {account.currentPhase.status === 'passed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                          {account.currentPhase.status === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                          {account.currentPhase.phaseNumber === 1 ? 'PHASE 1' : account.currentPhase.phaseNumber === 2 ? 'PHASE 2' : account.currentPhase.phaseNumber >= 3 ? 'FUNDED' : `PHASE ${account.currentPhase.phaseNumber}`}
                         </Badge>
                         <span className="text-xs font-mono text-muted-foreground">
-                          #{account.currentPhase.accountNumber}
+                          #{account.currentPhase.phaseId || 'No ID'}
                         </span>
                       </div>
                     )}

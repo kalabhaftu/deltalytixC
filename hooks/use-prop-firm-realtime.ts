@@ -3,14 +3,34 @@ import { useToast } from '@/hooks/use-toast'
 
 interface PropFirmAccount {
   id: string
-  number: string
-  name?: string
-  status: 'active' | 'failed' | 'funded' | 'passed'
-  currentPhase: 'phase_1' | 'phase_2' | 'funded'
-  currentBalance: number
-  currentEquity: number
-  dailyDrawdownRemaining: number
-  maxDrawdownRemaining: number
+  accountName: string
+  propFirmName: string
+  accountSize: number
+  evaluationType: string
+  currentPhase: number
+  isActive: boolean
+  phases: Array<{
+    id: string
+    phaseNumber: number
+    phaseId: string | null
+    status: 'active' | 'pending' | 'passed' | 'failed' | 'archived'
+    profitTargetPercent: number
+    dailyDrawdownPercent: number
+    maxDrawdownPercent: number
+    maxDrawdownType: string
+    minTradingDays: number
+    timeLimitDays: number | null
+    consistencyRulePercent: number
+    profitSplitPercent: number | null
+    payoutCycleDays: number | null
+    startDate: string
+    endDate: string | null
+  }>
+  currentPnL?: number
+  currentBalance?: number
+  currentEquity?: number
+  dailyDrawdownRemaining?: number
+  maxDrawdownRemaining?: number
   profitTargetProgress?: number
   lastUpdated: string
 }

@@ -38,21 +38,24 @@ const baseSchema = z.object({
   phase1ProfitTargetPercent: z.number().min(0, 'Phase 1 profit target is required').max(100),
   phase1DailyDrawdownPercent: z.number().min(1, 'Phase 1 daily drawdown is required').max(100),
   phase1MaxDrawdownPercent: z.number().min(1, 'Phase 1 max drawdown is required').max(100),
+  phase1MaxDrawdownType: z.enum(['static', 'trailing']).default('static'),
   phase1MinTradingDays: z.number().min(0).default(0),
-  phase1TimeLimitDays: z.number().min(0).default(0),
+  phase1TimeLimitDays: z.number().min(0).default(0).nullable(),
   phase1ConsistencyRulePercent: z.number().min(0).max(100).default(0),
 
   // Phase 2 rules (for Two Step)
   phase2ProfitTargetPercent: z.number().min(0).max(100).optional(),
   phase2DailyDrawdownPercent: z.number().min(0).max(100).optional(),
   phase2MaxDrawdownPercent: z.number().min(0).max(100).optional(),
+  phase2MaxDrawdownType: z.enum(['static', 'trailing']).default('static').optional(),
   phase2MinTradingDays: z.number().min(0).default(0).optional(),
-  phase2TimeLimitDays: z.number().min(0).default(0).optional(),
+  phase2TimeLimitDays: z.number().min(0).default(0).nullable().optional(),
   phase2ConsistencyRulePercent: z.number().min(0).max(100).default(0).optional(),
 
   // Funded rules
   fundedDailyDrawdownPercent: z.number().min(1, 'Funded daily drawdown is required').max(100),
   fundedMaxDrawdownPercent: z.number().min(1, 'Funded max drawdown is required').max(100),
+  fundedMaxDrawdownType: z.enum(['static', 'trailing']).default('static'),
   fundedProfitSplitPercent: z.number().min(0).max(100).default(80),
   fundedPayoutCycleDays: z.number().min(1).max(365).default(14),
 })
@@ -90,36 +93,35 @@ type CreatePropFirmAccountForm = z.infer<typeof createPropFirmAccountSchema>
 interface PropFirmTemplate {
   name: string
   accountSizes: number[]
-  evaluationTypes: string[]
-  templates: {
-    [evaluationType: string]: {
+  programs: Array<{
+    name: string
+    evaluationType: string
+    phases: {
       phase1?: {
         profitTargetPercent: number
         maxDrawdownPercent: number
+        maxDrawdownType: string
         dailyDrawdownPercent: number
         minTradingDays: number
-        timeLimitDays: number
-        consistencyRulePercent: number
+        timeLimitDays: number | null
+        notes?: string
       }
       phase2?: {
         profitTargetPercent: number
         maxDrawdownPercent: number
+        maxDrawdownType: string
         dailyDrawdownPercent: number
         minTradingDays: number
-        timeLimitDays: number
-        consistencyRulePercent: number
+        timeLimitDays: number | null
       }
       funded: {
         maxDrawdownPercent: number
+        maxDrawdownType: string
         dailyDrawdownPercent: number
         profitSplitPercent: number
-        payoutCycleDays: number
-        minTradingDays: number
-        timeLimitDays: number
-        consistencyRulePercent: number
       }
     }
-  }
+  }>
 }
 
 interface EnhancedCreateAccountDialogProps {
@@ -150,6 +152,7 @@ export function EnhancedCreateAccountDialog({
       phase1ProfitTargetPercent: 10,
       phase1DailyDrawdownPercent: 5,
       phase1MaxDrawdownPercent: 10,
+      phase1MaxDrawdownType: 'static' as const,
       phase1MinTradingDays: 4,
       phase1TimeLimitDays: 30,
       phase1ConsistencyRulePercent: 0,
@@ -157,12 +160,14 @@ export function EnhancedCreateAccountDialog({
       phase2ProfitTargetPercent: 5,
       phase2DailyDrawdownPercent: 5,
       phase2MaxDrawdownPercent: 10,
+      phase2MaxDrawdownType: 'static' as const,
       phase2MinTradingDays: 4,
       phase2TimeLimitDays: 60,
       phase2ConsistencyRulePercent: 0,
       
       fundedDailyDrawdownPercent: 5,
       fundedMaxDrawdownPercent: 5,
+      fundedMaxDrawdownType: 'static' as const,
       fundedProfitSplitPercent: 80,
       fundedPayoutCycleDays: 14,
     }
@@ -191,7 +196,8 @@ export function EnhancedCreateAccountDialog({
     if (watchedEvaluationType === 'Instant') {
       setValue('phase1ProfitTargetPercent', 0)
     } else if (watchedEvaluationType === 'One Step' && watchedPropFirm && templates[watchedPropFirm]) {
-      const template = templates[watchedPropFirm]?.templates['One Step']
+      const propFirmTemplate = templates[watchedPropFirm]
+      const template = propFirmTemplate?.programs?.find(p => p.evaluationType === 'One Step')?.phases
       if (template?.phase1) {
         setValue('phase1ProfitTargetPercent', template.phase1.profitTargetPercent)
       }
@@ -217,7 +223,8 @@ export function EnhancedCreateAccountDialog({
 
   const loadTemplateRules = () => {
     const template = templates[watchedPropFirm]
-    const rules = template?.templates[watchedEvaluationType]
+    const selectedProgram = template?.programs?.find(p => p.evaluationType === watchedEvaluationType)
+    const rules = selectedProgram?.phases
     
     if (rules) {
       // Phase 1 rules
@@ -225,9 +232,10 @@ export function EnhancedCreateAccountDialog({
         setValue('phase1ProfitTargetPercent', rules.phase1.profitTargetPercent)
         setValue('phase1DailyDrawdownPercent', rules.phase1.dailyDrawdownPercent)
         setValue('phase1MaxDrawdownPercent', rules.phase1.maxDrawdownPercent)
-        setValue('phase1MinTradingDays', rules.phase1.minTradingDays)
-        setValue('phase1TimeLimitDays', rules.phase1.timeLimitDays)
-        setValue('phase1ConsistencyRulePercent', rules.phase1.consistencyRulePercent)
+        setValue('phase1MaxDrawdownType', rules.phase1.maxDrawdownType as 'static' | 'trailing')
+        setValue('phase1MinTradingDays', rules.phase1.minTradingDays || 0)
+        setValue('phase1TimeLimitDays', rules.phase1.timeLimitDays || 0)
+        setValue('phase1ConsistencyRulePercent', 0) // Not in new template
       }
       
       // Phase 2 rules (if exists)
@@ -235,16 +243,18 @@ export function EnhancedCreateAccountDialog({
         setValue('phase2ProfitTargetPercent', rules.phase2.profitTargetPercent)
         setValue('phase2DailyDrawdownPercent', rules.phase2.dailyDrawdownPercent)
         setValue('phase2MaxDrawdownPercent', rules.phase2.maxDrawdownPercent)
-        setValue('phase2MinTradingDays', rules.phase2.minTradingDays)
-        setValue('phase2TimeLimitDays', rules.phase2.timeLimitDays)
-        setValue('phase2ConsistencyRulePercent', rules.phase2.consistencyRulePercent)
+        setValue('phase2MaxDrawdownType', rules.phase2.maxDrawdownType as 'static' | 'trailing')
+        setValue('phase2MinTradingDays', rules.phase2.minTradingDays || 0)
+        setValue('phase2TimeLimitDays', rules.phase2.timeLimitDays || 0)
+        setValue('phase2ConsistencyRulePercent', 0)
       }
       
       // Funded rules
       setValue('fundedDailyDrawdownPercent', rules.funded.dailyDrawdownPercent)
       setValue('fundedMaxDrawdownPercent', rules.funded.maxDrawdownPercent)
+      setValue('fundedMaxDrawdownType', rules.funded.maxDrawdownType as 'static' | 'trailing')
       setValue('fundedProfitSplitPercent', rules.funded.profitSplitPercent)
-      setValue('fundedPayoutCycleDays', rules.funded.payoutCycleDays)
+      setValue('fundedPayoutCycleDays', 14) // Default as not in template
     }
   }
 
@@ -355,7 +365,7 @@ export function EnhancedCreateAccountDialog({
 
   const getAvailableEvaluationTypes = () => {
     if (!watchedPropFirm || !templates[watchedPropFirm]) return []
-    return templates[watchedPropFirm].evaluationTypes
+    return templates[watchedPropFirm].programs?.map(p => p.evaluationType) || []
   }
 
   return (
@@ -431,7 +441,7 @@ export function EnhancedCreateAccountDialog({
                             <CardHeader className="pb-3">
                               <CardTitle className="text-sm">{template.name}</CardTitle>
                               <CardDescription className="text-xs">
-                                {template.evaluationTypes.join(', ')} • {template.accountSizes.length} sizes
+                                {template.programs?.map(p => p.evaluationType).join(', ') || 'N/A'} • {template.accountSizes.length} sizes
                               </CardDescription>
                             </CardHeader>
                           </Card>

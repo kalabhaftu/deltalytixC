@@ -180,8 +180,9 @@ model PhaseAccount {
   profitTargetPercent          Float
   dailyDrawdownPercent         Float
   maxDrawdownPercent           Float
+  maxDrawdownType              String               @default("static") // "static" or "trailing"
   minTradingDays               Int                  @default(0) // can be 0
-  timeLimitDays                Int                  @default(0) // can be 0 for unlimited
+  timeLimitDays                Int?                 // null for unlimited
   consistencyRulePercent       Float                @default(0) // can be 0 for none
   
   // Payout config (only relevant for Funded phase)
@@ -193,6 +194,7 @@ model PhaseAccount {
   
   masterAccount                MasterAccount        @relation(fields: [masterAccountId], references: [id], onDelete: Cascade)
   trades                       Trade[]
+  dailyAnchors                 DailyAnchor[]
   
   @@index([masterAccountId])
   @@index([phaseNumber])
@@ -200,6 +202,22 @@ model PhaseAccount {
   @@index([phaseId])
   @@index([masterAccountId, phaseNumber])
   @@index([masterAccountId, status])
+  @@schema("public")
+}
+
+// Daily Anchor Model for Daily Drawdown Calculation
+model DailyAnchor {
+  id           String   @id @default(uuid())
+  phaseAccountId String  // Links to PhaseAccount for new architecture
+  date         DateTime @db.Date
+  anchorEquity Float
+  computedAt   DateTime @default(now())
+  
+  phaseAccount PhaseAccount @relation(fields: [phaseAccountId], references: [id], onDelete: Cascade)
+  
+  @@unique([phaseAccountId, date])
+  @@index([phaseAccountId])
+  @@index([date])
   @@schema("public")
 }
 

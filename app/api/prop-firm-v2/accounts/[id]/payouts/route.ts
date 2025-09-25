@@ -85,32 +85,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
     
     // Get total count
-    const total = await prisma.payout?.count({ where }) || 0
+    // TODO: Rewrite for new MasterAccount/PhaseAccount system
+    const total = 0 // await prisma.payout?.count({ where }) || 0
 
-    // Get payouts
-    const payouts = await prisma.payout?.findMany({
-      where,
-      skip: offset,
-      take: filters.limit,
-      orderBy: { [filters.sortBy]: filters.sortOrder },
-      include: {
-        account: {
-          select: {
-            id: true,
-            name: true,
-            number: true,
-            propfirm: true,
-          }
-        }
-      }
-    }) || []
+    // Get payouts - DISABLED: Old system references
+    const payouts: any[] = [] // Disabled until rewritten for new system
     
-    // Get current funded phase for eligibility check
-    const fundedPhase = await prisma.accountPhase?.findFirst({
+    // Get current funded phase for eligibility check - Updated for new system
+    const fundedPhase = await prisma.phaseAccount.findFirst({
       where: {
-        accountId,
-        phaseType: 'funded',
-        phaseStatus: 'active'
+        masterAccountId: accountId,
+        phaseNumber: { gte: 3 }, // Funded phase
+        status: 'active'
       }
     })
     
@@ -207,12 +193,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
     
-    // Get current funded phase
-    const fundedPhase = await prisma.accountPhase?.findFirst({
+    // Get current funded phase - Updated for new system
+    const fundedPhase = await prisma.phaseAccount.findFirst({
       where: {
-        accountId,
-        phaseType: 'funded',
-        phaseStatus: 'active'
+        masterAccountId: accountId,
+        phaseNumber: { gte: 3 }, // Funded phase
+        status: 'active'
       }
     })
     
@@ -223,11 +209,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
     
-    // Get existing payouts
-    const existingPayouts = await prisma.payout?.findMany({
-      where: { accountId },
-      orderBy: { date: 'desc' }
-    }) || []
+    // Get existing payouts - Disabled until payout system is rebuilt for new architecture
+    const existingPayouts: any[] = []
     
     // Calculate payout eligibility
     const eligibility = PropFirmEngine.calculatePayoutEligibility(
@@ -279,39 +262,27 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Create payout request in transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create payout request
-      const payout = await tx.payout?.create({
-        data: {
-          accountId,
-          accountNumber: account.number, // Use account number from the account record
-          amount: validatedData.requestedAmount,
-          amountRequested: eligibility.traderShare,
-          amountPaid: 0,
-          status: 'pending',
-          date: new Date(),
-          requestedAt: new Date(),
-          notes: validatedData.notes,
-        }
-      })
+      // DISABLED: Payout creation disabled until system is rebuilt
+      const payout = null
       
-      // Optionally reduce balance immediately or wait for approval
-      // This depends on the prop firm's policy
-      if (account.reduceBalanceByPayout) {
-        await tx.accountPhase?.update({
-          where: { id: fundedPhase.id },
-          data: {
-            currentEquity: { decrement: validatedData.requestedAmount },
-            currentBalance: { decrement: validatedData.requestedAmount },
-          }
-        })
-      }
+      // DISABLED: Balance reduction disabled until system is rebuilt
+      // if (account.reduceBalanceByPayout) {
+      //   await tx.accountPhase?.update({
+      //     where: { id: fundedPhase.id },
+      //     data: {
+      //       currentEquity: { decrement: validatedData.requestedAmount },
+      //       currentBalance: { decrement: validatedData.requestedAmount },
+      //     }
+      //   })
+      // }
       
-      // Update payout count
-      await tx.account.update({
-        where: { id: accountId },
-        data: {
-          payoutCount: { increment: 1 }
-        }
-      })
+      // DISABLED: Account metadata update disabled until system is rebuilt
+      // await tx.account.update({
+      //   where: { id: accountId },
+      //   data: {
+      //     payoutCount: { increment: 1 }
+      //   }
+      // })
       
       return payout
     })

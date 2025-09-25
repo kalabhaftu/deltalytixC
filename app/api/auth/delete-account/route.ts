@@ -90,30 +90,33 @@ export async function DELETE(request: NextRequest) {
       
       // Account-related deletions
       if (accountIds.length > 0) {
-        await tx.breach.deleteMany({
-          where: {
-            phase: {
-              accountId: { in: accountIds }
-            }
-          }
-        })
+        // TODO: Update for new system
+        // await tx.breach.deleteMany({
+        //   where: {
+        //     phase: {
+        //       accountId: { in: accountIds }
+        //     }
+        //   }
+        // })
         
-        await tx.accountPhase.deleteMany({
-          where: { accountId: { in: accountIds } }
-        })
+        // await tx.accountPhase.deleteMany({
+        //   where: { accountId: { in: accountIds } }
+        // })
         
-        await tx.payout.deleteMany({
-          where: {
-            account: {
-              userId
-            }
-          }
-        })
+        // await tx.payout.deleteMany({
+        //   where: {
+        //     account: {
+        //       userId
+        //     }
+        //   }
+        // })
         
         await tx.dailyAnchor.deleteMany({
           where: {
-            account: {
-              userId
+            phaseAccount: {
+              masterAccount: {
+                userId
+              }
             }
           }
         })

@@ -1,513 +1,349 @@
 {
   "FTMO": {
     "name": "FTMO",
-    "accountSizes": [5000, 10000, 25000, 50000, 100000, 200000],
-    "evaluationTypes": ["Two Step"],
-    "templates": {
-      "Two Step": {
-        "phase1": {
-          "profitTargetPercent": 10,
-          "maxDrawdownPercent": 10,
-          "dailyDrawdownPercent": 5,
-          "minTradingDays": 4,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 30
-        },
-        "phase2": {
-          "profitTargetPercent": 5,
-          "maxDrawdownPercent": 10,
-          "dailyDrawdownPercent": 5,
-          "minTradingDays": 4,
-          "timeLimitDays": 60,
-          "consistencyRulePercent": 30
-        },
-        "funded": {
-          "maxDrawdownPercent": 5,
-          "dailyDrawdownPercent": 5,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
+    "accountSizes": [10000, 25000, 50000, 100000, 200000],
+    "programs": [
+      {
+        "name": "FTMO Challenge",
+        "evaluationType": "Two Step",
+        "phases": {
+          "phase1": {
+            "profitTargetPercent": 10,
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 4,
+            "timeLimitDays": null,
+            "notes": "Time limit is unlimited for new challenges."
+          },
+          "phase2": {
+            "profitTargetPercent": 5,
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 4,
+            "timeLimitDays": null
+          },
+          "funded": {
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "profitSplitPercent": 80
+          }
         }
       }
-    }
+    ]
   },
   "The5ers": {
     "name": "The5ers",
     "accountSizes": [5000, 10000, 20000, 50000, 100000],
-    "evaluationTypes": ["Two Step"],
-    "templates": {
-      "Two Step": {
-        "phase1": {
-          "profitTargetPercent": 8,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 5,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "phase2": {
-          "profitTargetPercent": 5,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 5,
-          "timeLimitDays": 60,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 6,
-          "dailyDrawdownPercent": 4,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
+    "programs": [
+      {
+        "name": "High Stakes Challenge",
+        "evaluationType": "Two Step",
+        "phases": {
+          "phase1": {
+            "profitTargetPercent": 8,
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 3,
+            "timeLimitDays": null
+          },
+          "phase2": {
+            "profitTargetPercent": 5,
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 3,
+            "timeLimitDays": null
+          },
+          "funded": {
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "profitSplitPercent": 80
+          }
         }
       }
-    }
+    ]
   },
   "FundedNext": {
     "name": "FundedNext",
     "accountSizes": [6000, 15000, 25000, 50000, 100000, 200000],
-    "evaluationTypes": ["Two Step", "One Step"],
-    "templates": {
-      "Two Step": {
-        "phase1": {
-          "profitTargetPercent": 10,
-          "maxDrawdownPercent": 12,
-          "dailyDrawdownPercent": 5,
-          "minTradingDays": 4,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "phase2": {
-          "profitTargetPercent": 5,
-          "maxDrawdownPercent": 12,
-          "dailyDrawdownPercent": 5,
-          "minTradingDays": 4,
-          "timeLimitDays": 60,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 5,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
+    "programs": [
+      {
+        "name": "Stellar 2-Step",
+        "evaluationType": "Two Step",
+        "phases": {
+          "phase1": {
+            "profitTargetPercent": 8,
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 5,
+            "timeLimitDays": null
+          },
+          "phase2": {
+            "profitTargetPercent": 5,
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 5,
+            "timeLimitDays": null
+          },
+          "funded": {
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "profitSplitPercent": 80
+          }
         }
       },
-      "One Step": {
-        "phase1": {
-          "profitTargetPercent": 10,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 7,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
+      {
+        "name": "Stellar 1-Step",
+        "evaluationType": "One Step",
+        "phases": {
+          "phase1": {
+            "profitTargetPercent": 10,
+            "maxDrawdownPercent": 6,
+            "maxDrawdownType": "trailing",
+            "dailyDrawdownPercent": 3,
+            "minTradingDays": 5,
+            "timeLimitDays": null
+          },
+          "funded": {
+            "maxDrawdownPercent": 6,
+            "maxDrawdownType": "trailing",
+            "dailyDrawdownPercent": 3,
+            "profitSplitPercent": 90
+          }
         }
       }
-    }
+    ]
   },
   "SurgeTrader": {
     "name": "SurgeTrader",
-    "accountSizes": [25000, 50000, 100000, 250000],
-    "evaluationTypes": ["Two Step"],
-    "templates": {
-      "Two Step": {
-        "phase1": {
-          "profitTargetPercent": 10,
-          "maxDrawdownPercent": 10,
-          "dailyDrawdownPercent": 5,
-          "minTradingDays": 5,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "phase2": {
-          "profitTargetPercent": 5,
-          "maxDrawdownPercent": 10,
-          "dailyDrawdownPercent": 5,
-          "minTradingDays": 5,
-          "timeLimitDays": 60,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 6,
-          "dailyDrawdownPercent": 4,
-          "profitSplitPercent": 75,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
+    "accountSizes": [25000, 50000, 100000, 250000, 500000, 1000000],
+    "programs": [
+      {
+        "name": "Two Step Audition",
+        "evaluationType": "Two Step",
+        "phases": {
+          "phase1": {
+            "profitTargetPercent": 8,
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 0,
+            "timeLimitDays": null
+          },
+          "phase2": {
+            "profitTargetPercent": 5,
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 0,
+            "timeLimitDays": null
+          },
+          "funded": {
+            "maxDrawdownPercent": 6,
+            "maxDrawdownType": "trailing",
+            "dailyDrawdownPercent": 5,
+            "profitSplitPercent": 75
+          }
         }
       }
-    }
+    ]
   },
-  "TopTierTrader": {
-    "name": "TopTierTrader",
-    "accountSizes": [25000, 50000, 100000, 150000],
-    "evaluationTypes": ["Two Step"],
-    "templates": {
-      "Two Step": {
-        "phase1": {
-          "profitTargetPercent": 8,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 5,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "phase2": {
-          "profitTargetPercent": 5,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 5,
-          "timeLimitDays": 60,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 5,
-          "dailyDrawdownPercent": 4,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
-        }
-      }
-    }
-  },
-  "E8Funding": {
+  "E8 Funding": {
     "name": "E8 Funding",
-    "accountSizes": [25000, 50000, 100000, 200000],
-    "evaluationTypes": ["Two Step"],
-    "templates": {
-      "Two Step": {
-        "phase1": {
-          "profitTargetPercent": 8,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 5,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "phase2": {
-          "profitTargetPercent": 5,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 5,
-          "timeLimitDays": 60,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 5,
-          "dailyDrawdownPercent": 4,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
+    "accountSizes": [25000, 50000, 100000, 250000],
+    "programs": [
+      {
+        "name": "E8 Evaluation",
+        "evaluationType": "Two Step",
+        "phases": {
+          "phase1": {
+            "profitTargetPercent": 8,
+            "maxDrawdownPercent": 8,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 0,
+            "timeLimitDays": null
+          },
+          "phase2": {
+            "profitTargetPercent": 5,
+            "maxDrawdownPercent": 8,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 0,
+            "timeLimitDays": null
+          },
+          "funded": {
+            "maxDrawdownPercent": 8,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "profitSplitPercent": 80
+          }
         }
       }
-    }
+    ]
   },
-  "MyForexFunds": {
-    "name": "MyForexFunds",
-    "accountSizes": [10000, 25000, 50000, 100000, 200000],
-    "evaluationTypes": ["Two Step"],
-    "templates": {
-      "Two Step": {
-        "phase1": {
-          "profitTargetPercent": 10,
-          "maxDrawdownPercent": 10,
-          "dailyDrawdownPercent": 5,
-          "minTradingDays": 5,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "phase2": {
-          "profitTargetPercent": 5,
-          "maxDrawdownPercent": 10,
-          "dailyDrawdownPercent": 5,
-          "minTradingDays": 5,
-          "timeLimitDays": 60,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 5,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
-        }
-      }
-    }
-  },
-  "TrueForexFunds": {
-    "name": "TrueForexFunds",
-    "accountSizes": [10000, 25000, 50000, 100000],
-    "evaluationTypes": ["Two Step"],
-    "templates": {
-      "Two Step": {
-        "phase1": {
-          "profitTargetPercent": 10,
-          "maxDrawdownPercent": 10,
-          "dailyDrawdownPercent": 5,
-          "minTradingDays": 5,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "phase2": {
-          "profitTargetPercent": 5,
-          "maxDrawdownPercent": 10,
-          "dailyDrawdownPercent": 5,
-          "minTradingDays": 5,
-          "timeLimitDays": 60,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 5,
-          "profitSplitPercent": 75,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
-        }
-      }
-    }
-  },
-  "MavenTrading": {
-    "name": "Maven Trading",
-    "accountSizes": [2000, 5000, 10000, 25000, 50000, 100000, 200000],
-    "evaluationTypes": ["One Step", "Two Step"],
-    "templates": {
-      "One Step": {
-        "phase1": {
-          "profitTargetPercent": 10,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 5,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 5,
-          "dailyDrawdownPercent": 4,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
-        }
-      },
-      "Two Step": {
-        "phase1": {
-          "profitTargetPercent": 10,
-          "maxDrawdownPercent": 10,
-          "dailyDrawdownPercent": 5,
-          "minTradingDays": 4,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "phase2": {
-          "profitTargetPercent": 5,
-          "maxDrawdownPercent": 10,
-          "dailyDrawdownPercent": 5,
-          "minTradingDays": 4,
-          "timeLimitDays": 60,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 5,
-          "dailyDrawdownPercent": 4,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
-        }
-      }
-    }
-  },
-  "AlphaCapitalGroup": {
-    "name": "Alpha Capital Group",
-    "accountSizes": [10000, 25000, 50000, 100000, 200000],
-    "evaluationTypes": ["Two Step"],
-    "templates": {
-      "Two Step": {
-        "phase1": {
-          "profitTargetPercent": 10,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 5,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "phase2": {
-          "profitTargetPercent": 5,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 5,
-          "timeLimitDays": 60,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 5,
-          "dailyDrawdownPercent": 4,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
-        }
-      }
-    }
-  },
-  "FundingPips": {
+  "Funding Pips": {
     "name": "Funding Pips",
-    "accountSizes": [10000, 25000, 50000, 100000],
-    "evaluationTypes": ["Two Step"],
-    "templates": {
-      "Two Step": {
-        "phase1": {
-          "profitTargetPercent": 10,
-          "maxDrawdownPercent": 10,
-          "dailyDrawdownPercent": 5,
-          "minTradingDays": 5,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "phase2": {
-          "profitTargetPercent": 5,
-          "maxDrawdownPercent": 10,
-          "dailyDrawdownPercent": 5,
-          "minTradingDays": 5,
-          "timeLimitDays": 60,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 5,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
+    "accountSizes": [5000, 10000, 25000, 50000, 100000],
+    "programs": [
+      {
+        "name": "Two Step Challenge",
+        "evaluationType": "Two Step",
+        "phases": {
+          "phase1": {
+            "profitTargetPercent": 8,
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 0,
+            "timeLimitDays": null
+          },
+          "phase2": {
+            "profitTargetPercent": 5,
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 0,
+            "timeLimitDays": null
+          },
+          "funded": {
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "profitSplitPercent": 80
+          }
         }
       }
-    }
+    ]
   },
   "EquityEdge": {
     "name": "EquityEdge",
-    "accountSizes": [2500, 5000, 10000, 25000, 50000, 100000],
-    "evaluationTypes": ["Two Step"],
-    "templates": {
-      "Two Step": {
-        "phase1": {
-          "profitTargetPercent": 8,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 5,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "phase2": {
-          "profitTargetPercent": 5,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 5,
-          "timeLimitDays": 60,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 6,
-          "dailyDrawdownPercent": 4,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
+    "accountSizes": [5000, 10000, 25000, 50000, 100000],
+    "programs": [
+      {
+        "name": "Two Step Challenge",
+        "evaluationType": "Two Step",
+        "phases": {
+          "phase1": {
+            "profitTargetPercent": 8,
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 0,
+            "timeLimitDays": null
+          },
+          "phase2": {
+            "profitTargetPercent": 5,
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 0,
+            "timeLimitDays": null
+          },
+          "funded": {
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "profitSplitPercent": 80
+          }
         }
       }
-    }
+    ]
+  },
+  "Maven Trading": {
+    "name": "Maven Trading",
+    "accountSizes": [2000, 5000, 10000, 25000, 50000, 100000],
+    "programs": [
+      {
+        "name": "Two Step Challenge",
+        "evaluationType": "Two Step",
+        "phases": {
+          "phase1": {
+            "profitTargetPercent": 8,
+            "maxDrawdownPercent": 8,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 0,
+            "timeLimitDays": null
+          },
+          "phase2": {
+            "profitTargetPercent": 5,
+            "maxDrawdownPercent": 8,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 0,
+            "timeLimitDays": null
+          },
+          "funded": {
+            "maxDrawdownPercent": 8,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "profitSplitPercent": 80
+          }
+        }
+      },
+      {
+        "name": "One Step Challenge",
+        "evaluationType": "One Step",
+        "phases": {
+          "phase1": {
+            "profitTargetPercent": 10,
+            "maxDrawdownPercent": 6,
+            "maxDrawdownType": "trailing",
+            "dailyDrawdownPercent": 4,
+            "minTradingDays": 0,
+            "timeLimitDays": null
+          },
+          "funded": {
+            "maxDrawdownPercent": 6,
+            "maxDrawdownType": "trailing",
+            "dailyDrawdownPercent": 4,
+            "profitSplitPercent": 80
+          }
+        }
+      }
+    ]
   },
   "Custom": {
     "name": "Custom",
     "accountSizes": [1000, 5000, 10000, 25000, 50000, 100000, 200000, 500000],
-    "evaluationTypes": ["One Step", "Two Step", "Instant"],
-    "templates": {
-      "Two Step": {
-        "phase1": {
-          "profitTargetPercent": 8,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 4,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "phase2": {
-          "profitTargetPercent": 5,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 4,
-          "timeLimitDays": 60,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 5,
-          "dailyDrawdownPercent": 4,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
-        }
-      },
-      "One Step": {
-        "phase1": {
-          "profitTargetPercent": 10,
-          "maxDrawdownPercent": 8,
-          "dailyDrawdownPercent": 4,
-          "minTradingDays": 5,
-          "timeLimitDays": 30,
-          "consistencyRulePercent": 0
-        },
-        "funded": {
-          "maxDrawdownPercent": 5,
-          "dailyDrawdownPercent": 4,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
-        }
-      },
-      "Instant": {
-        "funded": {
-          "maxDrawdownPercent": 5,
-          "dailyDrawdownPercent": 4,
-          "profitSplitPercent": 80,
-          "payoutCycleDays": 14,
-          "minTradingDays": 0,
-          "timeLimitDays": 0,
-          "consistencyRulePercent": 0
+    "programs": [
+      {
+        "name": "Custom Challenge",
+        "evaluationType": "Custom",
+        "phases": {
+          "phase1": {
+            "profitTargetPercent": 8,
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 5,
+            "timeLimitDays": 30
+          },
+          "phase2": {
+            "profitTargetPercent": 5,
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "minTradingDays": 5,
+            "timeLimitDays": 60
+          },
+          "funded": {
+            "maxDrawdownPercent": 10,
+            "maxDrawdownType": "static",
+            "dailyDrawdownPercent": 5,
+            "profitSplitPercent": 80
+          }
         }
       }
-    }
+    ]
   }
 }
-

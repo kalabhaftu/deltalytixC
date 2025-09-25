@@ -129,7 +129,7 @@ export default function AccountsPage() {
         account.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         account.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
         account.broker?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        account.propfirm?.toLowerCase().includes(searchQuery.toLowerCase())
+        account.displayName?.toLowerCase().includes(searchQuery.toLowerCase())
 
       const matchesType = filterType === 'all' || account.accountType === filterType
       const matchesStatus = filterStatus === 'all' || account.status === filterStatus
@@ -598,12 +598,18 @@ function AccountCard({
               </div>
             <div className="flex items-center gap-2 mb-1">
               <p className="text-sm text-muted-foreground">
-                {account.accountType === 'prop-firm' ? account.propfirm : account.broker}
+                {account.accountType === 'prop-firm' ? account.displayName : account.broker}
               </p>
               {/* Add phase badge for prop firm accounts */}
               {account.accountType === 'prop-firm' && account.currentPhase && (
-                <Badge variant={Number(account.currentPhase) >= 3 ? 'default' : Number(account.currentPhase) === 2 ? 'secondary' : 'outline'} className="text-xs">
-                  {Number(account.currentPhase) === 1 ? 'Phase 1' : Number(account.currentPhase) === 2 ? 'Phase 2' : 'Funded'}
+                <Badge variant={
+                  account.currentPhase === 'funded' ? 'default' : 
+                  account.currentPhase === 'phase_2' ? 'secondary' : 
+                  'outline'
+                } className="text-xs">
+                  {account.currentPhase === 'phase_1' ? 'Phase 1' : 
+                   account.currentPhase === 'phase_2' ? 'Phase 2' : 
+                   'Funded'}
                 </Badge>
               )}
             </div>

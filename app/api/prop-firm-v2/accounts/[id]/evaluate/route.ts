@@ -1,0 +1,182 @@
+/**
+ * Phase Evaluation API
+ * POST /api/prop-firm-v2/accounts/[id]/evaluate - Evaluate current phase status
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { PrismaClient } from '@prisma/client'
+import { getUserId } from '@/server/auth-utils'
+import { PhaseEvaluationEngine } from '@/lib/prop-firm/phase-evaluation-engine'
+
+const prisma = new PrismaClient()
+
+interface RouteParams {
+  params: { id: string }
+}
+
+export async function POST(request: NextRequest, { params }: RouteParams) {
+  try {
+    const userId = await getUserId()
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const masterAccountId = params.id
+
+    // Verify the master account belongs to the user
+    const masterAccount = await prisma.masterAccount.findFirst({
+      where: {
+        id: masterAccountId,
+        userId,
+        isActive: true
+      },
+      include: {
+        phases: {
+          where: { status: 'active' },
+          orderBy: { phaseNumber: 'asc' },
+          take: 1
+        }
+      }
+    })
+
+    if (!masterAccount) {
+      return NextResponse.json(
+        { success: false, error: 'Master account not found or unauthorized' },
+        { status: 404 }
+      )
+    }
+
+    const activePhase = masterAccount.phases[0]
+    if (!activePhase) {
+      return NextResponse.json(
+        { success: false, error: 'No active phase found' },
+        { status: 400 }
+      )
+    }
+
+    // Evaluate the current phase using the new engine
+    const evaluation = await PhaseEvaluationEngine.evaluatePhase(
+      masterAccountId,
+      activePhase.id
+    )
+
+    // If the phase failed, update the account status
+    if (evaluation.isFailed) {
+      await prisma.$transaction(async (tx) => {
+        // Mark phase as failed
+        await tx.phaseAccount.update({
+          where: { id: activePhase.id },
+          data: {
+            status: 'failed',
+            endDate: new Date()
+          }
+        })
+
+        // Mark master account as inactive
+        await tx.masterAccount.update({
+          where: { id: masterAccountId },
+          data: {
+            isActive: false
+          }
+        })
+      })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        masterAccountId,
+        phaseAccountId: activePhase.id,
+        phaseNumber: activePhase.phaseNumber,
+        evaluation
+      }
+    })
+
+  } catch (error) {
+    console.error('Error evaluating phase:', error)
+    
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to evaluate phase',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    )
+  }
+}
+
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  try {
+    const userId = await getUserId()
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const masterAccountId = params.id
+
+    // Get the current evaluation status without triggering updates
+    const masterAccount = await prisma.masterAccount.findFirst({
+      where: {
+        id: masterAccountId,
+        userId
+      },
+      include: {
+        phases: {
+          where: { status: 'active' },
+          orderBy: { phaseNumber: 'asc' },
+          take: 1
+        }
+      }
+    })
+
+    if (!masterAccount) {
+      return NextResponse.json(
+        { success: false, error: 'Master account not found' },
+        { status: 404 }
+      )
+    }
+
+    const activePhase = masterAccount.phases[0]
+    if (!activePhase) {
+      return NextResponse.json(
+        { success: false, error: 'No active phase found' },
+        { status: 400 }
+      )
+    }
+
+    // Get evaluation status
+    const evaluation = await PhaseEvaluationEngine.evaluatePhase(
+      masterAccountId,
+      activePhase.id
+    )
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        masterAccountId,
+        phaseAccountId: activePhase.id,
+        phaseNumber: activePhase.phaseNumber,
+        evaluation
+      }
+    })
+
+  } catch (error) {
+    console.error('Error getting evaluation status:', error)
+    
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to get evaluation status',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    )
+  }
+}

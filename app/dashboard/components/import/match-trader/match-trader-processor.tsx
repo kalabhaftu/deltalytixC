@@ -97,10 +97,9 @@ const MatchTraderProcessor = ({
           equityAtOpen: null,
           equityAtClose: null,
           rawBrokerId: null,
-          phaseId: null,
+          phaseAccountId: null,
           accountId: null,
           strategy: null,
-          phaseAccountId: null,
         } as Trade
       }).filter(trade => trade !== null) // Remove invalid trades
 

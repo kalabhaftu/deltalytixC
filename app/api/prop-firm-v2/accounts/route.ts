@@ -27,7 +27,8 @@ const CreateMasterAccountSchema = z.object({
   phase1DailyDrawdownPercent: z.number().min(0).max(100),
   phase1MaxDrawdownPercent: z.number().min(0).max(100),
   phase1MinTradingDays: z.number().min(0).default(0),
-  phase1TimeLimitDays: z.number().min(0).default(0),
+  phase1TimeLimitDays: z.number().min(0).default(0).nullable(),
+  phase1MaxDrawdownType: z.enum(['static', 'trailing']).default('static'),
   phase1ConsistencyRulePercent: z.number().min(0).max(100).default(0),
   
   // Phase 2 rules (optional for one-step and instant)
@@ -35,12 +36,14 @@ const CreateMasterAccountSchema = z.object({
   phase2DailyDrawdownPercent: z.number().min(0).max(100).optional(),
   phase2MaxDrawdownPercent: z.number().min(0).max(100).optional(),
   phase2MinTradingDays: z.number().min(0).default(0).optional(),
-  phase2TimeLimitDays: z.number().min(0).default(0).optional(),
+  phase2TimeLimitDays: z.number().min(0).default(0).nullable().optional(),
+  phase2MaxDrawdownType: z.enum(['static', 'trailing']).default('static').optional(),
   phase2ConsistencyRulePercent: z.number().min(0).max(100).default(0).optional(),
   
   // Funded rules
   fundedDailyDrawdownPercent: z.number().min(0).max(100),
   fundedMaxDrawdownPercent: z.number().min(0).max(100),
+  fundedMaxDrawdownType: z.enum(['static', 'trailing']).default('static'),
   fundedProfitSplitPercent: z.number().min(0).max(100),
   fundedPayoutCycleDays: z.number().min(1)
 })
@@ -84,8 +87,9 @@ export async function POST(request: NextRequest) {
           profitTargetPercent: validatedData.evaluationType === 'Instant' ? 0 : validatedData.phase1ProfitTargetPercent,
           dailyDrawdownPercent: validatedData.phase1DailyDrawdownPercent,
           maxDrawdownPercent: validatedData.phase1MaxDrawdownPercent,
+          maxDrawdownType: validatedData.phase1MaxDrawdownType || 'static',
           minTradingDays: validatedData.phase1MinTradingDays,
-          timeLimitDays: validatedData.phase1TimeLimitDays,
+          timeLimitDays: validatedData.phase1TimeLimitDays || undefined,
           consistencyRulePercent: validatedData.phase1ConsistencyRulePercent
         }
       })
@@ -102,8 +106,9 @@ export async function POST(request: NextRequest) {
             profitTargetPercent: validatedData.phase2ProfitTargetPercent!,
             dailyDrawdownPercent: validatedData.phase2DailyDrawdownPercent!,
             maxDrawdownPercent: validatedData.phase2MaxDrawdownPercent!,
+            maxDrawdownType: validatedData.phase2MaxDrawdownType || 'static',
             minTradingDays: validatedData.phase2MinTradingDays || 0,
-            timeLimitDays: validatedData.phase2TimeLimitDays || 0,
+            timeLimitDays: validatedData.phase2TimeLimitDays || undefined,
             consistencyRulePercent: validatedData.phase2ConsistencyRulePercent || 0
           }
         })
@@ -122,8 +127,9 @@ export async function POST(request: NextRequest) {
           profitTargetPercent: 0, // No profit target for funded phase
           dailyDrawdownPercent: validatedData.fundedDailyDrawdownPercent,
           maxDrawdownPercent: validatedData.fundedMaxDrawdownPercent,
+          maxDrawdownType: validatedData.fundedMaxDrawdownType || 'static',
           minTradingDays: 0,
-          timeLimitDays: 0,
+          timeLimitDays: undefined,
           consistencyRulePercent: 0,
           profitSplitPercent: validatedData.fundedProfitSplitPercent,
           payoutCycleDays: validatedData.fundedPayoutCycleDays

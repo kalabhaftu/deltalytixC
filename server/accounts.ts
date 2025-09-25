@@ -329,9 +329,23 @@ export async function getAccountsAction() {
 
         let phaseTradeCounts: any[] = []
         if (phaseAccountIds.length > 0) {
-          // Note: Since phaseAccountId might not be in the generated client yet,
-          // we'll calculate trade counts differently for now
-          phaseTradeCounts = []
+          try {
+            phaseTradeCounts = await prisma.trade.groupBy({
+              by: ['phaseAccountId'],
+              where: {
+                phaseAccountId: { in: phaseAccountIds },
+                NOT: {
+                  phaseAccountId: null
+                }
+              },
+              _count: {
+                id: true
+              }
+            }) as any
+          } catch (error) {
+            console.log('[getAccountsAction] Phase trade count query failed:', error)
+            phaseTradeCounts = []
+          }
         }
 
         // Create trade count maps
@@ -340,10 +354,19 @@ export async function getAccountsAction() {
           tradeCountMap.set(tc.accountId, tc._count.id)
         })
 
+        // Create phase trade count map
+        const phaseTradeCountMap = new Map()
+        phaseTradeCounts.forEach(ptc => {
+          phaseTradeCountMap.set(ptc.phaseAccountId, ptc._count.id)
+        })
+
+        // Calculate master account trade counts (sum all phases)
         const masterTradeCountMap = new Map()
-        // For now, set all master accounts to 0 trades until phaseAccountId is properly indexed
         masterAccounts.forEach((ma: any) => {
-          masterTradeCountMap.set(ma.id, 0)
+          const totalTrades = ma.phases?.reduce((sum: number, phase: any) => {
+            return sum + (phaseTradeCountMap.get(phase.id) || 0)
+          }, 0) || 0
+          masterTradeCountMap.set(ma.id, totalTrades)
         })
 
         // Transform regular accounts
@@ -362,10 +385,21 @@ export async function getAccountsAction() {
 
         // Transform master accounts to unified format
         const transformedMasterAccounts = masterAccounts.map((masterAccount: any) => {
-          const currentPhase = masterAccount.phases?.[0] || null
+          const currentActivePhase = masterAccount.phases?.[0] || null
+          
+          // Determine current phase based on master account's currentPhase field
+          let currentPhaseString = 'phase_1'
+          if (masterAccount.currentPhase >= 3) {
+            currentPhaseString = 'funded'
+          } else if (masterAccount.currentPhase === 2) {
+            currentPhaseString = 'phase_2'
+          } else {
+            currentPhaseString = 'phase_1'
+          }
+          
           return {
             id: masterAccount.id,
-            number: currentPhase?.phaseId || `master-${masterAccount.id}`,
+            number: currentActivePhase?.phaseId || `master-${masterAccount.id}`,
             name: masterAccount.accountName,
             propfirm: masterAccount.propFirmName,
             broker: undefined,
@@ -376,7 +410,7 @@ export async function getAccountsAction() {
             owner: { id: userId, email: '' },
             isOwner: true,
             status: masterAccount.isActive ? 'active' : 'failed' as const,
-            currentPhase: masterAccount.phases?.[0]?.phaseNumber ? (masterAccount.phases[0].phaseNumber >= 3 ? 'funded' : `phase_${masterAccount.phases[0].phaseNumber}`) : 'phase_1',
+            currentPhase: currentPhaseString,
             createdAt: masterAccount.createdAt,
             userId: masterAccount.userId,
             groupId: null,
@@ -773,7 +807,7 @@ export async function checkPhaseProgression(accountId: string) {
   }
 }
 
-export async function progressAccountPhase(accountId: string, currentPhase: any) {
+export async function progressAccountPhase(masterAccountId: string, currentPhase: any) {
   try {
     const userId = await getUserId()
 
@@ -786,25 +820,25 @@ export async function progressAccountPhase(accountId: string, currentPhase: any)
       }
     })
 
-    // Determine next phase type
-    let nextPhaseType: string
+    // Determine next phase number
+    let nextPhaseNumber: number
     let nextPhaseAccountNumber: string
 
-    switch (currentPhase.phaseType) {
-      case 'phase_1':
-        nextPhaseType = 'phase_2'
+    switch (currentPhase.phaseNumber) {
+      case 1:
+        nextPhaseNumber = 2
         // Get phase 2 account number from user input or generate
         const phase2Phase = await prisma.phaseAccount.findFirst({
-          where: { masterAccountId: accountId, phaseNumber: 2 },
+          where: { masterAccountId, phaseNumber: 2 },
           select: { phaseId: true }
         })
         nextPhaseAccountNumber = phase2Phase?.phaseId || 'Not Set'
         break
-      case 'phase_2':
-        nextPhaseType = 'funded'
+      case 2:
+        nextPhaseNumber = 3 // Funded
         // Get funded account number from user input or generate
         const fundedPhase = await prisma.phaseAccount.findFirst({
-          where: { masterAccountId: accountId, phaseNumber: 3 },
+          where: { masterAccountId, phaseNumber: 3 },
           select: { phaseId: true }
         })
         nextPhaseAccountNumber = fundedPhase?.phaseId || 'Not Set'
@@ -814,28 +848,38 @@ export async function progressAccountPhase(accountId: string, currentPhase: any)
     }
 
     if (nextPhaseAccountNumber === 'Not Set') {
-      throw new Error(`Please set the account number for ${nextPhaseType} phase before progressing`)
+      throw new Error(`Please set the account number for phase ${nextPhaseNumber} before progressing`)
     }
 
-    // Create new active phase
-    const newPhase = await prisma.phaseAccount.create({
+    // Activate the next phase by updating its status and phaseId
+    const nextPhase = await prisma.phaseAccount.findFirst({
+      where: { masterAccountId, phaseNumber: nextPhaseNumber, status: 'pending' }
+    })
+
+    if (!nextPhase) {
+      throw new Error(`Next phase (${nextPhaseNumber}) not found or not in pending status`)
+    }
+
+    const updatedPhase = await prisma.phaseAccount.update({
+      where: { id: nextPhase.id },
       data: {
-        masterAccountId: accountId,
-        phaseNumber: nextPhaseType === 'phase_2' ? 2 : 3,
         status: 'active',
         phaseId: nextPhaseAccountNumber,
-        startDate: new Date(),
-        profitTargetPercent: 5, // Default profit target percentage
-        dailyDrawdownPercent: 4, // Default daily drawdown percentage
-        maxDrawdownPercent: 8   // Default max drawdown percentage
+        startDate: new Date()
       }
+    })
+
+    // Update master account current phase
+    await prisma.masterAccount.update({
+      where: { id: masterAccountId },
+      data: { currentPhase: nextPhaseNumber }
     })
 
     return {
       success: true,
-      previousPhase: currentPhase.phaseNumber === 1 ? 'phase_1' : 'phase_2',
-      newPhase: nextPhaseType,
-      message: `Account progressed from ${currentPhase.phaseNumber === 1 ? 'phase_1' : 'phase_2'} to ${nextPhaseType}`
+      previousPhase: currentPhase.phaseNumber,
+      newPhase: nextPhaseNumber,
+      message: `Account progressed from phase ${currentPhase.phaseNumber} to phase ${nextPhaseNumber}`
     }
 
   } catch (error) {

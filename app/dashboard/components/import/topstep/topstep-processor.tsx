@@ -203,11 +203,10 @@ export default function TopstepProcessor({ headers, csvData, setProcessedTrades,
                     equityAtOpen: null,
                     equityAtClose: null,
                     rawBrokerId: null,
-                    phaseId: null,
+                    phaseAccountId: null,
                     accountId: null,
                     strategy: null,
                     closeReason: null,
-                    phaseAccountId: null,
                 }
                 
                 newTrades.push(completeTrade);

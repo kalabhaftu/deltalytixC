@@ -171,9 +171,8 @@ export default function PdfProcessing({
         equityAtClose: null,
         rawBrokerId: null,
         strategy: null,
-        phaseId: null,
-        accountId: null,
         phaseAccountId: null,
+        accountId: null,
         closeReason: null
       }));
       
