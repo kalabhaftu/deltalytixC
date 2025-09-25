@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, Building2, User, AlertCircle, RefreshCw } from 'lucide-react'
+import { CheckCircle2, Building2, User, AlertCircle, RefreshCw, Target, Clock, AlertTriangle } from 'lucide-react'
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { useAccounts } from "@/hooks/use-accounts"
+import { getAccountPhases, getCurrentActivePhase } from "@/server/accounts"
 
 // Temporary translation function
 const useTranslations = () => {
@@ -23,6 +25,11 @@ interface UnifiedAccount {
   displayName: string
   startingBalance: number
   status: string
+  currentPhase?: {
+    phaseType: string
+    phaseStatus: string
+    accountNumber: string
+  }
 }
 
 interface AccountSelectionProps {
@@ -36,6 +43,7 @@ export default function AccountSelection({
 }: AccountSelectionProps) {
   const { accounts, isLoading, error, refetch } = useAccounts()
   const [hasError, setHasError] = useState(false)
+  const [accountsWithPhases, setAccountsWithPhases] = useState<UnifiedAccount[]>([])
   const { toast } = useToast()
 
   // Update error state when hook error changes
@@ -51,6 +59,40 @@ export default function AccountSelection({
       setHasError(false)
     }
   }, [error, toast])
+
+  // Load phase information for prop firm accounts
+  useEffect(() => {
+    const loadPhases = async () => {
+      if (accounts.length === 0) return
+
+      const updatedAccounts = await Promise.all(
+        accounts.map(async (account) => {
+          if (account.accountType === 'prop-firm') {
+            try {
+              const currentPhase = await getCurrentActivePhase(account.id)
+              if (currentPhase) {
+                return {
+                  ...account,
+                  currentPhase: {
+                    phaseType: currentPhase.phaseType,
+                    phaseStatus: currentPhase.phaseStatus,
+                    accountNumber: currentPhase.accountNumber
+                  }
+                }
+              }
+            } catch (phaseError) {
+              console.warn(`Failed to load phase for account ${account.id}:`, phaseError)
+            }
+          }
+          return account
+        })
+      )
+
+      setAccountsWithPhases(updatedAccounts)
+    }
+
+    loadPhases()
+  }, [accounts])
 
   if (isLoading) {
     return (
@@ -125,7 +167,7 @@ export default function AccountSelection({
       ) : (
         <div className="flex-1 overflow-y-auto mt-4 py-2">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {accounts.map((account) => (
+            {accountsWithPhases.map((account) => (
               <Card
                 key={account.id}
                 className={cn(
@@ -153,6 +195,26 @@ export default function AccountSelection({
                         : (account as any).broker || "Unknown Broker"
                       }
                     </p>
+                    {account.accountType === 'prop-firm' && account.currentPhase && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge
+                          variant={
+                            account.currentPhase.phaseStatus === 'active' ? 'default' :
+                            account.currentPhase.phaseStatus === 'passed' ? 'secondary' :
+                            'destructive'
+                          }
+                          className="text-xs"
+                        >
+                          {account.currentPhase.phaseStatus === 'active' && <Target className="h-3 w-3 mr-1" />}
+                          {account.currentPhase.phaseStatus === 'passed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                          {account.currentPhase.phaseStatus === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                          {account.currentPhase.phaseType.toUpperCase()}
+                        </Badge>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          #{account.currentPhase.accountNumber}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   {accountNumber === account.number && (
                     <CheckCircle2 className="h-5 w-5 text-primary" />

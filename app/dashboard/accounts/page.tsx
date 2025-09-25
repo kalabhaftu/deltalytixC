@@ -79,6 +79,7 @@ interface Account {
   tradeCount?: number
   status?: 'active' | 'funded' | 'failed' | 'passed'
   currentPhase?: 'phase_1' | 'phase_2' | 'funded'
+  phaseAccountNumber?: string
   profitTargetProgress?: number
   dailyDrawdownRemaining?: number
   maxDrawdownRemaining?: number
@@ -97,7 +98,7 @@ export default function AccountsPage() {
   // State
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'live' | 'prop-firm'>('all')
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'funded' | 'failed'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'failed'>('all')
   const [createLiveDialogOpen, setCreateLiveDialogOpen] = useState(false)
   const [createPropFirmDialogOpen, setCreatePropFirmDialogOpen] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -120,16 +121,16 @@ export default function AccountsPage() {
 
 
   // Filter accounts - Accounts page has its own built-in filtering and does NOT use advanced filtering settings
-  // Advanced filtering settings are only applied to dashboard widgets and tables page  
+  // Advanced filtering settings are only applied to dashboard widgets and tables page
   const filteredAccounts = useMemo(() => {
     // Apply only the search/type/status filters from the accounts page UI
     return accounts.filter(account => {
-      const matchesSearch = !searchQuery || 
+      const matchesSearch = !searchQuery ||
         account.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         account.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
         account.broker?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         account.propfirm?.toLowerCase().includes(searchQuery.toLowerCase())
-      
+
       const matchesType = filterType === 'all' || account.accountType === filterType
       const matchesStatus = filterStatus === 'all' || account.status === filterStatus
 
@@ -137,14 +138,17 @@ export default function AccountsPage() {
     })
   }, [accounts, searchQuery, filterType, filterStatus])
 
-  const accountStats = {
-    total: filteredAccounts.length, // Count based on user's filter settings
-    live: filteredAccounts.filter(a => a.accountType === 'live').length,
-    propFirm: filteredAccounts.filter(a => a.accountType === 'prop-firm').length,
-    active: filteredAccounts.filter(a => a.status === 'active').length,
-    funded: filteredAccounts.filter(a => a.status === 'funded').length,
-    totalEquity: filteredAccounts.reduce((sum, a) => sum + (a.currentEquity || a.currentBalance || a.startingBalance || 0), 0)
-  }
+  const accountStats = useMemo(() => {
+    return {
+      total: filteredAccounts.length,
+      live: filteredAccounts.filter(a => a.accountType === 'live').length,
+      propFirm: filteredAccounts.filter(a => a.accountType === 'prop-firm').length,
+      active: filteredAccounts.filter(a => a.status === 'active').length,
+      funded: filteredAccounts.filter(a => a.status === 'funded').length,
+      failed: filteredAccounts.filter(a => a.status === 'failed').length,
+      totalEquity: filteredAccounts.reduce((sum, a) => sum + (a.currentEquity || a.currentBalance || a.startingBalance || 0), 0)
+    }
+  }, [filteredAccounts])
 
   // Handlers
   const handleRefresh = useCallback(async () => {
@@ -165,6 +169,7 @@ export default function AccountsPage() {
       setIsRefreshing(false)
     }
   }, [refetchAccounts])
+
 
   const handleAccountCreated = useCallback(() => {
     // Clear cache to ensure immediate refresh
@@ -217,7 +222,7 @@ export default function AccountsPage() {
     }
 
     try {
-      const endpoint = deletingAccount.accountType === 'prop-firm' 
+      const endpoint = deletingAccount.accountType === 'prop-firm'
         ? `/api/prop-firm-v2/accounts/${deletingAccount.id}`
         : `/api/accounts/${deletingAccount.id}`
 
@@ -234,9 +239,26 @@ export default function AccountsPage() {
         description: `${accountName} and all associated trades have been permanently deleted.`,
       })
 
-      // Clear cache to ensure immediate refresh
+      // Clear all cache layers to ensure immediate refresh
       clearAccountsCache()
-      refetchAccounts()
+
+      // Force refresh by clearing browser cache and reloading
+      if ('caches' in window) {
+        await caches.delete('next-app')
+        await caches.delete('next-data')
+      }
+
+      // Force hard refresh to clear all cached data
+      await refetchAccounts()
+
+      // Clear local storage that might have cached account data
+      if (typeof window !== 'undefined') {
+        const keysToRemove = Object.keys(localStorage).filter(key =>
+          key.includes('account') || key.includes('trade') || key.includes('prop-firm')
+        )
+        keysToRemove.forEach(key => localStorage.removeItem(key))
+      }
+
       setDeletingAccount(null)
       setDeleteConfirmText('')
     } catch (error) {
@@ -333,6 +355,7 @@ export default function AccountsPage() {
           />
         </motion.div>
 
+
         {/* Filters and Search */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -368,10 +391,8 @@ export default function AccountsPage() {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="funded">Funded</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="all">All Accounts</SelectItem>
+                  <SelectItem value="failed">Failed Only</SelectItem>
                 </SelectContent>
               </Select>
                   </div>
@@ -640,12 +661,29 @@ function AccountCard({
                 </Badge>
                 </div>
               {account.currentPhase && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Phase</span>
-                  <Badge variant="outline" className="text-xs">
-                    {account.currentPhase.replace('_', ' ').toUpperCase()}
-                  </Badge>
-              </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Phase</span>
+                    <Badge
+                      variant={
+                        account.currentPhase === 'funded' ? 'default' :
+                        account.currentPhase === 'phase_2' ? 'secondary' :
+                        'outline'
+                      }
+                      className="text-xs"
+                    >
+                      {account.currentPhase.replace('_', ' ').toUpperCase()}
+                    </Badge>
+                  </div>
+                  {account.phaseAccountNumber && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Account #</span>
+                      <span className="text-xs font-mono text-foreground">
+                        {account.phaseAccountNumber}
+                      </span>
+                    </div>
+                  )}
+                </div>
             )}
 
               {account.profitTargetProgress !== undefined && account.currentPhase !== 'funded' && (

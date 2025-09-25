@@ -151,7 +151,7 @@ model Account {
   id                         String              @id @default(uuid())
   number                     String
   propfirm                   String              @default("")
-  masterId                   String?             // Master account ID for linked accounts
+  masterId                   String?             // Master account ID for linked accounts (e.g., "10001290")
   groupId                    String?
   drawdownThreshold          Float               @default(0)
   trailingDrawdown           Boolean             @default(false)
@@ -455,7 +455,7 @@ model AccountPhase {
   accountId                    String
   phaseType                    PhaseType
   phaseStatus                  PhaseStatus         @default(active)
-  accountNumber                String              @default("Not Set") // Phase account number (e.g., "753251")
+  accountNumber                String              @default("Not Set") // Phase-specific account number (e.g., "753251" for phase 1, "756009" for phase 2)
   profitTarget                 Float?
   phaseStartAt                 DateTime            @default(now())
   phaseEndAt                   DateTime?

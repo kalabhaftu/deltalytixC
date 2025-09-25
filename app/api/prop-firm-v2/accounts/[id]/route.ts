@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { PrismaClient } from '@prisma/client'
 import { getUserId } from '@/server/auth-utils'
 import { PropFirmEngine } from '@/lib/prop-firm/prop-firm-engine'
@@ -322,7 +323,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     await prisma.account.delete({
       where: { id: accountId }
     })
-    
+
+    // Invalidate all related cache tags
+    const { invalidateUserCaches } = await import('@/server/accounts')
+    await invalidateUserCaches(userId)
+
     return NextResponse.json({
       success: true,
       message: 'Account deleted successfully'

@@ -164,9 +164,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       })
     })
 
-    // Revalidate cache tags to ensure fresh data
-    revalidateTag(`accounts-${userId}`)
-    revalidateTag(`user-data-${userId}`)
+    // Invalidate all cache tags to ensure fresh data
+    const { invalidateUserCaches } = await import('@/server/accounts')
+    await invalidateUserCaches(userId)
 
     return NextResponse.json({
       success: true,

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast"
 import { UploadIcon, type UploadIconHandle } from '@/components/animated-icons/upload'
 import { Trade } from '@prisma/client'
-import { saveTradesAction } from '@/server/database'
+import { linkTradesToCurrentPhase, checkPhaseProgression, checkAccountBreaches } from '@/server/accounts'
 import ImportTypeSelection, { ImportType } from './import-type-selection'
 import FileUpload from './file-upload'
 import HeaderSelection from './header-selection'
@@ -154,34 +154,15 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
               (trade.entryDate || trade.closeDate);
           });
 
-      // Save trades with smart duplicate detection
-      const result = await saveTradesAction(newTrades)
-      if(result.error){
-        if (result.error === "DUPLICATE_TRADES") {
-          toast({
-            title: "All Trades Already Exist",
-            description: `All ${newTrades.length} trades were already imported and skipped.`,
-            variant: "destructive",
-          })
-        } else if (result.error === "NO_TRADES_ADDED") {
-          toast({
-            title: "No trades added",
-            description: "No trades were added during the import process",
-            variant: "destructive",
-          })
-        } else if (result.error === "DATABASE_ERROR") {
-          toast({
-            title: "Database Error",
-            description: (result.details as string) || "A database error occurred during import",
-            variant: "destructive",
-          })
-        } else {
-          toast({
-            title: "Import Failed",
-            description: "An unexpected error occurred during import",
-            variant: "destructive",
-          })
-        }
+      // Link trades to current active phase instead of direct database save
+      const result = await linkTradesToCurrentPhase(accountId, newTrades)
+
+      if (!result.success) {
+        toast({
+          title: "Import Failed",
+          description: result.message || "Failed to link trades to account phase",
+          variant: "destructive",
+        })
         return
       }
       // Reset the import process immediately for better UX
@@ -193,21 +174,44 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
       // Update the trades in background
       refreshTrades()
       
-      // Show detailed success message with duplicate information
-      const details = result.details as any
-      if (details && typeof details === 'object' && details.duplicatesSkipped > 0) {
-        toast({
-          title: "Import Completed",
-          description: `Added ${details.newTradesAdded} new trades, skipped ${details.duplicatesSkipped} duplicates`,
-          duration: 5000,
-        })
-      } else {
-        toast({
-          title: "Import Successful",
-          description: `Successfully imported ${result.numberOfTradesAdded} trades`,
-          duration: 5000,
-        })
+      // Check for account breaches after successful import
+      try {
+        const breachResult = await checkAccountBreaches(accountId)
+        if (breachResult && typeof breachResult === 'object' && 'isFailed' in breachResult && breachResult.isFailed) {
+          toast({
+            title: "Account Failed!",
+            description: `Account failed due to rule breach: Account rules violated`,
+            variant: "destructive",
+          })
+        }
+      } catch (breachError) {
+        console.warn('Account breach check failed:', breachError)
+        // Don't fail the import if breach check fails
       }
+
+      // Check for phase progression after successful import
+      try {
+        const progressResult = await checkPhaseProgression(accountId)
+        if (progressResult && typeof progressResult === 'object' && 'canProgress' in progressResult) {
+          if (progressResult.canProgress) {
+            toast({
+              title: "Phase Target Reached!",
+              description: `Account has reached the profit target for ${(progressResult as any).currentPhase?.phaseType} phase. Phase progression will be processed.`,
+              variant: "default",
+            })
+          }
+        }
+      } catch (progressError) {
+        console.warn('Phase progression check failed:', progressError)
+        // Don't fail the import if phase progression check fails
+      }
+
+      // Show success message with phase information
+      toast({
+        title: "Import Completed",
+        description: result.message,
+        duration: 5000,
+      })
 
     } catch (error) {
       console.error('Error saving trades:', error)

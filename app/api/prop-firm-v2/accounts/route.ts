@@ -350,17 +350,17 @@ export async function POST(request: NextRequest) {
       return { account, phase1 }
     })
 
-    // Revalidate cache tags to ensure fresh data
-    revalidateTag(`accounts-${userId}`)
-    revalidateTag(`user-data-${userId}`)
-    
+    // Invalidate caches to ensure fresh data
+    const { invalidateUserCaches } = await import('@/server/accounts')
+    await invalidateUserCaches(userId)
+
     return NextResponse.json({
       success: true,
       account: result.account,
       currentPhase: result.phase1,
       message: 'Prop firm account created successfully'
     }, { status: 201 })
-    
+
   } catch (error) {
     console.error('Error creating prop firm account:', error)
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { filterActiveAccounts } from '@/lib/utils/account-filters'
-import { getAccountsAction } from '@/server/accounts'
+import { getAccountsAction, getCurrentActivePhase } from '@/server/accounts'
 
 interface UnifiedAccount {
   id: string
@@ -46,7 +46,7 @@ interface UseAccountsOptions {
 let accountsCache: UnifiedAccount[] | null = null
 let accountsPromise: Promise<UnifiedAccount[]> | null = null
 let lastFetchTime = 0
-const CACHE_DURATION = 300000 // 5 minutes - much longer cache for better performance
+const CACHE_DURATION = 30000 // 30 seconds - balanced approach for performance and freshness
 let isCurrentlyFetching = false // Prevent multiple simultaneous requests
 
 // Function to clear cache when accounts are deleted
@@ -54,7 +54,9 @@ export function clearAccountsCache() {
   accountsCache = null
   accountsPromise = null
   lastFetchTime = 0
+  isCurrentlyFetching = false // Also reset fetching flag
 }
+
 
 export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult {
   const { includeFailed = false } = options
@@ -114,29 +116,65 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
             return []
           }
           
+          // Debug: Log the account data from server
+          console.log('[useAccounts] Raw account data from server:', accounts.map(a => ({
+            id: a.id,
+            name: a.name,
+            tradeCount: a.tradeCount,
+            propfirm: a.propfirm
+          })))
+
           // Transform accounts to match the expected interface
-          const transformedAccounts: UnifiedAccount[] = accounts.map((account: any) => ({
-            id: account.id,
-            number: account.number,
-            name: account.name || account.number, // Ensure name is never null
-            propfirm: account.propfirm,
-            broker: account.broker || undefined, // Convert null to undefined
-            startingBalance: account.startingBalance,
-            currentBalance: account.startingBalance, // Add currentBalance field
-            currentEquity: account.startingBalance,  // Add currentEquity field
-            status: account.status || 'active',
-            createdAt: account.createdAt instanceof Date ? account.createdAt.toISOString() : account.createdAt,
-            userId: account.userId,
-            groupId: account.groupId,
-            group: account.groupId ? { id: account.groupId, name: 'Group' } : null, // Construct basic group info
-            accountType: account.propfirm ? 'prop-firm' : 'live',
-            displayName: account.name || account.number,
-            tradeCount: 0, // Will be calculated separately if needed
-            owner: null,
-            isOwner: true,
-            currentPhase: null
-          }))
-          
+          const transformedAccounts: UnifiedAccount[] = await Promise.all(
+            accounts.map(async (account: any) => {
+              let currentPhase = null
+              let phaseAccountNumber = null
+
+              if (account.propfirm) {
+                try {
+                  const phase = await getCurrentActivePhase(account.id)
+                  if (phase) {
+                    currentPhase = phase.phaseType
+                    phaseAccountNumber = phase.accountNumber
+                  }
+                } catch (phaseError) {
+                  console.warn(`Failed to load phase for account ${account.id}:`, phaseError)
+                }
+              }
+
+              return {
+                id: account.id,
+                number: account.number,
+                name: account.name || account.number, // Ensure name is never null
+                propfirm: account.propfirm,
+                broker: account.broker || undefined, // Convert null to undefined
+                startingBalance: account.startingBalance,
+                currentBalance: account.startingBalance, // Add currentBalance field
+                currentEquity: account.startingBalance,  // Add currentEquity field
+                status: account.status || 'active',
+                createdAt: account.createdAt instanceof Date ? account.createdAt.toISOString() : account.createdAt,
+                userId: account.userId,
+                groupId: account.groupId,
+                group: account.groupId ? { id: account.groupId, name: 'Group' } : null, // Construct basic group info
+                accountType: account.propfirm ? 'prop-firm' : 'live',
+                displayName: account.name || account.number,
+                tradeCount: account.tradeCount || 0, // Use actual trade count from server
+                owner: null,
+                isOwner: true,
+                currentPhase,
+                phaseAccountNumber
+              }
+            })
+          )
+
+          // Debug: Log the final transformed accounts
+          console.log('[useAccounts] Final transformed accounts:', transformedAccounts.map(a => ({
+            id: a.id,
+            name: a.name,
+            tradeCount: a.tradeCount,
+            accountType: a.accountType
+          })))
+
           return transformedAccounts
         } catch (error) {
           console.error('[useAccounts] Server action error:', error)

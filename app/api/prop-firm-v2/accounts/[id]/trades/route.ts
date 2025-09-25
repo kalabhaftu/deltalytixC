@@ -448,7 +448,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         'Trade added successfully',
       warnings: result.breachDetected ? ['Account failed due to rule breach!'] : [],
     })
-    
+
+    // Invalidate caches to ensure fresh data
+    if (account) {
+      const { invalidateUserCaches } = await import('@/server/accounts')
+      const userId = (account as NonNullable<typeof account>).userId
+      if (userId) {
+        await invalidateUserCaches(userId)
+      }
+    } else {
+      console.warn('Account not found, cannot invalidate caches')
+    }
+
   } catch (error) {
     console.error('Error creating trade:', error)
     
