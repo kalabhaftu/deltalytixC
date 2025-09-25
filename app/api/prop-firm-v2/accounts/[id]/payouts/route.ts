@@ -84,12 +84,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
     
-    // Get total count
-    // TODO: Rewrite for new MasterAccount/PhaseAccount system
-    const total = 0 // await prisma.payout?.count({ where }) || 0
-
-    // Get payouts - DISABLED: Old system references
-    const payouts: any[] = [] // Disabled until rewritten for new system
+    // Payout system disabled until rewritten for new MasterAccount/PhaseAccount system
+    const total = 0
+    const payouts: any[] = []
     
     // Get current funded phase for eligibility check - Updated for new system
     const fundedPhase = await prisma.phaseAccount.findFirst({
@@ -262,29 +259,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Create payout request in transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create payout request
-      // DISABLED: Payout creation disabled until system is rebuilt
-      const payout = null
-      
-      // DISABLED: Balance reduction disabled until system is rebuilt
-      // if (account.reduceBalanceByPayout) {
-      //   await tx.accountPhase?.update({
-      //     where: { id: fundedPhase.id },
-      //     data: {
-      //       currentEquity: { decrement: validatedData.requestedAmount },
-      //       currentBalance: { decrement: validatedData.requestedAmount },
-      //     }
-      //   })
-      // }
-      
-      // DISABLED: Account metadata update disabled until system is rebuilt
-      // await tx.account.update({
-      //   where: { id: accountId },
-      //   data: {
-      //     payoutCount: { increment: 1 }
-      //   }
-      // })
-      
-      return payout
+      // Payout system disabled until rewritten for new MasterAccount/PhaseAccount system
+      return null
     })
     
     return NextResponse.json({
@@ -296,7 +272,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         'Payout request is being reviewed',
         'You will receive an email confirmation',
         'Processing typically takes 3-5 business days',
-        account.reduceBalanceByPayout ? 'Balance has been reduced immediately' : 'Balance will be reduced upon approval'
+        'Payout system temporarily disabled'
       ]
     })
     

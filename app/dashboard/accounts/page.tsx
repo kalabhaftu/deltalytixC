@@ -72,7 +72,6 @@ interface Account {
   displayName?: string
   accountType: 'live' | 'prop-firm'
   broker?: string
-  propfirm?: string
   startingBalance?: number
   currentBalance?: number
   currentEquity?: number

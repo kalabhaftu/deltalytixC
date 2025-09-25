@@ -153,10 +153,10 @@ export function AdvancedAccountFilter({ accounts, onFilterChange, className }: A
                   <SelectItem key={phase.id} value={phase.id}>
                     <div className="flex items-center gap-2">
                       <span className="capitalize">
-                        {phase.phaseType.replace('_', ' ')}
+                        Phase {phase.phaseNumber}
                       </span>
-                      <Badge className={getPhaseColor(phase.phaseStatus)} variant="secondary">
-                        {phase.phaseStatus}
+                      <Badge className={getPhaseColor(phase.status)} variant="secondary">
+                        {phase.status}
                       </Badge>
                     </div>
                   </SelectItem>

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { useAccounts } from "@/hooks/use-accounts"
-import { getAccountPhases, getCurrentActivePhase } from "@/server/accounts"
+import { getCurrentActivePhase } from "@/server/accounts"
 
 // Temporary translation function
 const useTranslations = () => {
@@ -20,9 +20,8 @@ interface UnifiedAccount {
   number: string
   name?: string
   broker?: string
-  propfirm: string
-  accountType: 'prop-firm' | 'live'
   displayName: string
+  accountType: 'prop-firm' | 'live'
   startingBalance: number
   status: string
   currentPhase?: {

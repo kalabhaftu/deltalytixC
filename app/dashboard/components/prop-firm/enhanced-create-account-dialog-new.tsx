@@ -90,36 +90,11 @@ type CreatePropFirmAccountForm = z.infer<typeof createPropFirmAccountSchema>
 interface PropFirmTemplate {
   name: string
   accountSizes: number[]
-  evaluationTypes: string[]
-  templates: {
-    [evaluationType: string]: {
-      phase1?: {
-        profitTargetPercent: number
-        maxDrawdownPercent: number
-        dailyDrawdownPercent: number
-        minTradingDays: number
-        timeLimitDays: number
-        consistencyRulePercent: number
-      }
-      phase2?: {
-        profitTargetPercent: number
-        maxDrawdownPercent: number
-        dailyDrawdownPercent: number
-        minTradingDays: number
-        timeLimitDays: number
-        consistencyRulePercent: number
-      }
-      funded: {
-        maxDrawdownPercent: number
-        dailyDrawdownPercent: number
-        profitSplitPercent: number
-        payoutCycleDays: number
-        minTradingDays: number
-        timeLimitDays: number
-        consistencyRulePercent: number
-      }
-    }
-  }
+  programs: Array<{
+    name: string
+    evaluationType: string
+    phases: any
+  }>
 }
 
 interface EnhancedCreateAccountDialogProps {
@@ -191,9 +166,9 @@ export function EnhancedCreateAccountDialog({
     if (watchedEvaluationType === 'Instant') {
       setValue('phase1ProfitTargetPercent', 0)
     } else if (watchedEvaluationType === 'One Step' && watchedPropFirm && templates[watchedPropFirm]) {
-      const template = templates[watchedPropFirm]?.templates['One Step']
-      if (template?.phase1) {
-        setValue('phase1ProfitTargetPercent', template.phase1.profitTargetPercent)
+      const template = templates[watchedPropFirm]?.programs?.find(p => p.evaluationType === 'One Step')
+      if (template?.phases?.phase1) {
+        setValue('phase1ProfitTargetPercent', template.phases.phase1.profitTargetPercent)
       }
     }
   }, [watchedEvaluationType, setValue, watchedPropFirm, templates])
@@ -217,7 +192,7 @@ export function EnhancedCreateAccountDialog({
 
   const loadTemplateRules = () => {
     const template = templates[watchedPropFirm]
-    const rules = template?.templates[watchedEvaluationType]
+    const rules = template?.programs?.find(p => p.evaluationType === watchedEvaluationType)?.phases
     
     if (rules) {
       // Phase 1 rules
@@ -321,7 +296,7 @@ export function EnhancedCreateAccountDialog({
 
   const getAvailableEvaluationTypes = () => {
     if (!watchedPropFirm || !templates[watchedPropFirm]) return []
-    return templates[watchedPropFirm].evaluationTypes
+    return templates[watchedPropFirm].programs?.map(p => p.evaluationType) || []
   }
 
   return (
@@ -397,7 +372,7 @@ export function EnhancedCreateAccountDialog({
                             <CardHeader className="pb-3">
                               <CardTitle className="text-sm">{template.name}</CardTitle>
                               <CardDescription className="text-xs">
-                                {template.evaluationTypes.join(', ')} • {template.accountSizes.length} sizes
+                                {template.programs?.map(p => p.evaluationType).join(', ')} • {template.accountSizes.length} sizes
                               </CardDescription>
                             </CardHeader>
                           </Card>

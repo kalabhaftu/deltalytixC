@@ -196,7 +196,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
           if (progressResult.canProgress) {
             toast({
               title: "Phase Target Reached!",
-              description: `Account has reached the profit target for ${(progressResult as any).currentPhase?.phaseType} phase. Phase progression will be processed.`,
+              description: `Account has reached the profit target for phase ${(progressResult as any).currentPhase?.phaseNumber}. Phase progression will be processed.`,
               variant: "default",
             })
           }

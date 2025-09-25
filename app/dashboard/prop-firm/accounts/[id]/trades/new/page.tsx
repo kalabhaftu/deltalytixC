@@ -14,13 +14,13 @@ interface AccountData {
   id: string
   number: string
   name?: string
-  propfirm: string
+  displayName: string
   startingBalance: number
   status: string
   currentPhase?: {
     id: string
-    phaseType: string
-    phaseStatus: string
+    phaseNumber: number
+    status: string
     currentEquity: number
   }
 }
@@ -112,7 +112,7 @@ export default function NewTradePage() {
             <div>
               <h1 className="text-3xl font-bold">Import Trades</h1>
               <p className="text-muted-foreground">
-                {account.name || account.number} • {account.propfirm}
+                {account.name || account.number} • {account.displayName}
               </p>
             </div>
           </div>
@@ -136,7 +136,7 @@ export default function NewTradePage() {
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Current Phase</Label>
               <p className="text-lg font-semibold capitalize">
-                {account.currentPhase?.phaseType?.replace('_', ' ') || "Not Available"}
+                Phase {account.currentPhase?.phaseNumber || "Not Available"}
               </p>
             </div>
           </CardContent>
