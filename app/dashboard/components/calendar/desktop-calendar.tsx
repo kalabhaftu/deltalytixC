@@ -97,12 +97,12 @@ function RenewalBadge({ renewals }: { renewals: Account[] }) {
               <div className="flex justify-between items-start">
                 <div className="space-y-1">
                   <div className="font-medium text-sm">
-                    {account.propfirm || account.number}
+                    {account.number}
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-semibold text-sm text-blue-600 dark:text-blue-400">
-                    {account.price != null && formatCurrency(account.price, { maximumFractionDigits: 2 })}
+                    {account.startingBalance != null && formatCurrency(account.startingBalance, { maximumFractionDigits: 2 })}
                   </div>
                 </div>
               </div>

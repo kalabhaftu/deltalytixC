@@ -95,7 +95,7 @@ export interface ExtendedTrade extends Trade {
   comment: string | null
   videoUrl: string | null
   trades: ExtendedTrade[]
-  phaseId: string | null
+  phaseId?: string | null // field doesn't exist on Trade model
   accountId: string | null
   strategy: string | null
   stopLoss?: string | null
@@ -290,7 +290,7 @@ export function TradeTableReview() {
           tags: trade.tags,
           imageBase64: trade.imageBase64,
           imageBase64Second: trade.imageBase64Second,
-          phaseId: trade.phaseId ?? null,
+          // phaseId: trade.phaseId ?? null, // field doesn't exist
           accountId: trade.accountId ?? null,
           strategy: trade.strategy ?? null,
           imageBase64Third: trade.imageBase64Third ?? null,
@@ -319,7 +319,7 @@ export function TradeTableReview() {
           equityAtClose: null,
           rawBrokerId: null,
           closeReason: trade.closeReason,
-          propFirmPhaseId: null,
+          // propFirmPhaseId: null, // field doesn't exist
           trades: [{
             ...trade,
             trades: [],
@@ -330,6 +330,7 @@ export function TradeTableReview() {
           }],
           createdAt: new Date(),
           groupId: trade.groupId || null,
+          phaseAccountId: trade.phaseAccountId || null,
         })
       }
       else {

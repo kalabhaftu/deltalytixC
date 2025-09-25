@@ -596,9 +596,17 @@ function AccountCard({
                 {account.displayName || account.name || account.number}
               </h3>
               </div>
-            <p className="text-sm text-muted-foreground">
-              {account.accountType === 'prop-firm' ? account.propfirm : account.broker}
-            </p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-sm text-muted-foreground">
+                {account.accountType === 'prop-firm' ? account.propfirm : account.broker}
+              </p>
+              {/* Add phase badge for prop firm accounts */}
+              {account.accountType === 'prop-firm' && account.currentPhase && (
+                <Badge variant={Number(account.currentPhase) >= 3 ? 'default' : Number(account.currentPhase) === 2 ? 'secondary' : 'outline'} className="text-xs">
+                  {Number(account.currentPhase) === 1 ? 'Phase 1' : Number(account.currentPhase) === 2 ? 'Phase 2' : 'Funded'}
+                </Badge>
+              )}
+            </div>
         </div>
 
                   <div className="flex items-center gap-2">

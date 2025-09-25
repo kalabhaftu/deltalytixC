@@ -8,7 +8,7 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
 
-  // Connection configuration with retry logic
+  // Connection configuration with retry logic and optimized settings
   datasources: {
     db: {
       url: process.env.DATABASE_URL || process.env.DIRECT_URL || 'file:./dev.db'
@@ -30,15 +30,31 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   })
 })
 
-// Database connection retry utility
-async function connectWithRetry(client: PrismaClient, maxRetries = 3, delay = 1000): Promise<PrismaClient> {
+// Database connection retry utility with enhanced error handling
+async function connectWithRetry(client: PrismaClient, maxRetries = 5, delay = 1000): Promise<PrismaClient> {
   for (let i = 0; i < maxRetries; i++) {
     try {
-      await client.$connect()
+      // Set a timeout for each connection attempt
+      const connectionPromise = client.$connect()
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Connection timeout')), 10000)
+      )
+
+      await Promise.race([connectionPromise, timeoutPromise])
       console.log(`✅ Database connection established (attempt ${i + 1})`)
       return client
-    } catch (error) {
-      console.warn(`⚠️ Database connection failed (attempt ${i + 1}/${maxRetries}):`, error instanceof Error ? error.message : error)
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : error
+      console.warn(`⚠️ Database connection failed (attempt ${i + 1}/${maxRetries}):`, errorMessage)
+
+      // Handle specific error codes
+      if (error?.code === 'P1001') {
+        console.log('🔄 Database server unreachable, retrying...')
+      } else if (errorMessage.includes('timeout')) {
+        console.log('🔄 Connection timeout, retrying...')
+      } else {
+        console.log('🔄 General connection error, retrying...')
+      }
 
       if (i < maxRetries - 1) {
         console.log(`🔄 Retrying in ${delay}ms...`)

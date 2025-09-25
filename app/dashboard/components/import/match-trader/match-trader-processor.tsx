@@ -100,6 +100,7 @@ const MatchTraderProcessor = ({
           phaseId: null,
           accountId: null,
           strategy: null,
+          phaseAccountId: null,
         } as Trade
       }).filter(trade => trade !== null) // Remove invalid trades
 

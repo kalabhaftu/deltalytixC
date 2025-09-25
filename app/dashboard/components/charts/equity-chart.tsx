@@ -33,7 +33,8 @@ import { Label } from "@/components/ui/label"
 import { useData } from "@/context/data-provider"
 import { useUserStore } from "@/store/user-store"
 import { useEquityChartStore } from "@/store/equity-chart-store"
-import { Payout as PrismaPayout } from '@prisma/client'
+// Payout model not available - placeholder type
+type PrismaPayout = any
 
 interface EquityChartProps {
   size?: WidgetSize

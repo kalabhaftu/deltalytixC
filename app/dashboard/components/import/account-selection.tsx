@@ -74,9 +74,9 @@ export default function AccountSelection({
                 return {
                   ...account,
                   currentPhase: {
-                    phaseType: currentPhase.phaseType,
-                    phaseStatus: currentPhase.phaseStatus,
-                    accountNumber: currentPhase.accountNumber
+                    phaseNumber: currentPhase.phaseNumber,
+                    status: currentPhase.status,
+                    phaseId: currentPhase.phaseId
                   }
                 }
               }

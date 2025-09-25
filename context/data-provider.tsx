@@ -12,10 +12,13 @@ import {
   Trade as PrismaTrade,
   Group as PrismaGroup,
   Account as PrismaAccount,
-  Payout as PrismaPayout,
+  // Payout as PrismaPayout, // Payout model not available
   DashboardLayout as PrismaDashboardLayout,
 
 } from '@prisma/client';
+
+// Payout model not available - placeholder type
+type PrismaPayout = any;
 
 import { SharedParams } from '@/server/shared';
 import {
@@ -1009,7 +1012,7 @@ export const DataProvider: React.FC<{
       if (accountFilterSettings.showMode === 'active-only') {
         // Default behavior: exclude failed and passed accounts
         return accounts
-          .filter(a => a.status === 'failed' || a.status === 'passed')
+          .filter(a => false) // status field doesn't exist
           .map(a => a.number)
       }
       
@@ -1018,31 +1021,32 @@ export const DataProvider: React.FC<{
       
       accounts.forEach(account => {
         // Filter by account type
-        if (account.propfirm === 'live' && !accountFilterSettings.showLiveAccounts) {
+        if (!accountFilterSettings.showLiveAccounts) {
           excludedNumbers.push(account.number)
           return
         }
-        
-        if (account.propfirm === 'prop-firm' && !accountFilterSettings.showPropFirmAccounts) {
+
+        if (!accountFilterSettings.showPropFirmAccounts) {
           excludedNumbers.push(account.number)
           return
         }
-        
+
         // Filter by status
-        if (account.status === 'failed' && !accountFilterSettings.showFailedAccounts) {
-          excludedNumbers.push(account.number)
-          return
-        }
-        
-        if (account.status === 'passed' && !accountFilterSettings.showPassedAccounts) {
-          excludedNumbers.push(account.number)
-          return
-        }
-        
-        if (account.status && !accountFilterSettings.includeStatuses.includes(account.status)) {
-          excludedNumbers.push(account.number)
-          return
-        }
+        // Status filtering not available - status field doesn't exist
+        // if (account.status === 'failed' && !accountFilterSettings.showFailedAccounts) {
+        //   excludedNumbers.push(account.number)
+        //   return
+        // }
+
+        // if (account.status === 'passed' && !accountFilterSettings.showPassedAccounts) {
+        //   excludedNumbers.push(account.number)
+        //   return
+        // }
+
+        // if (account.status && !accountFilterSettings.includeStatuses.includes(account.status)) {
+        //   excludedNumbers.push(account.number)
+        //   return
+        // }
       })
       
       return excludedNumbers

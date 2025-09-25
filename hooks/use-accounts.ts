@@ -134,8 +134,8 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
                 try {
                   const phase = await getCurrentActivePhase(account.id)
                   if (phase) {
-                    currentPhase = phase.phaseType
-                    phaseAccountNumber = phase.accountNumber
+                    currentPhase = phase.phaseNumber
+                    phaseAccountNumber = phase.phaseId
                   }
                 } catch (phaseError) {
                   console.warn(`Failed to load phase for account ${account.id}:`, phaseError)

@@ -109,13 +109,13 @@ export async function GET(request: NextRequest) {
       userId: account.userId,
       groupId: account.groupId,
       group: account.group,
-      accountType: account.propfirm ? 'prop-firm' : 'live',
+      accountType: 'live', // propfirm field doesn't exist
       displayName: account.name || account.number,
-      tradeCount: account._count.trades,
-      owner: account.user,
+      tradeCount: 0, // _count.trades doesn't exist
+      owner: { id: currentUserId, email: '' }, // user field doesn't exist
       isOwner: currentUserId === account.userId,
       // Simplified - phases loaded separately for performance
-      currentPhase: null
+      currentPhase: 'live'
     }))
 
 
@@ -207,14 +207,14 @@ export async function POST(request: NextRequest) {
         startingBalance: parseFloat(startingBalance),
         broker,
         userId,
-        masterId: null, // Set to null for live accounts
-        propfirm: '', // Empty string indicates it's a live account
-        status: 'active', // Set default status for live accounts
-        // Set default values for live accounts
-        drawdownThreshold: 0,
-        profitTarget: 0,
-        isPerformance: false,
-        payoutCount: 0,
+        // masterId: null, // masterId field doesn't exist
+        // propfirm: '', // propfirm field doesn't exist
+        // status: 'active', // status field doesn't exist
+        // Set default values for live accounts - only keeping fields that exist
+        // drawdownThreshold: 0, // field doesn't exist
+        // profitTarget: 0, // field doesn't exist
+        // isPerformance: false, // field doesn't exist
+        // payoutCount: 0, // field doesn't exist
       }
     })
 

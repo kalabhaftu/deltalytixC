@@ -173,6 +173,7 @@ export default function PdfProcessing({
         strategy: null,
         phaseId: null,
         accountId: null,
+        phaseAccountId: null,
         closeReason: null
       }));
       

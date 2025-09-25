@@ -25,341 +25,264 @@ import {
   CheckCircle,
   Rocket,
   Key,
-  Mail,
-  CreditCard,
-  X
+  Loader2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface PhaseTransitionDialogProps {
   isOpen: boolean
   onClose: () => void
-  accountId: string
+  masterAccountId: string
   currentPhase: {
-    phaseType: 'phase_1' | 'phase_2' | 'funded'
-    phaseStatus: string
-    profitTarget?: number
-    netProfitSincePhaseStart: number
-    currentBalance: number
+    phaseNumber: number
+    profitTargetPercent?: number
+    currentPnL: number
+    phaseId: string
   }
-  nextPhaseType: 'phase_2' | 'funded'
-  startingBalance: number
+  nextPhaseNumber: number
+  propFirmName: string
+  accountName: string
+  onSuccess?: () => void
 }
 
 export function PhaseTransitionDialog({
   isOpen,
   onClose,
-  accountId,
+  masterAccountId,
   currentPhase,
-  nextPhaseType,
-  startingBalance
+  nextPhaseNumber,
+  propFirmName,
+  accountName,
+  onSuccess
 }: PhaseTransitionDialogProps) {
+  const [nextPhaseId, setNextPhaseId] = useState('')
+  const [isTransitioning, setIsTransitioning] = useState(false)
   const router = useRouter()
-  const [newAccountId, setNewAccountId] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
-  }
-
-  const getPhaseDisplayName = (phase: string) => {
-    switch (phase) {
-      case 'phase_1': return 'Phase 1'
-      case 'phase_2': return 'Phase 2'  
-      case 'funded': return 'Funded'
-      default: return phase
-    }
+  const getPhaseDisplayName = (phaseNumber: number) => {
+    if (phaseNumber === 1) return 'Phase 1'
+    if (phaseNumber === 2) return 'Phase 2'
+    if (phaseNumber >= 3) return 'Funded'
+    return `Phase ${phaseNumber}`
   }
 
   const handleTransition = async () => {
-    if (!newAccountId.trim()) {
+    if (!nextPhaseId.trim()) {
       toast({
-        title: "Account ID Required",
-        description: "Please enter the new account ID provided by your prop firm.",
+        title: "ID Required",
+        description: "Please enter the account ID for your next phase.",
         variant: "destructive"
       })
       return
     }
 
-    setIsLoading(true)
     try {
-      const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}/transition`, {
+      setIsTransitioning(true)
+
+      const response = await fetch(`/api/prop-firm-v2/accounts/${masterAccountId}/transition`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          newAccountId: newAccountId.trim(),
-          nextPhaseType,
-          currentPhaseProfit: currentPhase.netProfitSincePhaseStart
-        }),
+          nextPhaseId: nextPhaseId.trim()
+        })
       })
 
       const result = await response.json()
 
-      if (result.success) {
-        toast({
-          title: "Phase Transition Successful!",
-          description: `Account successfully transitioned to ${getPhaseDisplayName(nextPhaseType)}`,
-        })
-        onClose()
-        // Force immediate refresh and reload
-        router.refresh()
-        setTimeout(() => {
-          window.location.reload()
-        }, 500)
-      } else {
-        toast({
-          title: "Transition Failed",
-          description: result.error || "Failed to transition to next phase",
-          variant: "destructive"
-        })
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to transition phase')
       }
-    } catch (error) {
-      console.error('Phase transition error:', error)
+
       toast({
-        title: "Error",
-        description: "An unexpected error occurred during phase transition",
+        title: "Phase Transition Successful! 🎉",
+        description: `You've successfully advanced to ${getPhaseDisplayName(nextPhaseNumber)}!`,
+        variant: "default"
+      })
+
+      // Call success callback to refresh data
+      onSuccess?.()
+      
+      // Close dialog
+      onClose()
+      
+      // Reset form
+      setNextPhaseId('')
+
+    } catch (error) {
+      console.error('Error transitioning phase:', error)
+      toast({
+        title: "Transition Failed",
+        description: error instanceof Error ? error.message : 'Failed to transition to next phase',
         variant: "destructive"
       })
     } finally {
-      setIsLoading(false)
+      setIsTransitioning(false)
     }
   }
 
-  const handleSkipTransition = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}/transition`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          newAccountId: null, // Skip account ID update
-          nextPhaseType,
-          currentPhaseProfit: currentPhase.netProfitSincePhaseStart
-        }),
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        toast({
-          title: "Phase Transition Completed",
-          description: `Account transitioned to ${getPhaseDisplayName(nextPhaseType)} with existing account ID`,
-        })
-        onClose()
-        // Force immediate refresh and reload
-        router.refresh()
-        setTimeout(() => {
-          window.location.reload()
-        }, 500)
-      } else {
-        toast({
-          title: "Transition Failed",
-          description: result.error || "Failed to transition to next phase",
-          variant: "destructive"
-        })
-      }
-    } catch (error) {
-      console.error('Phase transition error:', error)
-      toast({
-        title: "Error", 
-        description: "An unexpected error occurred during phase transition",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoading(false)
+  const getTransitionIcon = () => {
+    if (nextPhaseNumber >= 3) {
+      return <Trophy className="h-8 w-8 text-yellow-500" />
     }
+    return <TrendingUp className="h-8 w-8 text-green-500" />
+  }
+
+  const getTransitionTitle = () => {
+    if (nextPhaseNumber >= 3) {
+      return "🏆 Ready for Funded Account!"
+    }
+    return `🎉 Ready for ${getPhaseDisplayName(nextPhaseNumber)}!`
+  }
+
+  const getTransitionMessage = () => {
+    if (nextPhaseNumber >= 3) {
+      return "Congratulations! You've completed the evaluation and are ready for your funded account."
+    }
+    return `Great job! You've passed ${getPhaseDisplayName(currentPhase.phaseNumber)} and are ready to advance.`
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="text-center pb-2">
-          <DialogTitle className="flex items-center justify-center gap-2 text-xl">
-            <div className="p-2 bg-muted rounded-full">
-              <TrendingUp className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <Trophy className="h-5 w-5 text-muted-foreground" />
-            Phase Completed!
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader className="text-center">
+          <div className="mx-auto mb-4 p-3 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full w-fit">
+            {getTransitionIcon()}
+          </div>
+          <DialogTitle className="text-xl">
+            {getTransitionTitle()}
           </DialogTitle>
-          <DialogDescription className="text-base">
-            Your account crushed {getPhaseDisplayName(currentPhase.phaseType)} and is ready for {getPhaseDisplayName(nextPhaseType)}
+          <DialogDescription className="text-base mt-2">
+            {getTransitionMessage()}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Success Summary */}
-          <Card className="border-border bg-muted/50">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-center mb-4">
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className="px-3 py-1 flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3" />
-                    {getPhaseDisplayName(currentPhase.phaseType)}
-                  </Badge>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground" />
-                  <Badge variant="default" className="px-3 py-1 flex items-center gap-1">
-                    <Rocket className="h-3 w-3" />
-                    {getPhaseDisplayName(nextPhaseType)}
-                  </Badge>
+          {/* Progress Summary */}
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="pt-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{accountName}</span>
+                  <Badge variant="secondary">{propFirmName}</Badge>
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <DollarSign className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-muted-foreground text-xs">Profit Made</span>
-                  </div>
-                  <p className="font-bold text-foreground text-lg">
-                    {formatCurrency(currentPhase.netProfitSincePhaseStart)}
-                  </p>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Current Phase</span>
+                  <span className="font-semibold">{getPhaseDisplayName(currentPhase.phaseNumber)}</span>
                 </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Target className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-muted-foreground text-xs">Target Was</span>
+
+                {currentPhase.profitTargetPercent && currentPhase.profitTargetPercent > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Profit Target</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{currentPhase.profitTargetPercent}%</span>
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    </div>
                   </div>
-                  <p className="font-semibold text-sm">
-                    {currentPhase.profitTarget ? formatCurrency(currentPhase.profitTarget) : 'N/A'}
-                  </p>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Current P&L</span>
+                  <span className={cn(
+                    "font-semibold",
+                    currentPhase.currentPnL >= 0 ? "text-green-600" : "text-red-600"
+                  )}>
+                    {currentPhase.currentPnL >= 0 ? '+' : ''}${currentPhase.currentPnL.toLocaleString()}
+                  </span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* New Account ID Input */}
-          <div className="space-y-4">
-            <div className="flex items-start gap-3 p-4 border rounded-xl bg-muted/30">
-              <div className="p-1 bg-muted rounded-full">
-                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+          {/* Phase Transition Flow */}
+          <div className="flex items-center justify-center space-x-4">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-sm font-semibold text-foreground">
-                    Need Your New Account ID
-                  </p>
+              <span className="text-sm font-medium">{getPhaseDisplayName(currentPhase.phaseNumber)}</span>
+              <div className="text-xs text-muted-foreground">Completed</div>
+            </div>
+            
+            <ArrowRight className="h-6 w-6 text-muted-foreground" />
+            
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2">
+                <Rocket className="h-6 w-6 text-blue-600" />
+              </div>
+              <span className="text-sm font-medium">{getPhaseDisplayName(nextPhaseNumber)}</span>
+              <div className="text-xs text-muted-foreground">Ready</div>
+            </div>
+          </div>
+
+          {/* Next Phase ID Input */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <Key className="h-5 w-5 text-blue-600" />
+              <div className="flex-1">
+                <div className="text-sm font-medium text-blue-900">
+                  Account ID Required
                 </div>
-                <div className="flex items-start gap-2">
-                  <Mail className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Your prop firm should&apos;ve sent you a new account ID for {getPhaseDisplayName(nextPhaseType)}.
-                    Check your email or their dashboard!
-                  </p>
+                <div className="text-xs text-blue-700">
+                  Enter your {getPhaseDisplayName(nextPhaseNumber)} account ID to continue
                 </div>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <Label htmlFor="newAccountId" className="text-sm font-medium flex items-center gap-2">
-                <Key className="h-4 w-4" />
-                {getPhaseDisplayName(nextPhaseType)} Account ID
+            <div className="space-y-2">
+              <Label htmlFor="nextPhaseId" className="text-sm font-medium">
+                {getPhaseDisplayName(nextPhaseNumber)} Account ID
               </Label>
               <Input
-                id="newAccountId"
-                placeholder={`e.g., 987654321`}
-                value={newAccountId}
-                onChange={(e) => setNewAccountId(e.target.value)}
-                className="font-mono text-center text-lg py-3"
+                id="nextPhaseId"
+                value={nextPhaseId}
+                onChange={(e) => setNextPhaseId(e.target.value)}
+                placeholder={`Enter your ${getPhaseDisplayName(nextPhaseNumber)} account number...`}
+                className="text-center font-mono"
+                disabled={isTransitioning}
               />
-              <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
-                <CreditCard className="h-3 w-3" />
-                Usually found in your prop firm&apos;s trader portal or email
+              <p className="text-xs text-muted-foreground">
+                This should be the new account number provided by {propFirmName} for your {getPhaseDisplayName(nextPhaseNumber).toLowerCase()}.
               </p>
             </div>
           </div>
 
-          {/* Next Phase Info */}
-          <Card>
-            <CardContent className="p-4">
-              <h4 className="font-medium mb-3 flex items-center gap-2">
-                <Target className="h-4 w-4" />
-                {getPhaseDisplayName(nextPhaseType)} Requirements
-              </h4>
-              <div className="space-y-2 text-sm">
-                {nextPhaseType === 'phase_2' && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Starting Balance:</span>
-                      <span className="font-medium">{formatCurrency(startingBalance)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Profit Target:</span>
-                      <span className="font-medium">{formatCurrency(startingBalance * 0.05)} (5%)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Daily DD Limit:</span>
-                      <span className="font-medium text-red-600">{formatCurrency(startingBalance * 0.04)} (4%)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Max DD Limit:</span>
-                      <span className="font-medium text-red-600">{formatCurrency(startingBalance * 0.08)} (8%)</span>
-                    </div>
-                  </>
-                )}
-                {nextPhaseType === 'funded' && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Status:</span>
-                      <span className="font-medium text-green-600">Funded Trader</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Profit Split:</span>
-                      <span className="font-medium">80% (You) / 20% (Firm)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Payout Frequency:</span>
-                      <span className="font-medium">Every 14 days</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Action Buttons */}
-          <div className="flex flex-col gap-2 pt-2">
-            <Button 
-              onClick={handleTransition}
-              disabled={isLoading}
-              className="w-full py-3 text-base font-semibold"
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={isTransitioning}
+              className="flex-1"
             >
-{isLoading ? (
+              Cancel
+            </Button>
+            <Button
+              onClick={handleTransition}
+              disabled={!nextPhaseId.trim() || isTransitioning}
+              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+            >
+              {isTransitioning ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                  Processing...
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Transitioning...
                 </>
               ) : (
                 <>
-                  <Rocket className="h-4 w-4 mr-2" />
-                  Advance to {getPhaseDisplayName(nextPhaseType)}
+                  Start {getPhaseDisplayName(nextPhaseNumber)}
+                  <ArrowRight className="h-4 w-4 ml-2" />
                 </>
               )}
             </Button>
-            
-            <Button 
-              variant="outline"
-              onClick={handleSkipTransition}
-              disabled={isLoading}
-              className="w-full py-2"
-            >
-<CreditCard className="h-4 w-4 mr-2" />
-              Keep Current Account ID
-            </Button>
-            
-            <Button 
-              variant="ghost"
-              onClick={onClose}
-              disabled={isLoading}
-              className="w-full text-muted-foreground py-1"
-            >
-<X className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
+          </div>
+
+          {/* Help Text */}
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground">
+              Make sure you have the correct account details from {propFirmName} before proceeding.
+            </p>
           </div>
         </div>
       </DialogContent>

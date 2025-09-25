@@ -1,114 +1,148 @@
 /**
- * Prop Firm Account Transition API
- * POST /api/prop-firm-v2/accounts/[id]/transition - Transition account to next phase
+ * Phase Transition API
+ * POST /api/prop-firm-v2/accounts/[id]/transition - Transition to the next phase
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { getUserId } from '@/server/auth-utils'
+import { z } from 'zod'
 
 const prisma = new PrismaClient()
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+interface RouteParams {
+  params: { id: string }
+}
+
+// Validation schema for phase transition
+const PhaseTransitionSchema = z.object({
+  nextPhaseId: z.string().min(1, 'Next phase ID is required')
+})
+
+export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const resolvedParams = await params
-    const accountId = resolvedParams.id
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
 
-    // Parse request body
-    const { reason, forceTransition } = await request.json()
+    const masterAccountId = params.id
+    const body = await request.json()
+    const { nextPhaseId } = PhaseTransitionSchema.parse(body)
 
-    // Get the account with current phase
-    const account = await prisma.account.findFirst({
+    // Verify the master account belongs to the user
+    const masterAccount = await prisma.masterAccount.findFirst({
       where: {
-        id: accountId,
+        id: masterAccountId,
         userId,
-        propfirm: { not: '' } // Only prop firm accounts
+        isActive: true
       },
       include: {
         phases: {
-          where: { phaseStatus: 'active' },
-          orderBy: { createdAt: 'desc' },
-          take: 1
+          orderBy: { phaseNumber: 'asc' }
         }
       }
     })
 
-    if (!account) {
+    if (!masterAccount) {
       return NextResponse.json(
-        { error: 'Account not found or access denied' },
+        { success: false, error: 'Master account not found or unauthorized' },
         { status: 404 }
       )
     }
 
-    const currentPhase = account.phases?.[0]
+    // Find the current active phase
+    const currentPhase = masterAccount.phases.find(phase => 
+      phase.phaseNumber === masterAccount.currentPhase && phase.status === 'active'
+    )
 
-    // Simple phase transition logic
     if (!currentPhase) {
       return NextResponse.json(
-        { error: 'No active phase found for this account' },
+        { success: false, error: 'No active phase found to transition from' },
         { status: 400 }
       )
     }
 
-    // Get next phase type
-    let nextPhaseType: 'phase_1' | 'phase_2' | 'funded' = 'phase_1'
-    if (currentPhase.phaseType === 'phase_1') {
-      nextPhaseType = 'phase_2'
-    } else if (currentPhase.phaseType === 'phase_2') {
-      nextPhaseType = 'funded'
-    } else {
+    // Determine the next phase number
+    const nextPhaseNumber = masterAccount.currentPhase + 1
+    
+    // Find the next phase
+    const nextPhase = masterAccount.phases.find(phase => 
+      phase.phaseNumber === nextPhaseNumber
+    )
+
+    if (!nextPhase) {
       return NextResponse.json(
-        { error: 'Account is already in funded phase' },
+        { success: false, error: 'Next phase not found' },
         { status: 400 }
       )
     }
 
-    // Create next phase
-    const nextPhase = await prisma.accountPhase.create({
-      data: {
-        accountId: account.id,
-        phaseType: nextPhaseType,
-        phaseStatus: 'active',
-        profitTarget: nextPhaseType === 'phase_2' || nextPhaseType === 'funded'
-          ? (account.startingBalance * 0.05) // 5% for phase 2 and funded
-          : (account.startingBalance * 0.1), // 10% for phase 1
-        currentEquity: account.startingBalance,
-        currentBalance: account.startingBalance,
-        netProfitSincePhaseStart: 0,
-        highestEquitySincePhaseStart: account.startingBalance,
-        totalTrades: 0,
-        winningTrades: 0,
-        totalCommission: 0,
-      }
-    })
+    // Perform the transition in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Archive the current phase
+      await tx.phaseAccount.update({
+        where: { id: currentPhase.id },
+        data: {
+          status: 'archived',
+          endDate: new Date()
+        }
+      })
 
-    // Update current phase to completed
-    await prisma.accountPhase.update({
-      where: { id: currentPhase.id },
-      data: {
-        phaseStatus: 'passed',
-        phaseEndAt: new Date()
+      // Activate the next phase and set its phaseId
+      const updatedNextPhase = await tx.phaseAccount.update({
+        where: { id: nextPhase.id },
+        data: {
+          status: 'active',
+          phaseId: nextPhaseId,
+          startDate: new Date()
+        }
+      })
+
+      // Update the master account's current phase
+      const updatedMasterAccount = await tx.masterAccount.update({
+        where: { id: masterAccountId },
+        data: {
+          currentPhase: nextPhaseNumber
+        }
+      })
+
+      return {
+        masterAccount: updatedMasterAccount,
+        previousPhase: currentPhase,
+        currentPhase: updatedNextPhase
       }
     })
 
     return NextResponse.json({
       success: true,
-      message: `Account transitioned from ${currentPhase.phaseType} to ${nextPhaseType}`,
-      newPhase: nextPhase,
-      updatedAccount: account
+      data: result,
+      message: `Successfully transitioned to Phase ${nextPhaseNumber}`
     })
 
   } catch (error) {
-    console.error('Error transitioning prop firm account:', error)
+    console.error('Error transitioning phase:', error)
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Validation failed',
+          details: error.errors
+        },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
-      { error: 'Failed to transition account', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        success: false, 
+        error: 'Failed to transition phase' 
+      },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }

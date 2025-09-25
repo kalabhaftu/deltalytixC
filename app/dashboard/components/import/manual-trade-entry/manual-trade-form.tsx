@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { Calculator, TrendingUp, TrendingDown } from 'lucide-react'
+import { Calculator, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
 import { Trade } from '@prisma/client'
 import { generateTradeHash } from '@/lib/utils'
 import { useUserStore } from '@/store/user-store'
@@ -101,6 +101,7 @@ interface ManualTradeFormProps {
 
 export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [phaseValidationError, setPhaseValidationError] = useState<string | null>(null)
   const [calculatedPnL, setCalculatedPnL] = useState<number | null>(null)
   const [calculatedDuration, setCalculatedDuration] = useState<string>('')
   
@@ -214,7 +215,40 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
     }
 
     setIsSubmitting(true)
+    setPhaseValidationError(null)
+    
     try {
+      // Check if this is a prop firm account and validate phase ID
+      if (data.accountNumber) {
+        try {
+          const phaseCheckResponse = await fetch(`/api/prop-firm-v2/accounts/validate-trade`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              accountNumber: data.accountNumber
+            })
+          })
+          
+          const phaseResult = await phaseCheckResponse.json()
+          
+          if (!phaseCheckResponse.ok) {
+            if (phaseCheckResponse.status === 403) {
+              setPhaseValidationError(phaseResult.error || 'Please set the ID for the current phase before adding trades.')
+              toast({
+                title: "Phase ID Required",
+                description: phaseResult.error || "Please set the ID for the current phase before adding trades.",
+                variant: "destructive"
+              })
+              return
+            }
+          }
+        } catch (error) {
+          // If it's not a prop firm account or validation API doesn't exist, continue normally
+          console.log('Phase validation skipped - likely not a prop firm account')
+        }
+      }
       // Combine date and time for entry/close timestamps
       const entryDateTime = `${data.entryDate} ${data.entryTime}`
       const closeDateTime = `${data.closeDate} ${data.closeTime}`
@@ -312,6 +346,20 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
 
       <div className="flex-1 overflow-y-auto px-6 pb-4">
         <form id="manual-trade-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Phase Validation Error */}
+        {phaseValidationError && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-3">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-4 w-4 text-red-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">{phaseValidationError}</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Basic Trade Information */}
         <Card>
           <CardHeader className="pb-3">

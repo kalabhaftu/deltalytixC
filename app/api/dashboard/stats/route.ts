@@ -96,8 +96,8 @@ export async function GET(request: NextRequest) {
           id: true,
           number: true,
           startingBalance: true,
-          status: true,
-          propfirm: true
+          // status: true, // status field doesn't exist
+          // propfirm: true // propfirm field doesn't exist
         }
       })
 

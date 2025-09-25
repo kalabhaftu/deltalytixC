@@ -133,8 +133,8 @@ async function getTradesPaginated(offset: number, limit: number) {
     where: { userId },
     include: {
       account: true,
-      phase: true,
-      propFirmPhase: true,
+      // phase: true, // Phase field not available
+      // propFirmPhase: true, // PropFirmPhase field not available
       tradeAnalytics: true
     },
     orderBy: {
@@ -342,8 +342,8 @@ async function getTradesBatch(offset: number, limit: number, filters: any = {}) 
     where: whereClause,
     include: {
       account: true,
-      phase: true,
-      propFirmPhase: true,
+      // phase: true, // Phase field not available
+      // propFirmPhase: true, // PropFirmPhase field not available
       tradeAnalytics: true
     },
     orderBy: {

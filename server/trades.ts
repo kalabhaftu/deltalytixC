@@ -19,8 +19,8 @@ export async function getTrades() {
       where: { userId },
       include: {
         account: true,
-        phase: true,
-        propFirmPhase: true,
+        // phase: true, // Phase field not available
+        // propFirmPhase: true, // PropFirmPhase field not available
         tradeAnalytics: true
       },
       orderBy: {

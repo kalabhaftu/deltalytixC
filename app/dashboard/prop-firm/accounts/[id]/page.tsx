@@ -168,7 +168,7 @@ export default function AccountDetailPage() {
           <ConnectionError error={realtimeError} onRetry={refetch} />
         ) : (
           <AccountNotFoundError 
-            accountId={accountId}
+            // accountId={accountId} // accountId prop doesn't exist
             onRetry={refetch}
             onGoBack={() => router.push('/dashboard/accounts')}
           />
@@ -1123,7 +1123,7 @@ export default function AccountDetailPage() {
         <PhaseTransitionDialog
           isOpen={showTransitionDialog}
           onClose={() => setShowTransitionDialog(false)}
-          accountId={accountId}
+          // accountId={accountId} // accountId prop doesn't exist
           currentPhase={accountData.currentPhase}
           nextPhaseType={accountData.progress?.nextPhaseType}
           startingBalance={accountData.account.startingBalance}

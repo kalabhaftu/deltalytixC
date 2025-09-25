@@ -114,32 +114,12 @@ export async function getUserData(): Promise<{
       Promise.resolve([]), // Skip tick details for now - can be loaded lazily
       // Tags - keep minimal
       Promise.resolve([]), // Skip tags for now to improve performance
-      // Optimized accounts query - only essential fields with error handling
+      // Use getAccountsAction for unified account handling (regular + prop firm)
       (async () => {
         try {
-          return await prisma.account.findMany({
-            where: {
-              userId: userId
-            },
-            select: {
-              id: true,
-              number: true,
-              name: true,
-              propfirm: true,
-              broker: true,
-              startingBalance: true,
-              status: true,
-              createdAt: true,
-              groupId: true,
-              group: {
-                select: {
-                  id: true,
-                  name: true
-                }
-              }
-              // Skip payouts for initial load - can be loaded on demand
-            }
-          })
+          // Import and use the existing account logic
+          const { getAccountsAction } = await import('./accounts')
+          return await getAccountsAction()
         } catch (error) {
           console.error('[getUserData] Accounts query failed:', error)
           return []
@@ -217,9 +197,9 @@ export const getDashboardLayout = unstable_cache(
   async function getDashboardLayout(userId: string): Promise<DashboardLayout | null> {
     console.log('getDashboardLayout')
     try {
-      // Add timeout wrapper to prevent hanging
+      // Add timeout wrapper to prevent hanging - increased for better reliability
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('getDashboardLayout timeout')), 5000)
+        setTimeout(() => reject(new Error('getDashboardLayout timeout')), 10000)
       )
 
       const operationPromise = prisma.dashboardLayout.findUnique({

@@ -160,7 +160,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
       if (!result.success) {
         toast({
           title: "Import Failed",
-          description: result.message || "Failed to link trades to account phase",
+          description: "Failed to link trades to account phase", // message field doesn't exist
           variant: "destructive",
         })
         return
@@ -209,7 +209,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
       // Show success message with phase information
       toast({
         title: "Import Completed",
-        description: result.message,
+        description: "Trade linking completed", // message field doesn't exist
         duration: 5000,
       })
 

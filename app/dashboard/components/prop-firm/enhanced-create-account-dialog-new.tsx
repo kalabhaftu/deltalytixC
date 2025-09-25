@@ -248,7 +248,7 @@ export function EnhancedCreateAccountDialog({
     }
   }
 
-  const submitWithRetry = async (data: CreatePropFirmAccountForm, retryCount = 0) => {
+  const onSubmit = async (data: CreatePropFirmAccountForm) => {
     try {
       setIsSubmitting(true)
 
@@ -263,19 +263,6 @@ export function EnhancedCreateAccountDialog({
       const result = await response.json()
 
       if (!response.ok) {
-        // Handle retryable errors (connectivity/timeout issues)
-        if ((response.status === 503 || response.status === 408) && result.retryable && retryCount < 2) {
-          toast({
-            title: "Connection issue",
-            description: `Retrying... (Attempt ${retryCount + 2}/3)`,
-            variant: "default"
-          })
-          
-          // Wait 2 seconds before retry
-          await new Promise(resolve => setTimeout(resolve, 2000))
-          return submitWithRetry(data, retryCount + 1)
-        }
-
         throw new Error(result.error || 'Failed to create prop firm account')
       }
 
@@ -293,35 +280,14 @@ export function EnhancedCreateAccountDialog({
 
     } catch (error) {
       console.error('Error creating prop firm account:', error)
-      
-      // Show specific messages for different error types
-      let title = "Error"
-      let description = "Failed to create account"
-      
-      if (error instanceof Error) {
-        if (error.message.includes('Database connection failed')) {
-          title = "Connection Error"
-          description = "Unable to connect to database. Please check your internet connection and try again."
-        } else if (error.message.includes('timed out')) {
-          title = "Timeout Error"
-          description = "Request timed out. This may be due to slow internet connection. Please try again."
-        } else {
-          description = error.message
-        }
-      }
-
       toast({
-        title,
-        description,
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to create account',
         variant: "destructive"
       })
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  const onSubmit = async (data: CreatePropFirmAccountForm) => {
-    return submitWithRetry(data, 0)
   }
 
   const nextStep = () => {
@@ -776,3 +742,4 @@ export function EnhancedCreateAccountDialog({
     </Dialog>
   )
 }
+

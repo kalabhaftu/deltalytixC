@@ -177,7 +177,7 @@ export default function TopstepProcessor({ headers, csvData, setProcessedTrades,
                     entryDate: item.entryDate || '',
                     closeDate: item.closeDate || '',
                     pnl: item.pnl || 0,
-                    propFirmPhaseId: null,
+                    // propFirmPhaseId: null, // field doesn't exist
                     timeInPosition: item.timeInPosition || 0,
                     userId: currentUser.id,
                     side: item.side || '',
@@ -207,6 +207,7 @@ export default function TopstepProcessor({ headers, csvData, setProcessedTrades,
                     accountId: null,
                     strategy: null,
                     closeReason: null,
+                    phaseAccountId: null,
                 }
                 
                 newTrades.push(completeTrade);

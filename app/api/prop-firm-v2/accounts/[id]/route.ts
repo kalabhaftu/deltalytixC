@@ -1,15 +1,13 @@
 /**
- * Individual Prop Firm Account API - Rebuilt System
- * GET /api/prop-firm-v2/accounts/[id] - Get single account with full details
- * PATCH /api/prop-firm-v2/accounts/[id] - Update account
- * DELETE /api/prop-firm-v2/accounts/[id] - Delete account
+ * Individual Master Account API - Rebuilt System
+ * GET /api/prop-firm-v2/accounts/[id] - Get single master account with full details
+ * PATCH /api/prop-firm-v2/accounts/[id] - Update master account
+ * DELETE /api/prop-firm-v2/accounts/[id] - Delete master account
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidateTag } from 'next/cache'
 import { PrismaClient } from '@prisma/client'
 import { getUserId } from '@/server/auth-utils'
-import { PropFirmEngine } from '@/lib/prop-firm/prop-firm-engine'
 import { z } from 'zod'
 
 const prisma = new PrismaClient()
@@ -18,328 +16,282 @@ interface RouteParams {
   params: { id: string }
 }
 
-// Update validation schema
-const UpdateAccountSchema = z.object({
-  name: z.string().optional(),
-  
-  // Phase account IDs
-  phase1AccountId: z.string().optional(),
-  phase2AccountId: z.string().optional(),
-  fundedAccountId: z.string().optional(),
-  
-  // Phase credentials
-  phase1Login: z.string().optional(),
-  phase2Login: z.string().optional(),
-  fundedLogin: z.string().optional(),
-  phase1Password: z.string().optional(),
-  phase2Password: z.string().optional(),
-  fundedPassword: z.string().optional(),
-  
-  // Phase servers
-  phase1Server: z.string().optional(),
-  phase2Server: z.string().optional(),
-  fundedServer: z.string().optional(),
-  
-  // Trading rules
-  newsTradinAllowed: z.boolean().optional(),
-  weekendHoldingAllowed: z.boolean().optional(),
-  hedgingAllowed: z.boolean().optional(),
-  eaAllowed: z.boolean().optional(),
-  maxPositions: z.number().optional(),
-  
-  // Metadata
-  notes: z.string().optional(),
-  syncEnabled: z.boolean().optional(),
-  
-  // Status updates
-  status: z.enum(['active', 'failed', 'passed', 'funded']).optional(),
+// Update validation schema (simplified for now)
+const UpdateMasterAccountSchema = z.object({
+  accountName: z.string().min(1, 'Account name is required').optional(),
+  isActive: z.boolean().optional()
 })
 
-// GET /api/prop-firm-v2/accounts/[id]
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const resolvedParams = await params
-    const accountId = resolvedParams.id
-    
-    // Get account with all related data
-    const account = await prisma.account.findFirst({
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const masterAccountId = params.id
+
+    // Get master account with all related data
+    const masterAccount = await prisma.masterAccount.findFirst({
       where: {
-        id: accountId,
-        userId,
+        id: masterAccountId,
+        userId
       },
       include: {
+        phases: {
+          include: {
+            trades: {
+              orderBy: { entryTime: 'desc' },
+              take: 50 // Limit for performance
+            }
+          },
+          orderBy: { phaseNumber: 'asc' }
+        },
         user: {
-          select: { id: true, email: true, firstName: true, lastName: true }
+          select: {
+            id: true,
+            email: true
+          }
         }
       }
     })
     
-    if (!account) {
+    if (!masterAccount) {
       return NextResponse.json(
-        { error: 'Account not found' },
+        { success: false, error: 'Master account not found' },
         { status: 404 }
       )
     }
     
-    // Get all phases for this account
-    const phases = await prisma.accountPhase?.findMany({
-      where: { accountId },
-      orderBy: { createdAt: 'asc' },
-      include: {
-        trades: {
-          orderBy: { entryTime: 'desc' },
-          take: 10 // Latest 10 trades for preview
-        },
-        equitySnapshots: {
-          orderBy: { timestamp: 'desc' },
-          take: 30 // Last 30 days
-        },
-        breaches: {
-          orderBy: { breachTime: 'desc' }
-        }
-      }
-    }) || []
-    
-    // Get current active phase
-    const currentPhase = phases.find(p => p.phaseStatus === 'active') || phases[phases.length - 1]
-    
-    // Get all trades for this account
-    const allTrades = await prisma.trade.findMany({
-      where: { accountId },
-      orderBy: { entryTime: 'desc' },
-      take: 100 // More trades for analysis
-    })
-    
-    // Get payout history
-    let payouts: any[] = []
-    try {
-      payouts = await prisma.payout.findMany({
-        where: { accountId },
-        orderBy: { date: 'desc' }
-      })
-    } catch (error) {
-      // Payout model might not exist, use empty array
-      console.warn('Payout model not available:', error)
-      payouts = []
-    }
-    
-    // Calculate comprehensive metrics if we have a current phase
-    let drawdownData = null
-    let progressData = null
-    let payoutEligibility = null
-    let riskMetrics = null
-    let tradingStats = null
-    
-    if (currentPhase) {
-      // Get latest equity snapshot for drawdown calculation
-      const latestSnapshot = currentPhase.equitySnapshots?.[0]
-      const dailyStartBalance = latestSnapshot?.balance || currentPhase.currentBalance
-      
-      // Calculate drawdown
-      drawdownData = PropFirmEngine.calculateDrawdown(
-        currentPhase as any,
-        currentPhase.currentEquity,
-        dailyStartBalance,
-        account.trailingDrawdown
-      )
-      
-      // Calculate phase progress
-      progressData = PropFirmEngine.calculatePhaseProgress(
-        account as any,
-        currentPhase as any,
-        allTrades as any
-      )
-      
-      // Calculate payout eligibility (only for funded phases)
-      if (currentPhase.phaseType === 'funded') {
-        payoutEligibility = PropFirmEngine.calculatePayoutEligibility(
-          account as any,
-          currentPhase as any,
-          payouts
-        )
-      }
-      
-      // Calculate risk metrics
-      riskMetrics = PropFirmEngine.calculateRiskMetrics(allTrades as any)
-      
-      // Calculate trading statistics
-      tradingStats = {
-        totalTrades: allTrades.length,
-        totalPnL: allTrades.reduce((sum, t) => sum + (t.realizedPnl || t.pnl || 0), 0),
-        totalCommission: allTrades.reduce((sum, t) => sum + (t.commission || t.fees || 0), 0),
-        currentEquity: currentPhase.currentEquity,
-        startingBalance: currentPhase.currentBalance,
-        currentProfit: currentPhase.currentEquity - currentPhase.currentBalance,
-        profitPercent: ((currentPhase.currentEquity - currentPhase.currentBalance) / currentPhase.currentBalance) * 100,
-        daysTraded: 0, // Not available in current schema
-        winRate: riskMetrics.winRate,
-        profitFactor: riskMetrics.profitFactor,
-      }
-    }
-    
-    // Prepare response
-    const response = {
-      // Account details - using current schema fields
-      account: {
-        id: account.id,
-        name: account.name,
-        propfirm: account.propfirm, // Use propfirm instead of firmType
-        status: account.status,
-        startingBalance: account.startingBalance,
-        profitTarget: account.profitTarget,
-        dailyDrawdownAmount: account.dailyDrawdownAmount,
-        maxDrawdownAmount: account.maxDrawdownAmount,
-        trailingDrawdown: account.trailingDrawdown,
-        profitSplitPercent: account.profitSplitPercent,
-        payoutCycleDays: account.payoutCycleDays,
-        minDaysToFirstPayout: account.minDaysToFirstPayout,
-        maxFundedAccounts: account.maxFundedAccounts,
-        tradingNewsAllowed: account.tradingNewsAllowed,
-        createdAt: account.createdAt,
+    // Get the current active phase
+    const currentPhase = masterAccount.phases.find(phase => 
+      phase.phaseNumber === masterAccount.currentPhase
+    )
 
-        // User info
-        owner: account.user,
+    // Calculate basic statistics
+    const allTrades = masterAccount.phases.flatMap(phase => phase.trades)
+    const totalTrades = allTrades.length
+    const totalPnL = allTrades.reduce((sum, trade) => sum + trade.pnl, 0)
+    const winningTrades = allTrades.filter(trade => trade.pnl > 0).length
+    const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0
+
+    // Calculate current phase statistics
+    const currentPhaseTrades = currentPhase?.trades || []
+    const currentPhasePnL = currentPhaseTrades.reduce((sum, trade) => sum + trade.pnl, 0)
+    
+    // Determine next action based on phase status
+    let nextAction = 'continue_trading'
+    if (!currentPhase?.phaseId) {
+      nextAction = 'set_phase_id'
+    } else if (currentPhase.status === 'passed') {
+      nextAction = 'ready_to_advance'
+    } else if (currentPhase.status === 'failed') {
+      nextAction = 'failed'
+    }
+
+    const response = {
+      // Master account details
+      masterAccount: {
+        id: masterAccount.id,
+        accountName: masterAccount.accountName,
+        propFirmName: masterAccount.propFirmName,
+        accountSize: masterAccount.accountSize,
+        evaluationType: masterAccount.evaluationType,
+        currentPhase: masterAccount.currentPhase,
+        isActive: masterAccount.isActive,
+        createdAt: masterAccount.createdAt,
+        owner: masterAccount.user
       },
       
-      // Current state
-      phases,
-      currentPhase,
-      drawdown: drawdownData,
-      progress: progressData,
-      payoutEligibility,
-      riskMetrics,
-      statistics: tradingStats,
-      
-      // Recent data
+      // Phase information
+      phases: masterAccount.phases.map(phase => ({
+        id: phase.id,
+        phaseNumber: phase.phaseNumber,
+        phaseId: phase.phaseId,
+        status: phase.status,
+        profitTargetPercent: phase.profitTargetPercent,
+        dailyDrawdownPercent: phase.dailyDrawdownPercent,
+        maxDrawdownPercent: phase.maxDrawdownPercent,
+        minTradingDays: phase.minTradingDays,
+        timeLimitDays: phase.timeLimitDays,
+        consistencyRulePercent: phase.consistencyRulePercent,
+        profitSplitPercent: phase.profitSplitPercent,
+        payoutCycleDays: phase.payoutCycleDays,
+        startDate: phase.startDate,
+        endDate: phase.endDate,
+        tradeCount: phase.trades.length,
+        totalPnL: phase.trades.reduce((sum, trade) => sum + trade.pnl, 0)
+      })),
+
+      // Current phase details
+      currentPhase: currentPhase ? {
+        id: currentPhase.id,
+        phaseNumber: currentPhase.phaseNumber,
+        phaseId: currentPhase.phaseId,
+        status: currentPhase.status,
+        rules: {
+          profitTargetPercent: currentPhase.profitTargetPercent,
+          dailyDrawdownPercent: currentPhase.dailyDrawdownPercent,
+          maxDrawdownPercent: currentPhase.maxDrawdownPercent,
+          minTradingDays: currentPhase.minTradingDays,
+          timeLimitDays: currentPhase.timeLimitDays,
+          consistencyRulePercent: currentPhase.consistencyRulePercent
+        },
+        payout: currentPhase.phaseNumber >= 3 ? {
+          profitSplitPercent: currentPhase.profitSplitPercent,
+          payoutCycleDays: currentPhase.payoutCycleDays
+        } : null
+      } : null,
+
+      // Trading statistics
+      statistics: {
+        totalTrades,
+        totalPnL,
+        winningTrades,
+        losingTrades: totalTrades - winningTrades,
+        winRate,
+        currentPhaseTrades: currentPhaseTrades.length,
+        currentPhasePnL
+      },
+
+      // Recent trades (limited for performance)
       recentTrades: allTrades.slice(0, 20),
-      payoutHistory: payouts,
       
       // Summary
       summary: {
-        totalPhases: phases.length,
-        currentPhaseType: currentPhase?.phaseType,
-        currentPhaseStatus: currentPhase?.phaseStatus,
-        totalTrades: allTrades.length,
-        totalPayouts: payouts.length,
-        isBreached: drawdownData?.isBreached || false,
-        nextAction: progressData?.readyToAdvance ? 'ready_to_advance' : 
-                   drawdownData?.isBreached ? 'breached' : 'continue_trading',
+        totalPhases: masterAccount.phases.length,
+        currentPhaseNumber: masterAccount.currentPhase,
+        currentPhaseStatus: currentPhase?.status,
+        nextAction,
+        needsPhaseId: !currentPhase?.phaseId && currentPhase?.status === 'active'
       }
     }
-    
-    return NextResponse.json(response)
+
+    return NextResponse.json({
+      success: true,
+      data: response
+    })
     
   } catch (error) {
-    console.error('Error fetching prop firm account:', error)
+    console.error('Error fetching master account:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch account', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        success: false, 
+        error: 'Failed to fetch account',
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
-// PATCH /api/prop-firm-v2/accounts/[id]
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const resolvedParams = await params
-    const accountId = resolvedParams.id
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const masterAccountId = params.id
     const body = await request.json()
-    
-    // Validate request data
-    const validatedData = UpdateAccountSchema.parse(body)
-    
-    // Check if account exists and belongs to user
-    const existingAccount = await prisma.account.findFirst({
-      where: { id: accountId, userId }
+    const updateData = UpdateMasterAccountSchema.parse(body)
+
+    // Verify ownership
+    const existingAccount = await prisma.masterAccount.findFirst({
+      where: {
+        id: masterAccountId,
+        userId
+      }
     })
     
     if (!existingAccount) {
       return NextResponse.json(
-        { error: 'Account not found' },
+        { success: false, error: 'Master account not found or unauthorized' },
         { status: 404 }
       )
     }
     
-    // Update account
-    const updatedAccount = await prisma.account.update({
-      where: { id: accountId },
-      data: validatedData,
-      include: {
-        user: {
-          select: { id: true, email: true, firstName: true, lastName: true }
-        }
-      }
+    // Update the account
+    const updatedAccount = await prisma.masterAccount.update({
+      where: { id: masterAccountId },
+      data: updateData
     })
     
     return NextResponse.json({
       success: true,
-      account: updatedAccount,
-      message: 'Account updated successfully'
+      data: updatedAccount
     })
     
   } catch (error) {
-    console.error('Error updating prop firm account:', error)
+    console.error('Error updating master account:', error)
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { 
+          success: false, 
+          error: 'Validation failed',
+          details: error.errors
+        },
         { status: 400 }
       )
     }
     
     return NextResponse.json(
-      { error: 'Failed to update account', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        success: false, 
+        error: 'Failed to update account' 
+      },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
-// DELETE /api/prop-firm-v2/accounts/[id]
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const resolvedParams = await params
-    const accountId = resolvedParams.id
-    
-    // Check if account exists and belongs to user
-    const existingAccount = await prisma.account.findFirst({
-      where: { id: accountId, userId }
-    })
-    
-    if (!existingAccount) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Account not found' },
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const masterAccountId = params.id
+
+    // Verify ownership and delete
+    const deletedAccount = await prisma.masterAccount.deleteMany({
+      where: {
+        id: masterAccountId,
+        userId
+      }
+    })
+
+    if (deletedAccount.count === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Master account not found or unauthorized' },
         { status: 404 }
       )
     }
-    
-    // Delete account and all related data (cascading deletes handled by schema)
-    await prisma.account.delete({
-      where: { id: accountId }
-    })
-
-    // Invalidate all related cache tags
-    const { invalidateUserCaches } = await import('@/server/accounts')
-    await invalidateUserCaches(userId)
 
     return NextResponse.json({
       success: true,
-      message: 'Account deleted successfully'
+      message: 'Master account deleted successfully'
     })
     
   } catch (error) {
-    console.error('Error deleting prop firm account:', error)
+    console.error('Error deleting master account:', error)
     return NextResponse.json(
-      { error: 'Failed to delete account', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        success: false, 
+        error: 'Failed to delete account' 
+      },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }

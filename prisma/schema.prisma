@@ -46,9 +46,8 @@ model Trade {
   imageBase64Fifth  String?       // Fifth screenshot
   imageBase64Sixth  String?       // Sixth screenshot
   cardPreviewImage  String?       // Optimized preview image for journal cards
-  phaseId           String?
   accountId         String?
-  propFirmPhaseId   String?
+  phaseAccountId    String?           // Relation to PhaseAccount for prop firm trades
   symbol            String?
   strategy          String?
   fees              Float?        @default(0)
@@ -61,18 +60,17 @@ model Trade {
   closeReason       String?
   tradingModel      TradingModel?   // Trading model used (ICT 2022, MSNR, TTFM, Price Action)
   account           Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  phase             AccountPhase? @relation(fields: [phaseId], references: [id])
-  propFirmPhase     PropFirmPhase? @relation(fields: [propFirmPhaseId], references: [id], onDelete: SetNull)
+  phaseAccount      PhaseAccount? @relation(fields: [phaseAccountId], references: [id], onDelete: SetNull)
   tradeAnalytics    TradeAnalytics?
 
   @@index([accountNumber])
   @@index([userId])
   @@index([groupId])
-  @@index([phaseId])
   @@index([accountId])
+  @@index([phaseAccountId])
   @@index([entryTime])
   @@index([symbol])
-  @@index([accountId, phaseId])
+  @@index([accountId, phaseAccountId])
   @@index([exitTime])
   @@index([accountId, exitTime])
   @@index([userId, accountNumber])
@@ -122,12 +120,12 @@ model User {
   lastName          String?
   accountFilterSettings String?        // JSON string storing account filter preferences
   accounts          Account[]
+  masterAccounts    MasterAccount[]   // New relation for master accounts
   dashboardLayout   DashboardLayout?
   groups            Group[]
   notifications     Notification[]
   orders            Order[]
   tags              Tag[]
-  payoutRequests    PayoutRequest[]
 
   @@index([email])
   @@schema("public")
@@ -147,182 +145,86 @@ model Group {
   @@schema("public")
 }
 
+// New Master Account Model for Prop Firm Account Tracking
+model MasterAccount {
+  id                String                 @id @default(uuid())
+  userId            String
+  accountName       String                 // e.g., "FTMO $100k Challenge"
+  propFirmName      String                 // e.g., "FTMO", "The5ers", "Custom"
+  accountSize       Float                  // e.g., 100000
+  evaluationType    String                 // "One Step", "Two Step", "Instant"
+  currentPhase      Int                    // 1, 2, 3 for Funded - Crucial for state management
+  isActive          Boolean                @default(true) // false if failed/passed
+  createdAt         DateTime               @default(now())
+  
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phases            PhaseAccount[]
+  
+  @@index([userId])
+  @@index([propFirmName])
+  @@index([currentPhase])
+  @@index([isActive])
+  @@index([userId, isActive])
+  @@schema("public")
+}
+
+// New Phase Account Model for Individual Phase Management
+model PhaseAccount {
+  id                           String               @id @default(uuid())
+  masterAccountId              String
+  phaseNumber                  Int                  // 1 for Phase 1, 2 for Phase 2, 3 for Funded
+  phaseId                      String?              // User-provided ID/Account Number (e.g., "753251")
+  status                       PhaseAccountStatus   @default(active) // "active", "passed", "failed", "archived"
+  
+  // Rules object
+  profitTargetPercent          Float
+  dailyDrawdownPercent         Float
+  maxDrawdownPercent           Float
+  minTradingDays               Int                  @default(0) // can be 0
+  timeLimitDays                Int                  @default(0) // can be 0 for unlimited
+  consistencyRulePercent       Float                @default(0) // can be 0 for none
+  
+  // Payout config (only relevant for Funded phase)
+  profitSplitPercent           Float?               // only for funded
+  payoutCycleDays              Int?                 // only for funded
+  
+  startDate                    DateTime             @default(now())
+  endDate                      DateTime?            // null if active
+  
+  masterAccount                MasterAccount        @relation(fields: [masterAccountId], references: [id], onDelete: Cascade)
+  trades                       Trade[]
+  
+  @@index([masterAccountId])
+  @@index([phaseNumber])
+  @@index([status])
+  @@index([phaseId])
+  @@index([masterAccountId, phaseNumber])
+  @@index([masterAccountId, status])
+  @@schema("public")
+}
+
+// Live Trading Account Model (simplified, no prop firm fields)
 model Account {
   id                         String              @id @default(uuid())
   number                     String
-  propfirm                   String              @default("")
-  masterId                   String?             // Master account ID for linked accounts (e.g., "10001290")
-  groupId                    String?
-  drawdownThreshold          Float               @default(0)
-  trailingDrawdown           Boolean             @default(false)
-  trailingStopProfit         Float?
-  profitTarget               Float               @default(0)
-  startingBalance            Float               @default(0)
-  isPerformance              Boolean             @default(false)
-  userId                     String
-  createdAt                  DateTime            @default(now())
-  payoutCount                Int                 @default(0)
-  resetDate                  DateTime?
-  consistencyPercentage      Float?              @default(30)
-  accountSize                String?
-  accountSizeName            String?
-  price                      Float?
-  priceWithPromo             Float?
-  evaluation                 Boolean             @default(true)
-  minDays                    Int?
-  dailyLoss                  Float?
-  rulesDailyLoss             String?
-  trailing                   String?
-  tradingNewsAllowed         Boolean             @default(true)
-  activationFees             Float?
-  isRecursively              String?
-  payoutBonus                Float?
-  profitSharing              Float?
-
-  // Prop Firm specific fields
-  firmType                   PropFirmType?
-  currency                   String              @default("USD")
-  leverage                   Int                 @default(100)
-  isDemo                     Boolean             @default(true)
-  serverInfo                 String?
-  tradingPlatform            String?
-  lastSyncAt                 DateTime?
-  syncEnabled                Boolean             @default(true)
-  notes                      String?
-
-  // Phase-specific account details
-  phase1AccountId            String?
-  phase2AccountId            String?
-  fundedAccountId            String?
-  phase1Login                String?
-  phase2Login                String?
-  fundedLogin                String?
-  phase1Password             String?
-  phase2Password             String?
-  fundedPassword             String?
-  phase1Server               String?
-  phase2Server               String?
-  fundedServer               String?
-  purchaseDate               DateTime?
-  challengeStartDate         DateTime?
-  challengeEndDate           DateTime?
-  fundedDate                 DateTime?
-
-  // Drawdown configuration
-  phase1ProfitTarget         Float               @default(10.00)
-  phase2ProfitTarget         Float               @default(5.00)
-  phase1MaxDrawdown          Float               @default(10.00)
-  phase2MaxDrawdown          Float               @default(10.00)
-  fundedMaxDrawdown          Float               @default(5.00)
-  phase1DailyDrawdown        Float               @default(5.00)
-  phase2DailyDrawdown        Float               @default(5.00)
-  fundedDailyDrawdown        Float               @default(3.00)
-  trailingDrawdownEnabled    Boolean             @default(true)
-  minTradingDaysPhase1       Int                 @default(4)
-  minTradingDaysPhase2       Int                 @default(4)
-  maxTradingDaysPhase1       Int                 @default(30)
-  maxTradingDaysPhase2       Int                 @default(60)
-
-  // Payout configuration
-  initialProfitSplit         Float               @default(80.00)
-  maxProfitSplit             Float               @default(90.00)
-  profitSplitIncrementPerPayout Float          @default(5.00)
-  minPayoutAmount            Float               @default(50.00)
-  maxPayoutAmount            Float?
-  payoutFrequencyDays        Int                 @default(14)
-  minDaysBeforeFirstPayout   Int                 @default(7)
-  scaleOnPayout              Boolean             @default(false)
-  maxSimultaneousAccounts    Int                 @default(1)
-
-  // Trading rules
-  newsTradinAllowed          Boolean             @default(false)
-  weekendHoldingAllowed      Boolean             @default(false)
-  hedgingAllowed             Boolean             @default(true)
-  eaAllowed                  Boolean             @default(true)
-  martingaleAllowed          Boolean             @default(false)
-  maxLotSize                 Float?
-  maxDailyLossStreak         Int?
-  maxPositions               Int                 @default(10)
-  consistencyRule            Float               @default(30.00)
-  payoutPolicy               String?
-  balanceRequired            Float?
-  minTradingDaysForPayout    Int?
-  minPayout                  Float?
-  maxPayout                  String?
-  maxFundedAccounts          Int?
   name                       String?
-  dailyDrawdownAmount        Float?              @default(4.0)
-  maxDrawdownAmount          Float?              @default(10.0)
-  timezone                   String              @default("UTC")
-  dailyResetTime             String              @default("00:00")
-  ddIncludeOpenPnl           Boolean             @default(false)
-  progressionIncludeOpenPnl  Boolean             @default(false)
-  allowManualPhaseOverride   Boolean             @default(false)
-  profitSplitPercent         Float?              @default(80)
-  payoutCycleDays            Int?                @default(14)
-  minDaysToFirstPayout       Int?                @default(4)
-  payoutEligibilityMinProfit Float?
-  resetOnPayout              Boolean             @default(false)
-  reduceBalanceByPayout      Boolean             @default(true)
-  fundedResetBalance         Float?
-  dailyDrawdownType          DrawdownType        @default(percent)
-  maxDrawdownType            DrawdownType        @default(percent)
-  drawdownModeMax            DrawdownMode        @default(static)
-  evaluationType             EvaluationType      @default(two_step)
-  status                     AccountStatus?      @default(active)
-  autoRenewal                Boolean             @default(false)
   broker                     String?
-  paymentFrequency           String?             @default("MONTHLY")
-  renewalNotice              Int?                @default(3)
-  nextPaymentDate            DateTime?
+  startingBalance            Float               @default(0)
+  userId                     String
+  groupId                    String?
+  createdAt                  DateTime            @default(now())
+  
   group                      Group?              @relation(fields: [groupId], references: [id])
   user                       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  phases                     AccountPhase[]
-  transitions                AccountTransition[]
-  breaches                   Breach[]
-  dailyAnchors               DailyAnchor[]
-  equitySnapshots            EquitySnapshot[]
-  payouts                    Payout[]
   trades                     Trade[]
-  propFirmPhases             PropFirmPhase[]
-  dailyEquitySnapshots       DailyEquitySnapshot[]
-  drawdownBreaches           DrawdownBreach[]
-  payoutRequests             PayoutRequest[]
 
   @@unique([number, userId])
   @@index([number])
   @@index([groupId])
   @@index([userId])
-  @@index([status])
-  @@index([evaluationType])
-  @@index([propfirm, status])
-  @@index([timezone])
-  @@index([userId, propfirm, status, evaluationType])
-  @@index([firmType])
-  @@index([status, firmType])
-  @@index([userId, status])
   @@schema("public")
 }
 
-model Payout {
-  id              String    @id @default(uuid())
-  amount          Float
-  date            DateTime
-  accountNumber   String
-  accountId       String
-  createdAt       DateTime  @default(now())
-  status          String    @default("PENDING")
-  amountRequested Float?
-  amountPaid      Float?
-  requestedAt     DateTime?
-  paidAt          DateTime?
-  notes           String?
-  account         Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-
-  @@index([accountNumber])
-  @@index([accountId])
-  @@schema("public")
-}
 
 model DashboardLayout {
   id        String   @id @default(uuid())
@@ -450,178 +352,11 @@ model FilterPreset {
   @@schema("public")
 }
 
-model AccountPhase {
-  id                           String              @id @default(uuid())
-  accountId                    String
-  phaseType                    PhaseType
-  phaseStatus                  PhaseStatus         @default(active)
-  accountNumber                String              @default("Not Set") // Phase-specific account number (e.g., "753251" for phase 1, "756009" for phase 2)
-  profitTarget                 Float?
-  phaseStartAt                 DateTime            @default(now())
-  phaseEndAt                   DateTime?
-  currentEquity                Float               @default(0)
-  currentBalance               Float               @default(0)
-  netProfitSincePhaseStart     Float               @default(0)
-  highestEquitySincePhaseStart Float               @default(0)
-  totalTrades                  Int                 @default(0)
-  winningTrades                Int                 @default(0)
-  totalCommission              Float               @default(0)
-  createdAt                    DateTime            @default(now())
-  updatedAt                    DateTime            @updatedAt
-  account                      Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  transitionsFrom              AccountTransition[] @relation("FromPhase")
-  transitionsTo                AccountTransition[] @relation("ToPhase")
-  breaches                     Breach[]
-  equitySnapshots              EquitySnapshot[]
-  trades                       Trade[]
 
-  @@index([accountId])
-  @@index([phaseType])
-  @@index([phaseStatus])
-  @@index([phaseStatus, phaseType])
-  @@index([accountId, phaseStatus])
-  @@index([accountNumber])
-  @@schema("public")
-}
 
-model Breach {
-  id              String        @id @default(uuid())
-  accountId       String
-  phaseId         String?
-  breachType      BreachType
-  breachAmount    Float
-  breachThreshold Float
-  equity          Float
-  breachTime      DateTime      @default(now())
-  description     String?
-  createdAt       DateTime      @default(now())
-  account         Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  phase           AccountPhase? @relation(fields: [phaseId], references: [id])
 
-  @@index([accountId])
-  @@index([phaseId])
-  @@index([breachTime])
-  @@index([accountId, phaseId])
-  @@schema("public")
-}
 
-model DailyAnchor {
-  id           String   @id @default(uuid())
-  accountId    String
-  date         DateTime @db.Date
-  anchorEquity Float
-  computedAt   DateTime @default(now())
-  account      Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
-  @@unique([accountId, date])
-  @@index([date])
-  @@index([accountId, date])
-  @@schema("public")
-}
-
-model EquitySnapshot {
-  id        String        @id @default(uuid())
-  accountId String
-  phaseId   String?
-  timestamp DateTime      @default(now())
-  equity    Float
-  balance   Float
-  openPnl   Float         @default(0)
-  createdAt DateTime      @default(now())
-  account   Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  phase     AccountPhase? @relation(fields: [phaseId], references: [id])
-
-  @@index([accountId])
-  @@index([phaseId])
-  @@index([timestamp])
-  @@index([accountId, timestamp])
-  @@index([phaseId, timestamp])
-  @@schema("public")
-}
-
-model AccountTransition {
-  id             String         @id @default(uuid())
-  accountId      String
-  fromPhaseId    String?
-  toPhaseId      String?
-  fromStatus     AccountStatus?
-  toStatus       AccountStatus?
-  reason         String?
-  triggeredBy    String?
-  transitionTime DateTime       @default(now())
-  metadata       Json           @default("{}")
-  account        Account        @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  fromPhase      AccountPhase?  @relation("FromPhase", fields: [fromPhaseId], references: [id])
-  toPhase        AccountPhase?  @relation("ToPhase", fields: [toPhaseId], references: [id])
-
-  @@index([accountId])
-  @@index([transitionTime])
-  @@index([accountId, transitionTime])
-  @@schema("public")
-}
-
-enum AccountStatus {
-  active
-  failed
-  passed
-  funded
-
-  @@schema("public")
-}
-
-enum PhaseType {
-  phase_1
-  phase_2
-  funded
-
-  @@schema("public")
-}
-
-enum PropFirmType {
-  FTMO
-  MyForexFunds
-  FundeNext
-  TheForexFirm
-  TopTierTrader
-  SurgeTrader
-  TrueForexFunds
-  FundingTraders
-  E8Funding
-  FastTrackTrading
-  Other
-
-  @@schema("public")
-}
-
-enum PhaseStatus {
-  active
-  passed
-  failed
-  pending
-
-  @@schema("public")
-}
-
-enum DrawdownType {
-  absolute
-  percent
-
-  @@schema("public")
-}
-
-enum DrawdownMode {
-  static
-  trailing
-
-  @@schema("public")
-}
-
-enum EvaluationType {
-  one_step
-  two_step
-
-  @@schema("public")
-}
 
 enum BreachType {
   daily_drawdown
@@ -630,170 +365,13 @@ enum BreachType {
   @@schema("public")
 }
 
-// Prop Firm Phase Model
-model PropFirmPhase {
-  id                           String              @id @default(uuid())
-  accountId                    String
-  phaseType                    PhaseType
-  status                       PhaseStatus         @default(pending)
+enum PhaseAccountStatus {
+  active
+  passed
+  failed
+  archived
+  pending
 
-  // Phase-specific account details
-  brokerAccountId              String
-  brokerLogin                  String?
-  brokerPassword               String?
-  brokerServer                 String?
-  startingBalance              Float
-  currentBalance               Float
-  currentEquity                Float
-  highWaterMark                Float
-
-  // Phase targets and limits
-  profitTarget                 Float
-  profitTargetPercent          Float
-  maxDrawdownAmount            Float
-  maxDrawdownPercent           Float
-  dailyDrawdownAmount          Float
-  dailyDrawdownPercent         Float
-
-  // Phase progress tracking
-  startedAt                    DateTime?
-  completedAt                  DateTime?
-  failedAt                     DateTime?
-  daysTraded                   Int                 @default(0)
-  minTradingDays               Int
-  maxTradingDays               Int?
-
-  // Statistics
-  totalTrades                  Int                 @default(0)
-  winningTrades                Int                 @default(0)
-  losingTrades                 Int                 @default(0)
-  totalVolume                  Float               @default(0)
-  totalCommission              Float               @default(0)
-  totalSwap                    Float               @default(0)
-  bestTrade                    Float               @default(0)
-  worstTrade                   Float               @default(0)
-  currentStreak                Int                 @default(0)
-  bestStreak                   Int                 @default(0)
-  worstStreak                  Int                 @default(0)
-
-  // Risk metrics
-  maxDrawdownEncountered       Float               @default(0)
-  maxDailyLoss                 Float               @default(0)
-  avgTradeSize                 Float               @default(0)
-  profitFactor                 Float               @default(0)
-  winRate                      Float               @default(0)
-  riskRewardRatio              Float               @default(0)
-
-  // Metadata
-  createdAt                    DateTime            @default(now())
-  updatedAt                    DateTime            @updatedAt
-
-  // Relations
-  account                      Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  dailyEquitySnapshots         DailyEquitySnapshot[]
-  drawdownBreaches             DrawdownBreach[]
-  payoutRequests               PayoutRequest[]
-  trades                       Trade[]
-
-  @@index([accountId])
-  @@index([status])
-  @@index([phaseType])
-  @@index([brokerAccountId])
-  @@unique([accountId, phaseType])
   @@schema("public")
 }
 
-// Daily Equity Snapshot Model
-model DailyEquitySnapshot {
-  id                           String              @id @default(uuid())
-  phaseId                      String
-  accountId                    String
-  date                         DateTime            @db.Date
-  openingBalance               Float
-  closingBalance               Float
-  highWaterMark                Float
-  dailyPnL                     Float
-  floatingPnL                  Float               @default(0)
-  commission                   Float               @default(0)
-  swap                         Float               @default(0)
-  volume                       Float               @default(0)
-  trades                       Int                 @default(0)
-  maxDrawdownFromHWM           Float               @default(0)
-  dailyDrawdownUsed            Float               @default(0)
-  maxDrawdownUsed              Float               @default(0)
-  isBreached                   Boolean             @default(false)
-  breachType                   String?
-  breachAmount                 Float?
-  createdAt                    DateTime            @default(now())
-
-  // Relations
-  phase                        PropFirmPhase       @relation(fields: [phaseId], references: [id], onDelete: Cascade)
-  account                      Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
-
-  @@unique([phaseId, date])
-  @@index([phaseId, date])
-  @@index([accountId, date])
-  @@index([date])
-  @@schema("public")
-}
-
-// Drawdown Breach Model
-model DrawdownBreach {
-  id                           String              @id @default(uuid())
-  phaseId                      String
-  accountId                    String
-  breachType                   BreachType
-  breachAmount                 Float
-  limitAmount                  Float
-  equityAtBreach               Float
-  balanceAtBreach              Float
-  tradeIdTrigger               String?
-  breachedAt                   DateTime            @default(now())
-  resolvedAt                   DateTime?
-  isActive                     Boolean             @default(true)
-  notes                        String?
-
-  // Relations
-  phase                        PropFirmPhase       @relation(fields: [phaseId], references: [id], onDelete: Cascade)
-  account                      Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
-
-  @@index([phaseId])
-  @@index([accountId])
-  @@index([breachedAt])
-  @@index([isActive])
-  @@schema("public")
-}
-
-// Payout Request Model
-model PayoutRequest {
-  id                           String              @id @default(uuid())
-  phaseId                      String
-  accountId                    String
-  userId                       String
-  requestedAmount              Float
-  eligibleAmount               Float
-  profitSplitPercent           Float
-  traderShare                  Float
-  firmShare                    Float
-  status                       String              @default("pending")
-  requestedAt                  DateTime            @default(now())
-  processedAt                  DateTime?
-  paidAt                       DateTime?
-  rejectedAt                   DateTime?
-  rejectionReason              String?
-  paymentMethod                String?
-  paymentDetails               Json?
-  notes                        String?
-
-  // Relations
-  phase                        PropFirmPhase       @relation(fields: [phaseId], references: [id], onDelete: Cascade)
-  account                      Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  user                         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([phaseId])
-  @@index([accountId])
-  @@index([userId])
-  @@index([status])
-  @@index([requestedAt])
-  @@schema("public")
-}
