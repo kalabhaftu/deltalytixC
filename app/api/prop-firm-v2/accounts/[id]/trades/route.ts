@@ -12,7 +12,7 @@ import { z } from 'zod'
 const prisma = new PrismaClient()
 
 interface RouteParams {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 // Validation schema for adding a trade
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const masterAccountId = params.id
+    const { id: masterAccountId } = await params
     const body = await request.json()
     const tradeData = AddTradeSchema.parse(body)
 
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const masterAccountId = params.id
+    const { id: masterAccountId } = await params
 
     // Verify the master account exists and belongs to the user
     const masterAccount = await prisma.masterAccount.findFirst({

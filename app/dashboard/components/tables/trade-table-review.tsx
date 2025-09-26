@@ -319,7 +319,6 @@ export function TradeTableReview() {
           equityAtClose: null,
           rawBrokerId: null,
           closeReason: trade.closeReason,
-          // propFirmPhaseId: null, // field doesn't exist
           trades: [{
             ...trade,
             trades: [],
@@ -620,7 +619,7 @@ export function TradeTableReview() {
         return (
           <div className="text-right font-medium">
             <span className={cn(
-              pnl >= 0 ? 'text-green-600' : 'text-red-600'
+              pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'
             )}>
               {formatCurrency(pnl)}
             </span>

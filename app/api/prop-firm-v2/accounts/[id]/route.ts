@@ -13,7 +13,7 @@ import { z } from 'zod'
 const prisma = new PrismaClient()
 
 interface RouteParams {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 // Update validation schema (simplified for now)
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const masterAccountId = params.id
+    const { id: masterAccountId } = await params
 
     // Get master account with all related data
     const masterAccount = await prisma.masterAccount.findFirst({
@@ -198,7 +198,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const masterAccountId = params.id
+    const { id: masterAccountId } = await params
     const body = await request.json()
     const updateData = UpdateMasterAccountSchema.parse(body)
 
@@ -262,7 +262,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const masterAccountId = params.id
+    const { id: masterAccountId } = await params
 
     // Verify ownership and delete
     const deletedAccount = await prisma.masterAccount.deleteMany({

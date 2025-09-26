@@ -221,7 +221,7 @@ export default function AccountDetailPage() {
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant={getStatusVariant(account.status)} className="text-xs">
-                {account.status === 'active' ? 'Active' : account.status === 'funded' ? 'Funded' : account.status === 'failed' ? 'Failed' : account.status}
+                {account.status === 'active' ? 'Active' : (account.currentPhase || 1) >= 3 ? 'Funded' : account.status === 'failed' ? 'Failed' : account.status}
               </Badge>
               {currentPhase?.phaseDisplayInfo && (
                 <Badge className={cn("text-white", currentPhase.phaseDisplayInfo.color)}>

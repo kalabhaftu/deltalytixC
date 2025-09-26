@@ -147,7 +147,7 @@ export default function PdfProcessing({
         timeInPosition: trade.timeInPosition,
         userId: '', // Will be set when saving
         side: trade.side || '',
-        propFirmPhaseId: null,
+        phaseAccountId: null,
         commission: Math.abs(trade.commission || 0),
         createdAt: new Date(),
         comment: null,
@@ -171,7 +171,6 @@ export default function PdfProcessing({
         equityAtClose: null,
         rawBrokerId: null,
         strategy: null,
-        phaseAccountId: null,
         accountId: null,
         closeReason: null
       }));

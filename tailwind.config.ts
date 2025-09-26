@@ -93,6 +93,74 @@ const config: Config = {
     					height: '0'
     				}
     			},
+    			'in': {
+    				from: {
+    					opacity: '0',
+    					transform: 'scale(0.95)'
+    				},
+    				to: {
+    					opacity: '1',
+    					transform: 'scale(1)'
+    				}
+    			},
+    			'out': {
+    				from: {
+    					opacity: '1',
+    					transform: 'scale(1)'
+    				},
+    				to: {
+    					opacity: '0',
+    					transform: 'scale(0.95)'
+    				}
+    			},
+    			'fade-in': {
+    				from: {
+    					opacity: '0'
+    				},
+    				to: {
+    					opacity: '1'
+    				}
+    			},
+    			'fade-out': {
+    				from: {
+    					opacity: '1'
+    				},
+    				to: {
+    					opacity: '0'
+    				}
+    			},
+    			'slide-in-from-top': {
+    				from: {
+    					transform: 'translateY(-10px)'
+    				},
+    				to: {
+    					transform: 'translateY(0)'
+    				}
+    			},
+    			'slide-in-from-bottom': {
+    				from: {
+    					transform: 'translateY(10px)'
+    				},
+    				to: {
+    					transform: 'translateY(0)'
+    				}
+    			},
+    			'slide-in-from-left': {
+    				from: {
+    					transform: 'translateX(-10px)'
+    				},
+    				to: {
+    					transform: 'translateX(0)'
+    				}
+    			},
+    			'slide-in-from-right': {
+    				from: {
+    					transform: 'translateX(10px)'
+    				},
+    				to: {
+    					transform: 'translateX(0)'
+    				}
+    			},
     			'scanner-smooth': {
     				'0%': {
     					top: '0%'
@@ -156,7 +224,15 @@ const config: Config = {
     			'glow-subtle': 'glow-subtle 3s ease-in-out infinite',
     			'glow-success': 'glow-success 2s ease-in-out infinite',
     			'success-pulse': 'success-pulse 3s ease-in-out infinite',
-    			'success-sweep': 'success-sweep 1.5s ease-in-out forwards'
+    			'success-sweep': 'success-sweep 1.5s ease-in-out forwards',
+    			'in': 'in 0.2s ease-out',
+    			'out': 'out 0.2s ease-out',
+    			'fade-in': 'fade-in 0.2s ease-out',
+    			'fade-out': 'fade-out 0.2s ease-out',
+    			'slide-in-from-top': 'slide-in-from-top 0.2s ease-out',
+    			'slide-in-from-bottom': 'slide-in-from-bottom 0.2s ease-out',
+    			'slide-in-from-left': 'slide-in-from-left 0.2s ease-out',
+    			'slide-in-from-right': 'slide-in-from-right 0.2s ease-out'
     		},
     		typography: {
     			DEFAULT: {

@@ -28,6 +28,7 @@ import WinningStreakCard from '../components/statistics/winning-streak-card'
 import RiskRewardRatioCard from '../components/statistics/risk-reward-ratio-card'
 import ProfitFactorCard from '../components/statistics/profit-factor-card'
 import StatisticsWidget from '../components/statistics/statistics-widget'
+import AdvancedMetricsCard from '../components/statistics/advanced-metrics-card'
 
 // Calendar component
 import CalendarPnl from '../components/calendar/calendar-widget'
@@ -366,32 +367,14 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     getComponent: ({ size }) => <RiskRewardRatioCard size={size} />,
     getPreview: () => <RiskRewardRatioCard size="tiny" />
   },
-  propFirm: {
-    type: 'propFirm',
-    defaultSize: 'medium',
-    allowedSizes: ['medium', 'large'],
-    category: 'other',
-    previewHeight: 200,
-    getComponent: ({ size }) => <div>Prop Firm Widget</div>,
-    getPreview: () => <div>Prop Firm Preview</div>
-  },
-  tradeTableReview: {
-    type: 'tradeTableReview',
-    defaultSize: 'extra-large',
-    allowedSizes: ['large', 'extra-large'],
-    category: 'tables',
-    previewHeight: 400,
-    getComponent: ({ size }) => <div>Trade Table Review</div>,
-    getPreview: () => <div>Trade Table Preview</div>
-  },
-  chatWidget: {
-    type: 'chatWidget',
-    defaultSize: 'medium',
-    allowedSizes: ['medium', 'large'],
-    category: 'other',
-    previewHeight: 300,
-    getComponent: ({ size }) => <div>Chat Widget</div>,
-    getPreview: () => <div>Chat Preview</div>
+  advancedMetrics: {
+    type: 'advancedMetrics',
+    defaultSize: 'tiny',
+    allowedSizes: ['tiny'],
+    category: 'statistics',
+    previewHeight: 100,
+    getComponent: ({ size }) => <AdvancedMetricsCard size={size} />,
+    getPreview: () => <AdvancedMetricsCard size="tiny" />
   }
 }
 

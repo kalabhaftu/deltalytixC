@@ -1,5 +1,6 @@
 "use client"
 
+import { forwardRef } from "react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -27,7 +28,7 @@ import {
 import { AccountGroupBoard } from "./account-group-board"
 import { useModalStateStore } from "@/store/modal-state-store"
 
-export function FilterDropdown() {
+export const FilterDropdown = forwardRef<HTMLButtonElement>((props, ref) => {
   const { isMobile } = useData()
   const [open, setOpen] = useState(false)
   const [accountFilterOpen, setAccountFilterOpen] = useState(false)
@@ -45,6 +46,7 @@ export function FilterDropdown() {
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
           <Button 
+            ref={ref}
             variant="ghost"
             className={cn(
               "h-8 rounded-full flex items-center justify-center transition-transform active:scale-95",
@@ -100,4 +102,6 @@ export function FilterDropdown() {
 
     </>
   )
-}
+})
+
+FilterDropdown.displayName = "FilterDropdown"

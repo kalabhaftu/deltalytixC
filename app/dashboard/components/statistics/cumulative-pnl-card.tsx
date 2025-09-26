@@ -24,7 +24,7 @@ export default function CumulativePnlCard({ size = 'medium' }: CumulativePnlCard
           <PiggyBank className="h-4 w-4 text-muted-foreground" />
           <span className={cn(
             "font-semibold text-base",
-            isPositive ? "text-green-500" : "text-red-500"
+            isPositive ? "text-green-600 dark:text-green-400" : "text-destructive"
           )}>
             ${Math.abs(totalPnl).toFixed(2)}
           </span>

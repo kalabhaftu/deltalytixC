@@ -128,7 +128,7 @@ export function ActiveFilterTags({ showAccountNumbers }: { showAccountNumbers: b
                   <Badge variant="secondary" className="gap-1 shrink-0 badge">
                     {anonymizeAccount(account)}
                     <X 
-                      className="h-3 w-3 cursor-pointer" 
+                      className="h-3.5 w-3.5 cursor-pointer" 
                       onClick={() => handleRemoveFilter('account', account)}
                     />
                   </Badge>
@@ -146,7 +146,7 @@ export function ActiveFilterTags({ showAccountNumbers }: { showAccountNumbers: b
                   <Badge variant="secondary" className="gap-1 shrink-0 badge">
                     {instrument}
                     <X 
-                      className="h-3 w-3 cursor-pointer" 
+                      className="h-3.5 w-3.5 cursor-pointer" 
                       onClick={() => handleRemoveFilter('instrument', instrument)}
                     />
                   </Badge>

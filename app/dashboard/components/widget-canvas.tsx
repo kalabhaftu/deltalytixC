@@ -20,12 +20,12 @@ import { useAutoScroll } from '../hooks/use-auto-scroll'
 import { cn } from '@/lib/utils'
 import { Widget, WidgetType, WidgetSize, LayoutItem } from '../types/dashboard'
 import { logger } from '@/lib/logger'
-import { Toolbar } from './toolbar'
 import { useUserStore } from '@/store/user-store'
+import { useDashboardEditStore } from '@/store/dashboard-edit-store'
 import { toast } from 'sonner'
 import { defaultLayouts } from '@/context/data-provider'
-import { useToolbarSettingsStore } from '@/store/toolbar-settings-store'
 import { useEffect as useLayoutEffect } from 'react'
+import { EditModeControls } from './edit-mode-controls'
 
 
 // Update sizeToGrid to handle responsive sizes
@@ -370,11 +370,18 @@ type WidgetDimensions = { w: number; h: number; width: string; height: string }
 export default function WidgetCanvas() {
   const { user, supabaseUser, isMobile, dashboardLayout:layouts, setDashboardLayout:setLayouts } = useUserStore(state => state)
   const { saveDashboardLayout, isLoading } = useData()
-  const { settings: toolbarSettings } = useToolbarSettingsStore()
-  const [isCustomizing, setIsCustomizing] = useState(false)
+  const { 
+    isCustomizing, 
+    hasUnsavedChanges,
+    markAsChanged,
+    setIsCustomizing,
+    resetChanges,
+    originalLayout
+  } = useDashboardEditStore()
   const [isUserAction, setIsUserAction] = useState(false)
   const [widgetsLoaded, setWidgetsLoaded] = useState<Set<string>>(new Set())
   const [layoutInitialized, setLayoutInitialized] = useState(false)
+  const [forceRefresh, setForceRefresh] = useState(0)
   // Add this state to track if the layout change is from user interaction
   const activeLayout = useMemo(() => isMobile ? 'mobile' : 'desktop', [isMobile])
 
@@ -437,20 +444,87 @@ export default function WidgetCanvas() {
     return Array.isArray(layouts[activeLayout]) ? layouts[activeLayout] : []
   }, [layouts, activeLayout])
 
-  // Define handleOutsideClick before using it in useEffect
-  const handleOutsideClick = useCallback((e: MouseEvent) => {
-    // Check if the click is on a widget or its children
-    const isWidgetClick = (e.target as HTMLElement).closest('[data-widget]')
-    const isContextMenuClick = (e.target as HTMLElement).closest('[data-context-menu]')
-    const isCustomizationSwitchClick = (e.target as HTMLElement).closest('[data-customization-switch]')
-    const isDialogClick = (e.target as HTMLElement).closest('[data-dialog]')
-    const isDialogTriggerClick = (e.target as HTMLElement).closest('[data-dialog-trigger]')
-
-    // If click is outside widgets and not on context menu, customization switch, or dialog elements, turn off customization
-    if (!isWidgetClick && !isContextMenuClick && !isCustomizationSwitchClick && !isDialogClick && !isDialogTriggerClick) {
+  // Save and cancel handlers for edit mode
+  const handleSaveChanges = useCallback(async () => {
+    if (!layouts || !user?.id) return
+    
+    try {
+      // Immediately save to database
+      await saveDashboardLayout(layouts)
+      resetChanges()
       setIsCustomizing(false)
+      
+      // Update the data context immediately to reflect changes in UI
+      if (setLayouts) {
+        setLayouts(layouts)
+      }
+
+      // Force component re-render
+      setForceRefresh(prev => prev + 1)
+      
+      toast.success('Layout saved', {
+        description: "Changes saved to your account",
+        duration: 3000,
+      })
+    } catch (error) {
+      logger.error('Error saving dashboard layout', error, 'WidgetCanvas')
+      toast.error('Failed to save changes', {
+        description: "Please try again",
+        duration: 4000,
+      })
     }
-  }, [setIsCustomizing])
+  }, [layouts, user?.id, saveDashboardLayout, resetChanges, setIsCustomizing, setLayouts])
+
+  const handleCancelChanges = useCallback(() => {
+    if (originalLayout && user?.id) {
+      // Restore original layout
+      setLayouts(originalLayout)
+    }
+    resetChanges()
+    setIsCustomizing(false)
+  }, [originalLayout, user?.id, setLayouts, resetChanges, setIsCustomizing])
+
+  // Handle reset to default
+  const handleResetToDefault = useCallback(async () => {
+    if (!user?.id) return
+
+    try {
+      // Use the COMPLETE default layouts - this will include ALL widgets
+      const resetLayouts = { ...defaultLayouts }
+
+      // Save immediately to database - this replaces the entire layout with default
+      await saveDashboardLayout(resetLayouts)
+
+      // Update local state to reflect the complete default layout
+      setLayouts(resetLayouts)
+
+      // Force a re-render by updating the user store's layout
+      // This ensures the layout is immediately reflected in the UI
+      if (setLayouts) {
+        setLayouts(resetLayouts)
+      }
+
+      // Force component re-render
+      setForceRefresh(prev => prev + 1)
+
+      // Reset edit state
+      resetChanges()
+      setIsCustomizing(false)
+
+      toast.success('Dashboard reset to default', {
+        description: "All widgets restored to default positions",
+        duration: 3000,
+      })
+
+    } catch (error) {
+      logger.error('Error resetting dashboard layout', error, 'WidgetCanvas')
+      toast.error('Failed to reset layout', {
+        description: "Please try again",
+        duration: 4000,
+      })
+    }
+  }, [user?.id, saveDashboardLayout, setLayouts, resetChanges, setIsCustomizing])
+
 
   // Update handleLayoutChange with proper type handling and all dependencies
   const handleLayoutChange = useCallback((layout: LayoutItem[], allLayouts: any) => {
@@ -507,8 +581,8 @@ export default function WidgetCanvas() {
       // Update the state first
       setLayouts(updatedLayouts);
       
-      // Save to backend immediately for user actions
-      saveDashboardLayout(updatedLayouts);
+      // Mark as changed instead of immediately saving
+      markAsChanged();
       
       // Reset user action flag
       setIsUserAction(false);
@@ -517,7 +591,7 @@ export default function WidgetCanvas() {
       // Revert to previous layout on error
       setLayouts(layouts);
     }
-  }, [user?.id, isCustomizing, setLayouts, layouts, activeLayout, isMobile, isUserAction, saveDashboardLayout, setIsUserAction]);
+  }, [user?.id, isCustomizing, setLayouts, layouts, activeLayout, isMobile, isUserAction, saveDashboardLayout, setIsUserAction, markAsChanged]);
 
   // Add resize start handler to track user interactions
   const handleResizeStart = useCallback(() => {
@@ -526,7 +600,7 @@ export default function WidgetCanvas() {
 
   // Add resize handler for when widgets are resized
   const handleResize = useCallback((layout: LayoutItem[], oldItem: LayoutItem, newItem: LayoutItem) => {
-    if (!user?.id || !isCustomizing || !setLayouts || !layouts) return;
+    if (!user?.id || !setLayouts || !layouts) return;
 
     try {
       // Find the widget being resized
@@ -560,6 +634,7 @@ export default function WidgetCanvas() {
         
         const w = constrainedW;
         const h = constrainedH;
+        
         
         // Map grid dimensions to widget sizes
         if (w <= 3 && h <= 1) return 'tiny';
@@ -629,25 +704,26 @@ export default function WidgetCanvas() {
       };
 
       // Update state
-      setLayouts({
+      const newLayouts = {
         ...layouts,
         desktop: updatedLayouts.desktop,
         mobile: updatedLayouts.mobile,
         updatedAt: new Date()
-      });
+      };
+      
+      setLayouts(newLayouts);
 
-      // Save to backend
-      saveDashboardLayout({
-        ...layouts,
-        desktop: updatedLayouts.desktop,
-        mobile: updatedLayouts.mobile,
-        updatedAt: new Date()
-      });
+      // Mark as changed if in edit mode, otherwise save immediately
+      if (isCustomizing) {
+        markAsChanged();
+      } else {
+        saveDashboardLayout(newLayouts);
+      }
       
     } catch (error) {
       logger.error('Error during resize', error, 'WidgetCanvas');
     }
-  }, [user?.id, isCustomizing, setLayouts, layouts, activeLayout, isMobile, saveDashboardLayout]);
+  }, [user?.id, isCustomizing, setLayouts, layouts, activeLayout, isMobile, saveDashboardLayout, markAsChanged]);
 
   // Define addWidget with all dependencies
   const addWidget = useCallback(async (type: WidgetType, size: WidgetSize = 'medium') => {
@@ -802,16 +878,24 @@ export default function WidgetCanvas() {
       // Update local state first
       setLayouts(newLayouts)
 
-      // Save to backend (this will also update the data context)
+      // Always save to database immediately to prevent data loss
       await saveDashboardLayout(newLayouts)
 
-      toast.success('Widget removed successfully')
+      // Mark as changed if in edit mode (for unsaved changes indicator)
+      if (isCustomizing) {
+        markAsChanged()
+      }
+
+      toast.success('Widget removed', {
+        description: "Widget removed from dashboard",
+        duration: 3000,
+      })
       
     } catch (error) {
       console.error('❌ Error removing widget:', error)
       toast.error('Failed to remove widget: ' + (error instanceof Error ? error.message : 'Unknown error'))
     }
-  }, [user?.id, supabaseUser?.id, layouts, activeLayout, setLayouts, saveDashboardLayout]);
+  }, [user?.id, supabaseUser?.id, layouts, activeLayout, setLayouts, saveDashboardLayout, isCustomizing, markAsChanged]);
 
   // Define changeWidgetType with all dependencies
   const changeWidgetType = useCallback(async (i: string, newType: WidgetType) => {
@@ -860,11 +944,20 @@ export default function WidgetCanvas() {
       updatedAt: new Date()
     }
     setLayouts(newLayouts)
+
+    // Always save to database immediately to prevent data loss
     await saveDashboardLayout(newLayouts)
-    
-    // Show success message
-    toast.success(`Widget resized to ${effectiveSize}`);
-  }, [user?.id, layouts, activeLayout, isMobile, setLayouts, saveDashboardLayout]);
+
+    // Mark as changed if in edit mode (for unsaved changes indicator)
+    if (isCustomizing) {
+      markAsChanged()
+    }
+
+    toast.success(`Resized to ${effectiveSize}`, {
+      description: "Widget size updated",
+      duration: 3000,
+    })
+  }, [user?.id, layouts, activeLayout, isMobile, setLayouts, saveDashboardLayout, isCustomizing, markAsChanged]);
 
   // Define removeAllWidgets with all dependencies
   const removeAllWidgets = useCallback(async () => {
@@ -1045,12 +1138,6 @@ export default function WidgetCanvas() {
     return <WidgetSkeleton type={widget.type as WidgetType} size={effectiveSize} />
   }, [isMobile]);
 
-  useEffect(() => {
-    if (isCustomizing) {
-      document.addEventListener('click', handleOutsideClick)
-      return () => document.removeEventListener('click', handleOutsideClick)
-    }
-  }, [isCustomizing, handleOutsideClick]);
 
   // Add auto-scroll functionality for mobile
   useAutoScroll(isMobile && isCustomizing)
@@ -1086,26 +1173,9 @@ export default function WidgetCanvas() {
 
   return (
     <div className={cn(
-      "relative mt-6 w-full min-h-screen",
-      toolbarSettings.fixedPosition ? "pb-16" : "pb-6"
+      "relative mt-6 w-full min-h-screen pb-6"
     )}>
-      <Toolbar 
-        onAddWidget={addWidget}
-        isCustomizing={isCustomizing}
-        onEditToggle={() => {
-          const newValue = !isCustomizing
-          setIsCustomizing(newValue)
-          if (newValue) {
-            toast.success('Edit mode enabled - drag widgets to move, resize handles to resize')
-          } else {
-            toast.success('Edit mode disabled')
-          }
-        }}
-        currentLayout={layouts || { desktop: [], mobile: [] }}
-        onRemoveAll={removeAllWidgets}
-        onAutoArrange={autoArrangeWidgets}
-        onReset={resetLayout}
-      />
+      {/* Toolbar removed - functionality moved to user profile dropdown */}
       {layouts ? (
         <div className="relative">
           <div id="tooltip-portal" className="fixed inset-0 pointer-events-none z-[9999]" />
@@ -1246,6 +1316,13 @@ export default function WidgetCanvas() {
           </div>
         </div>
       )}
+      
+      {/* Edit Mode Controls - floating save/cancel buttons */}
+      <EditModeControls 
+        onSave={handleSaveChanges}
+        onCancel={handleCancelChanges}
+        onResetToDefault={handleResetToDefault}
+      />
     </div>
   )
 }

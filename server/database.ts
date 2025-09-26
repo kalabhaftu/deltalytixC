@@ -38,19 +38,13 @@ interface TradeQuery extends TradeCountQuery {
 }
 
 export async function revalidateCache(tags: string[]) {
-  logger.debug('Starting cache invalidation for tags', tags, 'Cache')
-  
   tags.forEach(tag => {
     try {
-      logger.debug(`Revalidating tag: ${tag}`, undefined, 'Cache')
       revalidateTag(tag)
-      logger.debug(`Successfully revalidated tag: ${tag}`, undefined, 'Cache')
     } catch (error) {
       logger.error(`Error revalidating tag ${tag}`, error, 'Cache')
     }
   })
-  
-  logger.debug(`Completed cache invalidation for ${tags.length} tags`, undefined, 'Cache')
 }
 
 export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
@@ -198,40 +192,6 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         skipped: cleanedData.length - result.count
       }, 'SaveTrades')
 
-      // Trigger prop firm account evaluation using the official evaluation system
-      // TODO: Implement proper prop firm evaluation - currently commented out as method doesn't exist
-      /*
-      try {
-        const { PropFirmEngine } = await import('@/lib/prop-firm/prop-firm-engine')
-
-        // Get the actual saved trades with IDs for linking
-        const savedTrades = await prisma.trade.findMany({
-          where: {
-            userId,
-            accountId: null, // Only unlinked trades
-            createdAt: {
-              gte: new Date(Date.now() - 5 * 60 * 1000) // Last 5 minutes
-            }
-          }
-        })
-
-        const evaluationResult = await PropFirmEngine.linkTradesAndEvaluate(savedTrades, userId)
-
-        logger.info('Prop firm evaluation completed', {
-          linkedTradesCount: evaluationResult.linkedTrades.length,
-          statusUpdatesCount: evaluationResult.statusUpdates.length,
-          errorsCount: evaluationResult.errors.length,
-          statusUpdates: evaluationResult.statusUpdates
-        }, 'SaveTrades')
-
-        if (evaluationResult.errors.length > 0) {
-          logger.warn('Evaluation errors', { errors: evaluationResult.errors }, 'SaveTrades')
-        }
-      } catch (evaluationError) {
-        // Log evaluation errors but don't fail the trade import
-        logger.error('Failed to evaluate prop firm accounts (batch)', evaluationError, 'SaveTrades')
-      }
-      */
 
       revalidatePath('/')
       return {
@@ -329,7 +289,7 @@ export async function getTradesAction(userId: string | null = null, options?: {
       const supabase = await createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user && !userId) {
-        console.log('[getTradesAction] No user found, returning empty array')
+        // No user found, returning empty array
         return []
       }
 
@@ -375,7 +335,7 @@ export async function getTradesAction(userId: string | null = null, options?: {
 
           const trades = await prisma.trade.findMany(query)
 
-          console.log(`[getTradesAction] Loaded ${trades.length} trades (page ${page}, offset ${offset}, limit ${limit})`)
+          // Loaded trades successfully
 
           return trades.map(trade => ({
             ...trade,
@@ -386,7 +346,7 @@ export async function getTradesAction(userId: string | null = null, options?: {
           if (error instanceof Error) {
             // Handle table doesn't exist error
             if (error.message.includes('does not exist')) {
-              console.log('[getTradesAction] Trade table does not exist yet, returning empty array')
+              // Trade table does not exist yet, returning empty array
               return []
             }
             // Handle database connection errors
@@ -394,11 +354,11 @@ export async function getTradesAction(userId: string | null = null, options?: {
                 error.message.includes('P1001') ||
                 error.message.includes('connection') ||
                 error.message.includes('timeout')) {
-              console.log('[getTradesAction] Database connection error, returning empty array')
+              // Database connection error, returning empty array
               return []
             }
           }
-          console.error('[getTradesAction] Unexpected error:', error)
+          // Unexpected error occurred
           return [] // Return empty array instead of throwing
         }
       },
@@ -410,7 +370,7 @@ export async function getTradesAction(userId: string | null = null, options?: {
     )()
 
   } catch (error) {
-    console.error('[getTradesAction] Error in main function:', error)
+    // Error in getTradesAction
     // Return empty array if there's any error
     return []
   }

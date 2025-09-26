@@ -444,21 +444,6 @@ export function WidgetSkeleton({ type, size = 'medium', className }: WidgetSkele
     return <CalendarSkeleton className={className} />
   }
 
-  // Table widgets
-  if (type === 'tradeTableReview') {
-    return <TableSkeleton size={size} className={className} />
-  }
-
-  // Chat widget
-  if (type === 'chatWidget') {
-    return <ChatSkeleton className={className} />
-  }
-
-  // Prop firm widget
-  if (type === 'propFirm') {
-    return <PropFirmSkeleton className={className} />
-  }
-
   // Default fallback to chart skeleton for other widgets
   return <ChartSkeleton size={size} className={className} />
 }

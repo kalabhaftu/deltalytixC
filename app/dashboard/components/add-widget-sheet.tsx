@@ -129,9 +129,7 @@ export const AddWidgetSheet = forwardRef<HTMLButtonElement, AddWidgetSheetProps>
     const handleAddWidget = (type: WidgetType) => {
       const config = WIDGET_REGISTRY[type]
       onAddWidget(type, config.defaultSize)
-      toast("Widget added", {
-        description: "The widget has been added to your dashboard",
-      })
+      // Don't show toast here since onAddWidget already shows one
     }
 
     const startLoading = useCallback(() => {

@@ -11,7 +11,7 @@ import { z } from 'zod'
 const prisma = new PrismaClient()
 
 interface RouteParams {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 // Validation schema for phase transition
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const masterAccountId = params.id
+    const { id: masterAccountId } = await params
     const body = await request.json()
     const { nextPhaseId } = PhaseTransitionSchema.parse(body)
 

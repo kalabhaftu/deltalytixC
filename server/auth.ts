@@ -258,14 +258,14 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
               language: locale || existingUserByAuthId.language
             },
           });
-          console.log('[ensureUserInDatabase] SUCCESS: User updated successfully');
+          // User updated successfully
           return updatedUser;
         } catch (updateError) {
           console.error('[ensureUserInDatabase] ERROR: Failed to update user email:', updateError);
           throw new Error('Failed to update user email address.');
         }
       }
-      console.log('[ensureUserInDatabase] SUCCESS: Existing user found, no update needed');
+      // Existing user found, no update needed
       return existingUserByAuthId;
     }
 
@@ -297,7 +297,7 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
           language: locale || 'en'
         },
       });
-      console.log('[ensureUserInDatabase] SUCCESS: New user created successfully');
+      // New user created successfully
       return newUser;
     } catch (createError) {
       if (createError instanceof Error &&
@@ -440,12 +440,7 @@ export async function getUserId(): Promise<string> {
     const userIdFromMiddleware = headersList.get('x-user-id')
     const authStatus = headersList.get('x-user-authenticated')
 
-    console.log('[getUserId] Headers:', { userIdFromMiddleware, authStatus, path: headersList.get('x-path') })
-
     if (userIdFromMiddleware && authStatus === "authenticated") {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[getUserId] Using middleware headers:', userIdFromMiddleware)
-      }
       return userIdFromMiddleware
     }
 
@@ -458,13 +453,10 @@ export async function getUserId(): Promise<string> {
       throw new Error("User not authenticated")
     }
   } catch (headerError) {
-    console.warn('[getUserId] Headers not available, falling back to Supabase call')
+    // Headers not available, fallback to Supabase
   }
 
   // Fallback to Supabase call (for API routes or edge cases) with timeout
-  if (process.env.NODE_ENV === 'development') {
-    console.log("[Auth] Fallback to Supabase call")
-  }
   
   try {
     const supabase = await createClient()
@@ -484,7 +476,6 @@ export async function getUserId(): Promise<string> {
 
       // Temporary workaround for development
       if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEV_MODE === 'true') {
-        console.log('[Auth] Development mode: Using test user ID (Supabase error)')
         return 'test-user-12345-abcdef'
       }
 
@@ -494,7 +485,6 @@ export async function getUserId(): Promise<string> {
     if (!user) {
       // Temporary workaround for development
       if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEV_MODE === 'true') {
-        console.log('[Auth] Development mode: Using test user ID (no user found)')
         return 'test-user-12345-abcdef'
       }
 

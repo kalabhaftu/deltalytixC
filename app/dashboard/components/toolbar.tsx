@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useData } from "@/context/data-provider"
 import { Pencil, Trash2, LayoutGrid, RotateCcw } from "lucide-react"
-import { ShareButton } from "./share-button"
 import { AddWidgetSheet } from "./add-widget-sheet"
 import FilterLeftPane from "./filters/filter-left-pane"
 import { WidgetType, WidgetSize } from "../types/dashboard"
@@ -282,9 +281,6 @@ export function Toolbar({
               </Button>
             </motion.div>
 
-            <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
-              <ShareButton currentLayout={currentLayout} />
-            </motion.div>
 
             <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
               <AddWidgetSheet onAddWidget={onAddWidget} isCustomizing={isCustomizing} />

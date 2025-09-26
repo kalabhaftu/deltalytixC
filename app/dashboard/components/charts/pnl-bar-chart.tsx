@@ -139,11 +139,11 @@ export default function PNLChart({ size = 'medium' }: PNLChartProps) {
       <CardHeader 
         className={cn(
           "flex flex-col items-stretch space-y-0 border-b shrink-0",
-          size === 'small-long' ? "p-2" : "p-3 sm:p-4"
+          size === 'small-long' ? "p-3" : "p-4"
         )}
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <CardTitle 
               className={cn(
                 "line-clamp-1",
@@ -184,7 +184,7 @@ export default function PNLChart({ size = 'medium' }: PNLChartProps) {
       <CardContent 
         className={cn(
           "flex-1 min-h-0",
-          size === 'small-long' ? "p-1" : "p-2 sm:p-4"
+          size === 'small-long' ? "p-3" : "p-4"
         )}
       >
         <div className={cn(

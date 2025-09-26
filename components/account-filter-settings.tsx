@@ -140,7 +140,7 @@ export function AccountFilterSettingsCard({ className }: AccountFilterSettingsPr
   
   const accountsByStatus = {
     active: accounts.filter(acc => acc.status === 'active'),
-    funded: accounts.filter(acc => acc.status === 'funded'),
+    funded: accounts.filter(acc => acc.accountType === 'prop-firm' && (acc.currentPhase || 1) >= 3),
     passed: accounts.filter(acc => acc.status === 'passed'),
     failed: accounts.filter(acc => acc.status === 'failed'),
   }

@@ -34,7 +34,7 @@ interface PropFirmAccountStatus {
   status: 'active' | 'failed' | 'passed' | 'funded'
   currentPhase?: {
     id: string
-    phaseType: 'phase_1' | 'phase_2' | 'funded'
+    phaseNumber: number
     status: 'active' | 'passed' | 'failed' | 'pending'
     currentEquity: number
     startingBalance: number
@@ -112,7 +112,7 @@ export function RealtimeStatusIndicatorV2({
         status: data.account.status,
         currentPhase: data.currentPhase ? {
           id: data.currentPhase.id,
-          phaseType: data.currentPhase.phaseType,
+          phaseNumber: data.currentPhase.phaseType === 'funded' ? 3 : data.currentPhase.phaseType === 'phase_2' ? 2 : 1,
           status: data.currentPhase.status,
           currentEquity: data.currentPhase.currentEquity,
           startingBalance: data.currentPhase.startingBalance,
@@ -250,7 +250,12 @@ export function RealtimeStatusIndicatorV2({
               <div>
                 <p className="text-sm font-medium">{accountStatus.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {accountStatus.currentPhase?.phaseType.replace('_', ' ').toUpperCase()}
+                  {accountStatus.currentPhase ? (
+                    accountStatus.currentPhase.phaseNumber === 1 ? 'PHASE 1' :
+                    accountStatus.currentPhase.phaseNumber === 2 ? 'PHASE 2' :
+                    accountStatus.currentPhase.phaseNumber >= 3 ? 'FUNDED' :
+                    `PHASE ${accountStatus.currentPhase.phaseNumber || 1}`
+                  ) : 'PHASE 1'}
                 </p>
               </div>
             </div>
@@ -285,7 +290,12 @@ export function RealtimeStatusIndicatorV2({
               </Badge>
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              {accountStatus.firmType} • {accountStatus.currentPhase?.phaseType.replace('_', ' ').toUpperCase()}
+              {accountStatus.firmType} • {accountStatus.currentPhase ? (
+                accountStatus.currentPhase.phaseNumber === 1 ? 'PHASE 1' :
+                accountStatus.currentPhase.phaseNumber === 2 ? 'PHASE 2' :
+                accountStatus.currentPhase.phaseNumber >= 3 ? 'FUNDED' :
+                `PHASE ${accountStatus.currentPhase.phaseNumber || 1}`
+              ) : 'PHASE 1'}
             </p>
           </div>
           {showActions && (
@@ -329,7 +339,7 @@ export function RealtimeStatusIndicatorV2({
         </div>
 
         {/* Profit Target Progress */}
-        {accountStatus.currentPhase && accountStatus.currentPhase.phaseType !== 'funded' && (
+        {accountStatus.currentPhase && (accountStatus.currentPhase.phaseNumber || 1) < 3 && (
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-1">

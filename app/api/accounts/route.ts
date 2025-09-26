@@ -42,22 +42,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Always exclude failed accounts unless explicitly requested
-    const includeFailedAccounts = request.nextUrl.searchParams.get('error') === 'true'
-
-    let whereClause: any = { userId: currentUserId }
-    
-    if (!includeFailedAccounts) {
-      // Add status filter to exclude inactive accounts (failed and passed)
-      // Include null status values for legacy accounts (treat as active)
-      whereClause = {
-        userId: currentUserId,
-        OR: [
-          { status: { in: ['active', 'funded'] } },
-          { status: null } // Include accounts with null status (legacy accounts)
-        ]
-      }
-    }
+    // Simple query - Account model doesn't have status field (only live accounts)
+    // Prop firm accounts use the MasterAccount/PhaseAccount system via /api/prop-firm-v2/
+    const whereClause = { userId: currentUserId }
     
     // Simplified query - only fetch essential data for current user
     const accounts = await prisma.account.findMany({
@@ -188,15 +175,7 @@ export async function POST(request: NextRequest) {
         name,
         startingBalance: parseFloat(startingBalance),
         broker,
-        userId,
-        // masterId: null, // masterId field doesn't exist
-        // propfirm: '', // propfirm field doesn't exist
-        // status: 'active', // status field doesn't exist
-        // Set default values for live accounts - only keeping fields that exist
-        // drawdownThreshold: 0, // field doesn't exist
-        // profitTarget: 0, // field doesn't exist
-        // isPerformance: false, // field doesn't exist
-        // payoutCount: 0, // field doesn't exist
+        userId
       }
     })
 

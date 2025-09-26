@@ -15,13 +15,10 @@ export type WidgetType =
   | 'winningStreak'
   | 'profitFactor'
   | 'statisticsWidget'
-  | 'tradeTableReview'
-  | 'chatWidget'
   | 'tradeDistribution'
-  | 'propFirm'
   | 'timeRangePerformance'
   | 'riskRewardRatio'
-  // | 'marketChart'
+  | 'advancedMetrics'
 export type WidgetSize = 'tiny' | 'small' | 'small-long' | 'medium' | 'large' | 'extra-large'
 
 export interface LayoutItem {

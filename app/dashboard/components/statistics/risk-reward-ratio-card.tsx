@@ -77,8 +77,8 @@ export default function RiskRewardRatioCard({ size = 'tiny' }: RiskRewardRatioCa
             </TooltipTrigger>
             <TooltipContent side="top" sideOffset={5}>
               <div className="text-xs space-y-0.5">
-                <div className="text-green-500">Avg. Win: ${avgWin.toFixed(2)}</div>
-                <div className="text-red-500">Avg. Loss: ${avgLoss.toFixed(2)}</div>
+                <div className="text-green-600 dark:text-green-400">Avg. Win: ${avgWin.toFixed(2)}</div>
+                <div className="text-destructive">Avg. Loss: ${avgLoss.toFixed(2)}</div>
               </div>
             </TooltipContent>
           </Tooltip>

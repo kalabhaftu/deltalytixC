@@ -68,7 +68,7 @@ interface Account {
   currentEquity?: number
   tradeCount?: number
   status?: 'active' | 'funded' | 'failed' | 'passed'
-  currentPhase?: 'phase_1' | 'phase_2' | 'funded'
+  currentPhase?: number
   profitTargetProgress?: number
   dailyDrawdownRemaining?: number
   maxDrawdownRemaining?: number
@@ -154,7 +154,7 @@ export default function AccountsPage() {
     live: filteredAccounts.filter(a => a.accountType === 'live').length,
     propFirm: filteredAccounts.filter(a => a.accountType === 'prop-firm').length,
     active: filteredAccounts.filter(a => a.status === 'active').length,
-    funded: filteredAccounts.filter(a => a.status === 'funded').length,
+    funded: filteredAccounts.filter(a => a.accountType === 'prop-firm' && (a.currentPhase || 1) >= 3).length,
     totalEquity: filteredAccounts.reduce((sum, a) => sum + (a.currentEquity || a.currentBalance || a.startingBalance || 0), 0)
   }
 
@@ -441,15 +441,15 @@ function AccountCard({ account, onView }: { account: Account; onView: () => void
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               {account.accountType === 'prop-firm' ? (
-                <Building2 className="h-4 w-4 text-purple-500" />
+                <Building2 className="h-4 w-4 text-secondary-foreground" />
               ) : (
-                <User className="h-4 w-4 text-blue-500" />
+                <User className="h-4 w-4 text-primary" />
               )}
-              <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+              <h3 className="font-semibold text-foreground truncate">
                 {account.displayName || account.name || account.number}
               </h3>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-muted-foreground">
               {account.accountType === 'prop-firm' ? account.propfirm : account.broker}
             </p>
           </div>
@@ -476,7 +476,7 @@ function AccountCard({ account, onView }: { account: Account; onView: () => void
                   Edit Account
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600">
+                <DropdownMenuItem className="text-destructive">
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Account
                 </DropdownMenuItem>
@@ -509,13 +509,22 @@ function AccountCard({ account, onView }: { account: Account; onView: () => void
             {account.currentPhase && (
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-500 dark:text-gray-400">Phase</span>
-                <Badge variant="outline" className="text-xs">
-                  {account.currentPhase.replace('_', ' ').toUpperCase()}
+                <Badge
+                  variant={
+                    (account.currentPhase || 1) >= 3 ? 'default' :
+                    (account.currentPhase || 1) === 2 ? 'secondary' :
+                    'outline'
+                  }
+                  className="text-xs"
+                >
+                  {(account.currentPhase || 1) >= 3 ? 'FUNDED' :
+                   (account.currentPhase || 1) === 2 ? 'PHASE 2' :
+                   'PHASE 1'}
                 </Badge>
               </div>
             )}
             
-            {account.profitTargetProgress !== undefined && account.currentPhase !== 'funded' && (
+            {account.profitTargetProgress !== undefined && (account.currentPhase || 1) < 3 && (
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-gray-500 dark:text-gray-400">Profit Target</span>

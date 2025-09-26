@@ -167,15 +167,6 @@ export const defaultLayouts: PrismaDashboardLayout = {
       "w": 6,
       "h": 4
     },
-    {
-      "i": "widget1751715494609",
-      "type": "tradeDistribution",
-      "size": "medium",
-      "x": 6,
-      "y": 0,
-      "w": 6,
-      "h": 4
-    },
     
     // Row 2 - Chart widgets
     {
@@ -317,7 +308,7 @@ export const defaultLayouts: PrismaDashboardLayout = {
       "h": 1
     },
     
-    // Row 9 - More small widgets
+    // Row 9 - More small widgets  
     {
       "i": "widget1752135445916",
       "type": "winningStreak",
@@ -331,7 +322,7 @@ export const defaultLayouts: PrismaDashboardLayout = {
       "i": "widget1752135449717",
       "type": "averagePositionTime",
       "size": "tiny",
-      "x": 6,
+      "x": 3,
       "y": 31,
       "w": 3,
       "h": 1
@@ -339,6 +330,15 @@ export const defaultLayouts: PrismaDashboardLayout = {
     {
       "i": "widget1752135451857",
       "type": "longShortPerformance",
+      "size": "tiny",
+      "x": 6,
+      "y": 31,
+      "w": 3,
+      "h": 1
+    },
+    {
+      "i": "widget1752135448000",
+      "type": "advancedMetrics",
       "size": "tiny",
       "x": 9,
       "y": 31,
@@ -437,24 +437,6 @@ export const defaultLayouts: PrismaDashboardLayout = {
     },
     
     // Other essential widgets
-    {
-      i: "tradeDistribution",
-      type: "tradeDistribution" as WidgetType,
-      size: "medium" as WidgetSize,
-      x: 0,
-      y: 31,
-      w: 12,
-      h: 4
-    },
-    {
-      i: "propFirm",
-      type: "propFirm" as WidgetType,
-      size: "medium" as WidgetSize,
-      x: 0,
-      y: 35,
-      w: 12,
-      h: 6
-    },
   ]
 };
 

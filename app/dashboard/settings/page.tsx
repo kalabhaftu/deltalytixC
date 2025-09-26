@@ -362,9 +362,14 @@ export default function SettingsPage() {
         duration: 3000,
       })
 
-      // Clear local storage and sign out
-      localStorage.removeItem('deltalytix_user_data')
-      await signOut()
+      // Clear all local storage
+      localStorage.clear()
+      
+      // Clear all session storage
+      sessionStorage.clear()
+      
+      // Force clear auth state and redirect
+      window.location.href = '/authentication'
       
     } catch (error) {
       toast({

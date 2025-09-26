@@ -17,16 +17,34 @@ export default function AuthenticationPage() {
 
   // Check if user is already authenticated and redirect to dashboard
   useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      // User is already logged in, redirect to dashboard
-      const currentUrl = window.location.href
-      const url = new URL(currentUrl)
-      const nextParam = url.searchParams.get('next')
-
-      // Redirect to the next parameter if it exists, otherwise to dashboard
-      const redirectUrl = nextParam || '/dashboard'
-      router.push(redirectUrl)
+    // Force a fresh auth check if coming from a potential logout/deletion
+    const checkFreshAuth = async () => {
+      if (isAuthenticated && !isLoading) {
+        // Double-check auth status with a fresh API call
+        try {
+          const response = await fetch('/api/auth/check', { 
+            cache: 'no-cache',
+            headers: { 'Cache-Control': 'no-cache' }
+          })
+          const data = await response.json()
+          
+          if (response.ok && data.authenticated) {
+            // User is truly authenticated, redirect to dashboard
+            const currentUrl = window.location.href
+            const url = new URL(currentUrl)
+            const nextParam = url.searchParams.get('next')
+            const redirectUrl = nextParam || '/dashboard'
+            router.push(redirectUrl)
+          }
+          // If not authenticated, the auth provider will handle the state update
+        } catch (error) {
+          console.log('Auth check failed, staying on auth page')
+          // If auth check fails, stay on auth page
+        }
+      }
     }
+    
+    checkFreshAuth()
   }, [isAuthenticated, isLoading, router])
 
   // If user is authenticated, show loading state while redirecting

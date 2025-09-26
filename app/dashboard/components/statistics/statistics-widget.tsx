@@ -118,10 +118,10 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
         className={cn(
           "flex-none border-b",
           size === 'tiny' 
-            ? "py-1 px-2"
+            ? "p-3"
             : (size === 'small' || size === 'small-long')
-              ? "py-2 px-3" 
-              : "py-3 px-4"
+              ? "p-3" 
+              : "p-4"
         )}
       >
         <div className="flex items-center justify-between">
@@ -157,7 +157,7 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
           {/* Key Metrics Section */}
           <div className={cn(
             "flex flex-col border-r border-b overflow-hidden",
-            size === 'tiny' ? "p-1.5" : "p-2"
+            size === 'tiny' ? "p-3" : "p-3"
           )}>
             <h3 className="text-xs font-medium mb-1">Key Metrics</h3>
             <div className="flex-1 flex flex-col justify-center gap-0.5 min-h-0 overflow-auto">
@@ -166,7 +166,7 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
                 <span className="text-muted-foreground text-xs">Net P&L</span>
                 <span className={cn(
                   "text-xs font-bold font-mono",
-                  cumulativePnl > 0 ? "text-green-500" : "text-red-500"
+                  cumulativePnl > 0 ? "text-green-600 dark:text-green-400" : "text-destructive"
                 )}>
                   {formatCurrency(cumulativePnl)}
                 </span>
@@ -175,26 +175,26 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
               {/* Best Trade */}
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground text-xs">Best Trade</span>
-                <span className="text-xs font-medium text-green-500 font-mono">{formatCurrency(biggestWin)}</span>
+                <span className="text-xs font-medium text-green-600 dark:text-green-400 font-mono">{formatCurrency(biggestWin)}</span>
               </div>
               
               {/* Worst Trade */}
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground text-xs">Worst Trade</span>
-                <span className="text-xs font-medium text-red-500 font-mono">{formatCurrency(Math.abs(biggestLoss))}</span>
+                <span className="text-xs font-medium text-destructive font-mono">{formatCurrency(Math.abs(biggestLoss))}</span>
               </div>
               
               {/* Total Fee */}
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground text-xs">Total Fee</span>
-                <span className="text-xs font-medium text-red-500 font-mono">{formatCurrency(cumulativeFees)}</span>
+                <span className="text-xs font-medium text-destructive font-mono">{formatCurrency(cumulativeFees)}</span>
               </div>
               
               {/* Payouts - Only show if there are payouts and size is not tiny */}
               {totalPayouts > 0 && size !== 'tiny' && (
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground text-xs">Total Payouts</span>
-                  <span className="text-xs font-medium text-red-500 font-mono">{formatCurrency(totalPayouts)}</span>
+                  <span className="text-xs font-medium text-destructive font-mono">{formatCurrency(totalPayouts)}</span>
                 </div>
               )}
             </div>
@@ -203,7 +203,7 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
           {/* Performance Section */}
           <div className={cn(
             "flex flex-col border-b overflow-hidden",
-            size === 'tiny' ? "p-1.5" : "p-2"
+            size === 'tiny' ? "p-3" : "p-3"
           )}>
             <h3 className="text-xs font-medium mb-1">Performance</h3>
             <div className="flex-1 flex flex-col justify-center gap-0.5 min-h-0 overflow-auto">
@@ -213,12 +213,12 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground text-xs">Avg Win</span>
-                <span className="text-xs font-medium text-green-500 font-mono">{formatCurrency(nbWin > 0 ? grossWin / nbWin : 0)}</span>
+                <span className="text-xs font-medium text-green-600 dark:text-green-400 font-mono">{formatCurrency(nbWin > 0 ? grossWin / nbWin : 0)}</span>
               </div>
               {size !== 'tiny' && (
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground text-xs">Avg Loss</span>
-                  <span className="text-xs font-medium text-red-500 font-mono">{formatCurrency(nbLoss > 0 ? grossLosses / nbLoss : 0)}</span>
+                  <span className="text-xs font-medium text-destructive font-mono">{formatCurrency(nbLoss > 0 ? grossLosses / nbLoss : 0)}</span>
                 </div>
               )}
               {size !== 'tiny' && (
@@ -238,7 +238,7 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
           {/* Activity Section */}
           <div className={cn(
             "flex flex-col border-r overflow-hidden",
-            size === 'tiny' ? "p-1.5" : "p-2"
+            size === 'tiny' ? "p-3" : "p-3"
           )}>
             <h3 className="text-xs font-medium mb-1">Activity</h3>
             <div className="flex-1 flex flex-col justify-center gap-0.5 min-h-0 overflow-auto">
@@ -248,7 +248,7 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground text-xs">Winning Trades</span>
-                <span className="text-xs font-medium text-green-500">{nbWin}</span>
+                <span className="text-xs font-medium text-green-600 dark:text-green-400">{nbWin}</span>
               </div>
               {size !== 'tiny' && (
                 <div className="flex justify-between items-center">
@@ -262,7 +262,7 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
           {/* Distribution Section */}
           <div className={cn(
             "flex flex-col overflow-hidden",
-            size === 'tiny' ? "p-1.5" : "p-2"
+            size === 'tiny' ? "p-3" : "p-3"
           )}>
             <h3 className="text-xs font-medium mb-1">Distribution</h3>
             <div className="flex-1 flex flex-col justify-center gap-1.5">

@@ -48,7 +48,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const response = await fetch('/api/auth/check')
+      const response = await fetch('/api/auth/check', {
+        cache: 'no-cache',
+        headers: { 'Cache-Control': 'no-cache' }
+      })
       const data = await response.json()
 
       if (response.ok && data.authenticated) {
@@ -58,6 +61,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
         return true
       } else {
+        // Clear user state when not authenticated
+        resetUser()
+        setSession(null)
         setAuthCheckCache({
           timestamp: Date.now(),
           isAuthenticated: false
@@ -66,6 +72,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Auth check failed:', error)
+      // Clear user state on error
+      resetUser()
+      setSession(null)
       setAuthCheckCache({
         timestamp: Date.now(),
         isAuthenticated: false

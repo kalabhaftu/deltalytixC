@@ -277,7 +277,7 @@ export default function Home() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="flex flex-1 flex-col w-full backdrop-blur-sm">
+          <div className="flex flex-1 flex-col w-full">
             <AnimatePresence mode="wait">
               {renderContent()}
             </AnimatePresence>

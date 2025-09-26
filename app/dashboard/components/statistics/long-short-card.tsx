@@ -37,12 +37,12 @@ export default function LongShortPerformanceCard({ size = 'medium' }: LongShortP
       <Card className="h-full">
         <div className="flex items-center justify-center h-full gap-1.5">
           <div className="flex items-center gap-1">
-            <ArrowUpFromLine className="h-3 w-3 text-green-500" />
+            <ArrowUpFromLine className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
             <span className="font-medium text-sm">{longRate}%</span>
           </div>
           <span className="text-muted-foreground">/</span>
           <div className="flex items-center gap-1">
-            <ArrowDownFromLine className="h-3 w-3 text-red-500" />
+            <ArrowDownFromLine className="h-3.5 w-3.5 text-destructive" />
             <span className="font-medium text-sm">{shortRate}%</span>
           </div>
           <TooltipProvider delayDuration={100}>

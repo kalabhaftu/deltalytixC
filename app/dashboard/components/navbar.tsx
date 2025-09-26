@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useData } from "@/context/data-provider"
-import { Database, LogOut, Globe, LayoutDashboard, HelpCircle, Clock, RefreshCw, Home, Moon, Sun, Laptop, Settings } from "lucide-react"
+import { Database, LogOut, Globe, LayoutDashboard, HelpCircle, Clock, RefreshCw, Home, Moon, Sun, Laptop, Settings, Pencil, Plus, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -18,6 +18,8 @@ import { signOut } from "@/server/auth"
 import { Logo } from '@/components/logo'
 import Link from 'next/link'
 import ImportButton from './import/import-button'
+import { AddWidgetSheet } from './add-widget-sheet'
+import { FilterDropdown } from './filters/filter-dropdown'
 
 import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts'
 import ImprovedDatePicker from './filters/improved-date-picker'
@@ -32,8 +34,38 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useTheme } from '@/context/theme-provider'
 import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
-import { useModalStateStore } from '@/store/modal-state-store'
 import { useUserStore } from '@/store/user-store'
+import { useModalStateStore } from '@/store/modal-state-store'
+import { useDashboardEditStore } from '@/store/dashboard-edit-store'
+import { WidgetType, WidgetSize } from '../types/dashboard'
+import { defaultLayouts } from '@/context/data-provider'
+import { WIDGET_REGISTRY } from '../config/widget-registry'
+import { toast } from 'sonner'
+
+// Helper function to convert widget size to grid dimensions
+const sizeToGrid = (size: WidgetSize, isSmallScreen = false): { w: number, h: number } => {
+  if (isSmallScreen) {
+    switch (size) {
+      case 'tiny': return { w: 12, h: 1 }
+      case 'small': return { w: 12, h: 2 }
+      case 'small-long': return { w: 12, h: 2 }
+      case 'medium': return { w: 12, h: 4 }
+      case 'large':
+      case 'extra-large': return { w: 12, h: 6 }
+      default: return { w: 12, h: 4 }
+    }
+  }
+  
+  switch (size) {
+    case 'tiny': return { w: 3, h: 1 }
+    case 'small': return { w: 3, h: 4 }
+    case 'small-long': return { w: 6, h: 2 }
+    case 'medium': return { w: 6, h: 4 }
+    case 'large': return { w: 6, h: 8 }
+    case 'extra-large': return { w: 12, h: 8 }
+    default: return { w: 6, h: 4 }
+  }
+}
 
 export default function Navbar() {
   const  user = useUserStore(state => state.supabaseUser)
@@ -48,7 +80,21 @@ export default function Navbar() {
     setMounted(true)
   }, [])
 
-  const {refreshTrades} = useData()
+  const {refreshTrades, saveDashboardLayout} = useData()
+  const { dashboardLayout: layouts, setDashboardLayout: setLayouts, isMobile } = useUserStore(state => state)
+  const { setAccountGroupBoardOpen } = useModalStateStore()
+  const { 
+    isCustomizing, 
+    setIsCustomizing, 
+    hasUnsavedChanges,
+    setOriginalLayout,
+    resetChanges,
+    markAsChanged
+  } = useDashboardEditStore()
+  
+  // Refs for programmatically triggering components
+  const addWidgetSheetRef = useRef<HTMLButtonElement>(null)
+  const filterDropdownRef = useRef<HTMLButtonElement>(null)
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts()
@@ -73,6 +119,127 @@ export default function Navbar() {
     }
     // Fallback to Laptop icon
     return <Laptop className="h-4 w-4" />;
+  }
+
+  // Dashboard action functions
+  const handleEditToggle = () => {
+    if (isCustomizing) {
+      // Trying to exit edit mode - this will be handled by EditModeControls if there are unsaved changes
+      if (!hasUnsavedChanges) {
+        setIsCustomizing(false)
+        resetChanges()
+        toast.success('Edit mode disabled', { duration: 2000 })
+      }
+    } else {
+      // Starting edit mode - store original layout
+      if (layouts) {
+        setOriginalLayout(layouts)
+      }
+      setIsCustomizing(true)
+      toast.success('Edit mode enabled', {
+        description: 'Drag widgets to move, resize handles to resize',
+        duration: 2500
+      })
+    }
+  }
+
+  const addWidget = (type: WidgetType, size?: WidgetSize) => {
+    if (!layouts || !user?.id) return
+
+    const activeLayout = isMobile ? 'mobile' : 'desktop'
+    const currentLayoutWidgets = layouts[activeLayout] || []
+    
+    // Check for duplicate widget
+    const existingWidget = currentLayoutWidgets.find(widget => widget.type === type)
+    if (existingWidget) {
+      toast.error(`${type.charAt(0).toUpperCase() + type.slice(1)} widget already exists`, {
+        description: "Each widget type can only be added once",
+        duration: 3000,
+      })
+      return
+    }
+    
+    // Get default size from registry
+    const config = WIDGET_REGISTRY[type]
+    const effectiveSize = size || config?.defaultSize || 'medium'
+    const grid = sizeToGrid(effectiveSize, activeLayout === 'mobile')
+    
+    // Find the best position at bottom with gap filling
+    let bestX = 0
+    let bestY = 0
+    let lowestY = 0
+    
+    // Find the lowest Y coordinate
+    currentLayoutWidgets.forEach(widget => {
+      const widgetBottom = widget.y + widget.h
+      if (widgetBottom > lowestY) {
+        lowestY = widgetBottom
+      }
+    })
+    
+    // Try to find gaps in the last few rows first
+    let foundGap = false
+    for (let y = Math.max(0, lowestY - 3); y <= lowestY && !foundGap; y++) {
+      for (let x = 0; x <= 12 - grid.w && !foundGap; x++) {
+        // Check if this position is available
+        const isPositionFree = !currentLayoutWidgets.some(widget => {
+          return !(
+            x >= widget.x + widget.w || 
+            x + grid.w <= widget.x || 
+            y >= widget.y + widget.h || 
+            y + grid.h <= widget.y
+          )
+        })
+        
+        if (isPositionFree) {
+          bestX = x
+          bestY = y
+          foundGap = true
+        }
+      }
+    }
+    
+    // If no gap found, place at bottom
+    if (!foundGap) {
+      bestX = 0
+      bestY = lowestY
+    }
+    
+    // Create new widget
+    const newWidget = {
+      i: `widget_${Date.now()}`,
+      type,
+      size: effectiveSize,
+      x: bestX,
+      y: bestY,
+      w: grid.w,
+      h: grid.h
+    }
+
+    const updatedLayouts = {
+      ...layouts,
+      [activeLayout]: [...currentLayoutWidgets, newWidget]
+    }
+
+    setLayouts(updatedLayouts)
+
+    // Always save to database immediately to prevent data loss
+    saveDashboardLayout(updatedLayouts)
+
+    // Mark as changed if in edit mode (for unsaved changes indicator)
+    if (isCustomizing) {
+      markAsChanged()
+    }
+
+    toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} widget added`, {
+      description: "Widget added and saved",
+      duration: 3000,
+    })
+  }
+
+  const handleFiltersClick = () => {
+    // Trigger the filter dropdown by clicking its button
+    filterDropdownRef.current?.click()
   };
 
   return (
@@ -84,7 +251,7 @@ export default function Navbar() {
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
         <div className="flex items-center justify-between px-6 h-16">
-          <div className="flex items-center gap-x-3">
+          <div className="flex items-center gap-3">
             <div className="flex flex-col items-center">
               <Popover open={isLogoPopoverOpen} onOpenChange={setIsLogoPopoverOpen}>
                 <PopoverTrigger asChild>
@@ -122,8 +289,8 @@ export default function Navbar() {
               </Popover>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className='flex gap-x-2 md:gap-x-4'>
+          <div className="flex items-center gap-4">
+            <div className='flex gap-2 md:gap-4'>
               <div className='hidden sm:block'>
                 <ImprovedDatePicker />
               </div>
@@ -226,6 +393,29 @@ export default function Navbar() {
                       <span>Refresh Data</span>
                       <DropdownMenuShortcut>⌘R</DropdownMenuShortcut>
                     </DropdownMenuItem>
+                    
+                    <DropdownMenuSeparator />
+                    
+                    {/* Dashboard Actions */}
+                    <DropdownMenuItem onClick={handleEditToggle} className="hover:bg-accent/80 transition-colors duration-200">
+                      <Pencil className="mr-2 h-4 w-4" />
+                      <span>Edit Layout</span>
+                      <DropdownMenuShortcut>⌘E</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                    
+                    
+                    <DropdownMenuItem onClick={() => addWidgetSheetRef.current?.click()} className="hover:bg-accent/80 transition-colors duration-200">
+                      <Plus className="mr-2 h-4 w-4" />
+                      <span>Add Widget</span>
+                      <DropdownMenuShortcut>⌘A</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem onClick={handleFiltersClick} className="hover:bg-accent/80 transition-colors duration-200">
+                      <Filter className="mr-2 h-4 w-4" />
+                      <span>Filters</span>
+                      <DropdownMenuShortcut>⌘F</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                    
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => {
                       localStorage.removeItem('deltalytix_user_data')
@@ -243,6 +433,16 @@ export default function Navbar() {
         </div>
       </motion.nav>
       <div className="h-[76px]" />
+      
+      {/* Hidden components for programmatic triggering */}
+        <div className="hidden">
+          <AddWidgetSheet
+            ref={addWidgetSheetRef}
+            onAddWidget={addWidget}
+            isCustomizing={isCustomizing}
+          />
+          <FilterDropdown ref={filterDropdownRef} />
+        </div>
     </>
   )
 }

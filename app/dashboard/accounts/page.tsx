@@ -77,7 +77,7 @@ interface Account {
   currentEquity?: number
   tradeCount?: number
   status?: 'active' | 'funded' | 'failed' | 'passed'
-  currentPhase?: 'phase_1' | 'phase_2' | 'funded'
+  currentPhase?: number
   phaseAccountNumber?: string
   profitTargetProgress?: number
   dailyDrawdownRemaining?: number
@@ -143,7 +143,7 @@ export default function AccountsPage() {
       live: filteredAccounts.filter(a => a.accountType === 'live').length,
       propFirm: filteredAccounts.filter(a => a.accountType === 'prop-firm').length,
       active: filteredAccounts.filter(a => a.status === 'active').length,
-      funded: filteredAccounts.filter(a => a.status === 'funded').length,
+      funded: filteredAccounts.filter(a => a.accountType === 'prop-firm' && (a.currentPhase || 1) >= 3).length,
       failed: filteredAccounts.filter(a => a.status === 'failed').length,
       totalEquity: filteredAccounts.reduce((sum, a) => sum + (a.currentEquity || a.currentBalance || a.startingBalance || 0), 0)
     }
@@ -335,22 +335,22 @@ export default function AccountsPage() {
           <StatsCard
             title="Total Accounts"
             value={accountStats.total}
-            icon={<Activity className="h-5 w-5" />}
+            icon={<Activity className="h-4 w-4" />}
           />
           <StatsCard
             title="Live Accounts"
             value={accountStats.live}
-            icon={<User className="h-5 w-5" />}
+            icon={<User className="h-4 w-4" />}
           />
           <StatsCard
             title="Prop Firm Accounts"
             value={accountStats.propFirm}
-            icon={<Building2 className="h-5 w-5" />}
+            icon={<Building2 className="h-4 w-4" />}
           />
           <StatsCard
             title="Total Equity"
             value={formatCurrency(accountStats.totalEquity)}
-            icon={<DollarSign className="h-5 w-5" />}
+            icon={<DollarSign className="h-4 w-4" />}
           />
         </motion.div>
 
@@ -454,7 +454,7 @@ export default function AccountsPage() {
           <AlertDialogContent className="sm:max-w-[600px]">
             <AlertDialogHeader>
               <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-5 w-5" />
+            <AlertTriangle className="h-5 w-5" />
                 Delete Account: {deletingAccount?.displayName || deletingAccount?.name || deletingAccount?.number}
               </AlertDialogTitle>
               <AlertDialogDescription asChild>
@@ -602,13 +602,13 @@ function AccountCard({
               {/* Add phase badge for prop firm accounts */}
               {account.accountType === 'prop-firm' && account.currentPhase && (
                 <Badge variant={
-                  account.currentPhase === 'funded' ? 'default' : 
-                  account.currentPhase === 'phase_2' ? 'secondary' : 
+                  (account.currentPhase || 1) >= 3 ? 'default' :
+                  (account.currentPhase || 1) === 2 ? 'secondary' :
                   'outline'
                 } className="text-xs">
-                  {account.currentPhase === 'phase_1' ? 'Phase 1' : 
-                   account.currentPhase === 'phase_2' ? 'Phase 2' : 
-                   'Funded'}
+                  {(account.currentPhase || 1) >= 3 ? 'Funded' :
+                   (account.currentPhase || 1) === 2 ? 'Phase 2' :
+                   'Phase 1'}
                 </Badge>
               )}
             </div>
@@ -679,13 +679,15 @@ function AccountCard({
                     <span className="text-xs text-muted-foreground">Phase</span>
                     <Badge
                       variant={
-                        account.currentPhase === 'funded' ? 'default' :
-                        account.currentPhase === 'phase_2' ? 'secondary' :
+                        (account.currentPhase || 1) >= 3 ? 'default' :
+                        (account.currentPhase || 1) === 2 ? 'secondary' :
                         'outline'
                       }
                       className="text-xs"
                     >
-                      {account.currentPhase.replace('_', ' ').toUpperCase()}
+                      {(account.currentPhase || 1) >= 3 ? 'FUNDED' :
+                       (account.currentPhase || 1) === 2 ? 'PHASE 2' :
+                       'PHASE 1'}
                     </Badge>
                   </div>
                   {account.phaseAccountNumber && (
@@ -699,7 +701,7 @@ function AccountCard({
                 </div>
             )}
 
-              {account.profitTargetProgress !== undefined && account.currentPhase !== 'funded' && (
+              {account.profitTargetProgress !== undefined && (account.currentPhase || 1) < 3 && (
                   <div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-muted-foreground">Profit Target</span>

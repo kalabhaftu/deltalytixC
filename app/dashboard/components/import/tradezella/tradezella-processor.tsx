@@ -177,7 +177,7 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-semibold mb-2">Processed Trades</h3>
+        <h3 className="text-base font-semibold mb-2">Processed Trades</h3>
         <Table>
           <TableHeader>
             <TableRow>
@@ -213,14 +213,14 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
       </div>
       <div className="flex justify-between">
         <div>
-          <h3 className="text-lg font-semibold mb-2">Total PnL</h3>
-          <p className={`text-xl font-bold ${totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <h3 className="text-base font-semibold mb-2">Total PnL</h3>
+          <p className={`text-xl font-bold ${totalPnL >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
             {totalPnL.toFixed(2)}
           </p>
         </div>
         <div>
-          <h3 className="text-lg font-semibold mb-2">Total Commission</h3>
-          <p className="text-xl font-bold text-blue-600">
+          <h3 className="text-base font-semibold mb-2">Total Commission</h3>
+          <p className="text-xl font-bold text-primary">
             {totalCommission.toFixed(2)}
           </p>
         </div>

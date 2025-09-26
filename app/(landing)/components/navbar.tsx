@@ -38,16 +38,16 @@ export default function Component() {
     const getThemeIcon = () => {
         // Always return the same icon until mounted to prevent hydration mismatch
         if (!mounted) {
-            return <Laptop className="h-5 w-5" />;
+            return <Laptop className="h-4 w-4" />;
         }
         
         // Client-side logic using effectiveTheme from context
-        if (theme === 'light') return <Sun className="h-5 w-5" />;
-        if (theme === 'dark') return <Moon className="h-5 w-5" />;
+        if (theme === 'light') return <Sun className="h-4 w-4" />;
+        if (theme === 'dark') return <Moon className="h-4 w-4" />;
         if (theme === 'system') {
-            return effectiveTheme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />;
+            return effectiveTheme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />;
         }
-        return <Sun className="h-5 w-5" />; // Default fallback
+        return <Sun className="h-4 w-4" />; // Default fallback
     };
 
 

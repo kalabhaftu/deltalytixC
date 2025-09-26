@@ -11,7 +11,7 @@ import { PhaseEvaluationEngine } from '@/lib/prop-firm/phase-evaluation-engine'
 const prisma = new PrismaClient()
 
 interface RouteParams {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const masterAccountId = params.id
+    const { id: masterAccountId } = await params
 
     // Verify the master account belongs to the user
     const masterAccount = await prisma.masterAccount.findFirst({
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const masterAccountId = params.id
+    const { id: masterAccountId } = await params
 
     // Get the current evaluation status without triggering updates
     const masterAccount = await prisma.masterAccount.findFirst({
