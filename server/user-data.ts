@@ -254,15 +254,25 @@ export const getDashboardLayout = unstable_cache(
 )
 
 export async function updateIsFirstConnectionAction(isFirstConnection: boolean) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const userId = user?.id
-  if (!userId) {
-    return 0
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const userId = user?.id
+    
+    if (!userId) {
+      throw new Error('User not authenticated')
+    }
+    
+    await prisma.user.update({
+      where: { auth_user_id: userId },
+      data: { isFirstConnection }
+    })
+    
+    revalidateTag(`user-data-${userId}`)
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error updating onboarding status:', error)
+    throw new Error('Failed to update onboarding status')
   }
-  await prisma.user.update({
-    where: { auth_user_id: userId },
-    data: { isFirstConnection }
-  })
-  revalidateTag(`user-data-${userId}`)
 }

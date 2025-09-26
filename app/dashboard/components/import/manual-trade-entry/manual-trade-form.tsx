@@ -292,42 +292,37 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
         createdAt: new Date(),
       } as Trade
 
-      // Import the save function
-        const { saveTradesAction } = await import("@/server/database")
+      // Find account by number to get accountId
+      const { useAccounts } = await import("@/hooks/use-accounts")
+      const accounts = useAccounts().accounts
+      const targetAccount = accounts.find(acc => acc.number === data.accountNumber)
       
-      // Save trade
-      const result = await saveTradesAction([completeTrade])
-      
-      if (result.error) {
-        if (result.error === "DUPLICATE_TRADES") {
-          toast({
-            title: 'Duplicate Trade',
-            description: 'A trade with these details already exists.',
-            variant: 'destructive',
-          })
-        } else {
-          toast({
-            title: 'Save Failed', 
-            description: 'Failed to save trade. Please try again.',
-            variant: 'destructive',
-          })
-        }
+      if (!targetAccount) {
+        toast({
+          title: 'Account Not Found',
+          description: 'Could not find the selected account. Please try again.',
+          variant: 'destructive',
+        })
         return
       }
 
+      // Atomic save and link operation
+      const { saveAndLinkTrades } = await import("@/server/accounts")
+      const result = await saveAndLinkTrades(targetAccount.id, [completeTrade])
+
       toast({
         title: 'Trade Added',
-        description: 'Your trade has been successfully added to the journal.',
+        description: `Trade successfully saved and linked to ${result.accountName}`,
       })
 
       // Close the dialog
       setIsOpen(false)
 
     } catch (error) {
-      console.error('Error saving trade:', error)
+      console.error('Error in save and link trade:', error)
       toast({
-        title: 'Error',
-        description: 'An unexpected error occurred. Please try again.',
+        title: 'Save Failed',
+        description: error instanceof Error ? error.message : 'An error occurred while saving the trade. Please try again.',
         variant: 'destructive',
       })
     } finally {

@@ -27,6 +27,7 @@ import {
   AlertTriangle
 } from "lucide-react"
 import { signOut } from "@/server/auth"
+import { createClient } from "@/lib/supabase"
 import Link from 'next/link'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
@@ -362,14 +363,18 @@ export default function SettingsPage() {
         duration: 3000,
       })
 
+      // Force sign out from Supabase immediately
+      const supabase = createClient()
+      await supabase.auth.signOut()
+
       // Clear all local storage
       localStorage.clear()
-      
+
       // Clear all session storage
       sessionStorage.clear()
-      
-      // Force clear auth state and redirect
-      window.location.href = '/authentication'
+
+      // Force clear auth state and redirect with deletion flag
+      window.location.href = '/authentication?deleted=true'
       
     } catch (error) {
       toast({
@@ -746,7 +751,7 @@ export default function SettingsPage() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Trading Model</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Are you sure you want to delete "{model}"? This action cannot be undone and will remove this model from all your trades.
+                                    Are you sure you want to delete &ldquo;{model}&rdquo;? This action cannot be undone and will remove this model from all your trades.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>

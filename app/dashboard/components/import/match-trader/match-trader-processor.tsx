@@ -1,5 +1,7 @@
+'use client'
+
 import { Trade } from '@prisma/client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { useUserStore } from '@/store/user-store'
 
@@ -18,15 +20,20 @@ const MatchTraderProcessor = ({
 }: MatchTraderProcessorProps) => {
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
-    const processData = () => {
+    const processData = async () => {
       const currentUser = user || supabaseUser
       if (!currentUser?.id) {
         return
       }
 
-      const trades: Trade[] = csvData.map((row) => {
+      setIsProcessing(true)
+
+      const trades: Trade[] = []
+
+      for (const row of csvData) {
         // Handle Match Trader CSV format
         const entryDateStr = row[headers.indexOf('Open time')]
         const closeDateStr = row[headers.indexOf('Close time')]
@@ -57,7 +64,7 @@ const MatchTraderProcessor = ({
         
         // Don't use trade ID as account - account number comes from selection step
 
-        return {
+        const trade = {
           id: uuidv4(),
           accountNumber,
           instrument,
@@ -72,7 +79,7 @@ const MatchTraderProcessor = ({
           timeInPosition,
           side: side.toUpperCase(), // Normalize to uppercase (BUY/SELL)
           commission,
-          phaseAccountId: null,
+          phaseAccountId: null, // Will be set by automatic linking during save
           userId: currentUser.id,
           createdAt: new Date(),
           comment: null, // Don't set reason as comment - reasons should be displayed separately
@@ -100,9 +107,12 @@ const MatchTraderProcessor = ({
           accountId: null,
           strategy: null,
         } as Trade
-      }).filter(trade => trade !== null) // Remove invalid trades
+
+        trades.push(trade)
+      }
 
       setProcessedTrades(trades)
+      setIsProcessing(false)
     }
 
     processData()

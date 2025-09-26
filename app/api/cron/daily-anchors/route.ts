@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PropFirmAccountEvaluator } from '@/lib/prop-firm/account-evaluation'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
 
 /**
  * GET /api/cron/daily-anchors - Simple daily anchor creation
  * Creates daily anchors for all active prop firm accounts
+ * NOTE: Daily anchor system implementation pending - placeholder for now
  */
 export async function GET(request: NextRequest) {
   try {
-    // Create daily anchors for all users
-    const anchorsCreated = await PropFirmAccountEvaluator.createDailyAnchors()
+    // TODO: Implement daily anchor creation for new MasterAccount/PhaseAccount system
+    // This is a placeholder until the daily anchor system is fully implemented
+    const anchorsCreated = 0
 
     return NextResponse.json({
       success: true,
-      message: `Created ${anchorsCreated} daily anchors`,
+      message: `Daily anchor system is pending implementation for new architecture`,
       anchorsCreated,
       timestamp: new Date().toISOString()
     })
@@ -33,17 +37,19 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/cron/daily-anchors - Manual trigger for testing
  * Allows manual execution of the daily anchor creation process
+ * NOTE: Daily anchor system implementation pending - placeholder for now
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))
     const { forceDate } = body // Optional: force a specific date for testing
 
-    const anchorsCreated = await PropFirmAccountEvaluator.createDailyAnchors(undefined, forceDate)
+    // TODO: Implement daily anchor creation for new MasterAccount/PhaseAccount system
+    const anchorsCreated = 0
 
     return NextResponse.json({
       success: true,
-      message: `Manually created ${anchorsCreated} daily anchors`,
+      message: `Daily anchor system is pending implementation for new architecture`,
       anchorsCreated,
       forceDate: forceDate || null,
       timestamp: new Date().toISOString()

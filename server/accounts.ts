@@ -387,16 +387,6 @@ export async function getAccountsAction() {
         const transformedMasterAccounts = masterAccounts.map((masterAccount: any) => {
           const currentActivePhase = masterAccount.phases?.[0] || null
           
-          // Determine current phase based on master account's currentPhase field
-          let currentPhaseString = 'phase_1'
-          if (masterAccount.currentPhase >= 3) {
-            currentPhaseString = 'funded'
-          } else if (masterAccount.currentPhase === 2) {
-            currentPhaseString = 'phase_2'
-          } else {
-            currentPhaseString = 'phase_1'
-          }
-          
           return {
             id: masterAccount.id,
             number: currentActivePhase?.phaseId || `master-${masterAccount.id}`,
@@ -410,11 +400,17 @@ export async function getAccountsAction() {
             owner: { id: userId, email: '' },
             isOwner: true,
             status: masterAccount.isActive ? 'active' : 'failed' as const,
-            currentPhase: currentPhaseString,
+            currentPhase: masterAccount.currentPhase, // ✅ NEW: Keep as number (1, 2, 3+)
             createdAt: masterAccount.createdAt,
             userId: masterAccount.userId,
             groupId: null,
-            group: null
+            group: null,
+            // Add phase details for UI components that need them
+            currentPhaseDetails: currentActivePhase ? {
+              phaseNumber: currentActivePhase.phaseNumber,
+              status: currentActivePhase.status,
+              phaseId: currentActivePhase.phaseId
+            } : null
           }
         })
 
@@ -606,89 +602,62 @@ export async function linkTradesToCurrentPhase(accountId: string, trades: any[])
       }
 
       // Check if any trades are already linked to this phase
-    const existingTrades = await prisma.trade.findMany({
-      where: {
-        userId,
-        phaseAccountId: currentPhase.id
-      },
-      select: {
-        id: true,
-        entryId: true,
-        closeId: true,
-        accountNumber: true,
-        entryDate: true,
-        instrument: true,
-        quantity: true,
-        entryPrice: true,
-        closePrice: true
+      const existingTrades = await prisma.trade.findMany({
+        where: {
+          userId,
+          phaseAccountId: currentPhase.id
+        },
+        select: {
+          id: true,
+          entryId: true,
+          closeId: true,
+          accountNumber: true,
+          entryDate: true,
+          instrument: true,
+          quantity: true,
+          entryPrice: true,
+          closePrice: true
+        }
+      })
+
+      // Create signature for existing trades to avoid duplicates
+      const existingSignatures = new Set(
+        existingTrades.map(trade =>
+          `${trade.entryId || ''}-${trade.closeId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
+        )
+      )
+
+      // Filter trades that need to be linked to this phase
+      const tradesToLink = trades.filter(trade => {
+        const signature = `${trade.entryId || ''}-${trade.closeId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
+        return !existingSignatures.has(signature) && trade.id // Only link existing trades with IDs
+      })
+
+      // Link trades to the current phase using phaseAccountId
+      let linkedCount = 0
+      for (const trade of tradesToLink) {
+        await prisma.trade.update({
+          where: { id: trade.id },
+          data: { 
+            phaseAccountId: currentPhase.id,
+            userId,
+            // Ensure these fields are properly set for phase evaluation
+            symbol: trade.instrument,
+            realizedPnl: trade.pnl,
+            fees: trade.commission || 0,
+            entryTime: trade.entryDate ? new Date(trade.entryDate) : null,
+            exitTime: trade.closeDate ? new Date(trade.closeDate) : null
+          }
+        })
+        linkedCount++
       }
-    })
-
-    // Create signature for existing trades to avoid duplicates
-    const existingSignatures = new Set(
-      existingTrades.map(trade =>
-        `${trade.entryId || ''}-${trade.closeId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
-      )
-    )
-
-    // Filter out duplicates and prepare trades for insertion
-    const newTrades = trades.filter(trade => {
-      const signature = `${trade.entryId || ''}-${trade.closeId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
-      return !existingSignatures.has(signature)
-    }).map(trade => ({
-      ...trade,
-      userId,
-      accountId: accountId
-    }))
-
-    // For prop firm accounts, link existing trades to the phase
-    const tradesToUpdate = trades.filter(trade =>
-      !existingTrades.some(existing =>
-        existing.entryId === trade.entryId &&
-        existing.closeId === trade.closeId &&
-        existing.accountNumber === trade.accountNumber
-      )
-    )
-
-    for (const trade of tradesToUpdate) {
-      await prisma.trade.update({
-        where: { id: trade.id },
-        data: { phaseAccountId: currentPhase.id }
-      })
-    }
-
-    return {
-      success: true,
-      linkedCount: tradesToUpdate.length,
-      phaseId: currentPhase.id,
-      accountName: masterAccount.accountName
-    }
-
-    // If not a prop firm account, check if it's a regular account
-    const regularAccount = await prisma.account.findFirst({
-      where: { id: accountId, userId },
-      select: { id: true, name: true }
-    })
-
-    if (!regularAccount) {
-      throw new Error('Account not found')
-    }
-
-    // For regular accounts, link trades directly to the accountId
-    const regularTradesToUpdate = trades.filter(trade => !trade.accountId || trade.accountId !== accountId)
-
-    for (const trade of regularTradesToUpdate) {
-      await prisma.trade.update({
-        where: { id: trade.id },
-        data: { accountId }
-      })
-    }
 
       return {
         success: true,
-        linkedCount: regularTradesToUpdate.length,
-        accountId,
-        accountName: regularAccount?.name || accountId
+        linkedCount,
+        phaseAccountId: currentPhase.id,
+        phaseNumber: currentPhase.phaseNumber,
+        accountName: masterAccount.accountName
       }
     }
 
@@ -703,23 +672,159 @@ export async function linkTradesToCurrentPhase(accountId: string, trades: any[])
     }
 
     // For regular accounts, link trades directly to the accountId
-    const regularTradesToUpdate = trades.filter(trade => !trade.accountId || trade.accountId !== accountId)
+    const regularTradesToUpdate = trades.filter(trade => 
+      trade.id && (!trade.accountId || trade.accountId !== accountId)
+    )
 
+    let linkedCount = 0
     for (const trade of regularTradesToUpdate) {
       await prisma.trade.update({
         where: { id: trade.id },
-        data: { accountId }
+        data: { 
+          accountId,
+          userId
+        }
       })
+      linkedCount++
     }
 
     return {
       success: true,
-      linkedCount: regularTradesToUpdate.length,
+      linkedCount,
       accountId,
       accountName: regularAccount.name || accountId
     }
   } catch (error) {
     console.error('Error linking trades to current phase:', error)
+    throw error
+  }
+}
+
+export async function saveAndLinkTrades(accountId: string, trades: any[]) {
+  try {
+    const userId = await getUserId()
+
+    // Use database transaction to ensure atomicity
+    const result = await prisma.$transaction(async (tx) => {
+      // Step 1: Save trades to database using createMany for better performance
+      const tradeData = trades.map(trade => ({
+        id: trade.id,
+        accountNumber: trade.accountNumber,
+        instrument: trade.instrument,
+        entryPrice: trade.entryPrice,
+        closePrice: trade.closePrice,
+        entryDate: trade.entryDate,
+        closeDate: trade.closeDate,
+        quantity: trade.quantity,
+        pnl: trade.pnl,
+        timeInPosition: trade.timeInPosition,
+        userId,
+        side: trade.side,
+        commission: trade.commission,
+        entryId: trade.entryId,
+        closeId: trade.closeId,
+        comment: trade.comment,
+        videoUrl: trade.videoUrl,
+        tags: trade.tags || [],
+        imageBase64: trade.imageBase64,
+        imageBase64Second: trade.imageBase64Second,
+        imageBase64Third: trade.imageBase64Third,
+        imageBase64Fourth: trade.imageBase64Fourth,
+        groupId: trade.groupId,
+        createdAt: trade.createdAt || new Date(),
+      }))
+
+      const saveResult = await tx.trade.createMany({
+        data: tradeData
+      })
+
+      const savedTrades = trades // We'll use the original trades for linking
+
+      // Step 2: Link trades to account/phase
+      const masterAccount = await tx.masterAccount.findUnique({
+        where: { id: accountId },
+        select: { id: true, accountName: true }
+      })
+
+      if (masterAccount) {
+        // Prop firm account - link to current active phase
+        const currentPhase = await tx.phaseAccount.findFirst({
+          where: {
+            masterAccountId: accountId,
+            status: 'active'
+          },
+          orderBy: {
+            phaseNumber: 'asc'
+          }
+        })
+
+        if (!currentPhase) {
+          throw new Error(`No active phase found for prop firm account "${masterAccount.accountName}". Please set up the account phases first.`)
+        }
+
+        if (currentPhase.status !== 'active') {
+          throw new Error(`Prop firm account "${masterAccount.accountName}" is in ${currentPhase.status} status. Cannot add trades to inactive phases.`)
+        }
+
+        // Link all saved trades to the current phase
+        for (const trade of savedTrades) {
+          await tx.trade.update({
+            where: { id: trade.id },
+            data: {
+              phaseAccountId: currentPhase.id,
+              // Update phase-specific fields
+              symbol: trade.instrument,
+              realizedPnl: trade.pnl,
+              fees: trade.commission || 0,
+              entryTime: trade.entryDate ? new Date(trade.entryDate) : null,
+              exitTime: trade.closeDate ? new Date(trade.closeDate) : null
+            }
+          })
+        }
+
+        return {
+          success: true,
+          linkedCount: savedTrades.length,
+          phaseAccountId: currentPhase.id,
+          phaseNumber: currentPhase.phaseNumber,
+          accountName: masterAccount.accountName
+        }
+      } else {
+        // Regular account - link directly to account
+        const regularAccount = await tx.account.findFirst({
+          where: { id: accountId, userId },
+          select: { id: true, name: true }
+        })
+
+        if (!regularAccount) {
+          throw new Error('Account not found')
+        }
+
+        // Link all saved trades to the account
+        await tx.trade.updateMany({
+          where: {
+            id: { in: savedTrades.map(t => t.id) }
+          },
+          data: {
+            accountId
+          }
+        })
+
+        return {
+          success: true,
+          linkedCount: savedTrades.length,
+          accountId,
+          accountName: regularAccount.name || accountId
+        }
+      }
+    }, {
+      timeout: 60000, // 60 seconds timeout for bulk operations
+      isolationLevel: 'ReadCommitted'
+    })
+
+    return result
+  } catch (error) {
+    console.error('Error in saveAndLinkTrades:', error)
     throw error
   }
 }
@@ -731,7 +836,7 @@ export async function checkPhaseProgression(accountId: string) {
     // First check if this is a MasterAccount (prop firm account)
     const masterAccount = await prisma.masterAccount.findUnique({
       where: { id: accountId },
-      select: { id: true, accountName: true }
+      select: { id: true, accountName: true, accountSize: true }
     })
 
     if (masterAccount) {
@@ -757,7 +862,7 @@ export async function checkPhaseProgression(accountId: string) {
       const netProfit = totalPnl - totalCommission
 
       // Check if profit target is reached (convert percentage to actual amount)
-      const profitTargetAmount = (currentPhase.profitTargetPercent / 100) * (0) // accountSize not available
+      const profitTargetAmount = (currentPhase.profitTargetPercent / 100) * masterAccount.accountSize
 
       if (profitTargetAmount && netProfit >= profitTargetAmount) {
         // Progress to next phase

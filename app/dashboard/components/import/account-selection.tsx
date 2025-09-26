@@ -34,11 +34,15 @@ interface UnifiedAccount {
 interface AccountSelectionProps {
   accountNumber: string
   setAccountNumber: React.Dispatch<React.SetStateAction<string>>
+  selectedAccountId?: string
+  setSelectedAccountId?: React.Dispatch<React.SetStateAction<string>>
 }
 
 export default function AccountSelection({
   accountNumber,
-  setAccountNumber
+  setAccountNumber,
+  selectedAccountId,
+  setSelectedAccountId
 }: AccountSelectionProps) {
   const { accounts, isLoading, error, refetch } = useAccounts()
   const [hasError, setHasError] = useState(false)
@@ -171,9 +175,12 @@ export default function AccountSelection({
                 key={account.id}
                 className={cn(
                   "p-6 cursor-pointer hover:border-primary transition-colors relative group",
-                  accountNumber === account.number ? "border-primary bg-primary/5" : ""
+                  selectedAccountId === account.id ? "border-primary bg-primary/5" : ""
                 )}
-                onClick={() => setAccountNumber(account.number)}
+                onClick={() => {
+                  setAccountNumber(account.number)
+                  setSelectedAccountId?.(account.id)
+                }}
               >
                 <div className="flex items-start justify-between">
                   <div className="space-y-2">
@@ -194,28 +201,30 @@ export default function AccountSelection({
                         : (account as any).broker || "Unknown Broker"
                       }
                     </p>
-                    {account.accountType === 'prop-firm' && account.currentPhase && (
+                    {account.accountType === 'prop-firm' && account.currentPhaseDetails && (
                       <div className="flex items-center gap-2 mt-2">
                         <Badge
                           variant={
-                            account.currentPhase.status === 'active' ? 'default' :
-                            account.currentPhase.status === 'passed' ? 'secondary' :
+                            account.currentPhaseDetails.status === 'active' ? 'default' :
+                            account.currentPhaseDetails.status === 'passed' ? 'secondary' :
                             'destructive'
                           }
                           className="text-xs"
                         >
-                          {account.currentPhase.status === 'active' && <Target className="h-3 w-3 mr-1" />}
-                          {account.currentPhase.status === 'passed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                          {account.currentPhase.status === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                          {account.currentPhase.phaseNumber === 1 ? 'PHASE 1' : account.currentPhase.phaseNumber === 2 ? 'PHASE 2' : account.currentPhase.phaseNumber >= 3 ? 'FUNDED' : `PHASE ${account.currentPhase.phaseNumber}`}
+                          {account.currentPhaseDetails.status === 'active' && <Target className="h-3 w-3 mr-1" />}
+                          {account.currentPhaseDetails.status === 'passed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                          {account.currentPhaseDetails.status === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                          {account.currentPhaseDetails.phaseNumber >= 3 ? 'FUNDED' : 
+                           account.currentPhaseDetails.phaseNumber === 2 ? 'PHASE 2' : 
+                           'PHASE 1'}
                         </Badge>
                         <span className="text-xs font-mono text-muted-foreground">
-                          #{account.currentPhase.phaseId || 'No ID'}
+                          #{account.currentPhaseDetails.phaseId || 'No ID'}
                         </span>
                       </div>
                     )}
                   </div>
-                  {accountNumber === account.number && (
+                  {selectedAccountId === account.id && (
                     <CheckCircle2 className="h-5 w-5 text-primary" />
                   )}
                 </div>

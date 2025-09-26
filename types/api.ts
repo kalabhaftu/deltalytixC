@@ -128,6 +128,7 @@ export interface Account {
   isActive: boolean
   createdAt: Date
   updatedAt: Date
+  resetDate?: Date | string | null
   rules?: AccountRules
 }
 

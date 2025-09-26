@@ -12,7 +12,7 @@ import { Logo } from "@/components/logo"
 import { useAuth } from "@/context/auth-provider"
 
 export default function AuthenticationPage() {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, forceClearAuth } = useAuth()
   const router = useRouter()
 
   // Check if user is already authenticated and redirect to dashboard
@@ -22,12 +22,12 @@ export default function AuthenticationPage() {
       if (isAuthenticated && !isLoading) {
         // Double-check auth status with a fresh API call
         try {
-          const response = await fetch('/api/auth/check', { 
+          const response = await fetch('/api/auth/check', {
             cache: 'no-cache',
             headers: { 'Cache-Control': 'no-cache' }
           })
           const data = await response.json()
-          
+
           if (response.ok && data.authenticated) {
             // User is truly authenticated, redirect to dashboard
             const currentUrl = window.location.href
@@ -35,17 +35,28 @@ export default function AuthenticationPage() {
             const nextParam = url.searchParams.get('next')
             const redirectUrl = nextParam || '/dashboard'
             router.push(redirectUrl)
+          } else {
+            // User is not truly authenticated, force clear auth state
+            console.log('[Auth] User not authenticated, clearing local state')
+            // Force refresh the auth provider state
+            if (window.location.search.includes('deleted=true')) {
+              // If coming from account deletion, force a complete session clear
+              forceClearAuth()
+              // Remove the deleted parameter and reload
+              window.location.replace('/authentication')
+              return
+            }
+            // If not authenticated, the auth provider will handle the state update
           }
-          // If not authenticated, the auth provider will handle the state update
         } catch (error) {
           console.log('Auth check failed, staying on auth page')
           // If auth check fails, stay on auth page
         }
       }
     }
-    
+
     checkFreshAuth()
-  }, [isAuthenticated, isLoading, router])
+  }, [isAuthenticated, isLoading, router, forceClearAuth])
 
   // If user is authenticated, show loading state while redirecting
   if (isAuthenticated && !isLoading) {

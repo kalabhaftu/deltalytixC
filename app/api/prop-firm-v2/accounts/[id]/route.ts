@@ -92,8 +92,97 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       nextAction = 'failed'
     }
 
+    // Calculate drawdown data for the hook
+    const drawdownData = {
+      dailyDrawdownRemaining: 0,
+      maxDrawdownRemaining: 0,
+      dailyStartBalance: 0,
+      highestEquity: 0,
+      currentEquity: 0,
+      isBreached: false,
+      breachType: undefined as 'daily_drawdown' | 'max_drawdown' | undefined
+    }
+
+    // Calculate current balance and equity from trades
+    const currentBalance = masterAccount.accountSize + totalPnL
+    const currentEquity = currentBalance
+
+    // Calculate drawdown based on current phase rules
+    if (currentPhase) {
+      // Calculate highest equity (peak balance)
+      const tradesPnL = allTrades.reduce((sum, trade) => sum + trade.pnl, 0)
+      drawdownData.highestEquity = Math.max(masterAccount.accountSize + tradesPnL, masterAccount.accountSize)
+      drawdownData.currentEquity = currentEquity
+
+      // Daily drawdown calculation (simplified - would need daily balance tracking)
+      const dailyDrawdownLimit = currentPhase.dailyDrawdownPercent > 0
+        ? (masterAccount.accountSize * currentPhase.dailyDrawdownPercent) / 100
+        : 0
+      drawdownData.dailyDrawdownRemaining = dailyDrawdownLimit > 0 ? dailyDrawdownLimit : 0
+      drawdownData.dailyStartBalance = masterAccount.accountSize
+
+      // Max drawdown calculation
+      const maxDrawdownLimit = currentPhase.maxDrawdownPercent > 0
+        ? (masterAccount.accountSize * currentPhase.maxDrawdownPercent) / 100
+        : 0
+      drawdownData.maxDrawdownRemaining = maxDrawdownLimit > 0 ? maxDrawdownLimit : 0
+
+      // Check for breaches
+      const dailyDrawdownUsed = drawdownData.highestEquity - currentEquity
+      const maxDrawdownUsed = masterAccount.accountSize - currentEquity
+
+      if (dailyDrawdownUsed > dailyDrawdownLimit) {
+        drawdownData.isBreached = true
+        drawdownData.breachType = 'daily_drawdown'
+      } else if (maxDrawdownUsed > maxDrawdownLimit) {
+        drawdownData.isBreached = true
+        drawdownData.breachType = 'max_drawdown'
+      }
+    }
+
+    // Format account data as expected by the hook
+    const accountData = {
+      id: masterAccount.id,
+      accountName: masterAccount.accountName,
+      propFirmName: masterAccount.propFirmName,
+      accountSize: masterAccount.accountSize,
+      evaluationType: masterAccount.evaluationType,
+      currentPhase: currentPhase || null,
+      isActive: masterAccount.isActive,
+      status: currentPhase?.status === 'failed' ? 'failed' : currentPhase?.status === 'passed' ? 'passed' : 'active',
+      phases: masterAccount.phases.map(phase => ({
+        id: phase.id,
+        phaseNumber: phase.phaseNumber,
+        phaseId: phase.phaseId,
+        status: phase.status,
+        profitTargetPercent: phase.profitTargetPercent,
+        dailyDrawdownPercent: phase.dailyDrawdownPercent,
+        maxDrawdownPercent: phase.maxDrawdownPercent,
+        maxDrawdownType: phase.maxDrawdownType,
+        minTradingDays: phase.minTradingDays,
+        timeLimitDays: phase.timeLimitDays,
+        consistencyRulePercent: phase.consistencyRulePercent,
+        profitSplitPercent: phase.profitSplitPercent,
+        payoutCycleDays: phase.payoutCycleDays,
+        startDate: phase.startDate.toISOString(),
+        endDate: phase.endDate?.toISOString() || null
+      })),
+      currentPnL: totalPnL,
+      currentBalance: currentBalance,
+      currentEquity: currentEquity,
+      dailyDrawdownRemaining: drawdownData.dailyDrawdownRemaining,
+      maxDrawdownRemaining: drawdownData.maxDrawdownRemaining,
+      profitTargetProgress: currentPhase && currentPhase.profitTargetPercent > 0
+        ? Math.min((totalPnL / (masterAccount.accountSize * currentPhase.profitTargetPercent / 100)) * 100, 100)
+        : 0,
+      lastUpdated: new Date().toISOString()
+    }
+
+    // Return the format expected by the hook
     const response = {
-      // Master account details
+      account: accountData,
+      drawdown: drawdownData,
+      // Keep the full data for backward compatibility
       masterAccount: {
         id: masterAccount.id,
         accountName: masterAccount.accountName,
@@ -105,8 +194,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         createdAt: masterAccount.createdAt,
         owner: masterAccount.user
       },
-      
-      // Phase information
       phases: masterAccount.phases.map(phase => ({
         id: phase.id,
         phaseNumber: phase.phaseNumber,
@@ -125,8 +212,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         tradeCount: phase.trades.length,
         totalPnL: phase.trades.reduce((sum, trade) => sum + trade.pnl, 0)
       })),
-
-      // Current phase details
       currentPhase: currentPhase ? {
         id: currentPhase.id,
         phaseNumber: currentPhase.phaseNumber,
@@ -145,8 +230,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           payoutCycleDays: currentPhase.payoutCycleDays
         } : null
       } : null,
-
-      // Trading statistics
       statistics: {
         totalTrades,
         totalPnL,
@@ -156,11 +239,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         currentPhaseTrades: currentPhaseTrades.length,
         currentPhasePnL
       },
-
-      // Recent trades (limited for performance)
       recentTrades: allTrades.slice(0, 20),
-      
-      // Summary
       summary: {
         totalPhases: masterAccount.phases.length,
         currentPhaseNumber: masterAccount.currentPhase,

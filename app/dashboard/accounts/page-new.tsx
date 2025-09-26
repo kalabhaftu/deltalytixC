@@ -511,20 +511,20 @@ function AccountCard({ account, onView }: { account: Account; onView: () => void
                 <span className="text-xs text-gray-500 dark:text-gray-400">Phase</span>
                 <Badge
                   variant={
-                    (account.currentPhase || 1) >= 3 ? 'default' :
-                    (account.currentPhase || 1) === 2 ? 'secondary' :
+                    account.currentPhase >= 3 ? 'default' :
+                    account.currentPhase === 2 ? 'secondary' :
                     'outline'
                   }
                   className="text-xs"
                 >
-                  {(account.currentPhase || 1) >= 3 ? 'FUNDED' :
-                   (account.currentPhase || 1) === 2 ? 'PHASE 2' :
+                  {account.currentPhase >= 3 ? 'FUNDED' :
+                   account.currentPhase === 2 ? 'PHASE 2' :
                    'PHASE 1'}
                 </Badge>
               </div>
             )}
             
-            {account.profitTargetProgress !== undefined && (account.currentPhase || 1) < 3 && (
+            {account.profitTargetProgress !== undefined && account.currentPhase < 3 && (
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-gray-500 dark:text-gray-400">Profit Target</span>

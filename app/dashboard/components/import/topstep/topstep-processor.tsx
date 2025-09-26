@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useEffect, useCallback } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toast } from '@/hooks/use-toast'
@@ -29,11 +31,18 @@ const mappings: { [key: string]: string } = {
 
 export default function TopstepProcessor({ headers, csvData, setProcessedTrades, accountNumber }: TopstepProcessorProps) {
     const [trades, setTrades] = useState<Trade[]>([])
+    const [isProcessing, setIsProcessing] = useState(false)
     const timezone = useUserStore(state => state.timezone)
     const user = useUserStore(state => state.user)
     const supabaseUser = useUserStore(state => state.supabaseUser)
 
-    const processTrades = useCallback(() => {
+    const processTrades = useCallback(async () => {
+        const currentUser = user || supabaseUser
+        if (!currentUser?.id) {
+            return
+        }
+
+        setIsProcessing(true)
         const newTrades: Trade[] = [];
 
         csvData.forEach(row => {
@@ -159,11 +168,6 @@ export default function TopstepProcessor({ headers, csvData, setProcessedTrades,
 
             // Only add valid trades
             if (isValidTrade) {
-                const currentUser = user || supabaseUser
-                if (!currentUser?.id) {
-                    return
-                }
-
                 // Create complete Trade object with all required fields
                 const completeTrade: Trade = {
                     id: uuidv4(),
@@ -177,7 +181,7 @@ export default function TopstepProcessor({ headers, csvData, setProcessedTrades,
                     entryDate: item.entryDate || '',
                     closeDate: item.closeDate || '',
                     pnl: item.pnl || 0,
-                    phaseAccountId: null,
+                    phaseAccountId: null, // Will be set by automatic linking during save
                     timeInPosition: item.timeInPosition || 0,
                     userId: currentUser.id,
                     side: item.side || '',
@@ -207,7 +211,7 @@ export default function TopstepProcessor({ headers, csvData, setProcessedTrades,
                     strategy: null,
                     closeReason: null,
                 }
-                
+
                 newTrades.push(completeTrade);
             }
         });
@@ -215,6 +219,7 @@ export default function TopstepProcessor({ headers, csvData, setProcessedTrades,
 
         setTrades(newTrades);
         setProcessedTrades(newTrades);
+        setIsProcessing(false);
     }, [csvData, headers, setProcessedTrades, accountNumber, user, supabaseUser]);
 
     useEffect(() => {

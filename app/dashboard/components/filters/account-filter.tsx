@@ -16,7 +16,7 @@ interface AccountFilterProps {
 
 interface DashboardFilters {
   accountId?: string
-  phaseId?: string
+  // phaseId removed - not supported in new unified account interface
   accountType?: 'all' | 'live' | 'prop-firm'
   showAll: boolean
 }
@@ -87,7 +87,6 @@ export function AccountFilter({ showAccountNumbers, className }: AccountFilterPr
         ...prev, 
         accountType: value as 'live' | 'prop-firm',
         accountId: undefined,
-        phaseId: undefined,
         showAll: false 
       }))
     }
@@ -95,24 +94,17 @@ export function AccountFilter({ showAccountNumbers, className }: AccountFilterPr
 
   const handleAccountChange = (value: string) => {
     if (value === 'all') {
-      setFilters(prev => ({ ...prev, accountId: undefined, phaseId: undefined, showAll: true }))
+      setFilters(prev => ({ ...prev, accountId: undefined, showAll: true }))
     } else {
       setFilters(prev => ({ 
         ...prev, 
         accountId: value, 
-        phaseId: undefined, 
         showAll: false 
       }))
     }
   }
 
-  const handlePhaseChange = (value: string) => {
-    if (value === 'all') {
-      setFilters(prev => ({ ...prev, phaseId: undefined }))
-    } else {
-      setFilters(prev => ({ ...prev, phaseId: value }))
-    }
-  }
+  // handlePhaseChange removed - phase filtering not supported in new system
 
   const clearFilters = () => {
     setFilters({ showAll: true, accountType: 'all' })
@@ -224,31 +216,7 @@ export function AccountFilter({ showAccountNumbers, className }: AccountFilterPr
           </Select>
         )}
 
-        {selectedAccount && selectedAccount.accountType === 'prop-firm' && false && ( // Phases not available in UnifiedAccount interface
-          <Select
-            value={filters.phaseId || "all"}
-            onValueChange={handlePhaseChange}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="All phases" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Phases</SelectItem>
-              {availablePhases.map((phase: any) => (
-                <SelectItem key={phase.id} value={phase.id}>
-                  <div className="flex items-center gap-2">
-                    <span className="capitalize">
-                      Phase {phase.phaseNumber}
-                    </span>
-                    <Badge className={getPhaseColor(phase.status)} variant="secondary">
-                      {phase.status}
-                    </Badge>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+        {/* Phase filtering removed - not supported in new unified account interface */}
 
         {!filters.showAll && (
           <Button

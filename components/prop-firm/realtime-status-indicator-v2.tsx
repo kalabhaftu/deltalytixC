@@ -24,8 +24,8 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { PropFirmEngine } from '@/lib/prop-firm/prop-firm-engine'
-import { PropFirmAccountFilters } from '@/lib/prop-firm/account-filters'
+// PropFirmEngine import removed - no longer used
+// PropFirmAccountFilters import removed - no longer used
 
 interface PropFirmAccountStatus {
   id: string
@@ -250,12 +250,9 @@ export function RealtimeStatusIndicatorV2({
               <div>
                 <p className="text-sm font-medium">{accountStatus.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {accountStatus.currentPhase ? (
-                    accountStatus.currentPhase.phaseNumber === 1 ? 'PHASE 1' :
-                    accountStatus.currentPhase.phaseNumber === 2 ? 'PHASE 2' :
-                    accountStatus.currentPhase.phaseNumber >= 3 ? 'FUNDED' :
-                    `PHASE ${accountStatus.currentPhase.phaseNumber || 1}`
-                  ) : 'PHASE 1'}
+                  {accountStatus.currentPhase?.phaseNumber >= 3 ? 'FUNDED' :
+                   accountStatus.currentPhase?.phaseNumber === 2 ? 'PHASE 2' :
+                   'PHASE 1'}
                 </p>
               </div>
             </div>
@@ -290,12 +287,9 @@ export function RealtimeStatusIndicatorV2({
               </Badge>
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              {accountStatus.firmType} • {accountStatus.currentPhase ? (
-                accountStatus.currentPhase.phaseNumber === 1 ? 'PHASE 1' :
-                accountStatus.currentPhase.phaseNumber === 2 ? 'PHASE 2' :
-                accountStatus.currentPhase.phaseNumber >= 3 ? 'FUNDED' :
-                `PHASE ${accountStatus.currentPhase.phaseNumber || 1}`
-              ) : 'PHASE 1'}
+              {accountStatus.firmType} • {accountStatus.currentPhase?.phaseNumber >= 3 ? 'FUNDED' :
+               accountStatus.currentPhase?.phaseNumber === 2 ? 'PHASE 2' :
+               'PHASE 1'}
             </p>
           </div>
           {showActions && (
@@ -339,7 +333,7 @@ export function RealtimeStatusIndicatorV2({
         </div>
 
         {/* Profit Target Progress */}
-        {accountStatus.currentPhase && (accountStatus.currentPhase.phaseNumber || 1) < 3 && (
+        {accountStatus.currentPhase && accountStatus.currentPhase.phaseNumber < 3 && (
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-1">

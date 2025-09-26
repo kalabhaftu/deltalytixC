@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { getUserId } from '@/server/auth-utils'
 import { PhaseEvaluationEngine } from '@/lib/prop-firm/phase-evaluation-engine'
+import { revalidateTag } from 'next/cache'
 
 const prisma = new PrismaClient()
 
@@ -83,6 +84,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           }
         })
       })
+      
+      // Invalidate cache when account status changes
+      revalidateTag(`accounts-${userId}`)
     }
 
     return NextResponse.json({
@@ -151,7 +155,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Get evaluation status
+    // Evaluate the current phase using the new engine
     const evaluation = await PhaseEvaluationEngine.evaluatePhase(
       masterAccountId,
       activePhase.id

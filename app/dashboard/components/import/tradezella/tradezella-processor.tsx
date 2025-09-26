@@ -39,6 +39,7 @@ const newMappings: { [key: string]: string } = {
 
 export default function TradezellaProcessor({ headers, csvData, setProcessedTrades }: TradezellaProcessorProps) {
   const [trades, setTrades] = useState<Trade[]>([])
+  const [isProcessing, setIsProcessing] = useState(false)
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
 
@@ -59,12 +60,13 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
   // Symbol: "instrument"
   // Adjusted Cost: "entryId"
   // Adjusted Proceeds: "closeId"
-  const processTrades = useCallback(() => {
+  const processTrades = useCallback(async () => {
     const currentUser = user || supabaseUser
     if (!currentUser?.id) {
       return
     }
 
+    setIsProcessing(true)
     const newTrades: Trade[] = [];
     //TODO: Ask user for account number using account selection component
     const accountNumber = 'default-account';
@@ -127,7 +129,6 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
         entryDate: item.entryDate || '',
         closeDate: item.closeDate || '',
         pnl: item.pnl || 0,
-        // propFirmPhaseId: null, // field doesn't exist
         timeInPosition: item.timeInPosition || 0,
         userId: currentUser.id,
         side: item.side || '',
@@ -153,17 +154,18 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
         equityAtOpen: null,
         equityAtClose: null,
         rawBrokerId: null,
-        phaseAccountId: null,
+        phaseAccountId: null, // Will be set by automatic linking during save
         accountId: null,
         strategy: null,
         closeReason: null,
       }
-      
+
       newTrades.push(completeTrade);
     })
 
     setTrades(newTrades);
     setProcessedTrades(newTrades);
+    setIsProcessing(false);
   }, [csvData, headers, setProcessedTrades, user, supabaseUser]);
 
   useEffect(() => {

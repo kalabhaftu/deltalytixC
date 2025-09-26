@@ -14,6 +14,7 @@ interface AuthContextType {
   session: Session | null
   user: any | null
   checkAuth: () => Promise<boolean>
+  forceClearAuth: () => void
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
   checkAuth: async () => false,
+  forceClearAuth: () => {},
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -83,8 +85,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Force clear all auth state and cache
+  const forceClearAuth = () => {
+    console.log('[Auth] Force clearing all auth state')
+    resetUser()
+    setSession(null)
+    setAuthCheckCache(null)
+    setIsLoading(false)
+  }
+
   useEffect(() => {
     const supabase = createClient()
+
+    // Check if we should force clear auth state (e.g., after account deletion)
+    const urlParams = new URLSearchParams(window.location.search)
+    const shouldForceClear = urlParams.get('deleted') === 'true'
+
+    if (shouldForceClear) {
+      console.log('[Auth] Detected account deletion, forcing clear')
+      forceClearAuth()
+      // Remove the parameter from URL
+      const newUrl = window.location.pathname
+      window.history.replaceState({}, '', newUrl)
+      return
+    }
 
     // Initial session check
     const checkSession = async () => {
@@ -159,6 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         user: session?.user || null,
         checkAuth: performAuthCheck,
+        forceClearAuth,
       }}
     >
       {children}
@@ -174,5 +199,6 @@ export const useAuth = () => {
   return {
     ...context,
     checkAuth: context.checkAuth,
+    forceClearAuth: context.forceClearAuth,
   }
 } 

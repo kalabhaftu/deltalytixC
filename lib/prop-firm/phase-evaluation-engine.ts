@@ -49,13 +49,34 @@ export interface PhaseEvaluationResult {
 export class PhaseEvaluationEngine {
   
   /**
+   * Enhanced logging for development mode
+   */
+  private static log(message: string, data?: any) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[EVALUATION_ENGINE] ${message}`, data ? JSON.stringify(data, null, 2) : '')
+    }
+  }
+
+  private static logError(message: string, error: any) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[EVALUATION_ENGINE] ERROR: ${message}`, error)
+    } else {
+      // Production: minimal logging
+      console.error(`Evaluation error: ${message}`)
+    }
+  }
+  
+  /**
    * CRITICAL: Evaluate phase status with FAILURE-FIRST PRIORITY
    * Always check for failure conditions before checking if profit target is met
+   * ENHANCED: Detailed logging in development mode
    */
   static async evaluatePhase(
     masterAccountId: string,
     phaseAccountId: string
   ): Promise<PhaseEvaluationResult> {
+    
+    this.log(`Starting evaluation for masterAccountId: ${masterAccountId}, phaseAccountId: ${phaseAccountId}`)
     
     // Get complete phase data
     const phaseAccount = await prisma.phaseAccount.findFirst({
@@ -78,8 +99,16 @@ export class PhaseEvaluationEngine {
     })
 
     if (!phaseAccount) {
+      this.logError(`Phase account not found: ${phaseAccountId}`, null)
       throw new Error('Phase account not found')
     }
+
+    this.log(`Phase account found`, {
+      phaseNumber: phaseAccount.phaseNumber,
+      status: phaseAccount.status,
+      tradesCount: phaseAccount.trades.length,
+      accountSize: phaseAccount.masterAccount.accountSize
+    })
 
     const masterAccount = phaseAccount.masterAccount
     const trades = phaseAccount.trades
@@ -88,6 +117,12 @@ export class PhaseEvaluationEngine {
     // Calculate current metrics
     const currentPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
     const currentEquity = masterAccount.accountSize + currentPnL
+
+    this.log(`Current metrics calculated`, {
+      currentPnL,
+      currentEquity,
+      startingBalance: masterAccount.accountSize
+    })
 
     // Calculate high-water mark (highest equity since phase start)
     let highWaterMark = masterAccount.accountSize
@@ -98,12 +133,16 @@ export class PhaseEvaluationEngine {
       highWaterMark = Math.max(highWaterMark, runningBalance)
     }
 
+    this.log(`High-water mark calculated: ${highWaterMark}`)
+
     // Get daily start balance from daily anchor system
     const dailyStartBalance = await this.getDailyStartBalance(
       phaseAccountId,
       timezone,
       masterAccount.accountSize
     )
+
+    this.log(`Daily start balance: ${dailyStartBalance}`)
 
     // STEP 1: Calculate drawdown (FAILURE CHECK FIRST)
     const drawdown = this.calculateDrawdown(
@@ -113,6 +152,15 @@ export class PhaseEvaluationEngine {
       highWaterMark
     )
 
+    this.log(`Drawdown calculation completed`, {
+      isBreached: drawdown.isBreached,
+      breachType: drawdown.breachType,
+      dailyDrawdownUsed: drawdown.dailyDrawdownUsed,
+      dailyDrawdownLimit: drawdown.dailyDrawdownLimit,
+      maxDrawdownUsed: drawdown.maxDrawdownUsed,
+      maxDrawdownLimit: drawdown.maxDrawdownLimit
+    })
+
     // STEP 2: Calculate progress
     const progress = this.calculateProgress(
       phaseAccount,
@@ -120,9 +168,22 @@ export class PhaseEvaluationEngine {
       trades
     )
 
+    this.log(`Progress calculation completed`, {
+      canPassPhase: progress.canPassPhase,
+      isEligibleForAdvancement: progress.isEligibleForAdvancement,
+      profitTargetPercent: progress.profitTargetPercent,
+      tradingDaysCompleted: progress.tradingDaysCompleted,
+      minTradingDaysRequired: progress.minTradingDaysRequired
+    })
+
     // STEP 3: FAILURE-FIRST EVALUATION
     // If account is breached, it CANNOT pass regardless of profit target
     if (drawdown.isBreached) {
+      this.log(`FAILURE-FIRST: Account breached - ${drawdown.breachType}`, {
+        breachAmount: drawdown.breachAmount,
+        profitTargetMet: progress.profitTargetPercent >= 100
+      })
+      
       return {
         drawdown,
         progress,
@@ -135,6 +196,13 @@ export class PhaseEvaluationEngine {
 
     // STEP 4: Check if profit target is met AND other requirements
     const canAdvance = progress.canPassPhase && progress.isEligibleForAdvancement
+    
+    this.log(`Final evaluation result`, {
+      canAdvance,
+      nextAction: canAdvance ? 'advance' : 'continue',
+      isFailed: false,
+      isPassed: canAdvance
+    })
     
     return {
       drawdown,
@@ -279,7 +347,8 @@ export class PhaseEvaluationEngine {
   }
 
   /**
-   * Get daily start balance using Daily Anchor system
+   * Get daily start balance using Daily Anchor system with robust fallback logic
+   * ENHANCED: Creates anchor on-the-fly if missing (cron job failure recovery)
    */
   private static async getDailyStartBalance(
     phaseAccountId: string,
@@ -289,48 +358,79 @@ export class PhaseEvaluationEngine {
     
     // Get today's date in the account's timezone
     const today = this.getDateInTimezone(new Date(), timezone)
+    const todayDate = new Date(today)
     
-    // Look for today's daily anchor
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[DAILY_ANCHOR] Checking anchor for ${phaseAccountId} on ${today}`)
+    }
+    
+    // STEP 1: Look for today's daily anchor
     const todayAnchor = await prisma.dailyAnchor.findFirst({
       where: {
         phaseAccountId,
-        date: new Date(today)
+        date: todayDate
       }
     })
 
     if (todayAnchor) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[DAILY_ANCHOR] Found existing anchor: ${todayAnchor.anchorEquity}`)
+      }
       return todayAnchor.anchorEquity
     }
 
-    // If no anchor exists, try to create one
+    // STEP 2: No anchor exists - ROBUST FALLBACK LOGIC
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[DAILY_ANCHOR] No anchor found, creating fallback anchor`)
+    }
+
     try {
+      // Get phase account with all necessary data
       const phaseAccount = await prisma.phaseAccount.findFirst({
         where: { id: phaseAccountId },
         include: {
           masterAccount: true,
-          trades: true
+          trades: {
+            where: { phaseAccountId },
+            orderBy: { exitTime: 'asc' }
+          }
         }
       })
 
-      if (phaseAccount) {
-        const tradesPnL = phaseAccount.trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
-        const anchorEquity = phaseAccount.masterAccount.accountSize + tradesPnL
-
-        const newAnchor = await prisma.dailyAnchor.create({
-          data: {
-            phaseAccountId,
-            date: new Date(today),
-            anchorEquity
-          }
-        })
-
-        return newAnchor.anchorEquity
+      if (!phaseAccount) {
+        console.warn(`[DAILY_ANCHOR] Phase account ${phaseAccountId} not found`)
+        return fallbackBalance
       }
-    } catch (error) {
-      console.warn('Failed to create daily anchor:', error)
-    }
 
-    return fallbackBalance
+      // STEP 3: Calculate current equity for anchor
+      const tradesPnL = phaseAccount.trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
+      const anchorEquity = phaseAccount.masterAccount.accountSize + tradesPnL
+
+      // STEP 4: Try to create the missing anchor (atomic operation)
+      const newAnchor = await prisma.dailyAnchor.create({
+        data: {
+          phaseAccountId,
+          date: todayDate,
+          anchorEquity
+        }
+      })
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[DAILY_ANCHOR] Created fallback anchor: ${newAnchor.anchorEquity}`)
+      }
+
+      return newAnchor.anchorEquity
+
+    } catch (error) {
+      console.error(`[DAILY_ANCHOR] Failed to create fallback anchor for ${phaseAccountId}:`, error)
+      
+      // STEP 5: Ultimate fallback - use provided fallback balance
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[DAILY_ANCHOR] Using ultimate fallback balance: ${fallbackBalance}`)
+      }
+      
+      return fallbackBalance
+    }
   }
 
   /**

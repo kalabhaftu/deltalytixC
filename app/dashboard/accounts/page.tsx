@@ -518,6 +518,31 @@ export default function AccountsPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Create Account Dialogs */}
+        <EnhancedCreateLiveAccountDialog 
+          open={createLiveDialogOpen}
+          onOpenChange={setCreateLiveDialogOpen}
+          onAccountCreated={() => {
+            refetchAccounts()
+            toast({
+              title: "Success",
+              description: "Live account created successfully",
+            })
+          }}
+        />
+
+        <CreatePropFirmAccountDialog 
+          open={createPropFirmDialogOpen}
+          onOpenChange={setCreatePropFirmDialogOpen}
+          onAccountCreated={() => {
+            refetchAccounts()
+            toast({
+              title: "Success", 
+              description: "Prop firm account created successfully",
+            })
+          }}
+        />
             </div>
     </div>
   )
@@ -602,12 +627,12 @@ function AccountCard({
               {/* Add phase badge for prop firm accounts */}
               {account.accountType === 'prop-firm' && account.currentPhase && (
                 <Badge variant={
-                  (account.currentPhase || 1) >= 3 ? 'default' :
-                  (account.currentPhase || 1) === 2 ? 'secondary' :
+                  account.currentPhase >= 3 ? 'default' :
+                  account.currentPhase === 2 ? 'secondary' :
                   'outline'
                 } className="text-xs">
-                  {(account.currentPhase || 1) >= 3 ? 'Funded' :
-                   (account.currentPhase || 1) === 2 ? 'Phase 2' :
+                  {account.currentPhase >= 3 ? 'Funded' :
+                   account.currentPhase === 2 ? 'Phase 2' :
                    'Phase 1'}
                 </Badge>
               )}

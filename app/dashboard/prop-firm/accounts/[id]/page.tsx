@@ -116,8 +116,8 @@ export default function AccountDetailPage() {
   // Phase transition detection - check if current phase meets requirements
   useEffect(() => {
     if (realtimeAccount && realtimeAccount.phases) {
-      const currentActivePhase = realtimeAccount.phases.find(phase => 
-        phase.phaseNumber === realtimeAccount.currentPhase && phase.status === 'active'
+      const currentActivePhase = realtimeAccount.phases.find(phase =>
+        phase.phaseNumber === realtimeAccount.currentPhase?.phaseNumber && phase.status === 'active'
       )
       
       if (currentActivePhase && currentActivePhase.profitTargetPercent > 0) {
@@ -189,8 +189,8 @@ export default function AccountDetailPage() {
         {realtimeError ? (
           <ConnectionError error={realtimeError} onRetry={refetch} />
         ) : (
-          <AccountNotFoundError 
-            // accountId={accountId} // accountId prop doesn't exist
+          <AccountNotFoundError
+            accountId={accountId}
             onRetry={refetch}
             onGoBack={() => router.push('/dashboard/accounts')}
           />
@@ -350,7 +350,7 @@ export default function AccountDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
-              Profit Target - {currentPhase.phaseNumber === 1 ? 'Phase 1' : currentPhase.phaseNumber === 2 ? 'Phase 2' : currentPhase.phaseNumber >= 3 ? 'Funded' : `Phase ${currentPhase.phaseNumber}`}
+              Profit Target - {realtimeAccount.currentPhase?.phaseNumber >= 3 ? 'Funded' : realtimeAccount.currentPhase?.phaseNumber === 2 ? 'Phase 2' : 'Phase 1'}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -376,7 +376,7 @@ export default function AccountDetailPage() {
       )}
 
       {/* Payout Eligibility for Funded Accounts */}
-      {currentPhase.phaseNumber >= 3 && payoutEligibility && (
+      {realtimeAccount.currentPhase?.phaseNumber >= 3 && payoutEligibility && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -596,7 +596,11 @@ export default function AccountDetailPage() {
                                 </td>
                                 <td className="p-3">
                                   <Badge variant="outline" className="text-xs">
-                                    {trade.phase?.phaseNumber === 1 ? 'Phase 1' : trade.phase?.phaseNumber === 2 ? 'Phase 2' : trade.phase?.phaseNumber >= 3 ? 'Funded' : `Phase ${trade.phase?.phaseNumber || 1}`}
+                                    {trade.phaseAccount ? (
+                                     trade.phaseAccount.phaseNumber >= 3 ? 'Funded' :
+                                     trade.phaseAccount.phaseNumber === 2 ? 'Phase 2' :
+                                     'Phase 1'
+                                   ) : 'Phase 1'}
                                   </Badge>
                                 </td>
                                 <td className="p-3 text-sm text-muted-foreground">
@@ -825,7 +829,7 @@ export default function AccountDetailPage() {
         <TabsContent value="payouts">
           <div className="space-y-6">
             {/* Payout Eligibility */}
-            {currentPhase.phaseNumber >= 3 && (
+            {realtimeAccount.currentPhase?.phaseNumber >= 3 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -898,7 +902,7 @@ export default function AccountDetailPage() {
                   <div className="text-center py-8">
                     <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <p className="text-muted-foreground">No payout history</p>
-                    {currentPhase.phaseNumber < 3 && (
+                    {realtimeAccount.currentPhase?.phaseNumber < 3 && (
                       <p className="text-sm text-muted-foreground mt-2">
                         Payouts are only available for funded accounts
                       </p>
@@ -1147,12 +1151,12 @@ export default function AccountDetailPage() {
           onClose={() => setShowTransitionDialog(false)}
           masterAccountId={accountId}
           currentPhase={{
-            phaseNumber: realtimeAccount.currentPhase || 1,
-            profitTargetPercent: realtimeAccount.phases.find(p => p.phaseNumber === realtimeAccount.currentPhase)?.profitTargetPercent || 0,
+            phaseNumber: realtimeAccount.currentPhase?.phaseNumber || 1,
+            profitTargetPercent: realtimeAccount.phases.find(p => p.phaseNumber === realtimeAccount.currentPhase?.phaseNumber)?.profitTargetPercent || 0,
             currentPnL: realtimeAccount.currentPnL || 0,
-            phaseId: realtimeAccount.phases.find(p => p.phaseNumber === realtimeAccount.currentPhase)?.phaseId || ''
+            phaseId: realtimeAccount.phases.find(p => p.phaseNumber === realtimeAccount.currentPhase?.phaseNumber)?.phaseId || ''
           }}
-          nextPhaseNumber={(realtimeAccount.currentPhase || 1) + 1}
+          nextPhaseNumber={(realtimeAccount.currentPhase?.phaseNumber || 1) + 1}
           propFirmName={realtimeAccount.propFirmName || 'Prop Firm'}
           accountName={realtimeAccount.accountName || 'Account'}
           onSuccess={() => {

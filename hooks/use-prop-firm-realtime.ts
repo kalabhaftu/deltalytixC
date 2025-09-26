@@ -1,14 +1,32 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useToast } from '@/hooks/use-toast'
+import { PropFirmAccount } from '@/types/prop-firm'
 
-interface PropFirmAccount {
+interface PropFirmAccountLocal {
   id: string
   accountName: string
   propFirmName: string
   accountSize: number
   evaluationType: string
-  currentPhase: number
+  currentPhase: {
+    id: string
+    phaseNumber: number
+    phaseId: string | null
+    status: 'active' | 'passed' | 'failed' | 'archived'
+    profitTargetPercent: number
+    dailyDrawdownPercent: number
+    maxDrawdownPercent: number
+    maxDrawdownType: string
+    minTradingDays: number
+    timeLimitDays: number | null
+    consistencyRulePercent: number
+    profitSplitPercent: number | null
+    payoutCycleDays: number | null
+    startDate: string
+    endDate: string | null
+  } | null
   isActive: boolean
+  status: string
   phases: Array<{
     id: string
     phaseNumber: number
@@ -52,7 +70,7 @@ interface UsePropFirmRealtimeOptions {
 }
 
 interface UsePropFirmRealtimeResult {
-  account: PropFirmAccount | null
+  account: PropFirmAccountLocal | null
   drawdown: DrawdownData | null
   isLoading: boolean
   error: string | null
@@ -65,7 +83,7 @@ export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePro
   const { accountId, pollInterval = 30000, enabled = true } = options
   const { toast } = useToast()
   
-  const [account, setAccount] = useState<PropFirmAccount | null>(null)
+  const [account, setAccount] = useState<PropFirmAccountLocal | null>(null)
   const [drawdown, setDrawdown] = useState<DrawdownData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -119,44 +137,59 @@ export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePro
         throw new Error(`Failed to fetch account data: ${response.status}`)
       }
 
-      const data = await response.json()
+      const responseData = await response.json()
 
-      // Handle both direct data response and wrapped response formats
-      if (data.account && data.drawdown) {
-        const accountData = data.account
-        const drawdownData = data.drawdown
+      // Handle wrapped response format (from API)
+      if (responseData.success && responseData.data) {
+        const data = responseData.data
 
-        // Check for status changes and show notifications
-        if (account && account.status !== accountData.status) {
-          if (accountData.status === 'failed') {
+        // Check if the expected format is available
+        if (data.account && data.drawdown) {
+          const accountData = data.account
+          const drawdownData = data.drawdown
+
+          // Check for status changes and show notifications
+          if (account && account.status !== accountData.status) {
+            if (accountData.status === 'failed') {
+              toast({
+                title: "Account Failed",
+                description: `Account ${accountData.accountName || accountData.number} has been marked as failed due to rule violations.`,
+                variant: "destructive"
+              })
+            } else if (accountData.status === 'funded') {
+              toast({
+                title: "Account Funded! 🎉",
+                description: `Congratulations! Account ${accountData.accountName || accountData.number} has been funded.`,
+                variant: "default"
+              })
+            }
+          }
+
+          // Check for breach alerts
+          if (drawdownData?.isBreached && (!drawdown || !drawdown.isBreached)) {
             toast({
-              title: "Account Failed",
-              description: `Account ${accountData.number} has been marked as failed due to rule violations.`,
+              title: "Drawdown Breach Alert!",
+              description: `Account ${accountData.accountName || accountData.number} has breached ${drawdownData.breachType?.replace('_', ' ')} limits.`,
               variant: "destructive"
             })
-          } else if (accountData.status === 'funded') {
-            toast({
-              title: "Account Funded! 🎉",
-              description: `Congratulations! Account ${accountData.number} has been funded.`,
-              variant: "default"
-            })
           }
-        }
 
-        // Check for breach alerts
-        if (drawdownData?.isBreached && (!drawdown || !drawdown.isBreached)) {
-          toast({
-            title: "Drawdown Breach Alert!",
-            description: `Account ${accountData.number} has breached ${drawdownData.breachType?.replace('_', ' ')} limits.`,
-            variant: "destructive"
-          })
+          setAccount(accountData)
+          setDrawdown(drawdownData)
+          setLastUpdated(new Date())
+        } else {
+          throw new Error(data.error || 'Invalid response format: missing account or drawdown data')
         }
+      } else if (responseData.account && responseData.drawdown) {
+        // Handle direct response format (fallback)
+        const accountData = responseData.account
+        const drawdownData = responseData.drawdown
 
         setAccount(accountData)
         setDrawdown(drawdownData)
         setLastUpdated(new Date())
       } else {
-        throw new Error(data.error || 'Failed to fetch account data')
+        throw new Error(responseData.error || 'Failed to fetch account data - invalid response format')
       }
 
     } catch (error) {

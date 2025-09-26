@@ -7,7 +7,7 @@ import { VisuallyHidden } from "@/components/ui/visually-hidden"
 import { useToast } from "@/hooks/use-toast"
 import { UploadIcon, type UploadIconHandle } from '@/components/animated-icons/upload'
 import { Trade } from '@prisma/client'
-import { saveTradesAction } from '@/server/database'
+import { saveAndLinkTrades } from '@/server/accounts'
 import ImportTypeSelection, { ImportType } from './import-type-selection'
 import FileUpload from './file-upload'
 import HeaderSelection from './header-selection'
@@ -72,6 +72,7 @@ export default function ImportButton() {
   const [mappings, setMappings] = useState<{ [key: string]: string }>({})
   const [accountNumber, setAccountNumber] = useState<string>('')
   const [newAccountNumber, setNewAccountNumber] = useState<string>('')
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState<boolean>(false)
   const [processedTrades, setProcessedTrades] = useState<Trade[]>([])
@@ -98,90 +99,29 @@ export default function ImportButton() {
       return
     }
 
+    // Require account selection for linking
+    if (!selectedAccountId) {
+      toast({
+        title: "Account Selection Required",
+        description: "Please select an account to link trades to before importing.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsSaving(true)
     
     try {
-      // Show processing indicator (auto-dismiss after 3 seconds)
+      // Show processing indicator
       toast({
         title: "Processing Trades",
-        description: "Checking for duplicates and saving trades...",
+        description: "Saving and linking trades to account...",
         duration: 3000,
       })
-      let newTrades: Trade[] = []
-          newTrades = processedTrades.map(trade => {
-            // Clean up the trade object to remove undefined values
-            const cleanTrade = Object.fromEntries(
-              Object.entries(trade).filter(([_, value]) => value !== undefined)
-            ) as Partial<Trade>
-            
-            return {
-              ...cleanTrade,
-              accountNumber: cleanTrade.accountNumber || accountNumber || newAccountNumber,
-              userId: currentUser.id,
-              id: generateTradeHash({ ...cleanTrade, userId: currentUser.id }),
-              // Ensure required fields have default values
-              instrument: cleanTrade.instrument || '',
-              entryPrice: cleanTrade.entryPrice || '',
-              closePrice: cleanTrade.closePrice || '',
-              entryDate: cleanTrade.entryDate || '',
-              closeDate: cleanTrade.closeDate || '',
-              quantity: cleanTrade.quantity ?? 0,
-              pnl: cleanTrade.pnl || 0,
-              timeInPosition: cleanTrade.timeInPosition || 0,
-              side: cleanTrade.side || '',
-              commission: cleanTrade.commission || 0,
-              entryId: cleanTrade.entryId || null,
-              closeId: cleanTrade.closeId || null,
-              comment: cleanTrade.comment || null,
-              videoUrl: cleanTrade.videoUrl || null,
-              tags: cleanTrade.tags || [],
-              imageBase64: cleanTrade.imageBase64 || null,
-              imageBase64Second: cleanTrade.imageBase64Second || null,
-              groupId: cleanTrade.groupId || null,
-              createdAt: cleanTrade.createdAt || new Date(),
-            } as Trade
-          })
-     
-          // Filter out empty trades
-          newTrades = newTrades.filter(trade => {
-            // Check if all required fields are present and not empty
-            return trade.accountNumber &&
-              trade.instrument &&
-              trade.quantity > 0 &&
-              (trade.entryPrice || trade.closePrice) &&
-              (trade.entryDate || trade.closeDate);
-          });
 
-      // Save trades with smart duplicate detection
-      const result = await saveTradesAction(newTrades)
-      if(result.error){
-        if (result.error === "DUPLICATE_TRADES") {
-          toast({
-            title: "All Trades Already Exist",
-            description: `All ${newTrades.length} trades were already imported and skipped.`,
-            variant: "destructive",
-          })
-        } else if (result.error === "NO_TRADES_ADDED") {
-          toast({
-             title: "No Trades Added",
-             description: "No new trades were found to import.",
-            variant: "destructive",
-          })
-        } else if (result.error === "DATABASE_ERROR") {
-          toast({
-            title: "Database Error",
-            description: (result.details as string) || "A database error occurred during import",
-            variant: "destructive",
-          })
-        } else {
-          toast({
-         title: "Import Failed",
-         description: "An error occurred while importing trades. Please try again.",
-            variant: "destructive",
-          })
-        }
-        return
-      }
+      // Atomic save and link operation
+      const result = await saveAndLinkTrades(selectedAccountId, processedTrades)
+
       // Close dialog immediately for better UX
       setIsOpen(false)
       
@@ -191,27 +131,18 @@ export default function ImportButton() {
       // Update the trades and wait for completion
       await refreshTrades()
       
-      // Show detailed success message with duplicate information
-      const details = result.details as any
-      if (details && typeof details === 'object' && details.duplicatesSkipped > 0) {
-        toast({
-          title: "Import Completed",
-          description: `Added ${details.newTradesAdded} new trades, skipped ${details.duplicatesSkipped} duplicates`,
-          duration: 5000,
-        })
-      } else {
-        toast({
-          title: "Import Successful",
-          description: `Successfully imported ${result.numberOfTradesAdded} trades`,
-          duration: 5000,
-        })
-      }
+      // Show success message
+      toast({
+        title: "Import Successful",
+        description: `Successfully imported and linked ${result.linkedCount} trades to ${result.accountName}`,
+        duration: 5000,
+      })
 
     } catch (error) {
-      console.error('Error saving trades:', error)
+      console.error('Error in save and link trades:', error)
       toast({
          title: "Import Failed",
-         description: "An error occurred while importing trades. Please try again.",
+         description: error instanceof Error ? error.message : "An error occurred while importing trades. No trades were saved.",
         variant: "destructive",
       })
     } finally {
@@ -228,6 +159,7 @@ export default function ImportButton() {
     setMappings({})
     setAccountNumber('')
     setNewAccountNumber('')
+    setSelectedAccountId('')
     setProcessedTrades([])
     setError(null)
   }
@@ -333,6 +265,8 @@ export default function ImportButton() {
         <Component
           accountNumber={accountNumber}
           setAccountNumber={setAccountNumber}
+          selectedAccountId={selectedAccountId}
+          setSelectedAccountId={setSelectedAccountId}
         />
       )
     }
@@ -411,8 +345,8 @@ export default function ImportButton() {
     // PDF upload step
     if (currentStep.component === PdfUpload && text.length === 0) return true
     
-    // Account selection for platforms
-    if (currentStep.component === AccountSelection && !accountNumber && !newAccountNumber) return true
+    // Account selection for platforms - require account ID for linking
+    if (currentStep.component === AccountSelection && !selectedAccountId) return true
 
     return false
   }

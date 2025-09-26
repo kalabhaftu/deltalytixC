@@ -95,7 +95,7 @@ export interface ExtendedTrade extends Trade {
   comment: string | null
   videoUrl: string | null
   trades: ExtendedTrade[]
-  phaseId?: string | null // field doesn't exist on Trade model
+  // phaseId field removed - use phaseAccountId in new system
   accountId: string | null
   strategy: string | null
   stopLoss?: string | null
@@ -290,7 +290,7 @@ export function TradeTableReview() {
           tags: trade.tags,
           imageBase64: trade.imageBase64,
           imageBase64Second: trade.imageBase64Second,
-          // phaseId: trade.phaseId ?? null, // field doesn't exist
+          // phaseId field removed - use phaseAccountId in new system
           accountId: trade.accountId ?? null,
           strategy: trade.strategy ?? null,
           imageBase64Third: trade.imageBase64Third ?? null,

@@ -92,6 +92,9 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         } as Trade
       })
 
+      // Note: We now allow unlinked trades to be saved first, then linked in a separate step
+      // This validation is removed to support the save-then-link flow
+
       const userId = cleanedData[0]?.userId
       if (!userId) {
         return {

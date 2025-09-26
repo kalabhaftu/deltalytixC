@@ -147,7 +147,7 @@ export default function PdfProcessing({
         timeInPosition: trade.timeInPosition,
         userId: '', // Will be set when saving
         side: trade.side || '',
-        phaseAccountId: null,
+        phaseAccountId: null, // Will be set by automatic linking during save
         commission: Math.abs(trade.commission || 0),
         createdAt: new Date(),
         comment: null,

@@ -3,36 +3,43 @@ const prisma = new PrismaClient();
 
 async function processNewTradesAndEvaluate() {
   try {
-    console.log('🔄 Processing new trades and evaluating account...');
+    console.log('🔄 Processing new trades and evaluating MasterAccount/PhaseAccount...');
     
-    // Get the account
-    const account = await prisma.account.findFirst({
-      where: { id: '520960bc-4304-4ae7-9d4a-bdea73d5bd25' },
+    // NOTE: Update this ID to match your actual MasterAccount ID
+    const masterAccountId = '520960bc-4304-4ae7-9d4a-bdea73d5bd25';
+    
+    // Get the master account with active phase
+    const masterAccount = await prisma.masterAccount.findFirst({
+      where: { id: masterAccountId },
       include: {
         phases: {
-          where: { phaseStatus: 'active' },
-          orderBy: { createdAt: 'desc' },
+          where: { status: 'active' },
+          orderBy: { phaseNumber: 'asc' },
           take: 1
         }
       }
     });
     
-    if (!account) {
-      console.log('❌ Account not found');
+    if (!masterAccount) {
+      console.log('❌ MasterAccount not found');
       return;
     }
     
-    const currentPhase = account.phases[0];
+    const currentPhase = masterAccount.phases[0];
     if (!currentPhase) {
       console.log('❌ No active phase found');
       return;
     }
     
-    // Get unlinked trades
+    console.log(`📋 Processing account: ${masterAccount.accountName}`);
+    console.log(`📍 Current Phase: ${currentPhase.phaseNumber} (${currentPhase.phaseId || 'No ID'})`);
+    
+    // Get unlinked trades (trades without phaseAccountId)
     const unlinkedTrades = await prisma.trade.findMany({
       where: { 
-        accountNumber: account.number,
-        accountId: null
+        // Match by account number from phase ID or look for trades that need linking
+        accountNumber: currentPhase.phaseId || masterAccount.accountName,
+        phaseAccountId: null
       },
       orderBy: { entryDate: 'asc' }
     });
@@ -44,13 +51,12 @@ async function processNewTradesAndEvaluate() {
       return;
     }
     
-    // Link trades to current phase
+    // Link trades to current phase using NEW phaseAccountId field
     for (const trade of unlinkedTrades) {
       await prisma.trade.update({
         where: { id: trade.id },
         data: {
-          accountId: account.id,
-          phaseId: currentPhase.id,
+          phaseAccountId: currentPhase.id,  // ✅ NEW: Use phaseAccountId instead of phaseId
           symbol: trade.instrument,
           realizedPnl: trade.pnl,
           fees: trade.commission || 0,
@@ -60,35 +66,36 @@ async function processNewTradesAndEvaluate() {
       });
     }
     
-    console.log('🔗 Linked', unlinkedTrades.length, 'trades to Phase 2');
+    console.log(`🔗 Linked ${unlinkedTrades.length} trades to Phase ${currentPhase.phaseNumber}`);
     
     // Calculate new metrics
     const totalNewPnL = unlinkedTrades.reduce((sum, trade) => sum + trade.pnl, 0);
-    const currentBalance = currentPhase.currentBalance;
-    const newBalance = currentBalance + totalNewPnL;
+    const currentEquity = masterAccount.accountSize + totalNewPnL;
     
     console.log('💰 Financial Impact:');
-    console.log('  - Previous Balance:', currentBalance);
+    console.log('  - Account Size:', masterAccount.accountSize);
     console.log('  - New Trades P&L:', totalNewPnL.toFixed(2));
-    console.log('  - New Balance:', newBalance.toFixed(2));
+    console.log('  - Current Equity:', currentEquity.toFixed(2));
     
-    // Check drawdown rules for Phase 2
-    const dailyDDLimit = account.startingBalance * 0.04; // 4% = $200
-    const maxDDLimit = account.startingBalance * 0.08;   // 8% = $400
+    // Calculate drawdown limits from phase rules
+    const dailyDDLimit = (currentPhase.dailyDrawdownPercent / 100) * masterAccount.accountSize;
+    const maxDDLimit = (currentPhase.maxDrawdownPercent / 100) * masterAccount.accountSize;
     
-    const dailyLoss = Math.abs(totalNewPnL); // Assuming all losses in one day
-    const totalLossFromStart = account.startingBalance - newBalance;
+    // For failure-first evaluation, check drawdowns first
+    const dailyLoss = totalNewPnL < 0 ? Math.abs(totalNewPnL) : 0;
+    const totalDrawdown = masterAccount.accountSize - currentEquity;
     
-    console.log('⚖️  Drawdown Analysis:');
-    console.log('  - Daily DD Limit:', dailyDDLimit);
+    console.log('⚖️  Drawdown Analysis (FAILURE-FIRST):');
+    console.log('  - Daily DD Limit:', dailyDDLimit.toFixed(2));
     console.log('  - Daily Loss:', dailyLoss.toFixed(2));
-    console.log('  - Max DD Limit:', maxDDLimit);  
-    console.log('  - Total Loss from Start:', totalLossFromStart.toFixed(2));
+    console.log('  - Max DD Limit:', maxDDLimit.toFixed(2));  
+    console.log('  - Total Drawdown:', totalDrawdown.toFixed(2));
     
     let accountFailed = false;
     let breachType = null;
     let breachAmount = 0;
     
+    // FAILURE-FIRST: Check drawdown breaches before profit targets
     if (dailyLoss > dailyDDLimit) {
       console.log('🚨 DAILY DRAWDOWN BREACH DETECTED!');
       accountFailed = true;
@@ -96,64 +103,52 @@ async function processNewTradesAndEvaluate() {
       breachAmount = dailyLoss;
     }
     
-    if (totalLossFromStart > maxDDLimit) {
+    if (totalDrawdown > maxDDLimit) {
       console.log('🚨 MAX DRAWDOWN BREACH DETECTED!');
       accountFailed = true;
       if (!breachType) { // Only set if not already set
         breachType = 'max_drawdown';
-        breachAmount = totalLossFromStart;
+        breachAmount = totalDrawdown;
       }
     }
     
     if (accountFailed) {
       console.log('💀 ACCOUNT FAILED - Updating status...');
       
-      // Mark account as failed
-      await prisma.account.update({
-        where: { id: account.id },
-        data: { status: 'failed' }
+      // Mark master account as inactive
+      await prisma.masterAccount.update({
+        where: { id: masterAccount.id },
+        data: { isActive: false }
       });
       
       // Mark current phase as failed
-      await prisma.accountPhase.update({
+      await prisma.phaseAccount.update({
         where: { id: currentPhase.id },
         data: { 
-          phaseStatus: 'failed',
-          phaseEndAt: new Date(),
-          currentEquity: newBalance,
-          currentBalance: newBalance,
-          netProfitSincePhaseStart: totalNewPnL
+          status: 'failed',
+          endDate: new Date()
         }
       });
       
-      // Record the breach
-      await prisma.breach.create({
-        data: {
-          accountId: account.id,
-          phaseId: currentPhase.id,
-          breachType: breachType,
-          breachAmount: breachAmount,
-          breachThreshold: breachType === 'daily_drawdown' ? dailyDDLimit : maxDDLimit,
-          equity: newBalance,
-          breachTime: new Date(),
-          description: `${breachType} breach: ${breachAmount.toFixed(2)} exceeds ${breachType === 'daily_drawdown' ? dailyDDLimit : maxDDLimit}`
-        }
-      });
-      
-      console.log('✅ Account marked as FAILED due to', breachType, 'breach');
+      console.log(`✅ Account marked as FAILED due to ${breachType} breach`);
       
     } else {
-      // Update phase metrics (no breach)
-      await prisma.accountPhase.update({
-        where: { id: currentPhase.id },
-        data: {
-          currentEquity: newBalance,
-          currentBalance: newBalance,
-          netProfitSincePhaseStart: currentPhase.netProfitSincePhaseStart + totalNewPnL
-        }
-      });
+      console.log('✅ No drawdown breaches detected, account remains active');
       
-      console.log('✅ Updated phase metrics, account still active');
+      // Check if profit target met for advancement
+      const profitTargetAmount = (currentPhase.profitTargetPercent / 100) * masterAccount.accountSize;
+      const currentProfit = currentEquity - masterAccount.accountSize;
+      
+      if (currentProfit >= profitTargetAmount) {
+        console.log('🎯 PROFIT TARGET REACHED! Ready for phase advancement');
+        console.log(`  - Target: ${profitTargetAmount.toFixed(2)}`);
+        console.log(`  - Achieved: ${currentProfit.toFixed(2)}`);
+      } else {
+        console.log('📈 Progress towards profit target:');
+        console.log(`  - Target: ${profitTargetAmount.toFixed(2)}`);
+        console.log(`  - Current: ${currentProfit.toFixed(2)}`);
+        console.log(`  - Progress: ${((currentProfit / profitTargetAmount) * 100).toFixed(1)}%`);
+      }
     }
     
     console.log('🎉 Evaluation completed successfully!');

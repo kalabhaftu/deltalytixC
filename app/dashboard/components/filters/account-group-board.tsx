@@ -126,6 +126,20 @@ export function AccountGroupBoard() {
         
         // Create a minimal account object with default values and groupId if specified
         const accountData = {
+          id: `account-${Date.now()}`, // Generate a temporary ID
+          userId: user.id,
+          accountNumber: account.number,
+          accountName: `Account ${account.number}`,
+          broker: 'propfirm',
+          accountType: 'live' as const,
+          currency: 'USD',
+          balance: 0,
+          equity: 0,
+          margin: 0,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          resetDate: null,
           number: account.number,
           propfirm: '',
           startingBalance: 0,
@@ -133,7 +147,7 @@ export function AccountGroupBoard() {
           drawdownThreshold: 0,
           consistencyPercentage: 30,
           groupId: groupId || null,
-        } as Account
+        } as unknown as Account
         
         await saveAccount(accountData)
         return

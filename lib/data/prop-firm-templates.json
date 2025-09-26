@@ -270,7 +270,7 @@
             "profitTargetPercent": 8,
             "maxDrawdownPercent": 8,
             "maxDrawdownType": "static",
-            "dailyDrawdownPercent": 5,
+            "dailyDrawdownPercent": 4,
             "minTradingDays": 0,
             "timeLimitDays": null
           },
@@ -278,14 +278,14 @@
             "profitTargetPercent": 5,
             "maxDrawdownPercent": 8,
             "maxDrawdownType": "static",
-            "dailyDrawdownPercent": 5,
+            "dailyDrawdownPercent": 4,
             "minTradingDays": 0,
             "timeLimitDays": null
           },
           "funded": {
             "maxDrawdownPercent": 8,
             "maxDrawdownType": "static",
-            "dailyDrawdownPercent": 5,
+            "dailyDrawdownPercent": 4,
             "profitSplitPercent": 80
           }
         }

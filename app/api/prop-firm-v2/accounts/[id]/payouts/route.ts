@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { getUserId } from '@/server/auth-utils'
-import { PropFirmEngine } from '@/lib/prop-firm/prop-firm-engine'
+// PropFirmEngine removed - payout system will be rewritten for new architecture
 import { z } from 'zod'
 
 const prisma = new PrismaClient()
@@ -97,14 +97,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     })
     
-    // Calculate current payout eligibility
-    let payoutEligibility = null
-    if (fundedPhase) {
-      payoutEligibility = PropFirmEngine.calculatePayoutEligibility(
-        account as any,
-        fundedPhase as any,
-        payouts
-      )
+    // Payout eligibility calculation disabled - will be rewritten for new system
+    const payoutEligibility = {
+      isEligible: false,
+      reasons: ['Payout system is being rewritten for the new MasterAccount/PhaseAccount architecture'],
+      nextPayoutDate: null,
+      daysUntilNextPayout: null,
+      maxPayoutAmount: 0,
+      availableProfit: 0
     }
     
     // Calculate summary statistics
@@ -209,12 +209,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Get existing payouts - Disabled until payout system is rebuilt for new architecture
     const existingPayouts: any[] = []
     
-    // Calculate payout eligibility
-    const eligibility = PropFirmEngine.calculatePayoutEligibility(
-      account as any,
-      fundedPhase as any,
-      existingPayouts
-    )
+    // Payout eligibility calculation disabled - will be rewritten for new system
+    const eligibility = {
+      isEligible: false,
+      reasons: ['Payout system is being rewritten for the new MasterAccount/PhaseAccount architecture'],
+      nextPayoutDate: null,
+      daysUntilNextPayout: null,
+      maxPayoutAmount: 0,
+      availableProfit: 0
+    }
     
     if (!eligibility.isEligible) {
       return NextResponse.json(

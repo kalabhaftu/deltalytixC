@@ -53,38 +53,36 @@ export interface PropFirmAccount extends DatabaseRecord {
   fundedResetBalance?: number
 
   // Relations
-  phases?: AccountPhase[]
-  currentPhase?: AccountPhase
+  phases?: PhaseAccount[]
+  currentPhase?: PhaseAccount
   breaches?: Breach[]
   dailyAnchors?: DailyAnchor[]
   recentEquitySnapshots?: EquitySnapshot[]
 }
 
-/**
- * Account Phase Management
- */
-export interface AccountPhase extends DatabaseRecord {
-  accountId: string
-  phaseType: PhaseType
-  phaseStatus: PhaseStatus
-  profitTarget?: number
-  phaseStartAt: Date
-  phaseEndAt?: Date
-  
-  // Running stats snapshot for fast rendering
-  currentEquity: number
-  currentBalance: number
-  netProfitSincePhaseStart: number
-  highestEquitySincePhaseStart: number
-  totalTrades: number
-  winningTrades: number
-  totalCommission: number
-  
-  // Relations
-  account?: PropFirmAccount
-  trades?: PropFirmTrade[]
-  breaches?: Breach[]
-  equitySnapshots?: EquitySnapshot[]
+// PhaseAccount interface for the new MasterAccount/PhaseAccount system
+export interface PhaseAccount {
+  id: string
+  masterAccountId: string
+  phaseNumber: number
+  phaseId: string | null
+  status: 'active' | 'passed' | 'failed' | 'archived'
+
+  // Rules
+  profitTargetPercent: number
+  dailyDrawdownPercent: number
+  maxDrawdownPercent: number
+  maxDrawdownType: string
+  minTradingDays: number
+  timeLimitDays: number | null
+  consistencyRulePercent: number
+
+  // Payout config
+  profitSplitPercent: number | null
+  payoutCycleDays: number | null
+
+  startDate: Date
+  endDate: Date | null
 }
 
 /**
@@ -117,10 +115,12 @@ export interface PropFirmTrade extends DatabaseRecord {
   exitTime?: Date
   equityAtOpen?: number
   equityAtClose?: number
+  phaseAccountId?: string
+  phaseAccount?: PhaseAccount
   rawBrokerId?: string
   
   // Relations
-  phase?: AccountPhase
+  phase?: PhaseAccount
   account?: PropFirmAccount
 }
 
@@ -162,7 +162,7 @@ export interface Breach extends DatabaseRecord {
   
   // Relations
   account?: PropFirmAccount
-  phase?: AccountPhase
+  phase?: PhaseAccount
 }
 
 /**
@@ -191,7 +191,7 @@ export interface EquitySnapshot extends DatabaseRecord {
   
   // Relations
   account?: PropFirmAccount
-  phase?: AccountPhase
+  phase?: PhaseAccount
 }
 
 /**
@@ -210,8 +210,8 @@ export interface AccountTransition extends DatabaseRecord {
   
   // Relations
   account?: PropFirmAccount
-  fromPhase?: AccountPhase
-  toPhase?: AccountPhase
+  fromPhase?: PhaseAccount
+  toPhase?: PhaseAccount
 }
 
 /**
@@ -229,7 +229,7 @@ export interface DrawdownCalculation {
 }
 
 export interface PhaseProgress {
-  currentPhase: AccountPhase
+  currentPhase: PhaseAccount
   profitProgress: number
   profitTarget?: number
   daysInPhase: number
@@ -255,7 +255,7 @@ export interface PayoutEligibility {
  */
 export interface AccountDashboardData {
   account: PropFirmAccount
-  currentPhase: AccountPhase
+  currentPhase: PhaseAccount
   drawdown: DrawdownCalculation
   progress: PhaseProgress
   payoutEligibility?: PayoutEligibility
@@ -335,7 +335,7 @@ export interface ResetAccountRequest {
 
 export interface AccountStatsResponse {
   account: PropFirmAccount
-  phases: AccountPhase[]
+  phases: PhaseAccount[]
   totalTrades: number
   totalPnl: number
   winRate: number

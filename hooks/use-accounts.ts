@@ -49,12 +49,23 @@ let lastFetchTime = 0
 const CACHE_DURATION = 30000 // 30 seconds - balanced approach for performance and freshness
 let isCurrentlyFetching = false // Prevent multiple simultaneous requests
 
-// Function to clear cache when accounts are deleted
-export function clearAccountsCache() {
+// Enhanced cache invalidation system
+const cacheInvalidationTags = new Set<string>()
+
+// Critical actions that should invalidate cache
+export function invalidateAccountsCache(reason?: string) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[CACHE] Invalidating accounts cache${reason ? `: ${reason}` : ''}`)
+  }
   accountsCache = null
   accountsPromise = null
   lastFetchTime = 0
-  isCurrentlyFetching = false // Also reset fetching flag
+  cacheInvalidationTags.clear()
+}
+
+// Function to clear cache when accounts are deleted (legacy compatibility)
+export function clearAccountsCache() {
+  invalidateAccountsCache('legacy clearAccountsCache called')
 }
 
 

@@ -266,7 +266,7 @@ export function VirtualizedTradeTable({
             Showing {data.length.toLocaleString()} of {total.toLocaleString()} trades
           </div>
           <div>
-            Scroll or click "Load More" to see additional trades
+            Scroll or click &quot;Load More&quot; to see additional trades
           </div>
         </div>
       )}

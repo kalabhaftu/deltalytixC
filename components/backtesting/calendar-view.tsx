@@ -103,6 +103,8 @@ export function CalendarView({ calendarData, monthlyStats, className }: Calendar
   }
 
   const handleScreenshot = async () => {
+    let loadingToastId: string | number | null = null
+
     try {
       let elementToCapture: HTMLElement
       let filename: string
@@ -117,6 +119,9 @@ export function CalendarView({ calendarData, monthlyStats, className }: Calendar
         // Capture just the calendar
         elementToCapture = document.querySelector('[data-calendar="calendar-view"]') as HTMLElement
         if (!elementToCapture) {
+          if (loadingToastId) {
+            toast.dismiss(loadingToastId)
+          }
           toast.error("Screenshot failed", {
             description: "Could not find calendar element to capture.",
             duration: 4000,
@@ -127,10 +132,9 @@ export function CalendarView({ calendarData, monthlyStats, className }: Calendar
         description = `Trading calendar for ${format(currentDate, 'MMMM yyyy')} has been downloaded.`
       }
 
-      // Show loading toast
-      toast.loading("Taking screenshot...", {
+      // Show loading toast and store the toast ID for dismissal
+      loadingToastId = toast.loading("Taking screenshot...", {
         description: "Please wait while we capture the content.",
-        duration: 3000,
       })
 
       // Use html2canvas to capture the element
@@ -169,6 +173,10 @@ export function CalendarView({ calendarData, monthlyStats, className }: Calendar
           // Clean up
           URL.revokeObjectURL(url)
 
+          // Dismiss the loading toast and show success
+          if (loadingToastId) {
+            toast.dismiss(loadingToastId)
+          }
           toast.success("Screenshot saved!", {
             description: description,
             duration: 4000,
@@ -180,6 +188,11 @@ export function CalendarView({ calendarData, monthlyStats, className }: Calendar
 
     } catch (error) {
       console.error('Screenshot failed:', error)
+
+      // Dismiss the loading toast and show error
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId)
+      }
       toast.error("Screenshot failed", {
         description: screenshotScope === 'page'
           ? "Could not capture dashboard screenshot. Please try again."

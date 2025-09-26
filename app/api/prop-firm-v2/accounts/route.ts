@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { getUserId } from '@/server/auth-utils'
 import { z } from 'zod'
+import { revalidateTag } from 'next/cache'
+import { validatePhaseId } from '@/lib/validation/phase-id-validator'
 
 const prisma = new PrismaClient()
 
@@ -60,6 +62,19 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const validatedData = CreateMasterAccountSchema.parse(body)
+
+    // ENHANCED: Validate Phase ID to prevent duplicates
+    const phaseIdValidation = await validatePhaseId(userId, validatedData.phase1AccountId)
+    if (!phaseIdValidation.isValid) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: phaseIdValidation.error,
+          conflictingAccount: phaseIdValidation.conflictingAccount
+        },
+        { status: 400 }
+      )
+    }
 
     // Create master account and initial phase in a transaction
     // Increased timeout to handle network latency issues
@@ -159,6 +174,9 @@ export async function POST(request: NextRequest) {
       maxWait: 20000  // Maximum wait time for transaction to start
     })
 
+    // Invalidate accounts cache after successful creation
+    revalidateTag(`accounts-${userId}`)
+    
     return NextResponse.json({
       success: true,
       data: result
