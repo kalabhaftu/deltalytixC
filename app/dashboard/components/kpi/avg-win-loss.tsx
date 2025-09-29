@@ -41,7 +41,7 @@ export default function AvgWinLoss({ size }: AvgWinLossProps) {
   }
 
   return (
-    <Card className="w-full h-20 border-0 shadow-sm bg-white dark:bg-gray-950">
+    <Card className="w-full h-20 border border-border/20 shadow-sm bg-white dark:bg-gray-900">
       <CardContent className="p-4 h-full flex flex-col justify-center">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs text-muted-foreground font-medium">

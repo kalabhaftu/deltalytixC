@@ -47,6 +47,10 @@ const DashboardSidebar = dynamic(() =>
 // Dynamic imports for heavy dependencies
 import { motion, AnimatePresence } from 'framer-motion'
 
+const TemplateSelector = dynamic(() => import('./components/template-selector'), {
+  ssr: false
+})
+
 export default function Home() {
   const mainRef = useRef<HTMLElement>(null)
   const [activeTab, setActiveTab] = useState('widgets')
@@ -278,6 +282,9 @@ export default function Home() {
           transition={{ duration: 0.5 }}
         >
           <div className="flex flex-1 flex-col w-full">
+            {/* Template Selector - Below navbar */}
+            <TemplateSelector className="border-b border-border/50" />
+            
             <AnimatePresence mode="wait">
               {renderContent()}
             </AnimatePresence>

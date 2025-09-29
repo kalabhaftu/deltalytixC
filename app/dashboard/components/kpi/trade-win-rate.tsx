@@ -25,7 +25,7 @@ export default function TradeWinRate({ size }: TradeWinRateProps) {
   }
 
   return (
-    <Card className="w-full h-20 border-0 shadow-sm bg-white dark:bg-gray-950">
+    <Card className="w-full h-20 border border-border/20 shadow-sm bg-white dark:bg-gray-900">
       <CardContent className="p-4 h-full flex items-center justify-between">
         <div className="flex flex-col">
           <div className="flex items-center gap-2 mb-2">
