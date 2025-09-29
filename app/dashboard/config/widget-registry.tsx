@@ -3,8 +3,15 @@ import { WidgetType, WidgetSize } from '../types/dashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { WidgetErrorBoundary } from '@/components/error-boundary'
 
-// Calendar component (only remaining widget)
+// Calendar component
 import CalendarPnl from '../components/calendar/calendar-widget'
+
+// KPI components
+import AccountBalancePnl from '../components/kpi/account-balance-pnl'
+import TradeWinRate from '../components/kpi/trade-win-rate'
+import DayWinRate from '../components/kpi/day-win-rate'
+import ProfitFactor from '../components/kpi/profit-factor'
+import AvgWinLoss from '../components/kpi/avg-win-loss'
 
 export interface WidgetConfig {
   type: WidgetType
@@ -67,6 +74,51 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     previewHeight: 500,
     getComponent: () => <CalendarPnl />,
     getPreview: () => <CreateCalendarPreview />
+  },
+  accountBalancePnl: {
+    type: 'accountBalancePnl',
+    defaultSize: 'kpi',
+    allowedSizes: ['kpi'],
+    category: 'statistics',
+    previewHeight: 80,
+    getComponent: ({ size }) => <AccountBalancePnl size={size} />,
+    getPreview: () => <AccountBalancePnl size="kpi" />
+  },
+  tradeWinRate: {
+    type: 'tradeWinRate',
+    defaultSize: 'kpi',
+    allowedSizes: ['kpi'],
+    category: 'statistics',
+    previewHeight: 80,
+    getComponent: ({ size }) => <TradeWinRate size={size} />,
+    getPreview: () => <TradeWinRate size="kpi" />
+  },
+  dayWinRate: {
+    type: 'dayWinRate',
+    defaultSize: 'kpi',
+    allowedSizes: ['kpi'],
+    category: 'statistics',
+    previewHeight: 80,
+    getComponent: ({ size }) => <DayWinRate size={size} />,
+    getPreview: () => <DayWinRate size="kpi" />
+  },
+  profitFactor: {
+    type: 'profitFactor',
+    defaultSize: 'kpi',
+    allowedSizes: ['kpi'],
+    category: 'statistics',
+    previewHeight: 80,
+    getComponent: ({ size }) => <ProfitFactor size={size} />,
+    getPreview: () => <ProfitFactor size="kpi" />
+  },
+  avgWinLoss: {
+    type: 'avgWinLoss',
+    defaultSize: 'kpi',
+    allowedSizes: ['kpi'],
+    category: 'statistics',
+    previewHeight: 80,
+    getComponent: ({ size }) => <AvgWinLoss size={size} />,
+    getPreview: () => <AvgWinLoss size="kpi" />
   },
 }
 

@@ -1,4 +1,10 @@
-export type WidgetType = 'calendarWidget'
+export type WidgetType = 
+  | 'calendarWidget'
+  | 'accountBalancePnl'
+  | 'tradeWinRate'
+  | 'dayWinRate'
+  | 'profitFactor'
+  | 'avgWinLoss'
 export type WidgetSize = 'tiny' | 'small' | 'small-long' | 'medium' | 'large' | 'extra-large' | 'kpi'
 
 export interface LayoutItem {
