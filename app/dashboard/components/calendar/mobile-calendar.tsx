@@ -189,7 +189,9 @@ export default function MobileCalendarPnl({ calendarData }: { calendarData: Cale
                   "relative flex items-center justify-center",
                   !isCurrentMonthDay && "opacity-30" // Fade based on timezone-correct check
                 )}
-                onClick={() => setSelectedDate(dateInTZ)} // Pass the Date object parsed in the target timezone
+                onClick={() => {
+                  // Click functionality disabled - calendar UI preserved for future use
+                }}
               >
                 {dayData && (
                   <svg

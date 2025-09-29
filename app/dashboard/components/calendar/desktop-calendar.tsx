@@ -331,7 +331,7 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
                         isToday(date) && "border-blue-500 bg-blue-500/5 ring-1 ring-blue-500/20",
                       )}
                       onClick={() => {
-                        setSelectedDate(date)
+                        // Click functionality disabled - calendar UI preserved for future use
                       }}
                     >
                       <div className="flex justify-between items-start gap-0.5">
@@ -402,7 +402,9 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
                                 ? "bg-red-50/60 dark:bg-red-950/30 border-red-100/80 dark:border-red-900/40"
                                 : "bg-card border-border"
                           )}
-                          onClick={() => setSelectedWeekDate(date)}
+                          onClick={() => {
+                            // Click functionality disabled - calendar UI preserved for future use
+                          }}
                         >
                           <div className={cn(
                             "text-[9px] sm:text-[11px] font-semibold truncate px-0.5",
