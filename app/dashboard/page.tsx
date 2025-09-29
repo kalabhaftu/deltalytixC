@@ -270,8 +270,8 @@ export default function Home() {
             isMobile ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-64"
           )}
           style={{
-            paddingTop: `var(--navbar-height, 64px)`,
-            minHeight: `calc(100vh - var(--navbar-height, 64px))`
+            paddingTop: `var(--navbar-height, 48px)`,
+            minHeight: `calc(100vh - var(--navbar-height, 48px))`
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

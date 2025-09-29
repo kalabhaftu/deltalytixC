@@ -22,7 +22,6 @@ import { AddWidgetSheet } from './add-widget-sheet'
 import { FilterDropdown } from './filters/filter-dropdown'
 
 import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts'
-import ImprovedDatePicker from './filters/improved-date-picker'
 import { motion } from 'framer-motion'
 
 import {
@@ -252,7 +251,7 @@ export default function Navbar() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
-        <div className="flex items-center justify-between px-6 h-16">
+        <div className="flex items-center justify-between px-6 h-12">
           <div className="flex items-center gap-3">
             <div className="flex flex-col items-center">
               <Popover open={isLogoPopoverOpen} onOpenChange={setIsLogoPopoverOpen}>
@@ -294,7 +293,6 @@ export default function Navbar() {
           <div className="flex items-center gap-4">
             <div className='flex gap-2 md:gap-4'>
               <div className='hidden sm:block'>
-                <ImprovedDatePicker />
               </div>
               <div className='hidden md:block'>
                 <ImportButton />
@@ -406,7 +404,7 @@ export default function Navbar() {
                     </DropdownMenuItem>
                     
                     
-                    <DropdownMenuItem onClick={() => addWidgetSheetRef.current?.click()} className="hover:bg-accent/80 transition-colors duration-200">
+                    <DropdownMenuItem onClick={() => {}} className="hover:bg-accent/80 transition-colors duration-200 opacity-50 cursor-not-allowed">
                       <Plus className="mr-2 h-4 w-4" />
                       <span>Add Widget</span>
                       <DropdownMenuShortcut>⌘A</DropdownMenuShortcut>
@@ -438,15 +436,10 @@ export default function Navbar() {
           </div>
         </div>
       </motion.nav>
-      <div className="h-[76px]" />
+      <div className="h-[48px]" />
       
       {/* Hidden components for programmatic triggering */}
         <div className="hidden">
-          <AddWidgetSheet
-            ref={addWidgetSheetRef}
-            onAddWidget={addWidget}
-            isCustomizing={isCustomizing}
-          />
           <FilterDropdown ref={filterDropdownRef} />
         </div>
     </>

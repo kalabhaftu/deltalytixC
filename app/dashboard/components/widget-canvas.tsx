@@ -1210,7 +1210,7 @@ export default function WidgetCanvas() {
 
   return (
     <div className={cn(
-      "relative mt-6 w-full min-h-screen pb-6"
+      "relative mt-0 w-full min-h-screen pb-6"
     )}>
       {/* Toolbar removed - functionality moved to user profile dropdown */}
       {layouts ? (
@@ -1338,7 +1338,7 @@ export default function WidgetCanvas() {
         </div>
       ) : layoutInitialized ? (
         // Show empty state only after layout is initialized but empty
-        <div className="flex items-center justify-center h-64 mt-6">
+        <div className="flex items-center justify-center h-64 mt-0">
           <div className="text-center">
             <p className="text-muted-foreground mb-4">No widgets configured</p>
             <Button onClick={() => addWidget('statisticsWidget' as WidgetType)} variant="outline">
@@ -1348,7 +1348,7 @@ export default function WidgetCanvas() {
         </div>
       ) : (
         // Show loading state while layout is being initialized
-        <div className="flex items-center justify-center h-64 mt-6">
+        <div className="flex items-center justify-center h-64 mt-0">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Loading dashboard...</p>
