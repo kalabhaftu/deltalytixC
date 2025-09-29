@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 
 // Middleware for authentication and routing
 const protectedRoutes = ["/dashboard", "/profile", "/settings", "/api/trades", "/api/settings"]
-const publicRoutes = ["/", "/authentication", "/not-found", "/api/auth"]
+const publicRoutes = ["/", "/not-found", "/api/auth"]
 
 export default async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
@@ -33,8 +33,8 @@ export default async function middleware(req: NextRequest) {
     pathname === route || pathname.startsWith(route + "/")
   )
 
-  // If user is authenticated and trying to access auth page, redirect to dashboard
-  if (isPublicRoute && pathname === '/authentication') {
+  // If user is authenticated and trying to access root page, redirect to dashboard
+  if (isPublicRoute && pathname === '/') {
     try {
       const cookieStore = await cookies()
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -138,7 +138,7 @@ export default async function middleware(req: NextRequest) {
         if (error || !user) {
           console.log('Middleware: User not authenticated, redirecting to auth')
           // User not authenticated, redirect to authentication
-          const authUrl = new URL('/authentication', req.url)
+          const authUrl = new URL('/', req.url)
           authUrl.searchParams.set('next', pathname)
           return NextResponse.redirect(authUrl)
         }
@@ -162,7 +162,7 @@ export default async function middleware(req: NextRequest) {
         }
 
         // Other errors - redirect to auth
-        const authUrl = new URL('/authentication', req.url)
+        const authUrl = new URL('/', req.url)
         authUrl.searchParams.set('next', pathname)
         return NextResponse.redirect(authUrl)
       }

@@ -124,7 +124,7 @@ function TopBanner() {
           </div>
           <div className="flex items-center gap-x-2 sm:gap-x-4 pb-2 sm:pb-0">
 
-            <Link href="/authentication" className="flex-1 sm:flex-none">
+            <Link href="/" className="flex-1 sm:flex-none">
               <Button size="sm" className="bg-primary hover:bg-primary/90 w-full">
                 Get Started
               </Button>

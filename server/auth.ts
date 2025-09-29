@@ -96,7 +96,7 @@ export async function signInWithGoogle(next: string | null = null) {
 export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  redirect('/authentication?logout=true')
+  redirect('/?logout=true')
 }
 
 export async function signInWithEmail(email: string, next: string | null = null) {

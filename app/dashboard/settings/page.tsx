@@ -374,7 +374,7 @@ export default function SettingsPage() {
       sessionStorage.clear()
 
       // Force clear auth state and redirect with deletion flag
-      window.location.href = '/authentication?deleted=true'
+      window.location.href = '/?deleted=true'
       
     } catch (error) {
       toast({

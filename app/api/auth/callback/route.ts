@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     
     if (error_code === 'bad_oauth_state') {
       // OAuth state mismatch - redirect to authentication to retry
-      return NextResponse.redirect(new URL('/authentication', origin))
+      return NextResponse.redirect(new URL('/', origin))
     }
     
     return NextResponse.redirect(new URL('/dashboard', origin))
@@ -80,20 +80,20 @@ export async function GET(request: Request) {
       const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
 
       if (error?.message?.includes('timeout') || error?.message?.includes('fetch failed')) {
-        return NextResponse.redirect(new URL('/authentication', baseUrl))
+        return NextResponse.redirect(new URL('/', baseUrl))
       }
 
-      return NextResponse.redirect(new URL('/authentication', baseUrl))
+      return NextResponse.redirect(new URL('/', baseUrl))
     } catch (networkError) {
       console.log('Network error during auth exchange:', networkError)
       const isLocalEnv = process.env.NODE_ENV === 'development'
       const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
-      return NextResponse.redirect(new URL('/authentication', baseUrl))
+      return NextResponse.redirect(new URL('/', baseUrl))
     }
   }
 
   // return the user to the authentication page
   const isLocalEnv = process.env.NODE_ENV === 'development'
   const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
-  return NextResponse.redirect(new URL('/authentication', baseUrl))
+  return NextResponse.redirect(new URL('/', baseUrl))
 }
