@@ -1,7 +1,7 @@
 'use client'
 
 import { useData } from "@/context/data-provider"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Tooltip,
   TooltipContent,
@@ -53,11 +53,15 @@ export default function AdvancedMetricsCard({ size = 'tiny' }: AdvancedMetricsCa
       const avgReturn = returns.reduce((sum, ret) => sum + ret, 0) / returns.length
       const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - avgReturn, 2), 0) / (returns.length - 1)
       const stdDev = Math.sqrt(variance)
-      sharpeRatio = stdDev === 0 ? 0 : (avgReturn / stdDev) * Math.sqrt(252)
+      const rawSharpeRatio = stdDev === 0 ? 0 : (avgReturn / stdDev) * Math.sqrt(252)
+      // Round to avoid floating point precision issues
+      sharpeRatio = Math.round(rawSharpeRatio * 100) / 100
     }
     
     return { totalVolume, formattedVolume, maxDrawdown, sharpeRatio }
   }, [formattedTrades])
+
+  // Let widget canvas handle loading states to avoid hooks violations
 
   return (
     <Card className="flex items-center justify-center h-full p-2">

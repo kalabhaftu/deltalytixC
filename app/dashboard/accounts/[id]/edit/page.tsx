@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from 'zod'
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -115,10 +115,8 @@ export default function LiveAccountEditPage({ params }: LiveAccountEditProps) {
         throw new Error(errorData.error || 'Failed to update account')
       }
 
-      toast({
-        title: 'Account Updated',
+      toast('Account Updated', {
         description: 'Your account has been successfully updated.',
-        variant: "default"
       })
 
       // Navigate back to account detail page
@@ -126,10 +124,8 @@ export default function LiveAccountEditPage({ params }: LiveAccountEditProps) {
 
     } catch (error) {
       console.error('Error updating account:', error)
-      toast({
-        title: 'Update Failed',
+      toast('Update Failed', {
         description: error instanceof Error ? error.message : 'Failed to update account',
-        variant: "destructive"
       })
     } finally {
       setIsSaving(false)

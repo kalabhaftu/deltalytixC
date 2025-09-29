@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from "@/context/auth-provider"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { usePropFirmRealtime } from "@/hooks/use-prop-firm-realtime"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -350,7 +350,7 @@ export default function AccountDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
-              Profit Target - {realtimeAccount.currentPhase?.phaseNumber >= 3 ? 'Funded' : realtimeAccount.currentPhase?.phaseNumber === 2 ? 'Phase 2' : 'Phase 1'}
+              Profit Target - {(realtimeAccount?.currentPhase?.phaseNumber ?? 1) >= 3 ? 'Funded' : (realtimeAccount?.currentPhase?.phaseNumber ?? 1) === 2 ? 'Phase 2' : 'Phase 1'}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -376,7 +376,7 @@ export default function AccountDetailPage() {
       )}
 
       {/* Payout Eligibility for Funded Accounts */}
-      {realtimeAccount.currentPhase?.phaseNumber >= 3 && payoutEligibility && (
+      {realtimeAccount?.currentPhase?.phaseNumber >= 3 && payoutEligibility && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Settings, Check, X, Trash2, EyeOff } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { ensureAccountAndAssignGroup } from "@/app/dashboard/actions/accounts"
@@ -45,7 +45,6 @@ export function AccountGroupBoard() {
   const [editingGroupName, setEditingGroupName] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
   const existingAccounts = useUserStore(state => state.accounts)
-  const { toast: notify } = useToast()
 
   const tradeAccountNumbers = useMemo(() => {
     const accountSet = new Set<string>()
@@ -84,26 +83,26 @@ export function AccountGroupBoard() {
       setIsCreating(true)
       await saveGroup(newGroupName.trim())
       setNewGroupName("")
-      notify({ title: "Group Created", description: "Account group created successfully" })
+      toast.success("Group Created", { description: "Account group created successfully" })
     } catch (error) {
       console.error("Error creating group:", error)
-      notify({ title: "Error", description: "Failed to create group", variant: "destructive" })
+      toast.error("Error", { description: "Failed to create group" })
     } finally {
       setIsCreating(false)
     }
-  }, [newGroupName, user?.id, saveGroup, notify])
+  }, [newGroupName, user?.id, saveGroup])
 
   const handleUpdateGroup = useCallback(async (groupId: string, newName: string) => {
     try {
       await renameGroup(groupId, newName)
       setEditingGroupId(null)
       setEditingGroupName("")
-      notify({ title: "Group Updated", description: "Group name updated successfully" })
+      toast.success("Group Updated", { description: "Group name updated successfully" })
     } catch (error) {
       console.error("Error updating group:", error)
-      notify({ title: "Error", description: "Failed to update group", variant: "destructive" })
+      toast.error("Error", { description: "Failed to update group" })
     }
-  }, [renameGroup, notify])
+  }, [renameGroup])
 
   const handleMoveAccount = useCallback(async (account: Account | UngroupedAccount, groupId: string | null) => {
     try {
@@ -155,22 +154,22 @@ export function AccountGroupBoard() {
       await moveAccountToGroup(account.id, groupId)
     } catch (error) {
       console.error("Error moving account:", error)
-      notify({ title: "Error", description: "Failed to move account", variant: "destructive" })
+      toast.error("Error", { description: "Failed to move account" })
     }
-  }, [groups, user?.id, saveGroup, moveAccountToGroup, saveAccount, existingAccounts, notify])
+  }, [groups, user?.id, saveGroup, moveAccountToGroup, saveAccount, existingAccounts])
 
   const handleDeleteGroup = useCallback(async (groupId: string, groupName: string) => {
     try {
       setIsDeleting(true)
       await deleteGroup(groupId)
-      notify({ title: "Group Deleted", description: "Group deleted successfully" })
+      toast.success("Group Deleted", { description: "Group deleted successfully" })
     } catch (error) {
       console.error("Error deleting group:", error)
-      notify({ title: "Error", description: "Failed to delete group", variant: "destructive" })
+      toast.error("Error", { description: "Failed to delete group" })
     } finally {
       setIsDeleting(false)
     }
-  }, [deleteGroup, notify])
+  }, [deleteGroup])
 
   const anonymizeAccount = useCallback((account: string) => {
     // This is a placeholder - use your actual anonymization function

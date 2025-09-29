@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { ImageCompressor, useImageCompression, CompressionResult } from '@/lib/image-compression'
 import { Upload, Image as ImageIcon, Trash2, Download, Zap, Info } from 'lucide-react'
 import Image from 'next/image'
@@ -46,7 +46,6 @@ export function ImageUploadWithCompression({
   const [isDragOver, setIsDragOver] = useState(false)
   const [overallProgress, setOverallProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { toast } = useToast()
   
   const {
     compressMultiple,
@@ -60,10 +59,8 @@ export function ImageUploadWithCompression({
     
     // Validate file count
     if (uploadedFiles.length + fileArray.length > maxFiles) {
-      toast({
-        title: 'Too many files',
+      toast.error('Too many files', {
         description: `Maximum ${maxFiles} files allowed`,
-        variant: 'destructive',
       })
       return
     }
@@ -71,10 +68,8 @@ export function ImageUploadWithCompression({
     // Validate file types
     const invalidFiles = fileArray.filter(file => !acceptedTypes.includes(file.type))
     if (invalidFiles.length > 0) {
-      toast({
-        title: 'Invalid file types',
+      toast.error('Invalid file types', {
         description: 'Only JPEG, PNG, and WebP images are allowed',
-        variant: 'destructive',
       })
       return
     }
@@ -117,16 +112,13 @@ export function ImageUploadWithCompression({
         onImagesUploaded(results)
       }
 
-      toast({
-        title: 'Images compressed successfully',
+      toast.success('Images compressed successfully', {
         description: `${results.length} images processed`,
       })
     } catch (error) {
       console.error('Compression failed:', error)
-      toast({
-        title: 'Compression failed',
+      toast.error('Compression failed', {
         description: error instanceof Error ? error.message : 'Unknown error',
-        variant: 'destructive',
       })
     }
   }, [uploadedFiles.length, maxFiles, acceptedTypes, compressionOptions, compressMultiple, onImagesUploaded, toast])

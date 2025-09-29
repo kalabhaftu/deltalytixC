@@ -39,7 +39,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
             losingTrades.length > 0
                 ? Math.abs(losingTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0) / losingTrades.length)
                 : 0
-        const riskRewardRatio = avgLoss > 0 ? avgWin / avgLoss : 0
+        const riskRewardRatio = avgLoss > 0 ? Math.round((avgWin / avgLoss) * 100) / 100 : 0
 
         // Calculate cumulative P&L for the equity chart
         const cumulativePnl = trades.reduce((acc, trade) => {
@@ -328,7 +328,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
                                     letterSpacing: "-0.025em",
                                 }}
                             >
-                                {riskRewardRatio > 0 ? riskRewardRatio.toFixed(2) : "--"}
+                                {riskRewardRatio > 0 ? riskRewardRatio : "--"}
                             </p>
                         </div>
                     </div>

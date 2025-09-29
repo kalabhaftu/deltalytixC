@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { toast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { Trade } from '@prisma/client'
 import { generateTradeHash } from '@/lib/utils'
 import { useUserStore } from '@/store/user-store'
@@ -234,8 +234,7 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
             <Button
               key={instrument}
               variant="outline"
-              onClick={() => toast({
-                title: "Instrument Information",
+              onClick={() => toast.info("Instrument Information", {
                 description: `You traded ${instrument}. For more details, please check the trades table.`
               })}
             >

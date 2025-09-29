@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Building2, User, CheckCircle2, XCircle, Clock, Trophy } from 'lucide-react'
 import { useAccountFilterSettings } from '@/hooks/use-account-filter-settings'
 import { useAccounts } from '@/hooks/use-accounts'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { AccountFilterSettings } from '@/types/account-filter-settings'
 
 interface AccountFilterSettingsProps {
@@ -21,7 +21,6 @@ interface AccountFilterSettingsProps {
 export function AccountFilterSettingsCard({ className }: AccountFilterSettingsProps) {
   const { settings, isLoading, isSaving, updateSettings, resetToDefaults } = useAccountFilterSettings()
   const { accounts, isLoading: accountsLoading } = useAccounts({ includeFailed: true }) // Get all accounts for display
-  const { toast } = useToast()
 
   const handleModeChange = async (mode: AccountFilterSettings['showMode']) => {
     try {
@@ -33,16 +32,12 @@ export function AccountFilterSettingsCard({ className }: AccountFilterSettingsPr
         'custom': 'Custom filtering mode enabled'
       }
       
-      toast({
-        title: "Filter Updated",
+      toast.success("Filter Updated", {
         description: modeMessages[mode],
-        duration: 3000,
       })
     } catch (error) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to update filter settings",
-        variant: "destructive",
       })
     }
   }

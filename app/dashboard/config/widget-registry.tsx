@@ -18,6 +18,7 @@ const WeekdayPNLChart = lazy(() => import('../components/charts/weekday-pnl'))
 const PnLBySideChart = lazy(() => import('../components/charts/pnl-by-side'))
 const CommissionsPnLChart = lazy(() => import('../components/charts/commissions-pnl'))
 const TradeDistributionChart = lazy(() => import('../components/charts/trade-distribution'))
+const RadarChart = lazy(() => import('../components/charts/radar-chart'))
 
 // Keep statistics components as regular imports (they're lighter)
 import AveragePositionTimeCard from '../components/statistics/average-position-time-card'
@@ -29,6 +30,13 @@ import RiskRewardRatioCard from '../components/statistics/risk-reward-ratio-card
 import ProfitFactorCard from '../components/statistics/profit-factor-card'
 import StatisticsWidget from '../components/statistics/statistics-widget'
 import AdvancedMetricsCard from '../components/statistics/advanced-metrics-card'
+
+// KPI components
+import NetPnlKpi from '../components/kpi/net-pnl-kpi'
+import WinRateKpi from '../components/kpi/win-rate-kpi'
+import ProfitFactorKpi from '../components/kpi/profit-factor-kpi'
+import DayWinRateKpi from '../components/kpi/day-win-rate-kpi'
+import AvgWinLossKpi from '../components/kpi/avg-win-loss-kpi'
 
 // Calendar component
 import CalendarPnl from '../components/calendar/calendar-widget'
@@ -235,6 +243,23 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
       </Suspense>
     )
   },
+  radarChart: {
+    type: 'radarChart',
+    defaultSize: 'medium',
+    allowedSizes: ['small', 'small-long', 'medium', 'large'],
+    category: 'charts',
+    previewHeight: 300,
+    getComponent: ({ size }) => (
+      <Suspense fallback={<WidgetSkeleton type="radarChart" size="medium" />}>
+        <RadarChart size={size} />
+      </Suspense>
+    ),
+    getPreview: () => (
+      <Suspense fallback={<WidgetSkeleton type="radarChart" size="medium" />}>
+        <RadarChart size="small" />
+      </Suspense>
+    )
+  },
   commissionsPnl: {
     type: 'commissionsPnl',
     defaultSize: 'medium',
@@ -375,7 +400,52 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
     previewHeight: 100,
     getComponent: ({ size }) => <AdvancedMetricsCard size={size} />,
     getPreview: () => <AdvancedMetricsCard size="tiny" />
-  }
+  },
+  netPnlKpi: {
+    type: 'netPnlKpi',
+    defaultSize: 'kpi',
+    allowedSizes: ['kpi'],
+    category: 'statistics',
+    previewHeight: 120,
+    getComponent: ({ size }) => <NetPnlKpi size={size} />,
+    getPreview: () => <NetPnlKpi size="kpi" />
+  },
+  winRateKpi: {
+    type: 'winRateKpi',
+    defaultSize: 'kpi',
+    allowedSizes: ['kpi'],
+    category: 'statistics',
+    previewHeight: 120,
+    getComponent: ({ size }) => <WinRateKpi size={size} />,
+    getPreview: () => <WinRateKpi size="kpi" />
+  },
+  profitFactorKpi: {
+    type: 'profitFactorKpi',
+    defaultSize: 'kpi',
+    allowedSizes: ['kpi'],
+    category: 'statistics',
+    previewHeight: 120,
+    getComponent: ({ size }) => <ProfitFactorKpi size={size} />,
+    getPreview: () => <ProfitFactorKpi size="kpi" />
+  },
+  dayWinRateKpi: {
+    type: 'dayWinRateKpi',
+    defaultSize: 'kpi',
+    allowedSizes: ['kpi'],
+    category: 'statistics',
+    previewHeight: 120,
+    getComponent: ({ size }) => <DayWinRateKpi size={size} />,
+    getPreview: () => <DayWinRateKpi size="kpi" />
+  },
+  avgWinLossKpi: {
+    type: 'avgWinLossKpi',
+    defaultSize: 'kpi',
+    allowedSizes: ['kpi'],
+    category: 'statistics',
+    previewHeight: 120,
+    getComponent: ({ size }) => <AvgWinLossKpi size={size} />,
+    getPreview: () => <AvgWinLossKpi size="kpi" />
+  },
 }
 
 export function getWidgetsByCategory(category: WidgetConfig['category']) {

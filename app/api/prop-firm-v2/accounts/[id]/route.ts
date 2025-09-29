@@ -173,7 +173,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       dailyDrawdownRemaining: drawdownData.dailyDrawdownRemaining,
       maxDrawdownRemaining: drawdownData.maxDrawdownRemaining,
       profitTargetProgress: currentPhase && currentPhase.profitTargetPercent > 0
-        ? Math.min((totalPnL / (masterAccount.accountSize * currentPhase.profitTargetPercent / 100)) * 100, 100)
+        ? Math.min(Math.round((totalPnL / (masterAccount.accountSize * currentPhase.profitTargetPercent / 100)) * 1000) / 10, 100)
         : 0,
       lastUpdated: new Date().toISOString()
     }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from "@/context/auth-provider"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -150,7 +150,7 @@ export default function AccountTradesPage() {
   const breakEvenTrades = trades.filter(trade => trade.pnl === 0).length
   // Calculate win rate excluding break-even trades (industry standard)
   const tradableTradesCount = winningTrades + losingTrades
-  const winRate = tradableTradesCount > 0 ? (winningTrades / tradableTradesCount) * 100 : 0
+  const winRate = tradableTradesCount > 0 ? Math.round((winningTrades / tradableTradesCount) * 1000) / 10 : 0
   const totalPnl = trades.reduce((sum, trade) => sum + trade.pnl, 0)
 
   if (isLoading) {

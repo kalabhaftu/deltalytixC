@@ -1,6 +1,5 @@
 'use client'
 
-import { useData } from "@/context/data-provider"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import {
@@ -11,41 +10,20 @@ import {
 } from "@/components/ui/tooltip"
 import { WidgetSize } from '../../types/dashboard'
 import { Scale, HelpCircle } from "lucide-react"
-import { useMemo } from "react"
+import { useTradeStatistics } from "@/hooks/use-trade-statistics"
 
 interface RiskRewardRatioCardProps {
   size?: WidgetSize
 }
 
 export default function RiskRewardRatioCard({ size = 'tiny' }: RiskRewardRatioCardProps) {
-  const { formattedTrades } = useData()
-  const { avgWin, avgLoss, riskRewardRatio, profitPercentage } = useMemo(() => {
-    // Filter winning and losing trades
-    const winningTrades = formattedTrades.filter(trade => trade.pnl > 0)
-    const losingTrades = formattedTrades.filter(trade => trade.pnl < 0)
+  const { avgWin, avgLoss, riskRewardRatio } = useTradeStatistics()
 
-    // Calculate averages
-    const avgWin = winningTrades.length > 0
-      ? winningTrades.reduce((sum, trade) => sum + trade.pnl, 0) / winningTrades.length
-      : 0
-
-    const avgLoss = losingTrades.length > 0
-      ? losingTrades.reduce((sum, trade) => sum + trade.pnl, 0) / losingTrades.length
-      : 0
-
-    // Calculate Risk-Reward ratio
-    const riskRewardRatio = Math.abs(avgLoss) > 0 
-      ? Number((avgWin / Math.abs(avgLoss)).toFixed(2)) 
-      : 0
-    
-    // Calculate progress percentage for visualization
-    const totalValue = Math.abs(avgLoss) + Math.abs(avgWin)
-    const profitPercentage = totalValue > 0 
-      ? (Math.abs(avgWin) / totalValue) * 100 
-      : 50
-
-    return { avgWin, avgLoss, riskRewardRatio, profitPercentage }
-  }, [formattedTrades])
+  // Calculate progress percentage for visualization
+  const totalValue = Math.abs(avgLoss) + Math.abs(avgWin)
+  const profitPercentage = totalValue > 0
+    ? (Math.abs(avgWin) / totalValue) * 100
+    : 50
 
   return (
     <Card className="h-full">

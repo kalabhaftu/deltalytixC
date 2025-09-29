@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 
 interface FormData {
   number: string
@@ -21,7 +21,6 @@ interface FormData {
 }
 
 export function SimpleAccountForm() {
-  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<FormData>({
     number: '',
@@ -64,8 +63,7 @@ export function SimpleAccountForm() {
       const result = await response.json()
 
       if (response.ok) {
-        toast({
-          title: "Success",
+        toast.success("Success", {
           description: "Prop firm account created successfully!"
         })
         // Reset form
@@ -85,10 +83,8 @@ export function SimpleAccountForm() {
       }
     } catch (error) {
       console.error('Error creating account:', error)
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error instanceof Error ? error.message : 'Failed to create account',
-        variant: "destructive"
       })
     } finally {
       setLoading(false)

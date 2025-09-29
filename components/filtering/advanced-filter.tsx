@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { CalendarIcon, Filter, Save, Trash2, Star, Settings, Plus, Search } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -87,7 +87,6 @@ export function AdvancedFilter({
   const [makeDefault, setMakeDefault] = useState(false)
   const [makePublic, setMakePublic] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
-  const { toast } = useToast()
 
   // Load presets on mount
   useEffect(() => {
@@ -147,10 +146,8 @@ export function AdvancedFilter({
 
   const savePreset = async () => {
     if (!presetName.trim()) {
-      toast({
-        title: 'Error',
+      toast.error('Error', {
         description: 'Please enter a preset name',
-        variant: 'destructive',
       })
       return
     }
@@ -180,26 +177,22 @@ export function AdvancedFilter({
         setMakeDefault(false)
         setMakePublic(false)
         
-        toast({
-          title: 'Success',
+        toast.success('Success', {
           description: 'Filter preset saved successfully',
         })
       } else {
         throw new Error('Failed to save preset')
       }
     } catch (error) {
-      toast({
-        title: 'Error',
+      toast.error('Error', {
         description: 'Failed to save preset',
-        variant: 'destructive',
       })
     }
   }
 
   const loadPreset = (preset: FilterPreset) => {
     setFilters(preset.filters)
-    toast({
-      title: 'Preset loaded',
+    toast.success('Preset loaded', {
       description: `Applied "${preset.name}" filter preset`,
     })
   }
@@ -212,16 +205,13 @@ export function AdvancedFilter({
 
       if (response.ok) {
         setPresets(prev => prev.filter(p => p.id !== presetId))
-        toast({
-          title: 'Success',
+        toast.success('Success', {
           description: 'Preset deleted successfully',
         })
       }
     } catch (error) {
-      toast({
-        title: 'Error',
+      toast.error('Error', {
         description: 'Failed to delete preset',
-        variant: 'destructive',
       })
     }
   }

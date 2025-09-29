@@ -7,7 +7,7 @@ import { useTheme } from '@/context/theme-provider'
 import { useAuth } from '@/context/auth-provider'
 import Features from './(landing)/components/features'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/sonner";
 import Navbar from "./(landing)/components/navbar";
 import Footer from "./(landing)/components/footer";
 import { ThemeProvider } from "@/context/theme-provider";

@@ -1,6 +1,6 @@
 import { ThemeProvider } from "@/context/theme-provider";
 import { DataProvider } from "@/context/data-provider";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/sonner";
 import { ReactElement } from "react";
 
 export default async function RootLayout(props: { params: Promise<{ locale: string }>, children: ReactElement }) {

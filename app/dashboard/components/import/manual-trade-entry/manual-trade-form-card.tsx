@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { Calculator, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
 import { Trade } from '@prisma/client'
 import { generateTradeHash } from '@/lib/utils'
@@ -107,7 +107,6 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
   const [calculatedPnL, setCalculatedPnL] = useState<number | null>(null)
   const [calculatedDuration, setCalculatedDuration] = useState<string>('')
   
-  const { toast } = useToast()
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
   const trades = useTradesStore(state => state.trades)
@@ -210,10 +209,8 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
   const onSubmit = async (data: TradeFormData) => {
     const currentUser = user || supabaseUser
     if (!currentUser?.id) {
-      toast({
-        title: 'Authentication Error',
+      toast.error('Authentication Error', {
         description: 'Please sign in to add trades.',
-        variant: 'destructive',
       })
       return
     }
@@ -240,10 +237,8 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
           if (!phaseCheckResponse.ok) {
             if (phaseCheckResponse.status === 403) {
               setPhaseValidationError(phaseResult.error || 'Please set the ID for the current phase before adding trades.')
-              toast({
-                title: "Phase ID Required",
+              toast.error("Phase ID Required", {
                 description: phaseResult.error || "Please set the ID for the current phase before adding trades.",
-                variant: "destructive"
               })
               return
             }
@@ -300,20 +295,21 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
       const { saveAndLinkTrades } = await import("@/server/accounts")
       const result = await saveAndLinkTrades(accountId, [completeTrade])
 
-      toast({
-        title: 'Trade Added',
+      toast.success('Trade Added', {
         description: `Trade successfully saved and linked to ${result.accountName}`,
       })
+
+      // Invalidate accounts cache to trigger refresh
+      const { invalidateAccountsCache } = await import("@/hooks/use-accounts")
+      invalidateAccountsCache('trade saved')
 
       // Navigate back to trades list
       router.push(`/dashboard/prop-firm/accounts/${accountId}/trades`)
 
     } catch (error) {
       console.error('Error in save and link trade:', error)
-      toast({
-        title: 'Save Failed',
+      toast.error('Save Failed', {
         description: error instanceof Error ? error.message : 'An error occurred while saving the trade. Please try again.',
-        variant: 'destructive',
       })
     } finally {
       setIsSubmitting(false)

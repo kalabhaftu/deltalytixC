@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { createContext, useContext, useEffect, useState } from 'react'
-import { toast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { Session } from '@supabase/supabase-js'
 import { signOut } from '@/server/auth'
 import { createClient } from '@/lib/supabase'
@@ -90,19 +90,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('[Auth] Force clearing all auth state')
     resetUser()
     setSession(null)
+    setSupabaseUser(null)
     setAuthCheckCache(null)
     setIsLoading(false)
+    
+    // Clear any cached auth data
+    localStorage.removeItem('deltalytix_user_data')
+    // Clear Supabase auth tokens (they start with 'sb-')
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('sb-') && key.includes('-auth-token')) {
+        localStorage.removeItem(key)
+      }
+    })
+    sessionStorage.clear()
   }
 
   useEffect(() => {
     const supabase = createClient()
 
-    // Check if we should force clear auth state (e.g., after account deletion)
+    // Check if we should force clear auth state (e.g., after logout or account deletion)
     const urlParams = new URLSearchParams(window.location.search)
-    const shouldForceClear = urlParams.get('deleted') === 'true'
+    const shouldForceClear = urlParams.get('deleted') === 'true' || urlParams.get('logout') === 'true'
 
     if (shouldForceClear) {
-      console.log('[Auth] Detected account deletion, forcing clear')
+      const reason = urlParams.get('deleted') === 'true' ? 'account deletion' : 'logout'
+      console.log(`[Auth] Detected ${reason}, forcing clear`)
       forceClearAuth()
       // Remove the parameter from URL
       const newUrl = window.location.pathname
@@ -131,10 +143,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(null)
         setSupabaseUser(null)
         setUser(null)
-        toast({
-          title: 'Session Error',
+        toast.error('Session Error', {
           description: 'Failed to check authentication status',
-          variant: 'destructive',
         })
         await signOut()
       } finally {

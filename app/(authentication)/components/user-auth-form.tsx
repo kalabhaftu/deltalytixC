@@ -19,7 +19,7 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { useRouter } from "next/navigation"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import {
     InputOTP,
     InputOTPGroup,
@@ -114,18 +114,15 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         try {
             const email = form.getValues('email')
             await verifyOtp(email, values.otp)
-            toast({
-                title: "Success",
+            toast.success("Success", {
                 description: "Successfully verified. Redirecting...",
             })
             router.refresh()
             router.push(nextUrl || '/dashboard')
         } catch (error) {
             console.error(error)
-            toast({
-                title: "Error",
+            toast.error("Error", {
                 description: error instanceof Error ? error.message : "Failed to verify code",
-                variant: "destructive",
             })
         } finally {
             setIsLoading(false)
@@ -162,7 +159,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
 
     function openMailClient() {
         const email = form.getValues('email')
-        const domain = email.split('T')[1]?.toLowerCase()
+        const domain = email.split('@')[1]?.toLowerCase()
 
         if (domain?.includes('gmail.com')) {
             window.open('https://mail.google.com', '_blank', 'noopener,noreferrer')

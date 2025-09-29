@@ -243,6 +243,7 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
                 innerRadius={getOuterRadius() * 0.6}
                 outerRadius={getOuterRadius()}
                 paddingAngle={2}
+                stroke="none"
               >
                   {chartData.map((entry, index) => (
                     <Cell 

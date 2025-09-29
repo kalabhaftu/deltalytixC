@@ -50,10 +50,10 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
         <div className="grid gap-2">
           <div className="flex flex-col">
             <span className="text-[0.70rem] uppercase text-muted-foreground">
-              Ticks
+              Performance
             </span>
             <span className="font-bold text-muted-foreground">
-              {data.ticks} {parseInt(data.ticks) !== 1 ? 'ticks' : 'tick'}
+              {data.ticks} {parseInt(data.ticks) !== 1 ? 'units' : 'unit'}
             </span>
           </div>
           <div className="flex flex-col">
@@ -85,35 +85,60 @@ export default function TickDistributionChart({ size = 'medium' }: TickDistribut
   const chartData = React.useMemo(() => {
     if (!trades.length) return []
 
-    // Create a map to store tick counts
-    const tickCounts: Record<number, number> = {}
+    // Create a map to store unit counts (pips or points)
+    const unitCounts: Record<number, number> = {}
 
-    // Count trades for each tick value
+    // Count trades for each unit value
     trades.forEach(trade => {
-      // Fix ticker matching logic - sort by length descending to match longer tickers first
-      // This prevents "ES" from matching "MES" trades
-      const matchingTicker = Object.keys(tickDetails)
-        .sort((a, b) => b.length - a.length) // Sort by length descending
-        .find(ticker => trade.instrument.includes(ticker))
+      // Validate trade data
+      const pnl = Number(trade.pnl) || 0
+      const quantity = Number(trade.quantity) || 0
       
-      // Use tickValue (monetary value per tick) instead of tickSize (minimum price increment)
-      const tickValue = matchingTicker ? tickDetails[matchingTicker].tickValue : 1
+      // Skip trades with invalid data
+      if (quantity === 0 || isNaN(pnl) || isNaN(quantity)) {
+        return
+      }
       
-      // Calculate PnL per contract first
-      const pnlPerContract = Number(trade.pnl) / Number(trade.quantity)
-      const ticks = Math.round(pnlPerContract / tickValue)
-      tickCounts[ticks] = (tickCounts[ticks] || 0) + 1
+      // Calculate PnL per contract
+      const pnlPerContract = pnl / quantity
+      
+      // Universal calculation: Forex = Pips, Everything else = Points
+      // Commented out futures logic - using CFD approach for all non-forex
+      const isForex = /usd|eur|gbp|jpy|aud|cad|nzd|chf/.test(trade.instrument.toLowerCase())
+      
+      // // FUTURES LOGIC (COMMENTED OUT)
+      // const isFutures = /es|nq|ym|mes|mnq|mym/.test(trade.instrument.toLowerCase())
+      // if (isFutures) {
+      //   // Use actual futures tick values
+      //   let tickValue = 1
+      //   if (trade.instrument.toLowerCase().includes('es')) tickValue = 12.50
+      //   else if (trade.instrument.toLowerCase().includes('nq')) tickValue = 5.00
+      //   else if (trade.instrument.toLowerCase().includes('ym')) tickValue = 5.00
+      //   else if (trade.instrument.toLowerCase().includes('mes')) tickValue = 1.25
+      //   else if (trade.instrument.toLowerCase().includes('mnq')) tickValue = 1.00
+      //   else if (trade.instrument.toLowerCase().includes('mym')) tickValue = 1.00
+      //   units = Math.round(pnlPerContract / tickValue)
+      // }
+      
+      const units = isForex 
+        ? Math.round(pnlPerContract / 0.0001)  // Pips (0.0001)
+        : Math.round(pnlPerContract / 1.0)     // Points (1.0) - CFDs and everything else
+      
+      // Only count valid unit values (filter out extreme outliers)
+      if (Math.abs(units) <= 1000) { // Reasonable range limit
+        unitCounts[units] = (unitCounts[units] || 0) + 1
+      }
     })
 
-    // Convert the tick counts to sorted chart data
-    return Object.entries(tickCounts)
-      .map(([tick, count]) => ({
-        ticks: tick === '0' ? '0' : Number(tick) > 0 ? `+${tick}` : `${tick}`,
+    // Convert the unit counts to sorted chart data
+    return Object.entries(unitCounts)
+      .map(([unit, count]) => ({
+        ticks: unit === '0' ? '0' : Number(unit) > 0 ? `+${unit}` : `${unit}`,
         count
       }))
       .sort((a, b) => Number(a.ticks.replace('+', '')) - Number(b.ticks.replace('+', '')))
 
-  }, [trades, tickDetails])
+  }, [trades])
 
   const handleBarClick = (data: any) => {
     if (!data || !trades.length) return
@@ -152,7 +177,7 @@ export default function TickDistributionChart({ size = 'medium' }: TickDistribut
                   )} />
                 </TooltipTrigger>
                  <TooltipContent side="top">
-                   <p>Distribution of trades by tick profit/loss</p>
+                   <p>Distribution of trading performance in universal units. Forex trades show pips, CFD indices and other instruments show points.</p>
                  </TooltipContent>
               </UITooltip>
             </TooltipProvider>

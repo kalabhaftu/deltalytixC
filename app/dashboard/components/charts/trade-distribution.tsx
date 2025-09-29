@@ -67,9 +67,9 @@ export default function TradeDistributionChart({ size = 'medium' }: TradeDistrib
   const chartData = React.useMemo(() => {
     // Note: For distribution chart, we show percentage of all trades
     // This is different from win rate calculation which excludes break-even trades
-    const winRate = Number((nbWin / nbTrades * 100).toFixed(2))
-    const lossRate = Number((nbLoss / nbTrades * 100).toFixed(2))
-    const beRate = Number((nbBe / nbTrades * 100).toFixed(2))
+    const winRate = nbTrades > 0 ? Math.round((nbWin / nbTrades) * 1000) / 10 : 0
+    const lossRate = nbTrades > 0 ? Math.round((nbLoss / nbTrades) * 1000) / 10 : 0
+    const beRate = nbTrades > 0 ? Math.round((nbBe / nbTrades) * 1000) / 10 : 0
 
     return [
       { name: "Wins", value: winRate, color: 'hsl(var(--success))', count: nbWin },

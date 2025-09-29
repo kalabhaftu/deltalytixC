@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { clearAccountsCache } from "@/hooks/use-accounts"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,7 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, User, DollarSign, Building, CheckCircle, ArrowRight } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Loader2, User, DollarSign, Building, CheckCircle, ArrowRight, HelpCircle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 
@@ -41,18 +42,18 @@ type CreateLiveAccountForm = z.infer<typeof createLiveAccountSchema>
 
 // Popular brokers with logos/colors
 const POPULAR_BROKERS = [
-  { name: 'Interactive Brokers', category: 'Professional', color: 'blue' },
-  { name: 'TD Ameritrade', category: 'US Retail', color: 'green' },
-  { name: 'E*TRADE', category: 'US Retail', color: 'purple' },
-  { name: 'Charles Schwab', category: 'US Retail', color: 'blue' },
-  { name: 'Fidelity', category: 'US Retail', color: 'green' },
-  { name: 'IC Markets', category: 'Forex/CFD', color: 'orange' },
-  { name: 'Exness', category: 'Forex/CFD', color: 'red' },
-  { name: 'MetaTrader 4', category: 'Platform', color: 'blue' },
-  { name: 'MetaTrader 5', category: 'Platform', color: 'blue' },
-  { name: 'cTrader', category: 'Platform', color: 'green' },
-  { name: 'NinjaTrader', category: 'Platform', color: 'purple' },
-  { name: 'TradingView', category: 'Platform', color: 'blue' },
+  { name: 'Interactive Brokers', category: 'Professional' },
+  { name: 'TD Ameritrade', category: 'US Retail' },
+  { name: 'E*TRADE', category: 'US Retail' },
+  { name: 'Charles Schwab', category: 'US Retail' },
+  { name: 'Fidelity', category: 'US Retail' },
+  { name: 'IC Markets', category: 'Forex/CFD' },
+  { name: 'Exness', category: 'Forex/CFD' },
+  { name: 'MetaTrader 4', category: 'Platform' },
+  { name: 'MetaTrader 5', category: 'Platform' },
+  { name: 'cTrader', category: 'Platform' },
+  { name: 'NinjaTrader', category: 'Platform' },
+  { name: 'TradingView', category: 'Platform' },
 ]
 
 const OTHER_BROKERS = [
@@ -83,7 +84,8 @@ export function EnhancedCreateLiveAccountDialog({
     reset,
     setValue,
     watch,
-    getValues
+    getValues,
+    trigger
   } = useForm<CreateLiveAccountForm>({
     resolver: zodResolver(createLiveAccountSchema),
     defaultValues: {
@@ -125,10 +127,8 @@ export function EnhancedCreateLiveAccountDialog({
         throw new Error(result.error || 'Failed to create account')
       }
 
-      toast({
-        title: "Account created successfully!",
+      toast.success("Account created successfully!", {
         description: `Your ${finalBroker} account has been added to your dashboard.`,
-        variant: "default"
       })
 
       // Clear cache to ensure immediate refresh
@@ -142,10 +142,8 @@ export function EnhancedCreateLiveAccountDialog({
 
     } catch (error) {
       console.error('Error creating live account:', error)
-      toast({
-        title: "Failed to create account",
+      toast.error("Failed to create account", {
         description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive"
       })
     } finally {
       setIsSubmitting(false)
@@ -159,13 +157,29 @@ export function EnhancedCreateLiveAccountDialog({
     onOpenChange(false)
   }
 
-  const nextStep = () => {
+  const nextStep = async () => {
     if (step === 'broker' && watchedBroker) {
       setStep('details')
     } else if (step === 'details') {
-      setStep('confirm')
+      // Validate the form before proceeding to confirm
+      const isValid = await trigger(['name', 'number', 'startingBalance'])
+      if (isValid) {
+        setStep('confirm')
+      }
     }
   }
+
+  // Auto-submit when reaching confirmation step (like prop firm dialog behavior)
+  useEffect(() => {
+    if (step === 'confirm' && !isSubmitting) {
+      // Small delay to show the confirmation step briefly, then auto-submit
+      const timer = setTimeout(() => {
+        handleSubmit(onSubmit)()
+      }, 1500) // 1.5 second delay to let user see the summary
+      
+      return () => clearTimeout(timer)
+    }
+  }, [step, isSubmitting, handleSubmit, onSubmit])
 
   const prevStep = () => {
     if (step === 'details') {
@@ -175,14 +189,12 @@ export function EnhancedCreateLiveAccountDialog({
     }
   }
 
-  // Removed getBrokerColor function as we'll use consistent theme colors
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-muted-foreground" />
+            <User className="h-5 w-5" />
             Create Live Trading Account
           </DialogTitle>
           <DialogDescription>
@@ -220,173 +232,253 @@ export function EnhancedCreateLiveAccountDialog({
           <AnimatePresence mode="wait">
             {/* Step 1: Broker Selection */}
             {step === 'broker' && (
-              <motion.div
-                key="broker"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
-              >
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Select your broker</h3>
-                  
-                  {/* Popular Brokers */}
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Popular Brokers</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      {POPULAR_BROKERS.map((broker) => (
-                        <Card
-                          key={broker.name}
-                          className={cn(
-                            "cursor-pointer transition-all duration-200 hover:shadow-md",
-                            watchedBroker === broker.name
-                              ? "ring-2 ring-primary bg-accent"
-                              : "hover:bg-accent"
-                          )}
-                          onClick={() => setValue('broker', broker.name)}
-                        >
-                          <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-medium text-sm">{broker.name}</p>
-                                <p className="text-xs text-muted-foreground">{broker.category}</p>
-                              </div>
-                              <div className={cn(
-                                "w-3 h-3 rounded-full",
-                                watchedBroker === broker.name ? "bg-primary" : "bg-muted"
-                              )} />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
+              <TooltipProvider>
+                <motion.div
+                  key="broker"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-8"
+                >
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                      <Building className="h-5 w-5" />
+                      Broker Selection
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Choose your trading broker to connect your live account
+                    </p>
+                    
+                    <Card>
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Building className="h-4 w-4" />
+                          Popular Brokers
+                        </CardTitle>
+                        <CardDescription>
+                          Select from commonly used trading platforms
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                          {POPULAR_BROKERS.map((broker) => (
+                            <Card
+                              key={broker.name}
+                              className={cn(
+                                "cursor-pointer transition-all duration-200 hover:shadow-md",
+                                watchedBroker === broker.name
+                                  ? "ring-2 ring-primary bg-accent"
+                                  : "hover:bg-accent"
+                              )}
+                              onClick={() => setValue('broker', broker.name)}
+                            >
+                              <CardContent className="p-3">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="font-medium text-sm">{broker.name}</p>
+                                    <p className="text-xs text-muted-foreground">{broker.category}</p>
+                                  </div>
+                                  <div className={cn(
+                                    "w-3 h-3 rounded-full",
+                                    watchedBroker === broker.name ? "bg-primary" : "bg-muted"
+                                  )} />
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+
+                        {/* Other Brokers Dropdown */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Label className="text-sm font-medium">Other Brokers</Label>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Can&apos;t find your broker? Select from our extended list</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <Select onValueChange={(value) => setValue('broker', value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Search other brokers..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {OTHER_BROKERS.map((broker) => (
+                                <SelectItem key={broker} value={broker}>
+                                  {broker}
+                                </SelectItem>
+                              ))}
+                              <SelectItem value="Other">Other (Custom)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Custom Broker Input */}
+                        {watchedBroker === 'Other' && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="space-y-2 mt-4"
+                          >
+                            <Label htmlFor="customBroker">Custom Broker Name</Label>
+                            <Input
+                              id="customBroker"
+                              placeholder="Enter your broker name"
+                              {...register('customBroker')}
+                            />
+                            {errors.customBroker && (
+                              <p className="text-sm text-red-500">{errors.customBroker.message}</p>
+                            )}
+                          </motion.div>
+                        )}
+                      </CardContent>
+                    </Card>
                   </div>
 
-                  {/* Other Brokers Dropdown */}
-                  <div className="space-y-2">
-                    <Label>Or select from other brokers</Label>
-                    <Select onValueChange={(value) => setValue('broker', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Search other brokers..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {OTHER_BROKERS.map((broker) => (
-                          <SelectItem key={broker} value={broker}>
-                            {broker}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="Other">Other (Custom)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Custom Broker Input */}
-                  {watchedBroker === 'Other' && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="space-y-2"
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={nextStep}
+                      disabled={!watchedBroker}
                     >
-                      <Label htmlFor="customBroker">Custom Broker Name</Label>
-                      <Input
-                        id="customBroker"
-                        placeholder="Enter your broker name"
-                        {...register('customBroker')}
-                      />
-                      {errors.customBroker && (
-                        <p className="text-sm text-red-500">{errors.customBroker.message}</p>
-                      )}
-                    </motion.div>
-                  )}
-                </div>
-
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    onClick={nextStep}
-                    disabled={!watchedBroker}
-                  >
-                    Next
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </div>
-              </motion.div>
+                      Next
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
+                </motion.div>
+              </TooltipProvider>
             )}
 
             {/* Step 2: Account Details */}
             {step === 'details' && (
-              <motion.div
-                key="details"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
-              >
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Account Details</h3>
-                  
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Account Name *</Label>
-                      <Input
-                        id="name"
-                        placeholder="e.g., My Trading Account"
-                        {...register('name')}
-                      />
-                      {errors.name && (
-                        <p className="text-sm text-red-500">{errors.name.message}</p>
-                      )}
-                    </div>
+              <TooltipProvider>
+                <motion.div
+                  key="details"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-8"
+                >
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Account Details
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Configure your live trading account information
+                    </p>
+                    
+                    <Card>
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Account Information
+                        </CardTitle>
+                        <CardDescription>
+                          Basic details for your trading account
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Label htmlFor="name" className="text-sm font-medium">Account Name</Label>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>A friendly name to identify this account</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <Input
+                              id="name"
+                              placeholder="e.g., My Trading Account"
+                              {...register('name')}
+                            />
+                            {errors.name && (
+                              <p className="text-sm text-red-500">{errors.name.message}</p>
+                            )}
+                          </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="number">Account Number *</Label>
-                      <Input
-                        id="number"
-                        placeholder="e.g., LIVE-123456"
-                        {...register('number')}
-                      />
-                      {errors.number && (
-                        <p className="text-sm text-red-500">{errors.number.message}</p>
-                      )}
-                      <p className="text-xs text-gray-500">
-                        6-20 characters, letters, numbers, and hyphens only
-                      </p>
-                    </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Label htmlFor="number" className="text-sm font-medium">Account Number</Label>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Your broker&apos;s account identifier (6-20 characters)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <Input
+                              id="number"
+                              placeholder="e.g., LIVE-123456"
+                              {...register('number')}
+                            />
+                            {errors.number && (
+                              <p className="text-sm text-red-500">{errors.number.message}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              6-20 characters, letters, numbers, and hyphens only
+                            </p>
+                          </div>
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="startingBalance">Starting Balance *</Label>
-                      <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="startingBalance"
-                          type="number"
-                          step="0.01"
-                          min="10"
-                          placeholder="10000.00"
-                          className="pl-10"
-                          {...register('startingBalance', { valueAsNumber: true })}
-                        />
-                      </div>
-                      {errors.startingBalance && (
-                        <p className="text-sm text-red-500">{errors.startingBalance.message}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        Minimum $10 required
-                      </p>
-                    </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="h-4 w-4" />
+                            <Label htmlFor="startingBalance" className="text-sm font-medium">Starting Balance</Label>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Your account&apos;s initial balance (minimum $10)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="startingBalance"
+                              type="number"
+                              step="0.01"
+                              min="10"
+                              max="1000000"
+                              placeholder="10000.00"
+                              className="pl-10"
+                              {...register('startingBalance', { valueAsNumber: true })}
+                            />
+                          </div>
+                          {errors.startingBalance && (
+                            <p className="text-sm text-red-500">{errors.startingBalance.message}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            Current balance: ${(watchedBalance || 0).toLocaleString()}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
-                </div>
 
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={prevStep}>
-                    Back
-                  </Button>
-                  <Button type="button" onClick={nextStep}>
-                    Review
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </div>
-              </motion.div>
+                  <div className="flex justify-between">
+                    <Button type="button" variant="outline" onClick={prevStep}>
+                      Back
+                    </Button>
+                    <Button type="button" onClick={nextStep}>
+                      Review & Create
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
+                </motion.div>
+              </TooltipProvider>
             )}
 
             {/* Step 3: Confirmation */}
@@ -396,15 +488,21 @@ export function EnhancedCreateLiveAccountDialog({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
+                className="space-y-8"
               >
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">Review & Confirm</h3>
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5" />
+                    Review & Confirm
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    {isSubmitting ? 'Creating your account...' : 'Please review your account details - creating automatically...'}
+                  </p>
                   
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-chart-2" />
+                        <CheckCircle className="h-4 w-4" />
                         Account Summary
                       </CardTitle>
                     </CardHeader>
@@ -426,9 +524,7 @@ export function EnhancedCreateLiveAccountDialog({
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Starting Balance</p>
-                          <p className="font-medium text-chart-2">
-                            ${getValues('startingBalance')?.toLocaleString()}
-                          </p>
+                          <p className="font-medium">${getValues('startingBalance')?.toLocaleString()}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -439,13 +535,19 @@ export function EnhancedCreateLiveAccountDialog({
                   <Button type="button" variant="outline" onClick={prevStep}>
                     Back
                   </Button>
-                  <div className="flex gap-2">
+                  <div className="space-x-2">
                     <Button type="button" variant="outline" onClick={handleCancel}>
                       Cancel
                     </Button>
                     <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Create Account
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        'Create Account'
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -457,4 +559,3 @@ export function EnhancedCreateLiveAccountDialog({
     </Dialog>
   )
 }
-

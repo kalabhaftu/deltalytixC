@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { UploadIcon, type UploadIconHandle } from '@/components/animated-icons/upload'
 import { Trade } from '@prisma/client'
 import { linkTradesToCurrentPhase, checkPhaseProgression, checkAccountBreaches } from '@/server/accounts'
@@ -80,7 +80,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
   const uploadIconRef = useRef<UploadIconHandle>(null)
   const [text, setText] = useState<string>('')
 
-  const { toast } = useToast()
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
   const trades = useTradesStore(state => state.trades)
@@ -92,10 +91,8 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     // Use either the user from our database or the Supabase user as fallback
     const currentUser = user || supabaseUser
     if (!currentUser?.id) {
-      toast({
-        title: "Authentication Error",
+      toast.error("Authentication Error", {
         description: "User not authenticated. Please log in and try again.",
-        variant: "destructive",
       })
       return
     }
@@ -104,8 +101,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     
     try {
       // Show processing indicator (auto-dismiss after 3 seconds)
-      toast({
-        title: "Processing Trades",
+      toast("Processing Trades", {
         description: "Checking for duplicates and saving trades...",
         duration: 3000,
       })
@@ -158,10 +154,8 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
       const result = await linkTradesToCurrentPhase(accountId, newTrades)
 
       if (!result.success) {
-        toast({
-          title: "Import Failed",
-          description: "Failed to link trades to account phase", // message field doesn't exist
-          variant: "destructive",
+        toast.error("Import Failed", {
+          description: "Failed to link trades to account phase",
         })
         return
       }
@@ -178,10 +172,8 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
       try {
         const breachResult = await checkAccountBreaches(accountId)
         if (breachResult && typeof breachResult === 'object' && 'isFailed' in breachResult && breachResult.isFailed) {
-          toast({
-            title: "Account Failed!",
+          toast.error("Account Failed!", {
             description: `Account failed due to rule breach: Account rules violated`,
-            variant: "destructive",
           })
         }
       } catch (breachError) {
@@ -194,10 +186,8 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
         const progressResult = await checkPhaseProgression(accountId)
         if (progressResult && typeof progressResult === 'object' && 'canProgress' in progressResult) {
           if (progressResult.canProgress) {
-            toast({
-              title: "Phase Target Reached!",
+            toast.success("Phase Target Reached!", {
               description: `Account has reached the profit target for phase ${(progressResult as any).currentPhase?.phaseNumber}. Phase progression will be processed.`,
-              variant: "default",
             })
           }
         }
@@ -207,18 +197,15 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
       }
 
       // Show success message with phase information
-      toast({
-        title: "Import Completed",
-        description: "Trade linking completed", // message field doesn't exist
+      toast.success("Import Completed", {
+        description: "Trade linking completed",
         duration: 5000,
       })
 
     } catch (error) {
       console.error('Error saving trades:', error)
-      toast({
-        title: "Import Failed",
+      toast.error("Import Failed", {
         description: "An error occurred while saving trades. Please try again.",
-        variant: "destructive",
       })
     } finally {
       setIsSaving(false)

@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from "@/context/auth-provider"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { useAccounts } from "@/hooks/use-accounts"
 import { useAccountFilterSettings } from '@/hooks/use-account-filter-settings'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -163,15 +163,12 @@ export default function AccountsPage() {
     setIsRefreshing(true)
     try {
       await refetchAccounts()
-      toast({
-        title: "Accounts refreshed",
+      toast("Accounts refreshed", {
         description: "All account data has been updated",
       })
     } catch (error) {
-      toast({
-        title: "Refresh failed",
+      toast("Refresh failed", {
         description: "Failed to refresh account data",
-        variant: "destructive"
       })
     } finally {
       setIsRefreshing(false)
@@ -524,7 +521,7 @@ function AccountCard({ account, onView }: { account: Account; onView: () => void
               </div>
             )}
             
-            {account.profitTargetProgress !== undefined && account.currentPhase < 3 && (
+            {account.profitTargetProgress !== undefined && account.currentPhase !== undefined && account.currentPhase < 3 && (
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-gray-500 dark:text-gray-400">Profit Target</span>

@@ -95,7 +95,7 @@ export default function TimeRangePerformanceChart({ size = 'medium' }: TimeRange
     })
 
     return Object.entries(timeRangeData).map(([range, data]) => {
-      const winRate = data.totalTrades > 0 ? (data.winCount / data.totalTrades) * 100 : 0
+      const winRate = data.totalTrades > 0 ? Math.round((data.winCount / data.totalTrades) * 1000) / 10 : 0
       return {
         range,
         avgPnl: data.totalTrades > 0 ? data.totalPnl / data.totalTrades : 0,

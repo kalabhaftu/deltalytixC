@@ -6,10 +6,11 @@ import { useData } from "@/context/data-provider"
 import { Clock, PiggyBank, Award, BarChart, Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { useTradeStatistics } from "@/hooks/use-trade-statistics"
 import { Progress } from "@/components/ui/progress"
 
 interface StatisticsWidgetProps {
-  size?: 'tiny' | 'small' | 'medium' | 'large' | 'small-long' | 'extra-large'
+  size?: 'tiny' | 'small' | 'medium' | 'large' | 'small-long' | 'extra-large' | 'kpi'
 }
 
 function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (...args: Parameters<T>) => void {
@@ -21,7 +22,7 @@ function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (.
 }
 
 export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetProps) {
-  const { statistics, calendarData } = useData()
+  const { calendarData } = useData()
   const [activeTooltip, setActiveTooltip] = React.useState<string | null>(null)
   const [isTouch, setIsTouch] = React.useState(false)
   const cardRef = React.useRef<HTMLDivElement>(null)
@@ -33,29 +34,26 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)
   }
 
-  // Calculate statistics
-  const { 
-    nbWin, nbLoss, nbBe, nbTrades, 
-    averagePositionTime, 
+  // Use centralized statistics hook for all calculations
+  const {
+    nbWin, nbLoss, nbBe, nbTrades,
+    averagePositionTime,
     cumulativePnl, cumulativeFees,
     winningStreak,
     grossLosses,
-    grossWin
-  } = statistics
-
-  const biggestWin = (statistics as any).biggestWin ?? 0
-  const biggestLoss = (statistics as any).biggestLoss ?? 0
-  const totalPayouts = (statistics as any).totalPayouts ?? 0
-  const nbPayouts = (statistics as any).nbPayouts ?? 0
-
-  // Calculate Net P&L including payouts
-  const netPnlWithPayouts = cumulativePnl - cumulativeFees - totalPayouts
-
-  // Calculate rates (exclude break-even trades from win rate - industry standard)
-  const tradableTradesCount = nbWin + nbLoss // Exclude break-even trades
-  const winRate = tradableTradesCount > 0 ? Number((nbWin / tradableTradesCount * 100).toFixed(2)) : 0
-  const lossRate = Number((nbLoss / nbTrades * 100).toFixed(2))
-  const beRate = Number((nbBe / nbTrades * 100).toFixed(2))
+    grossWin,
+    biggestWin,
+    biggestLoss,
+    totalPayouts,
+    nbPayouts,
+    netPnlWithPayouts,
+    winRate,
+    lossRate,
+    beRate,
+    avgWin,
+    avgLoss,
+    riskRewardRatio
+  } = useTradeStatistics()
 
   // Calculate long/short data
   const chartData = Object.entries(calendarData).map(([date, values]) => ({
@@ -68,8 +66,8 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
   const longNumber = chartData.reduce((acc, curr) => acc + curr.longNumber, 0)
   const shortNumber = chartData.reduce((acc, curr) => acc + curr.shortNumber, 0)
   const totalTrades = longNumber + shortNumber
-  const longRate = Number((longNumber / totalTrades * 100).toFixed(2))
-  const shortRate = Number((shortNumber / totalTrades * 100).toFixed(2))
+  const longRate = totalTrades > 0 ? Math.round((longNumber / totalTrades) * 1000) / 10 : 0 // Round to 1 decimal place
+  const shortRate = totalTrades > 0 ? Math.round((shortNumber / totalTrades) * 1000) / 10 : 0 // Round to 1 decimal place
 
   // Colors
   const positiveColor = "hsl(var(--chart-2))"
@@ -111,6 +109,8 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
       window.removeEventListener('touchstart', handleTouchStart)
     }
   }, [])
+
+  // Let widget canvas handle loading states to avoid hooks violations
 
   return (
     <Card className="h-full flex flex-col" ref={cardRef}>
@@ -213,22 +213,19 @@ export default function StatisticsWidget({ size = 'medium' }: StatisticsWidgetPr
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground text-xs">Avg Win</span>
-                <span className="text-xs font-medium text-green-600 dark:text-green-400 font-mono">{formatCurrency(nbWin > 0 ? grossWin / nbWin : 0)}</span>
+                <span className="text-xs font-medium text-green-600 dark:text-green-400 font-mono">{formatCurrency(avgWin)}</span>
               </div>
               {size !== 'tiny' && (
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground text-xs">Avg Loss</span>
-                  <span className="text-xs font-medium text-destructive font-mono">{formatCurrency(nbLoss > 0 ? grossLosses / nbLoss : 0)}</span>
+                  <span className="text-xs font-medium text-destructive font-mono">{formatCurrency(avgLoss)}</span>
                 </div>
               )}
               {size !== 'tiny' && (
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground text-xs">Risk/Reward</span>
                   <span className="text-xs font-medium font-mono">
-                    {grossLosses > 0 ? 
-                      (grossWin / grossLosses).toFixed(2) : 
-                      (grossWin > 0 ? '∞' : 'N/A')
-                    }
+                    {riskRewardRatio || 'N/A'}
                   </span>
                 </div>
               )}

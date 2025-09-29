@@ -23,6 +23,8 @@ const sizeToGrid = (size: WidgetSize, isSmallScreen = false): { w: number, h: nu
       case 'large':
       case 'extra-large':
         return { w: 12, h: 6 }
+      case 'kpi':
+        return { w: 12, h: 3 }
       default:
         return { w: 12, h: 4 }
     }
@@ -42,6 +44,8 @@ const sizeToGrid = (size: WidgetSize, isSmallScreen = false): { w: number, h: nu
       return { w: 6, h: 8 }
     case 'extra-large':
       return { w: 12, h: 8 }
+    case 'kpi':
+      return { w: 2.4, h: 1.8 }
     default:
       return { w: 6, h: 4 }
   }
@@ -134,7 +138,7 @@ export function SharedWidgetCanvas() {
         rowHeight={isMobile ? 65 : 70}
         isDraggable={false}
         isResizable={false}
-        margin={[16, 16]}
+            margin={[20, 20]}
         containerPadding={[0, 0]}
         compactType="vertical"
         preventCollision={false}

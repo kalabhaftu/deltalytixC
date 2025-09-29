@@ -4,6 +4,7 @@ import { getUserId, getUserIdSafe } from '@/server/auth'
 import { PrismaClient, Trade } from '@prisma/client'
 import { Account } from '@/context/data-provider'
 import { unstable_cache, revalidateTag } from 'next/cache'
+import { saveTradesAction } from '@/server/database'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -259,15 +260,15 @@ export async function getAccountsAction() {
       return []
     }
 
-    // PERFORMANCE OPTIMIZATION: Use caching and minimal fields with error handling
+    // ENHANCED PERFORMANCE OPTIMIZATION: Faster queries and better caching
     return unstable_cache(
       async () => {
         let accounts: any[] = [];
         let masterAccounts: any[] = [];
 
         try {
-          // Fetch regular live trading accounts
-          accounts = await prisma.account.findMany({
+          // Fetch regular live trading accounts with optimized query
+          const accountsPromise = prisma.account.findMany({
             where: {
               userId: userId,
             },
@@ -280,57 +281,79 @@ export async function getAccountsAction() {
               createdAt: true,
               userId: true,
               groupId: true,
+            },
+            orderBy: {
+              createdAt: 'desc' // Show newest accounts first
             }
           })
 
-          // Try to fetch new prop firm master accounts (may fail if not generated)
-          try {
-            masterAccounts = await prisma.masterAccount.findMany({
-              where: {
-                userId: userId,
-              },
-              include: {
-                phases: {
-                  where: {
-                    status: 'active'
-                  },
-                  orderBy: {
-                    phaseNumber: 'asc'
-                  },
-                  take: 1 // Get current active phase
-                }
+          // Fetch prop firm master accounts in parallel with better error handling
+          const masterAccountsPromise = prisma.masterAccount.findMany({
+            where: {
+              userId: userId,
+            },
+            include: {
+              phases: {
+                where: {
+                  status: 'active'
+                },
+                orderBy: {
+                  phaseNumber: 'asc'
+                },
+                take: 1 // Get current active phase
               }
-            })
-          } catch (masterAccountError) {
-            console.log('[getAccountsAction] MasterAccount not available yet:', masterAccountError)
-            masterAccounts = []
-          }
+            },
+            orderBy: {
+              createdAt: 'desc'
+            }
+          }).catch((masterAccountError) => {
+            console.log('[getAccountsAction] MasterAccount query failed:', masterAccountError)
+            return []
+          })
+
+          // Execute both queries in parallel for better performance
+          const [regularAccounts, propFirmAccounts] = await Promise.all([
+            accountsPromise,
+            masterAccountsPromise
+          ])
+          
+          accounts = regularAccounts
+          masterAccounts = propFirmAccounts
         } catch (dbError) {
           console.error('[getAccountsAction] Database error:', dbError)
           // Return empty array instead of throwing to prevent app crash
           return []
         }
 
-        // Get trade counts for regular accounts
+        // Parallel trade count queries for better performance
         const accountIds = accounts.map(account => account.id)
-        const tradeCounts = await prisma.trade.groupBy({
-          by: ['accountId'],
-          where: {
-            accountId: { in: accountIds }
-          },
-          _count: {
-            id: true
-          }
-        })
-
-        // Get trade counts for master accounts (via phase accounts)
         const masterAccountIds = masterAccounts.map((ma: any) => ma.id)
         const phaseAccountIds = masterAccounts.flatMap((ma: any) => ma.phases?.map((p: any) => p.id) || [])
 
-        let phaseTradeCounts: any[] = []
+        // Execute trade count queries in parallel
+        const tradeCountPromises = []
+        
+        // Regular accounts trade counts
+        if (accountIds.length > 0) {
+          tradeCountPromises.push(
+            prisma.trade.groupBy({
+              by: ['accountId'],
+              where: {
+                accountId: { in: accountIds }
+              },
+              _count: {
+                id: true
+              }
+            })
+          )
+        } else {
+          tradeCountPromises.push(Promise.resolve([]))
+        }
+
+        // Phase accounts trade counts
         if (phaseAccountIds.length > 0) {
-          try {
-            phaseTradeCounts = await prisma.trade.groupBy({
+          tradeCountPromises.push(
+            prisma.trade.groupBy({
               by: ['phaseAccountId'],
               where: {
                 phaseAccountId: { in: phaseAccountIds },
@@ -341,24 +364,36 @@ export async function getAccountsAction() {
               _count: {
                 id: true
               }
-            }) as any
-          } catch (error) {
-            console.log('[getAccountsAction] Phase trade count query failed:', error)
-            phaseTradeCounts = []
-          }
+            }).catch((error) => {
+              console.log('[getAccountsAction] Phase trade count query failed:', error)
+              return []
+            })
+          )
+        } else {
+          tradeCountPromises.push(Promise.resolve([]))
         }
 
-        // Create trade count maps
+        const [tradeCounts, phaseTradeCounts] = await Promise.all(tradeCountPromises)
+
+        // Create trade count maps with proper type handling
         const tradeCountMap = new Map()
-        tradeCounts.forEach(tc => {
-          tradeCountMap.set(tc.accountId, tc._count.id)
-        })
+        if (Array.isArray(tradeCounts)) {
+          tradeCounts.forEach((tc: any) => {
+            if (tc.accountId) {
+              tradeCountMap.set(tc.accountId, tc._count.id)
+            }
+          })
+        }
 
         // Create phase trade count map
         const phaseTradeCountMap = new Map()
-        phaseTradeCounts.forEach(ptc => {
-          phaseTradeCountMap.set(ptc.phaseAccountId, ptc._count.id)
-        })
+        if (Array.isArray(phaseTradeCounts)) {
+          phaseTradeCounts.forEach((ptc: any) => {
+            if (ptc.phaseAccountId) {
+              phaseTradeCountMap.set(ptc.phaseAccountId, ptc._count.id)
+            }
+          })
+        }
 
         // Calculate master account trade counts (sum all phases)
         const masterTradeCountMap = new Map()
@@ -419,8 +454,8 @@ export async function getAccountsAction() {
       },
       [`accounts-${userId}`],
       {
-        tags: [`accounts-${userId}`],
-        revalidate: 30 // 30 seconds cache - balanced approach for performance and freshness
+        tags: [`accounts-${userId}`, `user-data-${userId}`],
+        revalidate: 15 // 15 seconds cache for fresher data with real-time updates
       }
     )()
   } catch (error) {
@@ -704,41 +739,30 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
   try {
     const userId = await getUserId()
 
-    // Use database transaction to ensure atomicity
+    // FIXED: Use saveTradesAction for proper duplicate detection
+    const saveResult = await saveTradesAction(trades)
+
+    if (saveResult.error) {
+      throw new Error(`Failed to save trades: ${saveResult.details}`)
+    }
+
+    // Use database transaction for linking only
     const result = await prisma.$transaction(async (tx) => {
-      // Step 1: Save trades to database using createMany for better performance
-      const tradeData = trades.map(trade => ({
-        id: trade.id,
-        accountNumber: trade.accountNumber,
-        instrument: trade.instrument,
-        entryPrice: trade.entryPrice,
-        closePrice: trade.closePrice,
-        entryDate: trade.entryDate,
-        closeDate: trade.closeDate,
-        quantity: trade.quantity,
-        pnl: trade.pnl,
-        timeInPosition: trade.timeInPosition,
-        userId,
-        side: trade.side,
-        commission: trade.commission,
-        entryId: trade.entryId,
-        closeId: trade.closeId,
-        comment: trade.comment,
-        videoUrl: trade.videoUrl,
-        tags: trade.tags || [],
-        imageBase64: trade.imageBase64,
-        imageBase64Second: trade.imageBase64Second,
-        imageBase64Third: trade.imageBase64Third,
-        imageBase64Fourth: trade.imageBase64Fourth,
-        groupId: trade.groupId,
-        createdAt: trade.createdAt || new Date(),
-      }))
-
-      const saveResult = await tx.trade.createMany({
-        data: tradeData
+      // Get the trades that were just saved by finding them in the database
+      // We'll match by userId and account number for the trades we just imported
+      const savedTrades = await tx.trade.findMany({
+        where: {
+          userId,
+          accountNumber: {
+            in: [...new Set(trades.map(t => t.accountNumber).filter(Boolean))]
+          },
+          // Find recently created trades (within last 5 minutes)
+          createdAt: {
+            gte: new Date(Date.now() - 5 * 60 * 1000)
+          }
+        },
+        select: { id: true, instrument: true, entryDate: true, closeDate: true }
       })
-
-      const savedTrades = trades // We'll use the original trades for linking
 
       // Step 2: Link trades to account/phase
       const masterAccount = await tx.masterAccount.findUnique({
@@ -767,24 +791,22 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
         }
 
         // Link all saved trades to the current phase
-        for (const trade of savedTrades) {
-          await tx.trade.update({
-            where: { id: trade.id },
+        if (savedTrades.length > 0) {
+          await tx.trade.updateMany({
+            where: {
+              id: {
+                in: savedTrades.map(trade => trade.id)
+              }
+            },
             data: {
-              phaseAccountId: currentPhase.id,
-              // Update phase-specific fields
-              symbol: trade.instrument,
-              realizedPnl: trade.pnl,
-              fees: trade.commission || 0,
-              entryTime: trade.entryDate ? new Date(trade.entryDate) : null,
-              exitTime: trade.closeDate ? new Date(trade.closeDate) : null
+              phaseAccountId: currentPhase.id
             }
           })
         }
 
         return {
           success: true,
-          linkedCount: savedTrades.length,
+          linkedCount: saveResult.numberOfTradesAdded,
           phaseAccountId: currentPhase.id,
           phaseNumber: currentPhase.phaseNumber,
           accountName: masterAccount.accountName
@@ -812,7 +834,7 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
 
         return {
           success: true,
-          linkedCount: savedTrades.length,
+          linkedCount: saveResult.numberOfTradesAdded,
           accountId,
           accountName: regularAccount.name || accountId
         }

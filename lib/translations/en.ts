@@ -395,6 +395,7 @@ export default {
     'widgets.types.weekdayPnl': 'P/L by Weekday',
     'widgets.types.pnlBySide': 'P&L by Side',
     'widgets.types.tickDistribution': 'Tick Distribution',
+    'widgets.types.radarChart': 'Performance Radar',
     'widgets.types.commissionsPnl': 'Commissions PnL share',
     'widgets.types.averagePositionTime': 'Average Position Time',
     'widgets.averagePositionTime': {

@@ -89,7 +89,7 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
     if (!account || !account.resetDate) {
       return true; // Include trade if no account found or no reset date
     }
-    
+
     // Only include trades that occurred after the reset date
     return new Date(trade.entryDate) >= new Date(account.resetDate);
   });
@@ -145,35 +145,35 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
   let maxWinningStreak = 0;
 
   const statistics = filteredTrades.reduce((acc: StatisticsProps, trade: Trade) => {
-    const pnl = trade.pnl;
-    
+    const netPnl = trade.pnl - (trade.commission || 0);
+
     acc.nbTrades++;
-    acc.cumulativePnl += pnl;
-    acc.cumulativeFees += trade.commission;
+    acc.cumulativePnl += trade.pnl;
+    acc.cumulativeFees += trade.commission || 0;
     acc.totalPositionTime += trade.timeInPosition;
 
-    // Track biggest win and loss
-    if (pnl > acc.biggestWin) {
-      acc.biggestWin = pnl;
+    // Track biggest win and loss (using net P&L)
+    if (netPnl > acc.biggestWin) {
+      acc.biggestWin = netPnl;
     }
-    if (pnl < acc.biggestLoss) {
-      acc.biggestLoss = pnl;
+    if (netPnl < acc.biggestLoss) {
+      acc.biggestLoss = netPnl;
     }
 
-    // Categorize trades and handle winning streak correctly
-    if (pnl === 0) {
+    // Categorize trades using net P&L and handle winning streak correctly
+    if (netPnl === 0) {
       acc.nbBe++;
       currentWinningStreak = 0; // Break-even breaks winning streak
-    } else if (pnl > 0) {
+    } else if (netPnl > 0) {
       acc.nbWin++;
-      acc.grossWin += pnl;
+      acc.grossWin += netPnl;
       currentWinningStreak++;
       if (currentWinningStreak > maxWinningStreak) {
         maxWinningStreak = currentWinningStreak;
       }
     } else {
       acc.nbLoss++;
-      acc.grossLosses += Math.abs(pnl);
+      acc.grossLosses += Math.abs(netPnl);
       currentWinningStreak = 0; // Loss breaks winning streak
     }
 
@@ -189,7 +189,7 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
 
   // Get unique account numbers from the filtered trades
   const tradeAccountNumbers = new Set(filteredTrades.map(trade => trade.accountNumber));
-  
+
   // Calculate total payouts only from accounts that have trades in the current dataset
   // and only include payouts that occurred after the reset date
   accounts.forEach(account => {
@@ -206,7 +206,7 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
   });
 
   // Calculate average position time (handle division by zero)
-  const averageTimeInSeconds = filteredTrades.length > 0 ? 
+  const averageTimeInSeconds = filteredTrades.length > 0 ?
     Math.round(statistics.totalPositionTime / filteredTrades.length) : 0;
   statistics.averagePositionTime = parsePositionTime(averageTimeInSeconds);
 
@@ -279,4 +279,51 @@ export function generateTradeHash(trade: Partial<Trade>): string {
   // Handle undefined values by converting them to empty strings or default values
   const hashString = `${trade.userId || ''}-${trade.accountNumber || ''}-${trade.instrument || ''}-${trade.entryDate || ''}-${trade.closeDate || ''}-${trade.quantity || 0}-${trade.entryId || ''}-${trade.closeId || ''}-${trade.timeInPosition || 0}`
   return hashString
+}
+
+/**
+ * Calculate average win and loss amounts for risk/reward analysis
+ * @param trades - Array of trades to analyze
+ * @returns Object containing average win, average loss, and risk/reward ratio
+ */
+export function calculateAverageWinLoss(trades: Trade[]): {
+  avgWin: number;
+  avgLoss: number;
+  riskRewardRatio: number;
+  winningTrades: Trade[];
+  losingTrades: Trade[];
+} {
+  const winningTrades = trades.filter(trade => {
+    const netPnl = trade.pnl - (trade.commission || 0);
+    return netPnl > 0;
+  });
+
+  const losingTrades = trades.filter(trade => {
+    const netPnl = trade.pnl - (trade.commission || 0);
+    return netPnl < 0;
+  });
+
+  const avgWin = winningTrades.length > 0
+    ? winningTrades.reduce((sum, trade) => {
+        const netPnl = trade.pnl - (trade.commission || 0);
+        return sum + netPnl;
+      }, 0) / winningTrades.length
+    : 0;
+
+  const avgLoss = losingTrades.length > 0
+    ? Math.abs(losingTrades.reduce((sum, trade) => {
+        const netPnl = trade.pnl - (trade.commission || 0);
+        return sum + netPnl;
+      }, 0) / losingTrades.length)
+    : 0;
+
+  const riskRewardRatio = avgLoss > 0 ? Math.round((avgWin / avgLoss) * 100) / 100 : 0;
+
+  return {
+    avgWin,
+    avgLoss,
+    riskRewardRatio,
+    winningTrades,
+    losingTrades
+  };
 }

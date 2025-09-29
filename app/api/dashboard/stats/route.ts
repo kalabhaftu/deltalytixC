@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
 import { getActiveAccountsWhereClause } from '@/lib/utils/account-filters'
+import { calculateAverageWinLoss } from '@/lib/utils'
 
 // GET /api/dashboard/stats - Fast dashboard statistics for charts
 export async function GET(request: NextRequest) {
@@ -134,15 +135,6 @@ export async function GET(request: NextRequest) {
               gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
             }
           },
-          select: {
-            pnl: true,
-            commission: true,
-            entryDate: true,
-            closeDate: true,
-            createdAt: true,
-            instrument: true,
-            accountNumber: true
-          },
           orderBy: {
             createdAt: 'desc'
           },
@@ -196,11 +188,23 @@ export async function GET(request: NextRequest) {
         .sort((a, b) => a.date.localeCompare(b.date))
         .slice(-14) // Last 14 days for chart
 
+      // Use centralized calculation for statistics
+      const { avgWin, avgLoss, riskRewardRatio } = calculateAverageWinLoss(recentTrades)
+
       // Calculate trading statistics
-      const winningTrades = recentTrades.filter(trade => trade.pnl > 0).length
-      const losingTrades = recentTrades.filter(trade => trade.pnl < 0).length
-      const breakEvenTrades = recentTrades.filter(trade => trade.pnl === 0).length
-      
+      const winningTrades = recentTrades.filter(trade => {
+        const netPnL = trade.pnl - (trade.commission || 0)
+        return netPnL > 0
+      }).length
+      const losingTrades = recentTrades.filter(trade => {
+        const netPnL = trade.pnl - (trade.commission || 0)
+        return netPnL < 0
+      }).length
+      const breakEvenTrades = recentTrades.filter(trade => {
+        const netPnL = trade.pnl - (trade.commission || 0)
+        return netPnL === 0
+      }).length
+
       // Win rate calculation (excluding break-even trades)
       const tradableTradesCount = winningTrades + losingTrades
       const winRate = tradableTradesCount > 0 ? (winningTrades / tradableTradesCount) * 100 : 0
@@ -220,8 +224,8 @@ export async function GET(request: NextRequest) {
       }, 0))
 
       // Profit factor calculation
-      const profitFactor = grossLosses === 0 ? 
-        (grossProfits > 0 ? Number.POSITIVE_INFINITY : 0) : 
+      const profitFactor = grossLosses === 0 ?
+        (grossProfits > 0 ? Number.POSITIVE_INFINITY : 0) :
         grossProfits / grossLosses
 
       return NextResponse.json({

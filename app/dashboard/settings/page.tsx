@@ -44,7 +44,7 @@ import { Slider } from "@/components/ui/slider"
 import { LinkedAccounts } from "@/components/linked-accounts"
 import { AccountFilterSettingsCard } from "@/components/account-filter-settings"
 import { useToolbarSettingsStore } from "@/store/toolbar-settings-store"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { PrimaryButton, SecondaryButton, DestructiveButton } from "@/components/ui/button-styles"
 import { DataSerializer } from "@/lib/data-serialization"
 

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { filterActiveAccounts } from '@/lib/utils/account-filters'
 import { getAccountsAction, getCurrentActivePhase } from '@/server/accounts'
+import { createClient } from '@/lib/supabase'
 
 interface UnifiedAccount {
   id: string
@@ -42,17 +43,35 @@ interface UseAccountsOptions {
   includeFailed?: boolean
 }
 
-// Global cache to prevent multiple simultaneous requests
+// Enhanced global cache system with real-time invalidation
 let accountsCache: UnifiedAccount[] | null = null
 let accountsPromise: Promise<UnifiedAccount[]> | null = null
 let lastFetchTime = 0
-const CACHE_DURATION = 30000 // 30 seconds - balanced approach for performance and freshness
-let isCurrentlyFetching = false // Prevent multiple simultaneous requests
+const CACHE_DURATION = 15000 // Reduced to 15 seconds for fresher data
+let isCurrentlyFetching = false
 
-// Enhanced cache invalidation system
+// Real-time cache invalidation tracking
 const cacheInvalidationTags = new Set<string>()
+const realtimeSubscribers = new Set<() => void>()
 
-// Critical actions that should invalidate cache
+// Global broadcast system for cache updates
+export function broadcastAccountsUpdate() {
+  realtimeSubscribers.forEach(callback => {
+    try {
+      callback()
+    } catch (error) {
+      console.warn('[useAccounts] Error in realtime subscriber callback:', error)
+    }
+  })
+}
+
+// Subscribe to realtime updates
+export function subscribeToAccountsUpdates(callback: () => void) {
+  realtimeSubscribers.add(callback)
+  return () => realtimeSubscribers.delete(callback)
+}
+
+// Enhanced cache invalidation with broadcast
 export function invalidateAccountsCache(reason?: string) {
   if (process.env.NODE_ENV === 'development') {
     console.log(`[CACHE] Invalidating accounts cache${reason ? `: ${reason}` : ''}`)
@@ -61,6 +80,9 @@ export function invalidateAccountsCache(reason?: string) {
   accountsPromise = null
   lastFetchTime = 0
   cacheInvalidationTags.clear()
+  
+  // Notify all subscribers about the cache invalidation
+  broadcastAccountsUpdate()
 }
 
 // Function to clear cache when accounts are deleted (legacy compatibility)
@@ -75,15 +97,18 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
-  const { toast } = useToast()
+  const supabaseRef = useRef<any>(null)
 
-  const fetchAccounts = useCallback(async (forceRefresh = false) => {
-    // Check cache first - much more aggressive caching
+  const fetchAccounts = useCallback(async (forceRefresh = false, source = 'manual') => {
+    // Check cache first with smarter invalidation
     const now = Date.now()
     if (!forceRefresh && accountsCache && (now - lastFetchTime) < CACHE_DURATION) {
       setAccounts(accountsCache)
       setIsLoading(false)
       setError(null)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[useAccounts] Using cached data (${source})`, { cacheAge: now - lastFetchTime })
+      }
       return
     }
 
@@ -153,6 +178,12 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
                 }
               }
 
+              // Calculate current balance including trade P&L
+              // This is a placeholder - in a real implementation, this would need access to trade data
+              // For now, we'll use the starting balance as a fallback
+              const currentBalance = account.startingBalance || 0
+              const currentEquity = account.startingBalance || 0
+
               return {
                 id: account.id,
                 number: account.number,
@@ -160,8 +191,8 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
                 propfirm: account.propfirm,
                 broker: account.broker || undefined, // Convert null to undefined
                 startingBalance: account.startingBalance,
-                currentBalance: account.startingBalance, // Add currentBalance field
-                currentEquity: account.startingBalance,  // Add currentEquity field
+                currentBalance, // Use calculated balance
+                currentEquity,  // Use calculated equity
                 status: account.status || 'active',
                 createdAt: account.createdAt instanceof Date ? account.createdAt.toISOString() : account.createdAt,
                 userId: account.userId,
@@ -196,12 +227,19 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
       const fetchedAccounts = await accountsPromise
 
       if (fetchedAccounts) {
-        // Update cache
+        // Update cache and notify subscribers
         accountsCache = fetchedAccounts
         lastFetchTime = now
 
         setAccounts(fetchedAccounts)
         setError(null)
+        
+        // Broadcast update to other components
+        broadcastAccountsUpdate()
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[useAccounts] Updated cache with ${fetchedAccounts.length} accounts (${source})`)
+        }
       }
     } catch (err) {
       if (err instanceof Error) {
@@ -210,11 +248,12 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
         }
         console.error('[useAccounts] Fetch error:', err.message)
         setError(err.message)
-        toast({
-          title: 'Error',
-          description: 'Failed to fetch accounts. Please try again.',
-          variant: 'destructive'
-        })
+        // FIXED: Schedule toast outside render cycle to prevent setState during render
+        setTimeout(() => {
+          toast.error('Error', {
+            description: 'Failed to fetch accounts. Please try again.',
+          })
+        }, 0)
       } else {
         setError('An unexpected error occurred')
       }
@@ -223,17 +262,206 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
       accountsPromise = null
       isCurrentlyFetching = false
     }
-  }, [toast])
+  }, [])
 
   const refetch = useCallback(() => fetchAccounts(true), [fetchAccounts])
 
   useEffect(() => {
-    fetchAccounts()
+    fetchAccounts(false, 'initial')
+
+    // Subscribe to global account updates
+    const unsubscribeFromBroadcast = subscribeToAccountsUpdates(() => {
+      // Only update if we have cached data to avoid unnecessary fetching
+      if (accountsCache && !isCurrentlyFetching) {
+        setAccounts(accountsCache)
+        console.log('[useAccounts] Updated from broadcast')
+      }
+    })
+
+    // Set up intelligent real-time subscriptions with enhanced debouncing and error handling
+    const setupRealtimeSubscriptions = async () => {
+      try {
+        const supabase = createClient()
+        
+        // Check if supabase client supports real-time (not in mock mode)
+        if (!supabase.channel || typeof supabase.channel !== 'function') {
+          console.log('[useAccounts] Supabase realtime not available (mock mode or missing config)')
+          return
+        }
+
+        // Enhanced intelligent refresh system with better debouncing
+        let refreshTimeout: NodeJS.Timeout | null = null
+        let lastChangeTime = 0
+        const MIN_REFRESH_INTERVAL = 2000 // Reduced to 2 seconds for better responsiveness
+        const MAX_REFRESH_INTERVAL = 15000 // Reduced to 15 seconds for fresher data
+        let pendingChanges = new Set<string>()
+
+        const intelligentRefresh = (changeType: string, changeId?: string) => {
+          const now = Date.now()
+          const timeSinceLastChange = now - lastChangeTime
+
+          // Track pending changes for smarter batching
+          if (changeId) {
+            pendingChanges.add(`${changeType}:${changeId}`)
+          }
+
+          // Don't refresh too frequently, but batch meaningful changes
+          if (timeSinceLastChange < MIN_REFRESH_INTERVAL) {
+            const remainingTime = MIN_REFRESH_INTERVAL - timeSinceLastChange
+            if (refreshTimeout) {
+              clearTimeout(refreshTimeout)
+            }
+            refreshTimeout = setTimeout(() => {
+              lastChangeTime = Date.now()
+              const changeCount = pendingChanges.size
+              console.log(`[useAccounts] Batched refresh triggered: ${changeCount} pending changes`)
+              pendingChanges.clear()
+              invalidateAccountsCache('batched realtime changes')
+              fetchAccounts(true)
+            }, remainingTime)
+            return
+          }
+
+          // Update last change time and refresh immediately for significant changes
+          lastChangeTime = now
+          const changeCount = pendingChanges.size
+          console.log(`[useAccounts] Immediate refresh for significant change: ${changeType} (${changeCount} total changes)`)
+          pendingChanges.clear()
+          invalidateAccountsCache('immediate realtime change')
+          fetchAccounts(true)
+        }
+
+        // Subscribe to accounts table changes with better filtering
+        const accountsSubscription = supabase
+          .channel('accounts-realtime-changes')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'Account'
+            },
+          (payload: any) => {
+            const changeId = payload.new?.id || payload.old?.id
+            console.log('[useAccounts] Account change:', payload.eventType, changeId)
+            
+            // Refresh for all account changes - balance, status, etc.
+            intelligentRefresh('account', changeId)
+          }
+        )
+        .subscribe((status: string) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('[useAccounts] Successfully subscribed to account changes')
+          } else if (status === 'CHANNEL_ERROR') {
+            console.warn('[useAccounts] Error subscribing to account changes')
+          }
+        })
+
+        // Subscribe to trades table changes with account impact detection
+        const tradesSubscription = supabase
+          .channel('trades-realtime-changes')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'Trade'
+            },
+          (payload: any) => {
+            const changeId = payload.new?.id || payload.old?.id
+            const accountNumber = payload.new?.accountNumber || payload.old?.accountNumber
+            console.log('[useAccounts] Trade change:', payload.eventType, changeId, 'for account:', accountNumber)
+            
+            // Trades affect account equity and trade counts
+            intelligentRefresh('trade', changeId)
+          }
+        )
+        .subscribe((status: string) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('[useAccounts] Successfully subscribed to trade changes')
+          } else if (status === 'CHANNEL_ERROR') {
+            console.warn('[useAccounts] Error subscribing to trade changes')
+          }
+        })
+
+        // Subscribe to prop firm master accounts and phases
+        const propFirmSubscription = supabase
+          .channel('propfirm-realtime-changes')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'MasterAccount'
+            },
+          (payload: any) => {
+            const changeId = payload.new?.id || payload.old?.id
+            console.log('[useAccounts] Prop firm account change:', payload.eventType, changeId)
+            intelligentRefresh('prop-firm', changeId)
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'PhaseAccount'
+          },
+          (payload: any) => {
+            const changeId = payload.new?.id || payload.old?.id
+            console.log('[useAccounts] Phase change:', payload.eventType, changeId)
+            intelligentRefresh('phase', changeId)
+          }
+        )
+        .subscribe((status: string) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('[useAccounts] Successfully subscribed to prop firm changes')
+          } else if (status === 'CHANNEL_ERROR') {
+            console.warn('[useAccounts] Error subscribing to prop firm changes')
+          }
+        })
+
+        supabaseRef.current = { accountsSubscription, tradesSubscription, propFirmSubscription }
+
+        // Enhanced cleanup function
+        const cleanup = () => {
+          if (refreshTimeout) {
+            clearTimeout(refreshTimeout)
+            refreshTimeout = null
+          }
+          pendingChanges.clear()
+          accountsSubscription?.unsubscribe()
+          tradesSubscription?.unsubscribe()
+          propFirmSubscription?.unsubscribe()
+        }
+
+        // Store cleanup function
+        supabaseRef.current.cleanup = cleanup
+      } catch (error) {
+        console.error('[useAccounts] Error setting up real-time subscriptions:', error)
+        // Don't fail the hook if real-time setup fails
+      }
+    }
+
+    setupRealtimeSubscriptions()
 
     return () => {
       // Cleanup: abort any pending request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
+      }
+
+      // Unsubscribe from broadcast updates
+      unsubscribeFromBroadcast()
+
+      // Cleanup: unsubscribe from real-time channels with proper cleanup
+      if (supabaseRef.current?.cleanup) {
+        supabaseRef.current.cleanup()
+      } else if (supabaseRef.current) {
+        const { accountsSubscription, tradesSubscription, propFirmSubscription } = supabaseRef.current
+        accountsSubscription?.unsubscribe()
+        tradesSubscription?.unsubscribe()
+        propFirmSubscription?.unsubscribe()
       }
     }
   }, []) // Remove fetchAccounts from dependencies to prevent infinite loops

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import {
   Dialog,
   DialogContent,
@@ -68,10 +68,8 @@ export function PhaseTransitionDialog({
 
   const handleTransition = async () => {
     if (!nextPhaseId.trim()) {
-      toast({
-        title: "ID Required",
+      toast.error("ID Required", {
         description: "Please enter the account ID for your next phase.",
-        variant: "destructive"
       })
       return
     }
@@ -95,10 +93,8 @@ export function PhaseTransitionDialog({
         throw new Error(result.error || 'Failed to transition phase')
       }
 
-      toast({
-        title: "Phase Transition Successful! 🎉",
+      toast.success("Phase Transition Successful! 🎉", {
         description: `You've successfully advanced to ${getPhaseDisplayName(nextPhaseNumber)}!`,
-        variant: "default"
       })
 
       // Call success callback to refresh data
@@ -112,10 +108,8 @@ export function PhaseTransitionDialog({
 
     } catch (error) {
       console.error('Error transitioning phase:', error)
-      toast({
-        title: "Transition Failed",
+      toast.error("Transition Failed", {
         description: error instanceof Error ? error.message : 'Failed to transition to next phase',
-        variant: "destructive"
       })
     } finally {
       setIsTransitioning(false)

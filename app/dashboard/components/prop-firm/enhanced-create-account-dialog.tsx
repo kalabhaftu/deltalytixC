@@ -16,11 +16,12 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Building2, DollarSign, Target, Shield, CheckCircle, ArrowRight, Info, AlertTriangle } from "lucide-react"
+import { Loader2, Building2, DollarSign, Target, Shield, CheckCircle, ArrowRight, Info, AlertTriangle, TrendingDown, Calendar, Percent, HelpCircle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { clearAccountsCache } from "@/hooks/use-accounts"
 
 // Updated schema for new MasterAccount/PhaseAccount system
@@ -275,10 +276,8 @@ export function EnhancedCreateAccountDialog({
       if (!response.ok) {
         // Handle retryable errors (connectivity/timeout issues)
         if ((response.status === 503 || response.status === 408) && result.retryable && retryCount < 2) {
-          toast({
-            title: "Connection issue",
+          toast.info("Connection issue", {
             description: `Retrying... (Attempt ${retryCount + 2}/3)`,
-            variant: "default"
           })
           
           // Wait 2 seconds before retry
@@ -289,10 +288,8 @@ export function EnhancedCreateAccountDialog({
         throw new Error(result.error || 'Failed to create prop firm account')
       }
 
-      toast({
-        title: "Prop firm account created!",
+      toast.success("Prop firm account created!", {
         description: `Your ${data.propFirmName} evaluation account has been added.`,
-        variant: "default"
       })
 
       clearAccountsCache()
@@ -320,10 +317,8 @@ export function EnhancedCreateAccountDialog({
         }
       }
 
-      toast({
-        title,
+      toast.error(title, {
         description,
-        variant: "destructive"
       })
     } finally {
       setIsSubmitting(false)
@@ -536,180 +531,717 @@ export function EnhancedCreateAccountDialog({
 
             {/* Step 3: Trading Rules */}
             {step === 'rules' && (
-              <motion.div
-                key="rules"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
-              >
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Trading Rules</h3>
-                  
-                  {/* Phase 1 Rules */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Phase 1 Rules</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      {watchedEvaluationType !== 'Instant' && (
-                        <div>
-                          <Label htmlFor="phase1ProfitTarget">Profit Target (%)</Label>
-                          <Input
-                            id="phase1ProfitTarget"
-                            type="number"
-                            {...register('phase1ProfitTargetPercent', { valueAsNumber: true })}
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <Label htmlFor="phase1MaxDrawdown">Max Drawdown (%)</Label>
-                        <Input
-                          id="phase1MaxDrawdown"
-                          type="number"
-                          {...register('phase1MaxDrawdownPercent', { valueAsNumber: true })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="phase1DailyDrawdown">Daily Drawdown (%)</Label>
-                        <Input
-                          id="phase1DailyDrawdown"
-                          type="number"
-                          {...register('phase1DailyDrawdownPercent', { valueAsNumber: true })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="phase1MinDays">Min Trading Days (0 = none)</Label>
-                        <Input
-                          id="phase1MinDays"
-                          type="number"
-                          {...register('phase1MinTradingDays', { valueAsNumber: true })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="phase1TimeLimit">Time Limit Days (0 = unlimited)</Label>
-                        <Input
-                          id="phase1TimeLimit"
-                          type="number"
-                          {...register('phase1TimeLimitDays', { valueAsNumber: true })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="phase1Consistency">Consistency Rule % (0 = none)</Label>
-                        <Input
-                          id="phase1Consistency"
-                          type="number"
-                          {...register('phase1ConsistencyRulePercent', { valueAsNumber: true })}
-                        />
-                      </div>
-                    </div>
-                  </div>
+              <TooltipProvider>
+                <motion.div
+                  key="rules"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-8"
+                >
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Trading Rules Configuration
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Configure risk management and evaluation criteria for each phase
+                    </p>
+                    
+                    {/* Phase 1 Rules */}
+                    <Card className="mb-6">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Target className="h-4 w-4" />
+                          Phase 1 Rules
+                        </CardTitle>
+                        <CardDescription>
+                          Initial evaluation phase requirements and risk limits
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {/* Profit Target Section */}
+                        {watchedEvaluationType !== 'Instant' && (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <TrendingDown className="h-4 w-4" />
+                              <h5 className="font-medium text-sm">Profit Target</h5>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Label htmlFor="phase1ProfitTarget" className="text-sm font-medium">
+                                    Target Percentage
+                                  </Label>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Profit percentage required to pass this phase (typically 8-12%)</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <div className="relative">
+                                  <Input
+                                    id="phase1ProfitTarget"
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    max="100"
+                                    className="pr-8"
+                                    {...register('phase1ProfitTargetPercent', { valueAsNumber: true })}
+                                  />
+                                  <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Target: ${((watch('accountSize') || 0) * (watch('phase1ProfitTargetPercent') || 0) / 100).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
-                  {/* Phase 2 Rules (for Two Step) */}
-                  {watchedEvaluationType === 'Two Step' && (
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Phase 2 Rules</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="phase2ProfitTarget">Profit Target (%)</Label>
-                          <Input
-                            id="phase2ProfitTarget"
-                            type="number"
-                            {...register('phase2ProfitTargetPercent', { valueAsNumber: true })}
-                          />
+                        {/* Drawdown Rules Section */}
+                        <div className="space-y-4 p-4 rounded-lg border">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4" />
+                            <h5 className="font-medium text-sm">Risk Management</h5>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Max Drawdown */}
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <Label className="text-sm font-medium">Max Drawdown</Label>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Maximum loss allowed from starting balance or high-water mark</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                              <div className="space-y-3">
+                                <div className="relative">
+                                  <Input
+                                    id="phase1MaxDrawdown"
+                                    type="number"
+                                    step="0.1"
+                                    min="1"
+                                    max="100"
+                                    className="pr-8"
+                                    {...register('phase1MaxDrawdownPercent', { valueAsNumber: true })}
+                                  />
+                                  <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <Select
+                                  value={watch('phase1MaxDrawdownType')}
+                                  onValueChange={(value: 'static' | 'trailing') => setValue('phase1MaxDrawdownType', value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="static">
+                                      Static (from starting balance)
+                                    </SelectItem>
+                                    <SelectItem value="trailing">
+                                      Trailing (from high-water mark)
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                  Limit: ${((watch('accountSize') || 0) * (watch('phase1MaxDrawdownPercent') || 0) / 100).toLocaleString()}
+                                </p>
+                                {(watch('phase1MaxDrawdownPercent') || 0) > 15 && (
+                                  <p className="text-xs text-amber-600 flex items-center gap-1">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    High drawdown limit (typical: 6-12%)
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Daily Drawdown */}
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <Label className="text-sm font-medium">Daily Drawdown</Label>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Maximum loss allowed in a single trading day</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                              <div className="space-y-3">
+                                <div className="relative">
+                                  <Input
+                                    id="phase1DailyDrawdown"
+                                    type="number"
+                                    step="0.1"
+                                    min="1"
+                                    max="100"
+                                    className="pr-8"
+                                    {...register('phase1DailyDrawdownPercent', { valueAsNumber: true })}
+                                  />
+                                  <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Daily limit: ${((watch('accountSize') || 0) * (watch('phase1DailyDrawdownPercent') || 0) / 100).toLocaleString()}
+                                </p>
+                                {(watch('phase1DailyDrawdownPercent') || 0) > (watch('phase1MaxDrawdownPercent') || 0) && (watch('phase1MaxDrawdownPercent') || 0) > 0 && (
+                                  <p className="text-xs text-red-600 flex items-center gap-1">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    Daily drawdown cannot exceed max drawdown
+                                  </p>
+                                )}
+                                {(watch('phase1DailyDrawdownPercent') || 0) > 8 && (
+                                  <p className="text-xs text-amber-600 flex items-center gap-1">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    High daily limit (typical: 3-6%)
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <Label htmlFor="phase2MaxDrawdown">Max Drawdown (%)</Label>
-                          <Input
-                            id="phase2MaxDrawdown"
-                            type="number"
-                            {...register('phase2MaxDrawdownPercent', { valueAsNumber: true })}
-                          />
+
+                        {/* Time and Consistency Rules */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4" />
+                              <Label htmlFor="phase1MinDays" className="text-sm font-medium">
+                                Min Trading Days
+                              </Label>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Minimum days you must trade before advancing (0 = no minimum)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <Input
+                              id="phase1MinDays"
+                              type="number"
+                              min="0"
+                              max="365"
+                              {...register('phase1MinTradingDays', { valueAsNumber: true })}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4" />
+                              <Label htmlFor="phase1TimeLimit" className="text-sm font-medium">
+                                Time Limit (Days)
+                              </Label>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Maximum days to complete this phase (0 = unlimited)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <Input
+                              id="phase1TimeLimit"
+                              type="number"
+                              min="0"
+                              max="365"
+                              {...register('phase1TimeLimitDays', { valueAsNumber: true })}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Target className="h-4 w-4" />
+                              <Label htmlFor="phase1Consistency" className="text-sm font-medium">
+                                Consistency Rule
+                              </Label>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Max percentage of profit from single best day (0 = no limit)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <div className="relative">
+                              <Input
+                                id="phase1Consistency"
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                                className="pr-8"
+                                {...register('phase1ConsistencyRulePercent', { valueAsNumber: true })}
+                              />
+                              <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <Label htmlFor="phase2DailyDrawdown">Daily Drawdown (%)</Label>
-                          <Input
-                            id="phase2DailyDrawdown"
-                            type="number"
-                            {...register('phase2DailyDrawdownPercent', { valueAsNumber: true })}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="phase2MinDays">Min Trading Days (0 = none)</Label>
-                          <Input
-                            id="phase2MinDays"
-                            type="number"
-                            {...register('phase2MinTradingDays', { valueAsNumber: true })}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="phase2TimeLimit">Time Limit Days (0 = unlimited)</Label>
-                          <Input
-                            id="phase2TimeLimit"
-                            type="number"
-                            {...register('phase2TimeLimitDays', { valueAsNumber: true })}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="phase2Consistency">Consistency Rule % (0 = none)</Label>
-                          <Input
-                            id="phase2Consistency"
-                            type="number"
-                            {...register('phase2ConsistencyRulePercent', { valueAsNumber: true })}
-                          />
-                        </div>
-                      </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Phase 2 Rules (for Two Step) */}
+                    {watchedEvaluationType === 'Two Step' && (
+                      <Card className="mb-6">
+                        <CardHeader className="pb-4">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Target className="h-4 w-4" />
+                          Phase 2 Rules
+                        </CardTitle>
+                          <CardDescription>
+                            Final evaluation phase requirements before funding
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          {/* Profit Target Section */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <TrendingDown className="h-4 w-4" />
+                              <h5 className="font-medium text-sm">Profit Target</h5>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Label htmlFor="phase2ProfitTarget" className="text-sm font-medium">
+                                    Target Percentage
+                                  </Label>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Profit percentage required to pass phase 2 (typically 4-8%)</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <div className="relative">
+                                  <Input
+                                    id="phase2ProfitTarget"
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    max="100"
+                                    className="pr-8"
+                                    {...register('phase2ProfitTargetPercent', { valueAsNumber: true })}
+                                  />
+                                  <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Target: ${((watch('accountSize') || 0) * (watch('phase2ProfitTargetPercent') || 0) / 100).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Drawdown Rules Section */}
+                          <div className="space-y-4 p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle className="h-4 w-4" />
+                              <h5 className="font-medium text-sm text-red-700 dark:text-red-300">Risk Management</h5>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                              {/* Max Drawdown */}
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-sm font-medium">Max Drawdown</Label>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Maximum loss allowed from starting balance or high-water mark</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <div className="space-y-3">
+                                  <div className="relative">
+                                    <Input
+                                      id="phase2MaxDrawdown"
+                                      type="number"
+                                      step="0.1"
+                                      min="1"
+                                      max="100"
+                                      className="pr-8"
+                                      {...register('phase2MaxDrawdownPercent', { valueAsNumber: true })}
+                                    />
+                                    <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                  </div>
+                                  <Select
+                                    value={watch('phase2MaxDrawdownType')}
+                                    onValueChange={(value: 'static' | 'trailing') => setValue('phase2MaxDrawdownType', value)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="static">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                                          Static (from starting balance)
+                                        </div>
+                                      </SelectItem>
+                                      <SelectItem value="trailing">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-2 h-2 bg-green-500 rounded-full" />
+                                          Trailing (from high-water mark)
+                                        </div>
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <p className="text-xs text-muted-foreground">
+                                    Limit: ${((watch('accountSize') || 0) * (watch('phase2MaxDrawdownPercent') || 0) / 100).toLocaleString()}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Daily Drawdown */}
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-sm font-medium">Daily Drawdown</Label>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Maximum loss allowed in a single trading day</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <div className="space-y-3">
+                                  <div className="relative">
+                                    <Input
+                                      id="phase2DailyDrawdown"
+                                      type="number"
+                                      step="0.1"
+                                      min="1"
+                                      max="100"
+                                      className="pr-8"
+                                      {...register('phase2DailyDrawdownPercent', { valueAsNumber: true })}
+                                    />
+                                    <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    Daily limit: ${((watch('accountSize') || 0) * (watch('phase2DailyDrawdownPercent') || 0) / 100).toLocaleString()}
+                                  </p>
+                                  {(watch('phase2DailyDrawdownPercent') || 0) > (watch('phase2MaxDrawdownPercent') || 0) && (watch('phase2MaxDrawdownPercent') || 0) > 0 && (
+                                    <p className="text-xs text-red-600 flex items-center gap-1">
+                                      <AlertTriangle className="h-3 w-3" />
+                                      Daily drawdown cannot exceed max drawdown
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Time and Consistency Rules */}
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                <Label htmlFor="phase2MinDays" className="text-sm font-medium">
+                                  Min Trading Days
+                                </Label>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Minimum days you must trade before advancing (0 = no minimum)</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                              <Input
+                                id="phase2MinDays"
+                                type="number"
+                                min="0"
+                                max="365"
+                                {...register('phase2MinTradingDays', { valueAsNumber: true })}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                <Label htmlFor="phase2TimeLimit" className="text-sm font-medium">
+                                  Time Limit (Days)
+                                </Label>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Maximum days to complete this phase (0 = unlimited)</p>
+                                  </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <Input
+                                  id="phase2TimeLimit"
+                                  type="number"
+                                  min="0"
+                                  max="365"
+                                  {...register('phase2TimeLimitDays', { valueAsNumber: true })}
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Target className="h-4 w-4" />
+                                  <Label htmlFor="phase2Consistency" className="text-sm font-medium">
+                                    Consistency Rule
+                                  </Label>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Max percentage of profit from single best day (0 = no limit)</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <div className="relative">
+                                  <Input
+                                    id="phase2Consistency"
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    max="100"
+                                    className="pr-8"
+                                    {...register('phase2ConsistencyRulePercent', { valueAsNumber: true })}
+                                  />
+                                  <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
                     </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
+                  </motion.div>
+                </TooltipProvider>
+              )}
 
             {/* Step 4: Payout Configuration */}
             {step === 'payout' && (
-              <motion.div
-                key="payout"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
-              >
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Payout Configuration</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="fundedMaxDrawdown">Funded Max Drawdown (%)</Label>
-                      <Input
-                        id="fundedMaxDrawdown"
-                        type="number"
-                        {...register('fundedMaxDrawdownPercent', { valueAsNumber: true })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="fundedDailyDrawdown">Funded Daily Drawdown (%)</Label>
-                      <Input
-                        id="fundedDailyDrawdown"
-                        type="number"
-                        {...register('fundedDailyDrawdownPercent', { valueAsNumber: true })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="fundedProfitSplit">Profit Split (%)</Label>
-                      <Input
-                        id="fundedProfitSplit"
-                        type="number"
-                        {...register('fundedProfitSplitPercent', { valueAsNumber: true })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="fundedPayoutCycle">Payout Cycle (days)</Label>
-                      <Input
-                        id="fundedPayoutCycle"
-                        type="number"
-                        {...register('fundedPayoutCycleDays', { valueAsNumber: true })}
-                      />
-                    </div>
+              <TooltipProvider>
+                <motion.div
+                  key="payout"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-8"
+                >
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      Payout Configuration
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Configure funded account rules and payout structure
+                    </p>
+
+                    <Card>
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          Funded Account Rules
+                        </CardTitle>
+                        <CardDescription>
+                          Risk management rules for funded trading accounts
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {/* Drawdown Rules Section */}
+                        <div className="space-y-4 p-4 rounded-lg border">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4" />
+                            <h5 className="font-medium text-sm">Risk Management</h5>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Max Drawdown */}
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <Label className="text-sm font-medium">Max Drawdown</Label>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Maximum loss allowed on funded account</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                              <div className="space-y-3">
+                                <div className="relative">
+                                  <Input
+                                    id="fundedMaxDrawdown"
+                                    type="number"
+                                    step="0.1"
+                                    min="1"
+                                    max="100"
+                                    className="pr-8"
+                                    {...register('fundedMaxDrawdownPercent', { valueAsNumber: true })}
+                                  />
+                                  <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <Select
+                                  value={watch('fundedMaxDrawdownType')}
+                                  onValueChange={(value: 'static' | 'trailing') => setValue('fundedMaxDrawdownType', value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="static">
+                                      Static (from starting balance)
+                                    </SelectItem>
+                                    <SelectItem value="trailing">
+                                      Trailing (from high-water mark)
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                  Limit: ${((watch('accountSize') || 0) * (watch('fundedMaxDrawdownPercent') || 0) / 100).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Daily Drawdown */}
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <Label className="text-sm font-medium">Daily Drawdown</Label>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Maximum daily loss allowed on funded account</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                              <div className="space-y-3">
+                                <div className="relative">
+                                  <Input
+                                    id="fundedDailyDrawdown"
+                                    type="number"
+                                    step="0.1"
+                                    min="1"
+                                    max="100"
+                                    className="pr-8"
+                                    {...register('fundedDailyDrawdownPercent', { valueAsNumber: true })}
+                                  />
+                                  <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Daily limit: ${((watch('accountSize') || 0) * (watch('fundedDailyDrawdownPercent') || 0) / 100).toLocaleString()}
+                                </p>
+                                {(watch('fundedDailyDrawdownPercent') || 0) > (watch('fundedMaxDrawdownPercent') || 0) && (watch('fundedMaxDrawdownPercent') || 0) > 0 && (
+                                  <p className="text-xs text-red-600 flex items-center gap-1">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    Daily drawdown cannot exceed max drawdown
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Payout Structure */}
+                        <div className="space-y-4 p-4 rounded-lg border">
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="h-4 w-4" />
+                            <h5 className="font-medium text-sm">Payout Structure</h5>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Label htmlFor="fundedProfitSplit" className="text-sm font-medium">
+                                  Profit Split
+                                </Label>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Percentage of profits paid to trader (typically 80-90%)</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                              <div className="relative">
+                                <Input
+                                  id="fundedProfitSplit"
+                                  type="number"
+                                  step="1"
+                                  min="50"
+                                  max="100"
+                                  className="pr-8"
+                                  {...register('fundedProfitSplitPercent', { valueAsNumber: true })}
+                                />
+                                <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              </div>
+                              {(watch('fundedProfitSplitPercent') || 0) < 70 && (
+                                <p className="text-xs text-amber-600 flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Low profit split (typical: 80-90%)
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                <Label htmlFor="fundedPayoutCycle" className="text-sm font-medium">
+                                  Payout Cycle
+                                </Label>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>How often payouts are processed (in days)</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                              <div className="relative">
+                                <Input
+                                  id="fundedPayoutCycle"
+                                  type="number"
+                                  min="1"
+                                  max="365"
+                                  className="pr-12"
+                                  {...register('fundedPayoutCycleDays', { valueAsNumber: true })}
+                                />
+                                <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">days</span>
+                              </div>
+                              {(watch('fundedPayoutCycleDays') || 0) > 30 && (
+                                <p className="text-xs text-amber-600 flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Long payout cycle (typical: 7-30 days)
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
-                </div>
-              </motion.div>
+                </motion.div>
+              </TooltipProvider>
             )}
 
             {/* Step 5: Confirmation */}

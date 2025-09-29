@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ArrowUpDown, Trash, ChevronLeft, ChevronRight, Edit, Loader2 } from "lucide-react"
 import { saveTradesAction } from '@/server/database'
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { deleteTradesByIdsAction } from '@/server/accounts'
 import { useData } from '@/context/data-provider'
 import EnhancedEditTrade from '@/app/dashboard/components/tables/enhanced-edit-trade'
@@ -26,7 +26,6 @@ export default function TradeTable() {
   const [filterKey, setFilterKey] = useState<keyof Trade>('instrument')
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'entryDate', direction: 'desc' })
   const [selectedTrades, setSelectedTrades] = useState<Set<string>>(new Set())
-  const { toast } = useToast()
   const [selectAll, setSelectAll] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [tradesPerPage, setTradesPerPage] = useState(50) // Increased default from 10 to 50
@@ -79,8 +78,7 @@ export default function TradeTable() {
     
     try {
       // Show loading toast
-      toast({
-        title: "Deleting Trades",
+      toast.loading("Deleting Trades", {
         description: `Deleting ${ids.length} trade(s)...`,
       })
       
@@ -91,16 +89,13 @@ export default function TradeTable() {
       refreshTrades()
       
       // Show success toast
-      toast({
-        title: "Trades Deleted",
+      toast.success("Trades Deleted", {
         description: `Successfully deleted ${ids.length} trade(s).`,
       })
     } catch (error) {
       console.error('Error deleting trades:', error)
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to delete trades. Please try again.",
-        variant: "destructive"
       })
       // Refresh data even on error to ensure UI is in sync
       refreshTrades()
@@ -151,16 +146,13 @@ export default function TradeTable() {
       // Refresh trades data
       await refreshTrades()
       
-      toast({
-        title: "Trade Updated",
+      toast.success("Trade Updated", {
         description: "Trade has been successfully updated.",
       })
     } catch (error) {
       console.error('Error updating trade:', error)
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to update trade. Please try again.",
-        variant: "destructive"
       })
     }
   }

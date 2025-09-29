@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { Download, FileSpreadsheet, FileText, Image, Settings, Loader2 } from 'lucide-react'
 import { exportTradesToPDF, exportTradesToExcel, exportChartToPDF, ExportOptions, TradeData, AnalyticsData } from '@/lib/export/export-utils'
 
@@ -39,14 +39,11 @@ export function ExportDialog({ trades, analytics, trigger, chartElements = {} }:
     pageFormat: 'a4',
   })
   
-  const { toast } = useToast()
 
   const handleExport = async () => {
     if (!options.filename) {
-      toast({
-        title: 'Error',
+      toast.error('Error', {
         description: 'Please enter a filename',
-        variant: 'destructive',
       })
       return
     }
@@ -88,18 +85,15 @@ export function ExportDialog({ trades, analytics, trigger, chartElements = {} }:
       clearInterval(progressInterval)
       setExportProgress(100)
       
-      toast({
-        title: 'Export successful',
+      toast.success('Export successful', {
         description: `Your ${exportType.toUpperCase()} file has been downloaded`,
       })
       
       setIsOpen(false)
     } catch (error) {
       console.error('Export failed:', error)
-      toast({
-        title: 'Export failed',
+      toast.error('Export failed', {
         description: error instanceof Error ? error.message : 'Unknown error occurred',
-        variant: 'destructive',
       })
     } finally {
       setIsExporting(false)

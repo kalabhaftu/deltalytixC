@@ -3,8 +3,9 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from "@/context/auth-provider"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { useAccounts, clearAccountsCache } from "@/hooks/use-accounts"
+import { useRealtimeAccounts } from "@/hooks/use-realtime-accounts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -38,6 +39,7 @@ import { EnhancedCreateAccountDialog as CreatePropFirmAccountDialog } from "../c
 import { Separator } from "@/components/ui/separator"
 import { motion, AnimatePresence } from "framer-motion"
 import { LoadingSkeleton } from "@/components/ui/loading"
+import { OptimizedAccountsLoading } from "@/components/ui/optimized-loading"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,8 +94,7 @@ export default function AccountsPage() {
   const router = useRouter()
   const { user } = useAuth()
   const { accounts, isLoading, refetch: refetchAccounts } = useAccounts()
-
-
+  
   // State
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'live' | 'prop-firm'>('all')
@@ -104,6 +105,20 @@ export default function AccountsPage() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true) // Enable by default for better UX
+
+  // Enhanced real-time connection with auto-updates
+  const { isConnected: realtimeConnected, lastUpdate: realtimeLastUpdate, connectionStatus } = useRealtimeAccounts({
+    enabled: autoRefreshEnabled,
+    onUpdate: useCallback(() => {
+      // FIXED: Schedule updates outside render cycle to prevent setState during render
+      setTimeout(() => {
+        refetchAccounts()
+        setLastUpdated(new Date())
+      }, 0)
+    }, [refetchAccounts])
+  })
 
   // Set initial filter from URL params only on first load
   useEffect(() => {
@@ -117,6 +132,44 @@ export default function AccountsPage() {
       window.history.replaceState({}, '', newUrl)
     }
   }, []) // Only run on mount
+
+  // Enhanced auto-refresh with real-time updates
+  useEffect(() => {
+    let refreshTimer: NodeJS.Timeout | null = null
+    
+    if (autoRefreshEnabled) {
+      // Periodic refresh every 30 seconds when auto is enabled
+      refreshTimer = setInterval(() => {
+        if (!isRefreshing) {
+          refetchAccounts()
+          setLastUpdated(new Date())
+        }
+      }, 30000)
+
+      // Also refresh on page visibility change
+      const handleVisibilityChange = () => {
+        if (!document.hidden && !isRefreshing) {
+          setTimeout(() => {
+            if (!isRefreshing && autoRefreshEnabled) {
+              refetchAccounts()
+              setLastUpdated(new Date())
+            }
+          }, 1000)
+        }
+      }
+
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+      
+      return () => {
+        if (refreshTimer) clearInterval(refreshTimer)
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+    }
+
+    return () => {
+      if (refreshTimer) clearInterval(refreshTimer)
+    }
+  }, [refetchAccounts, isRefreshing, autoRefreshEnabled])
 
 
   // Filter accounts - Accounts page has its own built-in filtering and does NOT use advanced filtering settings
@@ -138,6 +191,17 @@ export default function AccountsPage() {
   }, [accounts, searchQuery, filterType, filterStatus])
 
   const accountStats = useMemo(() => {
+    // Calculate actual equity for each account including trade P&L
+    const accountsWithCalculatedEquity = filteredAccounts.map(account => {
+      // For now, use the currentEquity/currentBalance if available, but this should be improved
+      // to actually calculate based on trades when we have access to trade data
+      const calculatedEquity = account.currentEquity || account.currentBalance || account.startingBalance || 0
+      return {
+        ...account,
+        calculatedEquity
+      }
+    })
+
     return {
       total: filteredAccounts.length,
       live: filteredAccounts.filter(a => a.accountType === 'live').length,
@@ -145,7 +209,7 @@ export default function AccountsPage() {
       active: filteredAccounts.filter(a => a.status === 'active').length,
       funded: filteredAccounts.filter(a => a.accountType === 'prop-firm' && (a.currentPhase || 1) >= 3).length,
       failed: filteredAccounts.filter(a => a.status === 'failed').length,
-      totalEquity: filteredAccounts.reduce((sum, a) => sum + (a.currentEquity || a.currentBalance || a.startingBalance || 0), 0)
+      totalEquity: accountsWithCalculatedEquity.reduce((sum, a) => sum + a.calculatedEquity, 0)
     }
   }, [filteredAccounts])
 
@@ -154,15 +218,13 @@ export default function AccountsPage() {
     setIsRefreshing(true)
     try {
       await refetchAccounts()
-      toast({
-        title: "Accounts refreshed",
+      setLastUpdated(new Date())
+      toast("Accounts refreshed", {
         description: "All account data has been updated",
       })
     } catch (error) {
-      toast({
-        title: "Refresh failed",
+      toast("Refresh failed", {
         description: "Failed to refresh account data",
-        variant: "destructive"
       })
     } finally {
       setIsRefreshing(false)
@@ -174,8 +236,12 @@ export default function AccountsPage() {
     // Clear cache to ensure immediate refresh
     clearAccountsCache()
     refetchAccounts()
+    setLastUpdated(new Date())
     setCreateLiveDialogOpen(false)
     setCreatePropFirmDialogOpen(false)
+    toast("Account created", {
+      description: "New account has been added and will appear in real-time",
+    })
   }, [refetchAccounts])
 
   const handleViewAccount = useCallback((account: Account) => {
@@ -192,10 +258,8 @@ export default function AccountsPage() {
       router.push(`/dashboard/accounts/${account.id}/edit`)
     } else {
       // For prop firm accounts, show a message that editing isn't available yet
-      toast({
-        title: "Edit Not Available",
+      toast("Edit Not Available", {
         description: "Prop firm account editing is not yet available. Contact support for changes.",
-        variant: "default"
       })
     }
   }, [router])
@@ -211,12 +275,9 @@ export default function AccountsPage() {
     
     // Require exact account name confirmation
     if (deleteConfirmText !== accountName) {
-        toast({
-        title: "Confirmation Required",
-        description: `Please type "${accountName}" exactly to confirm deletion.`,
-        variant: "destructive",
-        duration: 4000,
-      })
+        toast("Confirmation Required", {
+          description: `Please type "${accountName}" exactly to confirm deletion.`,
+        })
       return
     }
 
@@ -233,8 +294,7 @@ export default function AccountsPage() {
         throw new Error('Failed to delete account')
       }
 
-      toast({
-        title: "Account deleted",
+      toast("Account deleted", {
         description: `${accountName} and all associated trades have been permanently deleted.`,
       })
 
@@ -261,16 +321,14 @@ export default function AccountsPage() {
       setDeletingAccount(null)
       setDeleteConfirmText('')
     } catch (error) {
-      toast({
-        title: "Delete failed",
+      toast("Delete failed", {
         description: "Failed to delete account. Please try again.",
-        variant: "destructive"
       })
     }
   }, [deletingAccount, refetchAccounts, deleteConfirmText])
 
   if (isLoading) {
-    return <AccountsLoadingSkeleton />
+    return <OptimizedAccountsLoading accountCount={6} />
   }
     
     return (
@@ -294,14 +352,65 @@ export default function AccountsPage() {
             
             <div className="flex items-center gap-3">
               <Button
-                variant="outline"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="h-10"
+                variant={autoRefreshEnabled ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setAutoRefreshEnabled(!autoRefreshEnabled)
+                  if (!autoRefreshEnabled) {
+                    // When enabling auto-refresh, do an immediate update
+                    refetchAccounts()
+                    setLastUpdated(new Date())
+                  }
+                }}
+                className="h-8"
+                  title={autoRefreshEnabled ? "Disable real-time updates" : "Enable real-time updates"}
               >
-                <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")} />
-                Refresh
+                <RefreshCw className={cn("h-3 w-3 mr-1", autoRefreshEnabled && "animate-pulse")} />
+                {autoRefreshEnabled ? (
+                  <span className="flex items-center gap-1">
+                    <span>Live</span>
+                    {realtimeConnected && <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />}
+                  </span>
+                ) : 'Auto'}
               </Button>
+              <div className="flex items-center gap-2">
+                {autoRefreshEnabled && (
+                  <div className={cn(
+                    "flex items-center gap-1 text-xs",
+                    realtimeConnected ? "text-green-600" : 
+                    connectionStatus === 'connecting' ? "text-yellow-600" : "text-red-600"
+                  )}>
+                    <div className={cn(
+                      "w-2 h-2 rounded-full",
+                      realtimeConnected ? "bg-green-500 animate-pulse" :
+                      connectionStatus === 'connecting' ? "bg-yellow-500 animate-pulse" : "bg-red-500"
+                    )} />
+                    <span>
+                      {realtimeConnected ? 'Live' : 
+                       connectionStatus === 'connecting' ? 'Connecting' : 'Offline'}
+                    </span>
+                  </div>
+                )}
+                {(lastUpdated || realtimeLastUpdate) && (
+                  <div className="text-xs text-muted-foreground">
+                    {autoRefreshEnabled 
+                      ? (realtimeLastUpdate ? `Live: ${realtimeLastUpdate.toLocaleTimeString()}` : 'Real-time enabled')
+                      : `Updated: ${lastUpdated?.toLocaleTimeString() || 'Never'}`}
+                  </div>
+                )}
+              </div>
+              {!autoRefreshEnabled && (
+                <Button
+                  variant="outline"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="h-8"
+                  title="Refresh account data manually"
+                >
+                  <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")} />
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </Button>
+              )}
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -433,18 +542,6 @@ export default function AccountsPage() {
                 )}
         </motion.div>
 
-        {/* Dialogs */}
-        <EnhancedCreateLiveAccountDialog
-          open={createLiveDialogOpen}
-          onOpenChange={setCreateLiveDialogOpen}
-          onSuccess={handleAccountCreated}
-        />
-        
-        <CreatePropFirmAccountDialog
-          open={createPropFirmDialogOpen}
-          onOpenChange={setCreatePropFirmDialogOpen}
-          onSuccess={handleAccountCreated}
-        />
 
         {/* Enhanced Delete Confirmation Dialog */}
         <AlertDialog open={!!deletingAccount} onOpenChange={() => {
@@ -520,25 +617,23 @@ export default function AccountsPage() {
         </AlertDialog>
 
         {/* Create Account Dialogs */}
-        <EnhancedCreateLiveAccountDialog 
+        <EnhancedCreateLiveAccountDialog
           open={createLiveDialogOpen}
           onOpenChange={setCreateLiveDialogOpen}
-          onAccountCreated={() => {
+          onSuccess={() => {
             refetchAccounts()
-            toast({
-              title: "Success",
+            toast("Success", {
               description: "Live account created successfully",
             })
           }}
         />
 
-        <CreatePropFirmAccountDialog 
+        <CreatePropFirmAccountDialog
           open={createPropFirmDialogOpen}
           onOpenChange={setCreatePropFirmDialogOpen}
-          onAccountCreated={() => {
+          onSuccess={() => {
             refetchAccounts()
-            toast({
-              title: "Success", 
+            toast("Success", {
               description: "Prop firm account created successfully",
             })
           }}
@@ -833,82 +928,114 @@ function EmptyState({
 
 function AccountsLoadingSkeleton() {
   return (
-    <div className="bg-background h-screen overflow-hidden">
-      <div className="container mx-auto px-6 py-8 max-w-7xl h-full flex flex-col">
-        {/* Header skeleton - FIXED HEIGHT */}
-        <div className="mb-6 flex-shrink-0">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-6 py-8 max-w-7xl">
+        {/* Header skeleton - Optimized for faster loading */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-8"
+        >
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div>
-              <div className="h-8 bg-muted rounded-md w-48 mb-2 animate-pulse" />
-              <div className="h-4 bg-muted rounded-md w-64 animate-pulse" />
+              <div className="h-10 bg-muted rounded-md w-64 mb-2 animate-pulse" />
+              <div className="h-5 bg-muted rounded-md w-80 animate-pulse" />
             </div>
             <div className="flex items-center gap-3">
-              <div className="h-10 bg-muted rounded-md w-20 animate-pulse" />
-              <div className="h-10 bg-muted rounded-md w-28 animate-pulse" />
+              <div className="h-8 bg-muted rounded-md w-16 animate-pulse" />
+              <div className="h-8 bg-muted rounded-md w-24 animate-pulse" />
+              <div className="h-10 bg-muted rounded-md w-32 animate-pulse" />
             </div>
           </div>
-        </div>
+        </motion.div>
         
-        {/* Stats cards skeleton - FIXED HEIGHT */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 flex-shrink-0">
+        {/* Stats cards skeleton - Fast loading */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+        >
           {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden h-20">
-              <CardContent className="p-4">
+            <Card key={i} className="overflow-hidden">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="h-3 bg-muted rounded w-16 animate-pulse" />
-                    <div className="h-6 bg-muted rounded w-12 animate-pulse" />
+                  <div className="space-y-2">
+                    <div className="h-4 bg-muted rounded w-20 animate-pulse" />
+                    <div className="h-7 bg-muted rounded w-16 animate-pulse" />
                   </div>
-                  <div className="h-8 w-8 bg-muted rounded-full animate-pulse" />
+                  <div className="h-10 w-10 bg-muted rounded-full animate-pulse" />
                 </div>
               </CardContent>
             </Card>
           ))}
-        </div>
+        </motion.div>
         
-        {/* Filter section skeleton - FIXED HEIGHT */}
-        <Card className="p-4 mb-6 flex-shrink-0">
-          <div className="flex flex-col lg:flex-row gap-3">
+        {/* Filter section skeleton - Compact */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-card rounded-xl shadow-sm border p-6 mb-8"
+        >
+          <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 h-10 bg-muted rounded-md animate-pulse" />
             <div className="flex gap-3">
+              <div className="h-10 bg-muted rounded-md w-40 animate-pulse" />
               <div className="h-10 bg-muted rounded-md w-32 animate-pulse" />
-              <div className="h-10 bg-muted rounded-md w-24 animate-pulse" />
             </div>
           </div>
-        </Card>
+        </motion.div>
         
-        {/* Account cards skeleton - Reduced number and height for viewport fit */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 flex-1 overflow-hidden">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden h-48">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="h-4 w-4 bg-muted rounded animate-pulse" />
-                      <div className="h-4 bg-muted rounded w-24 animate-pulse" />
+        {/* Account cards skeleton - Optimized count and layout */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + (i * 0.05) }}
+              className="h-full"
+            >
+              <Card className="h-full flex flex-col">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-4 w-4 bg-muted rounded animate-pulse" />
+                        <div className="h-5 bg-muted rounded w-32 animate-pulse" />
+                      </div>
+                      <div className="h-3 bg-muted rounded w-24 animate-pulse" />
                     </div>
-                    <div className="h-3 bg-muted rounded w-20 animate-pulse" />
+                    <div className="h-5 bg-muted rounded-full w-16 animate-pulse" />
                   </div>
-                  <div className="h-5 bg-muted rounded-full w-12 animate-pulse" />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <div className="h-3 bg-muted rounded w-16 animate-pulse" />
-                    <div className="h-4 bg-muted rounded w-12 animate-pulse" />
+                </CardHeader>
+                <CardContent className="space-y-4 flex-1">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="h-3 bg-muted rounded w-20 animate-pulse" />
+                      <div className="h-5 bg-muted rounded w-16 animate-pulse" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-3 bg-muted rounded w-12 animate-pulse" />
+                      <div className="h-5 bg-muted rounded w-8 animate-pulse" />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <div className="h-3 bg-muted rounded w-10 animate-pulse" />
-                    <div className="h-4 bg-muted rounded w-6 animate-pulse" />
+                  <div className="min-h-[120px] space-y-3">
+                    <div className="h-4 bg-muted rounded w-full animate-pulse" />
+                    <div className="h-4 bg-muted rounded w-3/4 animate-pulse" />
+                    <div className="h-6 bg-muted rounded w-full animate-pulse" />
                   </div>
-                </div>
-                <div className="h-8 bg-muted rounded animate-pulse" />
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </div>
   )

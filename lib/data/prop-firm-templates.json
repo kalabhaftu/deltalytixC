@@ -233,7 +233,7 @@
         "evaluationType": "Two Step",
         "phases": {
           "phase1": {
-            "profitTargetPercent": 8,
+            "profitTargetPercent": 10,
             "maxDrawdownPercent": 10,
             "maxDrawdownType": "static",
             "dailyDrawdownPercent": 5,

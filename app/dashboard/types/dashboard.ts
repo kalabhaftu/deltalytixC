@@ -1,4 +1,4 @@
-export type WidgetType = 
+export type WidgetType =
   | 'equityChart'
   | 'pnlChart'
   | 'timeOfDayChart'
@@ -6,6 +6,7 @@ export type WidgetType =
   | 'weekdayPnlChart'
   | 'pnlBySideChart'
   | 'tickDistribution'
+  | 'radarChart'
   | 'commissionsPnl'
   | 'calendarWidget'
   | 'averagePositionTime'
@@ -19,7 +20,12 @@ export type WidgetType =
   | 'timeRangePerformance'
   | 'riskRewardRatio'
   | 'advancedMetrics'
-export type WidgetSize = 'tiny' | 'small' | 'small-long' | 'medium' | 'large' | 'extra-large'
+  | 'netPnlKpi'
+  | 'winRateKpi'
+  | 'profitFactorKpi'
+  | 'dayWinRateKpi'
+  | 'avgWinLossKpi'
+export type WidgetSize = 'tiny' | 'small' | 'small-long' | 'medium' | 'large' | 'extra-large' | 'kpi'
 
 export interface LayoutItem {
   i: string

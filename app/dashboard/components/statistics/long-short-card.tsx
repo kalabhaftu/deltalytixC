@@ -30,8 +30,8 @@ export default function LongShortPerformanceCard({ size = 'medium' }: LongShortP
   const longNumber = chartData.reduce((acc, curr) => acc + curr.longNumber, 0)
   const shortNumber = chartData.reduce((acc, curr) => acc + curr.shortNumber, 0)
   const totalTrades = longNumber + shortNumber
-  const longRate = Number((longNumber / totalTrades * 100).toFixed(2))
-  const shortRate = Number((shortNumber / totalTrades * 100).toFixed(2))
+  const longRate = totalTrades > 0 ? Math.round((longNumber / totalTrades) * 1000) / 10 : 0
+  const shortRate = totalTrades > 0 ? Math.round((shortNumber / totalTrades) * 1000) / 10 : 0
 
     return (
       <Card className="h-full">

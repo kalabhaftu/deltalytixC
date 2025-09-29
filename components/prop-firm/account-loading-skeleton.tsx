@@ -10,24 +10,25 @@ interface AccountLoadingSkeletonProps {
 
 export function AccountLoadingState({ className }: AccountLoadingSkeletonProps) {
   return (
-    <div className={cn("space-y-6", className)} style={{ minHeight: '800px' }}>
-      {/* Header Skeleton - FIXED: Set exact dimensions to match actual header */}
-      <div className="flex items-center justify-between" style={{ height: '72px' }}>
+    <div className={cn("space-y-6", className)} style={{ minHeight: 'calc(100vh - 200px)' }}>
+      {/* Header Skeleton - Optimized for faster perceived loading */}
+      <div className="flex items-center justify-between h-[72px]">
         <div className="flex items-center gap-4">
-          <Skeleton className="h-9 w-16" /> {/* Back button - exact size */}
+          <Skeleton className="h-9 w-16 rounded-md" />
           <div className="space-y-2">
-            <Skeleton className="h-7 w-64" /> {/* Account name - exact size */}
+            <Skeleton className="h-7 w-64 rounded-md" />
             <div className="flex items-center gap-2">
-              <Skeleton className="h-5 w-16" /> {/* Status badge */}
-              <Skeleton className="h-5 w-20" /> {/* Phase badge */}
-              <Skeleton className="h-5 w-12" /> {/* Live indicator */}
-              <Skeleton className="h-4 w-24" /> {/* Prop firm name */}
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+              <Skeleton className="h-5 w-12 rounded-full" />
+              <Skeleton className="h-4 w-24 rounded-md" />
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <Skeleton className="h-9 w-20" /> {/* Refresh button - exact size */}
-          <Skeleton className="h-4 w-32" /> {/* Last updated */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-16 rounded-md" />
+          <Skeleton className="h-8 w-20 rounded-md" />
+          <Skeleton className="h-4 w-32 rounded-md" />
         </div>
       </div>
 
@@ -72,28 +73,40 @@ export function AccountLoadingState({ className }: AccountLoadingSkeletonProps) 
           ))}
         </div>
         
-        {/* Tab Content Skeleton - FIXED: Realistic content layout */}
+        {/* Tab Content Skeleton - Optimized layout */}
         <div className="space-y-6">
-          {/* Account Cards Grid - More realistic for accounts page */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Account Cards Grid - Better performance and UX */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="h-[180px]">
-                <CardHeader className="h-[60px]">
-                  <div className="flex items-center justify-between">
-                    <Skeleton className="h-5 w-20" />
-                    <Skeleton className="h-4 w-12" />
+              <Card key={i} className="h-full flex flex-col">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Skeleton className="h-4 w-4 rounded" />
+                        <Skeleton className="h-5 w-32 rounded-md" />
+                      </div>
+                      <Skeleton className="h-3 w-24 rounded-md" />
+                    </div>
+                    <Skeleton className="h-5 w-16 rounded-full" />
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3 h-[120px] flex flex-col justify-center">
-                  <div className="flex justify-between">
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-4 w-20" />
+                <CardContent className="space-y-4 flex-1">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Skeleton className="h-3 w-20 rounded-md" />
+                      <Skeleton className="h-5 w-16 rounded-md" />
+                    </div>
+                    <div className="space-y-2">
+                      <Skeleton className="h-3 w-12 rounded-md" />
+                      <Skeleton className="h-5 w-8 rounded-md" />
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-4 w-16" />
+                  <div className="min-h-[120px] space-y-3">
+                    <Skeleton className="h-4 w-full rounded-md" />
+                    <Skeleton className="h-4 w-3/4 rounded-md" />
+                    <Skeleton className="h-6 w-full rounded-md" />
                   </div>
-                  <Skeleton className="h-2 w-full" /> {/* Progress bar */}
                 </CardContent>
               </Card>
             ))}

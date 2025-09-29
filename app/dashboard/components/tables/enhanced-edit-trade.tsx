@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { Trade } from '@prisma/client'
 import { Edit, Camera, X, Target, ChevronDown } from 'lucide-react'
 import {
@@ -233,7 +233,6 @@ export default function EnhancedEditTrade({
     }
     return trade?.id?.slice(0, 6) || generateShortId()
   })
-  const { toast } = useToast()
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
 
@@ -284,10 +283,8 @@ export default function EnhancedEditTrade({
     const userId = supabaseUser?.id || user?.id
     
     if (!userId) {
-      toast({
-        title: 'Upload failed',
+      toast.error('Upload failed', {
         description: 'User not authenticated. Please sign in again.',
-        variant: 'destructive',
       })
       return
     }
@@ -299,8 +296,7 @@ export default function EnhancedEditTrade({
       let processedFile = file
       if (field === 'cardPreviewImage') {
         processedFile = await compressImageForCard(file)
-        toast({
-          title: 'Processing image',
+        toast.info('Processing image', {
           description: 'Card preview image ready for upload...',
         })
       }
@@ -310,8 +306,7 @@ export default function EnhancedEditTrade({
       setValue(field, tempUrl)
       
       // Show immediate success feedback
-      toast({
-        title: 'Image added',
+      toast.success('Image added', {
         description: field === 'cardPreviewImage'
           ? 'Card preview image optimized and added. Uploading to storage...'
           : 'Image has been added. Uploading to storage...',
@@ -322,8 +317,7 @@ export default function EnhancedEditTrade({
         const imageUrl = await uploadImageToSupabase(processedFile, userId, tradeId)
         setValue(field, imageUrl) // Update with permanent URL
         
-        toast({
-          title: 'Upload complete',
+        toast.success('Upload complete', {
           description: field === 'cardPreviewImage'
             ? 'Card preview image has been saved to cloud storage.'
             : 'Image has been saved to cloud storage.',
@@ -338,10 +332,8 @@ export default function EnhancedEditTrade({
       
     } catch (error) {
       console.error('Image processing error:', error)
-      toast({
-        title: 'Upload failed',
+      toast.error('Upload failed', {
         description: error instanceof Error ? error.message : 'Failed to process image',
-        variant: 'destructive',
       })
     }
   }
@@ -388,18 +380,15 @@ export default function EnhancedEditTrade({
       // Call the save function
       await onSave(updateData)
       
-      toast({
-        title: 'Trade updated',
+      toast.success('Trade updated', {
         description: 'Trade has been successfully updated.',
       })
 
       onClose()
     } catch (error) {
       console.error('Error updating trade:', error)
-      toast({
-        title: 'Error',
+      toast.error('Error', {
         description: error instanceof Error ? error.message : 'Failed to update trade',
-        variant: 'destructive',
       })
     } finally {
       setIsSubmitting(false)

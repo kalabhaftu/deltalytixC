@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from "@/context/auth-provider"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -65,10 +65,8 @@ export default function PayoutsPage() {
       }
     } catch (error) {
       console.error('Error fetching payouts:', error)
-      toast({
-        title: 'Failed to fetch payouts',
-        description: 'An error occurred while fetching payouts',
-        variant: "destructive"
+      toast.error('Failed to fetch payouts', {
+        description: 'An error occurred while fetching payouts'
       })
     } finally {
       setIsLoading(false)

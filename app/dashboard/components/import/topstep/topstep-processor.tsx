@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { toast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { Trade } from '@prisma/client'
 import { Button } from "@/components/ui/button"
 import { formatInTimeZone } from 'date-fns-tz'
@@ -296,8 +296,7 @@ export default function TopstepProcessor({ headers, csvData, setProcessedTrades,
                                 <Button
                                     key={instrument}
                                     variant="outline"
-                                    onClick={() => toast({
-                                        title: "Instrument Information",
+                                    onClick={() => toast.info("Instrument Information", {
                                         description: `You traded ${instrument}. For more details, please check the trades table.`
                                     })}
                                 >

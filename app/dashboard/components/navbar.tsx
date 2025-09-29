@@ -38,7 +38,7 @@ import { useUserStore } from '@/store/user-store'
 import { useModalStateStore } from '@/store/modal-state-store'
 import { useDashboardEditStore } from '@/store/dashboard-edit-store'
 import { WidgetType, WidgetSize } from '../types/dashboard'
-import { defaultLayouts } from '@/context/data-provider'
+import { defaultLayouts, defaultLayoutsWithKPI } from '@/context/data-provider'
 import { WIDGET_REGISTRY } from '../config/widget-registry'
 import { toast } from 'sonner'
 
@@ -52,6 +52,7 @@ const sizeToGrid = (size: WidgetSize, isSmallScreen = false): { w: number, h: nu
       case 'medium': return { w: 12, h: 4 }
       case 'large':
       case 'extra-large': return { w: 12, h: 6 }
+      case 'kpi': return { w: 12, h: 3 }
       default: return { w: 12, h: 4 }
     }
   }
@@ -63,6 +64,7 @@ const sizeToGrid = (size: WidgetSize, isSmallScreen = false): { w: number, h: nu
     case 'medium': return { w: 6, h: 4 }
     case 'large': return { w: 6, h: 8 }
     case 'extra-large': return { w: 12, h: 8 }
+    case 'kpi': return { w: 2.3, h: 2.4 }
     default: return { w: 6, h: 4 }
   }
 }
@@ -417,9 +419,13 @@ export default function Navbar() {
                     </DropdownMenuItem>
                     
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => {
-                      localStorage.removeItem('deltalytix_user_data')
-                      signOut()
+                    <DropdownMenuItem onClick={async () => {
+                      // Clear all local storage
+                      localStorage.clear()
+                      sessionStorage.clear()
+                      
+                      // Sign out from Supabase and redirect
+                      await signOut()
                     }} className="hover:bg-destructive/20 transition-colors duration-200">
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Log Out</span>

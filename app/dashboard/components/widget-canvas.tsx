@@ -23,7 +23,7 @@ import { logger } from '@/lib/logger'
 import { useUserStore } from '@/store/user-store'
 import { useDashboardEditStore } from '@/store/dashboard-edit-store'
 import { toast } from 'sonner'
-import { defaultLayouts } from '@/context/data-provider'
+import { defaultLayouts, defaultLayoutsWithKPI } from '@/context/data-provider'
 import { useEffect as useLayoutEffect } from 'react'
 import { EditModeControls } from './edit-mode-controls'
 
@@ -43,6 +43,8 @@ const sizeToGrid = (size: WidgetSize, isSmallScreen = false): { w: number, h: nu
       case 'large':
       case 'extra-large':
         return { w: 12, h: 6 }
+      case 'kpi':
+        return { w: 12, h: 3 }
       default:
         return { w: 12, h: 4 }
     }
@@ -62,6 +64,8 @@ const sizeToGrid = (size: WidgetSize, isSmallScreen = false): { w: number, h: nu
       return { w: 6, h: 8 }
     case 'extra-large':
       return { w: 12, h: 8 }
+    case 'kpi':
+      return { w: 2.4, h: 1.8 }
     default:
       return { w: 6, h: 4 }
   }
@@ -392,17 +396,15 @@ export default function WidgetCanvas() {
     }
   }, [layouts, layoutInitialized])
 
-  // Progressive widget loading - load widgets one by one
+  // RESTORED: Fast progressive widget loading - load quickly regardless of data state
   useEffect(() => {
     if (!layouts?.[activeLayout]) return
 
     const widgets = Array.isArray(layouts[activeLayout]) ? layouts[activeLayout] : []
 
-    // Load widgets progressively (6 at a time every 100ms)
     const loadBatch = (startIndex: number, batchSize: number) => {
       const endIndex = Math.min(startIndex + batchSize, widgets.length)
 
-      // Update widgets loaded state
       setWidgetsLoaded(prev => {
         const newLoaded = new Set(prev)
         for (let i = startIndex; i < endIndex; i++) {
@@ -412,11 +414,12 @@ export default function WidgetCanvas() {
       })
 
       if (endIndex < widgets.length) {
-        setTimeout(() => loadBatch(endIndex, 2), 100)
+        // Fast loading: 50ms intervals, 3 widgets at a time
+        setTimeout(() => loadBatch(endIndex, 3), 50)
       }
     }
 
-    // Start loading immediately
+    // Start loading immediately with larger batch
     loadBatch(0, 6)
   }, [layouts, activeLayout])
   
@@ -488,42 +491,74 @@ export default function WidgetCanvas() {
   const handleResetToDefault = useCallback(async () => {
     if (!user?.id) return
 
+    const toastId = toast.loading('Resetting dashboard...', {
+      description: "Clearing cache and restoring default layout",
+    })
+
     try {
-      // Use the COMPLETE default layouts - this will include ALL widgets
-      const resetLayouts = { ...defaultLayouts }
-
-      // Save immediately to database - this replaces the entire layout with default
-      await saveDashboardLayout(resetLayouts)
-
-      // Update local state to reflect the complete default layout
-      setLayouts(resetLayouts)
-
-      // Force a re-render by updating the user store's layout
-      // This ensures the layout is immediately reflected in the UI
-      if (setLayouts) {
-        setLayouts(resetLayouts)
+      // Use the KPI layouts for reset functionality - this will include KPI widgets
+      const resetLayouts = { 
+        ...defaultLayoutsWithKPI,
+        id: `reset-${user.id}`,
+        userId: user.id,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
 
-      // Force component re-render
-      setForceRefresh(prev => prev + 1)
+      // CRITICAL: Clear all caches before applying new layout
+      // 1. Clear localStorage cache
+      try {
+        localStorage.removeItem(`dashboard-layout-${user.id}`)
+        console.log('[Reset] Cleared localStorage cache')
+      } catch (error) {
+        console.warn('[Reset] Failed to clear localStorage:', error)
+      }
 
-      // Reset edit state
+      // 2. Clear component state immediately
+      setWidgetsLoaded(new Set())
+      setLayoutInitialized(false)
+
+      // 3. Apply new layout immediately
+      setLayouts(resetLayouts)
+      
+      // 4. Save to database and wait for completion
+      await saveDashboardLayout(resetLayouts)
+      console.log('[Reset] Layout saved to database')
+      
+      // 5. Cache the new layout
+      try {
+        localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(resetLayouts))
+        console.log('[Reset] New layout cached to localStorage')
+      } catch (error) {
+        console.warn('[Reset] Failed to cache new layout:', error)
+      }
+
+      // 6. Reset edit state
       resetChanges()
       setIsCustomizing(false)
+      
+      // 7. Force re-initialization
+      setTimeout(() => {
+        setLayoutInitialized(true)
+        setForceRefresh(prev => prev + 1)
+      }, 200)
 
-      toast.success('Dashboard reset to default', {
-        description: "All widgets restored to default positions",
+      // Success feedback
+      toast.success('Dashboard reset successfully', {
+        description: "All widgets restored to default layout with KPI widgets",
         duration: 3000,
+        id: toastId
       })
 
     } catch (error) {
-      logger.error('Error resetting dashboard layout', error, 'WidgetCanvas')
-      toast.error('Failed to reset layout', {
-        description: "Please try again",
+      console.error('[Reset] Error during reset:', error)
+      toast.error('Failed to reset dashboard', {
+        description: "Please try again or refresh the page",
         duration: 4000,
+        id: toastId
       })
     }
-  }, [user?.id, saveDashboardLayout, setLayouts, resetChanges, setIsCustomizing])
+  }, [user?.id, saveDashboardLayout, setLayouts, resetChanges, setIsCustomizing, setWidgetsLoaded, setLayoutInitialized, setForceRefresh])
 
 
   // Update handleLayoutChange with proper type handling and all dependencies
@@ -1138,6 +1173,8 @@ export default function WidgetCanvas() {
     return <WidgetSkeleton type={widget.type as WidgetType} size={effectiveSize} />
   }, [isMobile]);
 
+  // Remove problematic skeleton dependency that caused slow loading
+
 
   // Add auto-scroll functionality for mobile
   useAutoScroll(isMobile && isCustomizing)
@@ -1265,7 +1302,7 @@ export default function WidgetCanvas() {
             onResizeStart={handleResizeStart}
             onResize={handleResize}
             onLayoutChange={handleLayoutChange}
-            margin={isMobile ? [8, 8] : [16, 16]}
+            margin={isMobile ? [10, 10] : [20, 20]}
             containerPadding={isMobile ? [8, 8] : [0, 0]}
             compactType="vertical"
             preventCollision={false}
@@ -1275,6 +1312,8 @@ export default function WidgetCanvas() {
               const typedWidget = widget as unknown as Widget
               const dimensions = widgetDimensions[typedWidget.i]
               const isLoaded = widgetsLoaded.has(typedWidget.i)
+              // FIXED: Show widgets immediately when loaded, don't wait for data
+              const shouldShowWidget = isLoaded
 
               return (
                 <div
@@ -1290,7 +1329,7 @@ export default function WidgetCanvas() {
                     size={typedWidget.size as WidgetSize}
                     currentType={typedWidget.type as WidgetType}
                   >
-                    {isLoaded ? renderWidget(typedWidget) : renderWidgetPlaceholder(typedWidget)}
+                    {shouldShowWidget ? renderWidget(typedWidget) : renderWidgetPlaceholder(typedWidget)}
                   </WidgetWrapper>
                 </div>
               )

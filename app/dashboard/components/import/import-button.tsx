@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { UploadIcon, type UploadIconHandle } from '@/components/animated-icons/upload'
 import { Trade } from '@prisma/client'
 import { saveAndLinkTrades } from '@/server/accounts'
@@ -80,7 +80,6 @@ export default function ImportButton() {
   const uploadIconRef = useRef<UploadIconHandle>(null)
   const [text, setText] = useState<string>('')
 
-  const { toast } = useToast()
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
   const trades = useTradesStore(state => state.trades)
@@ -91,20 +90,16 @@ export default function ImportButton() {
     // Use either the user from our database or the Supabase user as fallback
     const currentUser = user || supabaseUser
     if (!currentUser?.id) {
-      toast({
-        title: "Authentication Error",
+      toast.error("Authentication Error", {
         description: "User not authenticated. Please log in and try again.",
-        variant: "destructive",
       })
       return
     }
 
     // Require account selection for linking
     if (!selectedAccountId) {
-      toast({
-        title: "Account Selection Required",
+      toast.error("Account Selection Required", {
         description: "Please select an account to link trades to before importing.",
-        variant: "destructive",
       })
       return
     }
@@ -113,8 +108,7 @@ export default function ImportButton() {
     
     try {
       // Show processing indicator
-      toast({
-        title: "Processing Trades",
+      toast("Processing Trades", {
         description: "Saving and linking trades to account...",
         duration: 3000,
       })
@@ -122,9 +116,13 @@ export default function ImportButton() {
       // Atomic save and link operation
       const result = await saveAndLinkTrades(selectedAccountId, processedTrades)
 
+      // Invalidate accounts cache to trigger refresh
+      const { invalidateAccountsCache } = await import("@/hooks/use-accounts")
+      invalidateAccountsCache('trades imported')
+
       // Close dialog immediately for better UX
       setIsOpen(false)
-      
+
       // Reset the import process
       resetImportState()
       
@@ -132,18 +130,15 @@ export default function ImportButton() {
       await refreshTrades()
       
       // Show success message
-      toast({
-        title: "Import Successful",
+      toast.success("Import Successful", {
         description: `Successfully imported and linked ${result.linkedCount} trades to ${result.accountName}`,
         duration: 5000,
       })
 
     } catch (error) {
       console.error('Error in save and link trades:', error)
-      toast({
-         title: "Import Failed",
+      toast.error("Import Failed", {
          description: error instanceof Error ? error.message : "An error occurred while importing trades. No trades were saved.",
-        variant: "destructive",
       })
     } finally {
       setIsSaving(false)

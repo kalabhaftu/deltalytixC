@@ -232,11 +232,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
     
     // Validate requested amount
-    if (validatedData.requestedAmount > eligibility.eligibleAmount) {
+    if (validatedData.requestedAmount > eligibility.maxPayoutAmount) {
       return NextResponse.json(
         { 
           error: 'Requested amount exceeds eligible amount', 
-          maxEligible: eligibility.eligibleAmount,
+          maxEligible: eligibility.maxPayoutAmount,
           requested: validatedData.requestedAmount,
         },
         { status: 400 }

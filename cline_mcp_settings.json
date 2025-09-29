@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "github.com/campfirein/cipher": {
+      "type": "stdio",
+      "command": "C:\\Users\\SlimShady\\AppData\\Roaming\\npm\\cipher.cmd",
+      "args": ["--mode", "mcp"],
+      "env": {
+        "MCP_SERVER_MODE": "aggregator",
+        "OPENAI_API_KEY": "your-openai-api-key-here",
+        "ANTHROPIC_API_KEY": "your-anthropic-api-key-here",
+        "OPENROUTER_API_KEY": "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"
+      }
+    }
+  }
+}

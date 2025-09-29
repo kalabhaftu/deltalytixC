@@ -9,7 +9,7 @@ import {
   renameAccountAction
 } from "@/server/accounts"
 import { useData } from '@/context/data-provider'
-import { toast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { User } from '@supabase/supabase-js'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
@@ -115,18 +115,14 @@ export function DataManagementCard() {
       ])
       
       setSelectedAccounts([])
-      toast({
-        title: accountsToDelete.length > 1 ? 'Accounts deleted' : 'Account deleted',
+      toast.success(accountsToDelete.length > 1 ? 'Accounts deleted' : 'Account deleted', {
         description: `${accountsToDelete.length} account${accountsToDelete.length > 1 ? 's' : ''} and all associated trades have been permanently deleted.`,
-        variant: 'default',
       })
     } catch (error) {
       console.error("Failed to delete accounts:", error)
       setError(error instanceof Error ? error : new Error('Failed to delete accounts'))
-      toast({
-        title: 'Delete failed',
+      toast.error('Delete failed', {
         description: error instanceof Error ? error.message : 'Failed to delete accounts. Please try again.',
-        variant: 'destructive',
       })
     } finally {
       setDeleteLoading(false)
@@ -162,10 +158,8 @@ export function DataManagementCard() {
         refetchAccounts(),
         refreshTrades()
       ])
-      toast({
-        title: 'Account renamed',
+      toast.success('Account renamed', {
         description: `Account renamed from ${accountToRename} to ${newAccountNumber}`,
-        variant: 'default',
       })
       setRenameAccountDialogOpen(false)
       setAccountToRename("")
@@ -173,10 +167,8 @@ export function DataManagementCard() {
     } catch (error) {
       console.error("Failed to rename account:", error)
       setError(error instanceof Error ? error : new Error('Failed to rename account'))
-      toast({
-        title: 'Rename failed',
+      toast.error('Rename failed', {
         description: error instanceof Error ? error.message : 'Failed to rename account. Please try again.',
-        variant: 'destructive',
       })
     } finally {
       setRenameLoading(false)

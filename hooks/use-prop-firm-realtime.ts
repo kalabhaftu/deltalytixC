@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { PropFirmAccount } from '@/types/prop-firm'
 
 interface PropFirmAccountLocal {
@@ -81,7 +81,6 @@ interface UsePropFirmRealtimeResult {
 
 export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePropFirmRealtimeResult {
   const { accountId, pollInterval = 30000, enabled = true } = options
-  const { toast } = useToast()
   
   const [account, setAccount] = useState<PropFirmAccountLocal | null>(null)
   const [drawdown, setDrawdown] = useState<DrawdownData | null>(null)
@@ -151,26 +150,20 @@ export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePro
           // Check for status changes and show notifications
           if (account && account.status !== accountData.status) {
             if (accountData.status === 'failed') {
-              toast({
-                title: "Account Failed",
+              toast.error("Account Failed", {
                 description: `Account ${accountData.accountName || accountData.number} has been marked as failed due to rule violations.`,
-                variant: "destructive"
               })
             } else if (accountData.status === 'funded') {
-              toast({
-                title: "Account Funded! 🎉",
+              toast.success("Account Funded! 🎉", {
                 description: `Congratulations! Account ${accountData.accountName || accountData.number} has been funded.`,
-                variant: "default"
               })
             }
           }
 
           // Check for breach alerts
           if (drawdownData?.isBreached && (!drawdown || !drawdown.isBreached)) {
-            toast({
-              title: "Drawdown Breach Alert!",
+            toast.error("Drawdown Breach Alert!", {
               description: `Account ${accountData.accountName || accountData.number} has breached ${drawdownData.breachType?.replace('_', ' ')} limits.`,
-              variant: "destructive"
             })
           }
 

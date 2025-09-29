@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { cn } from "@/lib/utils"
@@ -14,9 +14,32 @@ import { useAuth } from "@/context/auth-provider"
 export default function AuthenticationPage() {
   const { isAuthenticated, isLoading, forceClearAuth } = useAuth()
   const router = useRouter()
+  const [isProcessingLogout, setIsProcessingLogout] = useState(false)
+
+  // Immediate check for logout parameter - handle this before any other logic
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('logout') === 'true' || urlParams.get('deleted') === 'true') {
+      console.log('[AuthPage] Detected logout/deletion parameter, forcing clear')
+      setIsProcessingLogout(true)
+      forceClearAuth()
+      // Clean the URL and reset processing state
+      setTimeout(() => {
+        window.history.replaceState({}, '', '/authentication')
+        setIsProcessingLogout(false)
+      }, 100)
+      return
+    }
+  }, [forceClearAuth])
 
   // Check if user is already authenticated and redirect to dashboard
   useEffect(() => {
+    // Skip this check if we're processing logout or have logout/deletion parameters
+    const urlParams = new URLSearchParams(window.location.search)
+    if (isProcessingLogout || urlParams.get('logout') === 'true' || urlParams.get('deleted') === 'true') {
+      return
+    }
+
     // Force a fresh auth check if coming from a potential logout/deletion
     const checkFreshAuth = async () => {
       if (isAuthenticated && !isLoading) {
@@ -39,10 +62,10 @@ export default function AuthenticationPage() {
             // User is not truly authenticated, force clear auth state
             console.log('[Auth] User not authenticated, clearing local state')
             // Force refresh the auth provider state
-            if (window.location.search.includes('deleted=true')) {
-              // If coming from account deletion, force a complete session clear
+            if (window.location.search.includes('deleted=true') || window.location.search.includes('logout=true')) {
+              // If coming from account deletion or logout, force a complete session clear
               forceClearAuth()
-              // Remove the deleted parameter and reload
+              // Remove the parameter and reload
               window.location.replace('/authentication')
               return
             }
@@ -56,10 +79,10 @@ export default function AuthenticationPage() {
     }
 
     checkFreshAuth()
-  }, [isAuthenticated, isLoading, router, forceClearAuth])
+  }, [isAuthenticated, isLoading, router, forceClearAuth, isProcessingLogout])
 
-  // If user is authenticated, show loading state while redirecting
-  if (isAuthenticated && !isLoading) {
+  // If user is authenticated and not processing logout, show loading state while redirecting
+  if (isAuthenticated && !isLoading && !isProcessingLogout) {
     return (
       <div className="min-h-screen bg-background overflow-hidden">
         <div className="flex relative h-screen flex-col items-center justify-center bg-background">

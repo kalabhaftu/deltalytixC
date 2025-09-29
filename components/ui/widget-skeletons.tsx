@@ -111,7 +111,7 @@ function ChartSkeleton({ size = 'medium', className }: { size?: WidgetSize; clas
 }
 
 /**
- * Statistics card skeleton for metric widgets
+ * Statistics card skeleton for widgets
  */
 function StatisticsSkeleton({ size = 'tiny', className }: { size?: WidgetSize; className?: string }) {
   return (
@@ -415,6 +415,7 @@ export function WidgetSkeleton({ type, size = 'medium', className }: WidgetSkele
     'timeInPositionChart',
     'pnlBySideChart',
     'tickDistribution',
+    'radarChart',
     'commissionsPnl',
     'tradeDistribution'
   ].includes(type)) {
