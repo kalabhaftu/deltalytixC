@@ -9,7 +9,6 @@ import { toast } from "sonner"
 import { useAccounts } from "@/hooks/use-accounts"
 import { useRealtimeAccounts } from "@/hooks/use-realtime-accounts"
 import { OptimizedAccountSelectionLoading } from "@/components/ui/optimized-loading"
-import { getCurrentActivePhase } from "@/server/accounts"
 
 // Temporary translation function
 const useTranslations = () => {
@@ -71,9 +70,9 @@ export default function AccountSelection({
     }
   }, [error, toast])
 
-  // Optimized phase loading with better error handling and performance
+  // Phase data is already loaded from the server - no need for additional loading
   useEffect(() => {
-    const loadPhases = async () => {
+    const prepareAccounts = () => {
       if (accounts.length === 0) {
         setAccountsWithPhases([])
         return
@@ -82,64 +81,29 @@ export default function AccountSelection({
       setIsLoadingPhases(true)
       
       try {
-        // Process accounts in smaller batches for better performance
-        const batchSize = 5
-        const batches = []
-        for (let i = 0; i < accounts.length; i += batchSize) {
-          batches.push(accounts.slice(i, i + batchSize))
-        }
-
-        let allUpdatedAccounts: UnifiedAccount[] = []
-        
-        for (const batch of batches) {
-          const batchResults = await Promise.allSettled(
-            batch.map(async (account) => {
-              if (account.accountType === 'prop-firm') {
-                try {
-                  const currentPhase = await getCurrentActivePhase(account.id)
-                  if (currentPhase) {
-                    return {
-                      ...account,
-                      currentPhase: {
-                        phaseNumber: currentPhase.phaseNumber,
-                        status: currentPhase.status,
-                        phaseId: currentPhase.phaseId
-                      }
-                    }
-                  }
-                } catch (phaseError) {
-                  console.warn(`Failed to load phase for account ${account.id}:`, phaseError)
-                }
-              }
-              return account
-            })
-          )
-
-          // Extract successful results
-          const batchAccounts = batchResults
-            .filter((result): result is PromiseFulfilledResult<UnifiedAccount> => result.status === 'fulfilled')
-            .map(result => (result as PromiseFulfilledResult<UnifiedAccount>).value)
-          
-          allUpdatedAccounts = [...allUpdatedAccounts, ...batchAccounts]
-          
-          // Update UI progressively for better UX
-          setAccountsWithPhases([...allUpdatedAccounts])
-          
-          // Small delay between batches to prevent overwhelming the server
-          if (batches.length > 1) {
-            await new Promise(resolve => setTimeout(resolve, 100))
+        // Phase data is already included in accounts from server
+        // Just map to include phase details in the expected format
+        const accountsWithPhaseData = accounts.map((account) => {
+          // Use currentPhaseDetails that's already loaded from server
+          if (account.accountType === 'prop-firm' && account.currentPhaseDetails) {
+            return {
+              ...account,
+              currentPhase: account.currentPhaseDetails
+            }
           }
-        }
+          return account
+        })
+        
+        setAccountsWithPhases(accountsWithPhaseData)
       } catch (error) {
-        console.error('Error loading account phases:', error)
-        // Fallback to accounts without phase data
-        setAccountsWithPhases(accounts)
+        console.error('Error preparing accounts:', error)
+        setAccountsWithPhases(accounts) // Fallback to accounts without phase formatting
       } finally {
         setIsLoadingPhases(false)
       }
     }
 
-    loadPhases()
+    prepareAccounts()
   }, [accounts])
 
   if (isLoading || isLoadingPhases) {
@@ -221,12 +185,11 @@ export default function AccountSelection({
                     <p className="text-sm text-muted-foreground font-mono">
                       {account.number}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {account.accountType === 'prop-firm'
-                        ? account.displayName || "Unknown Prop Firm"
-                        : (account as any).broker || "Unknown Broker"
-                      }
-                    </p>
+                    {account.broker && account.accountType === 'live' && (
+                      <p className="text-xs text-muted-foreground">
+                        {account.broker}
+                      </p>
+                    )}
                     {account.accountType === 'prop-firm' && account.currentPhase && (
                       <div className="flex items-center gap-2 mt-2">
                         <Badge

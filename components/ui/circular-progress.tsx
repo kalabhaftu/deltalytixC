@@ -11,6 +11,7 @@ interface CircularProgressProps {
   showPercentage?: boolean
   color?: string
   backgroundColor?: string
+  type?: 'circle' | 'gauge' // Add gauge type
 }
 
 export function CircularProgress({
@@ -20,33 +21,42 @@ export function CircularProgress({
   className,
   showPercentage = true,
   color = '#22c55e', // green-500
-  backgroundColor = '#e5e7eb' // gray-200
+  backgroundColor = '#e5e7eb', // gray-200
+  type = 'gauge' // Default to gauge
 }: CircularProgressProps) {
   const radius = (size - strokeWidth) / 2
-  const circumference = radius * 2 * Math.PI
+  const isGauge = type === 'gauge'
+  
+  // For gauge: semi-circle (180 degrees)
+  // For circle: full circle (360 degrees)
+  const circumference = isGauge ? radius * Math.PI : radius * 2 * Math.PI
   const offset = circumference - (value / 100) * circumference
 
   return (
     <div className={cn('relative inline-flex items-center justify-center', className)}>
       <svg
         width={size}
-        height={size}
-        className="transform -rotate-90"
+        height={isGauge ? size / 2 + strokeWidth : size}
+        className={cn(isGauge ? '' : 'transform -rotate-90')}
+        viewBox={`0 0 ${size} ${isGauge ? size / 2 + strokeWidth : size}`}
       >
-        {/* Background circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
+        {/* Background arc/circle */}
+        <path
+          d={isGauge 
+            ? `M ${strokeWidth / 2} ${size / 2} A ${radius} ${radius} 0 0 1 ${size - strokeWidth / 2} ${size / 2}`
+            : `M ${size / 2} ${strokeWidth / 2} A ${radius} ${radius} 0 1 1 ${size / 2} ${size - strokeWidth / 2} A ${radius} ${radius} 0 1 1 ${size / 2} ${strokeWidth / 2}`
+          }
           stroke={backgroundColor}
           strokeWidth={strokeWidth}
           fill="none"
+          strokeLinecap="round"
         />
-        {/* Progress circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
+        {/* Progress arc/circle */}
+        <path
+          d={isGauge 
+            ? `M ${strokeWidth / 2} ${size / 2} A ${radius} ${radius} 0 0 1 ${size - strokeWidth / 2} ${size / 2}`
+            : `M ${size / 2} ${strokeWidth / 2} A ${radius} ${radius} 0 1 1 ${size / 2} ${size - strokeWidth / 2} A ${radius} ${radius} 0 1 1 ${size / 2} ${strokeWidth / 2}`
+          }
           stroke={color}
           strokeWidth={strokeWidth}
           fill="none"
@@ -57,7 +67,10 @@ export function CircularProgress({
         />
       </svg>
       {showPercentage && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className={cn(
+          "absolute flex items-center justify-center",
+          isGauge ? "bottom-0 left-0 right-0" : "inset-0"
+        )}>
           <span className="text-sm font-semibold text-foreground">
             {value.toFixed(1)}%
           </span>

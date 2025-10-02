@@ -61,7 +61,7 @@ const parseOrders = (text: string): TradeOrder[] => {
     orders.push({
       rawSymbol: symbol,
       side: side as 'BUY' | 'SELL',
-      quantity: Math.abs(parseInt(quantity)), // Use absolute value for quantity
+      quantity: Math.abs(parseFloat(quantity)), // Use absolute value for quantity
       price: parseFloat(price.replace(/,/g, '')),
       timestamp: isoTimestamp,
       commission: parseFloat(fee.replace(/,/g, ''))+parseFloat(commission.replace(/,/g, '')),

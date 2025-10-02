@@ -440,8 +440,8 @@ export function WidgetSkeleton({ type, size = 'medium', className }: WidgetSkele
     return <ComplexStatisticsSkeleton className={className} />
   }
 
-  // Calendar widget
-  if (type === 'calendarWidget') {
+  // Calendar widgets
+  if (type === 'calendarWidget' || type === 'calendarAdvanced') {
     return <CalendarSkeleton className={className} />
   }
 

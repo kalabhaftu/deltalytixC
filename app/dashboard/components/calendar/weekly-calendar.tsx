@@ -88,9 +88,9 @@ export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendar
   }
 
   return (
-    <div className="flex flex-col gap-2 p-2 h-full">
+    <div className="flex flex-col gap-3 p-4 h-full">
       {/* Month Headers and Totals */}
-      <div className="grid grid-cols-12 gap-1">
+      <div className="grid grid-cols-12 gap-2">
         {Array.from({ length: 12 }, (_, i) => {
           const monthlyPnl = getMonthPnl(i)
           return (
@@ -114,7 +114,7 @@ export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendar
       </div>
       
       {/* Weeks Grid */}
-      <div className="grid grid-cols-12 gap-1 flex-1">
+      <div className="grid grid-cols-12 gap-2 flex-1">
         {Array.from({ length: 12 }, (_, monthIndex) => {
           // Correctly filter weeks for the current month
           const monthWeeks = weeksToDisplay.filter(weekStart => {
@@ -142,13 +142,13 @@ export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendar
           }
 
           return (
-            <div key={monthIndex} className="flex flex-col gap-1">
+            <div key={monthIndex} className="flex flex-col gap-2">
               {allWeeks.map((weekStart, weekIndex) => {
                 if (!weekStart) {
                   return (
                     <div
                       key={weekIndex}
-                      className="flex flex-col items-center justify-center border rounded p-1 min-h-[3rem] flex-1 bg-muted/10 dark:bg-muted/5"
+                      className="flex flex-col items-center justify-center border rounded p-2 min-h-[4rem] flex-1 bg-muted/10 dark:bg-muted/5"
                     />
                   )
                 }
@@ -160,8 +160,8 @@ export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendar
                     <PopoverTrigger asChild>
                       <div
                         className={cn(
-                          "flex flex-col items-center justify-center border rounded p-1 min-h-[3rem] flex-1 cursor-pointer",
-                          "transition-all duration-200 hover:scale-[1.02] hover:shadow-sm",
+                          "flex flex-col items-center justify-center border rounded p-2 min-h-[4rem] flex-1 cursor-pointer",
+                          "transition-all duration-200 hover:scale-[1.02] hover:shadow-md",
                           pnl > 0 
                             ? "bg-green-50/80 dark:bg-green-950/40 text-green-700 dark:text-green-400 border-green-100 dark:border-green-900/50" 
                             : pnl < 0 

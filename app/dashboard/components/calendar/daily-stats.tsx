@@ -99,7 +99,7 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
         <Card className="flex flex-col">
           <CardHeader className="pb-1 flex-1">
             <CardTitle className="text-base md:text-lg">
-              {isWeekly ? "Weekly Avg Time" : "Daily Avg Time"}
+              Net P&L
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-2 mt-auto">
@@ -117,7 +117,7 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
         <Card className="flex flex-col">
           <CardHeader className="pb-1 flex-1">
             <CardTitle className="text-base md:text-lg">
-              {isWeekly ? "Weekly Avg Time" : "Daily Avg Time"}
+              Avg Time
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-2 mt-auto">
@@ -135,7 +135,7 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
         <Card className="flex flex-col">
           <CardHeader className="pb-1 flex-1">
             <CardTitle className="text-base md:text-lg">
-              {isWeekly ? "Weekly Avg Time" : "Daily Avg Time"}
+              Max Drawdown
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-2 mt-auto">
@@ -148,7 +148,7 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
         <Card className="flex flex-col">
           <CardHeader className="pb-1 flex-1">
             <CardTitle className="text-base md:text-lg">
-              {isWeekly ? "Weekly Avg Time" : "Daily Avg Time"}
+              Max Profit
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-2 mt-auto">

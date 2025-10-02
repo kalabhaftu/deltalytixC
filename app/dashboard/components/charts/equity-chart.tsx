@@ -737,8 +737,8 @@ export default function EquityChart({ size = 'medium' }: EquityChartProps) {
     <Card className="h-full flex flex-col">
       <CardHeader 
         className={cn(
-          "flex flex-col items-stretch space-y-0 border-b shrink-0 h-[56px]",
-          size === 'small' ? "p-2" : "p-3 sm:p-4"
+          "flex flex-col items-stretch space-y-0 border-b shrink-0",
+          size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
         )}
       >
         <div className="flex items-center justify-between h-full">
@@ -795,8 +795,8 @@ export default function EquityChart({ size = 'medium' }: EquityChartProps) {
                   data={chartData}
                   margin={
                     size === 'small'
-                      ? { left: 10, right: 4, top: 4, bottom: 20 }
-                      : { left: 10, right: 8, top: 8, bottom: 24 }
+                      ? { left: -10, right: 0, top: 0, bottom: 0 }
+                      : { left: -15, right: 0, top: 5, bottom: 5 }
                   }
                   onMouseLeave={() => setHoveredData(null)}
                 >

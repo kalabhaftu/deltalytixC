@@ -6,11 +6,9 @@ import { enUS } from 'date-fns/locale'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn, parsePositionTime, formatCurrency } from "@/lib/utils"
+import { cn, parsePositionTime, formatCurrency, formatNumber } from "@/lib/utils"
 import { Trade } from "@prisma/client"
 import { CalendarEntry } from "@/app/dashboard/types/calendar"
-import { Charts } from "./charts"
 import { DailyStats } from "./daily-stats"
 import { DailyComment } from "./daily-comment"
 import { useUserStore } from "@/store/user-store"
@@ -48,7 +46,6 @@ export function CalendarModal({
   const locale = 'en' // Fixed to English since we removed i18n
   const timezone = useUserStore(state => state.timezone)
   const dateLocale = enUS
-  const [activeTab, setActiveTab] = useState("analysis")
   const [formattedDate, setFormattedDate] = useState<string>("")
 
   React.useEffect(() => {
@@ -65,31 +62,25 @@ export function CalendarModal({
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>{formattedDate}</DialogTitle>
           <DialogDescription>
-            Detailed analysis for the selected day
+            Daily performance overview with statistics, notes, and trade details
           </DialogDescription>
         </DialogHeader>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
-          <TabsList className="px-6 bg-background border border-border rounded-md">
-            <TabsTrigger 
-              value="table"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-accent hover:text-accent-foreground"
-            >
-              Trades
-            </TabsTrigger>
-            <TabsTrigger 
-              value="analysis"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-accent hover:text-accent-foreground"
-            >
-              Analysis
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="table" className="flex-grow overflow-auto p-6 pt-2">
-            <ScrollArea className="h-full">
+        <div className="flex-grow overflow-auto p-6">
+          <ScrollArea className="h-full">
+            <div className="space-y-6">
+              {/* Daily Statistics Cards */}
+              <DailyStats dayData={dayData} isWeekly={false} />
+              
+              {/* Daily Notes/Comments */}
+              <DailyComment dayData={dayData} selectedDate={selectedDate} />
+              
+              {/* Trades Table */}
               {dayData && dayData.trades?.length > 0 ? (
                 <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">Trades</h3>
                   {Object.entries(groupTradesByAccount(dayData.trades)).map(([account, trades]) => (
                     <div key={account}>
-                      <h3 className="font-semibold mb-2">Account: {account}</h3>
+                      <h4 className="font-medium text-sm text-muted-foreground mb-2">Account: {account}</h4>
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -108,15 +99,15 @@ export function CalendarModal({
                             <TableRow key={trade.id}>
                               <TableCell>{trade.instrument}</TableCell>
                               <TableCell>{trade.side}</TableCell>
-                              <TableCell>{trade.quantity}</TableCell>
-                              <TableCell>${trade.entryPrice}</TableCell>
-                              <TableCell>${trade.closePrice}</TableCell>
+                              <TableCell>{formatNumber(trade.quantity)}</TableCell>
+                              <TableCell>${formatNumber(Number(trade.entryPrice) || 0, 2)}</TableCell>
+                              <TableCell>${formatNumber(Number(trade.closePrice) || 0, 2)}</TableCell>
                               <TableCell className={cn(
                                 trade.pnl >= 0
                                   ? "text-green-600 dark:text-green-400"
                                   : "text-red-600 dark:text-red-400"
                               )}>
-                                ${formatCurrency(trade.pnl)}
+                                {formatCurrency(trade.pnl)}
                               </TableCell>
                               <TableCell>{formatCurrency(trade.commission)}</TableCell>
                               <TableCell>{parsePositionTime(trade.timeInPosition)}</TableCell>
@@ -129,7 +120,7 @@ export function CalendarModal({
                                 ? "text-green-600 dark:text-green-400"
                                 : "text-red-600 dark:text-red-400"
                             )}>
-                              ${formatCurrency(trades.reduce((sum, trade) => sum + trade.pnl, 0))}
+                              {formatCurrency(trades.reduce((sum, trade) => sum + trade.pnl, 0))}
                             </TableCell>
                             <TableCell>
                               {formatCurrency(trades.reduce((sum, trade) => sum + trade.commission, 0))}
@@ -142,17 +133,13 @@ export function CalendarModal({
                   ))}
                 </div>
               ) : (
-                <p>No trades for this day</p>
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No trades for this day</p>
+                </div>
               )}
-            </ScrollArea>
-          </TabsContent>
-          <TabsContent value="analysis" className="flex-grow overflow-auto p-6 pt-2 space-y-4">
-            <DailyStats dayData={dayData} isWeekly={false} />
-            {/* <DailyMood dayData={dayData} isWeekly={false} selectedDate={selectedDate} /> */}
-            <DailyComment dayData={dayData} selectedDate={selectedDate} />
-            <Charts dayData={dayData} />
-          </TabsContent>
-        </Tabs>
+            </div>
+          </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   )

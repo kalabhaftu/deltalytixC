@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { inter } from "@/lib/fonts";
 import "./globals.css";
-import { Toaster } from "@/components/ui/sonner";
+import { SafeToaster } from "@/components/safe-toaster";
 // Removed Vercel Analytics and Speed Insights to comply with essential-only cookie policy
 import { AuthProvider } from "@/context/auth-provider";
 import { ConsentBanner } from "@/components/consent-banner";
@@ -212,6 +212,23 @@ export default async function RootLayout({
 
         {/* Analytics removed to comply with essential-only cookie policy */}
 
+        {/* Preload Inter font with fallback handling */}
+        <link
+          rel="preconnect"
+          href="https://fonts.googleapis.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+          crossOrigin="anonymous"
+        />
+
         <link 
           rel="apple-touch-icon" 
           sizes="180x180" 
@@ -224,6 +241,18 @@ export default async function RootLayout({
         />
           <style>
           {`
+            /* Font fallback for when Google Fonts fails */
+            @font-face {
+              font-family: 'Inter Fallback';
+              src: local('Inter'), local('-apple-system'), local('BlinkMacSystemFont'), local('Segoe UI'), local('Roboto');
+              font-display: swap;
+            }
+            
+            /* Ensure font variables are available */
+            :root {
+              --font-inter: 'Inter', 'Inter Fallback', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            }
+
             /* Base layout */
             html {
               margin: 0;
@@ -279,7 +308,7 @@ export default async function RootLayout({
             <AuthProvider>
               {/* Analytics components removed to comply with essential-only cookie policy */}
               <ConsentBanner />
-              <Toaster />
+              <SafeToaster />
               {children}
             </AuthProvider>
           </ConsoleFilterWrapper>

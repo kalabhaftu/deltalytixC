@@ -9,11 +9,6 @@ export default {
         name: 'Tradezella',
         description: 'Import trades from Tradezella CSV file',
       },
-      topstep: {
-        name: 'Topstep',
-        description: 'Import trades from Topstep CSV file',
-        details: 'Only TopstepX trades are supported',
-      },
       pdfImport: {
         name: 'PDF Import',
         description: 'Import trades from IBKR PDF file',

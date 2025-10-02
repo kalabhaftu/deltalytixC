@@ -455,7 +455,7 @@ export async function getAccountsAction() {
       [`accounts-${userId}`],
       {
         tags: [`accounts-${userId}`, `user-data-${userId}`],
-        revalidate: 15 // 15 seconds cache for fresher data with real-time updates
+        revalidate: 30 // 30 seconds cache - optimized for performance
       }
     )()
   } catch (error) {
@@ -636,7 +636,105 @@ export async function linkTradesToCurrentPhase(accountId: string, trades: any[])
         throw new Error(`Prop firm account "${masterAccount.accountName}" is in ${currentPhase.status} status. Cannot add trades to inactive phases.`)
       }
 
-      // Check if any trades are already linked to this phase
+      // Optimized: Create trades with direct phase linking using createMany
+      const tradesToCreate = trades.map(trade => ({
+        ...trade,
+        phaseAccountId: currentPhase.id,
+        userId
+      }))
+
+      // Use createMany for batch insert with skipDuplicates
+      const result = await prisma.trade.createMany({
+        data: tradesToCreate,
+        skipDuplicates: true
+      })
+
+      // If no trades were added, they're all duplicates
+      if (result.count === 0) {
+        return {
+          success: true,
+          linkedCount: 0,
+          phaseAccountId: currentPhase.id,
+          phaseNumber: currentPhase.phaseNumber,
+          accountName: masterAccount.accountName,
+          message: 'All trades already exist in this account'
+        }
+      }
+
+      return {
+        success: true,
+        linkedCount: result.count,
+        phaseAccountId: currentPhase.id,
+        phaseNumber: currentPhase.phaseNumber,
+        accountName: masterAccount.accountName
+      }
+    } else {
+      // Regular account - batch update
+      const regularAccount = await prisma.account.findFirst({
+        where: { number: trades[0]?.accountNumber }
+      })
+
+      if (!regularAccount) {
+        throw new Error(`No account found with account number "${trades[0]?.accountNumber}". Please create the account first.`)
+      }
+
+      // Create trades with account linking
+      const tradesToCreate = trades.map(trade => ({
+        ...trade,
+        accountId: regularAccount.id,
+        userId
+      }))
+
+      const result = await prisma.trade.createMany({
+        data: tradesToCreate,
+        skipDuplicates: true
+      })
+
+      // If no trades were added, they're all duplicates
+      if (result.count === 0) {
+        return {
+          success: true,
+          linkedCount: 0,
+          accountId: regularAccount.id,
+          accountName: regularAccount.name || regularAccount.number,
+          message: 'All trades already exist in this account'
+        }
+      }
+
+      return {
+        success: true,
+        linkedCount: result.count,
+        accountId: regularAccount.id,
+        accountName: regularAccount.name || regularAccount.number
+      }
+    }
+  } catch (error) {
+
+    throw error
+  }
+}
+
+// Keep this for legacy support but mark as deprecated
+async function _legacyLinkTradesToCurrentPhase_SLOW(accountId: string, trades: any[]) {
+  try {
+    const userId = await getUserId()
+
+    const masterAccount = await prisma.masterAccount.findUnique({
+      where: { id: accountId },
+      select: { id: true, accountName: true }
+    })
+
+    if (masterAccount) {
+      const currentPhase = await getCurrentActivePhase(accountId)
+
+      if (!currentPhase) {
+        throw new Error(`No active phase found for prop firm account "${masterAccount.accountName}". Please set up the account phases first.`)
+      }
+
+      if (currentPhase.status !== 'active') {
+        throw new Error(`Prop firm account "${masterAccount.accountName}" is in ${currentPhase.status} status. Cannot add trades to inactive phases.`)
+      }
+
       const existingTrades = await prisma.trade.findMany({
         where: {
           userId,
@@ -655,14 +753,12 @@ export async function linkTradesToCurrentPhase(accountId: string, trades: any[])
         }
       })
 
-      // Create signature for existing trades to avoid duplicates
       const existingSignatures = new Set(
         existingTrades.map(trade =>
           `${trade.entryId || ''}-${trade.closeId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
         )
       )
 
-      // Filter trades that need to be linked to this phase
       const tradesToLink = trades.filter(trade => {
         const signature = `${trade.entryId || ''}-${trade.closeId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
         return !existingSignatures.has(signature) && trade.id // Only link existing trades with IDs

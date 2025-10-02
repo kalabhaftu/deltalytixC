@@ -48,6 +48,69 @@ export function useTradeStatistics() {
     const lossRate = nbTrades > 0 ? Math.round((nbLoss / nbTrades) * 1000) / 10 : 0 // Round to 1 decimal place
     const beRate = nbTrades > 0 ? Math.round((nbBe / nbTrades) * 1000) / 10 : 0 // Round to 1 decimal place
 
+    // Calculate streaks
+    let currentTradeStreak = 0
+    let bestTradeStreak = 0
+    let worstTradeStreak = 0
+    let tempTradeStreak = 0
+    
+    let currentDayStreak = 0
+    let bestDayStreak = 0
+    let worstDayStreak = 0
+    
+    // Calculate trade streaks
+    for (let i = 0; i < formattedTrades.length; i++) {
+      const trade = formattedTrades[i]
+      const isWin = trade.pnl > 0
+      
+      if (isWin) {
+        tempTradeStreak = tempTradeStreak >= 0 ? tempTradeStreak + 1 : 1
+        bestTradeStreak = Math.max(bestTradeStreak, tempTradeStreak)
+      } else if (trade.pnl < 0) {
+        tempTradeStreak = tempTradeStreak <= 0 ? tempTradeStreak - 1 : -1
+        worstTradeStreak = Math.min(worstTradeStreak, tempTradeStreak)
+      }
+      
+      // Current streak is the last one
+      if (i === formattedTrades.length - 1) {
+        currentTradeStreak = tempTradeStreak
+      }
+    }
+    
+    // Calculate day streaks (group trades by day)
+    const tradesByDay = formattedTrades.reduce((acc, trade) => {
+      const date = new Date(trade.entryDate).toDateString()
+      if (!acc[date]) {
+        acc[date] = []
+      }
+      acc[date].push(trade)
+      return acc
+    }, {} as Record<string, Trade[]>)
+    
+    const sortedDays = Object.keys(tradesByDay).sort((a, b) => 
+      new Date(a).getTime() - new Date(b).getTime()
+    )
+    
+    let tempDayStreak = 0
+    for (let i = 0; i < sortedDays.length; i++) {
+      const dayTrades = tradesByDay[sortedDays[i]]
+      const dayPnl = dayTrades.reduce((sum, t) => sum + t.pnl, 0)
+      const isWinDay = dayPnl > 0
+      
+      if (isWinDay) {
+        tempDayStreak = tempDayStreak >= 0 ? tempDayStreak + 1 : 1
+        bestDayStreak = Math.max(bestDayStreak, tempDayStreak)
+      } else if (dayPnl < 0) {
+        tempDayStreak = tempDayStreak <= 0 ? tempDayStreak - 1 : -1
+        worstDayStreak = Math.min(worstDayStreak, tempDayStreak)
+      }
+      
+      // Current streak is the last one
+      if (i === sortedDays.length - 1) {
+        currentDayStreak = tempDayStreak
+      }
+    }
+
     return {
       netPnlWithPayouts,
       winRate,
@@ -58,9 +121,16 @@ export function useTradeStatistics() {
       biggestLoss,
       avgWin: avgWinLossStats.avgWin,
       avgLoss: avgWinLossStats.avgLoss,
-      riskRewardRatio: avgWinLossStats.riskRewardRatio
+      riskRewardRatio: avgWinLossStats.riskRewardRatio,
+      // Streak statistics
+      currentTradeStreak,
+      bestTradeStreak,
+      worstTradeStreak,
+      currentDayStreak,
+      bestDayStreak,
+      worstDayStreak,
     }
-  }, [coreStats, avgWinLossStats])
+  }, [coreStats, avgWinLossStats, formattedTrades])
 
   return {
     // Core statistics

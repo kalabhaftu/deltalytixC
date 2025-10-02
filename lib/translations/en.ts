@@ -211,9 +211,6 @@ export default {
     'import.type.badge.maintenance': 'MAINTENANCE',
 
 
-    'import.type.topstep.name': 'Topstep',
-    'import.type.topstep.description': 'Import trades from Topstep funded trader account exports',
-    'import.type.topstep.details': 'Make sure to export your trades in CSV format from your Topstep funded trader account dashboard.',
     'notFound': {
         title: "404 - Page Not Found",
         heading: "Oops! Page not found",

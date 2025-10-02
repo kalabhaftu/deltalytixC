@@ -4,19 +4,22 @@ import { Trade } from '@prisma/client'
 import { useEffect, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { useUserStore } from '@/store/user-store'
+import { ImportLoading } from '../components/import-loading'
 
 interface MatchTraderProcessorProps {
   csvData: string[][]
   headers: string[]
   setProcessedTrades: React.Dispatch<React.SetStateAction<Trade[]>>
   accountNumber: string
+  isSaving?: boolean
 }
 
 const MatchTraderProcessor = ({
   csvData,
   headers,
   setProcessedTrades,
-  accountNumber
+  accountNumber,
+  isSaving = false
 }: MatchTraderProcessorProps) => {
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
@@ -55,6 +58,12 @@ const MatchTraderProcessor = ({
         const pnl = parseFloat(row[headers.indexOf('Profit')] || '0')
         const commission = parseFloat(row[headers.indexOf('Commission')] || '0')
         const swap = parseFloat(row[headers.indexOf('Swap')] || '0')
+        
+        // Parse Stop Loss and Take Profit (treat 0.00 as null/incomplete)
+        const stopLossRaw = row[headers.indexOf('Stop loss')] || null
+        const takeProfitRaw = row[headers.indexOf('Take profit')] || null
+        const stopLoss = stopLossRaw && parseFloat(stopLossRaw) !== 0 ? stopLossRaw : null
+        const takeProfit = takeProfitRaw && parseFloat(takeProfitRaw) !== 0 ? takeProfitRaw : null
 
         // Get instrument and side
         const instrument = row[headers.indexOf('Symbol')] || ''
@@ -106,6 +115,8 @@ const MatchTraderProcessor = ({
           rawBrokerId: null,
           accountId: null,
           strategy: null,
+          stopLoss: stopLoss,
+          takeProfit: takeProfit,
         } as Trade
 
         trades.push(trade)
@@ -118,7 +129,43 @@ const MatchTraderProcessor = ({
     processData()
   }, [csvData, headers, setProcessedTrades, accountNumber, user, supabaseUser])
 
-  return null
+  // Show loading screen when saving
+  if (isSaving) {
+    return <ImportLoading />
+  }
+
+  // Show processing message when initially processing
+  if (isProcessing) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Processing your trades...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center justify-center h-full">
+      <div className="text-center space-y-4 max-w-md">
+        <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
+          <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold">Trades Processed Successfully</h3>
+          <p className="text-sm text-muted-foreground">
+            {csvData.length} {csvData.length === 1 ? 'trade' : 'trades'} ready to import
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Click &ldquo;Save&rdquo; to import your trades
+          </p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default MatchTraderProcessor

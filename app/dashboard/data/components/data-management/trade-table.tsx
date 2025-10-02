@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ArrowUpDown, Trash, ChevronLeft, ChevronRight, Edit, Loader2 } from "lucide-react"
-import { saveTradesAction } from '@/server/database'
 import { toast } from "sonner"
 import { deleteTradesByIdsAction } from '@/server/accounts'
 import { useData } from '@/context/data-provider'
@@ -21,7 +20,7 @@ type SortConfig = {
 }
 
 export default function TradeTable() {
-  const { refreshTrades, formattedTrades } = useData()
+  const { refreshTrades, formattedTrades, updateTrades } = useData()
   const [filterValue, setFilterValue] = useState('')
   const [filterKey, setFilterKey] = useState<keyof Trade>('instrument')
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'entryDate', direction: 'desc' })
@@ -76,9 +75,11 @@ export default function TradeTable() {
     setSelectedTrades(new Set())
     setSelectAll(false)
     
+    let loadingToastId: string | number | null = null
+    
     try {
-      // Show loading toast
-      toast.loading("Deleting Trades", {
+      // Show loading toast and store the ID
+      loadingToastId = toast.loading("Deleting Trades", {
         description: `Deleting ${ids.length} trade(s)...`,
       })
       
@@ -88,12 +89,23 @@ export default function TradeTable() {
       // Refresh trades data immediately
       refreshTrades()
       
+      // Dismiss loading toast before showing success
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId)
+      }
+      
       // Show success toast
       toast.success("Trades Deleted", {
         description: `Successfully deleted ${ids.length} trade(s).`,
       })
     } catch (error) {
       console.error('Error deleting trades:', error)
+      
+      // Dismiss loading toast before showing error
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId)
+      }
+      
       toast.error("Error", {
         description: "Failed to delete trades. Please try again.",
       })
@@ -138,13 +150,7 @@ export default function TradeTable() {
     
     try {
       // Update the trade with new data
-      await saveTradesAction([{
-        ...selectedTradeForEdit,
-        ...updatedTrade
-      }])
-      
-      // Refresh trades data
-      await refreshTrades()
+      await updateTrades([selectedTradeForEdit.id], updatedTrade)
       
       toast.success("Trade Updated", {
         description: "Trade has been successfully updated.",

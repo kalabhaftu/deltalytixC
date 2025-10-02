@@ -48,6 +48,8 @@ const columnConfig: ColumnConfig = {
   "timeInPosition": { defaultMapping: ["timeinposition", "duration"], required: false },
   "side": { defaultMapping: ["side", "direction"], required: false },
   "commission": { defaultMapping: ["commission", "fee"], required: false },
+  "stopLoss": { defaultMapping: ["stoploss", "sl", "stop"], required: false },
+  "takeProfit": { defaultMapping: ["takeprofit", "tp", "target"], required: false },
 }
 
 export type Step = 
@@ -101,7 +103,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     
     try {
       // Show processing indicator (auto-dismiss after 3 seconds)
-      toast("Processing Trades", {
+      toast.info("Processing Trades", {
         description: "Checking for duplicates and saving trades...",
         duration: 3000,
       })
@@ -151,14 +153,65 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
           });
 
       // Link trades to current active phase instead of direct database save
-      const result = await linkTradesToCurrentPhase(accountId, newTrades)
-
-      if (!result.success) {
-        toast.error("Import Failed", {
-          description: "Failed to link trades to account phase",
-        })
+      let result
+      try {
+        result = await linkTradesToCurrentPhase(accountId, newTrades)
+      } catch (linkError: any) {
+        console.error('Error linking trades:', linkError)
+        
+        // Handle specific error cases with user-friendly messages
+        const errorMessage = linkError?.message || String(linkError)
+        
+        if (errorMessage.includes('No active phase')) {
+          toast.error("No Active Phase", {
+            description: "This account doesn't have an active phase. Please set up account phases first.",
+            duration: 5000,
+          })
+        } else if (errorMessage.includes('not found')) {
+          toast.error("Account Not Found", {
+            description: "The selected account could not be found. Please try again or create the account first.",
+            duration: 5000,
+          })
+        } else if (errorMessage.includes('inactive')) {
+          toast.error("Inactive Phase", {
+            description: "Cannot add trades to an inactive phase. Please activate the phase first.",
+            duration: 5000,
+          })
+        } else {
+          toast.error("Import Failed", {
+            description: errorMessage.length > 100 ? "An error occurred while importing trades. Please try again." : errorMessage,
+            duration: 5000,
+          })
+        }
+        
+        setIsSaving(false)
         return
       }
+
+      if (!result?.success) {
+        toast.error("Import Failed", {
+          description: "Failed to link trades to account phase. Please try again.",
+        })
+        setIsSaving(false)
+        return
+      }
+      
+      // Show appropriate success message based on the result
+      const importedCount = result.linkedCount || 0
+      
+      if (importedCount === 0) {
+        toast.info("No New Trades", {
+          description: `All ${newTrades.length} trades have already been imported to this account. No duplicates were added.`,
+          duration: 5000,
+        })
+        setIsSaving(false)
+        
+        // Still reset and navigate back
+        resetImportState()
+        router.push(`/dashboard/prop-firm/accounts/${accountId}/trades`)
+        return
+      }
+      
       // Reset the import process immediately for better UX
       resetImportState()
       
@@ -198,15 +251,29 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
 
       // Show success message with phase information
       toast.success("Import Completed", {
-        description: "Trade linking completed",
+        description: `Successfully imported ${importedCount} ${importedCount === 1 ? 'trade' : 'trades'}.`,
         duration: 5000,
       })
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving trades:', error)
-      toast.error("Import Failed", {
-        description: "An error occurred while saving trades. Please try again.",
-      })
+      
+      // User-friendly error messages
+      const errorMessage = error?.message || String(error)
+      
+      if (errorMessage.includes('Authentication')) {
+        toast.error("Authentication Error", {
+          description: "Your session has expired. Please log in again.",
+        })
+      } else if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
+        toast.error("Connection Error", {
+          description: "Unable to connect to the server. Please check your internet connection and try again.",
+        })
+      } else {
+        toast.error("Import Failed", {
+          description: "An unexpected error occurred. Please try again or contact support if the issue persists.",
+        })
+      }
     } finally {
       setIsSaving(false)
     }
@@ -376,6 +443,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
           headers={headers}
           setProcessedTrades={setProcessedTrades}
           accountNumber={accountNumber || accountId}
+          isSaving={isSaving}
         />
       )
     }

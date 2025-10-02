@@ -83,7 +83,14 @@ export default function FileUpload({
     })
   }, [processFile, setError, uploadedFiles.length])
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+    onDrop,
+    accept: {
+      'text/csv': ['.csv'],
+      'application/vnd.ms-excel': ['.csv']
+    },
+    multiple: true
+  })
 
   const removeFile = (index: number) => {
     setUploadedFiles(prevFiles => prevFiles.filter((_, i) => i !== index))
@@ -171,7 +178,7 @@ export default function FileUpload({
           {isDragActive ? (
             <div className="space-y-2 relative">
               <p className="text-xl font-medium text-primary animate-in fade-in slide-in-from-bottom-2">
-                Drop files here
+                Drop CSV files here
               </p>
               <p className="text-sm text-muted-foreground animate-in fade-in slide-in-from-bottom-3">
                 Release to upload
@@ -180,10 +187,10 @@ export default function FileUpload({
           ) : (
             <div className="space-y-2 relative">
               <p className="text-xl font-medium group-hover:text-primary transition-colors">
-                Upload Files
+                Upload CSV Files
               </p>
               <p className="text-sm text-muted-foreground">
-                Drag and drop files here or click to browse
+                Drag and drop CSV files here or click to browse
               </p>
             </div>
           )}

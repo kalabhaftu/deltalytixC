@@ -108,7 +108,7 @@ export default function ImportButton() {
     
     try {
       // Show processing indicator
-      toast("Processing Trades", {
+      toast.info("Processing Trades", {
         description: "Saving and linking trades to account...",
         duration: 3000,
       })
@@ -313,6 +313,7 @@ export default function ImportButton() {
           headers={headers}
           setProcessedTrades={setProcessedTrades}
           accountNumber={accountNumber || newAccountNumber}
+          isSaving={isSaving}
         />
       )
     }

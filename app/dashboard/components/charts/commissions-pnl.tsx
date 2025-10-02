@@ -182,7 +182,7 @@ export default function CommissionsPnLChart({ size = 'medium' }: CommissionsPnLC
       <CardHeader 
         className={cn(
           "flex flex-col items-stretch space-y-0 border-b shrink-0",
-          size === 'small-long' ? "p-2" : "p-3 sm:p-4"
+          size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
         )}
       >
         <div className="flex items-center justify-between">

@@ -11,16 +11,21 @@ import { CalendarEntry } from "@/app/dashboard/types/calendar"
 
 interface DailyCommentProps {
   dayData: CalendarEntry | undefined
-  selectedDate: Date
+  selectedDate: Date | null
 }
 
 export function DailyComment({ dayData, selectedDate }: DailyCommentProps) {
   const [comment, setComment] = React.useState<string>("")
   const [isSavingComment, setIsSavingComment] = React.useState(false)
 
+  // Ensure we have a valid Date object
+  const validDate = selectedDate && selectedDate instanceof Date ? selectedDate : new Date()
+
   // Load comment from localStorage on mount
   React.useEffect(() => {
-    const dateKey = selectedDate.toISOString().split('T')[0]
+    if (!validDate) return
+    
+    const dateKey = validDate.toISOString().split('T')[0]
     const storageKey = `daily_comment_${dateKey}`
     const storedComment = localStorage.getItem(storageKey)
     if (storedComment) {
@@ -28,14 +33,16 @@ export function DailyComment({ dayData, selectedDate }: DailyCommentProps) {
     } else {
       setComment('')
     }
-  }, [selectedDate])
+  }, [validDate])
 
   const handleSaveComment = async () => {
+    if (!validDate) return
+    
     setIsSavingComment(true)
     
     try {
       // Save to localStorage (server functionality removed)
-      const dateKey = selectedDate.toISOString().split('T')[0]
+      const dateKey = validDate.toISOString().split('T')[0]
       const storageKey = `daily_comment_${dateKey}`
       localStorage.setItem(storageKey, comment)
 
@@ -51,6 +58,9 @@ export function DailyComment({ dayData, selectedDate }: DailyCommentProps) {
       setIsSavingComment(false)
     }
   }
+  
+  // Don't render if no valid date
+  if (!selectedDate) return null
 
   return (
     <Card className="w-full">
@@ -61,7 +71,7 @@ export function DailyComment({ dayData, selectedDate }: DailyCommentProps) {
               Daily Notes
             </CardTitle>
             <CardDescription className="text-sm text-muted-foreground">
-              Add your trading notes for {selectedDate.toLocaleDateString()}
+              Add your trading notes for {validDate.toLocaleDateString()}
             </CardDescription>
           </div>
         </div>

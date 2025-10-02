@@ -1,182 +1,158 @@
 "use client"
 
 import * as React from "react"
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer } from "recharts"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { ChartConfig } from "@/components/ui/chart"
+import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { useData } from "@/context/data-provider"
 import { cn } from "@/lib/utils"
+import { WidgetSize } from '@/app/dashboard/types/dashboard'
 import { Info } from 'lucide-react'
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import {
   Tooltip as UITooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { WidgetSize } from '@/app/dashboard/types/dashboard'
-import { Switch } from "@/components/ui/switch"
 
-const daysOfWeek = [0, 1, 2, 3, 4, 5, 6]; // Sunday = 0, Saturday = 6
-
-interface WeekdayPNLChartProps {
+interface WeekdayPnLProps {
   size?: WidgetSize
 }
 
-const formatCurrency = (value: number) =>
-  value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+interface WeekdayData {
+  day: string
+  dayName: string
+  pnl: number
+  trades: number
+  wins: number
+  losses: number
+  winRate: number
+}
 
-const getDayName = (day: number): string => {
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  return days[day] || 'Sunday';
+interface TooltipProps {
+  active?: boolean
+  payload?: Array<{
+    payload: WeekdayData
+  }>
+  label?: string
 }
 
 const chartConfig = {
   pnl: {
-    label: "PnL",
+    label: "P/L by Weekday",
     color: "hsl(var(--chart-1))",
   },
 } satisfies ChartConfig
 
-export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProps) {
-  const {calendarData, weekdayFilter, setWeekdayFilter} = useData()
-  const [darkMode, setDarkMode] = React.useState(false)
-  const [activeDay, setActiveDay] = React.useState<number | null>(null)
-  const [showAverage, setShowAverage] = React.useState(false) // Default to actual values
-  React.useEffect(() => {
-    const isDarkMode = document.documentElement.classList.contains('dark')
-    setDarkMode(isDarkMode)
+import { formatCurrency, formatNumber } from '@/lib/utils'
 
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'class') {
-          setDarkMode(document.documentElement.classList.contains('dark'))
-        }
-      })
-    })
-
-    observer.observe(document.documentElement, { attributes: true })
-    return () => observer.disconnect()
-  }, [])
-
-  const weekdayData = React.useMemo(() => {
-    const weekdayTotals = daysOfWeek.reduce((acc, day) => ({ 
-      ...acc, 
-      [day]: { total: 0, count: 0 } 
-    }), {} as Record<number, { total: number, count: number }>)
-
-    Object.entries(calendarData).forEach(([date, entry]) => {
-      const dayOfWeek = new Date(date).getUTCDay()
-      weekdayTotals[dayOfWeek].total += entry.pnl
-      weekdayTotals[dayOfWeek].count += 1
-    })
-
-    return daysOfWeek.map(day => ({
-      day,
-      totalPnl: weekdayTotals[day].total,
-      averagePnl: weekdayTotals[day].count > 0 ? weekdayTotals[day].total / weekdayTotals[day].count : 0,
-      pnl: showAverage 
-        ? (weekdayTotals[day].count > 0 ? weekdayTotals[day].total / weekdayTotals[day].count : 0)
-        : weekdayTotals[day].total,
-      tradeCount: weekdayTotals[day].count
-    }))
-  }, [calendarData, showAverage])
-
-  const maxPnL = Math.max(...weekdayData.map(d => d.pnl))
-  const minPnL = Math.min(...weekdayData.map(d => d.pnl))
-
-  const getColor = (value: number) => {
-    const ratio = Math.abs((value - minPnL) / (maxPnL - minPnL))
-    const baseColorVar = value >= 0 ? '--chart-3' : '--chart-4'
-    const intensity = darkMode ? 
-      Math.max(0.3, ratio) : // Higher minimum intensity in dark mode
-      Math.max(0.2, ratio)   // Lower minimum intensity in light mode
-    return `hsl(var(${baseColorVar}) / ${intensity})`
+const formatCurrencyValue = (value: number) => {
+  const absValue = Math.abs(value)
+  if (absValue >= 1000000) {
+    return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000000, 1)}M`
   }
+  if (absValue >= 1000) {
+    return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000, 1)}k`
+  }
+  return `${value < 0 ? '-' : ''}$${formatNumber(absValue, 0)}`
+}
 
-  const handleClick = React.useCallback(() => {
-    if (activeDay === null) return
-    if (weekdayFilter.day === activeDay) {
-      setWeekdayFilter({ day: null })
-    } else {
-      setWeekdayFilter({ day: activeDay })
-    }
-  }, [activeDay, weekdayFilter.day, setWeekdayFilter])
+const positiveColor = "hsl(var(--chart-2))" // Green color
+const negativeColor = "hsl(var(--chart-1))" // Red/Orange color
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    React.useEffect(() => {
-      if (active && payload && payload.length) {
-        setActiveDay(payload[0].payload.day)
-      } else {
-        setActiveDay(null)
-      }
-    }, [active, payload])
-
-    if (active && payload && payload.length) {
-      const data = payload[0].payload
-      return (
-        <div className="rounded-lg border bg-background p-2 shadow-sm">
-          <div className="grid gap-2">
-            <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
-                Day
-              </span>
-              <span className="font-bold text-muted-foreground">
-                {getDayName(data.day)}
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {showAverage ? 'Average P/L per Trade' : 'Total P/L'}
-              </span>
-              <span className="font-bold">
-                {formatCurrency(data.pnl)}
-              </span>
-            </div>
-            {showAverage && (
-              <div className="flex flex-col">
-                <span className="text-[0.70rem] uppercase text-muted-foreground">
-                  Total P/L
-                </span>
-                <span className="font-bold text-muted-foreground">
-                  {formatCurrency(data.totalPnl)}
-                </span>
-              </div>
-            )}
-            {!showAverage && (
-              <div className="flex flex-col">
-                <span className="text-[0.70rem] uppercase text-muted-foreground">
-                  Average P/L per Trade
-                </span>
-                <span className="font-bold text-muted-foreground">
-                  {formatCurrency(data.averagePnl)}
-                </span>
-              </div>
-            )}
-            <div className="flex flex-col">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
-                Trades
-              </span>
-              <span className="font-bold text-muted-foreground">
-                {data.tradeCount} {data.tradeCount !== 1 ? "trades" : "trade"}
-              </span>
-            </div>
-          </div>
+const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload
+    return (
+      <div className="bg-background p-2 border rounded shadow-sm">
+        <p className="font-semibold text-sm">{data.dayName}</p>
+        <p className={`font-bold ${data.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          P/L: {formatCurrency(data.pnl)}
+        </p>
+        <div className="text-xs text-muted-foreground mt-1">
+          <p>Trades: {data.trades} ({data.losses} losses)</p>
+          <p className="text-green-600">Wins: {data.wins}</p>
+          <p className="text-red-600">Losses: {data.losses}</p>
+          <p>Win Rate: {data.winRate.toFixed(1)}%</p>
         </div>
-      )
-    }
-    return null
+      </div>
+    )
   }
+  return null
+}
+
+export default function WeekdayPnL({ size = 'small-long' }: WeekdayPnLProps) {
+  const { formattedTrades } = useData()
+  const [showAverage, setShowAverage] = React.useState(false)
+
+  const chartData = React.useMemo(() => {
+    // Group trades by weekday (0=Sunday, 1=Monday, ..., 6=Saturday)
+    const weekdayMap: Record<number, { pnl: number; trades: number; wins: number; losses: number }> = {}
+    
+    formattedTrades.forEach(trade => {
+      const date = new Date(trade.entryDate)
+      const dayOfWeek = date.getDay()
+      
+      // Only include Monday-Friday (1-5)
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+        if (!weekdayMap[dayOfWeek]) {
+          weekdayMap[dayOfWeek] = { pnl: 0, trades: 0, wins: 0, losses: 0 }
+        }
+        
+        const netPnL = trade.pnl - (trade.commission || 0)
+        weekdayMap[dayOfWeek].pnl += netPnL
+        weekdayMap[dayOfWeek].trades++
+        
+        if (netPnL > 0) {
+          weekdayMap[dayOfWeek].wins++
+        } else if (netPnL < 0) {
+          weekdayMap[dayOfWeek].losses++
+        }
+      }
+    })
+
+    // Create chart data for Mon-Fri
+    const weekdays = [
+      { day: '1', dayName: 'Monday' },
+      { day: '2', dayName: 'Tuesday' },
+      { day: '3', dayName: 'Wednesday' },
+      { day: '4', dayName: 'Thursday' },
+      { day: '5', dayName: 'Friday' },
+    ]
+
+    return weekdays.map(({ day, dayName }) => {
+      const dayNum = parseInt(day)
+      const data = weekdayMap[dayNum] || { pnl: 0, trades: 0, wins: 0, losses: 0 }
+      
+      // Calculate win rate
+      const winRate = data.trades > 0 ? (data.wins / data.trades) * 100 : 0
+      
+      // Apply average if toggle is on
+      const displayPnl = showAverage && data.trades > 0 ? data.pnl / data.trades : data.pnl
+
+      return {
+        day,
+        dayName: dayName.substring(0, 3), // Short name for chart
+        pnl: displayPnl,
+        trades: data.trades,
+        wins: data.wins,
+        losses: data.losses,
+        winRate,
+      }
+    })
+  }, [formattedTrades, showAverage])
 
   return (
     <Card className="h-full flex flex-col">
       <CardHeader 
         className={cn(
-          "flex flex-row items-center justify-between space-y-0 border-b shrink-0",
-          size === 'small-long' ? "p-2 h-[40px]" : "p-3 sm:p-4 h-[56px]"
+          "flex flex-col items-stretch space-y-0 border-b shrink-0",
+          size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
         )}
       >
-        <div className="flex items-center justify-between w-full">
+        <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-1.5">
             <CardTitle 
               className={cn(
@@ -184,9 +160,9 @@ export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProp
                 size === 'small-long' ? "text-sm" : "text-base"
               )}
             >
-              P/L by Weekday
+              Weekday P/L
             </CardTitle>
-            <TooltipProvider>
+            <TooltipProvider delayDuration={100}>
               <UITooltip>
                 <TooltipTrigger asChild>
                   <Info className={cn(
@@ -195,110 +171,98 @@ export default function WeekdayPNLChart({ size = 'medium' }: WeekdayPNLChartProp
                   )} />
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>Shows P/L aggregated by day of the week. Toggle to view average P/L per trade for each weekday.</p>
+                  <p>P&L breakdown by weekday (Mon-Fri). Toggle to show average P&L per trade.</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>
           </div>
+          
+          {/* Average Toggle */}
           <div className="flex items-center gap-2">
-            <span className={cn(
-              "text-muted-foreground",
-              size === 'small-long' ? "text-xs" : "text-sm"
-            )}>
+            <Label htmlFor="average-toggle" className="text-xs text-muted-foreground cursor-pointer">
               Average
-            </span>
+            </Label>
             <Switch
+              id="average-toggle"
               checked={showAverage}
               onCheckedChange={setShowAverage}
-              className="data-[state=checked]:bg-primary"
+              className="scale-75"
             />
-            {weekdayFilter.day !== null && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 lg:px-3"
-                onClick={() => setWeekdayFilter({ day: null })}
-              >
-                Clear Filter
-              </Button>
-            )}
           </div>
         </div>
       </CardHeader>
       <CardContent 
         className={cn(
-          "flex-1 min-h-0",
-          size === 'small-long' ? "p-1" : "p-2 sm:p-4"
+          "flex-1 min-h-[200px]",
+          size === 'small' ? "p-1" : "p-2 sm:p-4"
         )}
       >
-        <div 
-          className="w-full h-full cursor-pointer" 
-          onClick={handleClick}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={weekdayData}
-              margin={
-                size === 'small-long'
-                  ? { left: 0, right: 4, top: 4, bottom: 20 }
-                  : { left: 0, right: 8, top: 8, bottom: 24 }
-              }
-            >
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                className="text-border dark:opacity-[0.12] opacity-[0.2]"
-              />
-              <XAxis
-                dataKey="day"
-                tickLine={false}
-                axisLine={false}
-                height={size === 'small-long' ? 20 : 24}
-                tickMargin={size === 'small-long' ? 4 : 8}
-                tick={{ 
-                  fontSize: size === 'small-long' ? 9 : 11,
-                  fill: 'currentColor'
-                }}
-                tickFormatter={(value) => {
-                  const dayName = getDayName(value);
-                  return size === 'small-long' ? dayName.slice(0, 3) : dayName
-                }}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                width={45}
-                tickMargin={4}
-                tick={{ 
-                  fontSize: size === 'small-long' ? 9 : 11,
-                  fill: 'currentColor'
-                }}
-                tickFormatter={formatCurrency}
-              />
-              <Tooltip 
-                content={<CustomTooltip />}
-                wrapperStyle={{ 
-                  fontSize: size === 'small-long' ? '10px' : '12px',
-                  zIndex: 1000
-                }} 
-              />
-              <Bar
-                dataKey="pnl"
-                fill={chartConfig.pnl.color}
-                radius={[3, 3, 0, 0]}
-                maxBarSize={size === 'small-long' ? 25 : 40}
-                className="transition-all duration-300 ease-in-out"
-                opacity={weekdayFilter.day !== null ? 0.3 : 1}
+        <div className="w-full h-full">
+          <ChartContainer config={chartConfig} className="w-full h-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={
+                  size === 'small'
+                    ? { left: -10, right: -10, top: 0, bottom: 5 }
+                    : { left: -20, right: -10, top: 5, bottom: 10 }
+                }
+                barGap={0}
               >
-                {weekdayData.map((entry) => (
-                  <Cell 
-                    key={`cell-${entry.day}`} 
-                    fill={getColor(entry.pnl)}
-                    opacity={weekdayFilter.day === entry.day ? 1 : (weekdayFilter.day !== null ? 0.3 : 1)}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+                <CartesianGrid 
+                  strokeDasharray="3 3" 
+                  className="text-border dark:opacity-[0.12] opacity-[0.2]"
+                />
+                <XAxis
+                  dataKey="dayName"
+                  tickLine={false}
+                  axisLine={false}
+                  height={size === 'small' ? 20 : 24}
+                  tickMargin={size === 'small' ? 4 : 8}
+                  tick={{ 
+                    fontSize: size === 'small' ? 9 : 11,
+                    fill: 'currentColor'
+                  }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={60}
+                  tickMargin={4}
+                  tick={{ 
+                    fontSize: size === 'small' ? 9 : 11,
+                    fill: 'currentColor'
+                  }}
+                  tickFormatter={formatCurrencyValue}
+                />
+                <ReferenceLine
+                  y={0}
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeDasharray="3 3"
+                  strokeOpacity={0.5}
+                />
+                <Tooltip 
+                  content={<CustomTooltip />}
+                  wrapperStyle={{ 
+                    fontSize: size === 'small' ? '10px' : '12px',
+                    zIndex: 1000
+                  }} 
+                />
+                <Bar
+                  dataKey="pnl"
+                  radius={[3, 3, 0, 0]}
+                  maxBarSize={size === 'small' ? 40 : 60}
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.pnl >= 0 ? positiveColor : negativeColor}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartContainer>
         </div>
       </CardContent>
     </Card>

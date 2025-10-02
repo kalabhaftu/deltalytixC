@@ -30,6 +30,38 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   })
 })
 
+// Database availability check
+let isDatabaseAvailable = false
+
+// Check database availability
+prisma.$connect()
+  .then(() => {
+    isDatabaseAvailable = true
+    console.log('✅ Database connection verified')
+  })
+  .catch((error) => {
+    console.warn('⚠️ Database not available:', error.message)
+    isDatabaseAvailable = false
+  })
+
+// Safe database operations that handle connection failures gracefully
+export const safeDbOperation = async <T>(
+  operation: () => Promise<T>,
+  fallbackValue?: T
+): Promise<T | undefined> => {
+  if (!isDatabaseAvailable) {
+    console.warn('Database not available, returning fallback value')
+    return fallbackValue
+  }
+
+  try {
+    return await operation()
+  } catch (error) {
+    console.error('Database operation failed:', error)
+    return fallbackValue
+  }
+}
+
 // Database connection retry utility with enhanced error handling
 async function connectWithRetry(client: PrismaClient, maxRetries = 5, delay = 1000): Promise<PrismaClient> {
   for (let i = 0; i < maxRetries; i++) {

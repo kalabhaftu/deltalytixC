@@ -155,7 +155,7 @@ export default function TickDistributionChart({ size = 'medium' }: TickDistribut
       <CardHeader 
         className={cn(
           "flex flex-row items-center justify-between space-y-0 border-b shrink-0",
-          size === 'small-long' ? "p-2 h-[40px]" : "p-3 sm:p-4 h-[56px]"
+          size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
         )}
       >
         <div className="flex items-center justify-between w-full">

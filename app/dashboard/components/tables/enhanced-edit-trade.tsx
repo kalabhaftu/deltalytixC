@@ -405,10 +405,10 @@ export default function EnhancedEditTrade({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto z-[10000]">
+        <DialogContent className="w-[95vw] max-w-6xl h-[90vh] max-h-[90vh] overflow-y-auto z-[10000] p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <Edit className="w-5 h-5 mr-2" />
+            <DialogTitle className="flex items-center text-base sm:text-lg">
+              <Edit className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
               Edit Trade - {trade.instrument} {trade.side}
             </DialogTitle>
             <DialogDescription>
@@ -422,7 +422,7 @@ export default function EnhancedEditTrade({
             <CardHeader>
               <CardTitle className="text-base">Trade Summary (Read-only)</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-sm">
               <div>
                 <Label className="text-sm text-muted-foreground">Date</Label>
                 <p className="font-medium">{new Date(trade.entryDate).toLocaleDateString()}</p>
@@ -530,7 +530,7 @@ export default function EnhancedEditTrade({
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Screenshots Grid - 2 rows of 3 */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {/* Screenshot 1 */}
                   <div className="space-y-2">
                     <Label className="text-xs">Screenshot 1</Label>
@@ -707,7 +707,7 @@ export default function EnhancedEditTrade({
                   </div>
 
                 {/* Second row of screenshots */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label className="text-xs">Screenshot 4</Label>
                     <div className="relative">

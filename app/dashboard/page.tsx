@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 
 // Import components normally
 import { DashboardErrorBoundary, ErrorBoundaryWrapper } from '@/components/error-boundary'
+import { TemplateProvider } from '@/context/template-provider'
 
 // Dynamically import heavy components for better performance
 const TradeTableReview = dynamic(() =>
@@ -21,7 +22,11 @@ const TradeTableReview = dynamic(() =>
   }
 )
 
-const WidgetCanvas = dynamic(() => import('./components/widget-canvas'), {
+const WidgetCanvas = dynamic(() => import('./components/widget-canvas-with-drag'), {
+  ssr: false
+})
+
+const EditModeControls = dynamic(() => import('./components/edit-mode-controls'), {
   ssr: false
 })
 
@@ -258,39 +263,44 @@ export default function Home() {
 
   return (
     <DashboardErrorBoundary>
-      <div className="flex w-full min-h-screen bg-gradient-to-br from-background via-background to-background/95">
-        {/* Sidebar */}
-        <DashboardSidebar
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onCollapsedChange={setSidebarCollapsed}
-        />
+      <TemplateProvider>
+        <div className="flex w-full min-h-screen bg-gradient-to-br from-background via-background to-background/95">
+          {/* Sidebar */}
+          <DashboardSidebar
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onCollapsedChange={setSidebarCollapsed}
+          />
 
-        {/* Main Content */}
-        <motion.main
-          ref={mainRef}
-          className={cn(
-            "flex-1 transition-all duration-300 ease-in-out relative",
-            isMobile ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-64"
-          )}
-          style={{
-            paddingTop: `var(--navbar-height, 48px)`,
-            minHeight: `calc(100vh - var(--navbar-height, 48px))`
-          }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="flex flex-1 flex-col w-full">
-            {/* Template Selector - Below navbar */}
-            <TemplateSelector className="border-b border-border/50" />
-            
-            <AnimatePresence mode="wait">
-              {renderContent()}
-            </AnimatePresence>
-          </div>
-        </motion.main>
-      </div>
+          {/* Main Content */}
+          <motion.main
+            ref={mainRef}
+            className={cn(
+              "flex-1 transition-all duration-300 ease-in-out relative",
+              isMobile ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-64"
+            )}
+            style={{
+              paddingTop: `var(--navbar-height, 48px)`,
+              minHeight: `calc(100vh - var(--navbar-height, 48px))`
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="flex flex-1 flex-col w-full -mt-10">
+              {/* Template Selector - Below navbar */}
+              <TemplateSelector />
+              
+              {/* Edit Mode Controls */}
+              <EditModeControls />
+              
+              <AnimatePresence mode="wait">
+                {renderContent()}
+              </AnimatePresence>
+            </div>
+          </motion.main>
+        </div>
+      </TemplateProvider>
     </DashboardErrorBoundary>
   )
 }

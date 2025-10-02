@@ -1,6 +1,5 @@
 'use server'
 import { createClient, ensureUserInDatabase } from '@/server/auth'
-import { getDashboardLayout } from '@/server/user-data'
 import { NextResponse } from 'next/server'
 // The client you created from the Server-Side Auth instructions
 
@@ -44,13 +43,8 @@ export async function GET(request: Request) {
           // const locale = await getCurrentLocale()
           await ensureUserInDatabase(data.user, 'en')
 
-          // Preload dashboard layout for better performance
-          try {
-            await getDashboardLayout(data.user.id)
-          } catch (layoutError) {
-            // Don't fail authentication if layout fetch fails - it will be loaded on demand
-            console.warn('Failed to preload dashboard layout:', layoutError)
-          }
+          // Note: Dashboard layout moved to DashboardTemplate model
+          // Template is now auto-created on first dashboard visit
         } catch (dbError) {
           console.error('Failed to ensure user in database:', dbError)
           // Continue with redirect - user authentication succeeded

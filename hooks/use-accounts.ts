@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { filterActiveAccounts } from '@/lib/utils/account-filters'
-import { getAccountsAction, getCurrentActivePhase } from '@/server/accounts'
+import { getAccountsAction } from '@/server/accounts'
 import { createClient } from '@/lib/supabase'
 
 interface UnifiedAccount {
@@ -30,6 +30,12 @@ interface UnifiedAccount {
   } | null
   isOwner: boolean
   currentPhase: any
+  phaseAccountNumber?: string | null
+  currentPhaseDetails?: {
+    phaseNumber: number
+    status: string
+    phaseId: string
+  } | null
 }
 
 interface UseAccountsResult {
@@ -47,7 +53,7 @@ interface UseAccountsOptions {
 let accountsCache: UnifiedAccount[] | null = null
 let accountsPromise: Promise<UnifiedAccount[]> | null = null
 let lastFetchTime = 0
-const CACHE_DURATION = 15000 // Reduced to 15 seconds for fresher data
+const CACHE_DURATION = 30000 // 30 seconds - balanced for performance and freshness
 let isCurrentlyFetching = false
 
 // Real-time cache invalidation tracking
@@ -161,53 +167,42 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
           })))
 
           // Transform accounts to match the expected interface
-          const transformedAccounts: UnifiedAccount[] = await Promise.all(
-            accounts.map(async (account: any) => {
-              let currentPhase = null
-              let phaseAccountNumber = null
+          // No async operations needed - phase data already included from server
+          const transformedAccounts: UnifiedAccount[] = accounts.map((account: any) => {
+            // Use phase data that's already loaded from server (currentPhaseDetails)
+            const phaseDetails = account.currentPhaseDetails
+            const currentPhase = phaseDetails?.phaseNumber || account.currentPhase || null
+            const phaseAccountNumber = phaseDetails?.phaseId || null
 
-              if (account.propfirm) {
-                try {
-                  const phase = await getCurrentActivePhase(account.id)
-                  if (phase) {
-                    currentPhase = phase.phaseNumber
-                    phaseAccountNumber = phase.phaseId
-                  }
-                } catch (phaseError) {
-                  console.warn(`Failed to load phase for account ${account.id}:`, phaseError)
-                }
-              }
+            // Calculate current balance including trade P&L
+            const currentBalance = account.startingBalance || 0
+            const currentEquity = account.startingBalance || 0
 
-              // Calculate current balance including trade P&L
-              // This is a placeholder - in a real implementation, this would need access to trade data
-              // For now, we'll use the starting balance as a fallback
-              const currentBalance = account.startingBalance || 0
-              const currentEquity = account.startingBalance || 0
-
-              return {
-                id: account.id,
-                number: account.number,
-                name: account.name || account.number, // Ensure name is never null
-                propfirm: account.propfirm,
-                broker: account.broker || undefined, // Convert null to undefined
-                startingBalance: account.startingBalance,
-                currentBalance, // Use calculated balance
-                currentEquity,  // Use calculated equity
-                status: account.status || 'active',
-                createdAt: account.createdAt instanceof Date ? account.createdAt.toISOString() : account.createdAt,
-                userId: account.userId,
-                groupId: account.groupId,
-                group: account.groupId ? { id: account.groupId, name: 'Group' } : null, // Construct basic group info
-                accountType: account.propfirm ? 'prop-firm' : 'live',
-                displayName: account.name || account.number,
-                tradeCount: account.tradeCount || 0, // Use actual trade count from server
-                owner: null,
-                isOwner: true,
-                currentPhase,
-                phaseAccountNumber
-              }
-            })
-          )
+            return {
+              id: account.id,
+              number: account.number,
+              name: account.name || account.number, // Ensure name is never null
+              propfirm: account.propfirm,
+              broker: account.broker || undefined, // Convert null to undefined
+              startingBalance: account.startingBalance,
+              currentBalance, // Use calculated balance
+              currentEquity,  // Use calculated equity
+              status: account.status || 'active',
+              createdAt: account.createdAt instanceof Date ? account.createdAt.toISOString() : account.createdAt,
+              userId: account.userId,
+              groupId: account.groupId,
+              group: account.groupId ? { id: account.groupId, name: 'Group' } : null,
+              accountType: account.propfirm ? 'prop-firm' : 'live',
+              displayName: account.name || account.number,
+              tradeCount: account.tradeCount || 0, // Use actual trade count from server
+              owner: null,
+              isOwner: true,
+              currentPhase,
+              phaseAccountNumber,
+              // Include phase details for components that need them
+              currentPhaseDetails: phaseDetails
+            }
+          })
 
           // Debug: Log the final transformed accounts
           console.log('[useAccounts] Final transformed accounts:', transformedAccounts.map(a => ({

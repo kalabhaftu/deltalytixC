@@ -7,7 +7,6 @@ import AccountSelection from '../account-selection'
 import ColumnMapping from '../column-mapping'
 import { FormatPreview } from '../components/format-preview'
 import TradezellaProcessor from '../tradezella/tradezella-processor'
-import TopstepProcessor from '../topstep/topstep-processor'
 import PdfUpload from '../ibkr-pdf/pdf-upload'
 import PdfProcessing from '../ibkr-pdf/pdf-processing'
 import MatchTraderProcessor from '../match-trader/match-trader-processor'
@@ -30,7 +29,6 @@ type StepComponent =
   | typeof ColumnMapping
   | typeof FormatPreview
   | typeof TradezellaProcessor
-  | typeof TopstepProcessor
   | typeof PdfUpload
   | typeof PdfProcessing
   | typeof MatchTraderProcessor
@@ -212,55 +210,6 @@ export const platforms: PlatformConfig[] = [
         title: 'Process Trades',
         description: 'Processing your trades',
         component: TradezellaProcessor,
-        isLastStep: true
-      }
-    ]
-  },
-  {
-    platformName: 'topstep',
-    type: 'topstep',
-    name: 'Topstep',
-    description: 'Import trades from Topstep CSV file',
-    category: 'Platform CSV Import',
-    details: 'Only TopstepX trades are supported',
-    logo: {
-      path: '/logos/topstep.png',
-      alt: 'Topstep Logo'
-    },
-    requiresAccountSelection: true,
-    processFile: processStandardCsv,
-    processorComponent: TopstepProcessor,
-    tutorialLink: 'https://help.topstep.com/en/articles/9424086-exporting-trades-on-topstepx',
-    steps: [
-      {
-        id: 'select-import-type',
-        title: 'Select Platform',
-        description: 'Choose the platform you want to import from',
-        component: ImportTypeSelection
-      },
-      {
-        id: 'upload-file',
-        title: 'Upload File',
-        description: 'Upload the CSV file you want to import',
-        component: FileUpload
-      },
-      {
-        id: 'select-headers',
-        title: 'Select Headers',
-        description: 'Select the headers that contain the trade data',
-        component: HeaderSelection
-      },
-      {
-        id: 'select-account',
-        title: 'Select Account',
-        description: 'Select the account you want to import the trades to',
-        component: AccountSelection
-      },
-      {
-        id: 'preview-trades',
-        title: 'Process Trades',
-        description: 'Processing your trades',
-        component: TopstepProcessor,
         isLastStep: true
       }
     ]

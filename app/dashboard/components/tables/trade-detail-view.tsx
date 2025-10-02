@@ -71,18 +71,18 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-6xl h-[90vh] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="w-5 h-5" />
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
               Trade Details - {trade.instrument} {trade.side?.toUpperCase()}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">
               Comprehensive view of trade execution, analysis, and supporting materials.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Left Column - Trade Data */}
             <div className="lg:col-span-2 space-y-6">
               {/* Trade Execution Summary */}
@@ -93,7 +93,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                     Execution Summary
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 text-sm">
                   <div>
                     <Label className="text-sm text-muted-foreground">Instrument</Label>
                     <p className="font-medium text-lg">{trade.instrument}</p>

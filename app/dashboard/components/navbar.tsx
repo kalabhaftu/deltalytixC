@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { format } from 'date-fns'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useData } from "@/context/data-provider"
-import { Database, LogOut, Globe, LayoutDashboard, HelpCircle, Clock, RefreshCw, Home, Moon, Sun, Laptop, Settings, Pencil, Plus, Filter } from "lucide-react"
+import { Database, LogOut, Globe, LayoutDashboard, HelpCircle, Clock, RefreshCw, Home, Moon, Sun, Laptop, Settings, Pencil, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +21,9 @@ import { Logo } from '@/components/logo'
 import Link from 'next/link'
 import ImportButton from './import/import-button'
 import { AddWidgetSheet } from './add-widget-sheet'
-import { FilterDropdown } from './filters/filter-dropdown'
+import { AccountSelector } from './navbar-filters/account-selector'
+import { DateRangeSelector } from './navbar-filters/date-range-selector'
+import { GeneralFilters } from './navbar-filters/general-filters'
 
 import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts'
 import { motion } from 'framer-motion'
@@ -50,7 +54,7 @@ const sizeToGrid = (size: WidgetSize, isSmallScreen = false): { w: number, h: nu
       case 'small-long': return { w: 12, h: 2 }
       case 'medium': return { w: 12, h: 4 }
       case 'large':
-      case 'extra-large': return { w: 12, h: 6 }
+      case 'extra-large': return { w: 12, h: 10 }
       case 'kpi': return { w: 12, h: 3 }
       default: return { w: 12, h: 4 }
     }
@@ -62,7 +66,7 @@ const sizeToGrid = (size: WidgetSize, isSmallScreen = false): { w: number, h: nu
     case 'small-long': return { w: 6, h: 2 }
     case 'medium': return { w: 6, h: 4 }
     case 'large': return { w: 6, h: 8 }
-    case 'extra-large': return { w: 12, h: 8 }
+    case 'extra-large': return { w: 12, h: 12 }
     case 'kpi': return { w: 2.3, h: 2.4 }
     default: return { w: 6, h: 4 }
   }
@@ -75,13 +79,16 @@ export default function Navbar() {
   const { theme, setTheme, intensity, setIntensity } = useTheme()
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false)
   const [isLogoPopoverOpen, setIsLogoPopoverOpen] = useState(false)
+  const [accountPopoverOpen, setAccountPopoverOpen] = useState(false)
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false)
+  const [filtersPopoverOpen, setFiltersPopoverOpen] = useState(false)
 
   // Prevent hydration mismatch by only rendering theme-dependent content after mount
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  const {refreshTrades, saveDashboardLayout} = useData()
+  const {refreshTrades, saveDashboardLayout, accountNumbers, accounts, dateRange, instruments} = useData()
   const { dashboardLayout: layouts, setDashboardLayout: setLayouts, isMobile } = useUserStore(state => state)
   const { setAccountGroupBoardOpen } = useModalStateStore()
   const { 
@@ -95,7 +102,6 @@ export default function Navbar() {
   
   // Refs for programmatically triggering components
   const addWidgetSheetRef = useRef<HTMLButtonElement>(null)
-  const filterDropdownRef = useRef<HTMLButtonElement>(null)
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts()
@@ -120,6 +126,38 @@ export default function Navbar() {
     }
     // Fallback to Laptop icon
     return <Laptop className="h-4 w-4" />;
+  }
+
+  // Determine the account button text based on selected accounts
+  const getAccountButtonText = () => {
+    if (!accountNumbers || accountNumbers.length === 0) {
+      return "All Accounts"
+    }
+    
+    if (accountNumbers.length === 1) {
+      const account = accounts.find(acc => acc.number === accountNumbers[0])
+      return account ? `${account.number}` : `1 Account`
+    }
+    
+    return `${accountNumbers.length} Accounts`
+  }
+
+  // Get date range text
+  const getDateRangeText = () => {
+    if (!dateRange?.from && !dateRange?.to) return "All time"
+    if (dateRange.from && dateRange.to) {
+      const isSameDay = format(dateRange.from, 'yyyy-MM-dd') === format(dateRange.to, 'yyyy-MM-dd')
+      if (isSameDay) return format(dateRange.from, 'MMM d, yyyy')
+      return `${format(dateRange.from, 'MMM d')} - ${format(dateRange.to, 'MMM d, yyyy')}`
+    }
+    return "Date range"
+  }
+
+  // Get filters text
+  const getFiltersText = () => {
+    const count = (instruments?.length || 0)
+    if (count === 0) return "Filters"
+    return `Filters (${count})`
   }
 
   // Dashboard action functions
@@ -224,8 +262,9 @@ export default function Navbar() {
 
     setLayouts(updatedLayouts)
 
-    // Always save to database immediately to prevent data loss
-    saveDashboardLayout(updatedLayouts)
+    // Note: Dashboard layout moved to DashboardTemplate model
+    // Layout is now managed through the template system
+    // saveDashboardLayout(updatedLayouts) // DEPRECATED
 
     // Mark as changed if in edit mode (for unsaved changes indicator)
     if (isCustomizing) {
@@ -238,10 +277,6 @@ export default function Navbar() {
     })
   }
 
-  const handleFiltersClick = () => {
-    // Trigger the filter dropdown by clicking its button
-    filterDropdownRef.current?.click()
-  };
 
   return (
     <>
@@ -290,81 +325,74 @@ export default function Navbar() {
               </Popover>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className='flex gap-2 md:gap-4'>
-              <div className='hidden sm:block'>
-              </div>
-              <div className='hidden md:block'>
-                <ImportButton />
-              </div>
-              {/* Mobile import button */}
-              <div className='md:hidden'>
-                <ImportButton />
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Filters Dropdown */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 px-3 hover:bg-accent/80 transition-all duration-200 hover:scale-105 hover:shadow-md border border-border/50">
-                    <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
-                    </svg>
-                    <span className="text-sm">Filters</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-4 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl" align="end">
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Filter Options</h4>
-                    <p className="text-sm text-muted-foreground">Filter functionality coming soon...</p>
-                  </div>
-                </PopoverContent>
-              </Popover>
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* All Accounts Dropdown (moved here, dynamic name) - Hidden on mobile */}
+            <Popover open={accountPopoverOpen} onOpenChange={setAccountPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-accent/20 transition-all duration-200 border border-border/50 bg-card/50">
+                  <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                  </svg>
+                  <span className="text-sm">{getAccountButtonText()}</span>
+                  {accountNumbers.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
+                      {accountNumbers.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-auto max-w-[95vw]" align="end" sideOffset={8}>
+                <AccountSelector onSave={() => setAccountPopoverOpen(false)} />
+              </PopoverContent>
+            </Popover>
+            
+            {/* Filters Dropdown - Hidden on mobile */}
+            <Popover open={filtersPopoverOpen} onOpenChange={setFiltersPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-accent/20 transition-all duration-200 border border-border/50 bg-card/50">
+                  <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
+                  </svg>
+                  <span className="text-sm">{getFiltersText()}</span>
+                  {instruments.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
+                      {instruments.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-auto max-w-[95vw]" align="end" sideOffset={8}>
+                <GeneralFilters onSave={() => setFiltersPopoverOpen(false)} />
+              </PopoverContent>
+            </Popover>
 
-              {/* Date Range Dropdown */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 px-3 hover:bg-accent/80 transition-all duration-200 hover:scale-105 hover:shadow-md border border-border/50">
+            {/* Date Range Dropdown - Hidden on mobile */}
+            <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-accent/20 transition-all duration-200 border border-border/50 bg-card/50">
                     <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <span className="text-sm">Date range</span>
+                    <span className="text-sm">{getDateRangeText()}</span>
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-4 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl" align="end">
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Date Range</h4>
-                    <p className="text-sm text-muted-foreground">Date picker coming soon...</p>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-auto max-w-[95vw]" align="end" sideOffset={8}>
+                <DateRangeSelector onSave={() => setDatePopoverOpen(false)} />
+              </PopoverContent>
+            </Popover>
 
-              {/* All Accounts Dropdown */}
+              {/* Import Trades Button (moved here) - Always visible */}
+              <ImportButton />
+
+              {/* Theme Switcher - Hidden on small mobile */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 px-3 hover:bg-accent/80 transition-all duration-200 hover:scale-105 hover:shadow-md border border-border/50">
-                    <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                    </svg>
-                    <span className="text-sm">All Accounts</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-4 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl" align="end">
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Account Selection</h4>
-                    <p className="text-sm text-muted-foreground">Account filtering coming soon...</p>
-                  </div>
-                </PopoverContent>
-              </Popover>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-accent/80 transition-all duration-200 hover:scale-105 hover:shadow-md">
+                  <Button variant="ghost" size="icon" className="hidden sm:flex h-9 w-9 hover:bg-accent/80 transition-all duration-200 hover:scale-105 hover:shadow-md">
                     {getThemeIcon()}
                     <span className="sr-only">Toggle theme</span>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl" align="end">
+                <PopoverContent className="w-[200px] p-0 bg-card border-border shadow-2xl" align="end" sideOffset={8}>
                   <Command>
                     <CommandList>
                       <CommandGroup>
@@ -416,6 +444,30 @@ export default function Navbar() {
                     <div className="px-2 py-1.5 text-sm text-muted-foreground">
                       {user?.email}
                     </div>
+                    
+                    {/* Mobile-only quick actions */}
+                    <div className="md:hidden">
+                      <DropdownMenuItem onClick={() => setAccountGroupBoardOpen(true)} className="hover:bg-accent/80 transition-colors duration-200">
+                        <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                        </svg>
+                        <span>{getAccountButtonText()}</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="hover:bg-accent/80 transition-colors duration-200 opacity-50 cursor-not-allowed">
+                        <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
+                        </svg>
+                        <span>Filters</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="hover:bg-accent/80 transition-colors duration-200 opacity-50 cursor-not-allowed">
+                        <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>Date Range</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </div>
+                    
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard" className="hover:bg-accent/80 transition-colors duration-200">
                         <div className="flex w-full">
@@ -449,28 +501,6 @@ export default function Navbar() {
                     </DropdownMenuItem>
                     
                     <DropdownMenuSeparator />
-                    
-                    {/* Dashboard Actions */}
-                    <DropdownMenuItem onClick={handleEditToggle} className="hover:bg-accent/80 transition-colors duration-200">
-                      <Pencil className="mr-2 h-4 w-4" />
-                      <span>Edit Layout</span>
-                      <DropdownMenuShortcut>⌘E</DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                    
-                    
-                    <DropdownMenuItem onClick={() => {}} className="hover:bg-accent/80 transition-colors duration-200 opacity-50 cursor-not-allowed">
-                      <Plus className="mr-2 h-4 w-4" />
-                      <span>Add Widget</span>
-                      <DropdownMenuShortcut>⌘A</DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                    
-                    <DropdownMenuItem onClick={handleFiltersClick} className="hover:bg-accent/80 transition-colors duration-200">
-                      <Filter className="mr-2 h-4 w-4" />
-                      <span>Filters</span>
-                      <DropdownMenuShortcut>⌘F</DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                    
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={async () => {
                       // Clear all local storage
                       localStorage.clear()
@@ -486,7 +516,6 @@ export default function Navbar() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-            </div>
           </div>
         </div>
       </motion.nav>
@@ -494,7 +523,6 @@ export default function Navbar() {
       
       {/* Hidden components for programmatic triggering */}
         <div className="hidden">
-          <FilterDropdown ref={filterDropdownRef} />
         </div>
     </>
   )

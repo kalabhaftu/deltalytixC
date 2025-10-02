@@ -32,6 +32,7 @@ export default function JournalPage() {
   const {
     formattedTrades: allTrades,
     refreshTrades,
+    updateTrades,
     isLoading: loading,
     error
   } = useData()
@@ -112,24 +113,15 @@ export default function JournalPage() {
 
   // Handle trade save after edit
   const handleSaveTrade = async (updatedTrade: Partial<Trade>) => {
+    if (!editingTrade) return
+    
     try {
-      const response = await fetch('/api/trades', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedTrade),
-      })
-
-      if (response.ok) {
-        // Refresh trades from the server to get updated data
-        await refreshTrades()
-        setIsEditDialogOpen(false)
-        setEditingTrade(null)
-        console.log('Trade updated successfully')
-      } else {
-        console.error('Failed to update trade')
-      }
+      // Use updateTrades from data provider
+      await updateTrades([editingTrade.id], updatedTrade)
+      
+      setIsEditDialogOpen(false)
+      setEditingTrade(null)
+      console.log('Trade updated successfully')
     } catch (error) {
       console.error('Error updating trade:', error)
     }

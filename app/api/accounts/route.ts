@@ -27,7 +27,7 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// GET /api/accounts - Simplified and optimized accounts fetching
+// GET /api/accounts - Optimized accounts fetching with caching
 export async function GET(request: NextRequest) {
   try {
     // Get user ID using the proper auth function
@@ -42,61 +42,64 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Simple query - Account model doesn't have status field (only live accounts)
-    // Prop firm accounts use the MasterAccount/PhaseAccount system via /api/prop-firm-v2/
-    const whereClause = { userId: currentUserId }
-    
-    // Simplified query - only fetch essential data for current user
-    const accounts = await prisma.account.findMany({
-      where: whereClause,
-      select: {
-        id: true,
-        number: true,
-        name: true,
-        broker: true,
-        startingBalance: true,
-        createdAt: true,
-        userId: true,
-        groupId: true,
-        _count: {
+    // Cache the accounts query for better performance
+    const { unstable_cache } = await import('next/cache')
+    const getCachedAccounts = unstable_cache(
+      async (userId: string) => {
+        const accounts = await prisma.account.findMany({
+          where: { userId },
           select: {
-            trades: true
-          }
-        }
+            id: true,
+            number: true,
+            name: true,
+            broker: true,
+            startingBalance: true,
+            createdAt: true,
+            userId: true,
+            groupId: true,
+            _count: {
+              select: {
+                trades: true
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        })
+
+        // Transform accounts with minimal processing
+        return accounts.map(account => ({
+          id: account.id,
+          number: account.number,
+          name: account.name,
+          broker: account.broker,
+          startingBalance: account.startingBalance,
+          createdAt: account.createdAt,
+          userId: account.userId,
+          groupId: account.groupId,
+          accountType: 'live',
+          displayName: account.name || account.number,
+          tradeCount: account._count.trades,
+          owner: { id: userId, email: '' },
+          isOwner: true,
+          currentPhase: 'live',
+          status: 'active'
+        }))
       },
-      orderBy: { createdAt: 'desc' }
-    })
-    
+      [`api-accounts-${currentUserId}`],
+      {
+        tags: [`api-accounts-${currentUserId}`, `accounts-${currentUserId}`],
+        revalidate: 30 // Cache for 30 seconds
+      }
+    )
 
-    // Transform accounts with minimal processing
-    const transformedAccounts = accounts.map(account => ({
-      id: account.id,
-      number: account.number,
-      name: account.name,
-      broker: account.broker,
-      startingBalance: account.startingBalance,
-      createdAt: account.createdAt,
-      userId: account.userId,
-      groupId: account.groupId,
-      accountType: 'live',
-      displayName: account.name || account.number,
-      tradeCount: account._count.trades,
-      owner: { id: currentUserId, email: '' },
-      isOwner: currentUserId === account.userId,
-      currentPhase: 'live',
-      status: 'active'
-    }))
-
+    const transformedAccounts = await getCachedAccounts(currentUserId)
 
     return NextResponse.json({
       success: true,
       data: transformedAccounts
     }, {
       headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'Last-Modified': new Date().toUTCString()
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60'
       }
     })
 

@@ -268,8 +268,8 @@ export const propFirms: Record<string, PropFirm> = {
       },
     },
   },
-  topstep: {
-    name: 'TopStep',
+  ftmo: {
+    name: 'FTMO',
     accountSizes: {
       '50K': {
         name: '50K',

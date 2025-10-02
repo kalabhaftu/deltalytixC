@@ -193,65 +193,8 @@ export async function getUserData(): Promise<{
   }
 }
 
-export const getDashboardLayout = unstable_cache(
-  async function getDashboardLayout(userId: string): Promise<DashboardLayout | null> {
-    console.log('getDashboardLayout')
-    try {
-      // Add timeout wrapper to prevent hanging - increased for better reliability
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('getDashboardLayout timeout')), 10000)
-      )
-
-      const operationPromise = prisma.dashboardLayout.findUnique({
-        where: {
-          userId: userId
-        }
-      })
-
-      return await Promise.race([operationPromise, timeoutPromise]) as DashboardLayout | null
-    } catch (error) {
-      if (error instanceof Error) {
-        // Handle prepared statement errors (common with Turbopack)
-        if (error.message.includes('prepared statement') && error.message.includes('already exists')) {
-          console.log('[getDashboardLayout] Prepared statement error (Turbopack), retrying...')
-          // Disconnect and reconnect to clear prepared statements
-          await prisma.$disconnect()
-          try {
-            return await prisma.dashboardLayout.findUnique({
-              where: {
-                userId: userId
-              }
-            })
-          } catch (retryError) {
-            console.error('[getDashboardLayout] Retry failed:', retryError)
-            return null
-          }
-        }
-        // Handle table doesn't exist error
-        if (error.message.includes('does not exist')) {
-          console.log('[getDashboardLayout] DashboardLayout table does not exist yet, returning null')
-          return null
-        }
-        // Handle database connection errors and timeouts
-        if (error.message.includes("Can't reach database server") ||
-            error.message.includes('P1001') ||
-            error.message.includes('connection') ||
-            error.message.includes('timeout') ||
-            error.message.includes('getDashboardLayout timeout')) {
-          console.log('[getDashboardLayout] Database connection error, returning null')
-          return null
-        }
-      }
-      console.error('[getDashboardLayout] Unexpected error:', error)
-      throw error
-    }
-  },
-  ['dashboard-layout'],
-  {
-    revalidate: 300, // 5 minutes cache
-    tags: ['dashboard-layout']
-  }
-)
+// REMOVED: getDashboardLayout - now using DashboardTemplate model
+// Template management is handled in hooks/use-dashboard-templates.ts
 
 export async function updateIsFirstConnectionAction(isFirstConnection: boolean) {
   try {

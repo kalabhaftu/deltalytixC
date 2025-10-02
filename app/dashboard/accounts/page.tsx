@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "sonner"
 import { useAccounts, clearAccountsCache } from "@/hooks/use-accounts"
-import { useRealtimeAccounts } from "@/hooks/use-realtime-accounts"
+import { useData } from '@/context/data-provider'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -94,6 +94,7 @@ export default function AccountsPage() {
   const router = useRouter()
   const { user } = useAuth()
   const { accounts, isLoading, refetch: refetchAccounts } = useAccounts()
+  const { formattedTrades } = useData()
   
   // State
   const [searchQuery, setSearchQuery] = useState('')
@@ -106,19 +107,7 @@ export default function AccountsPage() {
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true) // Enable by default for better UX
-
-  // Enhanced real-time connection with auto-updates
-  const { isConnected: realtimeConnected, lastUpdate: realtimeLastUpdate, connectionStatus } = useRealtimeAccounts({
-    enabled: autoRefreshEnabled,
-    onUpdate: useCallback(() => {
-      // FIXED: Schedule updates outside render cycle to prevent setState during render
-      setTimeout(() => {
-        refetchAccounts()
-        setLastUpdated(new Date())
-      }, 0)
-    }, [refetchAccounts])
-  })
+  // Removed auto-refresh functionality for better UX
 
   // Set initial filter from URL params only on first load
   useEffect(() => {
@@ -133,43 +122,7 @@ export default function AccountsPage() {
     }
   }, []) // Only run on mount
 
-  // Enhanced auto-refresh with real-time updates
-  useEffect(() => {
-    let refreshTimer: NodeJS.Timeout | null = null
-    
-    if (autoRefreshEnabled) {
-      // Periodic refresh every 30 seconds when auto is enabled
-      refreshTimer = setInterval(() => {
-        if (!isRefreshing) {
-          refetchAccounts()
-          setLastUpdated(new Date())
-        }
-      }, 30000)
-
-      // Also refresh on page visibility change
-      const handleVisibilityChange = () => {
-        if (!document.hidden && !isRefreshing) {
-          setTimeout(() => {
-            if (!isRefreshing && autoRefreshEnabled) {
-              refetchAccounts()
-              setLastUpdated(new Date())
-            }
-          }, 1000)
-        }
-      }
-
-      document.addEventListener('visibilitychange', handleVisibilityChange)
-      
-      return () => {
-        if (refreshTimer) clearInterval(refreshTimer)
-        document.removeEventListener('visibilitychange', handleVisibilityChange)
-      }
-    }
-
-    return () => {
-      if (refreshTimer) clearInterval(refreshTimer)
-    }
-  }, [refetchAccounts, isRefreshing, autoRefreshEnabled])
+  // Removed auto-refresh effects for better UX
 
 
   // Filter accounts - Accounts page has its own built-in filtering and does NOT use advanced filtering settings
@@ -190,18 +143,32 @@ export default function AccountsPage() {
     })
   }, [accounts, searchQuery, filterType, filterStatus])
 
-  const accountStats = useMemo(() => {
-    // Calculate actual equity for each account including trade P&L
-    const accountsWithCalculatedEquity = filteredAccounts.map(account => {
-      // For now, use the currentEquity/currentBalance if available, but this should be improved
-      // to actually calculate based on trades when we have access to trade data
-      const calculatedEquity = account.currentEquity || account.currentBalance || account.startingBalance || 0
-      return {
-        ...account,
-        calculatedEquity
+  // Calculate real equity including trade P&L
+  const accountsWithRealEquity = useMemo(() => {
+    const accountEquities = new Map<string, number>()
+    
+    // Initialize with starting balances
+    filteredAccounts.forEach(account => {
+      accountEquities.set(account.number, account.startingBalance || 0)
+    })
+    
+    // Add trade P&L to calculate current equity
+    formattedTrades.forEach(trade => {
+      if (trade && trade.accountNumber) {
+        const currentEquity = accountEquities.get(trade.accountNumber) || 0
+        const netPnL = (trade.pnl || 0) - (trade.commission || 0)
+        accountEquities.set(trade.accountNumber, currentEquity + netPnL)
       }
     })
+    
+    // Return accounts with calculated equity
+    return filteredAccounts.map(account => ({
+      ...account,
+      calculatedEquity: accountEquities.get(account.number) || account.startingBalance || 0
+    }))
+  }, [filteredAccounts, formattedTrades])
 
+  const accountStats = useMemo(() => {
     return {
       total: filteredAccounts.length,
       live: filteredAccounts.filter(a => a.accountType === 'live').length,
@@ -209,9 +176,10 @@ export default function AccountsPage() {
       active: filteredAccounts.filter(a => a.status === 'active').length,
       funded: filteredAccounts.filter(a => a.accountType === 'prop-firm' && (a.currentPhase || 1) >= 3).length,
       failed: filteredAccounts.filter(a => a.status === 'failed').length,
-      totalEquity: accountsWithCalculatedEquity.reduce((sum, a) => sum + a.calculatedEquity, 0)
+      // Use calculated equity that includes trade P&L
+      totalEquity: accountsWithRealEquity.reduce((sum, account) => sum + account.calculatedEquity, 0)
     }
-  }, [filteredAccounts])
+  }, [filteredAccounts, accountsWithRealEquity])
 
   // Handlers
   const handleRefresh = useCallback(async () => {
@@ -219,11 +187,11 @@ export default function AccountsPage() {
     try {
       await refetchAccounts()
       setLastUpdated(new Date())
-      toast("Accounts refreshed", {
+      toast.success("Accounts refreshed", {
         description: "All account data has been updated",
       })
     } catch (error) {
-      toast("Refresh failed", {
+      toast.error("Refresh failed", {
         description: "Failed to refresh account data",
       })
     } finally {
@@ -239,8 +207,8 @@ export default function AccountsPage() {
     setLastUpdated(new Date())
     setCreateLiveDialogOpen(false)
     setCreatePropFirmDialogOpen(false)
-    toast("Account created", {
-      description: "New account has been added and will appear in real-time",
+    toast.success("Account created", {
+      description: "New account has been added successfully",
     })
   }, [refetchAccounts])
 
@@ -258,7 +226,7 @@ export default function AccountsPage() {
       router.push(`/dashboard/accounts/${account.id}/edit`)
     } else {
       // For prop firm accounts, show a message that editing isn't available yet
-      toast("Edit Not Available", {
+      toast.error("Edit Not Available", {
         description: "Prop firm account editing is not yet available. Contact support for changes.",
       })
     }
@@ -275,7 +243,7 @@ export default function AccountsPage() {
     
     // Require exact account name confirmation
     if (deleteConfirmText !== accountName) {
-        toast("Confirmation Required", {
+        toast.error("Confirmation Required", {
           description: `Please type "${accountName}" exactly to confirm deletion.`,
         })
       return
@@ -294,7 +262,7 @@ export default function AccountsPage() {
         throw new Error('Failed to delete account')
       }
 
-      toast("Account deleted", {
+      toast.success("Account deleted", {
         description: `${accountName} and all associated trades have been permanently deleted.`,
       })
 
@@ -321,7 +289,7 @@ export default function AccountsPage() {
       setDeletingAccount(null)
       setDeleteConfirmText('')
     } catch (error) {
-      toast("Delete failed", {
+      toast.error("Delete failed", {
         description: "Failed to delete account. Please try again.",
       })
     }
@@ -352,65 +320,15 @@ export default function AccountsPage() {
             
             <div className="flex items-center gap-3">
               <Button
-                variant={autoRefreshEnabled ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  setAutoRefreshEnabled(!autoRefreshEnabled)
-                  if (!autoRefreshEnabled) {
-                    // When enabling auto-refresh, do an immediate update
-                    refetchAccounts()
-                    setLastUpdated(new Date())
-                  }
-                }}
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
                 className="h-8"
-                  title={autoRefreshEnabled ? "Disable real-time updates" : "Enable real-time updates"}
+                title="Refresh account data"
               >
-                <RefreshCw className={cn("h-3 w-3 mr-1", autoRefreshEnabled && "animate-pulse")} />
-                {autoRefreshEnabled ? (
-                  <span className="flex items-center gap-1">
-                    <span>Live</span>
-                    {realtimeConnected && <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />}
-                  </span>
-                ) : 'Auto'}
+                <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
               </Button>
-              <div className="flex items-center gap-2">
-                {autoRefreshEnabled && (
-                  <div className={cn(
-                    "flex items-center gap-1 text-xs",
-                    realtimeConnected ? "text-green-600" : 
-                    connectionStatus === 'connecting' ? "text-yellow-600" : "text-red-600"
-                  )}>
-                    <div className={cn(
-                      "w-2 h-2 rounded-full",
-                      realtimeConnected ? "bg-green-500 animate-pulse" :
-                      connectionStatus === 'connecting' ? "bg-yellow-500 animate-pulse" : "bg-red-500"
-                    )} />
-                    <span>
-                      {realtimeConnected ? 'Live' : 
-                       connectionStatus === 'connecting' ? 'Connecting' : 'Offline'}
-                    </span>
-                  </div>
-                )}
-                {(lastUpdated || realtimeLastUpdate) && (
-                  <div className="text-xs text-muted-foreground">
-                    {autoRefreshEnabled 
-                      ? (realtimeLastUpdate ? `Live: ${realtimeLastUpdate.toLocaleTimeString()}` : 'Real-time enabled')
-                      : `Updated: ${lastUpdated?.toLocaleTimeString() || 'Never'}`}
-                  </div>
-                )}
-              </div>
-              {!autoRefreshEnabled && (
-                <Button
-                  variant="outline"
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                  className="h-8"
-                  title="Refresh account data manually"
-                >
-                  <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")} />
-                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
-                </Button>
-              )}
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -522,7 +440,7 @@ export default function AccountsPage() {
             />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredAccounts.map((account, index) => (
+              {accountsWithRealEquity.map((account, index) => (
                 <motion.div
                   key={account.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -622,9 +540,6 @@ export default function AccountsPage() {
           onOpenChange={setCreateLiveDialogOpen}
           onSuccess={() => {
             refetchAccounts()
-            toast("Success", {
-              description: "Live account created successfully",
-            })
           }}
         />
 
@@ -633,9 +548,6 @@ export default function AccountsPage() {
           onOpenChange={setCreatePropFirmDialogOpen}
           onSuccess={() => {
             refetchAccounts()
-            toast("Success", {
-              description: "Prop firm account created successfully",
-            })
           }}
         />
             </div>
@@ -680,7 +592,7 @@ function AccountCard({
   onEdit, 
   onDelete 
 }: { 
-  account: Account
+  account: Account & { calculatedEquity?: number }
   onView: () => void
   onEdit: () => void
   onDelete: () => void
@@ -770,9 +682,9 @@ function AccountCard({
         {/* Balance Information */}
             <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Current Balance</p>
+            <p className="text-xs text-muted-foreground mb-1">Current Equity</p>
             <p className="font-semibold text-foreground">
-              {formatCurrency(account.currentBalance || account.currentEquity || account.startingBalance || 0)}
+              {formatCurrency(account.calculatedEquity || account.currentEquity || account.currentBalance || account.startingBalance || 0)}
                 </p>
               </div>
           <div>

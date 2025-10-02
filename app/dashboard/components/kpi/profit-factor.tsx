@@ -3,19 +3,21 @@
 import React from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { CircularProgress } from '@/components/ui/circular-progress'
-import { useData } from '@/context/data-provider'
+import { useTradeStatistics } from '@/hooks/use-trade-statistics'
+import { HelpCircle } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface ProfitFactorProps {
   size?: string
 }
 
 export default function ProfitFactor({ size }: ProfitFactorProps) {
-  const { dashboardStats } = useData()
-  
-  // Extract real data
-  const totalProfits = dashboardStats?.totalProfits || 0
-  const totalLosses = Math.abs(dashboardStats?.totalLosses || 0)
-  const profitFactor = totalLosses > 0 ? totalProfits / totalLosses : 0
+  const { profitFactor, grossWin, grossLosses } = useTradeStatistics()
   
   // Convert profit factor to percentage for circular progress (capped at 100%)
   // Values above 1.0 are good, so we'll map 0-2.0 to 0-100%
@@ -29,18 +31,27 @@ export default function ProfitFactor({ size }: ProfitFactorProps) {
   }
 
   return (
-    <Card className="w-full h-20 border border-border/20 shadow-sm bg-white dark:bg-gray-900">
+    <Card className="w-full h-24 border border-border/20 shadow-sm bg-white dark:bg-gray-900">
       <CardContent className="p-4 h-full flex items-center justify-between">
         <div className="flex flex-col">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs text-muted-foreground font-medium">
-              Profit Factor
+              Profit factor
             </span>
-            <div className="w-3 h-3 rounded-full bg-muted flex items-center justify-center">
-              <span className="text-[8px] text-muted-foreground">i</span>
-            </div>
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="w-3 h-3 rounded-full bg-muted flex items-center justify-center cursor-help">
+                    <HelpCircle className="h-2 w-2 text-muted-foreground" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" sideOffset={5} className="max-w-[300px]">
+                  <p>Total profits divided by total losses. Values above 1.0 indicate profitability. Higher values mean better risk management.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
-          <span className="text-lg font-bold text-foreground">
+          <span className="text-xl font-bold text-foreground">
             {profitFactor.toFixed(2)}
           </span>
         </div>
@@ -48,10 +59,11 @@ export default function ProfitFactor({ size }: ProfitFactorProps) {
         <div className="flex-shrink-0">
           <CircularProgress
             value={progressValue}
-            size={48}
+            size={56}
             strokeWidth={6}
             color={getColor(profitFactor)}
             showPercentage={false}
+            type="circle"
           />
         </div>
       </CardContent>

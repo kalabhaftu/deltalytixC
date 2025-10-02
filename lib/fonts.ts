@@ -5,9 +5,9 @@ export const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: 'swap',
-  preload: false, // Disable preload to avoid connectivity issues
+  preload: true, // Enable preload for better performance
   fallback: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 'sans-serif'],
-  adjustFontFallback: false, // Let us handle fallbacks manually
+  adjustFontFallback: true, // Enable automatic fallback adjustments
 })
 
 // System font fallback for when Google Fonts is completely unavailable

@@ -13,16 +13,25 @@ import {
   Group as PrismaGroup,
   Account as PrismaAccount,
   // Payout as PrismaPayout, // Payout model not available
-  DashboardLayout as PrismaDashboardLayout,
+  // DashboardLayout as PrismaDashboardLayout, // DashboardLayout model not available
 
 } from '@prisma/client';
 
 // Payout model not available - placeholder type
 type PrismaPayout = any;
 
+// DashboardLayout model not available - placeholder type
+type PrismaDashboardLayout = {
+  id: string;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  desktop: any[];
+  mobile: any[];
+};
+
 import { SharedParams } from '@/server/shared';
 import {
-  getDashboardLayout,
   getUserData,
   loadSharedData,
   updateIsFirstConnectionAction
@@ -247,7 +256,7 @@ export const defaultLayouts: PrismaDashboardLayout = {
     // Row 4 - Calendar (full width)
     {
       "i": "widget1751403095730",
-      "type": "calendarWidget",
+      "type": "calendarAdvanced",
       "size": "extra-large",
       "x": 0,
       "y": 11,
@@ -463,7 +472,7 @@ export const defaultLayouts: PrismaDashboardLayout = {
     },
     {
       i: "calendarWidget",
-      type: "calendarWidget" as WidgetType,
+      type: "calendarAdvanced" as WidgetType,
       size: "extra-large" as WidgetSize,
       x: 0,
       y: 19,
@@ -639,7 +648,7 @@ export const defaultLayoutsWithKPI: PrismaDashboardLayout = {
     // Row 4 - Calendar (full width)
     {
       "i": "widget1751403095730",
-      "type": "calendarWidget",
+      "type": "calendarAdvanced",
       "size": "extra-large",
       "x": 0,
       "y": 11,
@@ -855,7 +864,7 @@ export const defaultLayoutsWithKPI: PrismaDashboardLayout = {
     },
     {
       i: "calendarWidget",
-      type: "calendarWidget" as WidgetType,
+      type: "calendarAdvanced" as WidgetType,
       size: "extra-large" as WidgetSize,
       x: 0,
       y: 19,
@@ -1097,6 +1106,13 @@ export const DataProvider: React.FC<{
   const [isFirstConnection, setIsFirstConnection] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Initialize account filter from saved settings
+  useEffect(() => {
+    if (accountFilterSettings?.selectedAccounts && accountFilterSettings.selectedAccounts.length > 0) {
+      setAccountNumbers(accountFilterSettings.selectedAccounts)
+    }
+  }, [accountFilterSettings?.selectedAccounts])
+
   // Track active data loading to prevent concurrent calls
   let activeLoadPromise: Promise<void> | null = null
 
@@ -1248,67 +1264,8 @@ export const DataProvider: React.FC<{
         }
       }
 
-      // Asynchronously fetch layout from database in the background
-      // This won't cause layout shifts since we already have a default
-      getDashboardLayout(user.id).then((dashboardLayoutResponse) => {
-        if (dashboardLayoutResponse) {
-          // Existing user with saved layout - load their custom layout
-          const cachedLayout = localStorage.getItem(`dashboard-layout-${user.id}`)
-          const cachedLayoutObj = cachedLayout ? JSON.parse(cachedLayout) : null
-
-          if (!cachedLayoutObj ||
-              JSON.stringify(cachedLayoutObj.desktop) !== JSON.stringify(dashboardLayoutResponse.desktop) ||
-              JSON.stringify(cachedLayoutObj.mobile) !== JSON.stringify(dashboardLayoutResponse.mobile)) {
-            
-            // Defer layout update to avoid render issues
-            setTimeout(() => {
-              setDashboardLayout(dashboardLayoutResponse)
-              console.log('[DataProvider] Updated layout from database (existing user)')
-            }, 50)
-
-            // Save layout to localStorage for instant loading on next visit
-            try {
-              localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(dashboardLayoutResponse))
-            } catch (error) {
-              // Ignore localStorage errors
-              console.warn('Failed to save layout to localStorage:', error)
-            }
-          }
-        } else {
-          // New user with no saved layout - give them KPI widgets by default
-          console.log('[DataProvider] New user detected - setting up KPI layout')
-          const newUserLayout = { 
-            ...defaultLayoutsWithKPI,
-            id: `new-user-${user.id}`,
-            userId: user.id,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          }
-          
-          // Set the KPI layout for new user (defer to avoid render issues)
-          setTimeout(() => {
-            setDashboardLayout(newUserLayout)
-            
-            // Save to database for future visits
-            saveDashboardLayoutAction(newUserLayout).then(() => {
-              console.log('[DataProvider] New user KPI layout saved to database')
-            }).catch((error) => {
-              console.warn('[DataProvider] Failed to save new user layout:', error)
-            })
-            
-            // Cache the new layout
-            try {
-              localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(newUserLayout))
-              console.log('[DataProvider] New user layout cached to localStorage')
-            } catch (error) {
-              console.warn('Failed to cache new user layout:', error)
-            }
-          }, 100)
-        }
-      }).catch((error) => {
-        console.warn('[DataProvider] Failed to fetch dashboard layout from database:', error)
-        // Don't do anything - we already have the default layout set
-      })
+      // Note: Dashboard layout moved to DashboardTemplate model
+      // Template management is now handled separately in the dashboard components
 
       // Step 2: Fetch trades progressively (with caching server side)
       // Load initial batch of trades for better performance

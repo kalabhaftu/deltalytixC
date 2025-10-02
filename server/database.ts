@@ -104,25 +104,22 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         }
       }
 
-      // ULTRA-FAST DUPLICATE DETECTION: Use database-level checking with minimal queries
+      // OPTIMIZED DUPLICATE DETECTION: Use efficient batching strategy
       logger.debug(`Checking for duplicate trades for user ${userId}`, { count: cleanedData.length }, 'SaveTrades')
       
-      // For small datasets (< 100 trades), use simple approach
+      // For small datasets (< 100 trades), use optimized batch approach
       if (cleanedData.length < 100) {
-        // Check for duplicates using a single optimized query
+        // Get all potentially matching trades in one query using date range
+        const dateRange = {
+          min: new Date(Math.min(...cleanedData.map(t => new Date(t.entryDate).getTime()))),
+          max: new Date(Math.max(...cleanedData.map(t => new Date(t.closeDate || t.entryDate).getTime())))
+        }
+        
         const existingTrades = await prisma.trade.findMany({
           where: { 
             userId,
-            OR: cleanedData.map(trade => ({
-              entryId: trade.entryId || null,
-              closeId: trade.closeId || null,
-              accountNumber: trade.accountNumber,
-              entryDate: trade.entryDate,
-              instrument: trade.instrument,
-              quantity: trade.quantity,
-              entryPrice: trade.entryPrice,
-              closePrice: trade.closePrice
-            }))
+            accountNumber: { in: [...new Set(cleanedData.map(t => t.accountNumber))] },
+            entryDate: { gte: dateRange.min.toISOString(), lte: dateRange.max.toISOString() }
           },
           select: {
             entryId: true,

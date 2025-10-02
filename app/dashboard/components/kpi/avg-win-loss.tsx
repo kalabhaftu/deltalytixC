@@ -2,20 +2,22 @@
 
 import React from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { useData } from '@/context/data-provider'
+import { useTradeStatistics } from '@/hooks/use-trade-statistics'
 import { cn } from '@/lib/utils'
+import { HelpCircle } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface AvgWinLossProps {
   size?: string
 }
 
 export default function AvgWinLoss({ size }: AvgWinLossProps) {
-  const { dashboardStats } = useData()
-  
-  // Extract real data
-  const avgWin = dashboardStats?.avgWin || 0
-  const avgLoss = Math.abs(dashboardStats?.avgLoss || 0)
-  const ratio = avgLoss > 0 ? avgWin / avgLoss : 0
+  const { avgWin, avgLoss, riskRewardRatio } = useTradeStatistics()
   
   // Calculate the percentage for the progress bar
   // If avgWin is larger, green takes more space
@@ -41,22 +43,31 @@ export default function AvgWinLoss({ size }: AvgWinLossProps) {
   }
 
   return (
-    <Card className="w-full h-20 border border-border/20 shadow-sm bg-white dark:bg-gray-900">
+    <Card className="w-full h-24 border border-border/20 shadow-sm bg-white dark:bg-gray-900">
       <CardContent className="p-4 h-full flex flex-col justify-center">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs text-muted-foreground font-medium">
             Avg win/loss trade
           </span>
-          <div className="w-3 h-3 rounded-full bg-muted flex items-center justify-center">
-            <span className="text-[8px] text-muted-foreground">i</span>
-          </div>
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="w-3 h-3 rounded-full bg-muted flex items-center justify-center cursor-help">
+                  <HelpCircle className="h-2 w-2 text-muted-foreground" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={5} className="max-w-[300px]">
+                <p>Average profit on winning trades vs average loss on losing trades. Higher ratios indicate better risk/reward management.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-lg font-bold text-foreground">
-            {ratio.toFixed(2)}
-          </span>
-        </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xl font-bold text-foreground">
+                    {riskRewardRatio.toFixed(2)}
+                  </span>
+                </div>
         
         {/* Horizontal Progress Bar */}
         <div className="flex items-center gap-3">

@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Trade } from '@prisma/client'
-import { TrendingUp, TrendingDown, Calendar, Clock, Target, DollarSign, MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react'
+import { TrendingUp, TrendingDown, Calendar, Clock, Target, DollarSign, MoreHorizontal, Eye, Edit, Trash2, AlertTriangle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface TradeCardProps {
   trade: Trade
@@ -39,8 +45,77 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
     return 'outline' // BREAK EVEN
   }
 
-  // Calculate R:R ratio from trade analytics if available
-  const rrRatio = (trade as any).tradeAnalytics?.riskRewardRatio || 1
+  // Calculate R:R ratio and detect incomplete data
+  const calculateRiskRewardRatio = (trade: Trade): { ratio: number; hasIncompleteData: boolean; debugInfo?: string } => {
+    // Parse entry price from string
+    const entryPrice = parseFloat(trade.entryPrice)
+    
+    // Get stop loss and take profit from database fields
+    const stopLossRaw = (trade as any).stopLoss || null
+    const takeProfitRaw = (trade as any).takeProfit || null
+    
+    // Parse and validate stop loss and take profit (skip if 0.00 or null)
+    const stopLoss = stopLossRaw && parseFloat(stopLossRaw.toString()) !== 0 ? parseFloat(stopLossRaw.toString()) : null
+    const takeProfit = takeProfitRaw && parseFloat(takeProfitRaw.toString()) !== 0 ? parseFloat(takeProfitRaw.toString()) : null
+    
+    const side = trade.side?.toUpperCase()
+
+    // Debug info for development
+    const debugInfo = `Entry: ${entryPrice}, SL: ${stopLoss}, TP: ${takeProfit}, Side: ${side}, SL_Raw: ${stopLossRaw}, TP_Raw: ${takeProfitRaw}`
+    
+    // Log for debugging in console
+    console.log(`R:R Debug for ${trade.instrument}:`, debugInfo)
+
+    // Check for incomplete data
+    const hasIncompleteData = !entryPrice || !stopLoss || !takeProfit || !side
+
+    // Need all required fields for calculation (entry, stop, take profit, and side)
+    if (hasIncompleteData) {
+      // Fallback to TradeAnalytics if available
+      const analyticsRR = (trade as any).tradeAnalytics?.riskRewardRatio
+      if (analyticsRR && analyticsRR > 0) {
+        return { ratio: analyticsRR, hasIncompleteData: false, debugInfo }
+      }
+      return { ratio: 0.00, hasIncompleteData: true, debugInfo } // 0.00 indicates missing data (1:1 is real data!)
+    }
+
+    let potentialRisk: number
+    let potentialReward: number
+
+    if (side === 'BUY' || side === 'LONG') {
+      // For long positions:
+      // Risk = Entry Price - Stop Loss
+      // Reward = Take Profit - Entry Price
+      potentialRisk = entryPrice - stopLoss
+      potentialReward = takeProfit - entryPrice
+    } else if (side === 'SELL' || side === 'SHORT') {
+      // For short positions:
+      // Risk = Stop Loss - Entry Price  
+      // Reward = Entry Price - Take Profit
+      potentialRisk = stopLoss - entryPrice
+      potentialReward = entryPrice - takeProfit
+    } else {
+      return { ratio: 0.00, hasIncompleteData: true, debugInfo } // Unknown side
+    }
+
+    // Ensure risk and reward are positive (invalid setup returns 0.00)
+    if (potentialRisk <= 0 || potentialReward <= 0) {
+      console.log(`Invalid R:R calculation: Risk=${potentialRisk}, Reward=${potentialReward}`)
+      return { ratio: 0.00, hasIncompleteData: true, debugInfo } // Invalid calculation
+    }
+
+    // R:R = Potential Reward ÷ Potential Risk
+    const rrRatio = potentialReward / potentialRisk
+    
+    console.log(`Calculated R:R: ${rrRatio.toFixed(2)} (Risk: ${potentialRisk}, Reward: ${potentialReward})`)
+    
+    // Return calculated R:R, capped at reasonable maximum (99.99)
+    return { ratio: Math.min(rrRatio, 99.99), hasIncompleteData: false, debugInfo }
+  }
+
+  const rrResult = calculateRiskRewardRatio(trade)
+  const rrRatio = rrResult.ratio
+  const hasIncompleteRRData = rrResult.hasIncompleteData
   const duration = trade.timeInPosition || 0
 
   const formatDuration = (minutes: number) => {
@@ -177,13 +252,29 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
               {new Date(trade.entryDate).toLocaleDateString()}
             </p>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">R:R</span>
-            <span className="font-medium">{rrRatio.toFixed(2)}</span>
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              <p className="text-xs text-muted-foreground">R:R</p>
+              {hasIncompleteRRData && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <AlertTriangle className="h-3 w-3 text-amber-500" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Trade has incomplete SL or TP data</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+            <p className="font-semibold text-foreground">
+              {hasIncompleteRRData ? '-' : rrRatio.toFixed(2)}
+            </p>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Duration</span>
-            <span className="font-medium">{formatDuration(duration)}</span>
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Duration</p>
+            <p className="font-semibold text-foreground">{formatDuration(duration)}</p>
           </div>
         </div>
       </CardContent>

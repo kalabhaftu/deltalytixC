@@ -1,10 +1,22 @@
 export type WidgetType = 
-  | 'calendarWidget'
+  | 'calendarAdvanced'
+  | 'calendarMini'
+  | 'recentTrades'
   | 'accountBalancePnl'
   | 'tradeWinRate'
   | 'dayWinRate'
   | 'profitFactor'
   | 'avgWinLoss'
+  | 'currentStreak'
+  | 'netDailyPnL'
+  | 'dailyCumulativePnL'
+  | 'accountBalanceChart'
+  | 'weekdayPnL'
+  | 'tradeDurationPerformance'
+  | 'performanceScore'
+  | 'pnlByInstrument'
+  | 'pnlByStrategy'
+  | 'winRateByStrategy'
 export type WidgetSize = 'tiny' | 'small' | 'small-long' | 'medium' | 'large' | 'extra-large' | 'kpi'
 
 export interface LayoutItem {

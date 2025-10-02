@@ -52,13 +52,6 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useUserStore } from '@/store/user-store'
 import { useTableConfigStore } from '@/store/table-config-store'
 import { useTickDetailsStore } from '@/store/tick-details-store'
@@ -79,6 +72,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu"
+import { TradeTableMobileCard } from './trade-table-mobile-card'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 
 export interface ExtendedTrade extends Trade {
@@ -147,6 +142,7 @@ export function TradeTableReview() {
   } = useData()
   const timezone = useUserStore(state => state.timezone)
   const tickDetails = useTickDetailsStore(state => state.tickDetails)
+  const isMobile = useMediaQuery("(max-width: 768px)")
 
   // Tick details are available for calculations
 
@@ -168,9 +164,7 @@ export function TradeTableReview() {
   const [expanded, setExpanded] = useState<ExpandedState>({})
   const [pageSize, setPageSize] = useState(tableConfig?.pageSize || 10)
   const [pageIndex, setPageIndex] = useState(tableConfig?.pageIndex || 0)
-  const [groupingGranularity, setGroupingGranularity] = useState<number>(tableConfig?.groupingGranularity || 0)
   const [selectedTrades, setSelectedTrades] = useState<string[]>([])
-  const [showPoints, setShowPoints] = useState(false)
 
   const [isEnhancedEditOpen, setIsEnhancedEditOpen] = useState(false)
   const [selectedTradeForEdit, setSelectedTradeForEdit] = useState<Trade | null>(null)
@@ -187,7 +181,6 @@ export function TradeTableReview() {
       setColumnVisibility(tableConfig.columnVisibility)
       setPageSize(tableConfig.pageSize)
       setPageIndex(tableConfig.pageIndex)
-      setGroupingGranularity(tableConfig.groupingGranularity)
     }
   }, [tableConfig])
 
@@ -218,11 +211,6 @@ export function TradeTableReview() {
   const handlePageIndexChange = (newPageIndex: number) => {
     setPageIndex(newPageIndex)
     updatePageIndex('trade-table', newPageIndex)
-  }
-
-  const handleGroupingGranularityChange = (newGranularity: number) => {
-    setGroupingGranularity(newGranularity)
-    updateGroupingGranularity('trade-table', newGranularity)
   }
 
   const trades = contextTrades
@@ -266,14 +254,8 @@ export function TradeTableReview() {
       // Create a key that accounts for granularity
       const entryDate = new Date(trade.entryDate)
 
-      // Round dates based on granularity
-      const roundDate = (date: Date) => {
-        if (groupingGranularity === 0) return date
-        const roundedDate = new Date(date)
-        roundedDate.setSeconds(Math.floor(date.getSeconds() / groupingGranularity) * groupingGranularity)
-        roundedDate.setMilliseconds(0)
-        return roundedDate
-      }
+      // No date rounding - use exact dates
+      const roundDate = (date: Date) => date
 
       const roundedEntryDate = roundDate(entryDate)
 
@@ -360,7 +342,7 @@ export function TradeTableReview() {
     })
 
     return Array.from(groups.values())
-  }, [trades, groupingGranularity])
+  }, [trades])
 
   const columns = useMemo<ColumnDef<ExtendedTrade>[]>(() => [
     {
@@ -651,7 +633,7 @@ export function TradeTableReview() {
         const quantity = row.original.quantity
         return (
           <div className="text-right font-medium">
-            {quantity}
+            {formatNumber(quantity)}
           </div>
         )
       },
@@ -763,15 +745,11 @@ export function TradeTableReview() {
   })
 
   return (
-    <Card className="w-full max-w-none sm:max-w-[calc(100vw-14rem)] mx-auto">
-      <CardHeader
-        className="flex flex-row items-center justify-between space-y-0 border-b shrink-0 p-4 h-auto min-h-[56px]"
-      >
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
-          <div className="flex items-center gap-1.5">
-            <CardTitle className="line-clamp-1 text-base">
-              Trade History
-            </CardTitle>
+    <Card className="w-full max-w-6xl mx-auto">
+      <CardHeader className="border-b p-4 space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-lg font-semibold">Trade History</CardTitle>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -783,21 +761,17 @@ export function TradeTableReview() {
               </Tooltip>
             </TooltipProvider>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              variant={showPoints ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowPoints(!showPoints)}
-            >
-              {showPoints ? "Show Currency" : "Show Points"}
-            </Button>
+          
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             {selectedTrades.length >= 2 && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleGroupTrades}
+                className="flex-1 sm:flex-none"
               >
-                Group Trades
+                <span className="hidden sm:inline">Group Trades</span>
+                <span className="sm:hidden">Group ({selectedTrades.length})</span>
               </Button>
             )}
             {selectedTrades.length > 0 && (
@@ -805,55 +779,58 @@ export function TradeTableReview() {
                 variant="outline"
                 size="sm"
                 onClick={handleUngroupTrades}
+                className="flex-1 sm:flex-none"
               >
-                Ungroup Trades
+                <span className="hidden sm:inline">Ungroup Trades</span>
+                <span className="sm:hidden">Ungroup</span>
               </Button>
             )}
-            <Select
-              value={groupingGranularity.toString()}
-              onValueChange={(value) => handleGroupingGranularityChange(parseInt(value))}
-            >
-              <SelectTrigger className="w-full sm:w-[180px] min-w-[140px]">
-                <div className="flex items-center w-full">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info 
-                          className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors cursor-help mr-2" 
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="z-50">
-                        <p>Auto-refresh interval</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <SelectValue placeholder="Refresh interval" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">Never</SelectItem>
-                <SelectItem value="5">5 seconds</SelectItem>
-                <SelectItem value="10">10 seconds</SelectItem>
-                <SelectItem value="30">30 seconds</SelectItem>
-                <SelectItem value="60">1 minute</SelectItem>
-              </SelectContent>
-            </Select>
             <ColumnConfigDialog tableId="trade-table" />
           </div>
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        {/* 
-          Container with fixed height and internal horizontal scroll:
-          - The card container now has a constrained width
-          - This container handles the horizontal overflow with proper scrolling
-          - Table maintains its natural width without being compressed
-          - Sticky header works within the scrollable container
-        */}
-        <div className="relative">
-          <div className="overflow-x-auto overflow-y-visible border-t">
-            <table className="w-max min-w-full caption-bottom text-sm">
+        {isMobile ? (
+          /* Mobile Card View */
+          <div className="p-4 space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto">
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => {
+                const trade = row.original
+                return (
+                  <TradeTableMobileCard
+                    key={row.id}
+                    trade={trade}
+                    timezone={timezone}
+                    isSelected={row.getIsSelected()}
+                    isExpanded={row.getIsExpanded()}
+                    canExpand={row.getCanExpand()}
+                    onToggleSelect={() => row.toggleSelected()}
+                    onToggleExpand={() => row.toggleExpanded()}
+                    onViewDetails={() => {
+                      setSelectedTradeForView(trade)
+                      setIsDetailViewOpen(true)
+                    }}
+                    onEdit={() => {
+                      setSelectedTradeForEdit(trade)
+                      setIsEnhancedEditOpen(true)
+                    }}
+                    onViewChart={() => {
+                      setSelectedTradeForChart(trade)
+                      setIsChartModalOpen(true)
+                    }}
+                  />
+                )
+              })
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                No trades found
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Desktop Table View */
+          <div className="relative w-full overflow-x-auto">
+            <table className="min-w-[1400px] caption-bottom text-sm">
               <thead className="sticky top-0 z-20 bg-background border-b">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
@@ -861,24 +838,9 @@ export function TradeTableReview() {
                       <th
                         key={header.id}
                         className={cn(
-                          "h-12 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap bg-background",
+                          "h-10 px-3 text-left align-middle font-medium text-muted-foreground bg-background text-xs lg:text-sm whitespace-nowrap",
                           "[&:has([role=checkbox])]:pr-2"
                         )}
-                        style={{ 
-                          minWidth: header.column.id === 'select' || header.column.id === 'expand' 
-                            ? '50px' 
-                            : header.column.id === 'accounts' 
-                            ? '140px'
-                            : header.column.id === 'instrument'
-                            ? '120px'
-                            : header.column.id === 'entryDate' || header.column.id === 'closeDate'
-                            ? '160px'
-                            : header.column.id === 'timeInPosition'
-                            ? '120px'
-                            : header.column.id === 'tags'
-                            ? '200px'
-                            : '110px'
-                        }}
                       >
                         {header.isPlaceholder
                           ? null
@@ -910,24 +872,9 @@ export function TradeTableReview() {
                           <td
                             key={cell.id}
                             className={cn(
-                              "px-4 py-3 align-middle text-sm whitespace-nowrap",
+                              "px-3 py-2.5 align-middle text-xs lg:text-sm whitespace-nowrap",
                               "[&:has([role=checkbox])]:pr-2"
                             )}
-                            style={{ 
-                              minWidth: cell.column.id === 'select' || cell.column.id === 'expand' 
-                                ? '50px' 
-                                : cell.column.id === 'accounts' 
-                                ? '140px'
-                                : cell.column.id === 'instrument'
-                                ? '120px'
-                                : cell.column.id === 'entryDate' || cell.column.id === 'closeDate'
-                                ? '160px'
-                                : cell.column.id === 'timeInPosition'
-                                ? '120px'
-                                : cell.column.id === 'tags'
-                                ? '200px'
-                                : '110px'
-                            }}
                           >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </td>
@@ -948,34 +895,61 @@ export function TradeTableReview() {
               </tbody>
             </table>
           </div>
-        </div>
+        )}
       </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-t bg-background px-4 py-3 gap-4">
-        <div className="text-sm text-muted-foreground">
-          Showing {table.getFilteredRowModel().rows.length} of {table.getCoreRowModel().rows.length} trades
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
-          </Button>
-          <span className="text-sm">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+      <CardFooter className="flex flex-col gap-4 border-t bg-background px-4 py-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 w-full">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-sm text-muted-foreground">
+              {table.getFilteredRowModel().rows.length} of {table.getCoreRowModel().rows.length} trades
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Rows:</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 w-16">
+                    {pageSize}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {[10, 25, 50, 100, 250].map((size) => (
+                    <DropdownMenuItem
+                      key={size}
+                      onClick={() => handlePageSizeChange(size)}
+                    >
+                      {size}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="h-8"
+            >
+              <ChevronLeft className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Previous</span>
+            </Button>
+            <span className="text-sm px-2">
+              {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="h-8"
+            >
+              <span className="hidden sm:inline">Next</span>
+              <ChevronRight className="h-4 w-4 sm:ml-1" />
+            </Button>
+          </div>
         </div>
       </CardFooter>
       
