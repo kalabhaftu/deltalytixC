@@ -99,8 +99,14 @@ export function FormatPreview({
     onError(error) {
       console.error('Error processing trades:', error);
       setError(`Failed to process trades: ${error.message}`);
+      setIsLoading(false);
     }
   });
+
+  // Update parent loading state when processing state changes
+  useEffect(() => {
+    setIsLoading(isProcessing);
+  }, [isProcessing, setIsLoading]);
 
 
   useEffect(() => {

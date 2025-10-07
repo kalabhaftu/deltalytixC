@@ -16,6 +16,7 @@ import { useData } from '@/context/data-provider'
 import ColumnMapping from './column-mapping'
 import { ImportDialogHeader } from './components/import-dialog-header'
 import { ImportDialogFooter } from './components/import-dialog-footer'
+import { ImportLoading } from './components/import-loading'
 import { platforms } from './config/platforms'
 import { FormatPreview } from './components/format-preview'
 import { cn } from '@/lib/utils'
@@ -121,6 +122,7 @@ export default function ImportButton() {
     }
 
     setIsSaving(true)
+    setIsLoading(true)
     
     try {
       // Show processing indicator
@@ -217,6 +219,7 @@ export default function ImportButton() {
       })
     } finally {
       setIsSaving(false)
+      setIsLoading(false)
     }
   }
 
@@ -275,6 +278,11 @@ export default function ImportButton() {
   }
 
   const renderStep = () => {
+    // Show loading animation when processing trades
+    if (isLoading) {
+      return <ImportLoading />
+    }
+
     const platform = platforms.find(p => p.type === importType) || platforms.find(p => p.platformName === 'csv-ai')
     if (!platform) return null
 
