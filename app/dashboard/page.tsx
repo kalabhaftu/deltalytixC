@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useUserStore } from "@/store/user-store"
 import { cn } from "@/lib/utils"
 
@@ -58,12 +59,21 @@ const TemplateSelector = dynamic(() => import('./components/template-selector'),
 
 export default function Home() {
   const mainRef = useRef<HTMLElement>(null)
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('widgets')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
 
   // Simple user check
   const user = useUserStore(state => state.user)
+
+  // Check for tab parameter in URL
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab && ['widgets', 'table', 'accounts', 'journal', 'backtesting'].includes(tab)) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout

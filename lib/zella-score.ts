@@ -176,16 +176,10 @@ export interface Trade {
   entryDate: string
 }
 
-export function calculateMetricsFromTrades(trades: Trade[]): ZellaScoreMetrics {
+export function calculateMetricsFromTrades(trades: Trade[]): ZellaScoreMetrics | null {
+  // Return null when there's no data - let components handle empty state
   if (trades.length === 0) {
-    return {
-      avgWinLoss: 0,
-      tradeWinPercentage: 0,
-      maxDrawdown: 0,
-      profitFactor: 0,
-      recoveryFactor: 0,
-      consistencyScore: 0
-    }
+    return null
   }
 
   // Calculate wins and losses

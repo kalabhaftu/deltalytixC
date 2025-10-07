@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useAccountFilterSettings } from './use-account-filter-settings'
 
 interface DashboardStats {
   totalAccounts: number
@@ -22,6 +23,7 @@ export function useDashboardStats(): UseDashboardStatsResult {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { settings } = useAccountFilterSettings()
 
   const fetchStats = useCallback(async () => {
     try {
@@ -32,7 +34,21 @@ export function useDashboardStats(): UseDashboardStatsResult {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
-      const response = await fetch('/api/dashboard/stats', {
+      // ✅ NEW: Build URL with phase filter params
+      const params = new URLSearchParams()
+      if (settings.viewingSpecificPhase && settings.selectedMasterAccountId) {
+        params.append('masterAccountId', settings.selectedMasterAccountId)
+        if (settings.selectedPhaseId) {
+          params.append('phaseId', settings.selectedPhaseId)
+        }
+        if (settings.selectedPhaseNumber) {
+          params.append('phaseNumber', settings.selectedPhaseNumber.toString())
+        }
+      }
+
+      const url = `/api/dashboard/stats${params.toString() ? `?${params.toString()}` : ''}`
+
+      const response = await fetch(url, {
         signal: controller.signal,
         headers: {
           'Cache-Control': 'no-cache',
@@ -68,11 +84,11 @@ export function useDashboardStats(): UseDashboardStatsResult {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [settings])
 
   useEffect(() => {
     fetchStats()
-  }, []) // Remove fetchStats from dependencies to prevent infinite loops
+  }, [settings.viewingSpecificPhase, settings.selectedMasterAccountId, settings.selectedPhaseId, settings.selectedPhaseNumber]) // ✅ NEW: Refetch when phase selection changes
 
   return {
     stats,

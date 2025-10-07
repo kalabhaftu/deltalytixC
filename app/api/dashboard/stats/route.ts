@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
 import { getActiveAccountsWhereClause } from '@/lib/utils/account-filters'
 import { calculateAverageWinLoss } from '@/lib/utils'
+import { calculateAccountBalances } from '@/lib/utils/balance-calculator'
 
 // GET /api/dashboard/stats - Fast dashboard statistics for charts
 export async function GET(request: NextRequest) {
@@ -147,6 +148,7 @@ export async function GET(request: NextRequest) {
           select: {
             pnl: true,
             commission: true,
+            fees: true,
             accountNumber: true,
             createdAt: true
           },
@@ -156,29 +158,21 @@ export async function GET(request: NextRequest) {
         })
       ])
 
-      // Calculate proper current equity by account
-      const accountEquities = new Map<string, number>()
-      
-      // Initialize with starting balances
-      filteredAccounts.forEach(account => {
-        accountEquities.set(account.number, account.startingBalance || 0)
-      })
-
-      // Add trade P&L to calculate current equity
-      allTradesForEquity.forEach(trade => {
-        const currentEquity = accountEquities.get(trade.accountNumber) || 0
-        const netPnL = trade.pnl - (trade.commission || 0)
-        accountEquities.set(trade.accountNumber, currentEquity + netPnL)
+      // Calculate proper current equity by account using unified calculator
+      // This ensures consistency with all other balance calculations
+      const accountEquities = calculateAccountBalances(filteredAccounts, allTradesForEquity, {
+        excludeFailedAccounts: true,
+        includePayouts: true
       })
 
       // Calculate total equity
       const totalEquity = Array.from(accountEquities.values()).reduce((sum, equity) => sum + equity, 0)
 
-      // Calculate daily PnL for chart (net of commissions)
+      // Calculate daily PnL for chart (net of commissions and fees)
       const dailyPnL = new Map<string, number>()
       recentTrades.forEach(trade => {
         const date = trade.createdAt.toISOString().split('T')[0]
-        const netPnL = trade.pnl - (trade.commission || 0)
+        const netPnL = trade.pnl - (trade.commission || 0) - ((trade as any).fees || 0)
         dailyPnL.set(date, (dailyPnL.get(date) || 0) + netPnL)
       })
 
@@ -191,17 +185,17 @@ export async function GET(request: NextRequest) {
       // Use centralized calculation for statistics
       const { avgWin, avgLoss, riskRewardRatio } = calculateAverageWinLoss(recentTrades)
 
-      // Calculate trading statistics
+      // Calculate trading statistics (net of commissions and fees)
       const winningTrades = recentTrades.filter(trade => {
-        const netPnL = trade.pnl - (trade.commission || 0)
+        const netPnL = trade.pnl - (trade.commission || 0) - ((trade as any).fees || 0)
         return netPnL > 0
       }).length
       const losingTrades = recentTrades.filter(trade => {
-        const netPnL = trade.pnl - (trade.commission || 0)
+        const netPnL = trade.pnl - (trade.commission || 0) - ((trade as any).fees || 0)
         return netPnL < 0
       }).length
       const breakEvenTrades = recentTrades.filter(trade => {
-        const netPnL = trade.pnl - (trade.commission || 0)
+        const netPnL = trade.pnl - (trade.commission || 0) - ((trade as any).fees || 0)
         return netPnL === 0
       }).length
 
@@ -209,17 +203,17 @@ export async function GET(request: NextRequest) {
       const tradableTradesCount = winningTrades + losingTrades
       const winRate = tradableTradesCount > 0 ? (winningTrades / tradableTradesCount) * 100 : 0
 
-      // Calculate total PnL (net of commissions)
-      const totalPnL = recentTrades.reduce((sum, trade) => sum + (trade.pnl - (trade.commission || 0)), 0)
+      // Calculate total PnL (net of commissions and fees)
+      const totalPnL = recentTrades.reduce((sum, trade) => sum + (trade.pnl - (trade.commission || 0) - ((trade as any).fees || 0)), 0)
 
-      // Calculate gross profits and losses for profit factor
+      // Calculate gross profits and losses for profit factor (net of costs)
       const grossProfits = recentTrades.reduce((sum, trade) => {
-        const netPnL = trade.pnl - (trade.commission || 0)
+        const netPnL = trade.pnl - (trade.commission || 0) - ((trade as any).fees || 0)
         return netPnL > 0 ? sum + netPnL : sum
       }, 0)
 
       const grossLosses = Math.abs(recentTrades.reduce((sum, trade) => {
-        const netPnL = trade.pnl - (trade.commission || 0)
+        const netPnL = trade.pnl - (trade.commission || 0) - ((trade as any).fees || 0)
         return netPnL < 0 ? sum + netPnL : sum
       }, 0))
 

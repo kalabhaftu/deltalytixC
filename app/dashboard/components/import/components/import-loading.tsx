@@ -97,8 +97,8 @@ export function ImportLoading() {
   const IconComponent = icons[currentQuoteIndex % icons.length]
 
   return (
-    <div className="flex flex-col items-center justify-center h-full w-full p-8 space-y-8">
-      {/* Animated Icon */}
+    <div className="flex flex-col items-center justify-center h-full w-full p-2 sm:p-4 lg:p-6 space-y-2 sm:space-y-3 lg:space-y-4 max-h-[80vh] overflow-hidden">
+      {/* Animated Icon - Smaller */}
       <motion.div
         key={currentQuoteIndex}
         initial={{ scale: 0, rotate: -180 }}
@@ -111,8 +111,8 @@ export function ImportLoading() {
         }}
         className="relative"
       >
-        <div className="absolute inset-0 blur-2xl opacity-50">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-r from-primary via-blue-500 to-purple-500 animate-pulse" />
+        <div className="absolute inset-0 blur-lg opacity-40">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-gradient-to-r from-primary via-blue-500 to-purple-500 animate-pulse" />
         </div>
         <motion.div
           animate={{ 
@@ -123,18 +123,18 @@ export function ImportLoading() {
             repeat: Infinity, 
             ease: "linear" 
           }}
-          className="relative z-10 w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 backdrop-blur-sm border border-primary/30 flex items-center justify-center"
+          className="relative z-10 w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 backdrop-blur-sm border border-primary/30 flex items-center justify-center"
         >
-          <IconComponent className="w-12 h-12 text-primary" />
+          <IconComponent className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-primary" />
         </motion.div>
       </motion.div>
 
-      {/* Processing Text */}
-      <div className="space-y-2 text-center">
+      {/* Processing Text - Compact */}
+      <div className="space-y-0.5 sm:space-y-1 text-center">
         <motion.h3
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-2xl font-bold bg-gradient-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent"
+          className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent"
         >
           Importing Your Trades
         </motion.h3>
@@ -142,15 +142,15 @@ export function ImportLoading() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-sm text-muted-foreground"
+          className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground"
         >
           Analyzing and processing your trading data...
         </motion.p>
       </div>
 
-      {/* Progress Bar */}
-      <div className="w-full max-w-md space-y-2">
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
+      {/* Progress Bar - Thinner */}
+      <div className="w-full max-w-xs sm:max-w-sm space-y-1">
+        <div className="h-1 sm:h-1.5 bg-muted rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-r from-primary via-blue-500 to-purple-500"
             initial={{ width: 0 }}
@@ -159,7 +159,7 @@ export function ImportLoading() {
           />
         </div>
         <motion.p
-          className="text-xs text-center text-muted-foreground"
+          className="text-[10px] sm:text-xs text-center text-muted-foreground"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
@@ -167,7 +167,7 @@ export function ImportLoading() {
         </motion.p>
       </div>
 
-      {/* Animated Quote */}
+      {/* Animated Quote - Hidden on small/laptop screens, shown on desktop */}
       <AnimatePresence mode="wait">
         <motion.div
           key={currentQuoteIndex}
@@ -175,31 +175,31 @@ export function ImportLoading() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.8 }}
           transition={{ duration: 0.5 }}
-          className="max-w-2xl text-center space-y-3 relative"
+          className="hidden xl:block max-w-lg text-center space-y-1.5 relative px-4"
         >
           <div className="absolute -inset-4 bg-gradient-to-r from-primary/10 via-blue-500/10 to-purple-500/10 blur-xl rounded-lg" />
-          <blockquote className="relative text-lg font-medium italic text-foreground/90">
+          <blockquote className="relative text-sm font-medium italic text-foreground/90">
             &ldquo;{currentQuote.text}&rdquo;
           </blockquote>
-          <cite className="relative text-sm text-muted-foreground not-italic">
+          <cite className="relative text-xs text-muted-foreground not-italic">
             — {currentQuote.author}
           </cite>
         </motion.div>
       </AnimatePresence>
 
-      {/* Floating Particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(6)].map((_, i) => (
+      {/* Floating Particles - Hidden on small screens */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none hidden lg:block">
+        {[...Array(3)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-2 h-2 rounded-full bg-primary/20"
+            className="absolute w-1 h-1 rounded-full bg-primary/20"
             initial={{
-              x: Math.random() * window.innerWidth,
-              y: Math.random() * window.innerHeight,
+              x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+              y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800),
             }}
             animate={{
-              x: Math.random() * window.innerWidth,
-              y: Math.random() * window.innerHeight,
+              x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+              y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800),
             }}
             transition={{
               duration: 10 + Math.random() * 10,
@@ -211,19 +211,20 @@ export function ImportLoading() {
         ))}
       </div>
 
-      {/* Processing Steps Indicator */}
+      {/* Processing Steps Indicator - Compact */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
-        className="flex items-center gap-2 text-xs text-muted-foreground"
+        className="flex items-center gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] lg:text-xs text-muted-foreground"
       >
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full"
+          className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 border-2 border-primary border-t-transparent rounded-full flex-shrink-0"
         />
-        <span>Checking for duplicates • Linking to account • Validating data</span>
+        <span className="hidden lg:inline">Checking for duplicates • Linking to account • Validating data</span>
+        <span className="lg:hidden">Processing...</span>
       </motion.div>
     </div>
   )

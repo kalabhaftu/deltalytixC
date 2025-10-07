@@ -30,10 +30,8 @@ type PrismaDashboardLayout = {
   mobile: any[];
 };
 
-import { SharedParams } from '@/server/shared';
 import {
   getUserData,
-  loadSharedData,
   updateIsFirstConnectionAction
 } from '@/server/user-data';
 import {
@@ -61,20 +59,17 @@ import {
   renameGroupAction
 } from '@/server/groups';
 import { createClient } from '@/lib/supabase';
-import { prisma } from '@/lib/prisma';
 import { ensureUserInDatabase, signOut } from '@/server/auth';
 import { useUserStore } from '@/store/user-store';
-import { useTickDetailsStore } from '@/store/tick-details-store';
 import { useTradesStore } from '@/store/trades-store';
 import {
   endOfDay,
   isValid,
   parseISO,
-  set,
   startOfDay
 } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { filterActiveAccounts, filterTradesFromActiveAccounts } from '@/lib/utils/account-filters';
+// filterActiveAccounts and filterTradesFromActiveAccounts removed - not used
 import { useAccountFilterSettings } from '@/hooks/use-account-filter-settings';
 import { AccountFilterSettings } from '@/types/account-filter-settings';
 import { calculateStatistics, formatCalendarData } from '@/lib/utils';
@@ -115,10 +110,7 @@ interface DateRange {
   to: Date
 }
 
-interface TickRange {
-  min: number | undefined
-  max: number | undefined
-}
+// Removed TickRange - tick details feature has been removed
 
 interface PnlRange {
   min: number | undefined
@@ -131,10 +123,6 @@ interface TimeRange {
   range: string | null
 }
 
-// Add new interface for tick filter
-interface TickFilter {
-  value: string | null
-}
 
 // Update WeekdayFilter interface to use numbers
 interface WeekdayFilter {
@@ -157,6 +145,8 @@ export interface Account extends Omit<PrismaAccount, 'payouts' | 'group'> {
   payouts?: PrismaPayout[]
   balanceToDate?: number
   group?: PrismaGroup | null
+  status?: string
+  accountType?: 'live' | 'prop-firm'
 }
 
 // Original default layouts (without KPI widgets) - used for existing users to prevent flash
@@ -949,14 +939,11 @@ interface DataContextType {
   isPlusUser: () => boolean
   isLoading: boolean
   isMobile: boolean
-  isSharedView: boolean
   changeIsFirstConnection: (isFirstConnection: boolean) => void
   isFirstConnection: boolean
   setIsFirstConnection: (isFirstConnection: boolean) => void
   error: string | null
   setError: React.Dispatch<React.SetStateAction<string | null>>
-  sharedParams: SharedParams | null
-  setSharedParams: React.Dispatch<React.SetStateAction<SharedParams | null>>
 
   // Formatted trades and filters
   formattedTrades: PrismaTrade[]
@@ -966,14 +953,10 @@ interface DataContextType {
   setAccountNumbers: React.Dispatch<React.SetStateAction<string[]>>
   dateRange: DateRange | undefined
   setDateRange: React.Dispatch<React.SetStateAction<DateRange | undefined>>
-  tickRange: TickRange
-  setTickRange: React.Dispatch<React.SetStateAction<TickRange>>
   pnlRange: PnlRange
   setPnlRange: React.Dispatch<React.SetStateAction<PnlRange>>
   timeRange: TimeRange
   setTimeRange: React.Dispatch<React.SetStateAction<TimeRange>>
-  tickFilter: TickFilter
-  setTickFilter: React.Dispatch<React.SetStateAction<TickFilter>>
   weekdayFilter: WeekdayFilter
   setWeekdayFilter: React.Dispatch<React.SetStateAction<WeekdayFilter>>
   hourFilter: HourFilter
@@ -1038,27 +1021,14 @@ function useIsMobileDetection() {
   return isMobile;
 }
 
-// Add this function before the UserDataProvider component
-function calculateAccountBalance(account: Account, trades: PrismaTrade[]): number {
-  let balance = account.startingBalance || 0;
-  const accountTrades = trades.filter(trade => trade.accountNumber === account.number);
-  const tradesPnL = accountTrades.reduce((sum, trade) => sum + (trade.pnl - trade.commission), 0);
-  balance += tradesPnL;
-  const payouts = account.payouts || [];
-  const payoutsSum = payouts.reduce((sum, payout) => sum + payout.amount, 0);
-  balance += payoutsSum;
-  return balance;
-}
+// Import unified balance calculator
+import { calculateAccountBalance as calcBalance } from '@/lib/utils/balance-calculator';
 
 const supabase = createClient()
 
 export const DataProvider: React.FC<{
   children: React.ReactNode;
-  isSharedView?: boolean;
-  adminView?: {
-    userId: string;
-  };
-}> = ({ children, isSharedView = false, adminView = null }) => {
+}> = ({ children }) => {
   const router = useRouter()
   const params = useParams();
   const isMobile = useIsMobileDetection();
@@ -1076,8 +1046,6 @@ export const DataProvider: React.FC<{
   const accounts = useUserStore(state => state.accounts);
   const setSupabaseUser = useUserStore(state => state.setSupabaseUser);
 
-  const setTickDetails = useTickDetailsStore(state => state.setTickDetails);
-  const tickDetails = useTickDetailsStore(state => state.tickDetails);
   const trades = useTradesStore(state => state.trades);
   const setTrades = useTradesStore(state => state.setTrades);
   const dashboardLayout = useUserStore(state => state.dashboardLayout);
@@ -1091,16 +1059,13 @@ export const DataProvider: React.FC<{
   const { settings: accountFilterSettings } = useAccountFilterSettings()
 
   // Local states
-  const [sharedParams, setSharedParams] = useState<SharedParams | null>(null);
 
   // Filter states
   const [instruments, setInstruments] = useState<string[]>([]);
   const [accountNumbers, setAccountNumbers] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [tickRange, setTickRange] = useState<TickRange>({ min: undefined, max: undefined });
   const [pnlRange, setPnlRange] = useState<PnlRange>({ min: undefined, max: undefined });
   const [timeRange, setTimeRange] = useState<TimeRange>({ range: null });
-  const [tickFilter, setTickFilter] = useState<TickFilter>({ value: null });
   const [weekdayFilter, setWeekdayFilter] = useState<WeekdayFilter>({ day: null });
   const [hourFilter, setHourFilter] = useState<HourFilter>({ hour: null });
   const [isFirstConnection, setIsFirstConnection] = useState(false);
@@ -1108,10 +1073,13 @@ export const DataProvider: React.FC<{
 
   // Initialize account filter from saved settings
   useEffect(() => {
-    if (accountFilterSettings?.selectedAccounts && accountFilterSettings.selectedAccounts.length > 0) {
+    if (accountFilterSettings?.selectedPhaseAccountIds && accountFilterSettings.selectedPhaseAccountIds.length > 0) {
+      setAccountNumbers(accountFilterSettings.selectedPhaseAccountIds)
+    } else if (accountFilterSettings?.selectedAccounts && accountFilterSettings.selectedAccounts.length > 0) {
+      // Fallback for old format
       setAccountNumbers(accountFilterSettings.selectedAccounts)
     }
-  }, [accountFilterSettings?.selectedAccounts])
+  }, [accountFilterSettings?.selectedPhaseAccountIds, accountFilterSettings?.selectedAccounts, setAccountNumbers])
 
   // Track active data loading to prevent concurrent calls
   let activeLoadPromise: Promise<void> | null = null
@@ -1134,74 +1102,6 @@ export const DataProvider: React.FC<{
     activeLoadPromise = (async () => {
       try {
         setIsLoading(true);
-
-      if (isSharedView) {
-        const sharedData = await loadSharedData(params.slug as string);
-        if (!sharedData.error) {
-          const processedSharedTrades = sharedData.trades.map(trade => ({
-            ...trade,
-            utcDateStr: formatInTimeZone(new Date(trade.entryDate), timezone, 'yyyy-MM-dd')
-          }));
-
-          // Batch state updates
-          const updates = () => {
-            setTrades(processedSharedTrades);
-            setSharedParams(sharedData.params);
-
-            if (sharedData.params.desktop || sharedData.params.mobile) {
-              setDashboardLayout({
-                id: 'shared-layout',
-                userId: 'shared',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                desktop: sharedData.params.desktop || defaultLayouts.desktop,
-                mobile: sharedData.params.mobile || defaultLayouts.mobile
-              });
-            }
-
-            if (sharedData.params.tickDetails) {
-              setTickDetails(sharedData.params.tickDetails);
-            }
-
-            const accountsWithBalance = sharedData.groups?.flatMap(group =>
-              group.accounts.map(account => ({
-                ...account,
-                balanceToDate: calculateAccountBalance(account, processedSharedTrades)
-              }))
-            ) || [];
-            setGroups(sharedData.groups || []);
-            setAccounts(accountsWithBalance);
-          };
-
-          updates();
-        }
-        setIsLoading(false)
-        return;
-      }
-
-      if (adminView) {
-        const trades = await getTradesAction(adminView.userId as string);
-        setTrades(trades as PrismaTrade[]);
-        // RESET ALL OTHER STATES
-        setUser(null);
-
-        setGroups([]);
-        setTickDetails([]);
-        setAccounts([]);
-        setGroups([]);
-        setDashboardLayout({
-          id: 'admin-layout',
-          userId: 'admin',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          desktop: defaultLayouts.desktop,
-          mobile: defaultLayouts.mobile
-        });
-        return;
-      }
-      if(adminView) {
-        // Admin view logic handled above
-      }
 
       // Step 1: Get Supabase user
       const { data: { user } } = await supabase.auth.getUser();
@@ -1267,42 +1167,10 @@ export const DataProvider: React.FC<{
       // Note: Dashboard layout moved to DashboardTemplate model
       // Template management is now handled separately in the dashboard components
 
-      // Step 2: Fetch trades progressively (with caching server side)
-      // Load initial batch of trades for better performance
-      const initialTrades = await getTradesAction(null, {
-        page: 1,
-        limit: 100 // Start with smaller batch
-      })
-      setTrades(Array.isArray(initialTrades) ? initialTrades : [])
-
-      // Background load remaining trades progressively
-      setTimeout(async () => {
-        try {
-          let allTrades = [...initialTrades]
-          let page = 2
-          const batchSize = 100
-
-          while (allTrades.length < 1000) { // Limit to 1000 trades for initial load
-            const batch = await getTradesAction(null, {
-              page,
-              limit: batchSize
-            })
-
-            if (batch.length === 0) break
-
-            allTrades = [...allTrades, ...batch]
-            setTrades([...allTrades])
-            page++
-
-            // Small delay to prevent overwhelming the database
-            await new Promise(resolve => setTimeout(resolve, 100))
-          }
-
-          console.log(`[DataProvider] Progressive loading completed: ${allTrades.length} trades loaded`)
-        } catch (error) {
-          console.warn('[DataProvider] Progressive loading failed, continuing with initial batch:', error)
-        }
-      }, 1000) // Start background loading after 1 second;
+      // Step 2: Fetch ALL trades in single optimized query (server has caching)
+      // OPTIMIZED: Load all trades at once using server-side caching instead of progressive loading
+      const allTrades = await getTradesAction(null)
+      setTrades(Array.isArray(allTrades) ? allTrades : [])
 
       // Step 3: Fetch user data
       const data = await getUserData()
@@ -1323,14 +1191,17 @@ export const DataProvider: React.FC<{
         
 
       setGroups(data.groups);
-      setTickDetails(data.tickDetails);
       setIsFirstConnection(data.userData?.isFirstConnection || false)
 
 
-      // Calculate balanceToDate for each account 
+      // Calculate balanceToDate for each account using unified calculator
+      // For prop firms: All phases share one balance history (cumulative across entire journey)
       const accountsWithBalance = (data.accounts || []).map(account => ({
         ...account,
-        balanceToDate: calculateAccountBalance(account, Array.isArray(trades) ? trades : [])
+        balanceToDate: calcBalance(account, Array.isArray(trades) ? trades : [], {
+          excludeFailedAccounts: true,
+          includePayouts: true
+        })
       }));
       
       
@@ -1386,9 +1257,9 @@ export const DataProvider: React.FC<{
 
   // Return the promise for any waiting calls
   return activeLoadPromise
-}, [isSharedView, adminView?.userId]); // Remove setIsLoading from deps to prevent infinite loops
+  }, []); // No dependencies - load once on mount
 
-  // Load data on mount and when isSharedView changes
+  // Load data on mount only
   useEffect(() => {
     let mounted = true;
     let hasLoadedData = false; // Prevent multiple loads
@@ -1434,7 +1305,7 @@ export const DataProvider: React.FC<{
     return () => {
       mounted = false;
     };
-  }, [isSharedView, adminView?.userId]); // Stable dependencies only
+  }, []); // Load once on mount only
 
   const refreshTrades = useCallback(async () => {
     if (!user?.id) return
@@ -1497,7 +1368,8 @@ export const DataProvider: React.FC<{
     // Early return if no trades or if trades is not an array
     if (!trades || !Array.isArray(trades) || trades.length === 0) return [];
 
-    // Filter accounts based on user settings
+    // Filter accounts based on user settings - NAVBAR FILTER APPLIES TO WIDGETS/TABLE/JOURNAL ONLY
+    // Accounts page has its own separate filtering
     const getFilteredAccountNumbers = (): string[] => {
       if (accountFilterSettings.showMode === 'all-accounts') {
         return [] // No filtering, include all accounts
@@ -1506,7 +1378,7 @@ export const DataProvider: React.FC<{
       if (accountFilterSettings.showMode === 'active-only') {
         // Default behavior: exclude failed and passed accounts
         return accounts
-          .filter(a => false) // status field doesn't exist
+          .filter(a => a.status === 'failed' || a.status === 'passed')
           .map(a => a.number)
       }
       
@@ -1514,33 +1386,32 @@ export const DataProvider: React.FC<{
       const excludedNumbers: string[] = []
       
       accounts.forEach(account => {
-        // Filter by account type
-        if (!accountFilterSettings.showLiveAccounts) {
+        // Filter by account type - CORRECTED LOGIC
+        if (account.accountType === 'live' && !accountFilterSettings.showLiveAccounts) {
           excludedNumbers.push(account.number)
           return
         }
 
-        if (!accountFilterSettings.showPropFirmAccounts) {
+        if (account.accountType === 'prop-firm' && !accountFilterSettings.showPropFirmAccounts) {
           excludedNumbers.push(account.number)
           return
         }
 
         // Filter by status
-        // Status filtering not available - status field doesn't exist
-        // if (account.status === 'failed' && !accountFilterSettings.showFailedAccounts) {
-        //   excludedNumbers.push(account.number)
-        //   return
-        // }
+        if (account.status === 'failed' && !accountFilterSettings.showFailedAccounts) {
+          excludedNumbers.push(account.number)
+          return
+        }
 
-        // if (account.status === 'passed' && !accountFilterSettings.showPassedAccounts) {
-        //   excludedNumbers.push(account.number)
-        //   return
-        // }
+        if (account.status === 'passed' && !accountFilterSettings.showPassedAccounts) {
+          excludedNumbers.push(account.number)
+          return
+        }
 
-        // if (account.status && !accountFilterSettings.includeStatuses.includes(account.status)) {
-        //   excludedNumbers.push(account.number)
-        //   return
-        // }
+        if (account.status && !accountFilterSettings.includeStatuses.includes(account.status as any)) {
+          excludedNumbers.push(account.number)
+          return
+        }
       })
       
       return excludedNumbers
@@ -1574,8 +1445,16 @@ export const DataProvider: React.FC<{
           return false;
         }
 
-        // Account filter
-        if (accountNumbers.length > 0 && !accountNumbers.includes(trade.accountNumber)) {
+        // Account filter - require explicit account selection
+        if (accountNumbers.length === 0) {
+          return false; // Don't show any trades if no account is selected
+        }
+
+        // Check if trade matches selected account numbers (by accountNumber or phaseAccountId)
+        const matchesAccount = accountNumbers.includes(trade.accountNumber) ||
+                              (trade.phaseAccountId && accountNumbers.includes(trade.phaseAccountId));
+
+        if (!matchesAccount) {
           return false;
         }
 
@@ -1602,22 +1481,6 @@ export const DataProvider: React.FC<{
         if ((pnlRange.min !== undefined && trade.pnl < pnlRange.min) ||
           (pnlRange.max !== undefined && trade.pnl > pnlRange.max)) {
           return false;
-        }
-
-        // Tick filter
-        if (tickFilter?.value) {
-          // Fix ticker matching logic - sort by length descending to match longer tickers first
-          // This prevents "ES" from matching "MES" trades
-          const matchingTicker = Object.keys(tickDetails)
-            .sort((a, b) => b.length - a.length) // Sort by length descending
-            .find(ticker => trade.instrument.includes(ticker));
-          const tickValue = matchingTicker ? tickDetails[matchingTicker].tickValue : 1;
-          const pnlPerContract = Number(trade.pnl) / Number(trade.quantity);
-          const tradeTicks = Math.round(pnlPerContract / tickValue);
-          const filterValue = tickFilter.value;
-          if (filterValue && tradeTicks !== Number(filterValue.replace('+', ''))) {
-            return false;
-          }
         }
 
         // Time range filter
@@ -1653,8 +1516,6 @@ export const DataProvider: React.FC<{
     accountNumbers,
     dateRange,
     pnlRange,
-    tickFilter,
-    tickDetails,
     timeRange,
     weekdayFilter,
     hourFilter,
@@ -1795,7 +1656,7 @@ export const DataProvider: React.FC<{
 
   // Add savePayout function
   const savePayout = useCallback(async (payout: PrismaPayout) => {
-    if (!user?.id || isSharedView) return;
+    if (!user?.id) return;
 
     try {
       // Add to database
@@ -1817,11 +1678,11 @@ export const DataProvider: React.FC<{
       console.error('Error adding payout:', error);
       throw error;
     }
-  }, [user?.id, isSharedView, accounts, setAccounts]);
+  }, [user?.id, accounts, setAccounts]);
 
   // Add deleteAccount function
   const deleteAccount = useCallback(async (account: Account) => {
-    if (!user?.id || isSharedView) return;
+    if (!user?.id) return;
 
     try {
       // Update local state
@@ -1832,11 +1693,11 @@ export const DataProvider: React.FC<{
       console.error('Error deleting account:', error);
       throw error;
     }
-  }, [user?.id, isSharedView, accounts, setAccounts]);
+  }, [user?.id, accounts, setAccounts]);
 
   // Add deletePayout function
   const deletePayout = useCallback(async (payoutId: string) => {
-    if (!user?.id || isSharedView) return;
+    if (!user?.id) return;
 
     try {
 
@@ -1855,7 +1716,7 @@ export const DataProvider: React.FC<{
       console.error('Error deleting payout:', error);
       throw error;
     }
-  }, [user?.id, isSharedView, accounts, setAccounts]);
+  }, [user?.id, accounts, setAccounts]);
 
   const changeIsFirstConnection = useCallback(async (isFirstConnection: boolean) => {
     if (!user?.id) return
@@ -1914,9 +1775,6 @@ export const DataProvider: React.FC<{
     isPlusUser,
     isLoading,
     isMobile,
-    isSharedView,
-    sharedParams,
-    setSharedParams,
     refreshTrades,
     changeIsFirstConnection,
     isFirstConnection,
@@ -1932,18 +1790,12 @@ export const DataProvider: React.FC<{
     setAccountNumbers,
     dateRange,
     setDateRange,
-    tickRange,
-    setTickRange,
     pnlRange,
     setPnlRange,
 
     // Time range related
     timeRange,
     setTimeRange,
-
-    // Tick filter related
-    tickFilter,
-    setTickFilter,
 
     // Weekday filter related
     weekdayFilter,

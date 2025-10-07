@@ -70,7 +70,7 @@ export default function AccountSelection({
     }
   }, [error, toast])
 
-  // Phase data is already loaded from the server - no need for additional loading
+  // Filter accounts for import - only show active phases and all live accounts
   useEffect(() => {
     const prepareAccounts = () => {
       if (accounts.length === 0) {
@@ -81,14 +81,35 @@ export default function AccountSelection({
       setIsLoadingPhases(true)
       
       try {
-        // Phase data is already included in accounts from server
-        // Just map to include phase details in the expected format
-        const accountsWithPhaseData = accounts.map((account) => {
-          // Use currentPhaseDetails that's already loaded from server
-          if (account.accountType === 'prop-firm' && account.currentPhaseDetails) {
-            return {
-              ...account,
-              currentPhase: account.currentPhaseDetails
+        // For import: only show active phases for prop-firm accounts
+        const filteredAccounts = accounts.filter(acc => {
+          // Show all live accounts
+          if (acc.accountType === 'live') return true
+          
+          // For prop-firm accounts: only show active phases (NOT passed or failed)
+          if (acc.accountType === 'prop-firm') {
+            // Check phase status - must be active (not passed, not failed)
+            const phaseStatus = acc.currentPhase?.status || acc.status
+            return phaseStatus === 'active'
+          }
+          
+          return false
+        })
+
+        // Map to include phase details in the expected format
+        const accountsWithPhaseData = filteredAccounts.map((account) => {
+          // Use phaseDetails that's already loaded from server
+          if (account.accountType === 'prop-firm') {
+            const phaseDetails = (account as any).phaseDetails
+            if (phaseDetails) {
+              return {
+                ...account,
+                currentPhase: {
+                  phaseNumber: phaseDetails.phaseNumber || (account as any).currentPhase,
+                  status: phaseDetails.status || account.status,
+                  phaseId: phaseDetails.phaseId || account.number
+                }
+              }
             }
           }
           return account

@@ -133,12 +133,41 @@ export default function Navbar() {
     if (!accountNumbers || accountNumbers.length === 0) {
       return "All Accounts"
     }
-    
+
     if (accountNumbers.length === 1) {
-      const account = accounts.find(acc => acc.number === accountNumbers[0])
-      return account ? `${account.number}` : `1 Account`
+      // accountNumbers contains the phase ID (account.number), so find by number
+      const account = accounts.find(acc => 
+        acc.number === accountNumbers[0] || 
+        acc.id === accountNumbers[0]
+      )
+      if (account) {
+        // Show account name with phase info for prop firm accounts
+        const accountName = account.name || account.number
+        const phaseInfo = (account as any).currentPhase ? ` - Phase ${(account as any).currentPhase}` : ''
+        return `${accountName}${phaseInfo}`
+      }
+      return `1 Account`
+    }
+
+    // Multiple accounts selected
+    const selectedAccounts = accountNumbers
+      .map(num => accounts.find(acc => acc.number === num || acc.id === num))
+      .filter(Boolean) as any[]
+    
+    // Group by master account name
+    const byMasterAccount = new Map<string, number>()
+    selectedAccounts.forEach(acc => {
+      const masterName = acc.name || acc.number
+      byMasterAccount.set(masterName, (byMasterAccount.get(masterName) || 0) + 1)
+    })
+    
+    if (byMasterAccount.size === 1) {
+      // All phases from same master account
+      const [masterName, count] = Array.from(byMasterAccount.entries())[0]
+      return count > 1 ? `${masterName} (${count} phases)` : masterName
     }
     
+    // Multiple master accounts
     return `${accountNumbers.length} Accounts`
   }
 
@@ -341,7 +370,7 @@ export default function Navbar() {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="p-0 w-auto max-w-[95vw]" align="end" sideOffset={8}>
+              <PopoverContent className="p-0 w-auto max-w-[90vw] sm:max-w-[95vw]" align="end" sideOffset={4} collisionPadding={16} avoidCollisions={true}>
                 <AccountSelector onSave={() => setAccountPopoverOpen(false)} />
               </PopoverContent>
             </Popover>
@@ -361,7 +390,7 @@ export default function Navbar() {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="p-0 w-auto max-w-[95vw]" align="end" sideOffset={8}>
+              <PopoverContent className="p-0 w-auto max-w-[90vw] sm:max-w-[95vw]" align="end" sideOffset={4} collisionPadding={16} avoidCollisions={true}>
                 <GeneralFilters onSave={() => setFiltersPopoverOpen(false)} />
               </PopoverContent>
             </Popover>
@@ -376,7 +405,7 @@ export default function Navbar() {
                     <span className="text-sm">{getDateRangeText()}</span>
                   </Button>
               </PopoverTrigger>
-              <PopoverContent className="p-0 w-auto max-w-[95vw]" align="end" sideOffset={8}>
+              <PopoverContent className="p-0 w-auto max-w-[90vw] sm:max-w-[95vw]" align="end" sideOffset={8} collisionPadding={20} avoidCollisions={true}>
                 <DateRangeSelector onSave={() => setDatePopoverOpen(false)} />
               </PopoverContent>
             </Popover>
@@ -453,13 +482,13 @@ export default function Navbar() {
                         </svg>
                         <span>{getAccountButtonText()}</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="hover:bg-accent/80 transition-colors duration-200 opacity-50 cursor-not-allowed">
+                      <DropdownMenuItem onClick={() => setFiltersPopoverOpen(true)} className="hover:bg-accent/80 transition-colors duration-200">
                         <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
                         </svg>
                         <span>Filters</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="hover:bg-accent/80 transition-colors duration-200 opacity-50 cursor-not-allowed">
+                      <DropdownMenuItem onClick={() => setDatePopoverOpen(true)} className="hover:bg-accent/80 transition-colors duration-200">
                         <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>

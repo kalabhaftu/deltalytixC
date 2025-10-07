@@ -226,7 +226,7 @@
   },
   "EquityEdge": {
     "name": "EquityEdge",
-    "accountSizes": [5000, 10000, 25000, 50000, 100000],
+    "accountSizes": [2500, 5000, 10000, 25000, 50000, 100000],
     "programs": [
       {
         "name": "Two Step Challenge",
@@ -275,7 +275,7 @@
             "timeLimitDays": null
           },
           "phase2": {
-            "profitTargetPercent": 5,
+            "profitTargetPercent": 4,
             "maxDrawdownPercent": 8,
             "maxDrawdownType": "static",
             "dailyDrawdownPercent": 4,
@@ -314,7 +314,7 @@
   },
   "Custom": {
     "name": "Custom",
-    "accountSizes": [1000, 5000, 10000, 25000, 50000, 100000, 200000, 500000],
+    "accountSizes": [1000, 2500, 5000, 10000, 25000, 50000, 100000, 200000, 500000],
     "programs": [
       {
         "name": "Custom Challenge",

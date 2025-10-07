@@ -28,9 +28,28 @@ interface MetricData {
 export default function PerformanceScore({ size = 'small-long' }: PerformanceScoreProps) {
   const { formattedTrades } = useData()
 
-  const { chartData, overallScore, zellaResult } = React.useMemo(() => {
+  const { chartData, overallScore, zellaResult, hasData } = React.useMemo(() => {
     // Calculate metrics using Zella Score formula
     const metrics = calculateMetricsFromTrades(formattedTrades)
+    
+    // No data case
+    if (!metrics) {
+      const emptyData: MetricData[] = [
+        { metric: 'Win %', value: 0, fullMark: 100 },
+        { metric: 'Profit Factor', value: 0, fullMark: 100 },
+        { metric: 'Avg W/L', value: 0, fullMark: 100 },
+        { metric: 'Recovery', value: 0, fullMark: 100 },
+        { metric: 'Consistency', value: 0, fullMark: 100 },
+        { metric: 'Drawdown', value: 0, fullMark: 100 },
+      ]
+      return {
+        chartData: emptyData,
+        overallScore: 0,
+        zellaResult: null,
+        hasData: false
+      }
+    }
+
     const zellaResult = calculateZellaScore(metrics)
 
     // Create radar chart data using Zella Score breakdown
@@ -46,7 +65,8 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
     return { 
       chartData: radarData, 
       overallScore: zellaResult.overallScore,
-      zellaResult 
+      zellaResult,
+      hasData: true
     }
   }, [formattedTrades])
 
@@ -97,14 +117,14 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
           </div>
           
           {/* Score Badge in Header */}
-          <div className={cn("flex items-center gap-2", getScoreColor(overallScore))}>
-            {overallScore >= 60 ? (
+          <div className={cn("flex items-center gap-2", hasData ? getScoreColor(overallScore) : "text-muted-foreground")}>
+            {hasData && (overallScore >= 60 ? (
               <TrendingUp className={cn("h-4 w-4", size === 'small-long' && "h-3 w-3")} />
             ) : (
               <TrendingDown className={cn("h-4 w-4", size === 'small-long' && "h-3 w-3")} />
-            )}
+            ))}
             <span className={cn("font-bold", size === 'small-long' ? "text-sm" : "text-base")}>
-              {overallScore}
+              {hasData ? overallScore : '-'}
             </span>
           </div>
         </div>
@@ -116,74 +136,87 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
           size === 'small' ? "p-1" : "p-2 sm:p-4"
         )}
       >
-        {/* Radar Chart */}
-        <div className="h-48 mb-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart data={chartData} margin={{ 
-              top: size === 'small-long' ? 10 : 15, 
-              right: size === 'small-long' ? 15 : 25, 
-              bottom: size === 'small-long' ? 10 : 15, 
-              left: size === 'small-long' ? 15 : 25 
-            }}>
-              <PolarGrid
-                stroke="hsl(var(--border))"
-                strokeWidth={1}
-              />
-              <PolarAngleAxis
-                dataKey="metric"
-                tick={{
-                  fontSize: size === 'small-long' ? 9 : 11,
-                  fill: 'hsl(var(--muted-foreground))'
-                }}
-              />
-              <PolarRadiusAxis
-                angle={90}
-                domain={[0, 100]}
-                tick={false}
-                axisLine={false}
-              />
-              <Radar
-                name="Score"
-                dataKey="value"
-                stroke="#8b5cf6"
-                fill="#8b5cf6"
-                fillOpacity={0.3}
-                strokeWidth={2}
-                dot={{ fill: '#8b5cf6', stroke: 'none', strokeWidth: 0, r: size === 'small-long' ? 3 : 4 }}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
+        {!hasData ? (
+          <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center">
+            <div className="text-muted-foreground text-sm">
+              No trading data available
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Import trades to see your performance score
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Radar Chart */}
+            <div className="h-48 mb-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={chartData} margin={{ 
+                  top: size === 'small-long' ? 10 : 15, 
+                  right: size === 'small-long' ? 15 : 25, 
+                  bottom: size === 'small-long' ? 10 : 15, 
+                  left: size === 'small-long' ? 15 : 25 
+                }}>
+                  <PolarGrid
+                    stroke="hsl(var(--border))"
+                    strokeWidth={1}
+                  />
+                  <PolarAngleAxis
+                    dataKey="metric"
+                    tick={{
+                      fontSize: size === 'small-long' ? 9 : 11,
+                      fill: 'hsl(var(--muted-foreground))'
+                    }}
+                  />
+                  <PolarRadiusAxis
+                    angle={90}
+                    domain={[0, 100]}
+                    tick={false}
+                    axisLine={false}
+                  />
+                  <Radar
+                    name="Score"
+                    dataKey="value"
+                    stroke="#8b5cf6"
+                    fill="#8b5cf6"
+                    fillOpacity={0.3}
+                    strokeWidth={2}
+                    dot={{ fill: '#8b5cf6', stroke: 'none', strokeWidth: 0, r: size === 'small-long' ? 3 : 4 }}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
 
-        {/* Score Display */}
-        <div className="space-y-1">
-          <div className="text-center">
-            <div className="text-xs font-medium text-muted-foreground mb-1">
-              Your Performance Score
-            </div>
-            <div className={cn("text-lg font-bold", getScoreColor(overallScore))}>
-              {overallScore}
-            </div>
-          </div>
+            {/* Score Display */}
+            <div className="space-y-1">
+              <div className="text-center">
+                <div className="text-xs font-medium text-muted-foreground mb-1">
+                  Your Performance Score
+                </div>
+                <div className={cn("text-lg font-bold", getScoreColor(overallScore))}>
+                  {overallScore}
+                </div>
+              </div>
           
-          {/* Progress bar */}
-          <div className="space-y-0.5">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>0</span>
-              <span>20</span>
-              <span>40</span>
-              <span>60</span>
-              <span>80</span>
-              <span>100</span>
+              {/* Progress bar */}
+              <div className="space-y-0.5">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>0</span>
+                  <span>20</span>
+                  <span>40</span>
+                  <span>60</span>
+                  <span>80</span>
+                  <span>100</span>
+                </div>
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className={cn("h-full transition-all duration-500", getScoreBarColor(overallScore))}
+                    style={{ width: `${Math.min(overallScore, 100)}%` }}
+                  />
+                </div>
+              </div>
             </div>
-            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-              <div 
-                className={cn("h-full transition-all duration-500", getScoreBarColor(overallScore))}
-                style={{ width: `${Math.min(overallScore, 100)}%` }}
-              />
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </CardContent>
     </Card>
   )

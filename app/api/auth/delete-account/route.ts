@@ -76,16 +76,6 @@ export async function DELETE(request: NextRequest) {
       console.log(`[Account Deletion] Deleting trading data...`)
       
       // Trading-related deletions
-      if (tradeIds.length > 0) {
-        await tx.tradeAnalytics.deleteMany({
-          where: { tradeId: { in: tradeIds } }
-        })
-      }
-      
-      await tx.order.deleteMany({
-        where: { userId }
-      })
-
       console.log(`[Account Deletion] Deleting account data...`)
       
       // Account-related deletions
@@ -129,15 +119,7 @@ export async function DELETE(request: NextRequest) {
         where: { userId }
       })
       
-      await tx.tag.deleteMany({
-        where: { userId }
-      })
-      
-      await tx.dashboardLayout.deleteMany({
-        where: { userId }
-      })
-      
-      await tx.notification.deleteMany({
+      await tx.dashboardTemplate.deleteMany({
         where: { userId }
       })
 

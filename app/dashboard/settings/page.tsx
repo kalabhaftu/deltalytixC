@@ -42,7 +42,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Slider } from "@/components/ui/slider"
 import { LinkedAccounts } from "@/components/linked-accounts"
-import { AccountFilterSettingsCard } from "@/components/account-filter-settings"
 import { useToolbarSettingsStore } from "@/store/toolbar-settings-store"
 import { toast } from "sonner"
 import { PrimaryButton, SecondaryButton, DestructiveButton } from "@/components/ui/button-styles"
@@ -145,16 +144,13 @@ export default function SettingsPage() {
       const updatedModels = DataSerializer.addTradingModel(trimmedName)
       setCustomModels(updatedModels)
       setCustomModelName('')
-      toast({
-        title: "Model Added",
+      toast.success("Model Added", {
         description: `"${trimmedName}" has been added to your trading models.`,
         duration: 3000,
       })
     } catch (error) {
-      toast({
-        title: "Model Already Exists",
+      toast.error("Model Already Exists", {
         description: `"${trimmedName}" is already in your models list.`,
-        variant: "destructive",
         duration: 3000,
       })
     }
@@ -668,13 +664,6 @@ export default function SettingsPage() {
         </Card>
 
         {/* Notifications Section */}
-
-
-
-
-
-        {/* Account Filter Settings */}
-        <AccountFilterSettingsCard />
 
         {/* Trading Models Section */}
         <Card>

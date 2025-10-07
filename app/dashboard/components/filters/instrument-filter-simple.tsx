@@ -8,24 +8,22 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Search } from "lucide-react"
-import { useTradesStore } from "@/store/trades-store"
 
 interface InstrumentFilterSimpleProps {
   className?: string
 }
 
 export function InstrumentFilterSimple({ className }: InstrumentFilterSimpleProps) {
-  const { instruments, setInstruments } = useData()
-  const trades = useTradesStore(state => state.trades)
+  const { instruments, setInstruments, formattedTrades } = useData()
   const [searchTerm, setSearchTerm] = useState("")
   const [availableInstruments, setAvailableInstruments] = useState<string[]>([])
 
   useEffect(() => {
-    if (trades && trades.length > 0) {
-      const uniqueInstruments = Array.from(new Set(trades.map(trade => trade.instrument || '')))
+    if (formattedTrades && formattedTrades.length > 0) {
+      const uniqueInstruments = Array.from(new Set(formattedTrades.map(trade => trade.instrument || '')))
       setAvailableInstruments(uniqueInstruments)
     }
-  }, [trades])
+  }, [formattedTrades])
 
   const handleSelect = (instrument: string) => {
     setInstruments(prev => {

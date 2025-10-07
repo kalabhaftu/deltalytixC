@@ -48,6 +48,7 @@ export function DataManagementCard() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   // Combine accounts with their trades for unified data management
+  // Server now returns clean data without master account duplicates
   const accountsWithTrades = useMemo(() => {
     if (!allAccounts || accountsLoading) return []
     
@@ -108,7 +109,16 @@ export function DataManagementCard() {
         }
       }
 
-      // Refresh both accounts and trades data
+      // Force cache invalidation for ALL data sources
+      const { invalidateAccountsCache } = await import('@/hooks/use-accounts')
+      const { invalidateUserCaches } = await import('@/server/accounts')
+      
+      // Invalidate all caches
+      invalidateAccountsCache('account-deleted')
+      if (user?.id) {
+        await invalidateUserCaches(user.id)
+      }
+      
       await Promise.all([
         refetchAccounts(),
         refreshTrades()

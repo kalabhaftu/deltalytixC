@@ -13,6 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { calculateBalanceInfo } from '@/lib/utils/balance-calculator'
 
 interface AccountBalancePnlProps {
   size?: string
@@ -21,30 +22,25 @@ interface AccountBalancePnlProps {
 export default function AccountBalancePnl({ size }: AccountBalancePnlProps) {
   const { accountNumbers, formattedTrades } = useData()
   const { accounts } = useAccounts()
-  const { cumulativePnl, cumulativeFees } = useTradeStatistics()
   
   // Filter accounts based on selection
   const filteredAccounts = React.useMemo(() => {
     if (!accounts || !Array.isArray(accounts) || accounts.length === 0) return []
-    // If no filter is set (empty array), show all accounts
-    if (!accountNumbers || accountNumbers.length === 0) return accounts
-    // Otherwise, filter to selected accounts
+    // If no filter is set (empty array), return empty array to show no data
+    if (!accountNumbers || accountNumbers.length === 0) return []
+    // Otherwise, filter to selected accounts by matching account number (phaseId) ONLY
+    // This ensures we only get the exact phases selected, not all phases of a master account
     return accounts.filter(acc => accountNumbers.includes(acc.number))
   }, [accounts, accountNumbers])
   
-  // Calculate total starting balance from filtered accounts
-  const totalStartingBalance = React.useMemo(() => {
-    return filteredAccounts.reduce((sum, account) => {
-      return sum + (account.startingBalance || 0)
-    }, 0)
-  }, [filteredAccounts])
+  // ✅ USE UNIFIED CALCULATOR - Single source of truth for all balance calculations
+  // This replaces the old custom logic (lines 39-71) with centralized, tested functions
+  const balanceInfo = React.useMemo(() => {
+    return calculateBalanceInfo(filteredAccounts, formattedTrades)
+  }, [filteredAccounts, formattedTrades])
   
-  // Calculate total balance = starting balance + cumulative P&L - fees
-  // formattedTrades is already filtered by accountNumbers in the DataProvider
-  const totalBalance = totalStartingBalance + cumulativePnl - cumulativeFees
-  
-  // Calculate net P&L (including fees) - this comes from formattedTrades which is already filtered
-  const netPnl = cumulativePnl - cumulativeFees
+  const totalBalance = balanceInfo.currentBalance
+  const netPnl = balanceInfo.netPnL
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {

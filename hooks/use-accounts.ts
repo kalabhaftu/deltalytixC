@@ -158,14 +158,6 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
             return []
           }
           
-          // Debug: Log the account data from server
-          console.log('[useAccounts] Raw account data from server:', accounts.map(a => ({
-            id: a.id,
-            name: a.name,
-            tradeCount: a.tradeCount,
-            propfirm: a.propfirm
-          })))
-
           // Transform accounts to match the expected interface
           // No async operations needed - phase data already included from server
           const transformedAccounts: UnifiedAccount[] = accounts.map((account: any) => {
@@ -174,9 +166,9 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
             const currentPhase = phaseDetails?.phaseNumber || account.currentPhase || null
             const phaseAccountNumber = phaseDetails?.phaseId || null
 
-            // Calculate current balance including trade P&L
-            const currentBalance = account.startingBalance || 0
-            const currentEquity = account.startingBalance || 0
+            // NOTE: currentBalance and currentEquity are set to undefined here
+            // They should be calculated by components that have access to trades data
+            // The accounts page calculates these values in accountsWithRealEquity useMemo
 
             return {
               id: account.id,
@@ -185,8 +177,8 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
               propfirm: account.propfirm,
               broker: account.broker || undefined, // Convert null to undefined
               startingBalance: account.startingBalance,
-              currentBalance, // Use calculated balance
-              currentEquity,  // Use calculated equity
+              currentBalance: undefined, // To be calculated by components with trade data
+              currentEquity: undefined,  // To be calculated by components with trade data
               status: account.status || 'active',
               createdAt: account.createdAt instanceof Date ? account.createdAt.toISOString() : account.createdAt,
               userId: account.userId,
@@ -203,14 +195,6 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
               currentPhaseDetails: phaseDetails
             }
           })
-
-          // Debug: Log the final transformed accounts
-          console.log('[useAccounts] Final transformed accounts:', transformedAccounts.map(a => ({
-            id: a.id,
-            name: a.name,
-            tradeCount: a.tradeCount,
-            accountType: a.accountType
-          })))
 
           return transformedAccounts
         } catch (error) {
@@ -269,7 +253,6 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
       // Only update if we have cached data to avoid unnecessary fetching
       if (accountsCache && !isCurrentlyFetching) {
         setAccounts(accountsCache)
-        console.log('[useAccounts] Updated from broadcast')
       }
     })
 
@@ -279,8 +262,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
         const supabase = createClient()
         
         // Check if supabase client supports real-time (not in mock mode)
-        if (!supabase.channel || typeof supabase.channel !== 'function') {
-          console.log('[useAccounts] Supabase realtime not available (mock mode or missing config)')
+        if (!(supabase as any).channel || typeof (supabase as any).channel !== 'function') {
           return
         }
 
@@ -308,8 +290,6 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
             }
             refreshTimeout = setTimeout(() => {
               lastChangeTime = Date.now()
-              const changeCount = pendingChanges.size
-              console.log(`[useAccounts] Batched refresh triggered: ${changeCount} pending changes`)
               pendingChanges.clear()
               invalidateAccountsCache('batched realtime changes')
               fetchAccounts(true)
@@ -319,15 +299,13 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
 
           // Update last change time and refresh immediately for significant changes
           lastChangeTime = now
-          const changeCount = pendingChanges.size
-          console.log(`[useAccounts] Immediate refresh for significant change: ${changeType} (${changeCount} total changes)`)
           pendingChanges.clear()
           invalidateAccountsCache('immediate realtime change')
           fetchAccounts(true)
         }
 
         // Subscribe to accounts table changes with better filtering
-        const accountsSubscription = supabase
+        const accountsSubscription = (supabase as any)
           .channel('accounts-realtime-changes')
           .on(
             'postgres_changes',
@@ -338,22 +316,18 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
             },
           (payload: any) => {
             const changeId = payload.new?.id || payload.old?.id
-            console.log('[useAccounts] Account change:', payload.eventType, changeId)
-            
             // Refresh for all account changes - balance, status, etc.
             intelligentRefresh('account', changeId)
           }
         )
         .subscribe((status: string) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('[useAccounts] Successfully subscribed to account changes')
-          } else if (status === 'CHANNEL_ERROR') {
+          if (status === 'CHANNEL_ERROR') {
             console.warn('[useAccounts] Error subscribing to account changes')
           }
         })
 
         // Subscribe to trades table changes with account impact detection
-        const tradesSubscription = supabase
+        const tradesSubscription = (supabase as any)
           .channel('trades-realtime-changes')
           .on(
             'postgres_changes',
@@ -364,23 +338,18 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
             },
           (payload: any) => {
             const changeId = payload.new?.id || payload.old?.id
-            const accountNumber = payload.new?.accountNumber || payload.old?.accountNumber
-            console.log('[useAccounts] Trade change:', payload.eventType, changeId, 'for account:', accountNumber)
-            
             // Trades affect account equity and trade counts
             intelligentRefresh('trade', changeId)
           }
         )
         .subscribe((status: string) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('[useAccounts] Successfully subscribed to trade changes')
-          } else if (status === 'CHANNEL_ERROR') {
+          if (status === 'CHANNEL_ERROR') {
             console.warn('[useAccounts] Error subscribing to trade changes')
           }
         })
 
         // Subscribe to prop firm master accounts and phases
-        const propFirmSubscription = supabase
+        const propFirmSubscription = (supabase as any)
           .channel('propfirm-realtime-changes')
           .on(
             'postgres_changes',
@@ -391,7 +360,6 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
             },
           (payload: any) => {
             const changeId = payload.new?.id || payload.old?.id
-            console.log('[useAccounts] Prop firm account change:', payload.eventType, changeId)
             intelligentRefresh('prop-firm', changeId)
           }
         )
@@ -404,14 +372,11 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
           },
           (payload: any) => {
             const changeId = payload.new?.id || payload.old?.id
-            console.log('[useAccounts] Phase change:', payload.eventType, changeId)
             intelligentRefresh('phase', changeId)
           }
         )
         .subscribe((status: string) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('[useAccounts] Successfully subscribed to prop firm changes')
-          } else if (status === 'CHANNEL_ERROR') {
+          if (status === 'CHANNEL_ERROR') {
             console.warn('[useAccounts] Error subscribing to prop firm changes')
           }
         })

@@ -1,64 +1,17 @@
 'use server'
 
-import { getShared } from './shared'
-import { TickDetails, User, DashboardLayout, Trade } from '@prisma/client'
+import { User, DashboardLayout, Trade } from '@prisma/client'
 import { GroupWithAccounts } from './groups'
 import { prisma } from '@/lib/prisma'
 import { createClient, getUserId, getUserIdSafe } from './auth'
 import { Account, Group } from '@/context/data-provider'
-import { revalidateTag, unstable_cache } from 'next/cache'
-
-export type SharedDataResponse = {
-  trades: Trade[]
-  params: any
-  error?: string
-  groups: GroupWithAccounts[]
-}
-
-export async function loadSharedData(slug: string): Promise<SharedDataResponse> {
-  if (!slug) {
-    return {
-      trades: [],
-      params: null,
-      error: 'Invalid slug',
-      groups: []
-    }
-  }
-
-  try {
-    const sharedData = await getShared(slug)
-    if (!sharedData) {
-      return {
-        trades: [],
-        params: null,
-        error: 'Shared data not found',
-        groups: []
-      }
-    }
-
-    return {
-      trades: sharedData.trades,
-      params: sharedData.params,
-      groups: []
-    }
-  } catch (error) {
-    return {
-      trades: [],
-      params: null,
-      error: 'Failed to load shared data',
-      groups: []
-    }
-  }
-} 
+import { revalidateTag, unstable_cache } from 'next/cache' 
 
 
 export async function getUserData(): Promise<{
   userData: User | null;
-  tickDetails: TickDetails[];
-  // tags: Tag[]; // Removed - tags feature
   accounts: Account[];
   groups: Group[];
-  // moodHistory: Mood[]; // Removed - mood feature
 }> {
   try {
     const userId = await getUserIdSafe()
@@ -67,7 +20,6 @@ export async function getUserData(): Promise<{
     if (!userId) {
       return {
         userData: null,
-        tickDetails: [],
         accounts: [],
         groups: []
       }
@@ -110,10 +62,6 @@ export async function getUserData(): Promise<{
           return null
         }
       })(),
-      // Tick details - cached globally since they don't change often
-      Promise.resolve([]), // Skip tick details for now - can be loaded lazily
-      // Tags - keep minimal
-      Promise.resolve([]), // Skip tags for now to improve performance
       // Use getAccountsAction for unified account handling (regular + prop firm)
       (async () => {
         try {
@@ -150,25 +98,19 @@ export async function getUserData(): Promise<{
 
         const [
           userData,
-          tickDetails,
-          tags,
           accounts,
-          groups,
-          moodHistory
+          groups
         ] = await Promise.race([dataPromise, timeoutPromise]) as any
 
 
-        return { userData, tickDetails, /* tags, */ accounts, groups, /* moodHistory */ } // Removed tags and mood features
+        return { userData, accounts, groups }
       } catch (error) {
         console.error('[getUserData] Database error:', error)
         // Return empty data structure if database is unavailable
         return {
           userData: null,
-          tickDetails: [],
-          // tags: [], // Removed - tags feature
           accounts: [],
-          groups: [],
-          // moodHistory: [] // Removed - mood feature
+          groups: []
         }
       }
     },
@@ -183,12 +125,8 @@ export async function getUserData(): Promise<{
     // Return empty data structure if we can't get user information
     return {
       userData: null,
-      tickDetails: [],
-      // tags: [], // Removed - tags feature
       accounts: [],
-      groups: [],
-      // financialEvents: [], // Removed - financial events feature
-      // moodHistory: [] // Removed - mood feature
+      groups: []
     }
   }
 }

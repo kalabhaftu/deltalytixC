@@ -9,7 +9,7 @@ interface RouteParams {
   }
 }
 
-// GET /api/accounts/[id] - Get specific account
+// GET /api/accounts/[id] - Get specific account with calculated metrics
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
@@ -20,6 +20,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       where: {
         id: accountId,
         userId,
+      },
+      include: {
+        _count: {
+          select: {
+            trades: true
+          }
+        }
       }
     })
 
@@ -30,6 +37,34 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
+    // Fetch trades to calculate profitLoss and currentEquity
+    const trades = await prisma.trade.findMany({
+      where: {
+        accountId: account.id,
+      },
+      select: {
+        pnl: true,
+        commission: true,
+        fees: true,
+        entryDate: true,
+      },
+      orderBy: {
+        entryDate: 'desc'
+      }
+    })
+
+    // Calculate profitLoss (net of commissions and fees for consistency)
+    const profitLoss = trades.reduce((sum, trade) => {
+      const netPnL = trade.pnl - (trade.commission || 0) - (trade.fees || 0)
+      return sum + netPnL
+    }, 0)
+
+    // Calculate current equity
+    const currentEquity = account.startingBalance + profitLoss
+
+    // Get last trade date
+    const lastTradeDate = trades.length > 0 ? trades[0].entryDate : null
+
     // Transform account data
     const transformedAccount = {
       id: account.id,
@@ -39,7 +74,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       accountType: 'live',
       displayName: account.name || account.number,
       startingBalance: account.startingBalance,
+      currentEquity,
+      profitLoss,
       status: 'active',
+      tradeCount: account._count.trades,
+      lastTradeDate,
       createdAt: account.createdAt,
     }
 
@@ -144,23 +183,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Delete account and clean up orphaned trades in a transaction
-    await prisma.$transaction(async (tx) => {
-      // First, delete any orphaned trades that might only be linked by accountNumber
-      // but not by accountId (to handle legacy data)
-      await tx.trade.deleteMany({
-        where: {
-          accountNumber: existingAccount.number,
-          userId: userId,
-        }
-      })
-
-      // Then delete the account (this will cascade delete trades linked by accountId)
-      await tx.account.delete({
-        where: {
-          id: accountId,
-        }
-      })
+    // Delete account - Prisma cascade will automatically delete all linked trades
+    await prisma.account.delete({
+      where: {
+        id: accountId,
+      }
     })
 
     // Invalidate all cache tags to ensure fresh data

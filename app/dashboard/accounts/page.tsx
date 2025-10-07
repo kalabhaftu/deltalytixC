@@ -65,6 +65,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { calculateAccountBalances } from "@/lib/utils/balance-calculator"
 
 // Types
 interface Account {
@@ -127,9 +128,15 @@ export default function AccountsPage() {
 
   // Filter accounts - Accounts page has its own built-in filtering and does NOT use advanced filtering settings
   // Advanced filtering settings are only applied to dashboard widgets and tables page
+  // Server now returns clean data without master account duplicates
+  // Hide failed/passed/archived accounts by default - only show active and funded
   const filteredAccounts = useMemo(() => {
-    // Apply only the search/type/status filters from the accounts page UI
     return accounts.filter(account => {
+      // Hide failed, passed, and archived accounts (only show active and funded)
+      if (account.status === 'failed' || account.status === 'passed' || account.status === 'archived') {
+        return false
+      }
+      
       const matchesSearch = !searchQuery ||
         account.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         account.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -143,22 +150,11 @@ export default function AccountsPage() {
     })
   }, [accounts, searchQuery, filterType, filterStatus])
 
-  // Calculate real equity including trade P&L
+  // Calculate real equity using unified balance calculator
   const accountsWithRealEquity = useMemo(() => {
-    const accountEquities = new Map<string, number>()
-    
-    // Initialize with starting balances
-    filteredAccounts.forEach(account => {
-      accountEquities.set(account.number, account.startingBalance || 0)
-    })
-    
-    // Add trade P&L to calculate current equity
-    formattedTrades.forEach(trade => {
-      if (trade && trade.accountNumber) {
-        const currentEquity = accountEquities.get(trade.accountNumber) || 0
-        const netPnL = (trade.pnl || 0) - (trade.commission || 0)
-        accountEquities.set(trade.accountNumber, currentEquity + netPnL)
-      }
+    const accountEquities = calculateAccountBalances(filteredAccounts, formattedTrades, {
+      excludeFailedAccounts: true,
+      includePayouts: true
     })
     
     // Return accounts with calculated equity
@@ -268,6 +264,12 @@ export default function AccountsPage() {
 
       // Clear all cache layers to ensure immediate refresh
       clearAccountsCache()
+      
+      // Invalidate all server-side caches
+      const { invalidateUserCaches } = await import('@/server/accounts')
+      if (user?.id) {
+        await invalidateUserCaches(user.id)
+      }
 
       // Force refresh by clearing browser cache and reloading
       if ('caches' in window) {

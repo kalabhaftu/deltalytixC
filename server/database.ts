@@ -231,48 +231,6 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
     }
 }
 
-// Create cache function dynamically for each user/subscription combination
-function getCachedTrades(userId: string, page: number, chunkSize: number): Promise<Trade[]> {
-  return unstable_cache(
-    async () => {
-
-      try {
-        const query: TradeQuery = {
-          where: { userId },
-          orderBy: { entryDate: 'desc' },
-          skip: (page - 1) * chunkSize,
-          take: chunkSize
-        }
-
-        return await prisma.trade.findMany(query)
-      } catch (error) {
-        if (error instanceof Error) {
-          // Handle table doesn't exist error
-          if (error.message.includes('does not exist')) {
-            console.log('[getCachedTrades] Trade table does not exist yet, returning empty array')
-            return []
-          }
-          // Handle database connection errors
-          if (error.message.includes("Can't reach database server") ||
-              error.message.includes('P1001') ||
-              error.message.includes('connection') ||
-              error.message.includes('timeout')) {
-            console.log('[getCachedTrades] Database connection error, returning empty array')
-            return []
-          }
-        }
-        console.error('[getCachedTrades] Unexpected error:', error)
-        return [] // Return empty array instead of throwing
-      }
-    },
-    // Static string array - this is the cache key
-    [`trades-${userId}-${page}`],
-    {
-      tags: [`trades-${userId}`], // User-specific tag for revalidation
-      revalidate: 3600 // Revalidate every hour (3600 seconds)
-    }
-  )()  // Note the () at the end - we call the cached function immediately
-}
 
 
 export async function getTradesAction(userId: string | null = null, options?: {
@@ -376,84 +334,6 @@ export async function getTradesAction(userId: string | null = null, options?: {
   }
 }
 
-// New function for progressive loading with statistics
-export async function getTradesProgressiveAction(userId: string | null = null, options?: {
-  batchSize?: number
-  offset?: number
-  filters?: {
-    dateRange?: { from: Date; to: Date }
-    instruments?: string[]
-    accountNumbers?: string[]
-  }
-}): Promise<{
-  trades: Trade[]
-  total: number
-  hasMore: boolean
-  progress: number
-}> {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user && !userId) {
-      return { trades: [], total: 0, hasMore: false, progress: 0 }
-    }
-
-    const actualUserId = userId || user?.id
-    if (!actualUserId) {
-      return { trades: [], total: 0, hasMore: false, progress: 0 }
-    }
-
-    const batchSize = options?.batchSize || 50
-    const offset = options?.offset || 0
-
-    // Get total count for progress calculation
-    let whereClause: any = { userId: actualUserId }
-
-    if (options?.filters?.dateRange?.from && options?.filters?.dateRange?.to) {
-      whereClause.entryDate = {
-        gte: options.filters.dateRange.from,
-        lte: options.filters.dateRange.to
-      }
-    }
-
-    if (options?.filters?.instruments?.length) {
-      whereClause.instrument = { in: options.filters.instruments }
-    }
-
-    if (options?.filters?.accountNumbers?.length) {
-      whereClause.accountNumber = { in: options.filters.accountNumbers }
-    }
-
-    const total = await prisma.trade.count({ where: whereClause })
-    const hasMore = offset + batchSize < total
-    const progress = total > 0 ? Math.min(((offset + batchSize) / total) * 100, 100) : 100
-
-    const query: any = {
-      where: whereClause,
-      orderBy: { entryDate: 'desc' },
-      skip: offset,
-      take: batchSize
-    }
-
-    const trades = await prisma.trade.findMany(query)
-
-    console.log(`[getTradesProgressiveAction] Loaded ${trades.length} trades (batch: ${batchSize}, offset: ${offset}, total: ${total}, progress: ${progress}%)`)
-
-    return {
-      trades: trades.map(trade => ({
-        ...trade,
-        entryDate: new Date(trade.entryDate).toISOString(),
-        exitDate: trade.closeDate ? new Date(trade.closeDate).toISOString() : null
-      })),
-      total,
-      hasMore,
-      progress
-    }
-  } catch (error) {
-    console.error('[getTradesProgressiveAction] Error:', error)
-    return { trades: [], total: 0, hasMore: false, progress: 0 }
-  }
-}
 
 export async function updateTradesAction(tradesIds: string[], update: Partial<Trade>): Promise<number> {
   try {

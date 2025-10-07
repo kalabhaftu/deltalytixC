@@ -6,6 +6,11 @@ import { Calendar as CalendarIcon } from "lucide-react"
 import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { useData } from "@/context/data-provider"
 import { toast } from "sonner"
@@ -88,16 +93,18 @@ export function DateRangeSelector({ onSave }: DateRangeSelectorProps) {
   const { dateRange, setDateRange } = useData()
   const [startDate, setStartDate] = useState<Date | null>(dateRange?.from || null)
   const [endDate, setEndDate] = useState<Date | null>(dateRange?.to || null)
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
 
   const handlePresetClick = (preset: typeof DATE_PRESETS[0]) => {
     const range = preset.getValue()
     setStartDate(range.from || null)
     setEndDate(range.to || null)
-    
+
     // Auto-apply presets immediately
     const newRange = range.from && range.to ? { from: range.from, to: range.to } : undefined
     setDateRange(newRange)
-    
+    setIsDatePickerOpen(false)
+
     if (!range.from && !range.to) {
       toast.success("Showing all dates")
     } else if (range.from && range.to) {
@@ -105,14 +112,15 @@ export function DateRangeSelector({ onSave }: DateRangeSelectorProps) {
         `Date range: ${format(range.from, 'MMM d, yyyy')} - ${format(range.to, 'MMM d, yyyy')}`
       )
     }
-    
+
     onSave?.()
   }
 
   const handleApply = () => {
     const newRange = startDate && endDate ? { from: startDate, to: endDate } : undefined
     setDateRange(newRange)
-    
+    setIsDatePickerOpen(false)
+
     if (!startDate && !endDate) {
       toast.success("Showing all dates")
     } else if (startDate && endDate) {
@@ -122,7 +130,7 @@ export function DateRangeSelector({ onSave }: DateRangeSelectorProps) {
     } else if (startDate) {
       toast.success(`Starting from: ${format(startDate, 'MMM d, yyyy')}`)
     }
-    
+
     onSave?.()
   }
 
@@ -130,37 +138,40 @@ export function DateRangeSelector({ onSave }: DateRangeSelectorProps) {
     setStartDate(null)
     setEndDate(null)
     setDateRange(undefined)
+    setIsDatePickerOpen(false)
     toast.success("Date filter cleared")
     onSave?.()
   }
 
-  const onDateChange = (dates: [Date | null, Date | null]) => {
-    const [start, end] = dates
-    setStartDate(start)
-    setEndDate(end)
-    
-    // Auto-apply when both dates are selected
-    if (start && end) {
-      const newRange = { from: start, to: end }
-      setDateRange(newRange)
-      toast.success(
-        `Date range: ${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`
-      )
-      // Don't close popover here, let user see the selection
+  const onDateChange = (dates: [Date | null, Date | null] | null) => {
+    if (dates) {
+      const [start, end] = dates
+      setStartDate(start)
+      setEndDate(end)
+
+      // Auto-apply when both dates are selected
+      if (start && end) {
+        const newRange = { from: start, to: end }
+        setDateRange(newRange)
+        toast.success(
+          `Date range: ${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`
+        )
+        setIsDatePickerOpen(false) // Close popover after selection
+      }
     }
   }
 
   return (
-    <div className="w-full min-w-[340px] max-w-[420px] p-4 space-y-4">
+    <div className="w-full min-w-[280px] sm:min-w-[320px] max-w-[360px] sm:max-w-[400px] p-3 sm:p-4 space-y-3 sm:space-y-4">
       <div className="space-y-2">
-        <h4 className="font-semibold text-base">Date Range Filter</h4>
-        <p className="text-sm text-muted-foreground">
+        <h4 className="font-semibold text-sm sm:text-base">Date Range Filter</h4>
+        <p className="text-xs sm:text-sm text-muted-foreground">
           Filter trades by date range
         </p>
       </div>
 
       {/* Presets */}
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
         {DATE_PRESETS.map((preset) => (
           <Button
             key={preset.label}
@@ -168,7 +179,7 @@ export function DateRangeSelector({ onSave }: DateRangeSelectorProps) {
             size="sm"
             onClick={() => handlePresetClick(preset)}
             className={cn(
-              "justify-start text-xs h-8 font-normal",
+              "justify-start text-xs h-8 sm:h-9 font-normal",
               !startDate && !endDate && preset.label === "All time" && "bg-accent font-medium"
             )}
           >
@@ -181,47 +192,56 @@ export function DateRangeSelector({ onSave }: DateRangeSelectorProps) {
 
       {/* Date Picker */}
       <div className="flex flex-col gap-2">
-        <DatePicker
-          selected={startDate}
-          onChange={onDateChange}
-          startDate={startDate}
-          endDate={endDate}
-          selectsRange
-          inline
-          monthsShown={1}
-          calendarClassName="custom-datepicker"
-        />
+        <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full justify-start text-left font-normal h-10 sm:h-11 text-sm border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+              <span className="text-foreground">
+                {startDate && endDate
+                  ? `${format(startDate, 'MMM d, yyyy')} - ${format(endDate, 'MMM d, yyyy')}`
+                  : startDate
+                  ? `From ${format(startDate, 'MMM d, yyyy')}`
+                  : "Select date range"}
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <DatePicker
+              selected={startDate}
+              onChange={onDateChange}
+              startDate={startDate}
+              endDate={endDate}
+              selectsRange
+              inline
+              monthsShown={1}
+              calendarClassName="custom-datepicker"
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       <Separator />
 
-      {/* Selected Range Display */}
-      <div className="space-y-3">
-        <div className="text-xs text-muted-foreground min-h-[20px] flex items-center">
-          {startDate && endDate
-            ? `${format(startDate, 'MMM d, yyyy')} - ${format(endDate, 'MMM d, yyyy')}`
-            : startDate
-            ? `From ${format(startDate, 'MMM d, yyyy')}`
-            : "No date selected"}
-        </div>
-        
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleClear}
-            className="flex-1 h-9"
-          >
-            Clear
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleApply}
-            className="flex-1 h-9"
-          >
-            Apply
-          </Button>
-        </div>
+      {/* Actions */}
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleClear}
+          className="flex-1 h-8 sm:h-9 text-sm"
+        >
+          Clear
+        </Button>
+        <Button
+          size="sm"
+          onClick={handleApply}
+          className="flex-1 h-8 sm:h-9 text-sm"
+        >
+          Apply
+        </Button>
       </div>
     </div>
   )

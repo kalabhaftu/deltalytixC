@@ -7,7 +7,7 @@ import { Trade } from '@prisma/client'
 import EnhancedEditTrade from '@/app/dashboard/components/tables/enhanced-edit-trade'
 import TradeDetailView from '@/app/dashboard/components/tables/trade-detail-view'
 import { useData } from '@/context/data-provider'
-import { Search, Filter, SortDesc, Lightbulb } from 'lucide-react'
+import { Search, Filter, SortDesc, Lightbulb, AlertTriangle } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -354,7 +354,7 @@ export default function JournalPage() {
         ) : error ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-full flex items-center justify-center mb-4">
-              <span className="text-destructive text-xl">⚠️</span>
+              <AlertTriangle className="text-destructive h-8 w-8" />
             </div>
             <h3 className="text-lg font-semibold text-destructive mb-2">Failed to Load Trades</h3>
             <p className="text-muted-foreground">{error}</p>

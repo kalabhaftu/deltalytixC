@@ -22,6 +22,7 @@ import { Trade } from '@prisma/client'
 import { generateTradeHash } from '@/lib/utils'
 import { useUserStore } from '@/store/user-store'
 import { useTradesStore } from '@/store/trades-store'
+import { useAccounts } from '@/hooks/use-accounts'
 
 // Common instruments for quick selection
 const COMMON_INSTRUMENTS = [
@@ -180,25 +181,23 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
     }
   }, [watchedValues.entryDate, watchedValues.entryTime, watchedValues.closeDate, watchedValues.closeTime, watchedValues])
 
-  // Get unified accounts for dropdown
-  const [unifiedAccounts, setUnifiedAccounts] = useState<Array<{id: string, number: string, displayName: string, accountType: string}>>([])
+  // Get unified accounts for dropdown - server returns clean data without duplicates
+  const { accounts: allAccounts } = useAccounts()
   
-  useEffect(() => {
-    const fetchAccounts = async () => {
-      try {
-        const response = await fetch('/api/accounts')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success) {
-            setUnifiedAccounts(data.data)
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching accounts:', error)
+  // For manual trade entry, only show active phases (where user can add trades)
+  const unifiedAccounts = React.useMemo(() => {
+    return allAccounts.filter(acc => {
+      // Show all live accounts
+      if (acc.accountType === 'live') return true
+      
+      // For prop-firm accounts: only show active phases
+      if (acc.accountType === 'prop-firm') {
+        return acc.status === 'active'
       }
-    }
-    fetchAccounts()
-  }, [])
+      
+      return false
+    })
+  }, [allAccounts])
 
   const existingAccounts = unifiedAccounts.map(account => account.number)
 

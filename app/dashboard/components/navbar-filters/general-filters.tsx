@@ -103,10 +103,10 @@ export function GeneralFilters({ onSave }: GeneralFiltersProps) {
   const displayedCount = selectedInstruments.length === 0 ? totalInstruments : selectedInstruments.length
 
   return (
-    <div className="w-full min-w-[380px] max-w-[480px] p-4 space-y-4">
-      <div className="space-y-2">
-        <h4 className="font-semibold text-base">Instrument Filter</h4>
-        <p className="text-sm text-muted-foreground">
+    <div className="w-full min-w-[300px] sm:min-w-[380px] max-w-[400px] sm:max-w-[480px] p-3 sm:p-4 space-y-2 sm:space-y-3">
+      <div className="space-y-1 sm:space-y-2">
+        <h4 className="font-semibold text-sm sm:text-base">Instrument Filter</h4>
+        <p className="text-xs sm:text-sm text-muted-foreground">
           Filter trades by instruments or symbols
         </p>
       </div>
@@ -118,7 +118,7 @@ export function GeneralFilters({ onSave }: GeneralFiltersProps) {
           placeholder="Search instruments..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 h-9"
+          className="pl-9 h-8 sm:h-9 text-sm"
         />
       </div>
 
@@ -129,16 +129,16 @@ export function GeneralFilters({ onSave }: GeneralFiltersProps) {
           size="sm"
           onClick={handleSelectAll}
           disabled={selectedInstruments.length === 0}
-          className="flex-1 h-8 text-xs"
+          className="flex-1 h-8 sm:h-9 text-xs sm:text-sm"
         >
-          All Instruments
+          All
         </Button>
         <Button
           variant="outline"
           size="sm"
           onClick={handleClearAll}
           disabled={selectedInstruments.length === totalInstruments && totalInstruments > 0}
-          className="flex-1 h-8 text-xs"
+          className="flex-1 h-8 sm:h-9 text-xs sm:text-sm"
         >
           None
         </Button>
@@ -147,11 +147,11 @@ export function GeneralFilters({ onSave }: GeneralFiltersProps) {
       <Separator />
 
       {/* Instrument List */}
-      <ScrollArea className="h-[320px] pr-3">
+      <ScrollArea className="h-[200px] sm:h-[280px] pr-3">
         {totalInstruments === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Filter className="h-12 w-12 text-muted-foreground/30 mb-3" />
-            <p className="text-sm text-muted-foreground">No instruments available</p>
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
+            <Filter className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground/30 mb-2 sm:mb-3" />
+            <p className="text-xs sm:text-sm text-muted-foreground">No instruments available</p>
             <p className="text-xs text-muted-foreground mt-1">Import trades to see instruments</p>
           </div>
         ) : filteredInstruments.length > 0 ? (
@@ -168,10 +168,10 @@ export function GeneralFilters({ onSave }: GeneralFiltersProps) {
                   />
                   <Label
                     htmlFor={`instrument-${instrument}`}
-                    className="flex-1 text-sm cursor-pointer flex items-center justify-between"
+                    className="flex-1 text-xs sm:text-sm cursor-pointer flex items-center justify-between"
                   >
-                    <span className="font-medium">{instrument}</span>
-                    <Badge variant="secondary" className="text-xs h-5 px-2">
+                    <span className="font-medium truncate">{instrument}</span>
+                    <Badge variant="secondary" className="text-xs h-4 sm:h-5 px-1.5 sm:px-2">
                       {tradeCount}
                     </Badge>
                   </Label>
@@ -180,7 +180,7 @@ export function GeneralFilters({ onSave }: GeneralFiltersProps) {
             })}
           </div>
         ) : (
-          <div className="text-center py-8 text-muted-foreground text-sm">
+          <div className="text-center py-6 sm:py-8 text-muted-foreground text-xs sm:text-sm">
             No instruments match "{searchQuery}"
           </div>
         )}
@@ -189,8 +189,8 @@ export function GeneralFilters({ onSave }: GeneralFiltersProps) {
       <Separator />
 
       {/* Selected Summary & Apply */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between text-sm">
+      <div className="space-y-2 sm:space-y-3">
+        <div className="flex items-center justify-between text-xs sm:text-sm">
           <span className="text-muted-foreground">
             {selectedInstruments.length === 0
               ? `All ${totalInstruments} instruments`
@@ -207,20 +207,20 @@ export function GeneralFilters({ onSave }: GeneralFiltersProps) {
             </Button>
           )}
         </div>
-        
+
         <div className="flex gap-2">
           <Button
             variant="outline"
             onClick={handleClear}
             disabled={totalInstruments === 0}
-            className="flex-1 h-9"
+            className="flex-1 h-7 sm:h-8 text-xs sm:text-sm"
           >
             Clear
           </Button>
           <Button
             onClick={handleApply}
             disabled={totalInstruments === 0}
-            className="flex-1 h-9"
+            className="flex-1 h-7 sm:h-8 text-xs sm:text-sm"
           >
             Apply
           </Button>

@@ -13,7 +13,6 @@ import { useState, useEffect } from "react"
 import { ChevronDown } from "lucide-react"
 import { PnlRangeFilter } from "./pnl-range-filter"
 // import { AccountFilter } from "./account-filter" // Removed - using persistent settings instead
-import { useTradesStore } from "@/store/trades-store"
 
 interface FilterDropdownProps {
   type: 'instrument'
@@ -110,19 +109,18 @@ interface FilterDropdownsProps {
 }
 
 export function FilterDropdowns({ showAccountNumbers }: FilterDropdownsProps) {
-  const { instruments = [], setInstruments } = useData()
-  const trades = useTradesStore(state => state.trades)
+  const { instruments = [], setInstruments, formattedTrades } = useData()
   const [allItems, setAllItems] = useState<FilterItem[]>([])
 
   useEffect(() => {
-    if (!trades?.length) return
+    if (!formattedTrades?.length) return
 
-    const uniqueInstruments = Array.from(new Set(trades.map(trade => trade.instrument)))
-    
+    const uniqueInstruments = Array.from(new Set(formattedTrades.map(trade => trade.instrument)))
+
     setAllItems(
       uniqueInstruments.map(instrument => ({ type: 'instrument' as const, value: instrument }))
     )
-  }, [trades])
+  }, [formattedTrades])
 
   const handleSelectAll = (type: 'instrument') => {
     const itemsOfType = allItems.filter(item => item.type === type)

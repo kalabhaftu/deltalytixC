@@ -19,7 +19,6 @@ type UserStore = {
   } | null
   isLoading: boolean
   isMobile: boolean
-  isSharedView: boolean
   timezone: string
   setTimezone: (timezone: string) => void
   setUser: (user: User | null) => void
@@ -36,7 +35,6 @@ type UserStore = {
   updateDashboardLayout: (type: 'desktop' | 'mobile', layout: any[]) => void
   setIsLoading: (value: boolean) => void
   setIsMobile: (value: boolean) => void
-  setIsSharedView: (value: boolean) => void
   resetUser: () => void
 }
 
@@ -49,7 +47,6 @@ export const useUserStore = create<UserStore>()((
       dashboardLayout: null,
       isLoading: false,
       isMobile: false,
-      isSharedView: false,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       setTimezone: (timezone: string) => set({ timezone }),
       setUser: (user) => set({ user }),
@@ -133,7 +130,6 @@ export const useUserStore = create<UserStore>()((
       })),
       setIsLoading: (value) => set({ isLoading: value }),
       setIsMobile: (value) => set({ isMobile: value }),
-      setIsSharedView: (value) => set({ isSharedView: value }),
       resetUser: () => set({ 
         user: null, 
         accounts: [], 

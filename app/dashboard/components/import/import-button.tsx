@@ -27,6 +27,7 @@ import PdfProcessing from './ibkr-pdf/pdf-processing'
 import { motion } from 'framer-motion'
 
 import { generateTradeHash } from '@/lib/utils'
+import { PhaseTransitionDialog } from '@/app/dashboard/components/prop-firm/phase-transition-dialog'
 
 type ColumnConfig = {
   [key: string]: {
@@ -79,6 +80,21 @@ export default function ImportButton() {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const uploadIconRef = useRef<UploadIconHandle>(null)
   const [text, setText] = useState<string>('')
+  
+  // Phase transition state
+  const [showPhaseTransitionDialog, setShowPhaseTransitionDialog] = useState(false)
+  const [phaseTransitionData, setPhaseTransitionData] = useState<{
+    masterAccountId: string
+    currentPhase: {
+      phaseNumber: number
+      profitTargetPercent?: number
+      currentPnL: number
+      phaseId: string
+    }
+    nextPhaseNumber: number
+    propFirmName: string
+    accountName: string
+  } | null>(null)
 
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
@@ -129,11 +145,70 @@ export default function ImportButton() {
       // Update the trades and wait for completion
       await refreshTrades()
       
-      // Show success message
-      toast.success("Import Successful", {
-        description: `Successfully imported and linked ${result.linkedCount} trades to ${result.accountName}`,
-        duration: 5000,
-      })
+      // Show success message with evaluation result
+      if ('evaluation' in result && result.evaluation) {
+        console.log('[IMPORT_RESULT] Evaluation result:', {
+          status: result.evaluation.status,
+          isPropFirm: result.isPropFirm,
+          masterAccountId: result.masterAccountId,
+          phaseAccountId: result.phaseAccountId,
+          currentPhaseNumber: (result.evaluation as any).currentPhaseNumber,
+          fullEvaluation: result.evaluation
+        })
+        
+        if (result.evaluation.status === 'failed') {
+          toast.error("Account Failed", {
+            description: result.evaluation.message || 'Account failed due to rule violation',
+            duration: 10000,
+          })
+        } else if (result.evaluation.status === 'passed' && result.isPropFirm && result.masterAccountId && result.phaseAccountId) {
+          console.log('[PHASE_DIALOG] Opening phase transition dialog')
+          
+          const evalData = result.evaluation as any
+          
+          // Phase passed - open transition dialog
+          toast.success("Profit Target Reached! 🎉", {
+            description: result.evaluation.message || 'Ready to advance to next phase',
+            duration: 10000,
+          })
+          
+          // Prepare data for phase transition dialog
+          const dialogData = {
+            masterAccountId: result.masterAccountId,
+            currentPhase: {
+              phaseNumber: evalData.currentPhaseNumber || 1,
+              profitTargetPercent: evalData.profitTargetProgress,
+              currentPnL: evalData.currentPnL || 0,
+              phaseId: result.phaseAccountId
+            },
+            nextPhaseNumber: (evalData.currentPhaseNumber || 1) + 1,
+            propFirmName: evalData.propFirmName || 'Prop Firm',
+            accountName: result.accountName
+          }
+          
+          console.log('[PHASE_DIALOG] Dialog data:', dialogData)
+          
+          setPhaseTransitionData(dialogData)
+          
+          // Close import dialog and open phase transition dialog
+          setIsOpen(false)
+          resetImportState()
+          setTimeout(() => {
+            console.log('[PHASE_DIALOG] Setting showPhaseTransitionDialog to true')
+            setShowPhaseTransitionDialog(true)
+          }, 300)
+        } else {
+          toast.success("Import Successful", {
+            description: `Successfully imported ${result.linkedCount} trades to ${result.accountName}`,
+            duration: 5000,
+          })
+        }
+      } else {
+        toast.success("Import Successful", {
+          description: `Successfully imported and linked ${result.linkedCount} trades to ${result.accountName}`,
+          duration: 5000,
+        })
+      }
 
     } catch (error) {
       console.error('Error in save and link trades:', error)
@@ -313,7 +388,6 @@ export default function ImportButton() {
           headers={headers}
           setProcessedTrades={setProcessedTrades}
           accountNumber={accountNumber || newAccountNumber}
-          isSaving={isSaving}
         />
       )
     }
@@ -349,6 +423,27 @@ export default function ImportButton() {
 
   return (
     <div>
+      {/* Phase Transition Dialog */}
+      {phaseTransitionData && (
+        <PhaseTransitionDialog
+          isOpen={showPhaseTransitionDialog}
+          onClose={() => {
+            setShowPhaseTransitionDialog(false)
+            setPhaseTransitionData(null)
+          }}
+          masterAccountId={phaseTransitionData.masterAccountId}
+          currentPhase={phaseTransitionData.currentPhase}
+          nextPhaseNumber={phaseTransitionData.nextPhaseNumber}
+          propFirmName={phaseTransitionData.propFirmName}
+          accountName={phaseTransitionData.accountName}
+          onSuccess={() => {
+            refreshTrades()
+            setShowPhaseTransitionDialog(false)
+            setPhaseTransitionData(null)
+          }}
+        />
+      )}
+      
       <motion.div
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}

@@ -6,7 +6,6 @@ import { SafeToaster } from "@/components/safe-toaster";
 import { AuthProvider } from "@/context/auth-provider";
 import { ConsentBanner } from "@/components/consent-banner";
 import { ConsoleFilterWrapper } from "@/components/console-filter-wrapper";
-import { DatabaseInit } from "@/components/database-init";
 import { ThemeProvider } from "@/context/theme-provider";
 import Script from "next/script"
 
@@ -304,7 +303,6 @@ export default async function RootLayout({
       <body className={`${inter.variable} font-sans min-h-screen overflow-x-hidden w-screen`}>
         <ThemeProvider>
           <ConsoleFilterWrapper>
-            <DatabaseInit />
             <AuthProvider>
               {/* Analytics components removed to comply with essential-only cookie policy */}
               <ConsentBanner />

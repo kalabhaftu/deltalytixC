@@ -1,299 +1,125 @@
 /**
- * Prop Firm Payout Management API
- * GET /api/prop-firm-v2/accounts/[id]/payouts - Get payout history
- * POST /api/prop-firm-v2/accounts/[id]/payouts - Request new payout
+ * Payout Management API
+ * GET /api/prop-firm-v2/accounts/[id]/payouts - Get payout eligibility and history
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { getUserId } from '@/server/auth-utils'
-// PropFirmEngine removed - payout system will be rewritten for new architecture
-import { z } from 'zod'
 
 const prisma = new PrismaClient()
 
 interface RouteParams {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
-// Payout request schema
-const CreatePayoutSchema = z.object({
-  requestedAmount: z.number().positive(),
-  paymentMethod: z.string().optional(),
-  notes: z.string().optional(),
-})
-
-const PayoutFilterSchema = z.object({
-  status: z.array(z.enum(['pending', 'approved', 'paid', 'rejected', 'cancelled'])).optional(),
-  dateFrom: z.string().datetime().optional(),
-  dateTo: z.string().datetime().optional(),
-  page: z.number().default(1),
-  limit: z.number().default(20),
-  sortBy: z.string().default('createdAt'),
-  sortOrder: z.enum(['asc', 'desc']).default('desc'),
-})
-
-// GET /api/prop-firm-v2/accounts/[id]/payouts
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
-    const resolvedParams = await params
-    const accountId = resolvedParams.id
-    const { searchParams } = new URL(request.url)
-    
-    // Verify account ownership
-    const account = await prisma.account.findFirst({
-      where: { id: accountId, userId }
-    })
-    
-    if (!account) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Account not found' },
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const { id: masterAccountId } = await params
+    // ID is pure masterAccountId (UUID), not composite
+
+    // Get account and calculate eligibility
+    const masterAccount = await prisma.masterAccount.findFirst({
+      where: { id: masterAccountId, userId },
+      include: {
+        phases: {
+          where: { status: { in: ['active', 'passed', 'archived'] } },
+          include: { 
+            trades: {
+              select: {
+                pnl: true,
+                commission: true,
+                fees: true,
+                exitTime: true
+              }
+            }
+          },
+          orderBy: { phaseNumber: 'asc' }
+        }
+      }
+    })
+
+    if (!masterAccount) {
+      return NextResponse.json(
+        { success: false, error: 'Account not found' },
         { status: 404 }
       )
     }
+
+    // Get current phase
+    const currentPhase = masterAccount.phases.find(p => p.phaseNumber === masterAccount.currentPhase)
+    const isFunded = currentPhase?.phaseNumber >= 3
+
+    let eligibility = null
     
-    // Parse filters
-    const filterData = {
-      status: searchParams.getAll('status') as any[],
-      dateFrom: searchParams.get('dateFrom') || undefined,
-      dateTo: searchParams.get('dateTo') || undefined,
-      page: parseInt(searchParams.get('page') || '1'),
-      limit: parseInt(searchParams.get('limit') || '20'),
-      sortBy: searchParams.get('sortBy') || 'date',
-      sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
-    }
-    
-    const filters = PayoutFilterSchema.parse(filterData)
-    const offset = (filters.page - 1) * filters.limit
-    
-    // Build where clause
-    const where: any = { accountId }
-    
-    if (filters.status && filters.status.length > 0) {
-      where.status = { in: filters.status }
-    }
-    
-    if (filters.dateFrom || filters.dateTo) {
-      where.date = {}
-      if (filters.dateFrom) {
-        where.date.gte = new Date(filters.dateFrom)
+    if (isFunded && currentPhase) {
+      // Calculate basic eligibility
+      const fundedDate = currentPhase.startDate
+      const daysSinceFunded = Math.floor((Date.now() - fundedDate.getTime()) / (1000 * 60 * 60 * 24))
+      
+      // Calculate net profit since funded
+      const netProfit = currentPhase.trades.reduce((sum, trade) => 
+        sum + (trade.pnl || 0) - (trade.commission || 0) - (trade.fees || 0), 0
+      )
+      
+      // Basic eligibility rules (customize as needed)
+      const minDaysRequired = 14
+      const minProfit = 100 // Minimum profit for payout
+      const isEligible = daysSinceFunded >= minDaysRequired && netProfit >= minProfit
+      
+      // Calculate profit split amount (assuming 80% trader split)
+      const profitSplitPercent = currentPhase.profitSplitPercent || 80
+      const profitSplitAmount = netProfit * (profitSplitPercent / 100)
+
+      eligibility = {
+        isEligible,
+        daysSinceFunded,
+        daysSinceLastPayout: daysSinceFunded, // Simplified - would track actual last payout
+        netProfitSinceLastPayout: netProfit,
+        minDaysRequired,
+        profitSplitAmount,
+        blockers: !isEligible ? [
+          ...(daysSinceFunded < minDaysRequired ? [`Must wait ${minDaysRequired - daysSinceFunded} more days`] : []),
+          ...(netProfit < minProfit ? [`Need $${minProfit - netProfit} more profit`] : [])
+        ] : []
       }
-      if (filters.dateTo) {
-        where.date.lte = new Date(filters.dateTo)
-      }
     }
-    
-    // Payout system disabled until rewritten for new MasterAccount/PhaseAccount system
-    const total = 0
-    const payouts: any[] = []
-    
-    // Get current funded phase for eligibility check - Updated for new system
-    const fundedPhase = await prisma.phaseAccount.findFirst({
+
+    // Fetch actual payout history from database
+    const payoutHistory = currentPhase ? await prisma.payout.findMany({
       where: {
-        masterAccountId: accountId,
-        phaseNumber: { gte: 3 }, // Funded phase
-        status: 'active'
-      }
-    })
-    
-    // Payout eligibility calculation disabled - will be rewritten for new system
-    const payoutEligibility = {
-      isEligible: false,
-      reasons: ['Payout system is being rewritten for the new MasterAccount/PhaseAccount architecture'],
-      nextPayoutDate: null,
-      daysUntilNextPayout: null,
-      maxPayoutAmount: 0,
-      availableProfit: 0
-    }
-    
-    // Calculate summary statistics
-    const totalRequested = payouts.reduce((sum, p) => sum + (p.amountRequested || p.amount), 0)
-    const totalPaid = payouts.filter(p => p.status === 'paid').reduce((sum, p) => sum + (p.amountPaid || 0), 0)
-    const totalPending = payouts.filter(p => p.status === 'pending').reduce((sum, p) => sum + (p.amountRequested || p.amount), 0)
-    
-    return NextResponse.json({
-      payouts: payouts.map(payout => ({
-        id: payout.id,
-        requestedAmount: payout.amountRequested || payout.amount,
-        eligibleAmount: payout.amount, // Same as requested amount for now
-        profitSplitPercent: 50, // Default 50% split
-        traderShare: payout.amountPaid || 0,
-        firmShare: payout.amountRequested ? payout.amount - payout.amountRequested : 0,
-        status: payout.status,
-        requestedAt: payout.date,
-        processedAt: payout.date,
-        paidAt: payout.paidAt,
-        rejectedAt: null, // Not available in Payout model
-        rejectionReason: null, // Not available in Payout model
-        paymentMethod: 'bank_transfer', // Default payment method
-        notes: payout.notes,
-        phase: null, // Phase relationship not available in Payout model
-      })),
-      
-      pagination: {
-        total,
-        page: filters.page,
-        limit: filters.limit,
-        totalPages: Math.ceil(total / filters.limit),
-        hasNext: offset + filters.limit < total,
-        hasPrev: filters.page > 1,
+        phaseAccountId: currentPhase.id
       },
-      
-      eligibility: payoutEligibility,
-      
-      summary: {
-        totalPayouts: payouts.length,
-        totalRequested,
-        totalPaid,
-        totalPending,
-        pendingPayouts: payouts.filter(p => p.status === 'pending').length,
-        successfulPayouts: payouts.filter(p => p.status === 'paid').length,
-        rejectedPayouts: payouts.filter(p => p.status === 'rejected').length,
-        averagePayoutAmount: payouts.length > 0 ? totalPaid / payouts.filter(p => p.status === 'paid').length : 0,
-        nextEligibleDate: payoutEligibility?.nextPayoutDate,
-        daysUntilNextPayout: payoutEligibility?.daysUntilNextPayout,
+      orderBy: {
+        requestDate: 'desc'
+      }
+    }) : []
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        eligibility,
+        history: payoutHistory
       }
     })
-    
+
   } catch (error) {
     console.error('Error fetching payouts:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch payouts', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        success: false, 
+        error: 'Failed to fetch payout data',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
-  }
-}
-
-// POST /api/prop-firm-v2/accounts/[id]/payouts
-export async function POST(request: NextRequest, { params }: RouteParams) {
-  try {
-    const userId = await getUserId()
-    const resolvedParams = await params
-    const accountId = resolvedParams.id
-    const body = await request.json()
-    
-    // Validate request data
-    const validatedData = CreatePayoutSchema.parse(body)
-    
-    // Verify account ownership
-    const account = await prisma.account.findFirst({
-      where: { id: accountId, userId }
-    })
-    
-    if (!account) {
-      return NextResponse.json(
-        { error: 'Account not found' },
-        { status: 404 }
-      )
-    }
-    
-    // Get current funded phase - Updated for new system
-    const fundedPhase = await prisma.phaseAccount.findFirst({
-      where: {
-        masterAccountId: accountId,
-        phaseNumber: { gte: 3 }, // Funded phase
-        status: 'active'
-      }
-    })
-    
-    if (!fundedPhase) {
-      return NextResponse.json(
-        { error: 'No active funded phase found' },
-        { status: 400 }
-      )
-    }
-    
-    // Get existing payouts - Disabled until payout system is rebuilt for new architecture
-    const existingPayouts: any[] = []
-    
-    // Payout eligibility calculation disabled - will be rewritten for new system
-    const eligibility = {
-      isEligible: false,
-      reasons: ['Payout system is being rewritten for the new MasterAccount/PhaseAccount architecture'],
-      nextPayoutDate: null,
-      daysUntilNextPayout: null,
-      maxPayoutAmount: 0,
-      availableProfit: 0
-    }
-    
-    if (!eligibility.isEligible) {
-      return NextResponse.json(
-        { 
-          error: 'Payout not eligible', 
-          reasons: eligibility.reasons,
-          nextEligibleDate: eligibility.nextPayoutDate,
-          daysUntilNextPayout: eligibility.daysUntilNextPayout,
-        },
-        { status: 400 }
-      )
-    }
-    
-    // Validate requested amount
-    if (validatedData.requestedAmount > eligibility.maxPayoutAmount) {
-      return NextResponse.json(
-        { 
-          error: 'Requested amount exceeds eligible amount', 
-          maxEligible: eligibility.maxPayoutAmount,
-          requested: validatedData.requestedAmount,
-        },
-        { status: 400 }
-      )
-    }
-    
-    // Check for pending payouts
-    const pendingPayouts = existingPayouts.filter(p => p.status === 'pending')
-    if (pendingPayouts.length > 0) {
-      return NextResponse.json(
-        { 
-          error: 'Cannot request payout while another payout is pending',
-          pendingPayouts: pendingPayouts.map(p => ({
-            id: p.id,
-            amount: p.amountRequested || p.amount,
-            requestedAt: p.date,
-          }))
-        },
-        { status: 400 }
-      )
-    }
-    
-    // Create payout request in transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Create payout request
-      // Payout system disabled until rewritten for new MasterAccount/PhaseAccount system
-      return null
-    })
-    
-    return NextResponse.json({
-      success: true,
-      payout: result,
-      message: 'Payout request submitted successfully',
-      estimatedProcessingTime: '3-5 business days',
-      nextSteps: [
-        'Payout request is being reviewed',
-        'You will receive an email confirmation',
-        'Processing typically takes 3-5 business days',
-        'Payout system temporarily disabled'
-      ]
-    })
-    
-  } catch (error) {
-    console.error('Error creating payout request:', error)
-    
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Failed to create payout request', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    )
-  } finally {
-    await prisma.$disconnect()
   }
 }

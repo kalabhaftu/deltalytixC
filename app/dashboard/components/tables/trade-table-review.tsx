@@ -54,7 +54,6 @@ import {
 } from "@/components/ui/card"
 import { useUserStore } from '@/store/user-store'
 import { useTableConfigStore } from '@/store/table-config-store'
-import { useTickDetailsStore } from '@/store/tick-details-store'
 import { TradeImageEditor } from './trade-image-editor'
 import { ColumnConfigDialog } from '@/components/ui/column-config-dialog'
 import { calculateTicksAndPointsForTrades, calculateTicksAndPointsForGroupedTrade } from '@/lib/tick-calculations'
@@ -141,7 +140,6 @@ export function TradeTableReview() {
     updateTrades,
   } = useData()
   const timezone = useUserStore(state => state.timezone)
-  const tickDetails = useTickDetailsStore(state => state.tickDetails)
   const isMobile = useMediaQuery("(max-width: 768px)")
 
   // Tick details are available for calculations

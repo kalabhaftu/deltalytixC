@@ -15,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { calculateTotalStartingBalance } from '@/lib/utils/balance-calculator'
 
 interface AccountBalanceChartProps {
   size?: WidgetSize
@@ -117,8 +118,9 @@ export default function AccountBalanceChart({ size = 'small-long' }: AccountBala
   const accounts = useUserStore(state => state.accounts)
 
   const chartData = React.useMemo(() => {
-    // Calculate initial balance (starting balance across all accounts)
-    const initialBalance = accounts.reduce((sum, acc) => sum + (acc.startingBalance || 0), 0)
+    // ✅ USE UNIFIED CALCULATOR - Handles prop firm phase deduplication
+    // This replaces the old naive sum that would triple-count prop firm accounts
+    const initialBalance = calculateTotalStartingBalance(accounts)
     
     // Group trades by date and calculate wins/losses
     const tradesByDate = formattedTrades.reduce((acc, trade) => {
@@ -176,7 +178,8 @@ export default function AccountBalanceChart({ size = 'small-long' }: AccountBala
   }, [calendarData, formattedTrades, accounts])
 
   // Determine line color based on current balance vs initial balance
-  const initialBalance = accounts.reduce((sum, acc) => sum + (acc.startingBalance || 0), 0)
+  // ✅ USE UNIFIED CALCULATOR - Same deduplication logic as chart data
+  const initialBalance = React.useMemo(() => calculateTotalStartingBalance(accounts), [accounts])
   const currentBalance = chartData.length > 0 ? chartData[chartData.length - 1].balance : initialBalance
   const isPositive = currentBalance >= initialBalance
 

@@ -30,8 +30,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id: masterAccountId } = await params
+    // NO PARSING NEEDED - phase transition receives pure masterAccountId, not composite ID
     const body = await request.json()
     const { nextPhaseId } = PhaseTransitionSchema.parse(body)
+
+    console.log(`[PHASE_TRANSITION] Looking for master account:`, {
+      masterAccountId,
+      userId,
+      nextPhaseId
+    })
 
     // Verify the master account belongs to the user
     const masterAccount = await prisma.masterAccount.findFirst({
@@ -47,7 +54,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     })
 
+    console.log(`[PHASE_TRANSITION] Master account lookup result:`, {
+      found: !!masterAccount,
+      accountId: masterAccount?.id,
+      currentPhase: masterAccount?.currentPhase,
+      phasesCount: masterAccount?.phases?.length
+    })
+
     if (!masterAccount) {
+      // Debug: Check if account exists without userId filter
+      const anyAccount = await prisma.masterAccount.findUnique({
+        where: { id: masterAccountId },
+        select: { id: true, userId: true, accountName: true, isActive: true }
+      })
+      console.log(`[PHASE_TRANSITION] Account exists (no userId filter):`, anyAccount)
+      
       return NextResponse.json(
         { success: false, error: 'Master account not found or unauthorized' },
         { status: 404 }
@@ -83,11 +104,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Perform the transition in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Archive the current phase
+      // Mark the current phase as passed (not archived)
       await tx.phaseAccount.update({
         where: { id: currentPhase.id },
         data: {
-          status: 'archived',
+          status: 'passed',
           endDate: new Date()
         }
       })

@@ -41,6 +41,7 @@ interface FormatPreviewProps {
   setProcessedTrades: (trades: Trade[]) => void;
   setIsLoading: (isLoading: boolean) => void;
   isLoading: boolean;
+  isSaving?: boolean; // Optional: used to disable actions during save
   headers: string[];
   mappings: { [key: string]: string };
 }

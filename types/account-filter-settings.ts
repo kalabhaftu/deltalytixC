@@ -6,29 +6,36 @@
 export interface AccountFilterSettings {
   // Global filtering mode
   showMode: 'active-only' | 'all-accounts' | 'custom'
-  
+
   // Specific account selections (when mode is 'custom')
   selectedAccounts: string[] // Account IDs
-  
+  selectedPhaseAccountIds: string[] // Phase account IDs for trade filtering
+
   // Status filters (when mode is 'custom')
   includeStatuses: AccountStatus[]
-  
+
   // Account type filters
   showLiveAccounts: boolean
   showPropFirmAccounts: boolean
-  
+
   // Prop firm specific settings
   showPhase1Accounts: boolean
   showPhase2Accounts: boolean
   showFundedAccounts: boolean
-  
+
   // Legacy options
   showPassedAccounts: boolean
   showFailedAccounts: boolean
-  
+
   // Hierarchical grouping preferences
   groupByParentAccount: boolean // Group phase 1 & 2 under parent
-  
+
+  // ✅ NEW: Phase-specific viewing (affects widgets/dashboard, NOT account detail pages)
+  viewingSpecificPhase: boolean // If true, user is viewing a specific phase
+  selectedMasterAccountId: string | null // Master account ID being viewed
+  selectedPhaseId: string | null // Specific phase ID being viewed (null = all phases)
+  selectedPhaseNumber: number | null // Phase number for display (1, 2, 3)
+
   // Last updated timestamp
   updatedAt: string
 }
@@ -68,6 +75,7 @@ export interface ExtendedAccount {
 export const DEFAULT_FILTER_SETTINGS: AccountFilterSettings = {
   showMode: 'active-only',
   selectedAccounts: [],
+  selectedPhaseAccountIds: [],
   includeStatuses: ['active', 'funded'],
   showLiveAccounts: true,
   showPropFirmAccounts: true,
@@ -77,6 +85,10 @@ export const DEFAULT_FILTER_SETTINGS: AccountFilterSettings = {
   showPassedAccounts: false,
   showFailedAccounts: false,
   groupByParentAccount: true,
+  viewingSpecificPhase: false,
+  selectedMasterAccountId: null,
+  selectedPhaseId: null,
+  selectedPhaseNumber: null,
   updatedAt: new Date().toISOString()
 }
 

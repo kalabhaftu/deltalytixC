@@ -26,6 +26,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id: masterAccountId } = await params
+    // ID is pure masterAccountId (UUID), not composite
 
     // Verify the master account belongs to the user
     const masterAccount = await prisma.masterAccount.findFirst({
@@ -124,6 +125,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id: masterAccountId } = await params
+    // ID is pure masterAccountId (UUID), not composite
 
     // Get the current evaluation status without triggering updates
     const masterAccount = await prisma.masterAccount.findFirst({

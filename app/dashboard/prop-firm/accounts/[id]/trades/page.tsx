@@ -61,6 +61,8 @@ export default function AccountTradesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [activeTab, setActiveTab] = useState('trades')
+  const [phaseFilter, setPhaseFilter] = useState<string>('current') // ✅ NEW: Phase filter state
+  const [availablePhases, setAvailablePhases] = useState<any[]>([]) // ✅ NEW: Available phases
 
   const accountId = params.id as string
 
@@ -89,11 +91,12 @@ export default function AccountTradesPage() {
     }
   }
 
-  // Fetch trades
-  const fetchTrades = async () => {
+  // Fetch trades with phase filter
+  const fetchTrades = async (filter: string = phaseFilter) => {
     try {
       setIsLoading(true)
-      const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}/trades`)
+      // ✅ FIXED: Add phase filter to API call
+      const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}/trades?phase=${filter}`)
       
       if (!response.ok) {
         throw new Error('Failed to fetch trades')
@@ -101,7 +104,8 @@ export default function AccountTradesPage() {
 
       const data = await response.json()
       if (data.success) {
-        setTrades(data.trades)
+        setTrades(data.data.trades)
+        setAvailablePhases(data.data.filter?.availablePhases || []) // ✅ NEW: Store available phases
       } else {
         throw new Error(data.error || 'Failed to fetch trades')
       }
@@ -116,6 +120,13 @@ export default function AccountTradesPage() {
       setIsLoading(false)
     }
   }
+
+  // ✅ NEW: Refetch when phase filter changes
+  useEffect(() => {
+    if (user && accountId) {
+      fetchTrades(phaseFilter)
+    }
+  }, [phaseFilter])
 
   // Load data on mount
   useEffect(() => {
@@ -220,6 +231,64 @@ export default function AccountTradesPage() {
           </Button>
         </div>
       </div>
+
+      {/* ✅ NEW: Phase Filter */}
+      {availablePhases.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Phase Filter</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={phaseFilter === 'current' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPhaseFilter('current')}
+              >
+                Current Phase Only
+              </Button>
+              {availablePhases.map((phase) => (
+                <Button
+                  key={phase.phaseNumber}
+                  variant={phaseFilter === phase.phaseNumber.toString() ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPhaseFilter(phase.phaseNumber.toString())}
+                >
+                  Phase {phase.phaseNumber}
+                  <Badge variant="secondary" className="ml-2">
+                    {phase.status === 'archived' ? '✓' : phase.status === 'active' ? '⚡' : '⏳'}
+                    {phase.tradeCount}
+                  </Badge>
+                </Button>
+              ))}
+              <Button
+                variant={phaseFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPhaseFilter('all')}
+              >
+                All Phases
+              </Button>
+              <Button
+                variant={phaseFilter === 'archived' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPhaseFilter('archived')}
+              >
+                Archived Only
+              </Button>
+            </div>
+            {phaseFilter === 'current' && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Showing trades from your current active phase
+              </p>
+            )}
+            {phaseFilter === 'all' && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Showing trades from all phases (current and archived)
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

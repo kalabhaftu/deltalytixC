@@ -8,7 +8,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ChevronsUpDown } from "lucide-react"
 import { useData } from '@/context/data-provider'
-import { useTradesStore } from '@/store/trades-store'
 
 interface FilterItem {
   type: 'account' | 'instrument' | 'propfirm'
@@ -28,18 +27,17 @@ const propfirmGroups: PropfirmGroup[] = [
 ]
 
 export default function NavbarFilters() {
-  const { accountNumbers, setAccountNumbers, instruments, setInstruments } = useData()
-  const trades = useTradesStore(state => state.trades)
-  
+  const { accountNumbers, setAccountNumbers, instruments, setInstruments, formattedTrades } = useData()
+
   const [allItems, setAllItems] = useState<FilterItem[]>([])
   const [selectedItems, setSelectedItems] = useState<FilterItem[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [propfirms, setPropfirms] = useState<string[]>([])
 
   useEffect(() => {
-    if (trades && trades.length > 0) {
-      const uniqueAccounts = Array.from(new Set(trades.map(trade => trade.accountNumber || '')))
-      const uniqueInstruments = Array.from(new Set(trades.map(trade => trade.instrument || '')))
+    if (formattedTrades && formattedTrades.length > 0) {
+      const uniqueAccounts = Array.from(new Set(formattedTrades.map(trade => trade.accountNumber || '')))
+      const uniqueInstruments = Array.from(new Set(formattedTrades.map(trade => trade.instrument || '')))
       const uniquePropfirms = Array.from(new Set(uniqueAccounts.map(account => {
         const propfirm = propfirmGroups.find(group => account.startsWith(group.prefix))
         return propfirm ? propfirm.name : 'Other'

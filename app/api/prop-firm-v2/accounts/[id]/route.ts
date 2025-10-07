@@ -33,31 +33,55 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id: masterAccountId } = await params
-
-    // Get master account with all related data
-    const masterAccount = await prisma.masterAccount.findFirst({
-      where: {
-        id: masterAccountId,
-        userId
-      },
-      include: {
-        phases: {
-          include: {
-            trades: {
-              orderBy: { entryTime: 'desc' },
-              take: 50 // Limit for performance
-            }
-          },
-          orderBy: { phaseNumber: 'asc' }
+    // ID is pure masterAccountId (UUID), not composite
+    
+    // PERFORMANCE OPTIMIZATION: Use parallel queries and database aggregations
+    const [masterAccount, phases, tradeStats] = await Promise.all([
+      // 1. Get master account basic info (no nested relations)
+      prisma.masterAccount.findFirst({
+        where: {
+          id: masterAccountId,
+          userId
         },
-        user: {
-          select: {
-            id: true,
-            email: true
-          }
+        select: {
+          id: true,
+          accountName: true,
+          propFirmName: true,
+          accountSize: true,
+          evaluationType: true,
+          currentPhase: true,
+          isActive: true,
+          createdAt: true,
+          userId: true
         }
-      }
-    })
+      }),
+
+      // 2. Get phases with minimal data (no trades)
+      prisma.phaseAccount.findMany({
+        where: {
+          masterAccountId
+        },
+        orderBy: { phaseNumber: 'asc' }
+      }),
+
+      // 3. Get trade statistics using database aggregation (MUCH FASTER)
+      prisma.trade.groupBy({
+        by: ['phaseAccountId'],
+        where: {
+          phaseAccount: {
+            masterAccountId
+          }
+        },
+        _count: {
+          id: true
+        },
+        _sum: {
+          pnl: true,
+          commission: true,
+          fees: true
+        }
+      })
+    ])
     
     if (!masterAccount) {
       return NextResponse.json(
@@ -67,20 +91,59 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
     
     // Get the current active phase
-    const currentPhase = masterAccount.phases.find(phase => 
+    const currentPhase = phases.find(phase => 
       phase.phaseNumber === masterAccount.currentPhase
     )
 
-    // Calculate basic statistics
-    const allTrades = masterAccount.phases.flatMap(phase => phase.trades)
-    const totalTrades = allTrades.length
-    const totalPnL = allTrades.reduce((sum, trade) => sum + trade.pnl, 0)
-    const winningTrades = allTrades.filter(trade => trade.pnl > 0).length
+    // Calculate statistics from aggregated data (FAST - no array operations)
+    const totalTrades = tradeStats.reduce((sum, stat) => sum + stat._count.id, 0)
+    const totalPnL = tradeStats.reduce((sum, stat) => {
+      const pnl = stat._sum.pnl || 0
+      const commission = stat._sum.commission || 0
+      const fees = stat._sum.fees || 0
+      return sum + (pnl - commission - fees)
+    }, 0)
+
+    // FIXED: Get trades ONLY for the current active phase (not all phases)
+    const currentPhaseTradesMinimal = currentPhase ? await prisma.trade.findMany({
+      where: {
+        phaseAccountId: currentPhase.id  // ✅ Only current phase trades
+      },
+      select: {
+        pnl: true,
+        commission: true,
+        fees: true
+      },
+      orderBy: {
+        exitTime: 'asc'  // Ordered for proper high-water mark calculation
+      }
+    }) : []
+
+    // Get ALL trades for overall statistics
+    const allTradesMinimal = await prisma.trade.findMany({
+      where: {
+        phaseAccount: {
+          masterAccountId
+        }
+      },
+      select: {
+        pnl: true,
+        commission: true,
+        fees: true
+      }
+    })
+
+    const winningTrades = allTradesMinimal.filter(trade => {
+      const netPnL = trade.pnl - (trade.commission || 0) - (trade.fees || 0)
+      return netPnL > 0
+    }).length
     const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0
 
-    // Calculate current phase statistics
-    const currentPhaseTrades = currentPhase?.trades || []
-    const currentPhasePnL = currentPhaseTrades.reduce((sum, trade) => sum + trade.pnl, 0)
+    // Calculate current phase statistics - PHASE SPECIFIC!
+    const currentPhaseStat = tradeStats.find(stat => stat.phaseAccountId === currentPhase?.id)
+    const currentPhasePnL = currentPhaseStat 
+      ? (currentPhaseStat._sum.pnl || 0) - (currentPhaseStat._sum.commission || 0) - (currentPhaseStat._sum.fees || 0)
+      : 0
     
     // Determine next action based on phase status
     let nextAction = 'continue_trading'
@@ -103,34 +166,65 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       breachType: undefined as 'daily_drawdown' | 'max_drawdown' | undefined
     }
 
-    // Calculate current balance and equity from trades
-    const currentBalance = masterAccount.accountSize + totalPnL
+    // FIXED: Calculate current balance and equity from CURRENT PHASE trades only
+    const currentBalance = masterAccount.accountSize + currentPhasePnL
     const currentEquity = currentBalance
 
     // Calculate drawdown based on current phase rules
     if (currentPhase) {
-      // Calculate highest equity (peak balance)
-      const tradesPnL = allTrades.reduce((sum, trade) => sum + trade.pnl, 0)
-      drawdownData.highestEquity = Math.max(masterAccount.accountSize + tradesPnL, masterAccount.accountSize)
+      // Calculate highest equity (high-water mark) - track peak balance
+      // IMPORTANT: Use only CURRENT PHASE trades, not all phases!
+      let highWaterMark = masterAccount.accountSize
+      let runningBalance = masterAccount.accountSize
+      
+      // Calculate high-water mark from CURRENT PHASE trades in order
+      for (const trade of currentPhaseTradesMinimal) {
+        runningBalance += (trade.pnl - (trade.commission || 0) - (trade.fees || 0))
+        highWaterMark = Math.max(highWaterMark, runningBalance)
+      }
+      
+      drawdownData.highestEquity = highWaterMark
       drawdownData.currentEquity = currentEquity
 
-      // Daily drawdown calculation (simplified - would need daily balance tracking)
+      // Get daily start balance from daily anchor (fallback to account size)
+      const todayAnchor = await prisma.dailyAnchor.findFirst({
+        where: {
+          phaseAccountId: currentPhase.id,
+          date: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0))
+          }
+        },
+        orderBy: { date: 'desc' }
+      })
+      
+      const dailyStartBalance = todayAnchor?.anchorEquity || masterAccount.accountSize
+      drawdownData.dailyStartBalance = dailyStartBalance
+
+      // Daily drawdown calculation (from daily start balance)
       const dailyDrawdownLimit = currentPhase.dailyDrawdownPercent > 0
         ? (masterAccount.accountSize * currentPhase.dailyDrawdownPercent) / 100
         : 0
-      drawdownData.dailyDrawdownRemaining = dailyDrawdownLimit > 0 ? dailyDrawdownLimit : 0
-      drawdownData.dailyStartBalance = masterAccount.accountSize
+      const dailyDrawdownUsed = Math.max(0, dailyStartBalance - currentEquity)
+      drawdownData.dailyDrawdownRemaining = Math.max(0, dailyDrawdownLimit - dailyDrawdownUsed)
 
-      // Max drawdown calculation
-      const maxDrawdownLimit = currentPhase.maxDrawdownPercent > 0
-        ? (masterAccount.accountSize * currentPhase.maxDrawdownPercent) / 100
-        : 0
-      drawdownData.maxDrawdownRemaining = maxDrawdownLimit > 0 ? maxDrawdownLimit : 0
+      // Max drawdown calculation (static vs trailing)
+      let maxDrawdownBase: number
+      let maxDrawdownLimit: number
+      
+      if (currentPhase.maxDrawdownType === 'trailing') {
+        // Trailing: Base on high-water mark
+        maxDrawdownBase = highWaterMark
+        maxDrawdownLimit = highWaterMark * (currentPhase.maxDrawdownPercent / 100)
+      } else {
+        // Static: Base on starting balance
+        maxDrawdownBase = masterAccount.accountSize
+        maxDrawdownLimit = masterAccount.accountSize * (currentPhase.maxDrawdownPercent / 100)
+      }
+      
+      const maxDrawdownUsed = Math.max(0, maxDrawdownBase - currentEquity)
+      drawdownData.maxDrawdownRemaining = Math.max(0, maxDrawdownLimit - maxDrawdownUsed)
 
-      // Check for breaches
-      const dailyDrawdownUsed = drawdownData.highestEquity - currentEquity
-      const maxDrawdownUsed = masterAccount.accountSize - currentEquity
-
+      // FAILURE-FIRST: Check breaches (daily first, then max)
       if (dailyDrawdownUsed > dailyDrawdownLimit) {
         drawdownData.isBreached = true
         drawdownData.breachType = 'daily_drawdown'
@@ -150,30 +244,48 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       currentPhase: currentPhase || null,
       isActive: masterAccount.isActive,
       status: currentPhase?.status === 'failed' ? 'failed' : currentPhase?.status === 'passed' ? 'passed' : 'active',
-      phases: masterAccount.phases.map(phase => ({
-        id: phase.id,
-        phaseNumber: phase.phaseNumber,
-        phaseId: phase.phaseId,
-        status: phase.status,
-        profitTargetPercent: phase.profitTargetPercent,
-        dailyDrawdownPercent: phase.dailyDrawdownPercent,
-        maxDrawdownPercent: phase.maxDrawdownPercent,
-        maxDrawdownType: phase.maxDrawdownType,
-        minTradingDays: phase.minTradingDays,
-        timeLimitDays: phase.timeLimitDays,
-        consistencyRulePercent: phase.consistencyRulePercent,
-        profitSplitPercent: phase.profitSplitPercent,
-        payoutCycleDays: phase.payoutCycleDays,
-        startDate: phase.startDate.toISOString(),
-        endDate: phase.endDate?.toISOString() || null
+      phases: await Promise.all(phases.map(async (phase) => {
+        // Fetch trades for each phase for the accordion view
+        const phaseTrades = await prisma.trade.findMany({
+          where: { phaseAccountId: phase.id },
+          select: {
+            id: true,
+            instrument: true,
+            symbol: true,
+            pnl: true,
+            exitTime: true,
+            entryTime: true
+          },
+          orderBy: { exitTime: 'desc' },
+          take: 10 // Limit to 10 most recent trades per phase
+        })
+
+        return {
+          id: phase.id,
+          phaseNumber: phase.phaseNumber,
+          phaseId: phase.phaseId,
+          status: phase.status,
+          profitTargetPercent: phase.profitTargetPercent,
+          dailyDrawdownPercent: phase.dailyDrawdownPercent,
+          maxDrawdownPercent: phase.maxDrawdownPercent,
+          maxDrawdownType: phase.maxDrawdownType,
+          minTradingDays: phase.minTradingDays,
+          timeLimitDays: phase.timeLimitDays,
+          consistencyRulePercent: phase.consistencyRulePercent,
+          profitSplitPercent: phase.profitSplitPercent,
+          payoutCycleDays: phase.payoutCycleDays,
+          startDate: phase.startDate.toISOString(),
+          endDate: phase.endDate?.toISOString() || null,
+          trades: phaseTrades
+        }
       })),
-      currentPnL: totalPnL,
+      currentPnL: currentPhasePnL,  // ✅ FIXED: Use current phase PnL, not total across all phases
       currentBalance: currentBalance,
       currentEquity: currentEquity,
       dailyDrawdownRemaining: drawdownData.dailyDrawdownRemaining,
       maxDrawdownRemaining: drawdownData.maxDrawdownRemaining,
       profitTargetProgress: currentPhase && currentPhase.profitTargetPercent > 0
-        ? Math.min(Math.round((totalPnL / (masterAccount.accountSize * currentPhase.profitTargetPercent / 100)) * 1000) / 10, 100)
+        ? Math.min(Math.round((currentPhasePnL / (masterAccount.accountSize * currentPhase.profitTargetPercent / 100)) * 1000) / 10, 100)  // ✅ FIXED: Use current phase PnL
         : 0,
       lastUpdated: new Date().toISOString()
     }
@@ -192,26 +304,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         currentPhase: masterAccount.currentPhase,
         isActive: masterAccount.isActive,
         createdAt: masterAccount.createdAt,
-        owner: masterAccount.user
+        owner: { id: masterAccount.userId, email: '' }
       },
-      phases: masterAccount.phases.map(phase => ({
-        id: phase.id,
-        phaseNumber: phase.phaseNumber,
-        phaseId: phase.phaseId,
-        status: phase.status,
-        profitTargetPercent: phase.profitTargetPercent,
-        dailyDrawdownPercent: phase.dailyDrawdownPercent,
-        maxDrawdownPercent: phase.maxDrawdownPercent,
-        minTradingDays: phase.minTradingDays,
-        timeLimitDays: phase.timeLimitDays,
-        consistencyRulePercent: phase.consistencyRulePercent,
-        profitSplitPercent: phase.profitSplitPercent,
-        payoutCycleDays: phase.payoutCycleDays,
-        startDate: phase.startDate,
-        endDate: phase.endDate,
-        tradeCount: phase.trades.length,
-        totalPnL: phase.trades.reduce((sum, trade) => sum + trade.pnl, 0)
-      })),
+      phases: phases.map(phase => {
+        const phaseStat = tradeStats.find(stat => stat.phaseAccountId === phase.id)
+        return {
+          id: phase.id,
+          phaseNumber: phase.phaseNumber,
+          phaseId: phase.phaseId,
+          status: phase.status,
+          profitTargetPercent: phase.profitTargetPercent,
+          dailyDrawdownPercent: phase.dailyDrawdownPercent,
+          maxDrawdownPercent: phase.maxDrawdownPercent,
+          minTradingDays: phase.minTradingDays,
+          timeLimitDays: phase.timeLimitDays,
+          consistencyRulePercent: phase.consistencyRulePercent,
+          profitSplitPercent: phase.profitSplitPercent,
+          payoutCycleDays: phase.payoutCycleDays,
+          startDate: phase.startDate,
+          endDate: phase.endDate,
+          tradeCount: phaseStat?._count.id || 0,
+          totalPnL: phaseStat ? (phaseStat._sum.pnl || 0) - (phaseStat._sum.commission || 0) - (phaseStat._sum.fees || 0) : 0
+        }
+      }),
       currentPhase: currentPhase ? {
         id: currentPhase.id,
         phaseNumber: currentPhase.phaseNumber,
@@ -236,12 +351,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         winningTrades,
         losingTrades: totalTrades - winningTrades,
         winRate,
-        currentPhaseTrades: currentPhaseTrades.length,
+        currentPhaseTrades: currentPhaseStat?._count.id || 0,
         currentPhasePnL
       },
-      recentTrades: allTrades.slice(0, 20),
+      recentTrades: currentPhaseTradesMinimal.slice(-20).reverse().map(trade => ({  // ✅ FIXED: Show recent trades from CURRENT PHASE only
+        pnl: trade.pnl,
+        commission: trade.commission,
+        fees: trade.fees,
+        netPnL: trade.pnl - (trade.commission || 0) - (trade.fees || 0)
+      })),
       summary: {
-        totalPhases: masterAccount.phases.length,
+        totalPhases: phases.length,
         currentPhaseNumber: masterAccount.currentPhase,
         currentPhaseStatus: currentPhase?.status,
         nextAction,
@@ -278,6 +398,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id: masterAccountId } = await params
+    // ID is pure masterAccountId (UUID), not composite
     const body = await request.json()
     const updateData = UpdateMasterAccountSchema.parse(body)
 
@@ -342,21 +463,76 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id: masterAccountId } = await params
+    // ID is pure masterAccountId (UUID), not composite
 
-    // Verify ownership and delete
-    const deletedAccount = await prisma.masterAccount.deleteMany({
+    // Verify ownership first
+    const existingAccount = await prisma.masterAccount.findFirst({
       where: {
         id: masterAccountId,
         userId
+      },
+      include: {
+        phases: {
+          select: { id: true, phaseId: true }
+        }
       }
     })
 
-    if (deletedAccount.count === 0) {
+    if (!existingAccount) {
       return NextResponse.json(
         { success: false, error: 'Master account not found or unauthorized' },
         { status: 404 }
       )
     }
+
+    // Delete all associated data in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Get all phase IDs for this master account
+      const phaseIds = existingAccount.phases.map(phase => phase.id)
+      const phaseAccountNumbers = existingAccount.phases.map(phase => phase.phaseId).filter(Boolean) as string[]
+
+      // Delete all trades associated with this master account
+      // This covers both phaseAccountId and accountNumber links
+      await tx.trade.deleteMany({
+        where: {
+          OR: [
+            { phaseAccountId: { in: phaseIds } },
+            { accountNumber: { in: phaseAccountNumbers } },
+            // Also delete any trades that might be linked by master account name
+            { accountNumber: existingAccount.accountName }
+          ]
+        }
+      })
+
+      // Delete all phase accounts
+      if (phaseIds.length > 0) {
+        await tx.phaseAccount.deleteMany({
+          where: {
+            masterAccountId
+          }
+        })
+      }
+
+      // Delete daily anchors
+      await tx.dailyAnchor.deleteMany({
+        where: {
+          phaseAccount: {
+            masterAccountId
+          }
+        }
+      })
+
+      // Finally delete the master account
+      await tx.masterAccount.delete({
+        where: {
+          id: masterAccountId
+        }
+      })
+    })
+
+    // Invalidate all cache tags to ensure fresh data
+    const { invalidateUserCaches } = await import('@/server/accounts')
+    await invalidateUserCaches(userId)
 
     return NextResponse.json({
       success: true,

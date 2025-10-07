@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/daily-anchors",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/evaluate-phases",
+      "schedule": "0 * * * *"
     }
   ],
   "build": {

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useState, useMemo, useEffect } from "react"
-import { Search } from "lucide-react"
+import { Search, ChevronDown, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 import { useData } from "@/context/data-provider"
 import { useAccounts } from "@/hooks/use-accounts"
@@ -23,108 +24,221 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
   const { accountNumbers, setAccountNumbers } = useData()
   const { accounts, isLoading } = useAccounts()
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([])
+  const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set())
+  const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set())
   const [isSaving, setIsSaving] = useState(false)
 
   // Initialize selected accounts from context on mount
   useEffect(() => {
-    if (accountNumbers && accountNumbers.length > 0) {
-      setSelectedAccounts(accountNumbers)
+    if (accountNumbers && accountNumbers.length > 0 && accounts) {
+      // Find all accounts that match the saved account numbers BY PHASE ID ONLY
+      const matchingAccountIds = accounts
+        .filter(acc => accountNumbers.includes(acc.number))
+        .map(acc => acc.id)
+      
+      setSelectedAccounts(new Set(matchingAccountIds))
     }
-  }, [accountNumbers])
+  }, [accountNumbers, accounts])
 
-  // Group accounts by type
-  const groupedAccounts = useMemo(() => {
-    if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
-      return { live: [], propFirm: [] }
-    }
-    const live = accounts.filter(acc => acc.accountType === 'live')
-    const propFirm = accounts.filter(acc => acc.accountType === 'prop-firm')
-    return { live, propFirm }
+  // Server now returns clean data without master account duplicates
+  const filteredAccountsList = useMemo(() => {
+    if (!accounts || !Array.isArray(accounts)) return []
+    return accounts
   }, [accounts])
 
+  // Group accounts by master account name (hierarchical structure)
+  const groupedAccountsByName = useMemo(() => {
+    if (!filteredAccountsList || filteredAccountsList.length === 0) {
+      return {}
+    }
+
+    const grouped: Record<string, {
+      accountName: string
+      propFirm: string
+      phases: Array<{
+        id: string
+        number: string
+        status: string
+        tradeCount: number
+        phaseDetails: any
+        phaseId?: string
+        currentPhase?: number
+      }>
+    }> = {}
+
+    // Group by account name
+    filteredAccountsList.forEach(account => {
+      // For prop firm accounts, use the account name (which is the master account name)
+      // For regular accounts, use the account name directly
+      const accountName = account.accountType === 'prop-firm' ? account.name : account.name
+
+      if (!grouped[accountName]) {
+        grouped[accountName] = {
+          accountName,
+          propFirm: account.propfirm || '',
+          phases: []
+        }
+      }
+
+      grouped[accountName].phases.push({
+        id: account.id,
+        number: account.number,
+        status: account.status,
+        tradeCount: account.tradeCount || 0,
+        phaseDetails: account.currentPhaseDetails,
+        phaseId: account.currentPhaseDetails?.phaseId || account.number,
+        currentPhase: account.currentPhase || account.currentPhaseDetails?.phaseNumber
+      })
+    })
+
+    return grouped
+  }, [filteredAccountsList])
+
   // Filter accounts by search query
-  const filteredAccounts = useMemo(() => {
-    const filterFn = (acc: typeof accounts[0]) => {
-      if (!searchQuery) return true
+  const filteredGroupedAccounts = useMemo(() => {
+    if (!searchQuery) return groupedAccountsByName
+
       const query = searchQuery.toLowerCase()
-      return (
-        acc.number.toLowerCase().includes(query) ||
-        acc.name?.toLowerCase().includes(query) ||
-        acc.broker?.toLowerCase().includes(query) ||
-        acc.propfirm?.toLowerCase().includes(query)
+    const filtered: Record<string, any> = {}
+
+    Object.entries(groupedAccountsByName).forEach(([accountName, accountData]) => {
+      // Check if account name matches
+      if (accountName.toLowerCase().includes(query)) {
+        filtered[accountName] = accountData
+        return
+      }
+
+      // Check if any phase matches
+      const matchingPhases = accountData.phases.filter((phase: any) =>
+        phase.number.toLowerCase().includes(query) ||
+        phase.status.toLowerCase().includes(query) ||
+        accountData.propFirm.toLowerCase().includes(query)
       )
-    }
 
-    return {
-      live: groupedAccounts.live.filter(filterFn),
-      propFirm: groupedAccounts.propFirm.filter(filterFn)
-    }
-  }, [groupedAccounts, searchQuery])
-
-  const handleToggleAccount = (accountNumber: string) => {
-    setSelectedAccounts(prev =>
-      prev.includes(accountNumber)
-        ? prev.filter(num => num !== accountNumber)
-        : [...prev, accountNumber]
-    )
-  }
-
-  const handleSelectAll = () => {
-    setSelectedAccounts([])
-  }
-
-  const handleClearAll = () => {
-    if (accounts && Array.isArray(accounts)) {
-      setSelectedAccounts(accounts.map(acc => acc.number))
-    }
-  }
-
-  const handleSelectGroup = (type: 'live' | 'prop-firm') => {
-    if (!accounts || !Array.isArray(accounts)) return
-    
-    const groupAccounts = accounts
-      .filter(acc => acc.accountType === type)
-      .map(acc => acc.number)
-    
-    setSelectedAccounts(prev => {
-      const allSelected = groupAccounts.every(num => prev.includes(num))
-      if (allSelected) {
-        return prev.filter(num => !groupAccounts.includes(num))
-      } else {
-        return [...new Set([...prev, ...groupAccounts])]
+      if (matchingPhases.length > 0) {
+        filtered[accountName] = {
+          ...accountData,
+          phases: matchingPhases
+        }
       }
     })
+
+    return filtered
+  }, [groupedAccountsByName, searchQuery])
+
+  // Get only active accounts for default selection
+  const activeAccounts = useMemo(() => {
+    if (!filteredAccountsList) return []
+    return filteredAccountsList.filter(account => account.status === 'active')
+  }, [filteredAccountsList])
+
+  // Restore saved account selection from settings and auto-expand parent groups
+  useEffect(() => {
+    if (!accounts || accounts.length === 0) return
+    
+    // If accountNumbers are already set from saved settings, find and expand parent groups
+    if (accountNumbers.length > 0 && selectedAccounts.size === 0) {
+      const matchingAccounts = accounts.filter(acc => 
+        accountNumbers.includes(acc.number) || 
+        accountNumbers.includes(acc.id)
+      )
+      
+      if (matchingAccounts.length > 0) {
+        // Set selected accounts
+        setSelectedAccounts(new Set(matchingAccounts.map(acc => acc.id)))
+        
+        // Auto-expand all parent groups for selected accounts
+        const accountNames = new Set(matchingAccounts.map(acc => acc.name || acc.number))
+        setExpandedAccounts(accountNames)
+      }
+    }
+  }, [accounts, accountNumbers, selectedAccounts.size])
+
+  // Auto-select first active account if none selected and no saved selection
+  useEffect(() => {
+    if (activeAccounts.length > 0 && selectedAccounts.size === 0 && accountNumbers.length === 0) {
+      const firstActive = activeAccounts[0].id
+      setSelectedAccounts(new Set([firstActive]))
+      
+      // Auto-expand the parent group for the first active account
+      const firstActiveAccount = accounts?.find(acc => acc.id === firstActive)
+      if (firstActiveAccount) {
+        const accountName = firstActiveAccount.name || firstActiveAccount.number
+        setExpandedAccounts(new Set([accountName]))
+        
+        // Use account.number which is the phaseId that trades are stored with
+        const accountNumber = firstActiveAccount.number || firstActive
+
+        fetch('/api/settings/account-filters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            selectedAccount: firstActive,
+            selectedPhaseAccountIds: [accountNumber],
+            accountNumber: accountNumber,
+            updatedAt: new Date().toISOString()
+          })
+        }).then(() => {
+          setAccountNumbers([accountNumber])
+        }).catch(console.error)
+      }
+    }
+  }, [activeAccounts, selectedAccounts.size, accountNumbers, setAccountNumbers, accounts])
+
+  const handleToggleAccount = (accountId: string, checked: boolean) => {
+    const newSelected = new Set(selectedAccounts)
+    
+    if (checked) {
+      newSelected.add(accountId)
+    } else {
+      newSelected.delete(accountId)
+    }
+    
+    setSelectedAccounts(newSelected)
+    
+    // Auto-expand the parent group for the toggled account
+    const accountData = accounts?.find(acc => acc.id === accountId)
+    if (accountData && checked) {
+      const accountName = accountData.name || accountData.number
+      setExpandedAccounts(prev => new Set([...prev, accountName]))
+    }
   }
 
-  const handleApply = async () => {
+  const handleApplySelection = async () => {
+    if (selectedAccounts.size === 0) {
+      toast.error("Please select at least one account")
+      return
+    }
+    
     try {
       setIsSaving(true)
       
-      // Save to database via API
+      // Get all selected account numbers (phaseIds) for filtering
+      const accountNumbersToSave = Array.from(selectedAccounts)
+        .map(accountId => {
+          const account = accounts?.find(acc => acc.id === accountId)
+          return account?.number || accountId
+        })
+        .filter(Boolean)
+
       const response = await fetch('/api/settings/account-filters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          selectedAccounts: selectedAccounts,
+          selectedAccounts: Array.from(selectedAccounts),
+          selectedPhaseAccountIds: accountNumbersToSave,
           updatedAt: new Date().toISOString()
         })
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to save account selection')
+      if (response.ok) {
+        // Set accountNumbers to the account numbers (phaseIds) for proper trade filtering
+        setAccountNumbers(accountNumbersToSave)
+        toast.success(`${selectedAccounts.size} account(s) selected`)
+        onSave?.()
+      } else {
+        toast.error("Failed to save account selection")
       }
-
-      // Update local state
-      setAccountNumbers(selectedAccounts)
-      
-      toast.success(
-        selectedAccounts.length === 0
-          ? "Showing all accounts"
-          : `Filtering ${selectedAccounts.length} account${selectedAccounts.length > 1 ? 's' : ''}`
-      )
-      
-      onSave?.()
     } catch (error) {
       console.error('Error saving account selection:', error)
       toast.error("Failed to save account selection")
@@ -133,32 +247,84 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
     }
   }
 
-  const isGroupSelected = (type: 'live' | 'prop-firm') => {
-    if (!accounts || !Array.isArray(accounts)) return false
-    const groupAccounts = accounts
-      .filter(acc => acc.accountType === type)
-      .map(acc => acc.number)
-    return groupAccounts.length > 0 && groupAccounts.every(num => selectedAccounts.includes(num))
+  const handleSelectAllPhasesForAccount = (accountName: string) => {
+    const accountData = groupedAccountsByName[accountName]
+    if (!accountData) return
+    
+    const phaseIds = accountData.phases.map(p => p.id)
+    const newSelected = new Set(selectedAccounts)
+    
+    // Add all phases of this account
+    phaseIds.forEach(id => newSelected.add(id))
+    
+    setSelectedAccounts(newSelected)
+    
+    // Ensure expanded
+    setExpandedAccounts(prev => new Set([...prev, accountName]))
   }
 
-  const isGroupPartial = (type: 'live' | 'prop-firm') => {
-    if (!accounts || !Array.isArray(accounts)) return false
-    const groupAccounts = accounts
-      .filter(acc => acc.accountType === type)
-      .map(acc => acc.number)
-    const selectedCount = groupAccounts.filter(num => selectedAccounts.includes(num)).length
-    return selectedCount > 0 && selectedCount < groupAccounts.length
+  const toggleAccountExpansion = (accountName: string) => {
+    setExpandedAccounts(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(accountName)) {
+        newSet.delete(accountName)
+      } else {
+        newSet.add(accountName)
+      }
+      return newSet
+    })
+  }
+
+  const handleSelectAll = () => {
+    // Select all phase accounts (not master accounts)
+    const allIds = filteredAccountsList.map(acc => acc.id)
+    setSelectedAccounts(new Set(allIds))
+  }
+
+  const handleClearAll = async () => {
+    // Clear all selections
+    setSelectedAccounts(new Set())
+    
+    // Also clear from the data provider and save to backend
+    try {
+      setIsSaving(true)
+      
+      const response = await fetch('/api/settings/account-filters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          selectedAccounts: [],
+          selectedPhaseAccountIds: [],
+          updatedAt: new Date().toISOString()
+        })
+      })
+
+      if (response.ok) {
+        setAccountNumbers([])
+        toast.success("Selection cleared")
+        onSave?.()
+      }
+    } catch (error) {
+      console.error('Error clearing selection:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+  
+  const handleActiveOnly = () => {
+    // Select only active accounts
+    const activeIds = activeAccounts.map(acc => acc.id)
+    setSelectedAccounts(new Set(activeIds))
   }
 
   // Calculate display counts
-  const totalAccounts = accounts?.length || 0
-  const displayedCount = selectedAccounts.length === 0 ? totalAccounts : selectedAccounts.length
+  const totalAccounts = filteredAccountsList.length
 
   return (
-    <div className="w-full min-w-[380px] max-w-[480px] p-4 space-y-4">
+    <div className="w-full min-w-[280px] sm:min-w-[300px] max-w-[400px] sm:max-w-[450px] p-3 sm:p-4 space-y-3">
       <div className="space-y-2">
-        <h4 className="font-semibold text-base">Account Filter</h4>
-        <p className="text-sm text-muted-foreground">
+        <h4 className="font-semibold text-sm sm:text-base">Account Filter</h4>
+        <p className="text-xs sm:text-sm text-muted-foreground">
           Filter dashboard by accounts. Persists across sessions.
         </p>
       </div>
@@ -170,7 +336,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
           placeholder="Search accounts..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 h-9"
+          className="pl-9 h-8 sm:h-9 text-sm"
           disabled={isLoading}
         />
       </div>
@@ -181,190 +347,145 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
           variant="outline"
           size="sm"
           onClick={handleSelectAll}
-          disabled={selectedAccounts.length === 0 || isLoading}
-          className="flex-1 h-8 text-xs"
+          disabled={isLoading}
+          className="flex-1 h-8 sm:h-9 text-xs sm:text-sm"
         >
-          All Accounts
+          Select All
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleActiveOnly}
+          disabled={activeAccounts.length === 0}
+          className="flex-1 h-8 sm:h-9 text-xs sm:text-sm"
+        >
+          Active Only
         </Button>
         <Button
           variant="outline"
           size="sm"
           onClick={handleClearAll}
-          disabled={selectedAccounts.length === totalAccounts && totalAccounts > 0 || isLoading}
-          className="flex-1 h-8 text-xs"
+          disabled={selectedAccounts.size === 0}
+          className="flex-1 h-8 sm:h-9 text-xs sm:text-sm"
         >
-          None
+          Clear
         </Button>
       </div>
+      
+      {/* Selection Count */}
+      {selectedAccounts.size > 0 && (
+        <div className="text-xs text-muted-foreground text-center">
+          {selectedAccounts.size} account{selectedAccounts.size !== 1 ? 's' : ''} selected
+        </div>
+      )}
 
       <Separator />
 
       {/* Account List */}
-      <ScrollArea className="h-[320px] pr-3">
+      <ScrollArea className="h-[220px] sm:h-[260px] pr-2">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
-            <p className="text-sm text-muted-foreground">Loading accounts...</p>
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
+            <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary mb-2 sm:mb-3"></div>
+            <p className="text-xs sm:text-sm text-muted-foreground">Loading accounts...</p>
           </div>
         ) : totalAccounts === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-sm text-muted-foreground">No accounts found</p>
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground">No accounts found</p>
             <p className="text-xs text-muted-foreground mt-1">Create an account to get started</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {/* Live Accounts */}
-            {filteredAccounts.live.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between mb-2">
+          <div className="space-y-3">
+            {Object.entries(filteredGroupedAccounts).map(([accountName, accountData]) => {
+              const selectedPhasesCount = accountData.phases.filter((p: any) => selectedAccounts.has(p.id)).length
+              const totalPhasesCount = accountData.phases.filter((p: any) => p.status !== 'pending').length
+              
+              return (
+                <Collapsible key={accountName} open={expandedAccounts.has(accountName)} onOpenChange={() => toggleAccountExpansion(accountName)}>
                   <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="select-live"
-                      checked={isGroupSelected('live')}
-                      onCheckedChange={() => handleSelectGroup('live')}
-                      className={cn(
-                        isGroupPartial('live') && "data-[state=checked]:bg-primary/50"
-                      )}
-                    />
-                    <Label htmlFor="select-live" className="text-sm font-semibold cursor-pointer">
-                      Live Accounts
-                    </Label>
-                  </div>
-                  <Badge variant="secondary" className="text-xs h-5 px-2">
-                    {filteredAccounts.live.length}
-                  </Badge>
-                </div>
-                
-                <div className="ml-6 space-y-1.5">
-                  {filteredAccounts.live.map((account) => (
-                    <div key={account.id} className="flex items-start gap-2 py-1">
-                      <Checkbox
-                        id={`account-${account.id}`}
-                        checked={selectedAccounts.includes(account.number) || selectedAccounts.length === 0}
-                        onCheckedChange={() => handleToggleAccount(account.number)}
-                        className="mt-0.5"
-                      />
-                      <Label
-                        htmlFor={`account-${account.id}`}
-                        className="flex-1 text-sm cursor-pointer leading-tight"
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="flex-1 justify-between p-2 h-auto text-left hover:bg-accent/50"
                       >
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium">{account.number}</span>
-                          {account.name && (
-                            <span className="text-muted-foreground text-xs">• {account.name}</span>
+                        <div className="flex items-center gap-2">
+                          {expandedAccounts.has(accountName) ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
                           )}
-                          {account.broker && (
-                            <span className="text-muted-foreground text-xs">• {account.broker}</span>
-                          )}
+                          <div>
+                            <div className="font-medium text-sm">{accountName}</div>
+                            {accountData.propFirm && (
+                              <div className="text-xs text-muted-foreground">{accountData.propFirm}</div>
+                            )}
+                          </div>
                         </div>
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Prop Firm Accounts */}
-            {filteredAccounts.propFirm.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="select-propfirm"
-                      checked={isGroupSelected('prop-firm')}
-                      onCheckedChange={() => handleSelectGroup('prop-firm')}
-                      className={cn(
-                        isGroupPartial('prop-firm') && "data-[state=checked]:bg-primary/50"
-                      )}
-                    />
-                    <Label htmlFor="select-propfirm" className="text-sm font-semibold cursor-pointer">
-                      Prop Firm Accounts
-                    </Label>
+                        <Badge variant="secondary" className="text-xs h-4 px-1.5">
+                          {totalPhasesCount}
+                        </Badge>
+                      </Button>
+                    </CollapsibleTrigger>
                   </div>
-                  <Badge variant="secondary" className="text-xs h-5 px-2">
-                    {filteredAccounts.propFirm.length}
-                  </Badge>
-                </div>
-                
-                <div className="ml-6 space-y-1.5">
-                  {filteredAccounts.propFirm.map((account) => (
-                    <div key={account.id} className="flex items-start gap-2 py-1">
+                  <CollapsibleContent className="ml-6 space-y-1">
+                    {accountData.phases
+                      .filter((phase: any) => phase.status && phase.status !== 'pending') // Filter out pending phases that don't exist
+                      .map((phase: any) => (
+                      <div key={phase.id} className="flex items-center gap-2 py-1">
                       <Checkbox
-                        id={`account-${account.id}`}
-                        checked={selectedAccounts.includes(account.number) || selectedAccounts.length === 0}
-                        onCheckedChange={() => handleToggleAccount(account.number)}
-                        className="mt-0.5"
+                          checked={selectedAccounts.has(phase.id)}
+                          onCheckedChange={(checked) => handleToggleAccount(phase.id, checked as boolean)}
+                          id={phase.id}
                       />
                       <Label
-                        htmlFor={`account-${account.id}`}
-                        className="flex-1 text-sm cursor-pointer leading-tight"
+                          htmlFor={phase.id}
+                          className="flex-1 text-xs sm:text-sm cursor-pointer leading-tight"
                       >
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium">{account.number}</span>
-                          {account.name && (
-                            <span className="text-muted-foreground text-xs">• {account.name}</span>
-                          )}
-                          {account.propfirm && (
-                            <span className="text-muted-foreground text-xs">• {account.propfirm}</span>
-                          )}
-                          {account.status && (
+                            <span className="font-medium">{phase.number}</span>
                             <Badge
                               variant={
-                                account.status === 'active' ? 'outline' :
-                                account.status === 'funded' ? 'default' :
-                                account.status === 'failed' ? 'destructive' : 'secondary'
+                                phase.status === 'active' ? 'outline' :
+                                phase.status === 'funded' || phase.status === 'passed' ? 'default' :
+                                phase.status === 'failed' || phase.status === 'archived' ? 'destructive' : 'secondary'
                               }
-                              className="text-[10px] h-4 px-1.5"
+                              className="text-[10px] h-4 px-1.5 min-w-[3rem] justify-center"
                             >
-                              {account.status}
+                              {phase.status === 'archived' ? 'failed' : phase.status}
                             </Badge>
+                            <Badge variant="outline" className="text-[10px] h-4 px-1.5 min-w-[2.5rem] justify-center">
+                              Phase {phase.currentPhase || phase.phaseDetails?.phaseNumber || 'N/A'}
+                            </Badge>
+                            {phase.tradeCount > 0 && (
+                              <span className="text-muted-foreground text-xs">• {phase.tradeCount} trades</span>
                           )}
                         </div>
                       </Label>
                     </div>
                   ))}
-                </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )
+            })}
               </div>
             )}
 
-            {filteredAccounts.live.length === 0 && filteredAccounts.propFirm.length === 0 && searchQuery && (
-              <div className="text-center py-8 text-muted-foreground text-sm">
+        {Object.keys(filteredGroupedAccounts).length === 0 && searchQuery && (
+          <div className="text-center py-6 sm:py-8 text-muted-foreground text-xs sm:text-sm">
                 No accounts match "{searchQuery}"
-              </div>
-            )}
           </div>
         )}
       </ScrollArea>
 
       <Separator />
 
-      {/* Selected Summary & Apply */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
-            {selectedAccounts.length === 0
-              ? `All ${totalAccounts} accounts`
-              : `${selectedAccounts.length} of ${totalAccounts} accounts`}
-          </span>
-          {selectedAccounts.length > 0 && (
+      {/* Apply Button */}
+      <div className="space-y-2">
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSelectAll}
-              className="h-6 text-xs px-2"
-              disabled={isLoading}
-            >
-              Reset
-            </Button>
-          )}
-        </div>
-        
-        <Button
-          onClick={handleApply}
-          disabled={isSaving || isLoading || totalAccounts === 0}
-          className="w-full h-9"
+          className="w-full h-9 sm:h-10" 
+          onClick={handleApplySelection}
+          disabled={isSaving || selectedAccounts.size === 0}
         >
-          {isSaving ? "Saving..." : "Apply Filter"}
+          {isSaving ? "Applying..." : `Apply Filter ${selectedAccounts.size > 0 ? `(${selectedAccounts.size})` : ''}`}
         </Button>
       </div>
     </div>

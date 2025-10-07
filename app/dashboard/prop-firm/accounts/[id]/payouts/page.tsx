@@ -20,7 +20,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  Download
+  Download,
+  Trash2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AccountStatus, PhaseType } from "@/types/prop-firm"
@@ -58,6 +59,7 @@ export default function AccountPayoutsPage() {
   const [account, setAccount] = useState<AccountData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [deletingPayoutId, setDeletingPayoutId] = useState<string | null>(null)
 
   const accountId = params.id as string
 
@@ -142,6 +144,35 @@ export default function AccountPayoutsPage() {
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
+  }
+
+    const handleDeletePayout = async (payoutId: string) => {
+    if (!confirm('Are you sure you want to delete this payout request?')) {
+      return
+    }
+
+    try {
+      setDeletingPayoutId(payoutId)
+
+      const response = await fetch(`/api/prop-firm-v2/payouts/${payoutId}`, {
+        method: 'DELETE'
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success('Payout request deleted successfully')
+        // Refresh the list
+        fetchPayouts()
+      } else {
+        throw new Error(data.error || 'Failed to delete payout')
+      }
+    } catch (error) {
+      console.error('Error deleting payout:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to delete payout')
+    } finally {
+      setDeletingPayoutId(null)
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -285,16 +316,30 @@ export default function AccountPayoutsPage() {
                         <p className="text-sm text-muted-foreground">
                           Requested {new Date(payout.requestedAt).toLocaleDateString()}
                         </p>
+                        {payout.notes && (
+                          <p className="text-xs text-muted-foreground mt-1 max-w-md">
+                            {payout.notes}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       <Badge className={cn(getStatusColor(payout.status), 'text-white')}>
                         {payout.status.toUpperCase()}
                       </Badge>
-                      {payout.notes && (
-                        <p className="text-sm text-muted-foreground max-w-xs truncate">
-                          {payout.notes}
-                        </p>
+                      {payout.status === 'pending' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeletePayout(payout.id)}
+                          disabled={deletingPayoutId === payout.id}
+                        >
+                          {deletingPayoutId === payout.id ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
                       )}
                     </div>
                   </div>

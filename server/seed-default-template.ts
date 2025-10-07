@@ -28,6 +28,16 @@ export async function ensureDefaultTemplate() {
   try {
     const userId = await getUserId()
 
+    // Ensure user exists before creating template
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    })
+
+    if (!userExists) {
+      return // User doesn't exist yet, skip template creation
+    }
+
     // Check if user has any templates
     const existingTemplates = await prisma.dashboardTemplate.findMany({
       where: { userId },
