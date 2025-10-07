@@ -94,7 +94,8 @@ export default function RootPage() {
     }
   }, [forceClearAuth])
 
-  // Check if user is already authenticated and redirect to dashboard
+  // Don't auto-redirect authenticated users - show them the logged-in UI instead
+  // This provides better UX by showing confirmation they're logged in
   useEffect(() => {
     // Skip this check if we're processing logout or have logout/deletion parameters
     const urlParams = new URLSearchParams(window.location.search)
@@ -102,7 +103,7 @@ export default function RootPage() {
       return
     }
 
-    // Force a fresh auth check if coming from a potential logout/deletion
+    // Only clear auth if needed, don't redirect
     const checkFreshAuth = async () => {
       if (isAuthenticated && !isLoading) {
         // Double-check auth status with a fresh API call
@@ -113,14 +114,7 @@ export default function RootPage() {
           })
           const data = await response.json()
 
-          if (response.ok && data.authenticated) {
-            // User is truly authenticated, redirect to dashboard
-            const currentUrl = window.location.href
-            const url = new URL(currentUrl)
-            const nextParam = url.searchParams.get('next')
-            const redirectUrl = nextParam || '/dashboard'
-            router.push(redirectUrl)
-          } else {
+          if (!response.ok || !data.authenticated) {
             // User is not truly authenticated, force clear auth state
             console.log('[Auth] User not authenticated, clearing local state')
             // Force refresh the auth provider state
@@ -133,6 +127,7 @@ export default function RootPage() {
             }
             // If not authenticated, the auth provider will handle the state update
           }
+          // If authenticated, we just show the logged-in UI (no redirect)
         } catch (error) {
           console.log('Auth check failed, staying on auth page')
           // If auth check fails, stay on auth page
@@ -141,7 +136,7 @@ export default function RootPage() {
     }
 
     checkFreshAuth()
-  }, [isAuthenticated, isLoading, router, forceClearAuth, isProcessingLogout])
+  }, [isAuthenticated, isLoading, forceClearAuth, isProcessingLogout])
 
   // If user is authenticated and not processing logout, show logged-in state
   if (isAuthenticated && !isLoading && !isProcessingLogout) {

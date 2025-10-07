@@ -45,7 +45,6 @@ export interface User {
 
 export interface UserPreferences {
   theme: 'light' | 'dark' | 'system'
-  language: string
   timezone: string
   currency: string
   dateFormat: string

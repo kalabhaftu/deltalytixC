@@ -92,16 +92,8 @@ model User {
   id                    String              @id @default(cuid())
   email                 String              @unique
   auth_user_id          String              @unique
-  isBeta                Boolean             @default(false)
   isFirstConnection     Boolean             @default(true)
-  etpToken              String?
   thorToken             String?
-  language              String              @default("en")
-  twoFactorSecret       String?
-  twoFactorEnabled      Boolean             @default(false)
-  lastLoginAt           DateTime?
-  loginAttempts         Int                 @default(0)
-  lockedUntil           DateTime?
   timezone              String              @default("UTC")
   theme                 String              @default("system")
   firstName             String?

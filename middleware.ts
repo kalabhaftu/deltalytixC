@@ -33,49 +33,9 @@ export default async function middleware(req: NextRequest) {
     pathname === route || pathname.startsWith(route + "/")
   )
 
-  // If user is authenticated and trying to access root page, redirect to dashboard
-  if (isPublicRoute && pathname === '/') {
-    try {
-      const cookieStore = await cookies()
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-      if (supabaseUrl && supabaseKey) {
-        const supabase = createServerClient(
-          supabaseUrl,
-          supabaseKey,
-          {
-            cookies: {
-              getAll() {
-                return cookieStore.getAll()
-              },
-              setAll(cookiesToSet) {
-                try {
-                  cookiesToSet.forEach(({ name, value, options }) =>
-                    cookieStore.set(name, value, options)
-                  )
-                } catch {
-                  // Ignore cookie setting errors
-                }
-              },
-            },
-          }
-        )
-
-        const { data: { user }, error } = await supabase.auth.getUser()
-
-        if (!error && user) {
-          console.log('Middleware: Authenticated user accessing auth page, redirecting to dashboard')
-          const nextParam = req.nextUrl.searchParams.get('next')
-          const redirectUrl = nextParam || '/dashboard'
-          return NextResponse.redirect(new URL(redirectUrl, req.url))
-        }
-      }
-    } catch (error) {
-      console.warn('Middleware: Error checking auth for auth page redirect:', error)
-      // Continue to allow access to auth page if there's an error
-    }
-  }
+  // Allow authenticated users to see the root page with "Already Logged In" UI
+  // The page itself will show the logged-in state instead of redirecting immediately
+  // This provides better UX by showing the user they're logged in with a clear CTA
 
   // For protected routes, check authentication directly
   if (isProtectedRoute) {

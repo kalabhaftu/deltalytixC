@@ -14,7 +14,6 @@ export async function GET() {
         email: true,
         firstName: true,
         lastName: true,
-        language: true,
       }
     })
 
@@ -74,7 +73,6 @@ export async function PATCH(request: NextRequest) {
         email: true,
         firstName: true,
         lastName: true,
-        language: true,
       }
     })
 

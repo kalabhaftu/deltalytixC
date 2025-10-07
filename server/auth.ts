@@ -290,8 +290,7 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
               auth_user_id: user.id // Always use auth_user_id as the unique identifier
             },
             data: {
-              email: user.email || existingUserByAuthId.email,
-              language: locale || existingUserByAuthId.language
+              email: user.email || existingUserByAuthId.email
             },
           });
           // User updated successfully
@@ -329,8 +328,7 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
         data: {
           auth_user_id: user.id,
           email: user.email || '', // Provide a default empty string if email is null
-          id: user.id,
-          language: locale || 'en'
+          id: user.id
         },
       });
       // New user created successfully
