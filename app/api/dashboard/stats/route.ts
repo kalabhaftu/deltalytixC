@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
           select: {
             pnl: true,
             commission: true,
-            fees: true,
+            swap: true,
             accountNumber: true,
             createdAt: true
           },

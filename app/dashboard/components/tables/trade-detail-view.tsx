@@ -198,26 +198,6 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                 </Card>
               )}
 
-              {/* Tags */}
-              {trade.tags && trade.tags.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Hash className="w-5 h-5" />
-                      Tags
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {trade.tags.map((tag, index) => (
-                        <Badge key={index} variant="secondary">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </div>
 
             {/* Right Column - Images */}

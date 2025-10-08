@@ -661,7 +661,7 @@ export default function AccountDetailPage() {
                           ).length
                           const phasePnL = (accountData.recentTrades
                             .filter((t: any) => t.phase?.id === phase.id || t.phaseAccountId === phase.id)
-                            .reduce((sum: number, t: any) => sum + (t.pnl || t.realizedPnl || 0), 0)) || 0
+                            .reduce((sum: number, t: any) => sum + (t.pnl || 0), 0)) || 0
                         
                         return (
                           <Card key={phase.id} className="p-4">
@@ -718,8 +718,8 @@ export default function AccountDetailPage() {
                                 <td className="p-3">{trade.quantity || 'N/A'}</td>
                                 <td className="p-3 text-sm">{trade.entryPrice || 'N/A'}</td>
                                 <td className="p-3 text-sm">{trade.exitPrice || trade.closePrice || 'N/A'}</td>
-                                <td className={cn("p-3 font-medium", (trade.pnl || trade.realizedPnl || 0) >= 0 ? "text-green-600" : "text-red-600")}>
-                                  {formatCurrency(trade.pnl || trade.realizedPnl || 0)}
+                                <td className={cn("p-3 font-medium", (trade.pnl || 0) >= 0 ? "text-green-600" : "text-red-600")}>
+                                  {formatCurrency(trade.pnl || 0)}
                                 </td>
                                 <td className="p-3">
                                   <Badge variant="outline" className="text-xs">
@@ -803,8 +803,8 @@ export default function AccountDetailPage() {
                     <p className="text-2xl font-bold text-green-600">
                       {(() => {
                         const trades = accountData?.recentTrades || []
-                        const winningTrades = trades.filter((t: any) => (t.realizedPnl || t.pnl || 0) > 0).length
-                        const losingTrades = trades.filter((t: any) => (t.realizedPnl || t.pnl || 0) < 0).length
+                        const winningTrades = trades.filter((t: any) => (t.pnl || 0) > 0).length
+                        const losingTrades = trades.filter((t: any) => (t.pnl || 0) < 0).length
                         const tradableTradesCount = winningTrades + losingTrades
                         return tradableTradesCount > 0 ? Math.round((winningTrades / tradableTradesCount) * 100) : 0
                       })()}%
@@ -813,21 +813,21 @@ export default function AccountDetailPage() {
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Total P&L</p>
                     <p className={cn("text-2xl font-bold",
-                      ((accountData?.recentTrades?.reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0) ?? 0) >= 0)
+                      ((accountData?.recentTrades?.reduce((sum: number, t: any) => sum + (t.pnl || 0), 0) ?? 0) >= 0)
                         ? "text-green-600" : "text-red-600"
                     )}>
-                      {formatCurrency(accountData?.recentTrades?.reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0) ?? 0)}
+                      {formatCurrency(accountData?.recentTrades?.reduce((sum: number, t: any) => sum + (t.pnl || 0), 0) ?? 0)}
                     </p>
                   </div>
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Avg Trade</p>
                     <p className={cn("text-2xl font-bold",
                       ((accountData?.recentTrades?.length ?? 0) > 0
-                        ? ((accountData.recentTrades.reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0) ?? 0) / accountData.recentTrades.length)
+                        ? ((accountData.recentTrades.reduce((sum: number, t: any) => sum + (t.pnl || 0), 0) ?? 0) / accountData.recentTrades.length)
                         : 0) >= 0 ? "text-green-600" : "text-red-600"
                     )}>
                       {(accountData?.recentTrades?.length ?? 0) > 0
-                        ? formatCurrency((accountData.recentTrades.reduce((sum: number, t: any) => sum + (t.realizedPnl || t.pnl || 0), 0) ?? 0) / accountData.recentTrades.length)
+                        ? formatCurrency((accountData.recentTrades.reduce((sum: number, t: any) => sum + (t.pnl || 0), 0) ?? 0) / accountData.recentTrades.length)
                         : formatCurrency(0)
                       }
                     </p>
@@ -847,10 +847,10 @@ export default function AccountDetailPage() {
                     const phaseTrades = accountData?.recentTrades?.filter((t: any) => 
                       t.phase?.id === phase.id || t.phaseAccountId === phase.id
                     ) || []
-                    const phasePnL = phaseTrades.reduce((sum: number, t: any) => sum + (t.pnl || t.realizedPnl || 0), 0) || 0
+                    const phasePnL = phaseTrades.reduce((sum: number, t: any) => sum + (t.pnl || 0), 0) || 0
                     // Calculate win rate excluding break-even trades (industry standard)
-                    const winningTrades = phaseTrades.filter((t: any) => (t.pnl || t.realizedPnl || 0) > 0).length
-                    const losingTrades = phaseTrades.filter((t: any) => (t.pnl || t.realizedPnl || 0) < 0).length
+                    const winningTrades = phaseTrades.filter((t: any) => (t.pnl || 0) > 0).length
+                    const losingTrades = phaseTrades.filter((t: any) => (t.pnl || 0) < 0).length
                     const tradableTradesCount = winningTrades + losingTrades
                     const phaseWinRate = tradableTradesCount > 0
                       ? Math.round((winningTrades / tradableTradesCount) * 100)
@@ -929,7 +929,7 @@ export default function AccountDetailPage() {
                       acc[symbol] = { trades: 0, pnl: 0, wins: 0, losses: 0 }
                     }
                     acc[symbol].trades++
-                    const tradePnl = trade.pnl || trade.realizedPnl || 0
+                    const tradePnl = trade.pnl || 0
                     acc[symbol].pnl += tradePnl
                     if (tradePnl > 0) {
                       acc[symbol].wins++
@@ -1140,9 +1140,9 @@ export default function AccountDetailPage() {
                   t.phase?.id === phase.id || t.phaseAccountId === phase.id
                 ) || []
                 
-                const totalPnL = phaseTrades.reduce((sum: number, t: any) => sum + (t.pnl || t.realizedPnl || 0), 0)
-                const winningTrades = phaseTrades.filter((t: any) => (t.pnl || t.realizedPnl || 0) > 0).length
-                const losingTrades = phaseTrades.filter((t: any) => (t.pnl || t.realizedPnl || 0) < 0).length
+                const totalPnL = phaseTrades.reduce((sum: number, t: any) => sum + (t.pnl || 0), 0)
+                const winningTrades = phaseTrades.filter((t: any) => (t.pnl || 0) > 0).length
+                const losingTrades = phaseTrades.filter((t: any) => (t.pnl || 0) < 0).length
                 const tradableCount = winningTrades + losingTrades
                 const winRate = tradableCount > 0 ? (winningTrades / tradableCount) * 100 : 0
                 
@@ -1156,23 +1156,23 @@ export default function AccountDetailPage() {
                 
                 if (phaseTrades.length > 0) {
                   const sortedByPnl = [...phaseTrades].sort((a, b) => 
-                    (b.pnl || b.realizedPnl || 0) - (a.pnl || a.realizedPnl || 0)
+                    (b.pnl || 0) - (a.pnl || 0)
                   )
                   const best = sortedByPnl[0]
                   const worst = sortedByPnl[sortedByPnl.length - 1]
                   
-                  if (best && (best.pnl || best.realizedPnl || 0) > 0) {
+                  if (best && (best.pnl || 0) > 0) {
                     bestTrade = {
                       symbol: best.instrument || best.symbol || 'N/A',
-                      pnl: best.pnl || best.realizedPnl || 0,
+                      pnl: best.pnl || 0,
                       date: best.exitTime || best.closeDate || best.entryTime || best.entryDate
                     }
                   }
                   
-                  if (worst && (worst.pnl || worst.realizedPnl || 0) < 0) {
+                  if (worst && (worst.pnl || 0) < 0) {
                     worstTrade = {
                       symbol: worst.instrument || worst.symbol || 'N/A',
-                      pnl: worst.pnl || worst.realizedPnl || 0,
+                      pnl: worst.pnl || 0,
                       date: worst.exitTime || worst.closeDate || worst.entryTime || worst.entryDate
                     }
                   }

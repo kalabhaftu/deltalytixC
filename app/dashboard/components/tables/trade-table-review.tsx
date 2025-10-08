@@ -87,20 +87,13 @@ export interface ExtendedTrade extends Trade {
   cardPreviewImage: string | null
   tradingModel: TradingModel | null
   comment: string | null
-  videoUrl: string | null
   trades: ExtendedTrade[]
   // phaseId field removed - use phaseAccountId in new system
   accountId: string | null
-  strategy: string | null
   stopLoss?: string | null
   takeProfit?: string | null
-  fees: number | null
-  realizedPnl: number | null
   entryTime: Date | null
   exitTime: Date | null
-  equityAtOpen: number | null
-  equityAtClose: number | null
-  rawBrokerId: string | null
   closeReason: string | null
 }
 
@@ -267,12 +260,10 @@ export function TradeTableReview() {
           symbol: trade.symbol ?? null,
           entryTime: null,
           exitTime: null,
-          tags: trade.tags,
           imageBase64: trade.imageBase64,
           imageBase64Second: trade.imageBase64Second,
           // phaseId field removed - use phaseAccountId in new system
           accountId: trade.accountId ?? null,
-          strategy: trade.strategy ?? null,
           imageBase64Third: trade.imageBase64Third ?? null,
           imageBase64Fourth: trade.imageBase64Fourth ?? null,
           imageBase64Fifth: (trade as any).imageBase64Fifth ?? null,
@@ -280,7 +271,6 @@ export function TradeTableReview() {
           cardPreviewImage: (trade as any).cardPreviewImage ?? null,
           tradingModel: (trade as any).tradingModel as TradingModel | null,
           comment: trade.comment,
-          videoUrl: null,
           id: '',
           accountNumber: trade.accountNumber,
           quantity: trade.quantity,
@@ -293,11 +283,6 @@ export function TradeTableReview() {
           userId: '',
           side: trade.side,
           commission: trade.commission,
-          fees: 0,
-          realizedPnl: null,
-          equityAtOpen: null,
-          equityAtClose: null,
-          rawBrokerId: null,
           closeReason: trade.closeReason,
           trades: [{
             ...trade,

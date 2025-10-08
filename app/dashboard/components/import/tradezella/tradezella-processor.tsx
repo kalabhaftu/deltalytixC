@@ -135,8 +135,6 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
         commission: item.commission || 0,
         createdAt: new Date(),
         comment: null,
-        videoUrl: null,
-        tags: [],
         imageBase64: null,
         imageBase64Second: null,
         imageBase64Third: null,
@@ -149,14 +147,8 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
         symbol: null,
         entryTime: null,
         exitTime: null,
-        fees: 0,
-        realizedPnl: null,
-        equityAtOpen: null,
-        equityAtClose: null,
-        rawBrokerId: null,
         phaseAccountId: null, // Will be set by automatic linking during save
         accountId: null,
-        strategy: null,
         closeReason: null,
       }
 

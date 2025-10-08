@@ -22,9 +22,6 @@ import { FormatPreview } from './components/format-preview'
 import { cn } from '@/lib/utils'
 import { useUserStore } from '@/store/user-store'
 import { useTradesStore } from '@/store/trades-store'
-import { usePdfProcessingStore } from '@/store/pdf-processing-store'
-import PdfUpload from './ibkr-pdf/pdf-upload'
-import PdfProcessing from './ibkr-pdf/pdf-processing'
 import { motion } from 'framer-motion'
 
 import { generateTradeHash } from '@/lib/utils'
@@ -147,6 +144,15 @@ export default function ImportButton() {
       // Update the trades and wait for completion
       await refreshTrades()
       
+      // Handle duplicate trades case
+      if (result.isDuplicate) {
+        toast.info("No New Trades", {
+          description: 'message' in result ? result.message : `All ${result.totalTrades} trades already exist in this account`,
+          duration: 5000,
+        })
+        return
+      }
+
       // Show success message with evaluation result
       if ('evaluation' in result && result.evaluation) {
         console.log('[IMPORT_RESULT] Evaluation result:', {
@@ -214,8 +220,29 @@ export default function ImportButton() {
 
     } catch (error) {
       console.error('Error in save and link trades:', error)
-      toast.error("Import Failed", {
-         description: error instanceof Error ? error.message : "An error occurred while importing trades. No trades were saved.",
+      
+      // Provide more specific error messages based on error type
+      let errorMessage = "An error occurred while importing trades. No trades were saved."
+      let errorTitle = "Import Failed"
+      
+      if (error instanceof Error) {
+        if (error.message.includes('phase transition')) {
+          errorTitle = "Phase Transition Required"
+          errorMessage = error.message
+        } else if (error.message.includes('account')) {
+          errorTitle = "Account Error"
+          errorMessage = error.message
+        } else if (error.message.includes('authentication')) {
+          errorTitle = "Authentication Error"
+          errorMessage = "Please log in again and try importing your trades."
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
+      toast.error(errorTitle, {
+        description: errorMessage,
+        duration: 8000,
       })
     } finally {
       setIsSaving(false)
@@ -303,14 +330,6 @@ export default function ImportButton() {
         </div>
       )
     }
-    if (Component === PdfUpload) {
-      return (
-        <Component
-          setText={setText}
-          setFiles={setFiles}
-        />
-      )
-    }
 
     if (Component === FileUpload) {
       return (
@@ -376,18 +395,6 @@ export default function ImportButton() {
       )
     }
     
-    if (Component === PdfProcessing) {
-      return (
-        <Component
-          setError={setError}
-          setStep={setStep}
-          processedTrades={processedTrades}
-          setProcessedTrades={setProcessedTrades}
-          extractedText={text}
-        />
-      )
-    }
-    
     // Handle processor components - only if the current step component is the processor
     if (platform.processorComponent && Component === platform.processorComponent) {
       return (
@@ -419,9 +426,6 @@ export default function ImportButton() {
 
     // File upload step
     if (currentStep.component === FileUpload && csvData.length === 0) return true
-    
-    // PDF upload step
-    if (currentStep.component === PdfUpload && text.length === 0) return true
     
     // Account selection for platforms - require account ID for linking
     if (currentStep.component === AccountSelection && !selectedAccountId) return true

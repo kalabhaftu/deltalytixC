@@ -267,10 +267,8 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
         timeInPosition,
         comment: data.comment || null,
         userId: currentUser.id,
-        tags: [], // Can be extended later
         entryId: null,
         closeId: null,
-        videoUrl: null,
         imageBase64: null,
         imageBase64Second: null,
         imageBase64Third: null,
@@ -300,8 +298,17 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
       const { saveAndLinkTrades } = await import("@/server/accounts")
       const result = await saveAndLinkTrades(targetAccount.id, [completeTrade])
 
+      // Handle duplicate trades case
+      if (result.isDuplicate) {
+        toast.info("Trade Already Exists", {
+          description: 'message' in result ? result.message : "This trade already exists in the account",
+          duration: 5000,
+        })
+        return
+      }
+
       toast.success('Trade Added', {
-        description: `Trade successfully saved and linked to ${result.accountName}`,
+        description: `Trade successfully saved and linked to ${'accountName' in result ? result.accountName : 'the account'}`,
       })
 
       // Invalidate accounts cache to trigger refresh
@@ -313,8 +320,29 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
 
     } catch (error) {
       console.error('Error in save and link trade:', error)
-      toast.error('Save Failed', {
-        description: error instanceof Error ? error.message : 'An error occurred while saving the trade. Please try again.',
+      
+      // Provide more specific error messages based on error type
+      let errorMessage = 'An error occurred while saving the trade. Please try again.'
+      let errorTitle = 'Save Failed'
+      
+      if (error instanceof Error) {
+        if (error.message.includes('phase transition')) {
+          errorTitle = "Phase Transition Required"
+          errorMessage = error.message
+        } else if (error.message.includes('account')) {
+          errorTitle = "Account Error"
+          errorMessage = error.message
+        } else if (error.message.includes('authentication')) {
+          errorTitle = "Authentication Error"
+          errorMessage = "Please log in again and try saving your trade."
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
+      toast.error(errorTitle, {
+        description: errorMessage,
+        duration: 8000,
       })
     } finally {
       setIsSubmitting(false)

@@ -77,9 +77,9 @@ export function calculateAccountBalance(
     return balance // Don't add any trades from failed accounts
   }
 
-  // Calculate cumulative PnL (net of commissions and fees)
+  // Calculate cumulative PnL (net of commissions and swap)
   const cumulativePnL = relevantTrades.reduce((sum, trade) => {
-    const netPnL = (trade.pnl || 0) - (trade.commission || 0) - (trade.fees || 0)
+    const netPnL = (trade.pnl || 0) - (trade.commission || 0) - (trade.swap || 0)
     return sum + netPnL
   }, 0)
 
@@ -174,36 +174,80 @@ export function calculateTotalStartingBalance(
   accounts: (Account | any)[]
 ): number {
   // Group accounts by master account ID to prevent double-counting
-  const masterAccountBalances = new Map<string, { balance: number, isActive: boolean, status: string }>()
+  const masterAccountBalances = new Map<string, { balance: number, isActive: boolean, isFunded: boolean, status: string }>()
+  
+  console.log('[BALANCE_CALC] Input accounts:', accounts.map(a => {
+    const phaseDetails = a.currentPhaseDetails || a.phaseDetails
+    return {
+      id: a.id,
+      number: a.number,
+      name: a.name,
+      status: a.status,
+      startingBalance: a.startingBalance,
+      accountType: a.accountType,
+      propfirm: a.propfirm,
+      masterAccountId: phaseDetails?.masterAccountId,
+      phaseDetails: a.phaseDetails,
+      currentPhaseDetails: a.currentPhaseDetails,
+      // Show all keys to see what we're getting
+      allKeys: Object.keys(a)
+    }
+  }))
   
   accounts.forEach(account => {
     // For prop firms, use master account ID as the key
     // For regular accounts, use the account ID itself
-    const masterKey = account.phaseDetails?.masterAccountId || account.id
-    const accountName = account.phaseDetails?.masterAccountName || account.name || account.number
+    const phaseDetails = account.currentPhaseDetails || account.phaseDetails
+    const masterKey = phaseDetails?.masterAccountId || account.id
+    const accountName = phaseDetails?.masterAccountName || account.name || account.number
     
     const isActive = account.status === 'active'
+    const isFunded = account.status === 'funded'
     const status = account.status || 'active'
     const balance = account.startingBalance || 0
+    
+    console.log('[BALANCE_CALC] Processing account:', {
+      number: account.number,
+      masterKey,
+      status,
+      isActive,
+      isFunded,
+      balance,
+      hasPhaseDetails: !!phaseDetails,
+      phaseMasterAccountId: phaseDetails?.masterAccountId
+    })
     
     const existing = masterAccountBalances.get(masterKey)
     
     // If this master account already exists in our map
     if (existing) {
-      // For prop firms with multiple phases: ONLY count the ACTIVE phase
-      // If this phase is active and existing wasn't, replace it
-      if (isActive && !existing.isActive) {
-        masterAccountBalances.set(masterKey, { balance, isActive, status })
+      console.log('[BALANCE_CALC] Master account already exists:', { masterKey, existing, current: { isActive, isFunded, balance } })
+      // For prop firms with multiple phases: Priority order is funded > active > passed
+      // 1. If this phase is funded, always use it
+      // 2. If this phase is active and existing wasn't funded, use it
+      // 3. Otherwise, keep the existing one (don't double-count)
+      if (isFunded) {
+        console.log('[BALANCE_CALC] Replacing with funded phase')
+        masterAccountBalances.set(masterKey, { balance, isActive, isFunded, status })
+      } else if (isActive && !existing.isFunded) {
+        console.log('[BALANCE_CALC] Replacing with active phase')
+        masterAccountBalances.set(masterKey, { balance, isActive, isFunded, status })
+      } else {
+        console.log('[BALANCE_CALC] Keeping existing (skipping duplicate)')
       }
       // Otherwise, keep the existing one (don't double-count)
     } else {
+      console.log('[BALANCE_CALC] New master account, adding')
       // New master account - add it
-      masterAccountBalances.set(masterKey, { balance, isActive, status })
+      masterAccountBalances.set(masterKey, { balance, isActive, isFunded, status })
     }
   })
   
+  const total = Array.from(masterAccountBalances.values()).reduce((sum, { balance }) => sum + balance, 0)
+  console.log('[BALANCE_CALC] Final result:', { masterAccounts: masterAccountBalances, total })
+  
   // Sum up balances from unique master accounts only
-  return Array.from(masterAccountBalances.values()).reduce((sum, { balance }) => sum + balance, 0)
+  return total
 }
 
 /**
@@ -228,8 +272,8 @@ export function calculateBalanceInfo(
   // Calculate totals from trades
   const totalPnL = trades.reduce((sum, t) => sum + (t.pnl || 0), 0)
   const totalCommissions = trades.reduce((sum, t) => sum + (t.commission || 0), 0)
-  const totalFees = trades.reduce((sum, t) => sum + (t.fees || 0), 0)
-  const netPnL = totalPnL - totalCommissions - totalFees
+  const totalSwap = trades.reduce((sum, t) => sum + (t.swap || 0), 0)
+  const netPnL = totalPnL - totalCommissions - totalSwap
   
   const currentBalance = startingBalance + netPnL
   const changeAmount = currentBalance - startingBalance
@@ -239,7 +283,7 @@ export function calculateBalanceInfo(
     startingBalance,
     currentBalance,
     totalPnL,
-    totalFees,
+    totalFees: totalSwap, // Use swap as the fee equivalent
     totalCommissions,
     netPnL,
     changeAmount,

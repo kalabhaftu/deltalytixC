@@ -51,7 +51,7 @@ export default function WinRateByStrategy({ size = 'small-long' }: WinRateByStra
     const strategyMap: Record<string, { wins: number; losses: number; grossWin: number; grossLoss: number; allWins: number[] }> = {}
     
     formattedTrades.forEach(trade => {
-      const strategy = trade.tradingModel || trade.strategy || 'No Strategy'
+      const strategy = trade.tradingModel || 'No Strategy'
       
       if (!strategyMap[strategy]) {
         strategyMap[strategy] = { wins: 0, losses: 0, grossWin: 0, grossLoss: 0, allWins: [] }

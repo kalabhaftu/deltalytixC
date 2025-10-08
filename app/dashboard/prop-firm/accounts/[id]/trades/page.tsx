@@ -37,8 +37,6 @@ interface TradeData {
   exitTime?: string
   pnl: number
   status: 'open' | 'closed'
-  fees?: number
-  strategy?: string
   notes?: string
 }
 
@@ -150,8 +148,7 @@ export default function AccountTradesPage() {
 
   // Filter trades based on search term
   const filteredTrades = trades.filter(trade =>
-    trade.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (trade.strategy && trade.strategy.toLowerCase().includes(searchTerm.toLowerCase()))
+    trade.symbol.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   // Calculate trade statistics
@@ -443,13 +440,6 @@ export default function AccountTradesPage() {
                             </div>
                           )}
                         </div>
-                        
-                        {trade.strategy && (
-                          <div>
-                            <p className="text-xs text-muted-foreground">Strategy</p>
-                            <p className="text-sm">{trade.strategy}</p>
-                          </div>
-                        )}
                         
                         {trade.notes && (
                           <div>

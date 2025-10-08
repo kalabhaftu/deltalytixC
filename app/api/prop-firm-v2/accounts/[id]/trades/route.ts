@@ -28,10 +28,7 @@ const AddTradeSchema = z.object({
   commission: z.number().default(0),
   side: z.string().optional(),
   comment: z.string().optional(),
-  tags: z.array(z.string()).default([]),
   symbol: z.string().optional(),
-  strategy: z.string().optional(),
-  fees: z.number().default(0),
   entryTime: z.string().optional(),
   exitTime: z.string().optional()
 })

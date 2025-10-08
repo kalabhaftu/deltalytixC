@@ -47,8 +47,7 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
     const strategyMap: Record<string, { pnl: number; trades: number; wins: number; losses: number; grossWin: number; grossLoss: number }> = {}
     
     formattedTrades.forEach(trade => {
-      // Use tradingModel or custom strategy field
-      const strategy = trade.tradingModel || trade.strategy || 'No Strategy'
+      const strategy = trade.tradingModel || 'No Strategy'
       
       if (!strategyMap[strategy]) {
         strategyMap[strategy] = { pnl: 0, trades: 0, wins: 0, losses: 0, grossWin: 0, grossLoss: 0 }

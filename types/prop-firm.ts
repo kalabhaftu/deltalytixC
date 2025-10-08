@@ -101,23 +101,16 @@ export interface PropFirmTrade extends DatabaseRecord {
   commission: number
   side?: string
   comment?: string
-  tags: string[]
   userId: string
   
   // New prop firm fields
   phaseId?: string
   accountId?: string
   symbol?: string
-  strategy?: string
-  fees: number
-  realizedPnl?: number
   entryTime?: Date
   exitTime?: Date
-  equityAtOpen?: number
-  equityAtClose?: number
   phaseAccountId?: string
   phaseAccount?: PhaseAccount
-  rawBrokerId?: string
   
   // Relations
   phase?: PhaseAccount

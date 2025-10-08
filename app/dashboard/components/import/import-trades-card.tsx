@@ -17,9 +17,6 @@ import { FormatPreview } from './components/format-preview'
 import { cn } from '@/lib/utils'
 import { useUserStore } from '@/store/user-store'
 import { useTradesStore } from '@/store/trades-store'
-import { usePdfProcessingStore } from '@/store/pdf-processing-store'
-import PdfUpload from './ibkr-pdf/pdf-upload'
-import PdfProcessing from './ibkr-pdf/pdf-processing'
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -133,8 +130,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
               entryId: cleanTrade.entryId || null,
               closeId: cleanTrade.closeId || null,
               comment: cleanTrade.comment || null,
-              videoUrl: cleanTrade.videoUrl || null,
-              tags: cleanTrade.tags || [],
               imageBase64: cleanTrade.imageBase64 || null,
               imageBase64Second: cleanTrade.imageBase64Second || null,
               groupId: cleanTrade.groupId || null,
@@ -352,14 +347,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
         </div>
       )
     }
-    if (Component === PdfUpload) {
-      return (
-        <Component
-          setText={setText}
-          setFiles={setFiles}
-        />
-      )
-    }
 
     if (Component === FileUpload) {
       return (
@@ -423,18 +410,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
       )
     }
     
-    if (Component === PdfProcessing) {
-      return (
-        <Component
-          setError={setError}
-          setStep={setStep}
-          processedTrades={processedTrades}
-          setProcessedTrades={setProcessedTrades}
-          extractedText={text}
-        />
-      )
-    }
-    
     // Handle processor components - only if the current step component is the processor
     if (platform.processorComponent && Component === platform.processorComponent) {
       return (
@@ -443,7 +418,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
           headers={headers}
           setProcessedTrades={setProcessedTrades}
           accountNumber={accountNumber || accountId}
-          isSaving={isSaving}
         />
       )
     }
@@ -478,9 +452,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     
     // File upload step
     if (currentStep.component === FileUpload && csvData.length === 0) return true
-    
-    // PDF upload step
-    if (currentStep.component === PdfUpload && text.length === 0) return true
     
     // Account selection for platforms
     if (currentStep.component === AccountSelection && !accountNumber) return true

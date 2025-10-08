@@ -37,7 +37,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               select: {
                 pnl: true,
                 commission: true,
-                fees: true,
+                swap: true,
                 exitTime: true
               }
             }
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       
       // Calculate net profit since funded
       const netProfit = currentPhase.trades.reduce((sum, trade) => 
-        sum + (trade.pnl || 0) - (trade.commission || 0) - (trade.fees || 0), 0
+        sum + (trade.pnl || 0) - (trade.commission || 0) - (trade.swap || 0), 0
       )
       
       // Basic eligibility rules (customize as needed)

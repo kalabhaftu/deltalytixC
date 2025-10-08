@@ -36,8 +36,6 @@ model Trade {
   commission        Float         @default(0)
   createdAt         DateTime      @default(now())
   comment           String?
-  videoUrl          String?
-  tags              String[]      @default([])
   imageBase64       String?
   imageBase64Second String?
   groupId           String?       @default("")
@@ -49,14 +47,8 @@ model Trade {
   accountId         String?
   phaseAccountId    String? // Relation to PhaseAccount for prop firm trades
   symbol            String?
-  strategy          String?
-  fees              Float?        @default(0)
-  realizedPnl       Float?
   entryTime         DateTime?
   exitTime          DateTime?
-  equityAtOpen      Float?
-  equityAtClose     Float?
-  rawBrokerId       String?
   closeReason       String?
   stopLoss          String? // Stop loss price from Match Trader CSV
   takeProfit        String? // Take profit price from Match Trader CSV

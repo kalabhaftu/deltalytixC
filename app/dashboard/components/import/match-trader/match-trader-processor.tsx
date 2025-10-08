@@ -11,15 +11,13 @@ interface MatchTraderProcessorProps {
   headers: string[]
   setProcessedTrades: React.Dispatch<React.SetStateAction<Trade[]>>
   accountNumber: string
-  isSaving?: boolean
 }
 
 const MatchTraderProcessor = ({
   csvData,
   headers,
   setProcessedTrades,
-  accountNumber,
-  isSaving = false
+  accountNumber
 }: MatchTraderProcessorProps) => {
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
@@ -93,8 +91,6 @@ const MatchTraderProcessor = ({
           createdAt: new Date(),
           comment: null, // Don't set reason as comment - reasons should be displayed separately
           closeReason: reason || null, // Store close reason in dedicated field
-          videoUrl: null,
-          tags: [],
           imageBase64: null,
           imageBase64Second: null,
           imageBase64Third: null,
@@ -108,13 +104,7 @@ const MatchTraderProcessor = ({
           symbol: null,
           entryTime: null,
           exitTime: null,
-          fees: 0,
-          realizedPnl: null,
-          equityAtOpen: null,
-          equityAtClose: null,
-          rawBrokerId: null,
           accountId: null,
-          strategy: null,
           stopLoss: stopLoss,
           takeProfit: takeProfit,
         } as Trade
@@ -128,11 +118,6 @@ const MatchTraderProcessor = ({
 
     processData()
   }, [csvData, headers, setProcessedTrades, accountNumber, user, supabaseUser])
-
-  // Show loading screen when saving
-  if (isSaving) {
-    return <ImportLoading />
-  }
 
   // Show processing message when initially processing
   if (isProcessing) {

@@ -418,14 +418,27 @@ export async function getAccountsAction() {
         // Only include active and funded phases (accounts page has its own status filter)
         const transformedMasterAccounts: any[] = []
         masterAccounts.forEach((masterAccount: any) => {
+          console.log('[getAccountsAction] Processing master account:', {
+            masterAccountId: masterAccount.id,
+            accountName: masterAccount.accountName,
+            phasesCount: masterAccount.phases?.length
+          })
+          
           if (masterAccount.phases && masterAccount.phases.length > 0) {
             // Create one entry for each phase (excluding pending phases)
             masterAccount.phases.forEach((phase: any) => {
               // Skip pending phases - they don't exist yet until user reaches them
               if (phase.status === 'pending') return
               
+              console.log('[getAccountsAction] Processing phase:', {
+                phaseId: phase.id,
+                phaseNumber: phase.phaseNumber,
+                phaseIdNumber: phase.phaseId,
+                masterAccountId: masterAccount.id
+              })
+              
               transformedMasterAccounts.push({
-                id: `${masterAccount.id}-${phase.phaseNumber}`,
+                id: phase.id, // Use phase ID instead of composite key
                 number: phase.phaseId,
                 name: masterAccount.accountName,
                 propfirm: masterAccount.propFirmName,
@@ -442,12 +455,12 @@ export async function getAccountsAction() {
                 userId: masterAccount.userId,
                 groupId: null,
                 group: null,
-                // Add phase details for UI components that need them
-                phaseDetails: {
+                // Add phase details for UI components that need them (named currentPhaseDetails to match useAccounts)
+                currentPhaseDetails: {
                   phaseNumber: phase.phaseNumber,
                   status: phase.status,
                   phaseId: phase.phaseId,
-                  masterAccountId: masterAccount.id,
+                  masterAccountId: masterAccount.id, // This is the key for deduplication
                   masterAccountName: masterAccount.accountName
                 }
               })
@@ -536,13 +549,12 @@ export async function savePayoutAction(payout: {
       },
       select: {
         pnl: true,
-        commission: true,
-        fees: true
+        commission: true
       }
     })
 
     const totalProfit = trades.reduce((sum, trade) => {
-      return sum + (trade.pnl - (trade.commission || 0) - (trade.fees || 0))
+      return sum + (trade.pnl - (trade.commission || 0))
     }, 0)
 
     // Get existing payouts to calculate remaining balance
@@ -940,8 +952,6 @@ async function _legacyLinkTradesToCurrentPhase_SLOW(accountId: string, trades: a
             userId,
             // Ensure these fields are properly set for phase evaluation
             symbol: trade.instrument,
-            realizedPnl: trade.pnl,
-            fees: trade.commission || 0,
             entryTime: trade.entryDate ? new Date(trade.entryDate) : null,
             exitTime: trade.closeDate ? new Date(trade.closeDate) : null
           }
@@ -1024,8 +1034,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
         entryId: cleanTrade.entryId || null,
         closeId: cleanTrade.closeId || null,
         comment: cleanTrade.comment || null,
-        videoUrl: cleanTrade.videoUrl || null,
-        tags: cleanTrade.tags || [],
         imageBase64: cleanTrade.imageBase64 || null,
         imageBase64Second: cleanTrade.imageBase64Second || null,
         imageBase64Third: cleanTrade.imageBase64Third || null,
@@ -1072,39 +1080,46 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
     }
 
     if (newTrades.length === 0) {
-      throw new Error(`All ${cleanedData.length} trades already exist - no new trades to import`)
+      return {
+        success: true,
+        linkedCount: 0,
+        totalTrades: cleanedData.length,
+        message: `All ${cleanedData.length} trades already exist - no new trades to import`,
+        isDuplicate: true
+      }
     }
 
     // ATOMIC TRANSACTION: ALL STEPS MUST SUCCEED OR NOTHING IS SAVED
     const result = await prisma.$transaction(async (tx) => {
       // STEP 2: Check if this is a prop firm account that needs phase transition
-      // Extract master account ID by removing the last segment (phase number)
-      const lastDashIndex = accountId.lastIndexOf('-')
-      const extractedMasterAccountId = lastDashIndex > 0 ? accountId.substring(0, lastDashIndex) : accountId
+      // For prop firm accounts, accountId is now the phase ID directly
+      // We need to find the corresponding master account
       
       // Use database aggregation instead of fetching all trades (MUCH faster)
-      const masterAccount = await tx.masterAccount.findUnique({
-        where: { id: extractedMasterAccountId },
-        include: {
-          phases: {
-            where: { status: 'active' }
-            // NO trades include - use aggregation instead
-          }
-        }
+      // For prop firm accounts, we need to find the master account that contains this phase
+      const phaseAccount = await tx.phaseAccount.findUnique({
+        where: { id: accountId },
+        include: { masterAccount: true }
       })
 
-      if (masterAccount && masterAccount.phases.length > 0) {
-        const currentPhase = masterAccount.phases[0]
-        
+      if (!phaseAccount) {
+        throw new Error(`Phase account not found: ${accountId}`)
+      }
+
+      const masterAccount = phaseAccount.masterAccount
+
+      if (masterAccount) {
+        const currentPhase = phaseAccount
+
         // Use aggregation to sum PnL (1 query vs fetching 1000s of trades)
         const pnlSum = await tx.trade.aggregate({
           where: { phaseAccountId: currentPhase.id },
           _sum: { pnl: true }
         })
-        
+
         const currentPnL = pnlSum._sum.pnl || 0
         const profitTargetAmount = (currentPhase.profitTargetPercent / 100) * masterAccount.accountSize
-        
+
         if (profitTargetAmount && currentPnL >= profitTargetAmount) {
           const nextPhaseNumber = currentPhase.phaseNumber + 1
           const nextPhaseName = nextPhaseNumber === 2 ? 'Phase 2' : nextPhaseNumber === 3 ? 'Funded' : `Phase ${nextPhaseNumber}`
@@ -1117,17 +1132,13 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
       }
 
       // STEP 3: Determine account type and get linking info (only newTrades, not all cleanedData)
-      // Extract master account ID by removing the last segment (phase number)
-      const lastDashIdx = accountId.lastIndexOf('-')
-      const realMasterAccountId = lastDashIdx > 0 ? accountId.substring(0, lastDashIdx) : accountId
-      
-      const masterAccountForLink = await tx.masterAccount.findFirst({
-        where: { 
-          id: realMasterAccountId,
-          userId 
-        },
-        select: { id: true, accountName: true }
+      // For prop firm accounts, find the master account that contains this phase
+      const phaseAccountForLink = await tx.phaseAccount.findFirst({
+        where: { id: accountId },
+        include: { masterAccount: { select: { id: true, accountName: true } } }
       })
+
+      const masterAccountForLink = phaseAccountForLink?.masterAccount || null
 
       let phaseAccountId: string | null = null
       let regularAccountId: string | null = null
@@ -1156,25 +1167,34 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
         accountName = masterAccountForLink.accountName
         isPropFirm = true
       } else {
-        // Regular account
-        let realAccountId = accountId
-        if (accountId.includes('-')) {
-          const lastDashIndex = accountId.lastIndexOf('-')
-          realAccountId = lastDashIndex > 0 ? accountId.substring(0, lastDashIndex) : accountId
-        }
-        
-        const regularAccount = await tx.account.findFirst({
-          where: { id: realAccountId, userId },
-          select: { id: true, name: true }
+        // Check if it's a prop firm phase account first, then regular account
+        // First try to find as a phase account (prop firm)
+        const phaseAccount = await tx.phaseAccount.findFirst({
+          where: { id: accountId, masterAccount: { userId } },
+          include: { masterAccount: true }
         })
 
-        if (!regularAccount) {
-          throw new Error(`Account not found (ID: ${accountId}). The account may have been deleted.`)
-        }
+        if (phaseAccount) {
+          // It's a prop firm phase account
+          phaseAccountId = phaseAccount.id
+          phaseNumber = phaseAccount.phaseNumber
+          accountName = phaseAccount.masterAccount.accountName
+          isPropFirm = true
+        } else {
+          // Try regular account
+          const regularAccount = await tx.account.findFirst({
+            where: { id: accountId, userId },
+            select: { id: true, name: true }
+          })
 
-        regularAccountId = realAccountId
-        accountName = regularAccount.name || accountId
-        isPropFirm = false
+          if (!regularAccount) {
+            throw new Error(`Account not found (ID: ${accountId}). The account may have been deleted.`)
+          }
+
+          regularAccountId = accountId
+          accountName = regularAccount.name || accountId
+          isPropFirm = false
+        }
       }
 
       // STEP 4: Save trades WITH linking info (all in one atomic operation)
@@ -1192,13 +1212,15 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
       return {
         success: true,
         linkedCount: createResult.count,
+        totalTrades: newTrades.length,
         phaseAccountId,
         phaseNumber,
         accountId: regularAccountId,
         accountName,
         isPropFirm,
         masterAccountId: isPropFirm ? realMasterAccountId : null,
-        evaluation: undefined // Will be populated post-transaction if applicable
+        evaluation: undefined, // Will be populated post-transaction if applicable
+        isDuplicate: false
       }
     }, {
       maxWait: 5000,

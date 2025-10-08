@@ -133,17 +133,6 @@ export function TradeTableMobileCard({
         )}
       </div>
 
-      {/* Tags */}
-      {trade.tags && trade.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {trade.tags.map((tag, idx) => (
-            <Badge key={idx} variant="outline" className="text-xs">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-      )}
-
       {/* Actions */}
       <div className="flex gap-2 pt-2 border-t">
         <Button

@@ -7,8 +7,6 @@ import AccountSelection from '../account-selection'
 import ColumnMapping from '../column-mapping'
 import { FormatPreview } from '../components/format-preview'
 import TradezellaProcessor from '../tradezella/tradezella-processor'
-import PdfUpload from '../ibkr-pdf/pdf-upload'
-import PdfProcessing from '../ibkr-pdf/pdf-processing'
 import MatchTraderProcessor from '../match-trader/match-trader-processor'
 import ManualTradeForm from '../manual-trade-entry/manual-trade-form'
 import { Step } from '../import-button'
@@ -29,8 +27,6 @@ type StepComponent =
   | typeof ColumnMapping
   | typeof FormatPreview
   | typeof TradezellaProcessor
-  | typeof PdfUpload
-  | typeof PdfProcessing
   | typeof MatchTraderProcessor
   | typeof ManualTradeForm
 
@@ -254,46 +250,6 @@ export const platforms: PlatformConfig[] = [
         component: MatchTraderProcessor,
         isLastStep: true
       }
-    ]
-  },
-  {
-    platformName: 'ibkr-pdf-import',
-    type: 'ibkr-pdf-import',
-    name: 'PDF Import',
-    description: 'Import trades from IBKR PDF file',
-    category: 'Intelligent Import',
-    videoUrl: process.env.NEXT_PUBLIC_PDF_IMPORT_TUTORIAL_VIDEO || '',
-    details: 'Only IBKR PDF files are supported',
-    logo: {
-      path: '/logos/ibkr.png',
-      alt: 'IBKR Logo'
-    },
-    requiresAccountSelection: true,
-    steps: [
-      {
-        id: 'select-import-type',
-        title: 'Select Platform',
-        description: 'Choose the platform you want to import from',
-        component: ImportTypeSelection
-      },
-      {
-        id: 'upload-file',
-        title: 'Upload PDF',
-        description: 'Upload the PDF file you want to import',
-        component: PdfUpload
-      },
-      {
-        id: 'process-file',
-        title: 'Process File',
-        description: 'Processing your file',
-        component: PdfProcessing
-      },
-      {
-        id: 'select-account',
-        title: 'Select Account',
-        description: 'Select the account you want to import the trades to',
-        component: AccountSelection
-      },
     ]
   }
 ] as const

@@ -81,8 +81,6 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
           entryId: cleanTrade.entryId || null,
           closeId: cleanTrade.closeId || null,
           comment: cleanTrade.comment || null,
-          videoUrl: cleanTrade.videoUrl || null,
-          tags: cleanTrade.tags || [],
                   imageBase64: cleanTrade.imageBase64 || null,
         imageBase64Second: cleanTrade.imageBase64Second || null,
         imageBase64Third: (cleanTrade as any).imageBase64Third || null,
@@ -373,26 +371,6 @@ export async function updateTradeCommentAction(tradeId: string, comment: string 
       })
     } else {
       console.error("[updateTradeComment] Unknown error:", error)
-    }
-    throw error
-  }
-}
-
-export async function updateTradeVideoUrlAction(tradeId: string, videoUrl: string | null) {
-  try {
-    await prisma.trade.update({
-      where: { id: tradeId },
-      data: { videoUrl }
-    })
-    revalidatePath('/')
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      console.error("[updateTradeVideoUrl] Known database error:", {
-        code: error.code,
-        message: error.message
-      })
-    } else {
-      console.error("[updateTradeVideoUrl] Unknown error:", error)
     }
     throw error
   }
