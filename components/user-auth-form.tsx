@@ -237,12 +237,12 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                         <div className="space-y-2">
                             <div className="text-center space-y-2 mb-4 p-4 border rounded-lg bg-muted/50 dark:bg-muted/20 transition-all duration-200">
                                 <h3 className="font-semibold text-sm">
-                                    {isExistingUser ? 'Magic Link Sent!' : 'Verification Code Sent!'}
+                                    {isExistingUser ? '✉️ Magic Link Sent!' : '🔢 Verification Code Sent!'}
                                 </h3>
                                 <p className="text-xs text-muted-foreground">
                                     {isExistingUser
-                                        ? 'User found. A magic link has been sent to your email. Please click it to sign in.'
-                                        : 'A 6-digit verification code has been sent to your email. Please enter it below.'
+                                        ? 'Check your email and click the magic link to sign in. The link will redirect you to your dashboard.'
+                                        : 'A 6-digit verification code has been sent to your email. Enter it below to complete registration.'
                                     }
                                 </p>
                             </div>
