@@ -159,6 +159,17 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
 
     function openMailClient() {
         const email = form.getValues('email')
+        
+        // Check if user is on mobile device
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        
+        // On mobile, always use mailto: to open native mail app
+        if (isMobile) {
+            window.location.href = `mailto:`
+            return
+        }
+
+        // On desktop, open known email providers in web browser
         const domain = email.split('@')[1]?.toLowerCase()
 
         if (domain?.includes('gmail.com')) {
@@ -191,7 +202,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
             window.open('https://mail.zoho.com', '_blank', 'noopener,noreferrer')
         } else {
             // Default to mailto: for unknown domains
-            window.location.href = `mailto:${email}`
+            window.location.href = `mailto:`
         }
     }
 
