@@ -45,7 +45,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       select: {
         pnl: true,
         commission: true,
-        swap: true,
         entryDate: true,
       },
       orderBy: {
@@ -53,9 +52,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     })
 
-    // Calculate profitLoss (net of commissions and swap)
+    // Calculate profitLoss (net of commissions)
     const profitLoss = trades.reduce((sum, trade) => {
-      const netPnL = trade.pnl - (trade.commission || 0) - (trade.swap || 0)
+      const netPnL = trade.pnl - (trade.commission || 0)
       return sum + netPnL
     }, 0)
 

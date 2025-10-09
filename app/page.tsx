@@ -82,7 +82,6 @@ export default function RootPage() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.get('logout') === 'true' || urlParams.get('deleted') === 'true') {
-      console.log('[AuthPage] Detected logout/deletion parameter, forcing clear')
       setIsProcessingLogout(true)
       forceClearAuth()
       // Clean the URL and reset processing state
@@ -116,7 +115,6 @@ export default function RootPage() {
 
           if (!response.ok || !data.authenticated) {
             // User is not truly authenticated, force clear auth state
-            console.log('[Auth] User not authenticated, clearing local state')
             // Force refresh the auth provider state
             if (window.location.search.includes('deleted=true') || window.location.search.includes('logout=true')) {
               // If coming from account deletion or logout, force a complete session clear
@@ -129,7 +127,6 @@ export default function RootPage() {
           }
           // If authenticated, we just show the logged-in UI (no redirect)
         } catch (error) {
-          console.log('Auth check failed, staying on auth page')
           // If auth check fails, stay on auth page
         }
       }
@@ -237,7 +234,7 @@ export default function RootPage() {
                     Welcome Back!
                   </h2>
                   <p className="text-lg text-muted-foreground dark:text-muted-foreground leading-relaxed">
-                    You're already logged in. Ready to continue your trading journey?
+                    You&apos;re already logged in. Ready to continue your trading journey?
                   </p>
                 </motion.div>
 
@@ -281,7 +278,7 @@ export default function RootPage() {
                   </svg>
                 </div>
                 <h1 className="text-2xl font-semibold tracking-tight text-foreground dark:text-foreground">
-                  You're Already Logged In!
+                  You&apos;re Already Logged In!
                 </h1>
                 <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                   Welcome back! Click below to access your trading dashboard.

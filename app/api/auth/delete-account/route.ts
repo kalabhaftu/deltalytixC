@@ -44,7 +44,6 @@ export async function DELETE(request: NextRequest) {
 
     // Start a transaction to delete all user data with extended timeout
     await prisma.$transaction(async (tx) => {
-      console.log(`[Account Deletion] Deleting user data from database...`)
 
       // Get user's email for business invitations
       const user = await tx.user.findUnique({ 
@@ -67,16 +66,12 @@ export async function DELETE(request: NextRequest) {
       const accountIds = userAccounts.map(acc => acc.id)
 
       // Delete all related data in the correct order
-      console.log(`[Account Deletion] Deleting business data...`)
       
       // Business-related deletions - models don't exist in current schema
       // TODO: Add business models to Prisma schema if needed
-      console.log(`[Account Deletion] Skipping business data deletion - models not in schema`)
 
-      console.log(`[Account Deletion] Deleting trading data...`)
       
       // Trading-related deletions
-      console.log(`[Account Deletion] Deleting account data...`)
       
       // Account-related deletions
       if (accountIds.length > 0) {
@@ -112,18 +107,12 @@ export async function DELETE(request: NextRequest) {
         })
       }
 
-      console.log(`[Account Deletion] Deleting user data...`)
       
       // User-specific data deletions
-      await tx.shared.deleteMany({
-        where: { userId }
-      })
-      
       await tx.dashboardTemplate.deleteMany({
         where: { userId }
       })
 
-      console.log(`[Account Deletion] Deleting core records...`)
       
       // Core record deletions
       await tx.trade.deleteMany({
@@ -143,13 +132,11 @@ export async function DELETE(request: NextRequest) {
         where: { auth_user_id: userId }
       })
 
-      console.log(`[Account Deletion] Successfully deleted all user data from database`)
     }, {
       timeout: 30000 // 30 second timeout instead of default 5 seconds
     })
 
     // After successfully deleting from our database, delete from Supabase Auth
-    console.log(`[Account Deletion] Deleting user from Supabase Auth...`)
     
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
     
@@ -159,7 +146,6 @@ export async function DELETE(request: NextRequest) {
       // But for now, we'll log the error and continue
       // In a production environment, you might want to implement a rollback mechanism
     } else {
-      console.log(`[Account Deletion] Successfully deleted user from Supabase Auth`)
     }
 
 

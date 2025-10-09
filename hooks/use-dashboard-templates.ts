@@ -23,7 +23,6 @@ export function useDashboardTemplates() {
   const loadTemplates = useCallback(async () => {
     // Prevent duplicate loads
     if (hasLoadedRef.current) {
-      console.log('[useDashboardTemplates] Already loaded, skipping')
       return
     }
     

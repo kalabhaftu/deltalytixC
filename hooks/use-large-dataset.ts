@@ -217,7 +217,6 @@ export const useSharedTrades = () => {
   // Simplified helper function for fetching trades
   const fetchTrades = useCallback(async (limit: number = pageSize): Promise<Trade[]> => {
     try {
-      console.log(`fetchTrades: Fetching ${limit} trades`)
 
       const response = await fetch(`/api/trades?limit=${limit}&page=1`, {
         method: 'GET',
@@ -234,7 +233,6 @@ export const useSharedTrades = () => {
 
       if (result && result.success && result.data) {
         const tradesArray = Array.isArray(result.data) ? result.data : []
-        console.log(`fetchTrades: Successfully fetched ${tradesArray.length} trades`)
         return tradesArray
       }
 
@@ -247,11 +245,9 @@ export const useSharedTrades = () => {
 
   const loadAllTrades = useCallback(async () => {
     if (loading) {
-      console.log('loadAllTrades: Already loading, skipping')
       return
     }
 
-    console.log('loadAllTrades: Starting to load all trades')
     setLoading(true)
     setError(null)
 
@@ -261,12 +257,10 @@ export const useSharedTrades = () => {
 
       // Load all trades at once using the simplified helper
       const tradesArray = await fetchTrades(5000) // Load up to 5000 trades at once
-      console.log(`loadAllTrades: Loaded ${tradesArray.length} trades in one request`)
 
       setAllTrades(tradesArray)
       setTotalCount(tradesArray.length)
 
-      console.log(`loadAllTrades: Successfully loaded ${tradesArray.length} trades`)
       setLoading(false)
     } catch (error) {
       console.error('loadAllTrades: Error loading trades:', error)
@@ -278,7 +272,6 @@ export const useSharedTrades = () => {
   const loadMoreTrades = useCallback(async () => {
     if (loading) return
 
-    console.log(`loadMoreTrades: Loading more trades - current: ${allTrades.length}`)
 
     setLoading(true)
 
@@ -287,11 +280,9 @@ export const useSharedTrades = () => {
       const moreTrades = await fetchTrades(pageSize)
 
       if (moreTrades.length === 0) {
-        console.log('loadMoreTrades: No more trades to load')
       } else {
         // Append to existing trades
         setAllTrades(prev => [...prev, ...moreTrades])
-        console.log(`loadMoreTrades: Loaded ${moreTrades.length} additional trades`)
       }
 
       setLoading(false)

@@ -83,16 +83,8 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
   // Create a map of accounts for quick lookup
   const accountMap = new Map(accounts.map(account => [account.number, account]));
 
-  // Filter trades based on reset dates for each account
-  const filteredTrades = trades.filter(trade => {
-    const account = accountMap.get(trade.accountNumber);
-    if (!account || !account.resetDate) {
-      return true; // Include trade if no account found or no reset date
-    }
-
-    // Only include trades that occurred after the reset date
-    return new Date(trade.entryDate) >= new Date(account.resetDate);
-  });
+  // Use all trades (resetDate feature removed)
+  const filteredTrades = trades;
 
   if (!filteredTrades.length) {
     return {
@@ -196,11 +188,9 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
     if (tradeAccountNumbers.has(account.number)) {
       const payouts = account.payouts || [];
       payouts.forEach(payout => {
-        // Only include payouts that occurred after the reset date
-        if (!account.resetDate || new Date(payout.date) >= new Date(account.resetDate)) {
-          statistics.totalPayouts += payout.amount;
-          statistics.nbPayouts++;
-        }
+        // Include all payouts (resetDate feature removed)
+        statistics.totalPayouts += payout.amount;
+        statistics.nbPayouts++;
       });
     }
   });
@@ -234,16 +224,8 @@ export function formatCalendarData(trades: Trade[], accounts: Account[] = []) {
   // Create a map of accounts for quick lookup
   const accountMap = new Map(accounts.map(account => [account.number, account]));
 
-  // Filter trades based on reset dates for each account
-  const filteredTrades = trades.filter(trade => {
-    const account = accountMap.get(trade.accountNumber);
-    if (!account || !account.resetDate) {
-      return true; // Include trade if no account found or no reset date
-    }
-    
-    // Only include trades that occurred after the reset date
-    return new Date(trade.entryDate) >= new Date(account.resetDate);
-  });
+  // Use all trades (resetDate feature removed)
+  const filteredTrades = trades;
 
   return filteredTrades.reduce((acc: any, trade: Trade) => {
     // Parse the date and format it in UTC to ensure consistency across timezones

@@ -48,16 +48,9 @@ export default function JournalPage() {
 
   // Load trades when component mounts - only once
   useEffect(() => {
-    console.log('JournalPage: Initial load check -', {
-      allTradesLength: allTrades.length,
-      loading,
-      error,
-      hasAttemptedInitialLoad
-    })
 
     // Only load if we have no trades, not currently loading, and haven't attempted initial load yet
     if (allTrades.length === 0 && !loading && !hasAttemptedInitialLoad) {
-      console.log('JournalPage: Starting initial trade load...')
       setHasAttemptedInitialLoad(true)
       refreshTrades()
     }
@@ -74,7 +67,6 @@ export default function JournalPage() {
 
   // Function to refresh trades
   const manualRefresh = () => {
-    console.log('Manual refresh triggered')
     setHasAttemptedInitialLoad(false) // Reset the flag so refresh will work
     refreshTrades()
     setDebugInfo('Refreshing trades...')
@@ -96,7 +88,6 @@ export default function JournalPage() {
       if (response.ok) {
         // Refresh trades from the server to get updated data
         await refreshTrades()
-        console.log('Trade deleted successfully')
       } else {
         console.error('Failed to delete trade')
       }
@@ -121,7 +112,6 @@ export default function JournalPage() {
       
       setIsEditDialogOpen(false)
       setEditingTrade(null)
-      console.log('Trade updated successfully')
     } catch (error) {
       console.error('Error updating trade:', error)
     }

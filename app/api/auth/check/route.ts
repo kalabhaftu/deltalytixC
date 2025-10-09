@@ -57,7 +57,6 @@ export async function GET(request: NextRequest) {
     if (error) {
       // Only log non-timeout errors
       if (!error.message.includes('AbortError') && !error.message.includes('timeout')) {
-        console.log('[Auth Check] Supabase error:', error.message)
       }
       return NextResponse.json(
         { error: 'Auth check failed' },

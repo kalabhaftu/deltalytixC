@@ -37,7 +37,6 @@ let isDatabaseAvailable = false
 prisma.$connect()
   .then(() => {
     isDatabaseAvailable = true
-    console.log('✅ Database connection verified')
   })
   .catch((error) => {
     console.warn('⚠️ Database not available:', error.message)
@@ -73,7 +72,6 @@ async function connectWithRetry(client: PrismaClient, maxRetries = 5, delay = 10
       )
 
       await Promise.race([connectionPromise, timeoutPromise])
-      console.log(`✅ Database connection established (attempt ${i + 1})`)
       return client
     } catch (error: any) {
       const errorMessage = error instanceof Error ? error.message : error
@@ -81,15 +79,11 @@ async function connectWithRetry(client: PrismaClient, maxRetries = 5, delay = 10
 
       // Handle specific error codes
       if (error?.code === 'P1001') {
-        console.log('🔄 Database server unreachable, retrying...')
       } else if (errorMessage.includes('timeout')) {
-        console.log('🔄 Connection timeout, retrying...')
       } else {
-        console.log('🔄 General connection error, retrying...')
       }
 
       if (i < maxRetries - 1) {
-        console.log(`🔄 Retrying in ${delay}ms...`)
         await new Promise(resolve => setTimeout(resolve, delay))
         delay *= 2 // Exponential backoff
       }
@@ -115,7 +109,6 @@ process.on('beforeExit', async () => {
 process.on('SIGTERM', async () => {
   try {
     await prisma.$disconnect()
-    console.log('✅ Database disconnected via SIGTERM')
   } catch (error) {
     console.error('Error during database disconnect:', error)
   }
@@ -125,7 +118,6 @@ process.on('SIGTERM', async () => {
 process.on('SIGINT', async () => {
   try {
     await prisma.$disconnect()
-    console.log('✅ Database disconnected via SIGINT')
   } catch (error) {
     console.error('Error during database disconnect:', error)
   }

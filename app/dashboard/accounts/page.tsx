@@ -79,9 +79,9 @@ interface Account {
   currentBalance?: number
   currentEquity?: number
   tradeCount?: number
-  status?: 'active' | 'funded' | 'failed' | 'passed'
+  status?: 'active' | 'funded' | 'failed' | 'passed' | 'pending'
   currentPhase?: number
-  phaseAccountNumber?: string
+  phaseAccountNumber?: string | null
   profitTargetProgress?: number
   dailyDrawdownRemaining?: number
   maxDrawdownRemaining?: number
@@ -89,6 +89,12 @@ interface Account {
   hasRecentBreach?: boolean
   createdAt?: string
   updatedAt?: string
+  currentPhaseDetails?: {
+    phaseNumber: number
+    status: string
+    phaseId: string
+    masterAccountId?: string
+  } | null
 }
 
 export default function AccountsPage() {
@@ -129,14 +135,9 @@ export default function AccountsPage() {
   // Filter accounts - Accounts page has its own built-in filtering and does NOT use advanced filtering settings
   // Advanced filtering settings are only applied to dashboard widgets and tables page
   // Server now returns clean data without master account duplicates
-  // Hide failed/passed/archived accounts by default - only show active and funded
+  // Apply filters based on user selection - show failed accounts only when specifically requested
   const filteredAccounts = useMemo(() => {
     return accounts.filter(account => {
-      // Hide failed, passed, and archived accounts (only show active and funded)
-      if (account.status === 'failed' || account.status === 'passed' || account.status === 'archived') {
-        return false
-      }
-      
       const matchesSearch = !searchQuery ||
         account.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         account.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -144,7 +145,12 @@ export default function AccountsPage() {
         account.displayName?.toLowerCase().includes(searchQuery.toLowerCase())
 
       const matchesType = filterType === 'all' || account.accountType === filterType
-      const matchesStatus = filterStatus === 'all' || account.status === filterStatus
+
+      // Handle status filtering - hide failed/passed/pending by default, show when specifically requested
+      const shouldHideByDefault = account.status === 'failed' || account.status === 'passed' || account.status === 'pending'
+      const matchesStatus = filterStatus === 'all'
+        ? !shouldHideByDefault  // When 'all', hide failed/passed/pending accounts
+        : account.status === filterStatus  // When specific status, show only matching accounts
 
       return matchesSearch && matchesType && matchesStatus
     })
@@ -153,10 +159,10 @@ export default function AccountsPage() {
   // Calculate real equity using unified balance calculator
   const accountsWithRealEquity = useMemo(() => {
     const accountEquities = calculateAccountBalances(filteredAccounts, formattedTrades, {
-      excludeFailedAccounts: true,
+      excludeFailedAccounts: false, // Include failed accounts to show their actual current balance
       includePayouts: true
     })
-    
+
     // Return accounts with calculated equity
     return filteredAccounts.map(account => ({
       ...account,
@@ -210,7 +216,9 @@ export default function AccountsPage() {
 
   const handleViewAccount = useCallback((account: Account) => {
     if (account.accountType === 'prop-firm') {
-      router.push(`/dashboard/prop-firm/accounts/${account.id}`)
+      // Use master account ID for prop-firm accounts, not phase ID
+      const masterAccountId = account.currentPhaseDetails?.masterAccountId || account.id
+      router.push(`/dashboard/prop-firm/accounts/${masterAccountId}`)
     } else {
       router.push(`/dashboard?account=${account.id}`)
     }
@@ -246,9 +254,14 @@ export default function AccountsPage() {
     }
 
     try {
+      // For prop-firm accounts, use master account ID instead of phase ID
+      const accountId = deletingAccount.accountType === 'prop-firm'
+        ? (deletingAccount.currentPhaseDetails?.masterAccountId || deletingAccount.id)
+        : deletingAccount.id
+        
       const endpoint = deletingAccount.accountType === 'prop-firm'
-        ? `/api/prop-firm-v2/accounts/${deletingAccount.id}`
-        : `/api/accounts/${deletingAccount.id}`
+        ? `/api/prop-firm-v2/accounts/${accountId}`
+        : `/api/accounts/${accountId}`
 
       const response = await fetch(endpoint, {
         method: 'DELETE',
@@ -629,31 +642,9 @@ function AccountCard({
                 {account.displayName || account.name || account.number}
               </h3>
               </div>
-            <div className="flex items-center gap-2 mb-1">
-              <p className="text-sm text-muted-foreground">
-                {account.accountType === 'prop-firm' ? account.displayName : account.broker}
-              </p>
-              {/* Add phase badge for prop firm accounts */}
-              {account.accountType === 'prop-firm' && account.currentPhase && (
-                <Badge variant={
-                  account.currentPhase >= 3 ? 'default' :
-                  account.currentPhase === 2 ? 'secondary' :
-                  'outline'
-                } className="text-xs">
-                  {account.currentPhase >= 3 ? 'Funded' :
-                   account.currentPhase === 2 ? 'Phase 2' :
-                   'Phase 1'}
-                </Badge>
-              )}
-            </div>
         </div>
 
                   <div className="flex items-center gap-2">
-            {account.status && (
-              <Badge variant={getStatusVariant(account.status)} className="text-xs">
-                {account.status.toUpperCase()}
-              </Badge>
-            )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -703,8 +694,14 @@ function AccountCard({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Account Type</span>
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs px-2 py-1">
                   PROP FIRM
+                </Badge>
+                </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Status</span>
+                <Badge variant={getStatusVariant(account.status)} className="text-xs px-2 py-1">
+                  {account.status?.toUpperCase() || 'ACTIVE'}
                 </Badge>
                 </div>
               {account.currentPhase && (
@@ -714,10 +711,10 @@ function AccountCard({
                     <Badge
                       variant={
                         (account.currentPhase || 1) >= 3 ? 'default' :
-                        (account.currentPhase || 1) === 2 ? 'secondary' :
+                        (account.currentPhase || 1) === 2 ? 'outline' :
                         'outline'
                       }
-                      className="text-xs"
+                      className="text-xs px-2 py-1"
                     >
                       {(account.currentPhase || 1) >= 3 ? 'FUNDED' :
                        (account.currentPhase || 1) === 2 ? 'PHASE 2' :

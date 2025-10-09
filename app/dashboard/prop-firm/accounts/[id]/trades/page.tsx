@@ -81,10 +81,8 @@ export default function AccountTradesPage() {
       }
     } catch (error) {
       console.error('Error fetching account details:', error)
-      toast({
-        title: 'Failed to fetch account details',
-        description: 'An error occurred while fetching account details',
-        variant: "destructive"
+      toast.error('Failed to fetch account details', {
+        description: 'An error occurred while fetching account details'
       })
     }
   }
@@ -109,10 +107,8 @@ export default function AccountTradesPage() {
       }
     } catch (error) {
       console.error('Error fetching trades:', error)
-      toast({
-        title: 'Failed to fetch trades',
-        description: 'An error occurred while fetching trades',
-        variant: "destructive"
+      toast.error('Failed to fetch trades', {
+        description: 'An error occurred while fetching trades'
       })
     } finally {
       setIsLoading(false)
@@ -213,7 +209,7 @@ export default function AccountTradesPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchTrades}
+            onClick={() => fetchTrades()}
             disabled={isLoading}
           >
             <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />

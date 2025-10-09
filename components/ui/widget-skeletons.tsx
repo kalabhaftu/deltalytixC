@@ -435,13 +435,13 @@ export function WidgetSkeleton({ type, size = 'medium', className }: WidgetSkele
     return <StatisticsSkeleton size={size} className={className} />
   }
 
-  // Complex statistics widget
-  if (type === 'statisticsWidget') {
-    return <ComplexStatisticsSkeleton className={className} />
-  }
+  // Complex statistics widget - disabled (statisticsWidget not in WidgetType)
+  // if (type === 'statisticsWidget') {
+  //   return <ComplexStatisticsSkeleton className={className} />
+  // }
 
   // Calendar widgets
-  if (type === 'calendarWidget' || type === 'calendarAdvanced') {
+  if (type === 'calendarAdvanced') {
     return <CalendarSkeleton className={className} />
   }
 

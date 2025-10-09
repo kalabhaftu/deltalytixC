@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { User, DashboardLayout } from '@prisma/client'
+import { User } from '@prisma/client'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 import { Group, Account } from '@/context/data-provider'
 import { deleteGroupAction, saveGroupAction, updateGroupAction } from '@/server/groups'
@@ -31,7 +31,7 @@ type UserStore = {
   addGroup: (group: Group) => void
   updateGroup: (groupId: string, data: Partial<Group>) => void
   removeGroup: (groupId: string) => void
-  setDashboardLayout: (layout: DashboardLayout) => void
+  setDashboardLayout: (layout: any) => void
   updateDashboardLayout: (type: 'desktop' | 'mobile', layout: any[]) => void
   setIsLoading: (value: boolean) => void
   setIsMobile: (value: boolean) => void

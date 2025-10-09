@@ -251,7 +251,6 @@ export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePro
     if (enabled && accountId) {
       // Only fetch once on mount, no polling
       fetchAccountData(true)
-      console.log('[usePropFirmRealtime] Auto-polling disabled for performance')
     }
 
     return () => {

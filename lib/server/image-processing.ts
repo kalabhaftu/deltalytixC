@@ -323,7 +323,6 @@ export class ServerImageProcessor {
     // Implementation would involve scanning upload directories
     // and removing files older than the cutoff date
     // This is a placeholder for the actual implementation
-    console.log(`Cleanup would remove files older than ${cutoffDate.toISOString()}`)
   }
 
   // Get image info without processing

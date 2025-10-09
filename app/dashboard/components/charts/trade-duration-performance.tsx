@@ -128,8 +128,8 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
     })
 
     formattedTrades.forEach(trade => {
-      if (trade.entryDate && trade.exitDate) {
-        const durationMinutes = calculateDurationMinutes(trade.entryDate, trade.exitDate)
+      if (trade.entryDate && trade.closeDate) {
+        const durationMinutes = calculateDurationMinutes(trade.entryDate, trade.closeDate)
         const bucket = getDurationBucket(durationMinutes)
         
         const netPnL = trade.pnl - (trade.commission || 0)

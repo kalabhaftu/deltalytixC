@@ -27,7 +27,7 @@ export type WidgetType =
   | 'miniCalendarWrapper'
   | 'recentTradesWidget'
 
-export type WidgetSize = 'kpi' | 'small' | 'medium' | 'large' | 'xlarge'
+export type WidgetSize = 'tiny' | 'small' | 'small-long' | 'medium' | 'large' | 'extra-large' | 'kpi'
 
 export interface WidgetDimensions {
   columns: number

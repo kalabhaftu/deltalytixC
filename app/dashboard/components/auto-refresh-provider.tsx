@@ -41,7 +41,6 @@ export function AutoRefreshProvider({
       // PERFORMANCE FIX: Disable automatic page refreshes that were causing
       // multi-minute load times due to complete data reloading every 30 seconds
       // TODO: Implement targeted data refresh instead of full page reload if needed
-      console.log('[AutoRefreshProvider] Auto-refresh disabled to improve performance')
       return // Disabled for performance
     }
 

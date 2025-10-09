@@ -5,11 +5,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { getUserId } from '@/server/auth-utils'
 import { z } from 'zod'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -100,8 +98,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         phaseAccountId: currentPhase.id,
         accountNumber: currentPhase.phaseId, // Use the phase account ID as account number
         entryTime: tradeData.entryTime ? new Date(tradeData.entryTime) : null,
-        exitTime: tradeData.exitTime ? new Date(tradeData.exitTime) : null,
-        realizedPnl: tradeData.pnl
+        exitTime: tradeData.exitTime ? new Date(tradeData.exitTime) : null
       }
     })
 

@@ -6,11 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { getUserId } from '@/server/auth-utils'
 import { z } from 'zod'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -77,8 +75,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
         _sum: {
           pnl: true,
-          commission: true,
-          fees: true
+          commission: true
         }
       })
     ])
@@ -100,8 +97,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const totalPnL = tradeStats.reduce((sum, stat) => {
       const pnl = stat._sum.pnl || 0
       const commission = stat._sum.commission || 0
-      const swap = stat._sum.swap || 0
-      return sum + (pnl - commission - swap)
+      return sum + (pnl - commission)
     }, 0)
 
     // FIXED: Get trades ONLY for the current active phase (not all phases)
@@ -111,8 +107,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
       select: {
         pnl: true,
-        commission: true,
-        swap: true
+        commission: true
       },
       orderBy: {
         exitTime: 'asc'  // Ordered for proper high-water mark calculation
@@ -128,13 +123,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
       select: {
         pnl: true,
-        commission: true,
-        swap: true
+        commission: true
       }
     })
 
     const winningTrades = allTradesMinimal.filter(trade => {
-      const netPnL = trade.pnl - (trade.commission || 0) - (trade.swap || 0)
+      const netPnL = trade.pnl - (trade.commission || 0)
       return netPnL > 0
     }).length
     const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0
@@ -142,7 +136,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Calculate current phase statistics - PHASE SPECIFIC!
     const currentPhaseStat = tradeStats.find(stat => stat.phaseAccountId === currentPhase?.id)
     const currentPhasePnL = currentPhaseStat 
-      ? (currentPhaseStat._sum.pnl || 0) - (currentPhaseStat._sum.commission || 0) - (currentPhaseStat._sum.swap || 0)
+      ? (currentPhaseStat._sum.pnl || 0) - (currentPhaseStat._sum.commission || 0)
       : 0
     
     // Determine next action based on phase status
@@ -179,7 +173,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       
       // Calculate high-water mark from CURRENT PHASE trades in order
       for (const trade of currentPhaseTradesMinimal) {
-        runningBalance += (trade.pnl - (trade.commission || 0) - (trade.swap || 0))
+        runningBalance += (trade.pnl - (trade.commission || 0))
         highWaterMark = Math.max(highWaterMark, runningBalance)
       }
       
@@ -324,7 +318,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           startDate: phase.startDate,
           endDate: phase.endDate,
           tradeCount: phaseStat?._count.id || 0,
-          totalPnL: phaseStat ? (phaseStat._sum.pnl || 0) - (phaseStat._sum.commission || 0) - (phaseStat._sum.swap || 0) : 0
+          totalPnL: phaseStat ? (phaseStat._sum.pnl || 0) - (phaseStat._sum.commission || 0) : 0
         }
       }),
       currentPhase: currentPhase ? {
@@ -357,8 +351,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       recentTrades: currentPhaseTradesMinimal.slice(-20).reverse().map(trade => ({  // ✅ FIXED: Show recent trades from CURRENT PHASE only
         pnl: trade.pnl,
         commission: trade.commission,
-        swap: trade.swap,
-        netPnL: trade.pnl - (trade.commission || 0) - (trade.swap || 0)
+        netPnL: trade.pnl - (trade.commission || 0)
       })),
       summary: {
         totalPhases: phases.length,

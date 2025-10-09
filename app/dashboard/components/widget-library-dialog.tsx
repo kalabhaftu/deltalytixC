@@ -130,7 +130,7 @@ export default function WidgetLibraryDialog({
         <div className="flex-1 overflow-y-auto space-y-6 pr-2">
           {Object.keys(widgetsByCategory).length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No widgets found matching "{searchQuery}"
+              No widgets found matching &quot;{searchQuery}&quot;
             </div>
           ) : (
             Object.entries(widgetsByCategory).map(([category, widgets]) => (

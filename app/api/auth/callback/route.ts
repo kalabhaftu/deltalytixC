@@ -14,7 +14,6 @@ export async function GET(request: Request) {
 
   // Handle OAuth errors from the provider
   if (error_code) {
-    console.log('OAuth Error:', { error_code, error_description })
     const isLocalEnv = process.env.NODE_ENV === 'development'
     const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
     
@@ -67,7 +66,6 @@ export async function GET(request: Request) {
         const redirectPath = decodedNext || '/dashboard'
         return NextResponse.redirect(new URL(redirectPath, baseUrl))
       }
-      console.log('Auth exchange error:', error)
       
       // Handle specific auth errors
       const isLocalEnv = process.env.NODE_ENV === 'development'
@@ -79,7 +77,6 @@ export async function GET(request: Request) {
 
       return NextResponse.redirect(new URL('/', baseUrl))
     } catch (networkError) {
-      console.log('Network error during auth exchange:', networkError)
       const isLocalEnv = process.env.NODE_ENV === 'development'
       const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
       return NextResponse.redirect(new URL('/', baseUrl))

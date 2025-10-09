@@ -8,10 +8,17 @@ export interface CalendarEvent {
   color?: string
 }
 
+export interface CalendarDayData {
+  pnl: number
+  tradeNumber: number
+  longNumber: number
+  shortNumber: number
+  trades: any[]
+  note?: string
+}
+
 export interface CalendarData {
-  events: CalendarEvent[]
-  month: number
-  year: number
+  [date: string]: CalendarDayData
 }
 
 export interface CalendarProps {

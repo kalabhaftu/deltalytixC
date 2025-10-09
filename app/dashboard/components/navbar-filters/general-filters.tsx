@@ -181,7 +181,7 @@ export function GeneralFilters({ onSave }: GeneralFiltersProps) {
           </div>
         ) : (
           <div className="text-center py-6 sm:py-8 text-muted-foreground text-xs sm:text-sm">
-            No instruments match "{searchQuery}"
+            No instruments match &quot;{searchQuery}&quot;
           </div>
         )}
       </ScrollArea>

@@ -108,10 +108,8 @@ export default function AccountSettingsPage() {
       }
     } catch (error) {
       console.error('Error fetching account details:', error)
-      toast({
-        title: 'Failed to fetch account details',
-        description: 'An error occurred while fetching account details',
-        variant: "destructive"
+      toast.error('Failed to fetch account details', {
+        description: 'An error occurred while fetching account details'
       })
     } finally {
       setIsLoading(false)
@@ -181,9 +179,8 @@ export default function AccountSettingsPage() {
 
       const data = await response.json()
       if (data.success) {
-        toast({
-          title: 'Account updated successfully',
-          description: 'Your account settings have been saved',
+        toast.success('Account updated successfully', {
+          description: 'Your account settings have been saved'
         })
         fetchAccount() // Refresh the data
       } else {
@@ -191,10 +188,8 @@ export default function AccountSettingsPage() {
       }
     } catch (error) {
       console.error('Error updating account:', error)
-      toast({
-        title: 'Failed to update account',
-        description: 'An error occurred while updating account settings',
-        variant: "destructive"
+      toast.error('Failed to update account', {
+        description: 'An error occurred while updating account settings'
       })
     } finally {
       setIsSaving(false)
@@ -217,9 +212,8 @@ export default function AccountSettingsPage() {
 
       const data = await response.json()
       if (data.success) {
-        toast({
-          title: 'Account deleted successfully',
-          description: 'The account has been permanently deleted',
+        toast.success('Account deleted successfully', {
+          description: 'The account has been permanently deleted'
         })
         router.push('/dashboard/prop-firm/accounts')
       } else {
@@ -227,10 +221,8 @@ export default function AccountSettingsPage() {
       }
     } catch (error) {
       console.error('Error deleting account:', error)
-      toast({
-        title: 'Failed to delete account',
-        description: 'An error occurred while deleting the account',
-        variant: "destructive"
+      toast.error('Failed to delete account', {
+        description: 'An error occurred while deleting the account'
       })
     }
   }

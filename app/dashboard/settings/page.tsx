@@ -165,10 +165,9 @@ export default function SettingsPage() {
 
     const updatedModels = DataSerializer.removeTradingModel(deleteModelName)
     setCustomModels(updatedModels)
-    toast({
-      title: "Model Deleted",
+    toast.success("Model Deleted", {
       description: `"${deleteModelName}" has been permanently removed from your models.`,
-      duration: 3000,
+      duration: 3000
     })
     setDeleteModelName(null)
   }
@@ -208,10 +207,9 @@ export default function SettingsPage() {
       setAutoHide(value)
     }
 
-    toast({
-      title: "Toolbar Settings Updated",
+    toast.success("Toolbar Settings Updated", {
       description: `${setting === 'fixedPosition' ? 'Fixed position' : 'Auto-hide'} ${value ? 'enabled' : 'disabled'}.`,
-      duration: 2000,
+      duration: 2000
     })
   }
 
@@ -220,10 +218,9 @@ export default function SettingsPage() {
     // Save to localStorage for now (can be persisted to database later)
     localStorage.setItem('journal-hover-effect', value)
 
-    toast({
-      title: "Journal Settings Updated",
+    toast.success("Journal Settings Updated", {
       description: `Journal hover effect changed to ${value} mode.`,
-      duration: 2000,
+      duration: 2000
     })
   }
 
@@ -232,10 +229,9 @@ export default function SettingsPage() {
     setJournalHoverEffect('simple')
     localStorage.removeItem('journal-hover-effect')
 
-    toast({
-      title: "Settings Reset",
+    toast.success("Settings Reset", {
       description: "All settings have been reset to default values.",
-      duration: 2000,
+      duration: 2000
     })
   }
 
@@ -248,10 +244,9 @@ export default function SettingsPage() {
 
   const handleThemeChange = (value: string) => {
     setTheme(value as "light" | "dark" | "system")
-    toast({
-      title: "Theme Updated",
+    toast.success("Theme Updated", {
       description: `Theme changed to ${value === 'system' ? 'system default' : value} mode.`,
-      duration: 2000,
+      duration: 2000
     })
   }
   
@@ -297,20 +292,17 @@ export default function SettingsPage() {
       const result = await response.json()
       
       if (result.success) {
-        toast({
-          title: "Profile Updated",
+        toast.success("Profile Updated", {
           description: "Your profile information has been saved successfully.",
-          duration: 3000,
+          duration: 3000
         })
       } else {
         throw new Error(result.error || 'Update failed')
       }
     } catch (error) {
-      toast({
-        title: "Update Failed", 
+      toast.error("Update Failed", {
         description: error instanceof Error ? error.message : "There was an error updating your profile. Please try again.",
-        variant: "destructive",
-        duration: 3000,
+        duration: 3000
       })
     } finally {
       setIsUpdatingProfile(false)
@@ -319,21 +311,18 @@ export default function SettingsPage() {
   
   const handleTimezoneChange = (value: string) => {
     setTimezone(value)
-    toast({
-      title: "Timezone Updated",
+    toast.success("Timezone Updated", {
       description: `Timezone changed to ${value.replace('_', ' ')}.`,
-      duration: 2000,
+      duration: 2000
     })
   }
   
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== 'Delete my account') {
-      toast({
-        title: "Confirmation Required",
+      toast.error("Confirmation Required", {
         description: "Please type 'Delete my account' to confirm.",
-        variant: "destructive",
-        duration: 3000,
+        duration: 3000
       })
       return
     }
@@ -353,10 +342,9 @@ export default function SettingsPage() {
         throw new Error(result.error || 'Failed to delete account')
       }
 
-      toast({
-        title: "Account Deleted",
+      toast.success("Account Deleted", {
         description: "Your account and all associated data have been permanently deleted.",
-        duration: 3000,
+        duration: 3000
       })
 
       // Force sign out from Supabase immediately
@@ -373,11 +361,9 @@ export default function SettingsPage() {
       window.location.href = '/?deleted=true'
       
     } catch (error) {
-      toast({
-        title: "Deletion Failed",
+      toast.error("Deletion Failed", {
         description: error instanceof Error ? error.message : "There was an error deleting your account. Please try again.",
-        variant: "destructive",
-        duration: 5000,
+        duration: 5000
       })
     } finally {
       setIsDeleting(false)

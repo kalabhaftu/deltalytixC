@@ -51,7 +51,6 @@ export default async function middleware(req: NextRequest) {
 
     // Skip auth check for post-authentication requests
     if (isPostAuthRequest) {
-      console.log('Middleware: Skipping auth check for post-auth request')
       return NextResponse.next()
     }
 
@@ -96,7 +95,6 @@ export default async function middleware(req: NextRequest) {
         clearTimeout(timeoutId)
 
         if (error || !user) {
-          console.log('Middleware: User not authenticated, redirecting to auth')
           // User not authenticated, redirect to authentication
           const authUrl = new URL('/', req.url)
           authUrl.searchParams.set('next', pathname)

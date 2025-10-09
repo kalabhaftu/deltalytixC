@@ -51,7 +51,7 @@ export default function NavbarFilters() {
     } else {
       setAllItems([])
     }
-  }, [trades])
+  }, [formattedTrades])
 
   useEffect(() => {
     setSelectedItems([

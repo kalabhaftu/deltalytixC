@@ -53,8 +53,7 @@ export function useRealtimeAccounts(options: RealtimeAccountsOptions = {}): Real
       const supabase = createClient()
 
       // Check if supabase client supports real-time (not in mock mode)
-      if (!supabase.channel || typeof supabase.channel !== 'function') {
-        console.log('[useRealtimeAccounts] Supabase realtime not available (mock mode or missing config)')
+      if (!('channel' in supabase) || typeof (supabase as any).channel !== 'function') {
         setConnectionStatus('disconnected')
         setIsConnected(false)
         return
@@ -72,7 +71,6 @@ export function useRealtimeAccounts(options: RealtimeAccountsOptions = {}): Real
         
         updateTimeout = setTimeout(() => {
           const changeCount = batchedChanges.size
-          console.log(`[useRealtimeAccounts] Processing ${changeCount} batched changes`)
           batchedChanges.clear()
           
           setLastUpdate(new Date())
@@ -95,13 +93,11 @@ export function useRealtimeAccounts(options: RealtimeAccountsOptions = {}): Real
           },
           (payload: any) => {
             const id = payload.new?.id || payload.old?.id
-            console.log(`[useRealtimeAccounts] Account ${payload.eventType}:`, id)
             handleChange('account', id)
           }
         )
         .subscribe((status: string) => {
           if (status === 'SUBSCRIBED') {
-            console.log('[useRealtimeAccounts] Account subscription active')
             setIsConnected(true)
             setConnectionStatus('connected')
             reconnectAttempts.current = 0
@@ -125,13 +121,11 @@ export function useRealtimeAccounts(options: RealtimeAccountsOptions = {}): Real
           (payload: any) => {
             const id = payload.new?.id || payload.old?.id
             const accountNumber = payload.new?.accountNumber || payload.old?.accountNumber
-            console.log(`[useRealtimeAccounts] Trade ${payload.eventType}:`, id, 'for account:', accountNumber)
             handleChange('trade', id)
           }
         )
         .subscribe((status: string) => {
           if (status === 'SUBSCRIBED') {
-            console.log('[useRealtimeAccounts] Trade subscription active')
           } else if (status === 'CHANNEL_ERROR') {
             console.warn('[useRealtimeAccounts] Trade subscription error')
           }
@@ -149,7 +143,6 @@ export function useRealtimeAccounts(options: RealtimeAccountsOptions = {}): Real
           },
           (payload: any) => {
             const id = payload.new?.id || payload.old?.id
-            console.log(`[useRealtimeAccounts] MasterAccount ${payload.eventType}:`, id)
             handleChange('master-account', id)
           }
         )
@@ -162,13 +155,11 @@ export function useRealtimeAccounts(options: RealtimeAccountsOptions = {}): Real
           },
           (payload: any) => {
             const id = payload.new?.id || payload.old?.id
-            console.log(`[useRealtimeAccounts] PhaseAccount ${payload.eventType}:`, id)
             handleChange('phase-account', id)
           }
         )
         .subscribe((status: string) => {
           if (status === 'SUBSCRIBED') {
-            console.log('[useRealtimeAccounts] Prop firm subscription active')
           } else if (status === 'CHANNEL_ERROR') {
             console.warn('[useRealtimeAccounts] Prop firm subscription error')
           }
@@ -187,7 +178,6 @@ export function useRealtimeAccounts(options: RealtimeAccountsOptions = {}): Real
         const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000)
         reconnectAttempts.current++
         
-        console.log(`[useRealtimeAccounts] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current})`)
         reconnectTimeoutRef.current = setTimeout(() => {
           setupRealtimeSubscriptions()
         }, delay)

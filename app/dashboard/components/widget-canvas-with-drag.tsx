@@ -116,7 +116,6 @@ export default function WidgetCanvasWithDrag() {
     width?: number
   } | null>(null)
   
-  console.log('[WidgetCanvas] Rendering, isLoading:', isLoading, 'activeTemplate:', !!activeTemplate)
   
   // Setup sensors for drag and drop
   const sensors = useSensors(

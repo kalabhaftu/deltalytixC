@@ -151,7 +151,6 @@ export function RealtimeStatusIndicatorV2({
 
     // PERFORMANCE FIX: Disable automatic polling that was causing constant requests
     // Users can manually refresh if needed
-    console.log('[RealtimeStatusIndicatorV2] Auto-polling disabled for performance')
     
   }, [accountId]) // Remove fetchAccountStatus and refreshInterval from deps to prevent infinite loops
 
@@ -250,8 +249,8 @@ export function RealtimeStatusIndicatorV2({
               <div>
                 <p className="text-sm font-medium">{accountStatus.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {accountStatus.currentPhase?.phaseNumber >= 3 ? 'FUNDED' :
-                   accountStatus.currentPhase?.phaseNumber === 2 ? 'PHASE 2' :
+                  {(accountStatus.currentPhase?.phaseNumber ?? 1) >= 3 ? 'FUNDED' :
+                   (accountStatus.currentPhase?.phaseNumber ?? 1) === 2 ? 'PHASE 2' :
                    'PHASE 1'}
                 </p>
               </div>
@@ -287,8 +286,8 @@ export function RealtimeStatusIndicatorV2({
               </Badge>
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              {accountStatus.firmType} • {accountStatus.currentPhase?.phaseNumber >= 3 ? 'FUNDED' :
-               accountStatus.currentPhase?.phaseNumber === 2 ? 'PHASE 2' :
+              {accountStatus.firmType} • {(accountStatus.currentPhase?.phaseNumber ?? 1) >= 3 ? 'FUNDED' :
+               (accountStatus.currentPhase?.phaseNumber ?? 1) === 2 ? 'PHASE 2' :
                'PHASE 1'}
             </p>
           </div>

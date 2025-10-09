@@ -18,7 +18,21 @@ import {
   Legend,
 } from 'recharts'
 import { cn } from '@/lib/utils'
-import { getChartColor, getPnLChartColor } from '@/lib/design-tokens'
+import { chartColors } from '@/lib/design-tokens'
+
+// Helper functions for chart colors
+const getChartColor = (type: 'positive' | 'negative' | 'neutral' | 'info' | 'warning') => {
+  const colorMap = {
+    positive: chartColors.profit,
+    negative: chartColors.loss,
+    neutral: '#6B7280',
+    info: '#3B82F6',
+    warning: '#F59E0B'
+  }
+  return colorMap[type]
+}
+
+const getPnLChartColor = (value: number) => value >= 0 ? chartColors.profit : chartColors.loss
 
 /**
  * Unified Chart Configuration
@@ -217,7 +231,7 @@ export function PnLTooltip({
  * Unified Chart Container
  */
 interface UnifiedChartContainerProps {
-  children: React.ReactNode
+  children: React.ReactElement
   className?: string
   height?: number | string
 }

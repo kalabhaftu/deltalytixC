@@ -21,7 +21,6 @@ export async function GET(request: NextRequest) {
       try {
         currentUserId = await getUserId()
       } catch (error) {
-        console.log('No authentication provided, returning limited stats')
       }
 
       if (!currentUserId) {
@@ -148,7 +147,6 @@ export async function GET(request: NextRequest) {
           select: {
             pnl: true,
             commission: true,
-            swap: true,
             accountNumber: true,
             createdAt: true
           },
@@ -161,7 +159,7 @@ export async function GET(request: NextRequest) {
       // Calculate proper current equity by account using unified calculator
       // This ensures consistency with all other balance calculations
       const accountEquities = calculateAccountBalances(filteredAccounts, allTradesForEquity, {
-        excludeFailedAccounts: true,
+        excludeFailedAccounts: false, // Include failed accounts to show their actual current balance
         includePayouts: true
       })
 

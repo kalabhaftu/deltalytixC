@@ -4,11 +4,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { getUserId } from '@/server/auth-utils'
 import { z } from 'zod'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -34,11 +32,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const body = await request.json()
     const { nextPhaseId } = PhaseTransitionSchema.parse(body)
 
-    console.log(`[PHASE_TRANSITION] Looking for master account:`, {
-      masterAccountId,
-      userId,
-      nextPhaseId
-    })
 
     // Verify the master account belongs to the user
     const masterAccount = await prisma.masterAccount.findFirst({
@@ -54,12 +47,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     })
 
-    console.log(`[PHASE_TRANSITION] Master account lookup result:`, {
-      found: !!masterAccount,
-      accountId: masterAccount?.id,
-      currentPhase: masterAccount?.currentPhase,
-      phasesCount: masterAccount?.phases?.length
-    })
 
     if (!masterAccount) {
       // Debug: Check if account exists without userId filter
@@ -67,7 +54,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         where: { id: masterAccountId },
         select: { id: true, userId: true, accountName: true, isActive: true }
       })
-      console.log(`[PHASE_TRANSITION] Account exists (no userId filter):`, anyAccount)
       
       return NextResponse.json(
         { success: false, error: 'Master account not found or unauthorized' },

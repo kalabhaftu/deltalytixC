@@ -65,7 +65,6 @@ class PerformanceMonitor {
     const result = renderFn();
     const endTime = performance.now();
     
-    console.log(`${componentName} render time: ${endTime - startTime}ms`);
     return result;
   }
 
@@ -75,7 +74,6 @@ class PerformanceMonitor {
     const result = operation();
     const endTime = performance.now();
     
-    console.log(`${operationName} processing time: ${endTime - startTime}ms`);
     return result;
   }
 

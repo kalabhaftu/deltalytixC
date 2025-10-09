@@ -38,7 +38,7 @@ export default function BacktestingPage() {
               Backtesting Coming Soon
             </h1>
             <p className="text-lg text-muted-foreground max-w-md">
-              We're building a powerful backtesting engine to help you validate your trading strategies.
+              We&apos;re building a powerful backtesting engine to help you validate your trading strategies.
             </p>
           </motion.div>
 

@@ -99,7 +99,7 @@ export default function WidgetCanvasEditable() {
                 {widget ? (
                   <div className="relative">
                     {/* Actual Widget */}
-                    {getWidgetComponent(widget.type, 'kpi')}
+                    {getWidgetComponent(widget.type as import('../types/dashboard').WidgetType, 'kpi')}
                     
                     {/* Edit Mode Overlay */}
                     {isEditMode && (
@@ -139,7 +139,7 @@ export default function WidgetCanvasEditable() {
       <div className="px-4 pb-4 space-y-4">
         {otherWidgets.map((widget) => (
           <div key={widget.i} className="relative">
-            {getWidgetComponent(widget.type, widget.size as any)}
+            {getWidgetComponent(widget.type as import('../types/dashboard').WidgetType, widget.size as any)}
             
             {/* Edit Mode Overlay */}
             {isEditMode && (

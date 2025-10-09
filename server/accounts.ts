@@ -1,17 +1,10 @@
 'use server'
 
 import { getUserId, getUserIdSafe } from '@/server/auth'
-import { PrismaClient, Trade } from '@prisma/client'
+import { Trade } from '@prisma/client'
 import { Account } from '@/context/data-provider'
 import { unstable_cache, revalidateTag } from 'next/cache'
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
-
-const prisma = globalForPrisma.prisma ?? new PrismaClient()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+import { prisma } from '@/lib/prisma'
 
 type GroupedTrades = Record<string, Record<string, Trade[]>>
 
@@ -303,7 +296,6 @@ export async function getAccountsAction() {
               createdAt: 'desc'
             }
           }).catch((masterAccountError) => {
-            console.log('[getAccountsAction] MasterAccount query failed:', masterAccountError)
             return []
           })
 
@@ -361,7 +353,6 @@ export async function getAccountsAction() {
                 id: true
               }
             }).catch((error) => {
-              console.log('[getAccountsAction] Phase trade count query failed:', error)
               return []
             })
           )
@@ -418,11 +409,6 @@ export async function getAccountsAction() {
         // Only include active and funded phases (accounts page has its own status filter)
         const transformedMasterAccounts: any[] = []
         masterAccounts.forEach((masterAccount: any) => {
-          console.log('[getAccountsAction] Processing master account:', {
-            masterAccountId: masterAccount.id,
-            accountName: masterAccount.accountName,
-            phasesCount: masterAccount.phases?.length
-          })
           
           if (masterAccount.phases && masterAccount.phases.length > 0) {
             // Create one entry for each phase (excluding pending phases)
@@ -430,12 +416,6 @@ export async function getAccountsAction() {
               // Skip pending phases - they don't exist yet until user reaches them
               if (phase.status === 'pending') return
               
-              console.log('[getAccountsAction] Processing phase:', {
-                phaseId: phase.id,
-                phaseNumber: phase.phaseNumber,
-                phaseIdNumber: phase.phaseId,
-                masterAccountId: masterAccount.id
-              })
               
               transformedMasterAccounts.push({
                 id: phase.id, // Use phase ID instead of composite key
@@ -680,7 +660,6 @@ export async function renameInstrumentAction(accountNumber: string, oldInstrumen
 
 export async function checkAndResetAccountsAction() {
   // Reset functionality not implemented - placeholder function
-  console.log('checkAndResetAccountsAction called - no resetDate field available')
 }
 
 // Utility function for comprehensive cache invalidation
@@ -1150,7 +1129,7 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
         // Prop firm account - link to current active phase
         const currentPhase = await tx.phaseAccount.findFirst({
           where: {
-            masterAccountId: realMasterAccountId,
+            masterAccountId: masterAccountForLink.id,
             status: 'active'
           },
           orderBy: {
@@ -1218,7 +1197,7 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
         accountId: regularAccountId,
         accountName,
         isPropFirm,
-        masterAccountId: isPropFirm ? realMasterAccountId : null,
+        masterAccountId: isPropFirm ? masterAccountForLink?.id : null,
         evaluation: undefined, // Will be populated post-transaction if applicable
         isDuplicate: false
       }
@@ -1290,11 +1269,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
             }
           })
           
-          console.log('[PHASE_READY_FOR_TRANSITION] Phase ready for transition (not marked as passed yet):', {
-            phaseAccountId: result.phaseAccountId,
-            masterAccountId: result.masterAccountId,
-            currentPhaseNumber: masterAccountData?.currentPhase
-          })
           
           return {
             ...result,

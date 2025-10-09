@@ -40,7 +40,7 @@ export interface AccountFilterSettings {
   updatedAt: string
 }
 
-export type AccountStatus = 'active' | 'failed' | 'funded' | 'passed'
+export type AccountStatus = 'active' | 'failed' | 'funded' | 'passed' | 'pending'
 
 export interface AccountHierarchy {
   // Parent account info (for prop firm phase tracking)

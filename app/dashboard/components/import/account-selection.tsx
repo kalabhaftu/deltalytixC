@@ -25,7 +25,7 @@ interface UnifiedAccount {
   accountType: 'prop-firm' | 'live'
   startingBalance: number
   status: string
-  currentPhase?: {
+  currentPhase?: number | {
     phaseNumber: number
     status: string
     phaseId: string | null
@@ -213,26 +213,35 @@ export default function AccountSelection({
                     )}
                     {account.accountType === 'prop-firm' && account.currentPhase && (
                       <div className="flex items-center gap-2 mt-2">
-                        <Badge
-                          variant={
-                            account.currentPhase.status === 'active' ? 'default' :
-                            account.currentPhase.status === 'passed' ? 'secondary' :
-                            'destructive'
-                          }
-                          className="text-xs"
-                        >
-                          {account.currentPhase.status === 'active' && <Target className="h-3 w-3 mr-1" />}
-                          {account.currentPhase.status === 'passed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                          {account.currentPhase.status === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                          {account.currentPhase.phaseNumber >= 3 ? 'FUNDED' : 
-                           account.currentPhase.phaseNumber === 2 ? 'PHASE 2' : 
-                           'PHASE 1'}
-                        </Badge>
-                        {account.currentPhase.phaseId && (
-                          <span className="text-xs font-mono text-muted-foreground">
-                            #{account.currentPhase.phaseId}
-                          </span>
-                        )}
+                        {(() => {
+                          const phaseInfo = account.currentPhase;
+                          const phaseNumber = typeof phaseInfo === 'number' ? phaseInfo : phaseInfo?.phaseNumber || 1;
+                          const phaseStatus = typeof phaseInfo === 'object' ? phaseInfo?.status : 'active';
+                          const phaseId = typeof phaseInfo === 'object' ? phaseInfo?.phaseId : null;
+
+                          return (
+                            <Badge
+                              variant={
+                                phaseStatus === 'active' ? 'default' :
+                                phaseStatus === 'passed' ? 'secondary' :
+                                'destructive'
+                              }
+                              className="text-xs"
+                            >
+                              {phaseStatus === 'active' && <Target className="h-3 w-3 mr-1" />}
+                              {phaseStatus === 'passed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                              {phaseStatus === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                              {phaseNumber >= 3 ? 'FUNDED' :
+                               phaseNumber === 2 ? 'PHASE 2' :
+                               'PHASE 1'}
+                              {phaseId && (
+                                <span className="text-xs font-mono text-muted-foreground ml-1">
+                                  #{phaseId}
+                                </span>
+                              )}
+                            </Badge>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>

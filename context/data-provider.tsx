@@ -1088,13 +1088,11 @@ export const DataProvider: React.FC<{
   const loadData = useCallback(async () => {
     // PERFORMANCE FIX: Add loading state check to prevent redundant calls
     if (isLoading) {
-      console.log('[DataProvider] Already loading, skipping redundant call')
       return
     }
 
     // Prevent concurrent data loading
     if (activeLoadPromise) {
-      console.log('[DataProvider] Data load already in progress, waiting...')
       return activeLoadPromise
     }
 
@@ -1110,7 +1108,6 @@ export const DataProvider: React.FC<{
         try {
           await signOut();
         } catch (error) {
-          console.log('[DataProvider] Error during signOut, will handle via middleware');
         }
         setIsLoading(false)
         return;
@@ -1130,7 +1127,6 @@ export const DataProvider: React.FC<{
           updatedAt: new Date()
         }
         setDashboardLayout(freshDefaultLayout)
-        console.log('[DataProvider] Set fresh default layout immediately')
 
         // Try to load from localStorage for better user experience
         try {
@@ -1146,17 +1142,14 @@ export const DataProvider: React.FC<{
               if (hasUpdatedTradeDistribution) {
                 // Use cached layout if it has the updated position
                 setDashboardLayout(parsedLayout)
-                console.log('[DataProvider] Loaded updated layout from localStorage cache')
               } else {
                 // Cache is outdated, use fresh default and update cache
                 localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(freshDefaultLayout))
-                console.log('[DataProvider] Updated outdated cache with new default layout')
               }
             }
           } else {
             // No cache exists, cache the fresh default
             localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(freshDefaultLayout))
-            console.log('[DataProvider] Cached fresh default layout')
           }
         } catch (error) {
           // Ignore localStorage errors
@@ -1180,7 +1173,6 @@ export const DataProvider: React.FC<{
         try {
           await signOut();
         } catch (error) {
-          console.log('[DataProvider] Error during signOut for no data, will handle via middleware');
         }
         setIsLoading(false)
         return;
@@ -1199,7 +1191,7 @@ export const DataProvider: React.FC<{
       const accountsWithBalance = (data.accounts || []).map(account => ({
         ...account,
         balanceToDate: calcBalance(account, Array.isArray(trades) ? trades : [], {
-          excludeFailedAccounts: true,
+          excludeFailedAccounts: false, // Include failed accounts to show their actual current balance
           includePayouts: true
         })
       }));
@@ -1215,7 +1207,6 @@ export const DataProvider: React.FC<{
         ('digest' in error && typeof error.digest === 'string' && error.digest.startsWith('NEXT_REDIRECT'))
       )) {
         // Don't log redirect errors as they are expected behavior
-        console.log('[DataProvider] Redirect detected, letting it proceed');
         throw error; // Re-throw to let Next.js handle the redirect
       }
 
@@ -1225,11 +1216,9 @@ export const DataProvider: React.FC<{
         error.message.includes('User not found') ||
         error.message.includes('Unauthorized')
       )) {
-        console.log('[DataProvider] Authentication error detected, redirecting to auth');
         try {
           await signOut();
         } catch (signOutError) {
-          console.log('[DataProvider] Error during signOut for auth error, will handle via middleware');
         }
         return;
       }
@@ -1287,7 +1276,6 @@ export const DataProvider: React.FC<{
           error.message.includes('User not found') ||
           error.message.includes('Unauthorized')
         )) {
-          console.log('[DataProvider] Authentication error in useEffect, will handle via middleware');
           return;
         }
         
@@ -1337,7 +1325,6 @@ export const DataProvider: React.FC<{
         ('digest' in error && typeof error.digest === 'string' && error.digest.startsWith('NEXT_REDIRECT'))
       )) {
         // Don't log redirect errors as they are expected behavior
-        console.log('[DataProvider] Redirect detected in refreshTrades, letting it proceed');
         throw error; // Re-throw to let Next.js handle the redirect
       }
 
@@ -1347,13 +1334,11 @@ export const DataProvider: React.FC<{
         error.message.includes('User not found') ||
         error.message.includes('Unauthorized')
       )) {
-        console.log('[DataProvider] Authentication error in refreshTrades');
         setIsLoading(false);
         return;
       }
       
       // Silently handle other errors to avoid console spam
-      console.log('[DataProvider] Error in refreshTrades:', error instanceof Error ? error.message : 'Unknown error');
       setIsLoading(false)
     }
   }, [user?.id, loadData, setIsLoading, locale])

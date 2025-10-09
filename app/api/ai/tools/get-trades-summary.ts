@@ -46,7 +46,6 @@ export const getTradesSummary = tool({
   })
 
 export async function executeGetTradesSummary({ startDate, endDate }: { startDate: string, endDate: string }) {
-  console.log(`[getTradeSummary] startDate: ${startDate}, endDate: ${endDate}`)
   const trades = await getTradesAction();
   const start = new Date(startDate);
   const end = new Date(endDate);

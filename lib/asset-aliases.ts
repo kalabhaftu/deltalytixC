@@ -223,7 +223,6 @@ export function getAssetAliasGroups() {
 
 // Test function to verify aliases work correctly
 export const testAliases = () => {
-  console.log('Testing Asset Aliases...')
 
   // Test some common aliases
   const testCases = [
@@ -241,8 +240,6 @@ export const testAliases = () => {
 
   testCases.forEach(({ input, expected }) => {
     const result = getCanonicalAssetName(input)
-    console.log(`${input} → ${result} (${result === expected ? '✅' : '❌'})`)
   })
 
-  console.log('Alias testing complete!')
 }

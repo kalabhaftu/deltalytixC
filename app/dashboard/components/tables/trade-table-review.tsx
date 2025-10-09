@@ -56,7 +56,6 @@ import { useUserStore } from '@/store/user-store'
 import { useTableConfigStore } from '@/store/table-config-store'
 import { TradeImageEditor } from './trade-image-editor'
 import { ColumnConfigDialog } from '@/components/ui/column-config-dialog'
-import { calculateTicksAndPointsForTrades, calculateTicksAndPointsForGroupedTrade } from '@/lib/tick-calculations'
 import { Input } from '@/components/ui/input'
 import EnhancedEditTrade from './enhanced-edit-trade'
 import TradeDetailView from './trade-detail-view'
@@ -90,8 +89,8 @@ export interface ExtendedTrade extends Trade {
   trades: ExtendedTrade[]
   // phaseId field removed - use phaseAccountId in new system
   accountId: string | null
-  stopLoss?: string | null
-  takeProfit?: string | null
+  stopLoss: string | null
+  takeProfit: string | null
   entryTime: Date | null
   exitTime: Date | null
   closeReason: string | null
@@ -284,9 +283,13 @@ export function TradeTableReview() {
           side: trade.side,
           commission: trade.commission,
           closeReason: trade.closeReason,
+          tags: [],
+          stopLoss: trade.stopLoss || null,
+          takeProfit: trade.takeProfit || null,
           trades: [{
             ...trade,
             trades: [],
+            tags: [],
             imageBase64Fifth: (trade as any).imageBase64Fifth ?? null,
             imageBase64Sixth: (trade as any).imageBase64Sixth ?? null,
             cardPreviewImage: (trade as any).cardPreviewImage ?? null,
@@ -302,6 +305,7 @@ export function TradeTableReview() {
         group.trades.push({
           ...trade,
           trades: [],
+          tags: [],
           imageBase64Fifth: (trade as any).imageBase64Fifth ?? null,
           imageBase64Sixth: (trade as any).imageBase64Sixth ?? null,
           cardPreviewImage: (trade as any).cardPreviewImage ?? null,

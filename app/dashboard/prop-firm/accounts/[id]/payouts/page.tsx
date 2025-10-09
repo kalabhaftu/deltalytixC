@@ -80,10 +80,8 @@ export default function AccountPayoutsPage() {
       }
     } catch (error) {
       console.error('Error fetching account details:', error)
-      toast({
-        title: 'Failed to fetch account details',
-        description: 'An error occurred while fetching account details',
-        variant: "destructive"
+      toast.error('Failed to fetch account details', {
+        description: 'An error occurred while fetching account details'
       })
     }
   }
@@ -106,10 +104,8 @@ export default function AccountPayoutsPage() {
       }
     } catch (error) {
       console.error('Error fetching payouts:', error)
-      toast({
-        title: 'Failed to fetch payouts',
-        description: 'An error occurred while fetching payouts',
-        variant: "destructive"
+      toast.error('Failed to fetch payouts', {
+        description: 'An error occurred while fetching payouts'
       })
     } finally {
       setIsLoading(false)

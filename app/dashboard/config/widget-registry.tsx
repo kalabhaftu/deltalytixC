@@ -2,6 +2,7 @@ import React from 'react'
 import { WidgetType, WidgetSize } from '../types/dashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { WidgetErrorBoundary } from '@/components/error-boundary'
+import { cn } from '@/lib/utils'
 
 // Calendar components
 import CalendarPnl from '../components/calendar/calendar-widget'

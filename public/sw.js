@@ -27,13 +27,11 @@ const SYNC_TAGS = {
 
 // Install event - cache static resources
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...')
   
   event.waitUntil(
     Promise.all([
       // Cache static files
       caches.open(STATIC_CACHE).then((cache) => {
-        console.log('[SW] Caching static files')
         return cache.addAll(STATIC_FILES)
       }),
       
@@ -45,7 +43,6 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...')
   
   event.waitUntil(
     Promise.all([
@@ -57,7 +54,6 @@ self.addEventListener('activate', (event) => {
                 cacheName !== STATIC_CACHE && 
                 cacheName !== API_CACHE &&
                 cacheName !== IMAGE_CACHE) {
-              console.log('[SW] Deleting old cache:', cacheName)
               return caches.delete(cacheName)
             }
           })
@@ -108,7 +104,6 @@ async function handleStaticRequest(request) {
     }
     return response
   } catch (error) {
-    console.log('[SW] Static file request failed:', error)
     return new Response('Static resource unavailable', { status: 404 })
   }
 }
@@ -139,7 +134,6 @@ async function handleAPIRequest(request) {
       return cachedResponse || response
     }
   } catch (error) {
-    console.log('[SW] API request failed, trying cache:', error)
     
     // Network failed, try cache
     const cachedResponse = await cache.match(request)
@@ -190,7 +184,6 @@ async function handleImageRequest(request) {
     }
     return response
   } catch (error) {
-    console.log('[SW] Image request failed:', error)
     // Return placeholder image
     return new Response(
       '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100%" height="100%" fill="#ddd"/><text x="50%" y="50%" text-anchor="middle" dy=".3em">Image offline</text></svg>',
@@ -205,7 +198,6 @@ async function handlePageRequest(request) {
     const response = await fetch(request)
     return response
   } catch (error) {
-    console.log('[SW] Page request failed, serving offline page:', error)
     
     // Serve offline page
     const cache = await caches.open(STATIC_CACHE)
@@ -246,7 +238,6 @@ async function handlePageRequest(request) {
 
 // Background sync for uploading data when back online
 self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync triggered:', event.tag)
   
   switch (event.tag) {
     case SYNC_TAGS.TRADE_UPLOAD:
@@ -279,14 +270,11 @@ async function syncTradeUploads() {
         
         if (response.ok) {
           await removePendingTrade(db, trade.id)
-          console.log('[SW] Synced trade upload:', trade.id)
         }
       } catch (error) {
-        console.log('[SW] Failed to sync trade:', error)
       }
     }
   } catch (error) {
-    console.log('[SW] Background sync failed:', error)
   }
 }
 
@@ -308,14 +296,11 @@ async function syncProfileUpdates() {
         
         if (response.ok) {
           await removePendingProfileUpdate(db, update.id)
-          console.log('[SW] Synced profile update:', update.id)
         }
       } catch (error) {
-        console.log('[SW] Failed to sync profile update:', error)
       }
     }
   } catch (error) {
-    console.log('[SW] Profile sync failed:', error)
   }
 }
 
@@ -337,11 +322,9 @@ async function syncAnalyticsRequests() {
           await cache.put(url, response.clone())
         }
       } catch (error) {
-        console.log('[SW] Failed to refresh analytics cache:', error)
       }
     }
   } catch (error) {
-    console.log('[SW] Analytics sync failed:', error)
   }
 }
 
@@ -375,9 +358,7 @@ async function cacheTradeData(data) {
       headers: { 'Content-Type': 'application/json' }
     })
     await cache.put('/api/trades/cached', response)
-    console.log('[SW] Cached trade data for offline access')
   } catch (error) {
-    console.log('[SW] Failed to cache trade data:', error)
   }
 }
 
@@ -388,9 +369,7 @@ async function clearAllCaches() {
     await Promise.all(
       cacheNames.map(cacheName => caches.delete(cacheName))
     )
-    console.log('[SW] Cleared all caches')
   } catch (error) {
-    console.log('[SW] Failed to clear caches:', error)
   }
 }
 
@@ -408,7 +387,6 @@ async function getCacheStatus() {
     
     return status
   } catch (error) {
-    console.log('[SW] Failed to get cache status:', error)
     return {}
   }
 }
@@ -495,4 +473,3 @@ async function removePendingProfileUpdate(db, id) {
   })
 }
 
-console.log('[SW] Service worker loaded successfully')

@@ -64,7 +64,6 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
     const debugInfo = `Entry: ${entryPrice}, SL: ${stopLoss}, TP: ${takeProfit}, Side: ${side}, SL_Raw: ${stopLossRaw}, TP_Raw: ${takeProfitRaw}`
     
     // Log for debugging in console
-    console.log(`R:R Debug for ${trade.instrument}:`, debugInfo)
 
     // Check for incomplete data
     const hasIncompleteData = !entryPrice || !stopLoss || !takeProfit || !side
@@ -100,14 +99,12 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
 
     // Ensure risk and reward are positive (invalid setup returns 0.00)
     if (potentialRisk <= 0 || potentialReward <= 0) {
-      console.log(`Invalid R:R calculation: Risk=${potentialRisk}, Reward=${potentialReward}`)
       return { ratio: 0.00, hasIncompleteData: true, debugInfo } // Invalid calculation
     }
 
     // R:R = Potential Reward ÷ Potential Risk
     const rrRatio = potentialReward / potentialRisk
     
-    console.log(`Calculated R:R: ${rrRatio.toFixed(2)} (Risk: ${potentialRisk}, Reward: ${potentialReward})`)
     
     // Return calculated R:R, capped at reasonable maximum (99.99)
     return { ratio: Math.min(rrRatio, 99.99), hasIncompleteData: false, debugInfo }

@@ -5,13 +5,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { getUserId } from '@/server/auth-utils'
 import { z } from 'zod'
 import { revalidateTag } from 'next/cache'
 import { validatePhaseId } from '@/lib/validation/phase-id-validator'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 // Validation schema for creating a master account
 const CreateMasterAccountSchema = z.object({

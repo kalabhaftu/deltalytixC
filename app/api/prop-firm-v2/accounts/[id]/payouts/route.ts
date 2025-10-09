@@ -4,10 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { getUserId } from '@/server/auth-utils'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -37,7 +35,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               select: {
                 pnl: true,
                 commission: true,
-                swap: true,
                 exitTime: true
               }
             }
@@ -56,7 +53,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Get current phase
     const currentPhase = masterAccount.phases.find(p => p.phaseNumber === masterAccount.currentPhase)
-    const isFunded = currentPhase?.phaseNumber >= 3
+    const isFunded = currentPhase && currentPhase.phaseNumber >= 3
 
     let eligibility = null
     
@@ -67,7 +64,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       
       // Calculate net profit since funded
       const netProfit = currentPhase.trades.reduce((sum, trade) => 
-        sum + (trade.pnl || 0) - (trade.commission || 0) - (trade.swap || 0), 0
+        sum + (trade.pnl || 0) - (trade.commission || 0), 0
       )
       
       // Basic eligibility rules (customize as needed)

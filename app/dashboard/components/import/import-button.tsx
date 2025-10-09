@@ -155,14 +155,6 @@ export default function ImportButton() {
 
       // Show success message with evaluation result
       if ('evaluation' in result && result.evaluation) {
-        console.log('[IMPORT_RESULT] Evaluation result:', {
-          status: result.evaluation.status,
-          isPropFirm: result.isPropFirm,
-          masterAccountId: result.masterAccountId,
-          phaseAccountId: result.phaseAccountId,
-          currentPhaseNumber: (result.evaluation as any).currentPhaseNumber,
-          fullEvaluation: result.evaluation
-        })
         
         if (result.evaluation.status === 'failed') {
           toast.error("Account Failed", {
@@ -170,7 +162,6 @@ export default function ImportButton() {
             duration: 10000,
           })
         } else if (result.evaluation.status === 'passed' && result.isPropFirm && result.masterAccountId && result.phaseAccountId) {
-          console.log('[PHASE_DIALOG] Opening phase transition dialog')
           
           const evalData = result.evaluation as any
           
@@ -191,10 +182,9 @@ export default function ImportButton() {
             },
             nextPhaseNumber: (evalData.currentPhaseNumber || 1) + 1,
             propFirmName: evalData.propFirmName || 'Prop Firm',
-            accountName: result.accountName
+            accountName: 'accountName' in result ? result.accountName : 'Account'
           }
           
-          console.log('[PHASE_DIALOG] Dialog data:', dialogData)
           
           setPhaseTransitionData(dialogData)
           
@@ -202,18 +192,17 @@ export default function ImportButton() {
           setIsOpen(false)
           resetImportState()
           setTimeout(() => {
-            console.log('[PHASE_DIALOG] Setting showPhaseTransitionDialog to true')
             setShowPhaseTransitionDialog(true)
           }, 300)
         } else {
           toast.success("Import Successful", {
-            description: `Successfully imported ${result.linkedCount} trades to ${result.accountName}`,
+            description: `Successfully imported ${result.linkedCount} trades to ${'accountName' in result ? result.accountName : 'account'}`,
             duration: 5000,
           })
         }
       } else {
         toast.success("Import Successful", {
-          description: `Successfully imported and linked ${result.linkedCount} trades to ${result.accountName}`,
+          description: `Successfully imported and linked ${result.linkedCount} trades to ${'accountName' in result ? result.accountName : 'account'}`,
           duration: 5000,
         })
       }

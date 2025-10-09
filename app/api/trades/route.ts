@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getTrades, deleteTrade } from '@/server/trades'
+import { deleteTrade } from '@/server/trades'
 import { getUserIdSafe } from '@/server/auth'
 import { prisma } from '@/lib/prisma'
 import { DataSerializer } from '@/lib/data-serialization'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('API: Fetching trades...')
 
     // Try to get trades without authentication first (for debugging)
     const userId = await getUserIdSafe()
-    console.log('API: User ID:', userId)
 
     if (!userId) {
-      console.log('API: No user ID, returning empty array for debugging')
       return NextResponse.json({
         success: true,
         data: [],
@@ -33,11 +30,9 @@ export async function GET(request: NextRequest) {
     // For large requests (like loading all trades), cap at 5000 to prevent memory issues
     const actualLimit = stream ? Math.min(limit, 50) : Math.min(limit, 5000)
 
-    console.log(`API: Fetching trades with pagination - page: ${page}, limit: ${actualLimit}, offset: ${offset}, stream: ${stream}`)
 
     // If test is requested, return a simple test response
     if (test) {
-      console.log('API: Test mode - returning test response')
 
       // Test database connectivity
       let dbStatus = 'unknown'
@@ -90,7 +85,6 @@ export async function GET(request: NextRequest) {
       total: totalCount
     }
 
-    console.log(`API: Returning ${trades.length} trades for page ${page}, total: ${totalCount}, hasMore: ${responseData.hasMore}`)
 
     const response = NextResponse.json(responseData)
     return response
@@ -132,10 +126,9 @@ async function getTradesPaginated(offset: number, limit: number) {
   const trades = await prisma.trade.findMany({
     where: { userId },
     include: {
-      account: true,
+      account: true
       // phase: true, // Phase field not available
       // propFirmPhase: true, // PropFirmPhase field not available
-      tradeAnalytics: true
     },
     orderBy: {
       entryTime: 'desc'
@@ -144,7 +137,6 @@ async function getTradesPaginated(offset: number, limit: number) {
     take: limit
   })
 
-  console.log(`API: Returning ${trades.length} trades (paginated)`)
   return trades
 }
 
@@ -272,7 +264,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { action, batchSize = 50, offset = 0, filters = {} } = body
 
-    console.log(`API: Progressive data request - action: ${action}, batchSize: ${batchSize}, offset: ${offset}`)
 
     switch (action) {
       case 'getBatch':
@@ -341,10 +332,9 @@ async function getTradesBatch(offset: number, limit: number, filters: any = {}) 
   const trades = await prisma.trade.findMany({
     where: whereClause,
     include: {
-      account: true,
+      account: true
       // phase: true, // Phase field not available
       // propFirmPhase: true, // PropFirmPhase field not available
-      tradeAnalytics: true
     },
     orderBy: {
       entryTime: 'desc'

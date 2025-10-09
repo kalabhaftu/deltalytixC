@@ -87,7 +87,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Force clear all auth state and cache
   const forceClearAuth = () => {
-    console.log('[Auth] Force clearing all auth state')
     resetUser()
     setSession(null)
     setSupabaseUser(null)
@@ -114,7 +113,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (shouldForceClear) {
       const reason = urlParams.get('deleted') === 'true' ? 'account deletion' : 'logout'
-      console.log(`[Auth] Detected ${reason}, forcing clear`)
       forceClearAuth()
       // Remove the parameter from URL
       const newUrl = window.location.pathname

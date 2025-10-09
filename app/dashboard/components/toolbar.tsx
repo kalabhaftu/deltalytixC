@@ -58,7 +58,6 @@ export function Toolbar({
   // Handle auto-hide toggle with proper state management
   const handleAutoHideToggle = () => {
     const newValue = !settings.autoHide
-    console.log('Toggling auto-hide from', settings.autoHide, 'to', newValue)
     setAutoHide(newValue)
 
     // Show toast notification

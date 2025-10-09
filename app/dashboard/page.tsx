@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useUserStore } from "@/store/user-store"
 import { cn } from "@/lib/utils"
@@ -57,7 +57,7 @@ const TemplateSelector = dynamic(() => import('./components/template-selector'),
   ssr: false
 })
 
-export default function Home() {
+function DashboardContent() {
   const mainRef = useRef<HTMLElement>(null)
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('widgets')
@@ -69,7 +69,7 @@ export default function Home() {
 
   // Check for tab parameter in URL
   useEffect(() => {
-    const tab = searchParams.get('tab')
+    const tab = searchParams?.get('tab')
     if (tab && ['widgets', 'table', 'accounts', 'journal', 'backtesting'].includes(tab)) {
       setActiveTab(tab)
     }
@@ -312,5 +312,17 @@ export default function Home() {
         </div>
       </TemplateProvider>
     </DashboardErrorBoundary>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary shadow-lg"></div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   )
 }

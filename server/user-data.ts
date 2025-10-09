@@ -1,6 +1,6 @@
 'use server'
 
-import { User, DashboardLayout, Trade } from '@prisma/client'
+import { User, Trade } from '@prisma/client'
 import { GroupWithAccounts } from './groups'
 import { prisma } from '@/lib/prisma'
 import { createClient, getUserId, getUserIdSafe } from './auth'

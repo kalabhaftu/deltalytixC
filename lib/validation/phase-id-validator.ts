@@ -3,9 +3,7 @@
  * Prevents duplicate phase IDs within a user's active accounts
  */
 
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 export interface PhaseIdValidationResult {
   isValid: boolean
@@ -27,9 +25,6 @@ export async function validatePhaseId(
   excludeAccountId?: string
 ): Promise<PhaseIdValidationResult> {
   
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[PHASE_ID_VALIDATION] Validating phaseId "${phaseId}" for user ${userId}`)
-  }
 
   try {
     // Trim and normalize the phase ID
@@ -66,9 +61,6 @@ export async function validatePhaseId(
     })
 
     if (existingPhaseAccount) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[PHASE_ID_VALIDATION] Duplicate found in account: ${existingPhaseAccount.masterAccount.accountName}`)
-      }
 
       return {
         isValid: false,
@@ -81,9 +73,6 @@ export async function validatePhaseId(
       }
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[PHASE_ID_VALIDATION] Phase ID "${normalizedPhaseId}" is available`)
-    }
 
     return {
       isValid: true

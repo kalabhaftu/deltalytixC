@@ -31,7 +31,7 @@ import {
 import { cn } from "@/lib/utils"
 import { AccountDashboardData, AccountSummary, PhaseType, AccountStatus, PropFirmTrade } from "@/types/prop-firm"
 import { PhaseTransitionDialog } from "@/app/dashboard/components/prop-firm/phase-transition-dialog"
-import { RealtimeStatusIndicator, RealtimeMetrics } from "@/components/prop-firm/realtime-status-indicator"
+import { RealtimeStatusIndicatorV2 } from "@/components/prop-firm/realtime-status-indicator-v2"
 import { AccountLoadingState } from "@/components/prop-firm/account-loading-skeleton"
 import { PropFirmErrorBoundary, AccountNotFoundError, ConnectionError } from "@/components/prop-firm/account-error-boundary"
 import { PhaseAccordionSection } from "./components/phase-accordion-section"
@@ -99,7 +99,6 @@ export default function AccountDetailPage() {
       const data = await response.json()
       return data.success ? data.data : { eligibility: null, history: [] }
     } catch (error) {
-      console.log('Payout API not available, using defaults')
       return { eligibility: null, history: [] }
     }
   }
@@ -395,7 +394,6 @@ export default function AccountDetailPage() {
               <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
               Refresh
             </Button>
-            <RealtimeMetrics isLoading={isLoading} lastUpdated={lastUpdated} />
           </div>
         </div>
       </div>
@@ -434,7 +432,7 @@ export default function AccountDetailPage() {
               <TrendingUp className="h-4 w-4 text-green-600" />
               <AlertDescription className="flex items-center justify-between">
                 <span>
-                  🎉 Profit target reached! You're ready to advance to Phase {(realtimeAccount.currentPhase?.phaseNumber || 1) + 1}.
+                  🎉 Profit target reached! You&apos;re ready to advance to Phase {(realtimeAccount.currentPhase?.phaseNumber || 1) + 1}.
                 </span>
                 <Button 
                   onClick={() => setShowTransitionDialog(true)}

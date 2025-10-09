@@ -1,12 +1,9 @@
 "use client"
 
 import React from 'react'
-import { useData } from '@/context/data-provider'
 import { getWidgetComponent } from '../config/widget-registry'
 
 export default function WidgetCanvas() {
-  const { dashboardLayout: layouts } = useData()
-
   // Default KPI widgets for upper section
   const defaultKpiWidgets = [
     'accountBalancePnl',
@@ -16,8 +13,8 @@ export default function WidgetCanvas() {
     'avgWinLoss'
   ] as const
 
-  // Check if calendar widget exists
-  const hasCalendarWidget = layouts?.desktop?.some(widget => widget.type === 'calendarAdvanced')
+  // Default: show calendar widget
+  const hasCalendarWidget = true
 
   return (
     <div className="space-y-6">

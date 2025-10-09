@@ -2,21 +2,20 @@
 
 import * as React from "react"
 import { useState } from "react"
-import { Calendar as CalendarIcon } from "lucide-react"
 import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { Label } from "@/components/ui/label"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { Calendar as CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useData } from "@/context/data-provider"
 import { toast } from "sonner"
-import DatePicker from "react-datepicker"
-import "react-datepicker/dist/react-datepicker.css"
-import "./datepicker-styles.css"
+import { CustomDateRangePicker } from "@/components/ui/custom-date-range-picker"
 
 export interface DateRange {
   from: Date | undefined
@@ -143,23 +142,6 @@ export function DateRangeSelector({ onSave }: DateRangeSelectorProps) {
     onSave?.()
   }
 
-  const onDateChange = (dates: [Date | null, Date | null] | null) => {
-    if (dates) {
-      const [start, end] = dates
-      setStartDate(start)
-      setEndDate(end)
-
-      // Auto-apply when both dates are selected
-      if (start && end) {
-        const newRange = { from: start, to: end }
-        setDateRange(newRange)
-        toast.success(
-          `Date range: ${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`
-        )
-        setIsDatePickerOpen(false) // Close popover after selection
-      }
-    }
-  }
 
   return (
     <div className="w-full min-w-[280px] sm:min-w-[320px] max-w-[360px] sm:max-w-[400px] p-3 sm:p-4 space-y-3 sm:space-y-4">
@@ -190,7 +172,7 @@ export function DateRangeSelector({ onSave }: DateRangeSelectorProps) {
 
       <Separator />
 
-      {/* Date Picker */}
+      {/* Custom Date Range Picker */}
       <div className="flex flex-col gap-2">
         <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
           <PopoverTrigger asChild>
@@ -209,15 +191,30 @@ export function DateRangeSelector({ onSave }: DateRangeSelectorProps) {
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
-            <DatePicker
-              selected={startDate}
-              onChange={onDateChange}
-              startDate={startDate}
-              endDate={endDate}
-              selectsRange
-              inline
-              monthsShown={1}
-              calendarClassName="custom-datepicker"
+            <CustomDateRangePicker
+              selected={{ from: startDate || undefined, to: endDate || undefined }}
+              onSelect={(range) => {
+                if (range) {
+                  setStartDate(range.from || null)
+                  setEndDate(range.to || null)
+                  
+                  // Auto-apply when both dates are selected
+                  if (range.from && range.to) {
+                    const newRange = { from: range.from, to: range.to }
+                    setDateRange(newRange)
+                    toast.success(
+                      `Date range: ${format(range.from, 'MMM d, yyyy')} - ${format(range.to, 'MMM d, yyyy')}`
+                    )
+                    setIsDatePickerOpen(false)
+                    onSave?.()
+                  }
+                } else {
+                  setStartDate(null)
+                  setEndDate(null)
+                  setDateRange(undefined)
+                }
+              }}
+              className="w-fit"
             />
           </PopoverContent>
         </Popover>

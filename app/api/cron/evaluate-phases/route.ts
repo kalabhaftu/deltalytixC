@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { PhaseEvaluationEngine } from '@/lib/prop-firm/phase-evaluation-engine'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 /**
  * GET /api/cron/evaluate-phases - Background evaluation for all active phases
@@ -11,7 +9,6 @@ const prisma = new PrismaClient()
  */
 export async function GET(request: NextRequest) {
   try {
-    console.log('[BACKGROUND_EVAL] Starting background evaluation...')
 
     // Get all active phase accounts
     const activePhases = await prisma.phaseAccount.findMany({
@@ -77,14 +74,12 @@ export async function GET(request: NextRequest) {
           ])
 
           failed++
-          console.log(`[BACKGROUND_EVAL] Account ${phase.masterAccount.accountName} FAILED: ${evaluation.drawdown.breachType}`)
         }
 
         // If account passed (profit target met), mark for manual phase progression
         // We don't auto-advance phases - user needs to manually provide next phase ID
         if (evaluation.isPassed && !evaluation.isFailed) {
           passed++
-          console.log(`[BACKGROUND_EVAL] Account ${phase.masterAccount.accountName} PASSED - Ready to advance`)
         }
 
       } catch (error) {
@@ -106,7 +101,6 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     }
 
-    console.log('[BACKGROUND_EVAL] Completed:', result)
 
     return NextResponse.json(result)
 

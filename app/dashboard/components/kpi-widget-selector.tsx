@@ -103,7 +103,7 @@ export default function KpiWidgetSelector({
         <div className="flex-1 overflow-y-auto">
           {kpiWidgets.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No KPI widgets found matching "{searchQuery}"
+              No KPI widgets found matching &quot;{searchQuery}&quot;
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

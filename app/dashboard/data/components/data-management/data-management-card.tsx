@@ -30,6 +30,12 @@ type AccountWithTrades = {
   accountType: 'live' | 'prop-firm'
   tradeCount: number
   trades: Trade[]
+  currentPhaseDetails?: {
+    phaseNumber: number
+    status: string
+    phaseId: string
+    masterAccountId?: string
+  } | null
 }
 
 export function DataManagementCard() {
@@ -63,7 +69,8 @@ export function DataManagementCard() {
         displayName: account.displayName,
         accountType: account.accountType,
         tradeCount: accountTrades.length,
-        trades: accountTrades
+        trades: accountTrades,
+        currentPhaseDetails: account.currentPhaseDetails
       }
     })
   }, [allAccounts, trades, accountsLoading])
@@ -95,9 +102,14 @@ export function DataManagementCard() {
       for (const accountNumber of accountsToDelete) {
         const account = accountsWithTrades.find(acc => acc.number === accountNumber)
         if (account) {
+          // For prop-firm accounts, use master account ID instead of phase ID
+          const accountId = account.accountType === 'prop-firm'
+            ? (account.currentPhaseDetails?.masterAccountId || account.id)
+            : account.id
+            
           const endpoint = account.accountType === 'prop-firm' 
-            ? `/api/prop-firm-v2/accounts/${account.id}`
-            : `/api/accounts/${account.id}`
+            ? `/api/prop-firm-v2/accounts/${accountId}`
+            : `/api/accounts/${accountId}`
           
           const response = await fetch(endpoint, {
             method: 'DELETE',

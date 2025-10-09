@@ -9,7 +9,7 @@
  */
 
 import { WIDGET_DIMENSIONS } from '../config/widget-dimensions'
-import type { WidgetSize } from '@/types/dashboard'
+import type { WidgetSize } from '../types/dashboard'
 import type { WidgetLayout } from '@/server/dashboard-templates'
 
 const GRID_COLUMNS = 12

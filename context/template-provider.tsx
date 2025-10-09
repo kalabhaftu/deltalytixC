@@ -56,7 +56,6 @@ export function TemplateProvider({ children }: { children: React.ReactNode }) {
   const loadTemplates = useCallback(async () => {
     // Prevent duplicate loads
     if (hasLoadedRef.current || isLoadingRef.current) {
-      console.log('[TemplateProvider] Already loaded or loading, skipping')
       return
     }
     

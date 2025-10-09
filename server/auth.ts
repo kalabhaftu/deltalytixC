@@ -110,7 +110,6 @@ export async function signInWithEmail(email: string, next: string | null = null)
       where: { email: email }
     })
     dbUserExists = !!existingUser
-    console.log('[signInWithEmail] Prisma DB check - User exists:', dbUserExists)
   } catch (dbError) {
     console.warn('[signInWithEmail] Prisma DB unavailable:', dbError instanceof Error ? dbError.message : String(dbError))
   }
@@ -119,7 +118,6 @@ export async function signInWithEmail(email: string, next: string | null = null)
   let supabaseUserExists = false
   if (!dbUserExists) {
     try {
-      console.log('[signInWithEmail] User not in Prisma DB, attempting magic link to check Supabase Auth...')
       const { error } = await supabase.auth.signInWithOtp({
         email: email,
         options: {
@@ -130,12 +128,10 @@ export async function signInWithEmail(email: string, next: string | null = null)
       if (!error) {
         // Magic link sent successfully - user exists in Supabase Auth
         supabaseUserExists = true
-        console.log('[signInWithEmail] Magic link sent successfully - user exists in Supabase Auth')
         return { isExistingUser: true, emailSent: true }
       } else if (error.message?.includes('User not found') || error.message?.includes('Invalid login credentials')) {
         // User doesn't exist in Supabase Auth either
         supabaseUserExists = false
-        console.log('[signInWithEmail] User not found in Supabase Auth, will create new user')
       } else {
         // Other error (rate limit, etc.)
         console.error('[signInWithEmail] Magic link error:', error)
@@ -153,11 +149,9 @@ export async function signInWithEmail(email: string, next: string | null = null)
 
   // User is existing if they exist in Prisma database (Supabase check is done above)
   const isExistingUser = dbUserExists
-  console.log('[signInWithEmail] Final determination - User exists in Prisma DB:', isExistingUser)
 
   if (isExistingUser) {
     // For existing users in Prisma DB, send magic link (not OTP)
-    console.log('[signInWithEmail] Existing user in Prisma DB detected, sending magic link')
     const { error } = await supabase.auth.signInWithOtp({
       email: email,
       options: {
@@ -175,7 +169,6 @@ export async function signInWithEmail(email: string, next: string | null = null)
 
       // Handle Supabase's built-in rate limiting
       if (error.status === 429 && (error.message.includes('rate limit') || error.code === 'over_email_send_rate_limit')) {
-        console.log('[signInWithEmail] Supabase rate limit detected, returning error to client')
         return {
           error: error.message,
           rateLimited: true,
@@ -193,11 +186,9 @@ export async function signInWithEmail(email: string, next: string | null = null)
       }
     }
 
-    console.log('[signInWithEmail] Magic link sent successfully for existing user in Prisma DB')
     return { isExistingUser: true, emailSent: true }
   } else {
     // For new users, use signUp with OTP
-    console.log('[signInWithEmail] New user detected, sending signup OTP')
     const { error } = await supabase.auth.signUp({
       email: email,
       password: generateTemporaryPassword(),
@@ -219,7 +210,6 @@ export async function signInWithEmail(email: string, next: string | null = null)
 
       // Handle Supabase's built-in rate limiting
       if (error.status === 429 && (error.message.includes('rate limit') || error.code === 'over_email_send_rate_limit')) {
-        console.log('[signInWithEmail] Supabase rate limit detected, returning error to client')
         return {
           error: error.message,
           rateLimited: true,
@@ -237,7 +227,6 @@ export async function signInWithEmail(email: string, next: string | null = null)
       }
     }
 
-    console.log('[signInWithEmail] Signup OTP sent successfully for new user')
     return { isExistingUser: false, emailSent: true }
   }
 }
@@ -255,13 +244,11 @@ interface SupabaseUser {
 export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) {
   
   if (!user) {
-    console.log('[ensureUserInDatabase] ERROR: No user provided');
     await signOut();
     throw new Error('User data is required for authentication.');
   }
 
   if (!user.id) {
-    console.log('[ensureUserInDatabase] ERROR: No user ID provided');
     await signOut();
     throw new Error('User ID is required for authentication.');
   }
@@ -283,7 +270,6 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
     if (existingUserByAuthId) {
       // If email is different, update it
       if (existingUserByAuthId.email !== user.email) {
-        console.log('[ensureUserInDatabase] Updating existing user email');
         try {
           const updatedUser = await prisma.user.update({
             where: {
@@ -311,18 +297,12 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
       });
 
       if (existingUserByEmail && existingUserByEmail.auth_user_id !== user.id) {
-        console.log('[ensureUserInDatabase] ERROR: Account conflict - email already associated with different auth method', {
-          userEmail: user.email,
-          existingAuthId: existingUserByEmail.auth_user_id,
-          currentAuthId: user.id
-        });
         await signOut();
         throw new Error('This email is already associated with a different authentication method. Please use the original sign-in method or contact support.');
       }
     }
 
     // Create new user if no existing user found
-    console.log('[ensureUserInDatabase] Creating new user');
     try {
       const newUser = await prisma.user.create({
         data: {
@@ -336,7 +316,6 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
     } catch (createError) {
       if (createError instanceof Error &&
         createError.message.includes('Unique constraint failed')) {
-        console.log('[ensureUserInDatabase] ERROR: Unique constraint failed when creating user', createError);
         await signOut();
         throw new Error('Database integrity error: Duplicate user records found');
       }
@@ -363,7 +342,6 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
       error.message.includes('ECONNREFUSED') ||
       error.message.includes('ENOTFOUND')
     )) {
-      console.log('[ensureUserInDatabase] Database connection error - allowing graceful degradation');
       // Return without signing out - let the middleware handle the auth state
       return null;
     }
@@ -371,19 +349,16 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
     // Handle Prisma validation errors (these require sign out)
     if (error instanceof Error) {
       if (error.message.includes('Argument `where` of type UserWhereUniqueInput needs')) {
-        console.log('[ensureUserInDatabase] ERROR: Invalid user identification provided');
         await signOut();
         throw new Error('Invalid user identification provided');
       }
 
       if (error.message.includes('Unique constraint failed')) {
-        console.log('[ensureUserInDatabase] ERROR: Database integrity error - duplicate user records');
         await signOut();
         throw new Error('Database integrity error: Duplicate user records found');
       }
 
       if (error.message.includes('Account conflict')) {
-        console.log('[ensureUserInDatabase] ERROR: Re-throwing account conflict error');
         // Error already handled above
         throw error;
       }
@@ -396,20 +371,17 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
       error.message.includes('Token expired') ||
       error.message.includes('Invalid token')
     )) {
-      console.log('[ensureUserInDatabase] ERROR: Authentication error - signing out user');
       await signOut();
       throw new Error('Authentication error occurred. Please log in again.');
     }
 
     // For other unexpected errors, don't sign out - just log and continue
-    console.log('[ensureUserInDatabase] ERROR: Unexpected error - allowing graceful degradation:', error);
     return null;
   }
 }
 
 export async function verifyOtp(email: string, token: string, type: 'email' | 'signup' = 'email') {
   try {
-    console.log('[verifyOtp] Starting OTP verification for:', email)
     const supabase = await createClient()
 
     // Try to verify the OTP - Supabase will handle the type automatically
@@ -428,7 +400,6 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
       throw new Error(error.message)
     }
 
-    console.log('[verifyOtp] OTP verification successful for:', email)
 
     // After successful OTP verification, ensure user exists in database (if DB is available)
     if (data.user) {
@@ -451,7 +422,6 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
           await ensureUserInDatabase(data.user, locale)
         }
 
-        console.log('[verifyOtp] User database sync completed successfully')
       } catch (dbError) {
         console.warn('[verifyOtp] Database unavailable, skipping user sync. Authentication still successful:', dbError)
         // Don't throw - authentication succeeded, database sync is secondary
@@ -543,7 +513,6 @@ export async function getUserEmail(): Promise<string> {
   const headersList = await headers()
   const userEmail = headersList.get('x-user-email')
   if (process.env.NODE_ENV === 'development') {
-    console.log("[Auth] getUserEmail FROM HEADERS", userEmail)
   }
   return userEmail || ""
 }

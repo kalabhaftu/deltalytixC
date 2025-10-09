@@ -132,9 +132,7 @@ export async function POST(request: NextRequest) {
             data: {
               email: 'dev@example.com',
               auth_user_id: 'dev-user-' + Date.now(),
-              isBeta: false,
-              isFirstConnection: true,
-              language: 'en'
+              isFirstConnection: true
             }
           })
           userId = devUser.id

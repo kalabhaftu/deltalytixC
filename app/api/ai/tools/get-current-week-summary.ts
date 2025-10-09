@@ -48,7 +48,6 @@ export async function executeGetCurrentWeekSummary() {
     const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
     const currentWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
     
-    console.log(`[getCurrentWeekSummary] Current week: ${format(currentWeekStart, 'yyyy-MM-dd')} to ${format(currentWeekEnd, 'yyyy-MM-dd')}`);
     
     const trades = await getTradesAction();
     const filteredTrades = trades.filter(trade => {

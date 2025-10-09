@@ -471,7 +471,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
 
         {Object.keys(filteredGroupedAccounts).length === 0 && searchQuery && (
           <div className="text-center py-6 sm:py-8 text-muted-foreground text-xs sm:text-sm">
-                No accounts match "{searchQuery}"
+                No accounts match &quot;{searchQuery}&quot;
           </div>
         )}
       </ScrollArea>

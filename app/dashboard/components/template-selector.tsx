@@ -7,6 +7,7 @@ import { LayoutTemplate, Pencil, Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTemplates } from '@/context/template-provider'
 import { useTemplateEditStore } from '@/store/template-edit-store'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,

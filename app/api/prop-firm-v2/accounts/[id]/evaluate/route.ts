@@ -4,12 +4,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { getUserId } from '@/server/auth-utils'
 import { PhaseEvaluationEngine } from '@/lib/prop-firm/phase-evaluation-engine'
 import { revalidateTag } from 'next/cache'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 interface RouteParams {
   params: Promise<{ id: string }>

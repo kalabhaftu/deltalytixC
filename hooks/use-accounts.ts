@@ -13,7 +13,7 @@ interface UnifiedAccount {
   startingBalance: number
   currentBalance?: number     // Added missing field
   currentEquity?: number      // Added missing field
-  status: 'active' | 'failed' | 'funded' | 'passed'
+  status: 'active' | 'failed' | 'funded' | 'passed' | 'pending'
   createdAt: string
   userId: string
   groupId: string | null
@@ -35,6 +35,7 @@ interface UnifiedAccount {
     phaseNumber: number
     status: string
     phaseId: string
+    masterAccountId?: string
   } | null
 }
 
@@ -80,7 +81,6 @@ export function subscribeToAccountsUpdates(callback: () => void) {
 // Enhanced cache invalidation with broadcast
 export function invalidateAccountsCache(reason?: string) {
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[CACHE] Invalidating accounts cache${reason ? `: ${reason}` : ''}`)
   }
   accountsCache = null
   accountsPromise = null
@@ -113,7 +113,6 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
       setIsLoading(false)
       setError(null)
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[useAccounts] Using cached data (${source})`, { cacheAge: now - lastFetchTime })
       }
       return
     }
@@ -162,7 +161,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
           // No async operations needed - phase data already included from server
           const transformedAccounts: UnifiedAccount[] = accounts.map((account: any) => {
             // Use phase data that's already loaded from server (currentPhaseDetails)
-            const phaseDetails = account.currentPhaseDetails
+            const phaseDetails = account.currentPhaseDetails || account.phaseDetails
             const currentPhase = phaseDetails?.phaseNumber || account.currentPhase || null
             const phaseAccountNumber = phaseDetails?.phaseId || null
 
@@ -217,7 +216,6 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
         broadcastAccountsUpdate()
         
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[useAccounts] Updated cache with ${fetchedAccounts.length} accounts (${source})`)
         }
       }
     } catch (err) {

@@ -3,9 +3,7 @@
  * Implements failure-first priority and proper trailing drawdown logic
  */
 
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 export interface DrawdownCalculation {
   currentEquity: number
@@ -53,7 +51,6 @@ export class PhaseEvaluationEngine {
    */
   private static log(message: string, data?: any) {
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[EVALUATION_ENGINE] ${message}`, data ? JSON.stringify(data, null, 2) : '')
     }
   }
 
@@ -360,9 +357,6 @@ export class PhaseEvaluationEngine {
     const today = this.getDateInTimezone(new Date(), timezone)
     const todayDate = new Date(today)
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[DAILY_ANCHOR] Checking anchor for ${phaseAccountId} on ${today}`)
-    }
     
     // STEP 1: Look for today's daily anchor
     const todayAnchor = await prisma.dailyAnchor.findFirst({
@@ -373,16 +367,10 @@ export class PhaseEvaluationEngine {
     })
 
     if (todayAnchor) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[DAILY_ANCHOR] Found existing anchor: ${todayAnchor.anchorEquity}`)
-      }
       return todayAnchor.anchorEquity
     }
 
     // STEP 2: No anchor exists - ROBUST FALLBACK LOGIC
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[DAILY_ANCHOR] No anchor found, creating fallback anchor`)
-    }
 
     try {
       // Get phase account with all necessary data
@@ -415,9 +403,6 @@ export class PhaseEvaluationEngine {
         }
       })
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[DAILY_ANCHOR] Created fallback anchor: ${newAnchor.anchorEquity}`)
-      }
 
       return newAnchor.anchorEquity
 
@@ -425,9 +410,6 @@ export class PhaseEvaluationEngine {
       console.error(`[DAILY_ANCHOR] Failed to create fallback anchor for ${phaseAccountId}:`, error)
       
       // STEP 5: Ultimate fallback - use provided fallback balance
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[DAILY_ANCHOR] Using ultimate fallback balance: ${fallbackBalance}`)
-      }
       
       return fallbackBalance
     }

@@ -244,7 +244,6 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
           }
         } catch (error) {
           // If it's not a prop firm account or validation API doesn't exist, continue normally
-          console.log('Phase validation skipped - likely not a prop firm account')
         }
       }
       // Combine date and time for entry/close timestamps

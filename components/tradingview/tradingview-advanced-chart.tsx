@@ -128,7 +128,6 @@ export function TradingViewAdvancedChart({
       }
 
       iframe.onload = () => {
-        console.log('TradingView iframe loaded successfully')
         setIsLoading(false)
 
         // Chart loads without custom overlays - ready for new implementation
@@ -136,7 +135,6 @@ export function TradingViewAdvancedChart({
 
       containerRef.current.appendChild(iframe)
       widgetRef.current = iframe
-      console.log('TradingView iframe widget created successfully')
 
       // The iframe approach is complete - no additional error handling needed
       // as the onload/onerror events handle the widget lifecycle

@@ -1,5 +1,5 @@
 'use server'
-import { Trade, Prisma, DashboardLayout } from '@prisma/client'
+import { Trade, Prisma } from '@prisma/client'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { Widget, Layouts } from '@/app/dashboard/types/dashboard'
 import { createClient, getUserId, getUserIdSafe } from './auth'
@@ -212,7 +212,6 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         error.message.includes('ECONNREFUSED') ||
         error.message.includes('ENOTFOUND')
       )) {
-        console.log('[saveTradesAction] Database connection error - returning specific error')
         return { 
           error: 'DATABASE_CONNECTION_ERROR', 
           numberOfTradesAdded: 0,
@@ -376,82 +375,16 @@ export async function updateTradeCommentAction(tradeId: string, comment: string 
   }
 }
 
+// Dashboard layout functions removed - DashboardLayout table doesn't exist in schema
+// These functions are deprecated and should not be used
 export async function loadDashboardLayoutAction(): Promise<Layouts | null> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const userId = user?.id
-  if (!userId) {
-    throw new Error('User not found')
-  }
-  try {
-    const dashboard = await prisma.dashboardLayout.findUnique({
-      where: { userId },
-    })
-    
-    if (!dashboard) {
-      return null
-    }
-
-    // Safely parse JSON with fallback to empty arrays
-    const parseJsonSafely = (jsonData: Prisma.JsonValue): Widget[] => {
-      try {
-        // If it's already an array, return it (we trust it's valid Widget data)
-        if (Array.isArray(jsonData)) {
-          return (jsonData as unknown) as Widget[]
-        }
-        // If it's a string, parse it
-        if (typeof jsonData === 'string') {
-          return JSON.parse(jsonData)
-        }
-        // Otherwise return empty array
-        return []
-      } catch (error) {
-        console.error('[loadDashboardLayout] JSON parse error:', error)
-        return []
-      }
-    }
-
-    return {
-      desktop: parseJsonSafely(dashboard.desktop),
-      mobile: parseJsonSafely(dashboard.mobile)
-    }
-  } catch (error) {
-    console.error('[loadDashboardLayout] Database error:', error)
-    return null
-  }
+  console.warn('[loadDashboardLayout] This function is deprecated - DashboardLayout table not in schema')
+  return null
 }
 
-export async function saveDashboardLayoutAction(layouts: DashboardLayout): Promise<void> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const userId = user?.id
-  if (!userId || !layouts) {
-    console.error('[saveDashboardLayout] Invalid input:', { userId, hasLayouts: !!layouts })
-    return
-  }
-
-  try {
-    // Ensure layouts are valid arrays before stringifying
-    const desktopLayout = Array.isArray(layouts.desktop) ? layouts.desktop : []
-    const mobileLayout = Array.isArray(layouts.mobile) ? layouts.mobile : []
-
-    const dashboard = await prisma.dashboardLayout.upsert({
-      where: { userId },
-      update: {
-        desktop: JSON.stringify(desktopLayout),
-        mobile: JSON.stringify(mobileLayout),
-        updatedAt: new Date()
-      },
-      create: {
-        userId,
-        desktop: JSON.stringify(desktopLayout),
-        mobile: JSON.stringify(mobileLayout)
-      },
-    })
-    
-  } catch (error) {
-    console.error('[saveDashboardLayout] Database error:', error)
-  }
+export async function saveDashboardLayoutAction(layouts: any): Promise<void> {
+  console.warn('[saveDashboardLayout] This function is deprecated - DashboardLayout table not in schema')
+  return
 }
 
 export async function groupTradesAction(tradeIds: string[]): Promise<boolean> {
@@ -460,7 +393,6 @@ export async function groupTradesAction(tradeIds: string[]): Promise<boolean> {
 
     // If user is not authenticated, return false
     if (!userId) {
-      console.log('[groupTrades] User not authenticated, returning false')
       return false
     }
 
@@ -490,7 +422,6 @@ export async function ungroupTradesAction(tradeIds: string[]): Promise<boolean> 
 
     // If user is not authenticated, return false
     if (!userId) {
-      console.log('[ungroupTrades] User not authenticated, returning false')
       return false
     }
 

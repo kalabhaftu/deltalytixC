@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 /**
  * Create daily anchor for a specific phase account
@@ -34,7 +32,7 @@ async function createDailyAnchor(phaseAccountId: string, timezone: string, force
       masterAccount: true,
       trades: {
         where: { phaseAccountId },
-        select: { pnl: true, commission: true, swap: true }
+        select: { pnl: true, commission: true }
       }
     }
   })
@@ -45,7 +43,7 @@ async function createDailyAnchor(phaseAccountId: string, timezone: string, force
 
   // Calculate current equity for anchor
   const totalPnL = phaseAccount.trades.reduce((sum, trade) => {
-    return sum + (trade.pnl - (trade.commission || 0) - (trade.swap || 0))
+    return sum + (trade.pnl - (trade.commission || 0))
   }, 0)
   const anchorEquity = phaseAccount.masterAccount.accountSize + totalPnL
 

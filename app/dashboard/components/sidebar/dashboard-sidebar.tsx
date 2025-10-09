@@ -7,7 +7,6 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import {
   LayoutDashboard,
   Table,
-  Grid3X3,
   Users,
   BarChart3,
   Shield,
@@ -42,7 +41,7 @@ const navigationItems: NavigationItem[] = [
   {
     id: 'table',
     label: 'Table',
-    icon: Grid3X3
+    icon: Table
   },
   {
     id: 'accounts',

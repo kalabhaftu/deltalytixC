@@ -93,7 +93,6 @@ const compressImageForCard = (file: File): Promise<File> => {
     try {
       // For now, skip compression to avoid DOM issues
       // The backend will handle compression
-      console.log('Card preview image - compression skipped for compatibility')
       resolve(file) // Return original file
 
       // TODO: Implement proper compression using a library like browser-image-compression

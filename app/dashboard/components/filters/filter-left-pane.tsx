@@ -10,7 +10,7 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { Switch } from "@/components/ui/switch"
 import DateCalendarFilter from './date-calendar-filter'
 import { useData } from '@/context/data-provider'
-import { AccountFilter } from './account-filter'
+import { AccountGroupBoard } from './account-group-board'
 import { InstrumentFilterSimple } from './instrument-filter-simple'
 import { PnlFilterSimple } from './pnl-filter-simple'
 export default function FilterLeftPane() {
@@ -37,9 +37,7 @@ export default function FilterLeftPane() {
       </div>
       
       {/* Account Filter */}
-      <AccountFilter 
-        showAccountNumbers={showAccountNumbers}
-      />
+      <AccountGroupBoard />
 
       {/* Instrument Filter */}
       <InstrumentFilterSimple />
