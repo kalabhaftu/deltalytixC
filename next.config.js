@@ -22,11 +22,8 @@ const baseExperimental = {
 
 const nextConfig = {
   // Increase body size limit for Server Actions (for image uploads)
-  experimental: process.env.VERCEL ? {
-    ...baseExperimental,
-    clientReferenceManifest: true,
-    serverComponentsExternalPackages: ['@supabase/ssr', '@supabase/supabase-js'],
-  } : baseExperimental,
+  experimental: baseExperimental,
+  serverExternalPackages: ['@supabase/ssr', '@supabase/supabase-js'],
   
   images: {
     remotePatterns: [
