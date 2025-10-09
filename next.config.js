@@ -1,26 +1,33 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Increase body size limit for Server Actions (for image uploads)
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '10mb', // Increased from default 1MB to 10MB
+const baseExperimental = {
+  serverActions: {
+    bodySizeLimit: '10mb', // Increased from default 1MB to 10MB
+  },
+  // Optimized Turbopack configuration with additional optimizations
+  turbo: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
     },
-    // Optimized Turbopack configuration with additional optimizations
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-      // Enable Turbopack optimizations for faster compilation
-      resolveAlias: {
-        // Optimize common dependencies
-        'react': 'react',
-        'react-dom': 'react-dom',
-      },
+    // Enable Turbopack optimizations for faster compilation
+    resolveAlias: {
+      // Optimize common dependencies
+      'react': 'react',
+      'react-dom': 'react-dom',
     },
   },
+}
+
+const nextConfig = {
+  // Increase body size limit for Server Actions (for image uploads)
+  experimental: process.env.VERCEL ? {
+    ...baseExperimental,
+    clientReferenceManifest: true,
+    serverComponentsExternalPackages: ['@supabase/ssr', '@supabase/supabase-js'],
+  } : baseExperimental,
+  
   images: {
     remotePatterns: [
       {
@@ -61,6 +68,14 @@ const nextConfig = {
       }
     }
 
+    // Vercel-specific webpack optimizations
+    if (process.env.VERCEL && !dev && isServer) {
+      config.optimization = {
+        ...config.optimization,
+        providedExports: true,
+      }
+    }
+
     return config
   },
 
@@ -70,31 +85,8 @@ const nextConfig = {
   },
 
   // Vercel-specific configuration
-  ...(process.env.VERCEL && {
-    // Force proper route group handling
-    trailingSlash: false,
-    // Ensure all pages are properly generated
-    pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
-    // Enable client reference manifest generation
-    experimental: {
-      ...nextConfig.experimental,
-      clientReferenceManifest: true,
-      // Ensure proper handling of route groups
-      serverComponentsExternalPackages: ['@supabase/ssr', '@supabase/supabase-js'],
-    },
-    // Additional build optimizations
-    webpack: (config, { dev, isServer }) => {
-      // Ensure proper handling of route groups
-      if (!dev && isServer) {
-        config.optimization = {
-          ...config.optimization,
-          // Ensure proper module handling
-          providedExports: true,
-        }
-      }
-      return config
-    },
-  }),
+  trailingSlash: false,
+  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
 }
 
 // Increase event emitter max listeners to prevent warnings
