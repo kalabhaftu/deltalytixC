@@ -226,6 +226,7 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
         setValue('outcome', detectedOutcome)
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchedEntryPrice, watchedExitPrice, watchedPnl, inputMode])
 
   // Close suggestions when clicking outside

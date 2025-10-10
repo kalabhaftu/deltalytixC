@@ -97,7 +97,7 @@ export function BacktestCard({ backtest, onView, onEdit, onDelete }: BacktestCar
       <CardContent className="space-y-4 flex-1 flex flex-col">
         {/* Preview Image */}
         <div className="relative aspect-video overflow-hidden bg-muted rounded-lg">
-          {hasPreviewImage ? (
+          {hasPreviewImage && backtest.cardPreviewImage ? (
             <>
               <Image
                 src={backtest.cardPreviewImage}
