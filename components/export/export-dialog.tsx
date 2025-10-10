@@ -163,7 +163,7 @@ export function ExportDialog({ trades, analytics, trigger, chartElements = {} }:
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card 
                   className={`cursor-pointer transition-colors ${
-                    exportType === 'pdf' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                    exportType === 'pdf' ? 'ring-2 ring-foreground bg-muted/30' : 'hover:bg-muted/50'
                   }`}
                   onClick={() => handleExportTypeChange('pdf')}
                 >
@@ -177,7 +177,7 @@ export function ExportDialog({ trades, analytics, trigger, chartElements = {} }:
 
                 <Card 
                   className={`cursor-pointer transition-colors ${
-                    exportType === 'excel' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                    exportType === 'excel' ? 'ring-2 ring-foreground bg-muted/30' : 'hover:bg-muted/50'
                   }`}
                   onClick={() => handleExportTypeChange('excel')}
                 >
@@ -190,7 +190,7 @@ export function ExportDialog({ trades, analytics, trigger, chartElements = {} }:
 
                 <Card 
                   className={`cursor-pointer transition-colors ${
-                    exportType === 'chart' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                    exportType === 'chart' ? 'ring-2 ring-foreground bg-muted/30' : 'hover:bg-muted/50'
                   }`}
                   onClick={() => handleExportTypeChange('chart')}
                 >

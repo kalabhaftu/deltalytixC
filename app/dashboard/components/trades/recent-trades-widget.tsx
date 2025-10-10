@@ -34,7 +34,7 @@ export default function RecentTradesWidget() {
   }
 
   return (
-    <Card className="w-full h-[580px] flex flex-col border border-border/20 shadow-sm bg-white dark:bg-gray-900">
+    <Card className="w-full h-[580px] flex flex-col">
       <CardHeader className="pb-3 px-4 pt-4 shrink-0">
         <CardTitle className="text-base font-semibold">Recent Trades</CardTitle>
       </CardHeader>
@@ -62,7 +62,7 @@ export default function RecentTradesWidget() {
                 return (
                   <div
                     key={trade.id || index}
-                    className="grid grid-cols-12 gap-2 py-2 text-xs hover:bg-accent/50 rounded-md transition-colors"
+                    className="grid grid-cols-12 gap-2 py-2 text-xs hover:bg-muted/50 rounded-md transition-colors"
                   >
                     <div className="col-span-3 text-muted-foreground">
                       {formatDate(trade.entryDate)}

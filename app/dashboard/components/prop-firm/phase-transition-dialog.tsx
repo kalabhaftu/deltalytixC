@@ -28,7 +28,7 @@ import {
   Loader2,
   Sparkles
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatPercent } from "@/lib/utils"
 
 interface PhaseTransitionDialogProps {
   isOpen: boolean
@@ -149,18 +149,18 @@ export function PhaseTransitionDialog({
         <DialogHeader className="text-center space-y-4">
           {/* Animated Icon */}
           <div className="mx-auto relative">
-            <div className="relative p-4 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 rounded-2xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-2xl animate-pulse" />
-              <div className="relative text-primary">
+            <div className="relative p-4 bg-muted/30 rounded-2xl">
+              <div className="absolute inset-0 bg-muted/50 rounded-2xl animate-pulse" />
+              <div className="relative text-foreground">
                 {getTransitionIcon()}
               </div>
             </div>
             {/* Decorative rings */}
-            <div className="absolute -inset-2 bg-gradient-to-r from-primary/20 to-primary/10 rounded-2xl blur-xl opacity-50 animate-pulse" />
+            <div className="absolute -inset-2 bg-muted/20 rounded-2xl blur-xl opacity-50 animate-pulse" />
           </div>
           
           <div className="space-y-2">
-            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <DialogTitle className="text-2xl font-bold text-foreground">
               {getTransitionTitle()}
             </DialogTitle>
             <DialogDescription className="text-base">
@@ -171,7 +171,7 @@ export function PhaseTransitionDialog({
 
         <div className="space-y-6 mt-4">
           {/* Progress Summary */}
-          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <Card className="border-border bg-muted/30">
             <CardContent className="pt-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">{accountName}</span>
@@ -187,7 +187,7 @@ export function PhaseTransitionDialog({
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Profit Target</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{currentPhase.profitTargetPercent}%</span>
+                    <span className="text-sm font-medium">{formatPercent(currentPhase.profitTargetPercent)}</span>
                     <CheckCircle className="h-4 w-4 text-green-500" />
                   </div>
                 </div>
@@ -208,7 +208,7 @@ export function PhaseTransitionDialog({
           {/* Phase Transition Flow */}
           <div className="relative flex items-center justify-center gap-4 py-2">
             <div className="text-center">
-              <div className="relative w-14 h-14 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-xl flex items-center justify-center mb-2 transition-all hover:scale-105">
+              <div className="relative w-14 h-14 bg-green-500/10 rounded-xl flex items-center justify-center mb-2 transition-all hover:scale-105">
                 <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-500" />
               </div>
               <span className="text-sm font-medium">{getPhaseDisplayName(currentPhase.phaseNumber)}</span>
@@ -218,9 +218,9 @@ export function PhaseTransitionDialog({
             <ArrowRight className="h-6 w-6 text-muted-foreground animate-pulse" />
             
             <div className="text-center">
-              <div className="relative w-14 h-14 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center mb-2 transition-all hover:scale-105">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-transparent rounded-xl animate-pulse" />
-                <Rocket className="h-6 w-6 text-primary relative z-10" />
+              <div className="relative w-14 h-14 bg-muted/30 rounded-xl flex items-center justify-center mb-2 transition-all hover:scale-105">
+                <div className="absolute inset-0 bg-muted/50 rounded-xl animate-pulse" />
+                <Rocket className="h-6 w-6 text-foreground relative z-10" />
               </div>
               <span className="text-sm font-medium">{getPhaseDisplayName(nextPhaseNumber)}</span>
               <div className="text-xs text-muted-foreground">Ready</div>
@@ -229,9 +229,9 @@ export function PhaseTransitionDialog({
 
           {/* Next Phase ID Input */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Key className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-3 p-3 bg-muted/50 border border-border rounded-lg">
+              <div className="p-2 bg-muted rounded-lg">
+                <Key className="h-5 w-5 text-foreground" />
               </div>
               <div className="flex-1">
                 <div className="text-sm font-medium">
@@ -274,7 +274,8 @@ export function PhaseTransitionDialog({
             <Button
               onClick={handleTransition}
               disabled={!nextPhaseId.trim() || isTransitioning}
-              className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all"
+              variant="default"
+              className="flex-1"
             >
               {isTransitioning ? (
                 <>

@@ -8,15 +8,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuSeparator,
 } from './ui/dropdown-menu'
-import { Slider } from './ui/slider'
 
 export function ThemeSwitcher() {
-  const { theme, setTheme, intensity, setIntensity } = useTheme()
+  const { theme, setTheme } = useTheme()
 
   const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
     setTheme(newTheme)
@@ -41,25 +36,6 @@ export function ThemeSwitcher() {
         <DropdownMenuItem onClick={() => handleThemeChange('system')}>
           System
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>Intensity</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <div className="p-4">
-              <Slider
-                value={[intensity]}
-                onValueChange={([value]) => setIntensity(value)}
-                min={90}
-                max={100}
-                step={1}
-                className="w-[200px]"
-              />
-              <div className="mt-2 text-sm text-muted-foreground">
-                {intensity}%
-              </div>
-            </div>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
       </DropdownMenuContent>
     </DropdownMenu>
   )

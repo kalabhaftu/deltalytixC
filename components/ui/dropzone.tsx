@@ -86,8 +86,8 @@ const DropzoneContent = ({ className }: { className?: string }) => {
   if (isSuccess) {
     return (
       <div className={cn('flex flex-row items-center gap-x-2 justify-center', className)}>
-          <CheckCircle size={16} className="text-primary" />
-          <p className="text-primary text-sm">
+          <CheckCircle size={16} className="text-green-600" />
+          <p className="text-green-600 text-sm">
            Files uploaded successfully
           </p>
       </div>
@@ -134,7 +134,7 @@ const DropzoneContent = ({ className }: { className?: string }) => {
               ) : !!fileError ? (
                  <p className="text-xs text-destructive">Upload failed: {fileError.message}</p>
               ) : isSuccessfullyUploaded ? (
-                 <p className="text-xs text-primary">File uploaded successfully</p>
+                 <p className="text-xs text-green-600">File uploaded successfully</p>
               ) : (
                 <p className="text-xs text-muted-foreground">{formatBytes(file.size, 2)}</p>
               )}

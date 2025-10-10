@@ -114,7 +114,7 @@ export default function KpiWidgetSelector({
                   <Card
                     key={type}
                     className={cn(
-                      "hover:bg-accent/50 transition-colors cursor-pointer",
+                      "hover:bg-muted/50 transition-colors cursor-pointer",
                       isUsed && "opacity-60"
                     )}
                     onClick={() => !isUsed && handleSelect(type)}

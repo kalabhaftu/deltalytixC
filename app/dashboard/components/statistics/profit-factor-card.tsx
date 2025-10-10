@@ -20,7 +20,7 @@ export default function ProfitFactorCard({ size = 'medium' }: ProfitFactorCardPr
     return (
       <Card className="h-full">
         <div className="flex items-center justify-center h-full gap-1.5">
-          <Scale className="h-3 w-3 text-blue-500" />
+          <Scale className="h-3 w-3 text-foreground" />
           <div className="font-medium text-sm">
             {nbTrades === 0 ? "N/A" : profitFactor.toFixed(2)}
           </div>

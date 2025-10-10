@@ -64,18 +64,29 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Find the current active phase
+    // Find the current phase (regardless of status)
     const currentPhase = masterAccount.phases.find(phase => 
-      phase.phaseNumber === masterAccount.currentPhase && phase.status === 'active'
+      phase.phaseNumber === masterAccount.currentPhase
     )
 
     if (!currentPhase) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'No active phase found. Please ensure you have an active trading phase.' 
+          error: 'No phase found for the current phase number. Please check your account configuration.' 
         },
         { status: 400 }
+      )
+    }
+    
+    // Don't allow adding trades to failed or archived phases
+    if (currentPhase.status === 'failed' || currentPhase.status === 'archived') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Cannot add trades to a ${currentPhase.status} phase. This phase is no longer active.` 
+        },
+        { status: 403 }
       )
     }
 
@@ -183,9 +194,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     let phasesToInclude = masterAccount.phases
     
     if (phaseFilter === 'current') {
-      // Only show trades from the current active phase
+      // Only show trades from the current phase (regardless of status: active, passed, or failed)
       phasesToInclude = masterAccount.phases.filter(phase => 
-        phase.phaseNumber === masterAccount.currentPhase && phase.status === 'active'
+        phase.phaseNumber === masterAccount.currentPhase
       )
     } else if (phaseFilter === 'archived') {
       // Only show trades from archived phases

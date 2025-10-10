@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Trade } from '@prisma/client'
 import { TrendingUp, TrendingDown, Calendar, Clock, Target, DollarSign, MoreHorizontal, Eye, Edit, Trash2, AlertTriangle } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatQuantity, formatTradeData } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -216,7 +216,7 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
           <div>
             <p className="text-xs text-muted-foreground mb-1">Quantity</p>
             <p className="font-semibold text-foreground">
-              {trade.quantity?.toFixed(2)} lots
+              {formatTradeData(trade).quantityWithUnit}
             </p>
           </div>
         </div>

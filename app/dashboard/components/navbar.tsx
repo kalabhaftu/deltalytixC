@@ -76,7 +76,7 @@ export default function Navbar() {
   const  user = useUserStore(state => state.supabaseUser)
   const [mounted, setMounted] = useState(false)
 
-  const { theme, setTheme, intensity, setIntensity } = useTheme()
+  const { theme, setTheme } = useTheme()
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false)
   const [isLogoPopoverOpen, setIsLogoPopoverOpen] = useState(false)
   const [accountPopoverOpen, setAccountPopoverOpen] = useState(false)
@@ -310,7 +310,7 @@ export default function Navbar() {
   return (
     <>
       <motion.nav 
-        className="fixed py-3 top-0 left-0 right-0 z-50 flex flex-col text-primary bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-xl shadow-background/10 w-screen transition-all duration-300 ease-out"
+        className="fixed py-3 top-0 left-0 right-0 z-50 flex flex-col text-foreground bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-xl shadow-background/10 w-screen transition-all duration-300 ease-out"
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
@@ -320,7 +320,7 @@ export default function Navbar() {
             <div className="flex flex-col items-center">
               <Popover open={isLogoPopoverOpen} onOpenChange={setIsLogoPopoverOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="p-0 hover:bg-primary/10 transition-all duration-200 hover:scale-105 group">
+                  <Button variant="ghost" size="icon" className="p-0 hover:bg-muted/50 transition-all duration-200 hover:scale-105 group">
                     <Logo className='fill-black h-7 w-7 dark:fill-white transition-transform duration-200 group-hover:rotate-3' />
                   </Button>
                 </PopoverTrigger>
@@ -330,7 +330,7 @@ export default function Navbar() {
                     <div className="grid gap-2">
                       <Link 
                         href="/dashboard" 
-                        className="flex items-center gap-2 text-sm hover:bg-accent/80 hover:text-accent-foreground p-3 rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-md"
+                        className="flex items-center gap-2 text-sm hover:bg-muted/50 p-3 rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-md"
                         onClick={() => setIsLogoPopoverOpen(false)}
                       >
                         <div className="flex-shrink-0 w-4 h-4">
@@ -340,7 +340,7 @@ export default function Navbar() {
                       </Link>
                       <Link 
                         href="/" 
-                        className="flex items-center gap-2 text-sm hover:bg-accent/80 hover:text-accent-foreground p-3 rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-md"
+                        className="flex items-center gap-2 text-sm hover:bg-muted/50 p-3 rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-md"
                         onClick={() => setIsLogoPopoverOpen(false)}
                       >
                         <div className="flex-shrink-0 w-4 h-4">
@@ -358,7 +358,7 @@ export default function Navbar() {
             {/* All Accounts Dropdown (moved here, dynamic name) - Hidden on mobile */}
             <Popover open={accountPopoverOpen} onOpenChange={setAccountPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-accent/20 transition-all duration-200 border border-border/50 bg-card/50">
+                <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-muted/50 transition-all duration-200 border border-border/50 bg-card/50">
                   <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                   </svg>
@@ -378,7 +378,7 @@ export default function Navbar() {
             {/* Filters Dropdown - Hidden on mobile */}
             <Popover open={filtersPopoverOpen} onOpenChange={setFiltersPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-accent/20 transition-all duration-200 border border-border/50 bg-card/50">
+                <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-muted/50 transition-all duration-200 border border-border/50 bg-card/50">
                   <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
                   </svg>
@@ -398,7 +398,7 @@ export default function Navbar() {
             {/* Date Range Dropdown - Hidden on mobile */}
             <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-accent/20 transition-all duration-200 border border-border/50 bg-card/50">
+                <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-muted/50 transition-all duration-200 border border-border/50 bg-card/50">
                     <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
@@ -416,7 +416,7 @@ export default function Navbar() {
               {/* Theme Switcher - Hidden on small mobile */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="hidden sm:flex h-9 w-9 hover:bg-accent/80 transition-all duration-200 hover:scale-105 hover:shadow-md">
+                  <Button variant="ghost" size="icon" className="hidden sm:flex h-9 w-9 hover:bg-muted/50 transition-all duration-200 hover:scale-105 hover:shadow-md">
                     {getThemeIcon()}
                     <span className="sr-only">Toggle theme</span>
                   </Button>
@@ -425,45 +425,29 @@ export default function Navbar() {
                   <Command>
                     <CommandList>
                       <CommandGroup>
-                        <CommandItem onSelect={() => handleThemeChange("light")} className="hover:bg-accent/80 transition-colors duration-200">
+                        <CommandItem onSelect={() => handleThemeChange("light")} className="hover:bg-muted/50 transition-colors duration-200">
                           <Sun className="mr-2 h-4 w-4" />
                           <span>Light mode</span>
                         </CommandItem>
-                        <CommandItem onSelect={() => handleThemeChange("dark")} className="hover:bg-accent/80 transition-colors duration-200">
+                        <CommandItem onSelect={() => handleThemeChange("dark")} className="hover:bg-muted/50 transition-colors duration-200">
                           <Moon className="mr-2 h-4 w-4" />
                           <span>Dark mode</span>
                         </CommandItem>
-                        <CommandItem onSelect={() => handleThemeChange("system")} className="hover:bg-accent/80 transition-colors duration-200">
+                        <CommandItem onSelect={() => handleThemeChange("system")} className="hover:bg-muted/50 transition-colors duration-200">
                           <Laptop className="mr-2 h-4 w-4" />
                           <span>System theme</span>
                         </CommandItem>
                       </CommandGroup>
                     </CommandList>
-                    {/* Theme intensity slider - hidden on mobile */}
-                    <Separator className="hidden sm:block" />
-                    <div className="p-4 hidden sm:block">
-                      <div className="mb-2 text-sm font-medium">Theme Intensity</div>
-                      <Slider
-                        value={[intensity]}
-                        onValueChange={([value]) => setIntensity(value)}
-                        min={90}
-                        max={100}
-                        step={1}
-                        className="w-full"
-                      />
-                      <div className="mt-2 text-sm text-muted-foreground">
-                        {intensity}%
-                      </div>
-                    </div>
                   </Command>
                 </PopoverContent>
               </Popover>
               <div className="relative">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Avatar className="cursor-pointer h-9 w-9 ring-2 ring-transparent hover:ring-primary/20 transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                    <Avatar className="cursor-pointer h-9 w-9 ring-2 ring-transparent hover:ring-border transition-all duration-200 hover:scale-105 hover:shadow-lg">
                       <AvatarImage src={user?.user_metadata.avatar_url} className="transition-transform duration-200" />
-                      <AvatarFallback className="uppercase text-xs bg-gradient-to-br from-primary/10 to-secondary/10 text-foreground font-medium">
+                      <AvatarFallback className="uppercase text-xs bg-muted text-foreground font-medium">
                         {user?.email![0]}
                       </AvatarFallback>
                     </Avatar>
@@ -476,19 +460,19 @@ export default function Navbar() {
                     
                     {/* Mobile-only quick actions */}
                     <div className="md:hidden">
-                      <DropdownMenuItem onClick={() => setAccountGroupBoardOpen(true)} className="hover:bg-accent/80 transition-colors duration-200">
+                      <DropdownMenuItem onClick={() => setAccountGroupBoardOpen(true)} className="hover:bg-muted/50 transition-colors duration-200">
                         <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                         </svg>
                         <span>{getAccountButtonText()}</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setFiltersPopoverOpen(true)} className="hover:bg-accent/80 transition-colors duration-200">
+                      <DropdownMenuItem onClick={() => setFiltersPopoverOpen(true)} className="hover:bg-muted/50 transition-colors duration-200">
                         <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
                         </svg>
                         <span>Filters</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setDatePopoverOpen(true)} className="hover:bg-accent/80 transition-colors duration-200">
+                      <DropdownMenuItem onClick={() => setDatePopoverOpen(true)} className="hover:bg-muted/50 transition-colors duration-200">
                         <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
@@ -498,7 +482,7 @@ export default function Navbar() {
                     </div>
                     
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard" className="hover:bg-accent/80 transition-colors duration-200">
+                      <Link href="/dashboard" className="hover:bg-muted/50 transition-colors duration-200">
                         <div className="flex w-full">
                           <LayoutDashboard className="mr-2 h-4 w-4" />
                           <span>Dashboard</span>
@@ -507,7 +491,7 @@ export default function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard/settings" className="hover:bg-accent/80 transition-colors duration-200">
+                      <Link href="/dashboard/settings" className="hover:bg-muted/50 transition-colors duration-200">
                         <div className="flex w-full">
                           <Settings className="mr-2 h-4 w-4" />
                           <span>Settings</span>
@@ -517,13 +501,13 @@ export default function Navbar() {
                     </DropdownMenuItem>
 
                     <Link href={"/dashboard/data"}>
-                      <DropdownMenuItem className="hover:bg-accent/80 transition-colors duration-200">
+                      <DropdownMenuItem className="hover:bg-muted/50 transition-colors duration-200">
                         <Database className="mr-2 h-4 w-4" />
                         <span>Data</span>
                         <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
                       </DropdownMenuItem>
                     </Link>
-                    <DropdownMenuItem onClick={async ()=>await refreshTrades()} className="hover:bg-accent/80 transition-colors duration-200">
+                    <DropdownMenuItem onClick={async ()=>await refreshTrades()} className="hover:bg-muted/50 transition-colors duration-200">
                       <RefreshCw className="mr-2 h-4 w-4" />
                       <span>Refresh Data</span>
                       <DropdownMenuShortcut>⌘R</DropdownMenuShortcut>

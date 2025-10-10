@@ -136,7 +136,7 @@ const Tracker = React.forwardRef<HTMLDivElement, TrackerProps>(
         }
 
         if (blockIndex > activeIndex) {
-          return "bg-blue-300" // Highlighted blocks
+          return "bg-foreground/30" // Highlighted blocks
         }
 
         // Get base color for the active index

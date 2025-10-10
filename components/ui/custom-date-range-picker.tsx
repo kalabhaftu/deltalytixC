@@ -155,11 +155,11 @@ export function CustomDateRangePicker({
                 "h-9 w-9 p-0 font-normal",
                 !isCurrentMonth && "text-muted-foreground opacity-50",
                 isTodayDate && "bg-accent text-accent-foreground",
-                isSelected && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                isSelected && "bg-foreground text-background hover:bg-foreground hover:text-background",
                 isRangeStart && "rounded-r-none",
                 isRangeEnd && "rounded-l-none",
-                isRangeMiddle && "rounded-none bg-primary/20 text-foreground hover:bg-primary/30",
-                (isRangeStart || isRangeEnd) && "bg-primary text-primary-foreground"
+                isRangeMiddle && "rounded-none bg-muted/30 text-foreground hover:bg-muted/50",
+                (isRangeStart || isRangeEnd) && "bg-foreground text-background"
               )}
             >
               {format(day, 'd')}

@@ -55,7 +55,7 @@ export const TourCard: React.FC<CardComponentProps> = ({
           </div>
           <Button
             variant="ghost"
-            className="text-muted-foreground absolute top-4 right-2 hover:bg-accent hover:text-accent-foreground"
+            className="text-muted-foreground absolute top-4 right-2 hover:bg-muted/50"
             size="icon"
             onClick={() => closeOnborda()}
           >

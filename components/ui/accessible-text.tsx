@@ -112,7 +112,7 @@ export function StatusIndicator({ status, children, className }: StatusIndicator
     success: 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
     warning: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800',
     error: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
-    info: 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+    info: 'text-foreground dark:text-foreground bg-muted/50 dark:bg-muted/30 border-border dark:border-border'
   }
 
   return (
@@ -144,7 +144,7 @@ export function AccessibleLink({
   external = false,
   className 
 }: AccessibleLinkProps) {
-  const baseClasses = 'text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 underline underline-offset-2 font-medium transition-colors'
+  const baseClasses = 'text-foreground dark:text-foreground hover:text-foreground/80 dark:hover:text-foreground/80 underline underline-offset-2 font-medium transition-colors'
   
   if (href) {
     return (

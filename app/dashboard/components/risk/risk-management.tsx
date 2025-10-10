@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Shield, AlertTriangle, CheckCircle, TrendingDown } from "lucide-react"
+import { formatPercent } from "@/lib/utils"
 
 interface RiskManagementProps {
   riskData?: any
@@ -79,7 +80,7 @@ export function RiskManagement({ riskData, className }: RiskManagementProps) {
               className="h-2"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              {mockRiskData.dailyDrawdown.percentage.toFixed(1)}% of daily limit used
+              {formatPercent(mockRiskData.dailyDrawdown.percentage, 1)} of daily limit used
             </p>
           </div>
 
@@ -98,7 +99,7 @@ export function RiskManagement({ riskData, className }: RiskManagementProps) {
               className="h-2"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              {mockRiskData.maxDrawdown.percentage.toFixed(1)}% of maximum drawdown limit
+              {formatPercent(mockRiskData.maxDrawdown.percentage, 1)} of maximum drawdown limit
             </p>
           </div>
 
@@ -117,7 +118,7 @@ export function RiskManagement({ riskData, className }: RiskManagementProps) {
               className="h-2"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              {mockRiskData.positionSize.percentage}% of maximum position size
+              {formatPercent(mockRiskData.positionSize.percentage)} of maximum position size
             </p>
           </div>
         </div>

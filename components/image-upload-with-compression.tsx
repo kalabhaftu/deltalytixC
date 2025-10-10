@@ -199,8 +199,8 @@ export function ImageUploadWithCompression({
       {/* Upload Area */}
       <Card className={`border-2 border-dashed transition-colors ${
         isDragOver 
-          ? 'border-blue-400 bg-blue-50' 
-          : 'border-gray-300 hover:border-gray-400'
+          ? 'border-foreground bg-muted/30' 
+          : 'border-border hover:border-foreground/50'
       }`}>
         <CardContent
           className="p-8 text-center cursor-pointer"
@@ -240,7 +240,7 @@ export function ImageUploadWithCompression({
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
-              <Zap className="h-5 w-5 text-blue-600 animate-pulse" />
+              <Zap className="h-5 w-5 text-foreground animate-pulse" />
               <div className="flex-1">
                 <p className="text-sm font-medium">Compressing images...</p>
                 <Progress value={overallProgress} className="mt-2" />
@@ -256,7 +256,7 @@ export function ImageUploadWithCompression({
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Info className="h-4 w-4 text-blue-600" />
+                <Info className="h-4 w-4 text-foreground" />
                 <span className="text-sm font-medium">Compression Summary</span>
               </div>
               <Badge variant="outline">

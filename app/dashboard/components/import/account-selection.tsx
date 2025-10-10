@@ -185,8 +185,8 @@ export default function AccountSelection({
               <Card
                 key={account.id}
                 className={cn(
-                  "p-6 cursor-pointer hover:border-primary hover:shadow-md transition-all duration-200 relative group",
-                  selectedAccountId === account.id ? "border-primary bg-primary/5 shadow-md" : "border-border"
+                  "p-6 cursor-pointer hover:border-foreground hover:shadow-md transition-all duration-200 relative group",
+                  selectedAccountId === account.id ? "border-foreground bg-muted/30 shadow-md" : "border-border"
                 )}
                 onClick={() => {
                   setAccountNumber(account.number)
@@ -197,7 +197,7 @@ export default function AccountSelection({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       {account.accountType === 'prop-firm' ? (
-                        <Building2 className="h-4 w-4 text-blue-500" />
+                        <Building2 className="h-4 w-4 text-foreground" />
                       ) : (
                         <User className="h-4 w-4 text-green-500" />
                       )}
@@ -246,7 +246,7 @@ export default function AccountSelection({
                     )}
                   </div>
                   {selectedAccountId === account.id && (
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                    <CheckCircle2 className="h-5 w-5 text-foreground" />
                   )}
                 </div>
               </Card>

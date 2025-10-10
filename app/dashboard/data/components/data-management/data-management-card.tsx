@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { TrashIcon, AlertCircle, MoreVertical, Edit2, Loader2 } from "lucide-react"
+import { TrashIcon, AlertCircle, MoreVertical, Edit2, Loader2, ChevronDown, ChevronRight } from "lucide-react"
 import { 
   removeAccountsFromTradesAction, 
   renameAccountAction
@@ -20,6 +20,7 @@ import ExportButton from '@/components/export-button'
 import { useUserStore } from '@/store/user-store'
 import { useTradesStore } from '@/store/trades-store'
 import { useAccounts } from '@/hooks/use-accounts'
+import { Badge } from "@/components/ui/badge"
 
 type GroupedTrades = Record<string, Record<string, Trade[]>>
 type AccountWithTrades = {
@@ -38,6 +39,23 @@ type AccountWithTrades = {
   } | null
 }
 
+type GroupedAccount = {
+  accountName: string
+  propFirm: string
+  accountType: 'live' | 'prop-firm'
+  totalTrades: number
+  phases: Array<{
+    id: string
+    number: string
+    displayName: string
+    status: string
+    tradeCount: number
+    phaseDetails: any
+    phaseId?: string
+    currentPhase?: number
+  }>
+}
+
 export function DataManagementCard() {
   const user = useUserStore((state) => state.user)
   const trades = useTradesStore((state) => state.trades)
@@ -52,9 +70,47 @@ export function DataManagementCard() {
   const [newAccountNumber, setNewAccountNumber] = useState("")
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([])
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [expandedAccounts, setExpandedAccounts] = useState<Record<string, boolean>>({})
 
-  // Combine accounts with their trades for unified data management
-  // Server now returns clean data without master account duplicates
+  // Group accounts by master account name (hierarchical structure)
+  const groupedAccounts = useMemo(() => {
+    if (!allAccounts || accountsLoading) return []
+
+    const grouped: Record<string, GroupedAccount> = {}
+
+    // Group by account name
+    allAccounts.forEach(account => {
+      const accountName = account.name
+      const accountTrades = trades.filter(trade => trade.accountNumber === account.number)
+
+      if (!grouped[accountName]) {
+        grouped[accountName] = {
+          accountName,
+          propFirm: (account as any).propfirm || '',
+          accountType: account.accountType,
+          totalTrades: 0,
+          phases: []
+        }
+      }
+
+      grouped[accountName].phases.push({
+        id: account.id,
+        number: account.number,
+        displayName: account.displayName,
+        status: account.status,
+        tradeCount: accountTrades.length,
+        phaseDetails: account.currentPhaseDetails,
+        phaseId: account.currentPhaseDetails?.phaseId || account.number,
+        currentPhase: account.currentPhase || account.currentPhaseDetails?.phaseNumber
+      })
+
+      grouped[accountName].totalTrades += accountTrades.length
+    })
+
+    return Object.values(grouped)
+  }, [allAccounts, trades, accountsLoading])
+
+  // Combine accounts with their trades for unified data management (for backwards compatibility)
   const accountsWithTrades = useMemo(() => {
     if (!allAccounts || accountsLoading) return []
     
@@ -98,26 +154,47 @@ export function DataManagementCard() {
         ? accountsWithTrades.map(acc => acc.number)  // All accounts
         : selectedAccounts  // Selected accounts
 
-      // Delete accounts using the proper API endpoints
+      // Map to unique account IDs to avoid deleting same master account multiple times
+      const uniqueAccountIds = new Set<string>()
+      const accountsToDeleteData: Array<{id: string, endpoint: string, displayName: string}> = []
+
       for (const accountNumber of accountsToDelete) {
         const account = accountsWithTrades.find(acc => acc.number === accountNumber)
         if (account) {
-          // For prop-firm accounts, use master account ID instead of phase ID
-          const accountId = account.accountType === 'prop-firm'
-            ? (account.currentPhaseDetails?.masterAccountId || account.id)
-            : account.id
-            
-          const endpoint = account.accountType === 'prop-firm' 
-            ? `/api/prop-firm-v2/accounts/${accountId}`
-            : `/api/accounts/${accountId}`
+          // Determine the correct endpoint and ID
+          let endpoint: string
+          let accountId: string
           
-          const response = await fetch(endpoint, {
-            method: 'DELETE',
-          })
-
-          if (!response.ok) {
-            throw new Error(`Failed to delete account ${account.displayName}`)
+          if (account.accountType === 'prop-firm') {
+            // For prop-firm: use the MASTER account ID from currentPhaseDetails
+            accountId = account.currentPhaseDetails?.masterAccountId || account.id
+            endpoint = `/api/prop-firm-v2/accounts/${accountId}`
+          } else {
+            // For live accounts: use the account ID directly
+            accountId = account.id
+            endpoint = `/api/accounts/${accountId}`
           }
+          
+          // Only add if not already in the set (avoid duplicate deletions)
+          if (!uniqueAccountIds.has(accountId)) {
+            uniqueAccountIds.add(accountId)
+            accountsToDeleteData.push({ id: accountId, endpoint, displayName: account.displayName })
+          }
+        } else {
+          console.warn(`Account not found for number: ${accountNumber}`)
+        }
+      }
+
+      // Delete unique accounts
+      for (const accountData of accountsToDeleteData) {
+        const response = await fetch(accountData.endpoint, {
+          method: 'DELETE',
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error(`Delete failed for ${accountData.displayName}:`, errorText)
+          throw new Error(`Failed to delete account ${accountData.displayName}`)
         }
       }
 
@@ -169,6 +246,23 @@ export function DataManagementCard() {
       setSelectedAccounts(allAccountNumbers)
     }
   }, [selectedAccounts.length, accountsWithTrades])
+
+  const toggleExpandAccount = useCallback((accountName: string) => {
+    setExpandedAccounts(prev => ({
+      ...prev,
+      [accountName]: !prev[accountName]
+    }))
+  }, [])
+
+  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case 'active': return 'outline'
+      case 'funded': return 'default'
+      case 'failed': return 'destructive'
+      case 'passed': return 'secondary'
+      default: return 'outline'
+    }
+  }
 
   const handleRenameAccount = useCallback(async () => {
     if (!user || !accountToRename || !newAccountNumber) return
@@ -271,7 +365,7 @@ export function DataManagementCard() {
 
           {/* Select All Header */}
           {!accountsLoading && accountsWithTrades.length > 0 && (
-            <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+            <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
               <div className="flex items-center">
                 <Checkbox
                   id="select-all"
@@ -294,69 +388,96 @@ export function DataManagementCard() {
             </div>
           )}
 
-          {/* Account List */}
-          {!accountsLoading && accountsWithTrades.map((account) => (
-            <div key={account.number} className="border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-                <div className="flex items-center w-full sm:w-auto">
-                  <Checkbox
-                    id={`select-${account.number}`}
-                    checked={selectedAccounts.includes(account.number)}
-                    onCheckedChange={() => handleSelectAccount(account.number)}
-                    className="mr-3 flex-shrink-0"
-                  />
-                  <div className="flex items-center justify-between w-full sm:w-auto">
-                    <div className="flex flex-col">
-                      <span className="text-base sm:text-lg font-semibold">
-                        {account.displayName}
-                      </span>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{account.number}</span>
-                        <span>•</span>
-                        <span className="capitalize">{account.accountType}</span>
-                        <span>•</span>
-                        <span>{account.tradeCount} trades</span>
+          {/* Grouped Account List */}
+          {!accountsLoading && groupedAccounts.map((group) => {
+            const isExpanded = expandedAccounts[group.accountName] ?? true
+            const hasMultiplePhases = group.phases.length > 1
+
+            return (
+              <div key={group.accountName} className="border rounded-lg overflow-hidden">
+                {/* Account Group Header */}
+                <div 
+                  className={`p-4 ${hasMultiplePhases ? 'cursor-pointer hover:bg-muted/50' : 'hover:bg-muted/50'} transition-colors`}
+                  onClick={() => hasMultiplePhases && toggleExpandAccount(group.accountName)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 flex-1">
+                      {hasMultiplePhases && (
+                        <div className="flex-shrink-0">
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </div>
+                      )}
+                      <div className="flex flex-col flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-semibold">{group.accountName}</span>
+                          {group.propFirm && (
+                            <span className="text-xs text-muted-foreground">{group.propFirm}</span>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {group.totalTrades} total trades • {group.phases.length} phase{group.phases.length > 1 ? 's' : ''}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center sm:hidden ml-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="h-4 w-4" />
-                            <span className="sr-only">More options</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onSelect={() => {
-                              setAccountToRename(account.number)
-                              setRenameAccountDialogOpen(true)
-                            }}
-                          >
-                            <Edit2 className="w-4 h-4 mr-2" />
-                            Rename Account
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </div>
                   </div>
                 </div>
-                <div className="hidden sm:flex items-center w-auto justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setAccountToRename(account.number)
-                      setRenameAccountDialogOpen(true)
-                    }}
-                  >
-                    <Edit2 className="w-4 h-4 mr-2" />
-                    Rename
-                  </Button>
-                </div>
+
+                {/* Phases List (shown when expanded or single phase) */}
+                {(isExpanded || !hasMultiplePhases) && (
+                  <div className="border-t bg-muted/20">
+                    {group.phases.map((phase) => (
+                      <div
+                        key={phase.number}
+                        className="flex items-center justify-between p-4 pl-8 hover:bg-muted/50 transition-colors border-b last:border-b-0"
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <Checkbox
+                            id={`select-${phase.number}`}
+                            checked={selectedAccounts.includes(phase.number)}
+                            onCheckedChange={() => handleSelectAccount(phase.number)}
+                            className="flex-shrink-0"
+                          />
+                          <div className="flex flex-col flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">{phase.number}</span>
+                              {phase.currentPhase && (
+                                <Badge variant="outline" className="text-xs">
+                                  Phase {phase.currentPhase}
+                                </Badge>
+                              )}
+                              <Badge variant={getStatusVariant(phase.status)} className="text-xs capitalize">
+                                {phase.status}
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {phase.tradeCount} trades
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setAccountToRename(phase.number)
+                              setRenameAccountDialogOpen(true)
+                            }}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
 
           {/* Empty State */}
           {!accountsLoading && accountsWithTrades.length === 0 && (

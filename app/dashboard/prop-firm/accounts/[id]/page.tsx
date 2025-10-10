@@ -28,7 +28,7 @@ import {
   Calendar,
   CreditCard
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatCurrency, formatQuantity, formatPercent } from "@/lib/utils"
 import { AccountDashboardData, AccountSummary, PhaseType, AccountStatus, PropFirmTrade } from "@/types/prop-firm"
 import { PhaseTransitionDialog } from "@/app/dashboard/components/prop-firm/phase-transition-dialog"
 import { RealtimeStatusIndicatorV2 } from "@/components/prop-firm/realtime-status-indicator-v2"
@@ -191,8 +191,8 @@ export default function AccountDetailPage() {
             label: (realtimeAccount.currentPhase?.phaseNumber ?? 1) === 1 ? 'Phase 1' : 
                    (realtimeAccount.currentPhase?.phaseNumber ?? 1) === 2 ? 'Phase 2' : 
                    (realtimeAccount.currentPhase?.phaseNumber ?? 1) >= 3 ? 'Funded' : 'Phase 1',
-            color: (realtimeAccount.currentPhase?.phaseNumber ?? 1) === 1 ? 'bg-blue-600' : 
-                   (realtimeAccount.currentPhase?.phaseNumber ?? 1) === 2 ? 'bg-purple-600' : 'bg-green-600',
+            color: (realtimeAccount.currentPhase?.phaseNumber ?? 1) === 1 ? 'bg-foreground' : 
+                   (realtimeAccount.currentPhase?.phaseNumber ?? 1) === 2 ? 'bg-foreground' : 'bg-green-600',
             accountNumber: realtimeAccount.currentPhase?.phaseId || realtimeAccount.accountName
           }
         },
@@ -303,7 +303,7 @@ export default function AccountDetailPage() {
   }
 
   const formatPercentage = (value: number | undefined | null) => {
-    return `${(value ?? 0).toFixed(1)}%`
+    return formatPercent(value ?? 0, 1)
   }
 
   // Handle loading state - show loading while fetching data
@@ -437,7 +437,7 @@ export default function AccountDetailPage() {
                 <Button 
                   onClick={() => setShowTransitionDialog(true)}
                   size="sm"
-                  className="ml-4 bg-green-600 hover:bg-green-700"
+                  className="ml-4 bg-green-600 hover:bg-green-600/90"
                 >
                   Advance Phase
                 </Button>
@@ -713,7 +713,7 @@ export default function AccountDetailPage() {
                                     {trade.side?.toUpperCase() || 'N/A'}
                                   </Badge>
                                 </td>
-                                <td className="p-3">{trade.quantity || 'N/A'}</td>
+                                <td className="p-3">{formatQuantity(trade.quantity)}</td>
                                 <td className="p-3 text-sm">{trade.entryPrice || 'N/A'}</td>
                                 <td className="p-3 text-sm">{trade.exitPrice || trade.closePrice || 'N/A'}</td>
                                 <td className={cn("p-3 font-medium", (trade.pnl || 0) >= 0 ? "text-green-600" : "text-red-600")}>
@@ -1355,7 +1355,7 @@ export default function AccountDetailPage() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-sm text-muted-foreground">Profit Split</label>
-                        <p className="font-medium">{account.profitSplitPercent}% (You) / {100 - account.profitSplitPercent}% (Firm)</p>
+                        <p className="font-medium">{formatPercent(account.profitSplitPercent)} (You) / {formatPercent(100 - account.profitSplitPercent)} (Firm)</p>
                       </div>
                       <div>
                         <label className="text-sm text-muted-foreground">Payout Cycle</label>

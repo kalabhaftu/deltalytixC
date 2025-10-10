@@ -211,7 +211,7 @@ export function FormatPreview({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                {row.original.quantity}
+                {Number(row.original.quantity).toFixed(2)}
               </TooltipTrigger>
               {originalData && (
                 <TooltipContent>

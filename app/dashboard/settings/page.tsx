@@ -42,7 +42,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Slider } from "@/components/ui/slider"
 import { LinkedAccounts } from "@/components/linked-accounts"
-import { useToolbarSettingsStore } from "@/store/toolbar-settings-store"
 import { toast } from "sonner"
 import { PrimaryButton, SecondaryButton, DestructiveButton } from "@/components/ui/button-styles"
 import { DataSerializer } from "@/lib/data-serialization"
@@ -90,12 +89,11 @@ const timezones = [
 ];
 
 export default function SettingsPage() {
-  const { theme, setTheme, intensity, setIntensity } = useTheme()
+  const { theme, setTheme } = useTheme()
   const user = useUserStore(state => state.supabaseUser)
   const timezone = useUserStore(state => state.timezone)
   const setTimezone = useUserStore(state => state.setTimezone)
   
-  const [isUISettingsOpen, setIsUISettingsOpen] = useState(false)
   
   // Account deletion states
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -111,15 +109,11 @@ export default function SettingsPage() {
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
 
-  
-  // Toolbar settings
-  const { settings, setFixedPosition, setAutoHide, resetSettings } = useToolbarSettingsStore()
 
   // Journal hover effect setting (local state for now, can be moved to store later)
   const [journalHoverEffect, setJournalHoverEffect] = useState<'simple' | 'detailed'>('simple')
 
   // Trading models settings
-  const [isTradingModelsOpen, setIsTradingModelsOpen] = useState(false)
   const [customModelName, setCustomModelName] = useState('')
   const [customModels, setCustomModels] = useState<string[]>([])
   const [scrollPosition, setScrollPosition] = useState(0)
@@ -183,8 +177,33 @@ export default function SettingsPage() {
     }
   }
 
+  // Utility function to format trading model names consistently
+  const formatModelName = (model: string): string => {
+    // Handle abbreviations that should stay uppercase
+    const abbreviations = ['MSNR', 'TTFM', 'ICT']
+    
+    // Handle special cases
+    if (model.includes('ict') || model.includes('ICT')) {
+      return 'ICT 2022'
+    }
+    if (model.includes('msnr') || model === 'MSNR') {
+      return 'MSNR'
+    }
+    if (model.includes('ttfm') || model === 'TTFM') {
+      return 'TTFM'
+    }
+    if (model.includes('price') || model.includes('PRICE')) {
+      return 'Price Action'
+    }
+    
+    // For custom models, use proper title case
+    return model.split(/[-_\s]+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
+  }
+
   const defaultModelsDisplay = ['ICT 2022', 'MSNR', 'TTFM', 'Price Action']
-  const allModels = [...defaultModelsDisplay, ...customModels]
+  const allModels = [...defaultModelsDisplay, ...customModels.map(formatModelName)]
   const visibleModels = allModels.slice(scrollPosition, scrollPosition + 4)
   const canScrollLeft = scrollPosition > 0
   const canScrollRight = scrollPosition < Math.max(0, allModels.length - 4)
@@ -200,18 +219,6 @@ export default function SettingsPage() {
     return enumMap[displayName] || null
   }
 
-  const handleToolbarSettingChange = (setting: string, value: boolean) => {
-    if (setting === 'fixedPosition') {
-      setFixedPosition(value)
-    } else if (setting === 'autoHide') {
-      setAutoHide(value)
-    }
-
-    toast.success("Toolbar Settings Updated", {
-      description: `${setting === 'fixedPosition' ? 'Fixed position' : 'Auto-hide'} ${value ? 'enabled' : 'disabled'}.`,
-      duration: 2000
-    })
-  }
 
   const handleJournalHoverChange = (value: 'simple' | 'detailed') => {
     setJournalHoverEffect(value)
@@ -225,7 +232,6 @@ export default function SettingsPage() {
   }
 
   const handleResetSettings = () => {
-    resetSettings()
     setJournalHoverEffect('simple')
     localStorage.removeItem('journal-hover-effect')
 
@@ -474,7 +480,7 @@ export default function SettingsPage() {
             {/* Theme Settings */}
             <div>
               <Label className="text-base font-medium">Theme</Label>
-              <div className="mt-2 flex items-center gap-4">
+              <div className="mt-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="w-[200px] justify-start">
@@ -499,20 +505,6 @@ export default function SettingsPage() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <div className="flex-1">
-                  <Label className="text-sm">Theme Intensity</Label>
-                  <div className="mt-2 flex items-center gap-4">
-                    <Slider
-                      value={[intensity]}
-                      onValueChange={([value]) => setIntensity(value)}
-                      min={90}
-                      max={100}
-                      step={1}
-                      className="flex-1"
-                    />
-                    <span className="text-sm text-muted-foreground w-12">{intensity}%</span>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -549,103 +541,61 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <Separator />
+          </CardContent>
+        </Card>
 
-            {/* UI Customization Section */}
-            <Collapsible open={isUISettingsOpen} onOpenChange={setIsUISettingsOpen}>
-              <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between cursor-pointer hover:bg-accent/50 rounded-lg p-2 -m-2 transition-colors">
-                  <div className="flex items-center gap-2">
-                    <Layout className="h-4 w-4" />
-                    <Label className="text-base font-medium cursor-pointer">UI Customization</Label>
-                  </div>
-                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isUISettingsOpen ? 'rotate-180' : ''}`} />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-4 mt-4">
-                {/* Toolbar Settings */}
-                <div className="space-y-3 pl-6 border-l-2 border-border/30">
-                  <Label className="text-sm font-medium text-muted-foreground">Toolbar Settings</Label>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="fixed-position">Fixed Position</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Keep the toolbar in a fixed position at the top of the screen
-                      </p>
-                    </div>
-                    <Switch
-                      id="fixed-position"
-                      checked={settings.fixedPosition}
-                      onCheckedChange={(checked) => handleToolbarSettingChange('fixedPosition', checked)}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="auto-hide-toolbar">Auto Hide</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Automatically hide the toolbar when not in use
-                      </p>
-                    </div>
-                    <Switch
-                      id="auto-hide-toolbar"
-                      checked={settings.autoHide}
-                      onCheckedChange={(checked) => handleToolbarSettingChange('autoHide', checked)}
-                    />
-                  </div>
-                  
-                  <div className="pt-2">
-                    <SecondaryButton 
-                      size="sm" 
-                      onClick={handleResetSettings}
-                      className="text-xs"
-                    >
-                      Reset Settings
-                    </SecondaryButton>
-                  </div>
-                </div>
-                
-                {/* Journal Card Hover Effect */}
-                <div className="space-y-3 pl-6 border-l-2 border-border/30">
-                  <Label className="text-sm font-medium text-muted-foreground">Journal Card Hover Effect</Label>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="journal-hover-effect">Hover Style</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Choose how trade cards behave when hovered in the journal
-                      </p>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-[200px] justify-start">
-                          <Settings className="mr-2 h-4 w-4" />
-                          {journalHoverEffect === 'simple' ? 'Simple' : 'Detailed'}
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => handleJournalHoverChange('simple')}>
-                          <div className="mr-2 h-4 w-4" />
-                          <span>Simple</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleJournalHoverChange('detailed')}>
-                          <div className="mr-2 h-4 w-4" />
-                          <span>Detailed</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-
-                {/* Future UI Settings Placeholder */}
-                <div className="space-y-3 pl-6 border-l-2 border-border/30">
-                  <Label className="text-sm font-medium text-muted-foreground">More UI Settings</Label>
+        {/* UI Customization Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Layout className="h-5 w-5" />
+              UI Customization
+            </CardTitle>
+            <CardDescription>
+              Customize the appearance and behavior of the interface
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Journal Card Hover Effect */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-muted-foreground">Journal Card Hover Effect</Label>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="journal-hover-effect">Hover Style</Label>
                   <p className="text-sm text-muted-foreground">
-                    Additional UI customization options will be available here in future updates.
+                    Choose how trade cards behave when hovered in the journal
                   </p>
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-[200px] justify-start">
+                      <Settings className="mr-2 h-4 w-4" />
+                      {journalHoverEffect === 'simple' ? 'Simple' : 'Detailed'}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => handleJournalHoverChange('simple')}>
+                      <div className="mr-2 h-4 w-4" />
+                      <span>Simple</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleJournalHoverChange('detailed')}>
+                      <div className="mr-2 h-4 w-4" />
+                      <span>Detailed</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Future UI Settings Placeholder */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-muted-foreground">More UI Settings</Label>
+              <p className="text-sm text-muted-foreground">
+                Additional UI customization options will be available here in future updates.
+              </p>
+            </div>
           </CardContent>
         </Card>
 
@@ -662,20 +612,9 @@ export default function SettingsPage() {
               Manage your trading models and strategies
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Collapsible open={isTradingModelsOpen} onOpenChange={setIsTradingModelsOpen}>
-              <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between cursor-pointer hover:bg-accent/50 rounded-lg p-2 -m-2 transition-colors">
-                  <div className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    <Label className="text-base font-medium cursor-pointer">Trading Models Management</Label>
-                  </div>
-                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isTradingModelsOpen ? 'rotate-180' : ''}`} />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-4 mt-4">
+          <CardContent className="space-y-6">
                 {/* All Models with Scroll */}
-                <div className="space-y-3 pl-6 border-l-2 border-border/30">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium text-muted-foreground">
                       Your Models ({allModels.length})
@@ -704,7 +643,7 @@ export default function SettingsPage() {
                   <div className="grid grid-cols-4 gap-2">
                     {visibleModels.map((model, index) => {
                       const isDefaultModel = defaultModelsDisplay.includes(model)
-                      const isCustomModel = customModels.includes(model)
+                      const isCustomModel = customModels.some(customModel => formatModelName(customModel) === model)
                       return (
                         <div
                           key={`${model}-${index}`}
@@ -718,6 +657,13 @@ export default function SettingsPage() {
                                   variant="ghost"
                                   size="sm"
                                   className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100 hover:bg-destructive/20"
+                                  onClick={() => {
+                                    // Find the original custom model name
+                                    const originalModel = customModels.find(customModel => formatModelName(customModel) === model)
+                                    if (originalModel) {
+                                      setDeleteModelName(originalModel)
+                                    }
+                                  }}
                                 >
                                   <X className="h-3 w-3" />
                                 </Button>
@@ -755,8 +701,10 @@ export default function SettingsPage() {
                   )}
                 </div>
 
+                <Separator />
+
                 {/* Model Request */}
-                <div className="space-y-3 pl-6 border-l-2 border-border/30">
+                <div className="space-y-3">
                   <Label className="text-sm font-medium text-muted-foreground">Request New Model</Label>
                   <div className="flex gap-2">
                     <Input
@@ -778,7 +726,9 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="text-sm text-muted-foreground pl-6 border-l-2 border-border/30">
+                <Separator />
+
+                <div className="text-sm text-muted-foreground">
                   <p>
                     {allModels.length > 4 ?
                       `Showing ${scrollPosition + 1}-${Math.min(scrollPosition + 4, allModels.length)} of ${allModels.length} models. Use arrows to navigate.` :
@@ -788,8 +738,6 @@ export default function SettingsPage() {
                     These models are available when creating or editing trades.
                   </p>
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
           </CardContent>
         </Card>
 

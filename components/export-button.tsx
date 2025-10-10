@@ -350,7 +350,7 @@ export default function TradeExportDialog({ trades }: Props) {
                                 {trade.side}
                               </span>
                             </TableCell>
-                            <TableCell>{trade.quantity}</TableCell>
+                            <TableCell>{Number(trade.quantity).toFixed(2)}</TableCell>
                             <TableCell className="text-xs">{trade.formattedEntryDate}</TableCell>
                             <TableCell className="text-xs">{trade.formattedCloseDate}</TableCell>
                             <TableCell className="text-right text-xs">

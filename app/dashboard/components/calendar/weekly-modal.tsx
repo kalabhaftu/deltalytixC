@@ -76,7 +76,7 @@ export function WeeklyModal({
           <TabsList className="px-6 bg-background border border-border rounded-md">
             <TabsTrigger 
               value="charts"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-accent hover:text-accent-foreground"
+              className="data-[state=active]:bg-muted data-[state=active]:shadow-sm hover:bg-muted/50"
             >
               Charts
             </TabsTrigger>

@@ -114,7 +114,7 @@ export default function ImprovedDatePicker({ onDateRangeChange, className }: Imp
                   key={selector.label}
                   variant="ghost"
                   size="sm"
-                  className="w-full justify-start text-xs h-8 hover:bg-accent/80 transition-colors duration-200"
+                  className="w-full justify-start text-xs h-8 hover:bg-muted/50 transition-colors duration-200"
                   onClick={() => {
                     const range = selector.getRange()
                     handleDateSelect(range)

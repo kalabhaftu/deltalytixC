@@ -267,8 +267,8 @@ export function EnhancedCreateLiveAccountDialog({
                               className={cn(
                                 "cursor-pointer transition-all duration-200 hover:shadow-md",
                                 watchedBroker === broker.name
-                                  ? "ring-2 ring-primary bg-accent"
-                                  : "hover:bg-accent"
+                                  ? "ring-2 ring-foreground bg-muted"
+                                  : "hover:bg-muted/50"
                               )}
                               onClick={() => setValue('broker', broker.name)}
                             >

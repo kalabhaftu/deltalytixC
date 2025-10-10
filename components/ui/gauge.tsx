@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { cn } from "@/lib/utils"
+import { cn, formatPercent } from "@/lib/utils"
 
 interface GaugeProps extends React.HTMLAttributes<HTMLDivElement> {
   value: number
@@ -92,7 +92,7 @@ export function Gauge({
               "font-bold",
               type === "profit" ? "text-[#22c55e]" : "text-[#ef4444]"
             )}>
-              {percentage.toFixed(2)}%
+              {formatPercent(percentage)}
             </span>
             {label && (
               <span className="text-xs text-muted-foreground mt-1">

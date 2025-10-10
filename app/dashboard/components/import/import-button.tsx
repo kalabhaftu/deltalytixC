@@ -451,9 +451,9 @@ export default function ImportButton() {
       >
         <Button
           onClick={() => setIsOpen(true)}
-          variant="default"
+          variant="outline"
           className={cn(
-            "justify-start text-left font-medium w-full transition-all duration-200 bg-gradient-to-r from-primary to-primary/80 hover:shadow-lg hover:shadow-primary/20 border-border/50 backdrop-blur-sm",
+            "justify-start text-left font-medium w-full transition-all duration-200 hover:bg-muted/50 border-border/50 backdrop-blur-sm",
           )}
           id="import-data"
           onMouseEnter={() => uploadIconRef.current?.startAnimation()}

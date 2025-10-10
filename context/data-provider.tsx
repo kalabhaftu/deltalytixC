@@ -1162,7 +1162,7 @@ export const DataProvider: React.FC<{
 
       // Step 2: Fetch ALL trades in single optimized query (server has caching)
       // OPTIMIZED: Load all trades at once using server-side caching instead of progressive loading
-      const allTrades = await getTradesAction(null)
+      const allTrades = await getTradesAction(null, { limit: 10000 })
       setTrades(Array.isArray(allTrades) ? allTrades : [])
 
       // Step 3: Fetch user data

@@ -30,7 +30,7 @@ export default function CurrentStreak({ size }: CurrentStreakProps) {
   const getTradeColor = () => currentTradeStreak >= 0 ? '#22c55e' : '#ef4444'
 
   return (
-    <Card className="w-full h-24 border border-border/20 shadow-sm bg-white dark:bg-gray-900">
+    <Card className="w-full h-24">
       <CardContent className="p-1 h-full flex flex-col">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs text-muted-foreground font-medium">

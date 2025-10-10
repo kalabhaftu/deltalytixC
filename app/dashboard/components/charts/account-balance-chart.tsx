@@ -46,7 +46,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-import { formatCurrency, formatNumber } from '@/lib/utils'
+import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils'
 
 const formatCurrencyValue = (value: number) => {
   const absValue = Math.abs(value)
@@ -82,7 +82,7 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
             "text-sm font-medium",
             data.change >= 0 ? 'text-green-600' : 'text-red-600'
           )}>
-            Change: {data.change >= 0 ? '+' : ''}{formatCurrency(data.change)} ({data.changePercent >= 0 ? '+' : ''}{data.changePercent.toFixed(2)}%)
+            Change: {data.change >= 0 ? '+' : ''}{formatCurrency(data.change)} ({data.changePercent >= 0 ? '+' : ''}{formatPercent(data.changePercent)})
           </p>
           <div className="text-xs text-muted-foreground mt-2 pt-2 border-t space-y-0.5">
             <p>Trades Executed: {data.trades}</p>

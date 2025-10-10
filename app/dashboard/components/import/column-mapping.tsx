@@ -128,7 +128,7 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
                 variant="outline"
                 size="sm"
                 onClick={() => submit({ fieldColumns: headers, firstRows: csvData.slice(1, 6) })}
-                className="flex items-center gap-2 bg-white/50 dark:bg-yellow-900/30 hover:bg-white/80 dark:hover:bg-yellow-900/50 text-yellow-700 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700 transition-colors"
+                className="flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/20 transition-colors"
               >
                 <RefreshCwIcon className={cn("h-4 w-4", isLoading && "animate-spin")} />
                 Use AI for mapping

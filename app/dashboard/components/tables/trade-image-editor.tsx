@@ -245,7 +245,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
               <HoverCard openDelay={200}>
                 <HoverCardTrigger asChild>
                   <button
-                    className="absolute -top-2 -left-2 h-5 w-5 bg-primary text-primary-foreground rounded-full hidden group-hover:flex items-center justify-center shadow-sm hover:bg-primary/90 transition-colors"
+                    className="absolute -top-2 -left-2 h-5 w-5 bg-foreground text-background rounded-full hidden group-hover:flex items-center justify-center shadow-sm hover:bg-foreground/90 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation()
                       setIsSecondImage(true)

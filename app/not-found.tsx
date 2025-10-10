@@ -41,13 +41,12 @@ function getEffectiveTheme(theme: 'light' | 'dark' | 'system'): 'light' | 'dark'
   return theme
 }
 
-function applyThemeToDocument(effectiveTheme: 'light' | 'dark', intensity: number) {
+function applyThemeToDocument(effectiveTheme: 'light' | 'dark') {
   if (typeof window === 'undefined') return
   
   const root = document.documentElement
   root.classList.remove('light', 'dark')
   root.classList.add(effectiveTheme)
-  root.style.setProperty('--theme-intensity', `${intensity}%`)
 }
 
 // Removed unnecessary locale detection - English only
@@ -66,11 +65,10 @@ function NotFoundContent() {
     
     // Apply theme from localStorage
     const savedTheme = getThemeFromLocalStorage()
-    const savedIntensity = parseInt(localStorage.getItem('intensity') || '100')
     const currentEffectiveTheme = getEffectiveTheme(savedTheme)
     setTheme(savedTheme)
     setEffectiveTheme(currentEffectiveTheme)
-    applyThemeToDocument(currentEffectiveTheme, savedIntensity)
+    applyThemeToDocument(currentEffectiveTheme)
     
     // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -78,7 +76,7 @@ function NotFoundContent() {
       if (savedTheme === 'system') {
         const newEffectiveTheme = getEffectiveTheme('system')
         setEffectiveTheme(newEffectiveTheme)
-        applyThemeToDocument(newEffectiveTheme, savedIntensity)
+        applyThemeToDocument(newEffectiveTheme)
       }
     }
     
@@ -103,8 +101,7 @@ function NotFoundContent() {
     const newEffectiveTheme = getEffectiveTheme(nextTheme)
     setEffectiveTheme(newEffectiveTheme)
     
-    const intensity = parseInt(localStorage.getItem('intensity') || '100')
-    applyThemeToDocument(newEffectiveTheme, intensity)
+    applyThemeToDocument(newEffectiveTheme)
     localStorage.setItem('theme', nextTheme)
   }
 

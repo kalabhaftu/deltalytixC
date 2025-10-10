@@ -26,7 +26,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { cn, parsePositionTime, formatCurrency, formatNumber } from '@/lib/utils'
+import { cn, parsePositionTime, formatCurrency, formatNumber, formatQuantity, formatTradeData } from '@/lib/utils'
 import { Checkbox } from "@/components/ui/checkbox"
 import { formatInTimeZone } from 'date-fns-tz'
 import {
@@ -416,7 +416,7 @@ export function TradeTableReview() {
               <Popover>
                 <PopoverTrigger asChild>
                   <div
-                    className="flex items-center justify-center w-fit min-w-6 px-2 h-6 rounded-full bg-primary/10 text-xs font-medium cursor-pointer hover:bg-primary/20 transition-colors"
+                    className="flex items-center justify-center w-fit min-w-6 px-2 h-6 rounded-full bg-muted text-xs font-medium cursor-pointer hover:bg-muted/80 transition-colors"
                     title={accounts.length === 1 ? accounts[0] : accounts.join(', ')}
                   >
                     {accounts.length === 1 
@@ -620,7 +620,7 @@ export function TradeTableReview() {
         const quantity = row.original.quantity
         return (
           <div className="text-right font-medium">
-            {formatNumber(quantity)}
+            {formatQuantity(quantity)}
           </div>
         )
       },

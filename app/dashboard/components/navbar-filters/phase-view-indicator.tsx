@@ -47,8 +47,8 @@ export function PhaseViewIndicator() {
   return (
     <div className={cn(
       "hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md",
-      "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800",
-      "text-blue-700 dark:text-blue-300"
+      "bg-muted/50 border border-border",
+      "text-foreground"
     )}>
       <Eye className="h-3.5 w-3.5" />
       <span className="text-xs font-medium">Viewing:</span>
@@ -57,7 +57,7 @@ export function PhaseViewIndicator() {
         variant="ghost"
         size="sm"
         onClick={handleClearView}
-        className="h-5 w-5 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+        className="h-5 w-5 p-0 hover:bg-muted/80"
       >
         <X className="h-3 w-3" />
       </Button>

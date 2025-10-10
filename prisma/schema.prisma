@@ -21,7 +21,7 @@ enum TradingModel {
 model Trade {
   id                String        @id @default(uuid())
   accountNumber     String
-  quantity          Int
+  quantity          Float         @default(0)
   entryId           String?       @default("")
   closeId           String?       @default("")
   instrument        String
@@ -91,10 +91,12 @@ model User {
   firstName             String?
   lastName              String?
   accountFilterSettings String? // JSON string storing account filter preferences
+  backtestInputMode     String              @default("manual") // "manual" or "simple"
   accounts              Account[]
   masterAccounts        MasterAccount[] // New relation for master accounts
   dashboardTemplates    DashboardTemplate[]
   groups                Group[]
+  backtestTrades        BacktestTrade[] // Backtesting trades
 
   @@index([email])
   @@schema("public")
@@ -317,5 +319,90 @@ enum PhaseAccountStatus {
   archived
   pending
 
+  @@schema("public")
+}
+
+// Backtesting Enums
+enum BacktestDirection {
+  BUY
+  SELL
+
+  @@schema("public")
+}
+
+enum BacktestOutcome {
+  WIN
+  LOSS
+  BREAKEVEN
+
+  @@schema("public")
+}
+
+enum BacktestSession {
+  ASIAN
+  LONDON
+  NEW_YORK
+
+  @@schema("public")
+}
+
+enum BacktestModel {
+  ICT_2022
+  MSNR
+  TTFM
+  PRICE_ACTION
+  SUPPLY_DEMAND
+  SMART_MONEY
+  CUSTOM
+
+  @@schema("public")
+}
+
+// Backtesting Trade Model
+model BacktestTrade {
+  id                String            @id @default(uuid())
+  userId            String
+  
+  // Core trade data
+  pair              String
+  direction         BacktestDirection
+  outcome           BacktestOutcome
+  session           BacktestSession
+  model             BacktestModel
+  customModel       String?
+  
+  // Risk/Reward and Performance
+  riskRewardRatio   Float
+  entryPrice        Float
+  stopLoss          Float
+  takeProfit        Float
+  exitPrice         Float
+  pnl               Float
+  
+  // Images (6 screenshots + 1 preview)
+  imageOne          String?
+  imageTwo          String?
+  imageThree        String?
+  imageFour         String?
+  imageFive         String?
+  imageSix          String?
+  cardPreviewImage  String?
+  
+  // Metadata
+  notes             String?
+  tags              String[] // Array of tag strings
+  dateExecuted      DateTime
+  backtestDate      DateTime? // When the backtest was performed
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([userId, outcome])
+  @@index([userId, session])
+  @@index([userId, model])
+  @@index([dateExecuted])
   @@schema("public")
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { cn } from '@/lib/utils'
+import { cn, formatPercent } from '@/lib/utils'
 
 interface CircularProgressProps {
   value: number
@@ -72,7 +72,7 @@ export function CircularProgress({
           isGauge ? "bottom-0 left-0 right-0" : "inset-0"
         )}>
           <span className="text-sm font-semibold text-foreground">
-            {value.toFixed(1)}%
+            {formatPercent(value, 1)}
           </span>
         </div>
       )}

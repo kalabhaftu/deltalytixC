@@ -122,8 +122,8 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
                         isCollapsed && !isMobile ? "px-2" : "px-3",
                         isMobile ? "h-12 text-base" : "h-10",
                         isActive 
-                          ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]" 
-                          : "hover:bg-accent/80 hover:shadow-md hover:scale-[1.02] hover:translate-x-1"
+                          ? "bg-muted text-foreground shadow-lg scale-[1.02]" 
+                          : "hover:bg-muted/50 hover:shadow-md hover:scale-[1.02] hover:translate-x-1"
                       )}
                       onClick={() => {
                         onTabChange(item.id)
@@ -168,7 +168,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
             size="sm"
             onClick={toggleCollapsed}
             className={cn(
-              "w-full transition-all duration-300 hover:bg-accent/80 hover:shadow-md",
+              "w-full transition-all duration-300 hover:bg-muted/50 hover:shadow-md",
               isCollapsed ? "px-2" : "px-3"
             )}
           >

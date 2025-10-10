@@ -157,10 +157,10 @@ export default function FileUpload({
         {...getRootProps()} 
         className={cn(
           "h-80 w-full max-w-2xl border-2 border-dashed rounded-lg p-12 text-center transition-all duration-300 ease-in-out",
-          "hover:border-primary/50 group relative",
+          "hover:border-foreground/50 group relative",
           isDragActive 
-            ? "border-primary bg-primary/5 scale-[0.99]" 
-            : "border-gray-300 hover:bg-gray-50/50 dark:hover:bg-gray-900/50",
+            ? "border-foreground bg-muted/30 scale-[0.99]" 
+            : "border-border hover:bg-muted/20",
           "cursor-pointer flex items-center justify-center"
         )}
       >
@@ -170,13 +170,13 @@ export default function FileUpload({
             className={cn(
               "h-14 w-14 transition-all duration-300 ease-bounce",
               isDragActive 
-                ? "text-primary scale-110 -translate-y-2" 
-                : "text-muted-foreground group-hover:text-primary group-hover:scale-110 group-hover:-translate-y-2"
+                ? "text-foreground scale-110 -translate-y-2" 
+                : "text-muted-foreground group-hover:text-foreground group-hover:scale-110 group-hover:-translate-y-2"
             )} 
           />
           {isDragActive ? (
             <div className="space-y-2 relative">
-              <p className="text-xl font-medium text-primary animate-in fade-in slide-in-from-bottom-2">
+              <p className="text-xl font-medium text-foreground animate-in fade-in slide-in-from-bottom-2">
                 Drop CSV files here
               </p>
               <p className="text-sm text-muted-foreground animate-in fade-in slide-in-from-bottom-3">
@@ -185,7 +185,7 @@ export default function FileUpload({
             </div>
           ) : (
             <div className="space-y-2 relative">
-              <p className="text-xl font-medium group-hover:text-primary transition-colors">
+              <p className="text-xl font-medium group-hover:text-foreground transition-colors">
                 Upload CSV Files
               </p>
               <p className="text-sm text-muted-foreground">
@@ -204,8 +204,8 @@ export default function FileUpload({
               key={index} 
               className={cn(
                 "flex items-center justify-between",
-                "bg-gray-100 dark:bg-gray-800 rounded-lg",
-                "p-3 hover:bg-gray-200 dark:hover:bg-gray-700",
+                "bg-muted rounded-lg",
+                "p-3 hover:bg-muted/80",
                 "transition-all duration-200 ease-in-out",
                 "animate-in slide-in-from-bottom fade-in",
                 "group"
@@ -213,8 +213,8 @@ export default function FileUpload({
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="flex items-center space-x-3">
-                <div className="bg-primary/10 p-2 rounded-md group-hover:bg-primary/20 transition-colors">
-                  <FileIcon className="h-5 w-5 text-primary" />
+                <div className="bg-muted/50 p-2 rounded-md group-hover:bg-muted transition-colors">
+                  <FileIcon className="h-5 w-5 text-foreground" />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{file.name}</span>

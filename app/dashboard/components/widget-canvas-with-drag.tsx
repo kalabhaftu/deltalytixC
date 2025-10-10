@@ -81,7 +81,7 @@ function SortableWidget({
         <div
           {...attributes}
           {...listeners}
-          className="absolute top-2 left-2 cursor-move z-10 bg-background/80 backdrop-blur-sm rounded p-1 hover:bg-accent/80 transition-colors"
+          className="absolute top-2 left-2 cursor-move z-10 bg-background/80 backdrop-blur-sm rounded p-1 hover:bg-muted/50 transition-colors"
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>

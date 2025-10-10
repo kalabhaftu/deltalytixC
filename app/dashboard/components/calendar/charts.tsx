@@ -142,7 +142,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
         <div className="bg-background p-2 border rounded shadow-sm text-xs md:text-sm">
           <p className="font-semibold">{isWeekly ? data.date : data.time}</p>
           {payload.map((entry: any, index: number) => (
-            <p key={index} className={`font-bold ${entry.dataKey === 'pnl' ? (entry.value >= 0 ? 'text-green-600' : 'text-red-600') : 'text-blue-600'}`}>
+            <p key={index} className={`font-bold ${entry.dataKey === 'pnl' ? (entry.value >= 0 ? 'text-green-600' : 'text-red-600') : 'text-foreground'}`}>
               {entry.name}: {formatCurrency(entry.value)}
             </p>
           ))}

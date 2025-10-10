@@ -37,6 +37,114 @@ export function formatPercentage(value: number, maxDecimals: number = 1): string
   return `${cleanNumber}%`
 }
 
+// Utility function to format percent values that are already in percentage form (e.g., 102.127 -> "102.13%")
+export function formatPercent(value: number, maxDecimals: number = 2): string {
+  if (isNaN(value) || !isFinite(value)) return '0%'
+  
+  const formatted = value.toFixed(maxDecimals)
+  const cleanNumber = parseFloat(formatted)
+  return `${cleanNumber}%`
+}
+
+// Utility function to format trade quantity/lots - removes trailing zeros intelligently
+export function formatQuantity(value: number | string | null | undefined): string {
+  if (value === null || value === undefined) return '0'
+  const numValue = typeof value === 'string' ? parseFloat(value) : value
+  if (isNaN(numValue) || !isFinite(numValue)) return '0'
+  
+  // Use up to 4 decimal places but remove trailing zeros
+  const formatted = numValue.toFixed(4)
+  const cleanNumber = parseFloat(formatted)
+  return cleanNumber.toString()
+}
+
+// Get decimal precision based on instrument/pair
+export function getPricePrecision(instrument: string): number {
+  if (!instrument) return 5
+  
+  const upper = instrument.toUpperCase()
+  
+  // JPY pairs use 3 decimals (2 pips + 1 pipette)
+  if (upper.includes('JPY')) {
+    return 3
+  }
+  
+  // All other pairs use 5 decimals (4 pips + 1 pipette)
+  return 5
+}
+
+// Format price based on instrument type
+export function formatPrice(price: string | number, instrument: string): string {
+  if (!price) return '0'
+  const numPrice = typeof price === 'string' ? parseFloat(price) : price
+  if (isNaN(numPrice) || !isFinite(numPrice)) return '0'
+  
+  const precision = getPricePrecision(instrument)
+  return numPrice.toFixed(precision)
+}
+
+// Unified trade data formatter - single source of truth for all trade displays
+export function formatTradeData(trade: Trade) {
+  const instrument = trade.instrument || ''
+  
+  return {
+    // Core trade info
+    instrument: instrument || 'N/A',
+    accountNumber: trade.accountNumber || 'N/A',
+    side: trade.side?.toUpperCase() || 'N/A',
+    
+    // Quantities and prices - smart formatting based on instrument type
+    quantity: formatQuantity(trade.quantity),
+    quantityWithUnit: `${formatQuantity(trade.quantity)} lots`,
+    entryPrice: formatPrice(trade.entryPrice, instrument),
+    closePrice: trade.closePrice ? formatPrice(trade.closePrice, instrument) : 'Open',
+    entryPriceCurrency: `$${formatPrice(trade.entryPrice, instrument)}`,
+    closePriceCurrency: trade.closePrice ? `$${formatPrice(trade.closePrice, instrument)}` : 'Open',
+    
+    // P&L and commission
+    pnl: trade.pnl || 0,
+    pnlFormatted: formatCurrency(trade.pnl || 0),
+    commission: trade.commission || 0,
+    commissionFormatted: formatCurrency(trade.commission || 0),
+    netPnl: (trade.pnl || 0) - (trade.commission || 0),
+    netPnlFormatted: formatCurrency((trade.pnl || 0) - (trade.commission || 0)),
+    
+    // Dates and times
+    entryDate: trade.entryDate ? new Date(trade.entryDate) : null,
+    closeDate: trade.closeDate ? new Date(trade.closeDate) : null,
+    entryDateFormatted: trade.entryDate ? new Date(trade.entryDate).toLocaleString() : 'N/A',
+    closeDateFormatted: trade.closeDate ? new Date(trade.closeDate).toLocaleString() : 'Open',
+    entryDateShort: trade.entryDate ? new Date(trade.entryDate).toLocaleDateString() : 'N/A',
+    closeDateShort: trade.closeDate ? new Date(trade.closeDate).toLocaleDateString() : 'Open',
+    
+    // Time in position
+    timeInPosition: trade.timeInPosition || 0,
+    timeInPositionFormatted: parsePositionTime(trade.timeInPosition || 0),
+    
+    // Trade status helpers
+    isWin: (trade.pnl || 0) - (trade.commission || 0) > 0,
+    isLoss: (trade.pnl || 0) - (trade.commission || 0) < 0,
+    isBreakEven: (trade.pnl || 0) - (trade.commission || 0) === 0,
+    isOpen: !trade.closeDate,
+    isClosed: !!trade.closeDate,
+    
+    // Additional data
+    stopLoss: (trade as any).stopLoss || null,
+    takeProfit: (trade as any).takeProfit || null,
+    closeReason: (trade as any).closeReason || null,
+    comment: trade.comment || null,
+    
+    // IDs
+    id: trade.id,
+    entryId: trade.entryId || null,
+    closeId: trade.closeId || null,
+    groupId: trade.groupId || null,
+    
+    // Raw data for custom formatting
+    raw: trade
+  }
+}
+
 export function parsePositionTime(timeInSeconds: number): string {
   const hours = Math.floor(timeInSeconds / 3600);
   const minutesLeft = Math.floor((timeInSeconds - (hours * 3600)) / 60);

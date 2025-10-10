@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, DollarSign, Activity, Calendar, CheckCircle2, XCircle, Clock, Trophy } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatPercent } from "@/lib/utils"
 
 interface PhaseData {
   id: string
@@ -45,7 +45,7 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
 
   const getStatusIcon = () => {
     switch (phase.status) {
-      case 'active': return <Clock className="h-5 w-5 text-blue-500" />
+      case 'active': return <Clock className="h-5 w-5 text-foreground" />
       case 'archived':
       case 'passed': return <CheckCircle2 className="h-5 w-5 text-green-500" />
       case 'failed': return <XCircle className="h-5 w-5 text-red-500" />
@@ -90,7 +90,7 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card className={cn(
         "transition-all",
-        phase.status === 'active' && "border-blue-500/50 bg-blue-50/50 dark:bg-blue-950/20",
+        phase.status === 'active' && "border-foreground/20 bg-muted/30",
         phase.status === 'failed' && "border-red-500/30 bg-red-50/30 dark:bg-red-950/10"
       )}>
         <CollapsibleTrigger asChild>
@@ -152,7 +152,7 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">Win Rate</span>
                   </div>
-                  <p className="text-2xl font-bold">{winRate.toFixed(1)}%</p>
+                  <p className="text-2xl font-bold">{formatPercent(winRate, 1)}</p>
                   <p className="text-xs text-muted-foreground">{winningTrades} wins</p>
                 </div>
 
@@ -174,14 +174,14 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Profit Target Progress</span>
                     <span className="font-medium">
-                      {formatCurrency(totalPnL)} / {formatCurrency(profitTargetAmount)} ({profitProgress.toFixed(1)}%)
+                      {formatCurrency(totalPnL)} / {formatCurrency(profitTargetAmount)} ({formatPercent(profitProgress, 1)})
                     </span>
                   </div>
                   <div className="w-full bg-secondary rounded-full h-2">
                     <div
                       className={cn(
                         "h-2 rounded-full transition-all",
-                        profitProgress >= 100 ? "bg-green-500" : "bg-blue-500"
+                        profitProgress >= 100 ? "bg-green-500" : "bg-foreground"
                       )}
                       style={{ width: `${Math.min(profitProgress, 100)}%` }}
                     />
@@ -193,15 +193,15 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
                 <div>
                   <p className="text-xs text-muted-foreground">Profit Target</p>
-                  <p className="text-sm font-medium">{phase.profitTargetPercent}% ({formatCurrency(profitTargetAmount)})</p>
+                  <p className="text-sm font-medium">{formatPercent(phase.profitTargetPercent)} ({formatCurrency(profitTargetAmount)})</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Daily Drawdown</p>
-                  <p className="text-sm font-medium">{phase.dailyDrawdownPercent}%</p>
+                  <p className="text-sm font-medium">{formatPercent(phase.dailyDrawdownPercent)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Max Drawdown</p>
-                  <p className="text-sm font-medium">{phase.maxDrawdownPercent}%</p>
+                  <p className="text-sm font-medium">{formatPercent(phase.maxDrawdownPercent)}</p>
                 </div>
               </div>
 

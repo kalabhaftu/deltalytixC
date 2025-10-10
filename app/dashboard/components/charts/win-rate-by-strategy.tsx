@@ -40,7 +40,12 @@ interface StrategyWinRate {
   consistency: number
 }
 
-const COLORS = ['#16a34a', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16']
+// Use consistent chart colors instead of hardcoded values
+const getStrategyColor = (winRate: number, index: number) => {
+  if (winRate >= 60) return 'hsl(var(--chart-profit))'  // Green for good win rates
+  if (winRate >= 40) return '#f59e0b'  // Orange for medium win rates  
+  return 'hsl(var(--chart-loss))'  // Red for poor win rates
+}
 
 export default function WinRateByStrategy({ size = 'small-long' }: WinRateByStrategyProps) {
   const { formattedTrades } = useData()
@@ -136,11 +141,9 @@ export default function WinRateByStrategy({ size = 'small-long' }: WinRateByStra
     return `${entry.winRate.toFixed(0)}%`
   }
 
-  // Color helper for win rate
+  // Color helper for win rate (consistent with pie chart colors)
   const getWinRateColor = (winRate: number) => {
-    if (winRate >= 60) return 'hsl(var(--chart-profit))'
-    if (winRate >= 40) return '#f59e0b'
-    return 'hsl(var(--chart-loss))'
+    return getStrategyColor(winRate, 0) // Use same logic as pie chart
   }
 
   return (
@@ -216,7 +219,7 @@ export default function WinRateByStrategy({ size = 'small-long' }: WinRateByStra
                     labelLine={false}
                   >
                     {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={getStrategyColor(entry.winRate, index)} />
                     ))}
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />

@@ -28,7 +28,7 @@ export function ImportDialogHeader({ step, importType }: ImportDialogHeaderProps
       <div className="space-y-1 pt-1">
         <div className="w-full bg-secondary h-1.5 rounded-full">
           <div
-            className="bg-primary h-1.5 rounded-full transition-all duration-300 ease-in-out"
+            className="bg-foreground h-1.5 rounded-full transition-all duration-300 ease-in-out"
             style={{
               width: `${(currentStepIndex / (totalSteps - 1)) * 100}%`
             }}
@@ -40,7 +40,7 @@ export function ImportDialogHeader({ step, importType }: ImportDialogHeaderProps
               key={s.id}
               className={cn(
                 "transition-colors whitespace-nowrap",
-                currentStepIndex >= index && "text-primary font-medium"
+                currentStepIndex >= index && "text-foreground font-medium"
               )}
             >
               {s.title}

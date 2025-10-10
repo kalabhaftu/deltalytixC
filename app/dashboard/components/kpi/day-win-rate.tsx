@@ -33,7 +33,7 @@ export default function DayWinRate({ size }: DayWinRateProps) {
   }
 
   return (
-    <Card className="w-full h-24 border border-border/20 shadow-sm bg-white dark:bg-gray-900">
+    <Card className="w-full h-24">
       <CardContent className="p-4 h-full flex items-center justify-between">
         <div className="flex flex-col">
           <div className="flex items-center gap-2 mb-2">

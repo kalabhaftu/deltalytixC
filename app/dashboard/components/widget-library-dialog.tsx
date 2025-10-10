@@ -147,7 +147,7 @@ export default function WidgetLibraryDialog({
                       <Card
                         key={type}
                         className={cn(
-                          "hover:bg-accent/50 transition-colors",
+                          "hover:bg-muted/50 transition-colors",
                           isUsed && "opacity-60"
                         )}
                       >

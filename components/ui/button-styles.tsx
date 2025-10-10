@@ -33,7 +33,7 @@ export function PrimaryButton({
 }: ActionButtonProps) {
   return (
     <Button
-      variant="default"
+      variant="outline"
       disabled={disabled || loading}
       className={cn('min-w-[100px]', className)}
       {...props}
@@ -259,11 +259,11 @@ export function NavButton({
 }: ButtonProps & { active?: boolean }) {
   return (
     <Button
-      variant={active ? "default" : "ghost"}
+      variant="ghost"
       className={cn(
         'justify-start transition-all duration-200',
-        active && 'bg-primary text-primary-foreground shadow-sm',
-        !active && 'hover:bg-accent hover:text-accent-foreground',
+        active && 'bg-muted text-foreground',
+        !active && 'hover:bg-muted/50',
         className
       )}
       {...props}

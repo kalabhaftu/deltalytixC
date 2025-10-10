@@ -15,7 +15,7 @@ import {
 import { VisuallyHidden } from '@/components/ui/visually-hidden'
 import { Badge } from '@/components/ui/badge'
 import { Eye, Calendar, Clock, TrendingUp, TrendingDown, DollarSign, Hash, User, X } from 'lucide-react'
-import { cn, formatCurrency, formatNumber } from '@/lib/utils'
+import { cn, formatCurrency, formatNumber, formatQuantity, formatTradeData } from '@/lib/utils'
 import Image from 'next/image'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 
@@ -29,6 +29,9 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null)
 
   if (!trade) return null
+
+  // Use unified trade data formatter
+  const formatted = formatTradeData(trade)
 
   const images = [
     trade.imageBase64,
@@ -96,18 +99,18 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 text-sm">
                   <div>
                     <Label className="text-sm text-muted-foreground">Instrument</Label>
-                    <p className="font-medium text-lg">{trade.instrument}</p>
+                    <p className="font-medium text-lg">{formatted.instrument}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">Side</Label>
                     <Badge variant={trade.side?.toLowerCase() === 'buy' ? 'default' : 'secondary'}>
-                      {trade.side?.toUpperCase()}
+                      {formatted.side}
                     </Badge>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">Quantity</Label>
                     <p className="font-medium">
-                      {trade.quantity}
+                      {formatted.quantityWithUnit}
                     </p>
                   </div>
                   <div>
@@ -214,7 +217,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                         return (
                           <div key={index} className="relative group">
                             <div
-                              className="aspect-video relative rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-primary transition-colors"
+                              className="aspect-video relative rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-foreground transition-colors"
                               onClick={() => setSelectedImage(image)}
                             >
                               <Image

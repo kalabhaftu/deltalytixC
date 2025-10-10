@@ -31,7 +31,7 @@ export function PerformanceMetrics({ metrics, className }: PerformanceMetricsPro
         <div className="grid grid-cols-1 gap-4">
           <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-blue-600" />
+              <Calendar className="h-4 w-4 text-foreground" />
               <span className="text-sm font-medium">Daily P&L</span>
             </div>
             <div className="text-right">

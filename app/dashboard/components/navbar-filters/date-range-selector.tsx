@@ -178,7 +178,7 @@ export function DateRangeSelector({ onSave }: DateRangeSelectorProps) {
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="w-full justify-start text-left font-normal h-10 sm:h-11 text-sm border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="w-full justify-start text-left font-normal h-10 sm:h-11 text-sm border-border bg-background hover:bg-muted/50 transition-colors"
             >
               <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
               <span className="text-foreground">

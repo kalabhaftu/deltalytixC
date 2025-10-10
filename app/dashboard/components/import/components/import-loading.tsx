@@ -112,7 +112,7 @@ export function ImportLoading() {
         className="relative"
       >
         <div className="absolute inset-0 blur-lg opacity-40">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-gradient-to-r from-primary via-blue-500 to-purple-500 animate-pulse" />
+          <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-foreground/30 animate-pulse" />
         </div>
         <motion.div
           animate={{ 
@@ -123,9 +123,9 @@ export function ImportLoading() {
             repeat: Infinity, 
             ease: "linear" 
           }}
-          className="relative z-10 w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 backdrop-blur-sm border border-primary/30 flex items-center justify-center"
+          className="relative z-10 w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-muted/20 backdrop-blur-sm border border-border flex items-center justify-center"
         >
-          <IconComponent className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-primary" />
+          <IconComponent className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-foreground" />
         </motion.div>
       </motion.div>
 
@@ -134,7 +134,7 @@ export function ImportLoading() {
         <motion.h3
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent"
+          className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground"
         >
           Importing Your Trades
         </motion.h3>
@@ -152,7 +152,7 @@ export function ImportLoading() {
       <div className="w-full max-w-xs sm:max-w-sm space-y-1">
         <div className="h-1 sm:h-1.5 bg-muted rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-gradient-to-r from-primary via-blue-500 to-purple-500"
+            className="h-full bg-foreground"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.3 }}
@@ -177,7 +177,7 @@ export function ImportLoading() {
           transition={{ duration: 0.5 }}
           className="hidden xl:block max-w-lg text-center space-y-1.5 relative px-4"
         >
-          <div className="absolute -inset-4 bg-gradient-to-r from-primary/10 via-blue-500/10 to-purple-500/10 blur-xl rounded-lg" />
+          <div className="absolute -inset-4 bg-muted/20 blur-xl rounded-lg" />
           <blockquote className="relative text-sm font-medium italic text-foreground/90">
             &ldquo;{currentQuote.text}&rdquo;
           </blockquote>
@@ -192,7 +192,7 @@ export function ImportLoading() {
         {[...Array(3)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-1 h-1 rounded-full bg-primary/20"
+            className="absolute w-1 h-1 rounded-full bg-foreground/20"
             initial={{
               x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
               y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800),
@@ -221,7 +221,7 @@ export function ImportLoading() {
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 border-2 border-primary border-t-transparent rounded-full flex-shrink-0"
+          className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 border-2 border-foreground border-t-transparent rounded-full flex-shrink-0"
         />
         <span className="hidden lg:inline">Checking for duplicates • Linking to account • Validating data</span>
         <span className="lg:hidden">Processing...</span>

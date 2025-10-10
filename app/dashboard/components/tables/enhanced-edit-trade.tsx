@@ -29,6 +29,28 @@ import { useUserStore } from '@/store/user-store'
 import { formatCurrency } from '@/lib/utils'
 import { DataSerializer } from '@/lib/data-serialization'
 
+// Utility function to format trading model names consistently
+const formatModelName = (model: string): string => {
+  // Handle special cases for default models
+  if (model.includes('ict') || model.includes('ICT')) {
+    return 'ICT 2022'
+  }
+  if (model.includes('msnr') || model === 'MSNR') {
+    return 'MSNR'
+  }
+  if (model.includes('ttfm') || model === 'TTFM') {
+    return 'TTFM'
+  }
+  if (model.includes('price') || model.includes('PRICE')) {
+    return 'Price Action'
+  }
+  
+  // For custom models, use proper title case
+  return model.split(/[-_\s]+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
+
 // Utility function to get trading models with proper enum mapping
 const getTradingModels = () => {
   const defaultModels = ['ict-2022', 'msnr', 'ttfm', 'price-action']
@@ -438,7 +460,7 @@ export default function EnhancedEditTrade({
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">Quantity</Label>
-                <p className="font-medium">{trade.quantity}</p>
+                <p className="font-medium">{Number(trade.quantity).toFixed(2)} lots</p>
               </div>
               {/* Close Reason (if available) */}
               {(trade as any).closeReason && (
@@ -490,7 +512,7 @@ export default function EnhancedEditTrade({
                         variant="outline"
                         className="w-full justify-between"
                       >
-                        {watchedValues.tradingModel || "Select a trading model..."}
+                        {watchedValues.tradingModel ? formatModelName(watchedValues.tradingModel) : "Select a trading model..."}
                         <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isTradingModelOpen ? 'rotate-180' : ''}`} />
                       </Button>
                     </CollapsibleTrigger>
@@ -506,7 +528,7 @@ export default function EnhancedEditTrade({
                               setIsTradingModelOpen(false)
                             }}
                           >
-                            {model}
+                            {formatModelName(model)}
                           </Button>
                         ))}
                       </div>
@@ -883,7 +905,7 @@ export default function EnhancedEditTrade({
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Card Preview Image</Label>
                   <div className="relative">
-                    <div className="border-2 border-dashed rounded-lg p-4 text-center aspect-video flex items-center justify-center min-h-[200px] border-primary/30 bg-primary/5">
+                    <div className="border-2 border-dashed rounded-lg p-4 text-center aspect-video flex items-center justify-center min-h-[200px] border-border bg-muted/30">
                       <input
                         type="file"
                         accept="image/*"
@@ -923,14 +945,14 @@ export default function EnhancedEditTrade({
                               View
                             </Button>
                           </div>
-                          <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium">
+                          <div className="absolute top-2 left-2 bg-foreground text-background px-2 py-1 rounded text-xs font-medium">
                             Preview
                           </div>
                         </div>
                       ) : (
                         <label
                           htmlFor="card-preview"
-                          className="cursor-pointer flex flex-col items-center text-primary hover:text-primary/80 transition-colors"
+                          className="cursor-pointer flex flex-col items-center text-foreground hover:text-foreground/80 transition-colors"
                         >
                           <Camera className="w-8 h-8 mb-2" />
                           <span className="text-sm font-medium">Upload Card Preview</span>

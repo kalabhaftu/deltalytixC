@@ -23,7 +23,7 @@ import {
   FileText,
   Download
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatTradeData } from "@/lib/utils"
 import { AccountStatus, PhaseType } from "@/types/prop-firm"
 
 interface TradeData {
@@ -412,7 +412,7 @@ export default function AccountTradesPage() {
                           
                           <div>
                             <p className="text-xs text-muted-foreground">Quantity</p>
-                            <p className="font-medium">{trade.quantity}</p>
+                            <p className="font-medium">{formatTradeData(trade as any).quantityWithUnit}</p>
                           </div>
                           
                           <div>
@@ -497,7 +497,7 @@ export default function AccountTradesPage() {
                             
                             <div>
                               <p className="text-xs text-muted-foreground">Quantity</p>
-                              <p className="font-medium">{trade.quantity}</p>
+                              <p className="font-medium">{Number(trade.quantity).toFixed(2)} lots</p>
                             </div>
                             
                             <div>
@@ -579,7 +579,7 @@ export default function AccountTradesPage() {
                             
                             <div>
                               <p className="text-xs text-muted-foreground">Quantity</p>
-                              <p className="font-medium">{trade.quantity}</p>
+                              <p className="font-medium">{Number(trade.quantity).toFixed(2)} lots</p>
                             </div>
                             
                             <div>

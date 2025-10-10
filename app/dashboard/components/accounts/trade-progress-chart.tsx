@@ -249,7 +249,7 @@ export function TradeProgressChart({
                           <span className="text-muted-foreground">{data.date}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-blue-600">${data.balance.toLocaleString()}</span>
+                          <span className="text-foreground font-semibold">${data.balance.toLocaleString()}</span>
                           {!data.isPayout && !data.isReset && (
                             <span className={cn(
                               "text-sm",
@@ -261,7 +261,7 @@ export function TradeProgressChart({
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-red-600">DD: ${data.drawdownLevel.toLocaleString()}</span>
-                          <span className="text-blue-600">High: ${data.highestBalance.toLocaleString()}</span>
+                          <span className="text-foreground font-semibold">High: ${data.highestBalance.toLocaleString()}</span>
                         </div>
                         {data.isReset && (
                           <div className="flex items-center gap-2 text-red-500">

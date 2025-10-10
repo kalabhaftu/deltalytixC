@@ -385,7 +385,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
       <ScrollArea className="h-[220px] sm:h-[260px] pr-2">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary mb-2 sm:mb-3"></div>
+            <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-foreground mb-2 sm:mb-3"></div>
             <p className="text-xs sm:text-sm text-muted-foreground">Loading accounts...</p>
           </div>
         ) : totalAccounts === 0 ? (
@@ -405,7 +405,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
                     <CollapsibleTrigger asChild>
                       <Button
                         variant="ghost"
-                        className="flex-1 justify-between p-2 h-auto text-left hover:bg-accent/50"
+                        className="flex-1 justify-between p-2 h-auto text-left hover:bg-muted/50"
                       >
                         <div className="flex items-center gap-2">
                           {expandedAccounts.has(accountName) ? (

@@ -193,9 +193,9 @@ export function RealtimeStatusIndicatorV2({
   // Helper functions
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-blue-500'
+      case 'active': return 'bg-foreground'
       case 'passed': return 'bg-green-500'
-      case 'funded': return 'bg-purple-500'
+      case 'funded': return 'bg-foreground'
       case 'failed': return 'bg-red-500'
       default: return 'bg-gray-500'
     }

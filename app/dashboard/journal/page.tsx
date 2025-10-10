@@ -282,7 +282,7 @@ export default function JournalPage() {
              `${filteredTrades.length} trades loaded`}
           </span>
           {loading && (
-            <span className="text-blue-600 text-xs">Loading trades...</span>
+            <span className="text-foreground text-xs">Loading trades...</span>
           )}
           {debugInfo && (
             <Button

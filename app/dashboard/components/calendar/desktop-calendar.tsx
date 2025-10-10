@@ -82,7 +82,7 @@ function RenewalBadge({ renewals }: { renewals: Account[] }) {
           variant="outline"
           className={cn(
             "h-4 px-1.5 text-[8px] sm:text-[9px] font-medium cursor-pointer relative z-0 w-auto justify-center items-center gap-1",
-            "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800 dark:hover:bg-blue-900/30",
+            "bg-muted/50 text-foreground border-border hover:bg-muted dark:bg-muted/30 dark:text-foreground dark:border-border dark:hover:bg-muted/50",
             "transition-all duration-200 ease-in-out",
             "hover:scale-110 hover:shadow-md",
             "active:scale-95"
@@ -111,7 +111,7 @@ function RenewalBadge({ renewals }: { renewals: Account[] }) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold text-sm text-blue-600 dark:text-blue-400">
+                  <div className="font-semibold text-sm text-foreground">
                     {account.startingBalance != null && formatCurrency(account.startingBalance, { maximumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -379,7 +379,7 @@ export default function CalendarPnl({ calendarData, isMini = false }: CalendarPn
                             ? "bg-red-50/60 dark:bg-red-950/30 border-red-100/80 dark:border-red-900/40"
                             : "bg-card border-border",
                         !isCurrentMonth && "opacity-50",
-                        isToday(date) && "border-blue-500 bg-blue-500/5 ring-1 ring-blue-500/20",
+                        isToday(date) && "border-foreground bg-muted/30 ring-1 ring-border",
                       )}
                       onClick={() => {
                         if (!isMini && dayData) {

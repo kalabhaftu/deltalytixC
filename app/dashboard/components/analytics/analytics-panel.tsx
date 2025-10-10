@@ -66,7 +66,7 @@ export function AnalyticsPanel({ data, className }: AnalyticsPanelProps) {
 
         <div className="flex justify-between items-center pt-4 border-t">
           <div className="flex items-center gap-2">
-            <Award className="h-4 w-4 text-blue-600" />
+            <Award className="h-4 w-4 text-foreground" />
             <span className="text-sm text-muted-foreground">Total P&L</span>
           </div>
           <span className={`font-semibold ${mockMetrics.totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>

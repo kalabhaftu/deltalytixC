@@ -63,7 +63,7 @@ export default function AccountBalancePnl({ size }: AccountBalancePnlProps) {
   }
 
   return (
-    <Card className="w-full h-24 border border-border/20 shadow-sm bg-white dark:bg-gray-900">
+    <Card className="w-full h-24">
       <CardContent className="p-4 h-full flex flex-col justify-center">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">

@@ -20,7 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Building2, DollarSign, Target, Shield, CheckCircle, ArrowRight, Info, AlertTriangle, TrendingDown, Calendar, Percent, HelpCircle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { cn } from "@/lib/utils"
+import { cn, formatPercent } from "@/lib/utils"
 import { toast } from "sonner"
 import { clearAccountsCache } from "@/hooks/use-accounts"
 
@@ -889,7 +889,7 @@ export function EnhancedCreateAccountDialog({
                                     <SelectContent>
                                       <SelectItem value="static">
                                         <div className="flex items-center gap-2">
-                                          <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                                          <div className="w-2 h-2 bg-foreground rounded-full" />
                                           Static (from starting balance)
                                         </div>
                                       </SelectItem>
@@ -1266,10 +1266,10 @@ export function EnhancedCreateAccountDialog({
                       <div className="space-y-2 text-sm">
                         <div><strong>Phase 1 ID:</strong> {watch('phase1AccountId')}</div>
                         {watchedEvaluationType !== 'Instant' && (
-                          <div><strong>Phase 1 Profit Target:</strong> {watch('phase1ProfitTargetPercent')}%</div>
+                          <div><strong>Phase 1 Profit Target:</strong> {formatPercent(watch('phase1ProfitTargetPercent') || 0)}</div>
                         )}
-                        <div><strong>Phase 1 Max Drawdown:</strong> {watch('phase1MaxDrawdownPercent')}%</div>
-                        <div><strong>Profit Split:</strong> {watch('fundedProfitSplitPercent')}%</div>
+                        <div><strong>Phase 1 Max Drawdown:</strong> {formatPercent(watch('phase1MaxDrawdownPercent') || 0)}</div>
+                        <div><strong>Profit Split:</strong> {formatPercent(watch('fundedProfitSplitPercent') || 0)}</div>
                       </div>
                     </CardContent>
                   </Card>

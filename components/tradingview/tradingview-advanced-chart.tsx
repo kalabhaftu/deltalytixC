@@ -160,10 +160,10 @@ export function TradingViewAdvancedChart({
   return (
     <div className={className} style={{ height }}>
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 z-10">
+        <div className="absolute inset-0 flex items-center justify-center bg-muted z-10">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading advanced chart...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto mb-2"></div>
+            <p className="text-muted-foreground">Loading advanced chart...</p>
           </div>
         </div>
       )}

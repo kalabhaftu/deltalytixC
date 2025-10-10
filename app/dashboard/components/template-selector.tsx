@@ -122,7 +122,7 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-8 px-2 hover:bg-accent/80 transition-all duration-200"
+              className="h-8 px-2 hover:bg-muted/50 transition-all duration-200"
             >
               <LayoutTemplate className="h-4 w-4" />
               <span className="sr-only">Template options</span>
@@ -150,15 +150,15 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
                   <div
                     key={template.id}
                     className={cn(
-                      "flex items-center justify-between p-2 rounded-md hover:bg-accent/80 transition-colors cursor-pointer",
-                      activeTemplate?.id === template.id && "bg-accent"
+                      "flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer",
+                      activeTemplate?.id === template.id && "bg-muted"
                     )}
                     onClick={() => !template.isActive && handleTemplateSwitch(template.id)}
                   >
                     <div className="flex items-center gap-2 flex-1">
                       <span className="text-sm">{template.name}</span>
                       {template.isDefault && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-foreground">
                           Default
                         </span>
                       )}
@@ -170,16 +170,18 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
                     </div>
                     
                     <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 hover:bg-primary/20"
-                        onClick={(e) => handleEditTemplate(template, e)}
-                        disabled={!template.isActive || template.isDefault}
-                        title={template.isDefault ? 'Default template cannot be edited' : 'Edit template'}
-                      >
-                        <Pencil className="h-3 w-3 text-muted-foreground" />
-                      </Button>
+                      {!template.isDefault && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 hover:bg-muted/80"
+                          onClick={(e) => handleEditTemplate(template, e)}
+                          disabled={!template.isActive}
+                          title="Edit template"
+                        >
+                          <Pencil className="h-3 w-3 text-muted-foreground" />
+                        </Button>
+                      )}
                       
                       {!template.isDefault && (
                         <Button

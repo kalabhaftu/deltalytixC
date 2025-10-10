@@ -1,0 +1,72 @@
+// Backtesting specific types - independent from trading journal types
+
+export type BacktestDirection = 'BUY' | 'SELL'
+export type BacktestOutcome = 'WIN' | 'LOSS' | 'BREAKEVEN'
+export type BacktestSession = 'ASIAN' | 'LONDON' | 'NEW_YORK'
+export type BacktestModel = 'ICT_2022' | 'MSNR' | 'TTFM' | 'PRICE_ACTION' | 'SUPPLY_DEMAND' | 'SMART_MONEY' | 'CUSTOM'
+
+export interface BacktestTrade {
+  id: string
+  
+  // Core trade data
+  pair: string // e.g., EUR/USD, NAS100, GOLD
+  direction: BacktestDirection
+  outcome: BacktestOutcome
+  session: BacktestSession
+  model: BacktestModel
+  customModel?: string // For custom models
+  
+  // Risk/Reward and Performance
+  riskRewardRatio: number // e.g., 1.5 for 1:1.5
+  entryPrice: number
+  stopLoss: number
+  takeProfit: number
+  exitPrice: number
+  pnl: number // Profit or Loss amount
+  
+  // Images
+  images: string[] // Array of image URLs/base64
+  cardPreviewImage?: string
+  
+  // Metadata
+  notes?: string
+  dateExecuted: Date
+  createdAt: Date
+  updatedAt: Date
+  
+  // Additional fields
+  tags?: string[]
+  backtestDate?: Date // When the backtest was performed
+}
+
+export interface BacktestStats {
+  totalBacktests: number
+  winRate: number
+  averageRR: number
+  totalPnL: number
+  bestTrade: number
+  worstTrade: number
+  winCount: number
+  lossCount: number
+  breakevenCount: number
+}
+
+export interface BacktestFormData {
+  pair: string
+  direction: BacktestDirection
+  session: BacktestSession
+  model: BacktestModel
+  customModel?: string
+  
+  entryPrice: number
+  stopLoss: number
+  takeProfit: number
+  exitPrice: number
+  
+  outcome: BacktestOutcome
+  notes?: string
+  images?: File[]
+  cardPreviewImage?: File
+  tags?: string[]
+}
+

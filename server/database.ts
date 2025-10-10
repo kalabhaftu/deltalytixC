@@ -256,7 +256,7 @@ export async function getTradesAction(userId: string | null = null, options?: {
     }
 
     const page = options?.page || 1
-    const limit = options?.limit || 100
+    const limit = options?.limit || 100000 // Load all trades by default
     const offset = options?.offset || (page - 1) * limit
 
     // PERFORMANCE OPTIMIZATION: Use paginated queries for better memory efficiency

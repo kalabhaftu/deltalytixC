@@ -225,7 +225,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                                         autoComplete="email"
                                         autoCorrect="off"
                                         disabled={isLoading || isEmailSent || authMethod === 'discord' || authMethod === 'google'}
-                                        className="transition-all duration-200 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                        className="h-12 transition-all duration-200 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                                         {...field}
                                     />
                                 </FormControl>
@@ -237,7 +237,8 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                         <Button
                             disabled={isLoading || countdown > 0 || authMethod === 'discord' || authMethod === 'google'}
                             type="submit"
-                            className="transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                            variant="outline"
+                            className="h-12 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] hover:bg-muted/50"
                         >
                             {isLoading && authMethod === 'email' && (
                                 <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
@@ -356,34 +357,36 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                             </span>
                         </div>
                     </div>
-            <Button
-                variant="outline"
-                type="button"
-                disabled={isLoading || authMethod === 'email'}
-                onClick={onSubmitDiscord}
-                className="transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] hover:bg-discord/5 hover:border-discord/20"
-            >
-                {isLoading && authMethod === 'discord' ? (
-                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                    <Icons.discord className="mr-2 h-4 w-4" />
-                )}{" "}
-                Discord
-            </Button>
-            <Button
-                variant="outline"
-                type="button"
-                disabled={isLoading || authMethod === 'email'}
-                onClick={onSubmitGoogle}
-                className="transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] hover:bg-blue-500/5 hover:border-blue-500/20"
-            >
-                {isLoading && authMethod === 'google' ? (
-                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                    <Icons.google className="mr-2 h-4 w-4" />
-                )}{" "}
-                Google
-            </Button>
+            <div className="space-y-3">
+                <Button
+                    variant="outline"
+                    type="button"
+                    disabled={isLoading || authMethod === 'email'}
+                    onClick={onSubmitGoogle}
+                    className="w-full h-12 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] hover:bg-muted/50"
+                >
+                    {isLoading && authMethod === 'google' ? (
+                        <Icons.spinner className="mr-3 h-5 w-5 animate-spin" />
+                    ) : (
+                        <Icons.google className="mr-3 h-5 w-5" />
+                    )}
+                    Continue with Google
+                </Button>
+                <Button
+                    variant="outline"
+                    type="button"
+                    disabled={isLoading || authMethod === 'email'}
+                    onClick={onSubmitDiscord}
+                    className="w-full h-12 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] hover:bg-discord/5 hover:border-discord/20"
+                >
+                    {isLoading && authMethod === 'discord' ? (
+                        <Icons.spinner className="mr-3 h-5 w-5 animate-spin" />
+                    ) : (
+                        <Icons.discord className="mr-3 h-5 w-5" />
+                    )}
+                    Continue with Discord
+                </Button>
+            </div>
         </div>
     )
 }

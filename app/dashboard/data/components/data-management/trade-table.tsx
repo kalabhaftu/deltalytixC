@@ -7,39 +7,84 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowUpDown, Trash, ChevronLeft, ChevronRight, Edit, Loader2 } from "lucide-react"
+import { ArrowUpDown, Trash, ChevronLeft, ChevronRight, Edit, Loader2, X, Filter, TrendingUp, TrendingDown } from "lucide-react"
 import { toast } from "sonner"
 import { deleteTradesByIdsAction } from '@/server/accounts'
 import { useData } from '@/context/data-provider'
 import EnhancedEditTrade from '@/app/dashboard/components/tables/enhanced-edit-trade'
 import TradeDetailView from '@/app/dashboard/components/tables/trade-detail-view'
+import { Badge } from "@/components/ui/badge"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { formatQuantity, formatTradeData } from '@/lib/utils'
 
 type SortConfig = {
   key: keyof Trade
   direction: 'asc' | 'desc'
 }
 
+type SideFilter = 'all' | 'buy' | 'sell'
+type PnlFilter = 'all' | 'wins' | 'losses'
+
 export default function TradeTable() {
   const { refreshTrades, formattedTrades, updateTrades } = useData()
-  const [filterValue, setFilterValue] = useState('')
-  const [filterKey, setFilterKey] = useState<keyof Trade>('instrument')
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'entryDate', direction: 'desc' })
   const [selectedTrades, setSelectedTrades] = useState<Set<string>>(new Set())
   const [selectAll, setSelectAll] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [tradesPerPage, setTradesPerPage] = useState(50) // Increased default from 10 to 50
+  const [tradesPerPage, setTradesPerPage] = useState(50)
   const [selectedTradeForEdit, setSelectedTradeForEdit] = useState<Trade | null>(null)
   const [isEnhancedEditOpen, setIsEnhancedEditOpen] = useState(false)
   const [selectedTradeForView, setSelectedTradeForView] = useState<Trade | null>(null)
   const [isDetailViewOpen, setIsDetailViewOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [showCovered, setShowCovered] = useState(true)
+  
+  // Modern Filters
+  const [selectedInstruments, setSelectedInstruments] = useState<string[]>([])
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([])
+  const [sideFilter, setSideFilter] = useState<SideFilter>('all')
+  const [pnlFilter, setPnlFilter] = useState<PnlFilter>('all')
+  const [instrumentSearchOpen, setInstrumentSearchOpen] = useState(false)
+  const [accountSearchOpen, setAccountSearchOpen] = useState(false)
+
+  // Get unique instruments and accounts for filter options
+  const availableInstruments = useMemo(() => {
+    return Array.from(new Set(formattedTrades.map(t => t.instrument).filter(Boolean)))
+  }, [formattedTrades])
+
+  const availableAccounts = useMemo(() => {
+    return Array.from(new Set(formattedTrades.map(t => t.accountNumber).filter(Boolean)))
+  }, [formattedTrades])
 
   const filteredAndSortedTrades = useMemo(() => {
     return formattedTrades
-      .filter(trade => 
-        String(trade[filterKey] ?? '').toLowerCase().includes(filterValue.toLowerCase())
-      )
+      .filter(trade => {
+        // Instrument filter
+        if (selectedInstruments.length > 0 && !selectedInstruments.includes(trade.instrument)) {
+          return false
+        }
+
+        // Account filter
+        if (selectedAccounts.length > 0 && !selectedAccounts.includes(trade.accountNumber)) {
+          return false
+        }
+
+        // Side filter
+        if (sideFilter !== 'all') {
+          const tradeSide = trade.side?.toLowerCase()
+          if (sideFilter === 'buy' && tradeSide !== 'buy') return false
+          if (sideFilter === 'sell' && tradeSide !== 'sell') return false
+        }
+
+        // PnL filter
+        if (pnlFilter !== 'all') {
+          const netPnl = trade.pnl - (trade.commission || 0)
+          if (pnlFilter === 'wins' && netPnl <= 0) return false
+          if (pnlFilter === 'losses' && netPnl >= 0) return false
+        }
+
+        return true
+      })
       .sort((a, b) => {
         const aValue = a[sortConfig.key]
         const bValue = b[sortConfig.key]
@@ -50,7 +95,7 @@ export default function TradeTable() {
         if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1
         return 0
       })
-  }, [formattedTrades, filterValue, filterKey, sortConfig])
+  }, [formattedTrades, selectedInstruments, selectedAccounts, sideFilter, pnlFilter, sortConfig])
 
   const paginatedTrades = useMemo(() => {
     const startIndex = (currentPage - 1) * tradesPerPage
@@ -163,52 +208,192 @@ export default function TradeTable() {
     }
   }
 
+  const clearAllFilters = () => {
+    setSelectedInstruments([])
+    setSelectedAccounts([])
+    setSideFilter('all')
+    setPnlFilter('all')
+  }
+
+  const activeFiltersCount = [
+    selectedInstruments.length > 0,
+    selectedAccounts.length > 0,
+    sideFilter !== 'all',
+    pnlFilter !== 'all'
+  ].filter(Boolean).length
+
   return (
     <div className="w-full space-y-4">
-      <div className="flex flex-col lg:flex-row gap-4 lg:justify-between lg:items-center">
-        <div className="flex flex-col lg:flex-row gap-2">
-          <Select value={filterKey} onValueChange={(value) => setFilterKey(value as keyof Trade)}>
-            <SelectTrigger className="w-full lg:w-[200px]">
-              <SelectValue placeholder="Filter by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="instrument">Instrument</SelectItem>
-              <SelectItem value="side">Side</SelectItem>
-              <SelectItem value="accountNumber">Account Number</SelectItem>
-              <SelectItem value="comment">Comments</SelectItem>
-              <SelectItem value="closeReason">Close Reason</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="relative">
-            <Input
-              placeholder={`Search ${filterKey.replace(/([A-Z])/g, ' $1').toLowerCase()}...`}
-              value={filterValue}
-              onChange={(e) => setFilterValue(e.target.value)}
-              className="w-full lg:max-w-sm pr-8"
-            />
-            {filterValue && (
+      {/* Modern Filter Panel */}
+      <div className="space-y-4">
+        {/* Quick Filters Row */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Filters</span>
+            {activeFiltersCount > 0 && (
+              <Badge variant="secondary" className="h-5 px-1.5">
+                {activeFiltersCount}
+              </Badge>
+            )}
+          </div>
+
+          {/* Side Filter */}
+          <div className="flex items-center gap-1 border rounded-md p-1">
+            <Button
+              variant={sideFilter === 'all' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setSideFilter('all')}
+              className="h-7 px-3"
+            >
+              All Sides
+            </Button>
+            <Button
+              variant={sideFilter === 'buy' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setSideFilter('buy')}
+              className="h-7 px-3"
+            >
+              Buy
+            </Button>
+            <Button
+              variant={sideFilter === 'sell' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setSideFilter('sell')}
+              className="h-7 px-3"
+            >
+              Sell
+            </Button>
+          </div>
+
+          {/* PnL Filter */}
+          <div className="flex items-center gap-1 border rounded-md p-1">
+            <Button
+              variant={pnlFilter === 'all' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setPnlFilter('all')}
+              className="h-7 px-3"
+            >
+              All
+            </Button>
+            <Button
+              variant={pnlFilter === 'wins' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setPnlFilter('wins')}
+              className="h-7 px-3 text-green-600"
+            >
+              <TrendingUp className="h-3 w-3 mr-1" />
+              Wins
+            </Button>
+            <Button
+              variant={pnlFilter === 'losses' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setPnlFilter('losses')}
+              className="h-7 px-3 text-red-600"
+            >
+              <TrendingDown className="h-3 w-3 mr-1" />
+              Losses
+            </Button>
+          </div>
+
+          {/* Instrument Filter */}
+          <Popover open={instrumentSearchOpen} onOpenChange={setInstrumentSearchOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 border-dashed">
+                Instruments
+                {selectedInstruments.length > 0 && (
+                  <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                    {selectedInstruments.length}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search instruments..." />
+                <CommandEmpty>No instruments found.</CommandEmpty>
+                <CommandGroup className="max-h-64 overflow-auto">
+                  {availableInstruments.map((instrument) => (
+                    <CommandItem
+                      key={instrument}
+                      onSelect={() => {
+                        setSelectedInstruments(prev =>
+                          prev.includes(instrument)
+                            ? prev.filter(i => i !== instrument)
+                            : [...prev, instrument]
+                        )
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedInstruments.includes(instrument)}
+                        className="mr-2"
+                      />
+                      {instrument}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          {/* Account Filter */}
+          <Popover open={accountSearchOpen} onOpenChange={setAccountSearchOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 border-dashed">
+                Accounts
+                {selectedAccounts.length > 0 && (
+                  <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                    {selectedAccounts.length}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[250px] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search accounts..." />
+                <CommandEmpty>No accounts found.</CommandEmpty>
+                <CommandGroup className="max-h-64 overflow-auto">
+                  {availableAccounts.map((account) => (
+                    <CommandItem
+                      key={account}
+                      onSelect={() => {
+                        setSelectedAccounts(prev =>
+                          prev.includes(account)
+                            ? prev.filter(a => a !== account)
+                            : [...prev, account]
+                        )
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedAccounts.includes(account)}
+                        className="mr-2"
+                      />
+                      {account}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          {activeFiltersCount > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-                onClick={() => setFilterValue('')}
+              onClick={clearAllFilters}
+              className="h-9"
               >
-                ×
+              <X className="h-4 w-4 mr-1" />
+              Clear Filters
               </Button>
             )}
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-3 items-center">
+
+          <div className="flex-1" />
+
           <div className="text-sm text-muted-foreground">
-            {filteredAndSortedTrades.length} of {formattedTrades.length}
+            {filteredAndSortedTrades.length} of {formattedTrades.length} trades
           </div>
-          <Button
-            variant={showCovered ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowCovered(!showCovered)}
-          >
-            {showCovered ? "Hide Covered" : "Show Covered"}
-          </Button>
+
           {selectedTrades.size > 0 && (
             <Button 
               onClick={() => handleDelete(Array.from(selectedTrades))} 
@@ -221,6 +406,30 @@ export default function TradeTable() {
             </Button>
           )}
         </div>
+
+        {/* Active Filters Display */}
+        {activeFiltersCount > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {selectedInstruments.map(instrument => (
+              <Badge key={instrument} variant="secondary" className="gap-1">
+                {instrument}
+                <X
+                  className="h-3 w-3 cursor-pointer hover:text-destructive"
+                  onClick={() => setSelectedInstruments(prev => prev.filter(i => i !== instrument))}
+                />
+              </Badge>
+            ))}
+            {selectedAccounts.map(account => (
+              <Badge key={account} variant="secondary" className="gap-1">
+                {account}
+                <X
+                  className="h-3 w-3 cursor-pointer hover:text-destructive"
+                  onClick={() => setSelectedAccounts(prev => prev.filter(a => a !== account))}
+                />
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
       <div className="rounded-md border overflow-auto shadow-sm">
         <Table className="w-full" style={{ minWidth: '1000px' }}>
@@ -291,7 +500,9 @@ export default function TradeTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedTrades.map((trade) => (
+          {paginatedTrades.map((trade) => {
+            const formatted = formatTradeData(trade)
+            return (
             <TableRow key={trade.id}>
               <TableCell>
                 <Checkbox
@@ -299,15 +510,15 @@ export default function TradeTable() {
                   onCheckedChange={() => toggleTradeSelection(trade.id)}
                 />
               </TableCell>
-              <TableCell>{trade.instrument}</TableCell>
-              <TableCell>{trade.accountNumber}</TableCell>
-              <TableCell>{trade.side}</TableCell>
-              <TableCell>{trade.quantity}</TableCell>
-              <TableCell>{trade.entryPrice}</TableCell>
-              <TableCell>{trade.closePrice}</TableCell>
-              <TableCell>{new Date(trade.entryDate).toLocaleString()}</TableCell>
-              <TableCell>{new Date(trade.closeDate).toLocaleString()}</TableCell>
-              <TableCell>{trade.pnl.toFixed(2)}</TableCell>
+                <TableCell>{formatted.instrument}</TableCell>
+                <TableCell>{formatted.accountNumber}</TableCell>
+                <TableCell>{formatted.side}</TableCell>
+                <TableCell>{formatted.quantity}</TableCell>
+                <TableCell>{formatted.entryPrice}</TableCell>
+                <TableCell>{formatted.closePrice}</TableCell>
+                <TableCell>{formatted.entryDateFormatted}</TableCell>
+                <TableCell>{formatted.closeDateFormatted}</TableCell>
+                <TableCell>{formatted.pnlFormatted}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Button
@@ -334,7 +545,8 @@ export default function TradeTable() {
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+            )
+          })}
         </TableBody>
         </Table>
       </div>

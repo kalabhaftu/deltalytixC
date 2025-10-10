@@ -265,7 +265,7 @@ export function AccountGroupBoard() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm">{anonymizeAccount(account.number)}</span>
                       {account.id.startsWith('placeholder-') && (
-                        <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded">
+                        <span className="text-xs px-1.5 py-0.5 bg-muted text-foreground rounded">
                           New
                         </span>
                       )}
