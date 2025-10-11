@@ -29,15 +29,6 @@ const WEEKDAYS = [
   'Sat'
 ] as const
 
-// Weekdays for mini calendar (excluding weekends)
-const WEEKDAYS_MINI = [
-  'Mon',
-  'Tue',
-  'Wed',
-  'Thu',
-  'Fri'
-] as const
-
 
 function getCalendarDays(monthStart: Date, monthEnd: Date) {
   const startDate = startOfWeek(monthStart)
@@ -67,7 +58,6 @@ const formatCurrency = (value: number, options?: { minimumFractionDigits?: numbe
 
 interface CalendarPnlProps {
   calendarData: CalendarData;
-  isMini?: boolean; // If true, hides Daily/Weekly toggle
 }
 
 
@@ -124,7 +114,7 @@ function RenewalBadge({ renewals }: { renewals: Account[] }) {
   )
 }
 
-export default function CalendarPnl({ calendarData, isMini = false }: CalendarPnlProps) {
+export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
   const accounts = useUserStore(state => state.accounts)
   const locale = 'en' // Fixed to English since we removed i18n
   const timezone = useUserStore(state => state.timezone)
@@ -144,17 +134,8 @@ export default function CalendarPnl({ calendarData, isMini = false }: CalendarPn
     setCalendarDays(getCalendarDays(monthStart, monthEnd))
   }, [currentDate, monthStart, monthEnd])
 
-  // Use the calendar view store for advanced calendar only
-  // Mini calendar always uses 'daily' mode and doesn't sync with global state
-  const globalViewStore = useCalendarViewStore()
-  
-  // For mini calendar, use local state; for advanced calendar, use global state
-  const viewMode = isMini ? 'daily' : globalViewStore.viewMode
-  const setViewMode = isMini ? (() => {}) : globalViewStore.setViewMode
-  const selectedDate = globalViewStore.selectedDate
-  const setSelectedDate = globalViewStore.setSelectedDate
-  const selectedWeekDate = globalViewStore.selectedWeekDate
-  const setSelectedWeekDate = globalViewStore.setSelectedWeekDate
+  // Use the calendar view store
+  const { viewMode, setViewMode, selectedDate, setSelectedDate, selectedWeekDate, setSelectedWeekDate } = useCalendarViewStore()
 
 
   const handlePrevMonth = React.useCallback(() => {
@@ -195,22 +176,15 @@ export default function CalendarPnl({ calendarData, isMini = false }: CalendarPn
   }, [])
 
   const calculateWeeklyTotal = React.useCallback((index: number, calendarDays: Date[], calendarData: CalendarData) => {
-    // In mini mode, calculate for the actual week (Mon-Fri only)
-    // In full mode, calculate for full week (Sun-Sat)
-    const startOfWeekIndex = index - (isMini ? 4 : 6) // 4 days back for Mon-Fri, 6 for Sun-Sat
+    // Calculate for full week (Sun-Sat)
+    const startOfWeekIndex = index - 6
     const weekDays = calendarDays.slice(startOfWeekIndex, index + 1)
     
     return weekDays.reduce((total, day) => {
-      // Skip weekends in mini mode when calculating total
-      const dayOfWeek = getDay(day)
-      if (isMini && (dayOfWeek === 0 || dayOfWeek === 6)) {
-        return total
-      }
-      
       const dayData = calendarData[formatInTimeZone(day, timezone, 'yyyy-MM-dd')]
       return total + (dayData ? dayData.pnl : 0)
     }, 0)
-  }, [timezone, isMini])
+  }, [timezone])
 
 
   return (
@@ -234,35 +208,33 @@ export default function CalendarPnl({ calendarData, isMini = false }: CalendarPn
           </div>
         </div>
         <div className="flex items-center gap-4">
-          {/* View Mode Toggle - Hidden in mini mode */}
-          {!isMini && (
-            <div className="flex items-center gap-1 border rounded-md p-0.5 bg-muted">
-              <Button
-                variant={viewMode === 'daily' ? 'default' : 'ghost'}
-                size="sm"
-                className={cn(
-                  "h-7 px-2 transition-colors",
-                  viewMode === 'daily' && "bg-primary text-primary-foreground shadow font-semibold"
-                )}
-                onClick={() => setViewMode('daily')}
-              >
-                <Calendar className="h-4 w-4 mr-1" />
-                <span className="text-xs">{"Daily"}</span>
-              </Button>
-              <Button
-                variant={viewMode === 'weekly' ? 'default' : 'ghost'}
-                size="sm"
-                className={cn(
-                  "h-7 px-2 transition-colors",
-                  viewMode === 'weekly' && "bg-primary text-primary-foreground shadow font-semibold"
-                )}
-                onClick={() => setViewMode('weekly')}
-              >
-                <CalendarDays className="h-4 w-4 mr-1" />
-                <span className="text-xs">{"Weekly"}</span>
-              </Button>
-            </div>
-          )}
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 border rounded-md p-0.5 bg-muted">
+            <Button
+              variant={viewMode === 'daily' ? 'default' : 'ghost'}
+              size="sm"
+              className={cn(
+                "h-7 px-2 transition-colors",
+                viewMode === 'daily' && "bg-muted text-muted-foreground shadow font-semibold"
+              )}
+              onClick={() => setViewMode('daily')}
+            >
+              <Calendar className="h-4 w-4 mr-1" />
+              <span className="text-xs">{"Daily"}</span>
+            </Button>
+            <Button
+              variant={viewMode === 'weekly' ? 'default' : 'ghost'}
+              size="sm"
+              className={cn(
+                "h-7 px-2 transition-colors",
+                viewMode === 'weekly' && "bg-muted text-muted-foreground shadow font-semibold"
+              )}
+              onClick={() => setViewMode('weekly')}
+            >
+              <CalendarDays className="h-4 w-4 mr-1" />
+              <span className="text-xs">{"Weekly"}</span>
+            </Button>
+          </div>
           <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
@@ -288,11 +260,8 @@ export default function CalendarPnl({ calendarData, isMini = false }: CalendarPn
       <CardContent className="flex-1 min-h-0 p-1 sm:p-2">
         {viewMode === 'daily' ? (
           <>
-            <div className={cn(
-              "gap-x-2 mb-2",
-              isMini ? "grid grid-cols-6" : "grid grid-cols-8"
-            )}>
-              {(isMini ? WEEKDAYS_MINI : WEEKDAYS).map((day) => (
+            <div className="gap-x-2 mb-2 grid grid-cols-8">
+              {WEEKDAYS.map((day) => (
                 <div key={day} className="text-center font-medium text-[9px] sm:text-[11px] text-muted-foreground">
                   {day}
                 </div>
@@ -301,34 +270,14 @@ export default function CalendarPnl({ calendarData, isMini = false }: CalendarPn
                 Weekly
               </div>
             </div>
-            <div className={cn(
-              "gap-2 h-fit min-h-[500px] max-h-[700px] overflow-hidden",
-              isMini ? "grid grid-cols-6" : "grid grid-cols-8"
-            )}>
+            <div className="gap-2 h-fit min-h-[500px] max-h-[700px] overflow-hidden grid grid-cols-8">
               {calendarDays.map((date, index) => {
                 const dayOfWeek = getDay(date)
                 
-                // Skip weekends in mini calendar
-                if (isMini && (dayOfWeek === 0 || dayOfWeek === 6)) {
-                  return null
-                }
-                
-                // Calculate grid column for mini mode
-                // getDay(): Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6
-                // We want: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5
-                let gridColumn = undefined
-                if (isMini) {
-                  if (dayOfWeek === 1) gridColumn = 1 // Monday
-                  else if (dayOfWeek === 2) gridColumn = 2 // Tuesday  
-                  else if (dayOfWeek === 3) gridColumn = 3 // Wednesday
-                  else if (dayOfWeek === 4) gridColumn = 4 // Thursday
-                  else if (dayOfWeek === 5) gridColumn = 5 // Friday
-                }
-                
                 const dateString = format(date, 'yyyy-MM-dd')
                 const dayData = calendarData[dateString]
-                // In mini mode, Friday (day 5) is the last visible day. In full mode, Saturday (day 6) is last.
-                const isLastDayOfWeek = isMini ? dayOfWeek === 5 : dayOfWeek === 6
+                // Saturday (day 6) is last day of week
+                const isLastDayOfWeek = dayOfWeek === 6
                 const isCurrentMonth = isSameMonth(date, currentDate)
                 const dateRenewals = getRenewalsForDate(date)
 
@@ -368,11 +317,10 @@ export default function CalendarPnl({ calendarData, isMini = false }: CalendarPn
                 return (
                   <React.Fragment key={dateString}>
                     <div
-                      style={gridColumn ? { gridColumn } : undefined}
                       className={cn(
                         "h-full flex flex-col cursor-pointer transition-all duration-200 rounded-md p-1",
                         "border",
-                        !isMini && "hover:border-primary hover:shadow-sm hover:scale-[1.02]",
+                        "hover:border-primary hover:shadow-sm hover:scale-[1.02]",
                         dayData && dayData.pnl >= 0
                           ? "bg-green-50/80 dark:bg-green-950/40 border-green-100 dark:border-green-900/50"
                           : dayData && dayData.pnl < 0
@@ -382,7 +330,7 @@ export default function CalendarPnl({ calendarData, isMini = false }: CalendarPn
                         isToday(date) && "border-foreground bg-muted/30 ring-1 ring-border",
                       )}
                       onClick={() => {
-                        if (!isMini && dayData) {
+                        if (dayData) {
                           setSelectedDate(date)
                         }
                       }}
@@ -424,24 +372,20 @@ export default function CalendarPnl({ calendarData, isMini = false }: CalendarPn
                             ? `${dayData.tradeNumber} ${dayData.tradeNumber > 1 ? "trades" : "trade"}`
                             : "No trades"}
                         </div>
-                        {!isMini && (
-                          <>
-                            <div className={cn(
-                              "text-[7px] sm:text-[9px] text-green-600 dark:text-green-400 truncate text-center",
-                              !isCurrentMonth && "opacity-50",
-                              !dayData && "invisible"
-                            )}>
-                              Max Profit: {dayData ? formatCurrency(maxProfit) : "$0"}
-                            </div>
-                            <div className={cn(
-                              "text-[7px] sm:text-[9px] text-red-600 dark:text-red-400 truncate text-center",
-                              !isCurrentMonth && "opacity-50",
-                              !dayData && "invisible"
-                            )}>
-                              Max Drawdown: -{dayData ? formatCurrency(maxDrawdown) : "$0"}
-                            </div>
-                          </>
-                        )}
+                        <div className={cn(
+                          "text-[7px] sm:text-[9px] text-green-600 dark:text-green-400 truncate text-center",
+                          !isCurrentMonth && "opacity-50",
+                          !dayData && "invisible"
+                        )}>
+                          Max Profit: {dayData ? formatCurrency(maxProfit) : "$0"}
+                        </div>
+                        <div className={cn(
+                          "text-[7px] sm:text-[9px] text-red-600 dark:text-red-400 truncate text-center",
+                          !isCurrentMonth && "opacity-50",
+                          !dayData && "invisible"
+                        )}>
+                          Max Drawdown: -{dayData ? formatCurrency(maxDrawdown) : "$0"}
+                        </div>
                       </div>
                     </div>
                     {isLastDayOfWeek && (() => {
@@ -451,7 +395,7 @@ export default function CalendarPnl({ calendarData, isMini = false }: CalendarPn
                           className={cn(
                             "h-full flex items-center justify-center rounded-md cursor-pointer transition-all duration-200",
                             "border",
-                            !isMini && "hover:border-primary hover:shadow-sm hover:scale-[1.02]",
+                            "hover:border-primary hover:shadow-sm hover:scale-[1.02]",
                             weeklyTotal >= 0
                               ? "bg-green-50/80 dark:bg-green-950/40 border-green-100 dark:border-green-900/50"
                               : weeklyTotal < 0
@@ -459,13 +403,11 @@ export default function CalendarPnl({ calendarData, isMini = false }: CalendarPn
                                 : "bg-card border-border"
                           )}
                           onClick={() => {
-                            if (!isMini) {
-                              // Find the start of the week for this index
-                              const weekStartIndex = index - (index % 7)
-                              const weekStart = calendarDays[weekStartIndex]
-                              if (weekStart) {
-                                setSelectedWeekDate(weekStart)
-                              }
+                            // Find the start of the week for this index
+                            const weekStartIndex = index - (index % 7)
+                            const weekStart = calendarDays[weekStartIndex]
+                            if (weekStart) {
+                              setSelectedWeekDate(weekStart)
                             }
                           }}
                         >
