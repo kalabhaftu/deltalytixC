@@ -18,6 +18,7 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form"
+import { Mail, Hash } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
@@ -248,8 +249,18 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                     ) : (
                         <div className="space-y-2">
                             <div className="text-center space-y-2 mb-4 p-4 border rounded-lg bg-muted/50 dark:bg-muted/20 transition-all duration-200">
-                                <h3 className="font-semibold text-sm">
-                                    {isExistingUser ? '✉️ Magic Link Sent!' : '🔢 Verification Code Sent!'}
+                                <h3 className="font-semibold text-sm flex items-center justify-center gap-2">
+                                    {isExistingUser ? (
+                                        <>
+                                            <Mail className="h-4 w-4" />
+                                            Magic Link Sent!
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Hash className="h-4 w-4" />
+                                            Verification Code Sent!
+                                        </>
+                                    )}
                                 </h3>
                                 <p className="text-xs text-muted-foreground">
                                     {isExistingUser

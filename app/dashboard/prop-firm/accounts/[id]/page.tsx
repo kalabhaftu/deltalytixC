@@ -26,7 +26,8 @@ import {
   Activity,
   BarChart3,
   Calendar,
-  CreditCard
+  CreditCard,
+  PartyPopper
 } from "lucide-react"
 import { cn, formatCurrency, formatQuantity, formatPercent } from "@/lib/utils"
 import { AccountDashboardData, AccountSummary, PhaseType, AccountStatus, PropFirmTrade } from "@/types/prop-firm"
@@ -429,10 +430,10 @@ export default function AccountDetailPage() {
         if (currentProgress >= currentActivePhase.profitTargetPercent && hasTradesInPhase) {
           return (
             <Alert className="border-green-200 bg-green-50 text-green-800">
-              <TrendingUp className="h-4 w-4 text-green-600" />
+              <PartyPopper className="h-4 w-4 text-green-600" />
               <AlertDescription className="flex items-center justify-between">
                 <span>
-                  🎉 Profit target reached! You&apos;re ready to advance to Phase {(realtimeAccount.currentPhase?.phaseNumber || 1) + 1}.
+                  Profit target reached! You&apos;re ready to advance to Phase {(realtimeAccount.currentPhase?.phaseNumber || 1) + 1}.
                 </span>
                 <Button 
                   onClick={() => setShowTransitionDialog(true)}

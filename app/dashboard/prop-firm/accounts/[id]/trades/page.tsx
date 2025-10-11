@@ -21,7 +21,10 @@ import {
   DollarSign,
   BarChart3,
   FileText,
-  Download
+  Download,
+  Check,
+  Zap,
+  Clock
 } from "lucide-react"
 import { cn, formatTradeData } from "@/lib/utils"
 import { AccountStatus, PhaseType } from "@/types/prop-firm"
@@ -249,7 +252,7 @@ export default function AccountTradesPage() {
                 >
                   Phase {phase.phaseNumber}
                   <Badge variant="secondary" className="ml-2">
-                    {phase.status === 'archived' ? '✓' : phase.status === 'active' ? '⚡' : '⏳'}
+                    {phase.status === 'archived' ? <Check className="h-3 w-3" /> : phase.status === 'active' ? <Zap className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                     {phase.tradeCount}
                   </Badge>
                 </Button>

@@ -18,6 +18,7 @@ import { ImportDialogHeader } from './components/import-dialog-header'
 import { ImportDialogFooter } from './components/import-dialog-footer'
 import { ImportLoading } from './components/import-loading'
 import { platforms } from './config/platforms'
+import { PartyPopper } from 'lucide-react'
 import { FormatPreview } from './components/format-preview'
 import { cn } from '@/lib/utils'
 import { useUserStore } from '@/store/user-store'
@@ -166,7 +167,7 @@ export default function ImportButton() {
           const evalData = result.evaluation as any
           
           // Phase passed - open transition dialog
-          toast.success("Profit Target Reached! 🎉", {
+          toast.success("Profit Target Reached!", {
             description: result.evaluation.message || 'Ready to advance to next phase',
             duration: 10000,
           })

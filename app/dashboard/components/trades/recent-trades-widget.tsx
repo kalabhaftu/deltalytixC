@@ -4,7 +4,6 @@ import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useData } from '@/context/data-provider'
 import { cn } from '@/lib/utils'
-import { TrendingUp, TrendingDown } from 'lucide-react'
 
 export default function RecentTradesWidget() {
   const { formattedTrades } = useData()
@@ -34,7 +33,7 @@ export default function RecentTradesWidget() {
   }
 
   return (
-    <Card className="w-full h-[580px] flex flex-col">
+    <Card className="w-2/3 h-[580px] flex flex-col">
       <CardHeader className="pb-3 px-4 pt-4 shrink-0">
         <CardTitle className="text-base font-semibold">Recent Trades</CardTitle>
       </CardHeader>
@@ -42,9 +41,8 @@ export default function RecentTradesWidget() {
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="grid grid-cols-12 gap-2 pb-2 border-b border-border/50 text-xs font-medium text-muted-foreground shrink-0">
-            <div className="col-span-3">Date</div>
-            <div className="col-span-3">Symbol</div>
-            <div className="col-span-3 text-center">Side</div>
+            <div className="col-span-5">Date</div>
+            <div className="col-span-4">Symbol</div>
             <div className="col-span-3 text-right">P&L</div>
           </div>
 
@@ -64,24 +62,11 @@ export default function RecentTradesWidget() {
                     key={trade.id || index}
                     className="grid grid-cols-12 gap-2 py-2 text-xs hover:bg-muted/50 rounded-md transition-colors"
                   >
-                    <div className="col-span-3 text-muted-foreground">
+                    <div className="col-span-5 text-muted-foreground">
                       {formatDate(trade.entryDate)}
                     </div>
-                    <div className="col-span-3 font-medium truncate" title={trade.symbol || trade.instrument}>
+                    <div className="col-span-4 font-medium truncate" title={trade.symbol || trade.instrument}>
                       {trade.symbol || trade.instrument}
-                    </div>
-                    <div className="col-span-3 flex items-center justify-center gap-1">
-                      {trade.side?.toLowerCase() === 'long' || trade.side?.toLowerCase() === 'buy' ? (
-                        <>
-                          <TrendingUp className="h-3 w-3 text-green-600 dark:text-green-400" />
-                          <span className="text-green-600 dark:text-green-400 font-medium">Buy</span>
-                        </>
-                      ) : (
-                        <>
-                          <TrendingDown className="h-3 w-3 text-red-600 dark:text-red-400" />
-                          <span className="text-red-600 dark:text-red-400 font-medium">Sell</span>
-                        </>
-                      )}
                     </div>
                     <div
                       className={cn(
