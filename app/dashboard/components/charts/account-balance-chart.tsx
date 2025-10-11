@@ -234,9 +234,10 @@ export default function AccountBalanceChart({ size = 'small-long' }: AccountBala
                     : { left: -15, right: 0, top: 5, bottom: 5 }
                 }
               >
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  className="text-border dark:opacity-[0.12] opacity-[0.2]"
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="hsl(var(--border))"
+                  vertical={false}
                 />
                 <XAxis
                   dataKey="date"

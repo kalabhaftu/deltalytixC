@@ -132,12 +132,12 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
       
       <CardContent 
         className={cn(
-          "flex-1 min-h-[200px]",
+          "flex-1 min-h-[280px]",
           size === 'small' ? "p-1" : "p-2 sm:p-4"
         )}
       >
         {!hasData ? (
-          <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center">
+          <div className="flex flex-col items-center justify-center h-full min-h-[280px] text-center">
             <div className="text-muted-foreground text-sm">
               No trading data available
             </div>
@@ -148,8 +148,8 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
         ) : (
           <>
             {/* Radar Chart */}
-            <div className="h-48 mb-2">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="mb-2">
+              <ResponsiveContainer width="100%" height={200}>
                 <RadarChart data={chartData} margin={{ 
                   top: size === 'small-long' ? 10 : 15, 
                   right: size === 'small-long' ? 15 : 25, 

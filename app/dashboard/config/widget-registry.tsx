@@ -95,7 +95,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
   },
   calendarMini: {
     type: 'calendarMini',
-    defaultSize: 'medium',
+    defaultSize: 'large',
     allowedSizes: ['medium', 'large'],
     category: 'charts',
     description: 'Compact calendar (Mon-Fri) with monthly P&L and weekly summary',
@@ -105,7 +105,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
   },
   recentTrades: {
     type: 'recentTrades',
-    defaultSize: 'medium',
+    defaultSize: 'small',
     allowedSizes: ['small', 'medium', 'large'],
     category: 'tables',
     description: 'List of your 10 most recent trades with P&L and side',

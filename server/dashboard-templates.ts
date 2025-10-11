@@ -34,9 +34,9 @@ const DEFAULT_LAYOUT: WidgetLayout[] = [
   { i: 'kpi-3', type: 'dayWinRate', size: 'kpi', x: 2, y: 0, w: 1, h: 1 },
   { i: 'kpi-4', type: 'profitFactor', size: 'kpi', x: 3, y: 0, w: 1, h: 1 },
   { i: 'kpi-5', type: 'avgWinLoss', size: 'kpi', x: 4, y: 0, w: 1, h: 1 },
-  // Row 2: Recent Trades (left) and Mini Calendar (right)
-  { i: 'recent-trades', type: 'recentTrades', size: 'medium', x: 0, y: 1, w: 6, h: 2 },
-  { i: 'mini-calendar', type: 'calendarMini', size: 'medium', x: 6, y: 1, w: 6, h: 2 },
+  // Row 2: Recent Trades (left, smaller) and Mini Calendar (right, larger)
+  { i: 'recent-trades', type: 'recentTrades', size: 'small', x: 0, y: 1, w: 4, h: 2 },
+  { i: 'mini-calendar', type: 'calendarMini', size: 'large', x: 4, y: 1, w: 8, h: 2 },
   // Row 3: 3 Chart Widgets (equal columns - 4 columns each in 12-column grid)
   { i: 'net-daily-pnl', type: 'netDailyPnL', size: 'small-long', x: 0, y: 3, w: 4, h: 2 },
   { i: 'daily-cumulative-pnl', type: 'dailyCumulativePnL', size: 'small-long', x: 4, y: 3, w: 4, h: 2 },
@@ -46,9 +46,9 @@ const DEFAULT_LAYOUT: WidgetLayout[] = [
   { i: 'trade-duration', type: 'tradeDurationPerformance', size: 'small-long', x: 4, y: 5, w: 4, h: 2 },
   { i: 'pnl-by-strategy', type: 'pnlByStrategy', size: 'small-long', x: 8, y: 5, w: 4, h: 2 },
   // Row 5: 3 Taller Performance/Analysis Widgets (equal columns - 4 columns each, TALLER height)
-  { i: 'performance-score', type: 'performanceScore', size: 'medium', x: 0, y: 7, w: 4, h: 3 },
-  { i: 'pnl-by-instrument', type: 'pnlByInstrument', size: 'medium', x: 4, y: 7, w: 4, h: 3 },
-  { i: 'win-rate-by-strategy', type: 'winRateByStrategy', size: 'medium', x: 8, y: 7, w: 4, h: 3 },
+  { i: 'performance-score', type: 'performanceScore', size: 'small-long', x: 0, y: 7, w: 4, h: 3 },
+  { i: 'pnl-by-instrument', type: 'pnlByInstrument', size: 'small-long', x: 4, y: 7, w: 4, h: 3 },
+  { i: 'win-rate-by-strategy', type: 'winRateByStrategy', size: 'small-long', x: 8, y: 7, w: 4, h: 3 },
 ]
 
 /**

@@ -7,6 +7,7 @@ import { Session } from '@supabase/supabase-js'
 import { signOut } from '@/server/auth'
 import { createClient } from '@/lib/supabase'
 import { useUserStore } from '@/store/user-store'
+import { useAutoCacheCleanup } from '@/hooks/use-auto-cache-cleanup'
 
 interface AuthContextType {
   isLoading: boolean
@@ -36,6 +37,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setUser = useUserStore(state => state.setUser)
   const setSupabaseUser = useUserStore(state => state.setSupabaseUser)
   const resetUser = useUserStore(state => state.resetUser)
+  
+  // Get user from store for cache cleanup
+  const user = useUserStore(state => state.user)
+  
+  // Auto-cleanup stale caches when app loads or user changes
+  useAutoCacheCleanup({
+    userId: user?.id,
+    enabled: true
+  })
 
   // Check if auth status is still valid (cache for 30 seconds)
   const isAuthCheckValid = () => {

@@ -33,7 +33,7 @@ export default function RecentTradesWidget() {
   }
 
   return (
-    <Card className="w-2/3 h-[580px] flex flex-col">
+    <Card className="h-[580px] flex flex-col">
       <CardHeader className="pb-3 px-4 pt-4 shrink-0">
         <CardTitle className="text-base font-semibold">Recent Trades</CardTitle>
       </CardHeader>

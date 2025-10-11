@@ -44,8 +44,8 @@ export const WIDGET_DIMENSIONS: Record<WidgetSize, WidgetDimensions> = {
   // KPI widgets - Always in a row of 5
   'kpi': {
     colSpan: 12,  // Full width on mobile, managed by grid on desktop
-    minWidth: '240px',
-    height: '120px',
+    minWidth: '280px',
+    height: '140px',
   },
   
   // Tiny widgets - Rarely used
@@ -58,29 +58,29 @@ export const WIDGET_DIMENSIONS: Record<WidgetSize, WidgetDimensions> = {
   // Small widgets - 4 columns (1/3 width)
   'small': {
     colSpan: 4,
-    minWidth: '320px',
-    height: '320px',
+    minWidth: '420px',
+    height: '580px',
   },
-  
+
   // Small-long widgets - 4 columns, taller
   'small-long': {
     colSpan: 4,
-    minWidth: '400px',
+    minWidth: '520px',
     height: '360px',
   },
-  
+
   // Medium widgets - 6 columns (1/2 width)
   'medium': {
     colSpan: 6,
-    minWidth: '480px',
-    height: '400px',
+    minWidth: '620px',
+    height: '580px',
   },
-  
+
   // Large widgets - 8 columns (2/3 width)
   'large': {
     colSpan: 8,
-    minWidth: '660px',
-    height: '480px',
+    minWidth: '780px',
+    height: '580px',
   },
   
   // Extra-large widgets - 12 columns (full width)
@@ -127,14 +127,14 @@ export const WIDGET_GROUPS = {
     name: 'Charts & Analytics',
     bgClass: 'bg-transparent',
     padding: 'px-4',
-    gap: 'gap-4',
+    gap: 'gap-3',
     gridCols: 'grid-cols-1 md:grid-cols-12',
   },
   tables: {
     name: 'Data Tables',
     bgClass: 'bg-transparent',
     padding: 'px-4',
-    gap: 'gap-4',
+    gap: 'gap-3',
     gridCols: 'grid-cols-1',
   },
 } as const
@@ -163,7 +163,7 @@ export const CARD_HEADER_HEIGHT = '56px'
 export function getDashboardGridConfig() {
   return {
     container: 'max-w-[1920px] mx-auto',
-    gap: 'gap-4',
+    gap: 'gap-3',
     padding: 'px-4 py-6',
     cols: 'grid-cols-12',
   }

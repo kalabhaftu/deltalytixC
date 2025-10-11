@@ -116,6 +116,12 @@ export default function WidgetCanvasWithDrag() {
     width?: number
   } | null>(null)
   
+  // Clear targetSlot when dialogs close to prevent stale state
+  React.useEffect(() => {
+    if (!showWidgetLibrary && !showKpiSelector) {
+      setTargetSlot(null)
+    }
+  }, [showWidgetLibrary, showKpiSelector])
   
   // Setup sensors for drag and drop
   const sensors = useSensors(
@@ -131,7 +137,7 @@ export default function WidgetCanvasWithDrag() {
       <div className="space-y-6">
         {/* Row 1: KPI Widgets - 5 in a row */}
         <div className="px-4 pt-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
             {Array(5).fill(0).map((_, i) => (
               <Card key={i} className="h-[120px] p-4">
                 <div className="flex items-start justify-between h-full">
@@ -148,7 +154,7 @@ export default function WidgetCanvasWithDrag() {
 
         {/* Row 2: Recent Trades (left) + Mini Calendar (right) */}
         <div className="px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Recent Trades Skeleton */}
             <Card className="h-[300px] p-6">
               <div className="space-y-4">
@@ -206,7 +212,7 @@ export default function WidgetCanvasWithDrag() {
 
         {/* Row 3: 3 Chart Widgets - Small Long */}
         <div className="px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {Array(3).fill(0).map((_, i) => (
               <Card key={i} className="h-[360px] p-6">
                 <div className="space-y-4 h-full">
@@ -236,7 +242,7 @@ export default function WidgetCanvasWithDrag() {
 
         {/* Row 4: 3 More Chart Widgets - Small Long */}
         <div className="px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {Array(3).fill(0).map((_, i) => (
               <Card key={i} className="h-[360px] p-6">
                 <div className="space-y-4 h-full">
@@ -252,7 +258,7 @@ export default function WidgetCanvasWithDrag() {
 
         {/* Row 5: 3 Performance Widgets - Medium, Taller */}
         <div className="px-4 pb-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {Array(3).fill(0).map((_, i) => (
               <Card key={i} className="h-[400px] p-6">
                 <div className="space-y-4 h-full">
@@ -318,24 +324,27 @@ export default function WidgetCanvasWithDrag() {
     const config = WIDGET_REGISTRY[widgetType as keyof typeof WIDGET_REGISTRY]
     if (!config) return
     
+    // Capture targetSlot immediately to avoid race conditions
+    const slotToUse = targetSlot
+    
     // Get grid dimensions from widget size
     const { w, h } = getGridDimensionsFromSize(config.defaultSize)
     
     // Determine position
     let x = 0, y = 1
     
-    if (config.kpiRowOnly && targetSlot?.slotIndex !== undefined) {
+    if (config.kpiRowOnly && slotToUse?.slotIndex !== undefined) {
       // KPI-row-only widget - use target slot in row 0
-      x = targetSlot.slotIndex
+      x = slotToUse.slotIndex
       y = 0
-    } else if (targetSlot?.x !== undefined && targetSlot?.y !== undefined && targetSlot?.width !== undefined) {
+    } else if (slotToUse?.x !== undefined && slotToUse?.y !== undefined && slotToUse?.width !== undefined) {
       // Specific slot selected - validate size
-      if (!canWidgetFitInSlot(config.defaultSize, targetSlot.width)) {
-        const slotDesc = getSlotSizeDescription(targetSlot.width)
+      if (!canWidgetFitInSlot(config.defaultSize, slotToUse.width)) {
+        const slotDesc = getSlotSizeDescription(slotToUse.width)
         const widgetCols = WIDGET_DIMENSIONS[config.defaultSize].colSpan
         setTimeout(() => {
           toast.error('Widget doesn\'t fit in this slot', {
-            description: `This slot can fit ${targetSlot.width} columns (${slotDesc}), but this widget needs ${widgetCols} columns. Please choose a smaller widget.`,
+            description: `This slot can fit ${slotToUse.width} columns (${slotDesc}), but this widget needs ${widgetCols} columns. Please choose a smaller widget.`,
             duration: 5000,
           })
         }, 0)
@@ -343,8 +352,8 @@ export default function WidgetCanvasWithDrag() {
       }
       
       // Widget fits - place at slot position
-      x = targetSlot.x
-      y = targetSlot.y
+      x = slotToUse.x
+      y = slotToUse.y
     } else {
       // No specific slot - find next available position
       const position = getNextAvailablePosition(currentLayout, config.defaultSize)
@@ -369,8 +378,14 @@ export default function WidgetCanvasWithDrag() {
       h,
     }
     
-    // Add widget and reflow to ensure no overlaps
-    const updatedLayout = reflowWidgets([...currentLayout, newWidget])
+    // If placed in a specific slot, don't reflow - keep it where user wants it
+    // Only reflow if added without a specific slot (to fill gaps automatically)
+    // NOTE: Must use === undefined to handle x=0 case correctly
+    const shouldReflow = !slotToUse || (slotToUse.x === undefined && slotToUse.slotIndex === undefined)
+    const updatedLayout = shouldReflow 
+      ? reflowWidgets([...currentLayout, newWidget])
+      : [...currentLayout, newWidget]
+    
     updateLayout(updatedLayout)
     
     setTimeout(() => {
@@ -426,32 +441,47 @@ export default function WidgetCanvasWithDrag() {
     const isDifferentRow = activeWidget.y !== overWidget.y
 
     if (isDifferentRow) {
-      // Cross-row drag - insert at target position and reflow
+      // Cross-row drag - swap positions without aggressive reflowing
       const withoutActive = otherWidgets.filter(w => w.i !== active.id)
       
-      // Find insertion index in the target row
+      // Find the target row widgets
       const targetRowWidgets = withoutActive.filter(w => w.y === overWidget.y).sort((a, b) => a.x - b.x)
       const overIndexInRow = targetRowWidgets.findIndex(w => w.i === over.id)
       
-      // Calculate new x position (insert before or after over widget)
-      let newX = overWidget.x
-      if (overIndexInRow > 0) {
-        const prevWidget = targetRowWidgets[overIndexInRow - 1]
-        newX = prevWidget.x + prevWidget.w
+      // Determine where to insert based on drag direction
+      let targetX = overWidget.x
+      const draggedToRight = overIndexInRow > targetRowWidgets.length / 2
+      
+      if (draggedToRight && overIndexInRow < targetRowWidgets.length - 1) {
+        // Insert after the over widget
+        targetX = overWidget.x + overWidget.w
       }
       
-      // Update active widget position
-      const movedWidget = {
-        ...activeWidget,
-        x: newX,
-        y: overWidget.y,
+      // Check if widget fits in target position
+      const spaceAvailable = 12 - targetRowWidgets.reduce((sum, w) => sum + w.w, 0)
+      
+      if (activeWidget.w <= spaceAvailable) {
+        // Fits without pushing - place at target position
+        const movedWidget = { ...activeWidget, x: targetX, y: overWidget.y }
+        
+        // Reflow only the target row to adjust spacing
+        const targetRowWithNew = [...targetRowWidgets, movedWidget].sort((a, b) => a.x - b.x)
+        let currentX = 0
+        const reflowedTargetRow = targetRowWithNew.map(widget => {
+          const positioned = { ...widget, x: currentX, y: overWidget.y }
+          currentX += widget.w
+          return positioned
+        })
+        
+        // Keep other rows unchanged
+        const otherRows = withoutActive.filter(w => w.y !== overWidget.y)
+        updateLayout([...kpiWidgets, ...otherRows, ...reflowedTargetRow])
+      } else {
+        // Doesn't fit - push widgets to next row
+        const movedWidget = { ...activeWidget, x: 0, y: overWidget.y }
+        const newLayout = reflowWidgets([...withoutActive, movedWidget])
+        updateLayout([...kpiWidgets, ...newLayout.filter(w => w.y > 0)])
       }
-      
-      // Reflow all widgets to prevent overlaps
-      const newLayout = reflowWidgets([...withoutActive, movedWidget])
-      
-      // Combine with KPI widgets
-      updateLayout([...kpiWidgets, ...newLayout.filter(w => w.y > 0)])
     } else {
       // Same row - simple reorder
       const oldIndex = otherWidgets.findIndex(w => w.i === active.id)
@@ -479,7 +509,7 @@ export default function WidgetCanvasWithDrag() {
   }
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Upper Section - KPI Widgets Row */}
       <div className="px-4 pt-4">
         <div
@@ -497,7 +527,7 @@ export default function WidgetCanvasWithDrag() {
               items={kpiWidgets.map(w => w.i)}
               strategy={verticalListSortingStrategy}
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
                 {kpiLayout.map((widget, index) => (
                   <div key={`kpi-slot-${index}`} className="relative w-full">
                     {widget ? (
@@ -543,7 +573,7 @@ export default function WidgetCanvasWithDrag() {
             items={otherWidgets.map(w => w.i)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-4">
+            <div className="space-y-3">
               {(() => {
                 // Group widgets by row
                 const rowMap = groupWidgetsByRow(otherWidgets)
@@ -554,7 +584,7 @@ export default function WidgetCanvasWithDrag() {
                   const availableSlots = calculateRowSlots(otherWidgets, rowY)
                   
                   return (
-                    <div key={`row-${rowY}`} className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div key={`row-${rowY}`} className="grid grid-cols-1 md:grid-cols-12 gap-3">
                       {/* Render widgets and slots in order */}
                       {(() => {
                         const items: React.ReactElement[] = []

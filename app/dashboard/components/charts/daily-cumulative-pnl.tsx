@@ -176,7 +176,8 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
                 </defs>
                 <CartesianGrid 
                   strokeDasharray="3 3" 
-                  className="text-border dark:opacity-[0.12] opacity-[0.2]"
+                  stroke="hsl(var(--border))"
+                  vertical={false}
                 />
                 <XAxis
                   dataKey="date"

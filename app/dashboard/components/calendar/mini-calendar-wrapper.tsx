@@ -1,16 +1,16 @@
 'use client'
 
 import React from "react"
-import DesktopCalendarPnl from "./desktop-calendar"
+import MiniCalendar from "./mini-calendar"
 import { useData } from "@/context/data-provider"
 
 /**
- * Mini Calendar - Simplified version without Daily/Weekly toggle
- * Always shows daily view with month navigation and weekly summary
+ * Mini Calendar - Dedicated component for compact Mon-Fri calendar
+ * Shows monthly view with weekly summary on the right
  */
 export default function MiniCalendarWrapper() {
   const { calendarData } = useData()
 
-  return <DesktopCalendarPnl calendarData={calendarData} isMini={true} />
+  return <MiniCalendar calendarData={calendarData} />
 }
 

@@ -1068,143 +1068,125 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
       }
     }
 
-    // ATOMIC TRANSACTION: ALL STEPS MUST SUCCEED OR NOTHING IS SAVED
-    const result = await prisma.$transaction(async (tx) => {
-      // STEP 2: Check if this is a prop firm account that needs phase transition
-      // For prop firm accounts, accountId is now the phase ID directly
-      // We need to find the corresponding master account
-      
-      // Use database aggregation instead of fetching all trades (MUCH faster)
-      // For prop firm accounts, we need to find the master account that contains this phase
-      const phaseAccount = await tx.phaseAccount.findUnique({
-        where: { id: accountId },
-        include: { masterAccount: true }
-      })
-
-      if (!phaseAccount) {
-        throw new Error(`Phase account not found: ${accountId}`)
+    // STEP 2: PRE-TRANSACTION VALIDATION (OUTSIDE TRANSACTION - FASTER)
+    // Determine if this is a prop firm or regular account BEFORE transaction
+    const phaseAccount = await prisma.phaseAccount.findUnique({
+      where: { id: accountId },
+      include: { 
+        masterAccount: { 
+          select: { 
+            id: true, 
+            accountName: true, 
+            accountSize: true, 
+            userId: true 
+          } 
+        } 
       }
-
-      const masterAccount = phaseAccount.masterAccount
-
-      if (masterAccount) {
-        const currentPhase = phaseAccount
-
-        // Use aggregation to sum PnL (1 query vs fetching 1000s of trades)
-        const pnlSum = await tx.trade.aggregate({
-          where: { phaseAccountId: currentPhase.id },
-          _sum: { pnl: true }
-        })
-
-        const currentPnL = pnlSum._sum.pnl || 0
-        const profitTargetAmount = (currentPhase.profitTargetPercent / 100) * masterAccount.accountSize
-
-        if (profitTargetAmount && currentPnL >= profitTargetAmount) {
-          const nextPhaseNumber = currentPhase.phaseNumber + 1
-          const nextPhaseName = nextPhaseNumber === 2 ? 'Phase 2' : nextPhaseNumber === 3 ? 'Funded' : `Phase ${nextPhaseNumber}`
-          throw new Error(
-            `This account has already passed ${currentPhase.phaseNumber === 1 ? 'Phase 1' : currentPhase.phaseNumber === 2 ? 'Phase 2' : 'the current phase'}. ` +
-            `Please provide your ${nextPhaseName} account ID before importing more trades. ` +
-            `Go to the account details page to complete the phase transition.`
-          )
-        }
-      }
-
-      // STEP 3: Determine account type and get linking info (only newTrades, not all cleanedData)
-      // For prop firm accounts, find the master account that contains this phase
-      const phaseAccountForLink = await tx.phaseAccount.findFirst({
-        where: { id: accountId },
-        include: { masterAccount: { select: { id: true, accountName: true } } }
-      })
-
-      const masterAccountForLink = phaseAccountForLink?.masterAccount || null
-
-      let phaseAccountId: string | null = null
-      let regularAccountId: string | null = null
-      let accountName: string
-      let isPropFirm: boolean
-      let phaseNumber: number | null = null
-
-      if (masterAccountForLink) {
-        // Prop firm account - link to current active phase
-        const currentPhase = await tx.phaseAccount.findFirst({
-          where: {
-            masterAccountId: masterAccountForLink.id,
-            status: 'active'
-          },
-          orderBy: {
-            phaseNumber: 'desc'
-          }
-        })
-
-        if (!currentPhase) {
-          throw new Error(`No active phase found for prop firm account "${masterAccountForLink.accountName}". Please set up the account phases first.`)
-        }
-
-        phaseAccountId = currentPhase.id
-        phaseNumber = currentPhase.phaseNumber
-        accountName = masterAccountForLink.accountName
-        isPropFirm = true
-      } else {
-        // Check if it's a prop firm phase account first, then regular account
-        // First try to find as a phase account (prop firm)
-        const phaseAccount = await tx.phaseAccount.findFirst({
-          where: { id: accountId, masterAccount: { userId } },
-          include: { masterAccount: true }
-        })
-
-        if (phaseAccount) {
-          // It's a prop firm phase account
-          phaseAccountId = phaseAccount.id
-          phaseNumber = phaseAccount.phaseNumber
-          accountName = phaseAccount.masterAccount.accountName
-          isPropFirm = true
-        } else {
-          // Try regular account
-          const regularAccount = await tx.account.findFirst({
-            where: { id: accountId, userId },
-            select: { id: true, name: true }
-          })
-
-          if (!regularAccount) {
-            throw new Error(`Account not found (ID: ${accountId}). The account may have been deleted.`)
-          }
-
-          regularAccountId = accountId
-          accountName = regularAccount.name || accountId
-          isPropFirm = false
-        }
-      }
-
-      // STEP 4: Save trades WITH linking info (all in one atomic operation)
-      const tradesToCreate = newTrades.map(trade => ({
-        ...trade,
-        phaseAccountId: phaseAccountId,
-        accountId: regularAccountId
-      }))
-
-      // NO skipDuplicates - we already filtered duplicates outside transaction
-      const createResult = await tx.trade.createMany({
-        data: tradesToCreate
-      })
-
-      return {
-        success: true,
-        linkedCount: createResult.count,
-        totalTrades: newTrades.length,
-        phaseAccountId,
-        phaseNumber,
-        accountId: regularAccountId,
-        accountName,
-        isPropFirm,
-        masterAccountId: isPropFirm ? masterAccountForLink?.id : null,
-        evaluation: undefined, // Will be populated post-transaction if applicable
-        isDuplicate: false
-      }
-    }, {
-      maxWait: 5000,
-      timeout: 60000 // Generous timeout for large batches (1000+ trades)
     })
+
+    let isPropFirm = false
+    let phaseAccountId: string | null = null
+    let regularAccountId: string | null = null
+    let accountName: string
+    let phaseNumber: number | null = null
+    let masterAccountId: string | null = null
+
+    if (phaseAccount) {
+      // It's a prop firm account
+      isPropFirm = true
+      phaseAccountId = phaseAccount.id
+      phaseNumber = phaseAccount.phaseNumber
+      accountName = phaseAccount.masterAccount.accountName
+      masterAccountId = phaseAccount.masterAccount.id
+
+      // Pre-check profit target OUTSIDE transaction to fail fast
+      const pnlSum = await prisma.trade.aggregate({
+        where: { phaseAccountId: phaseAccount.id },
+        _sum: { pnl: true }
+      })
+
+      const currentPnL = pnlSum._sum.pnl || 0
+      const profitTargetAmount = (phaseAccount.profitTargetPercent / 100) * phaseAccount.masterAccount.accountSize
+
+      if (profitTargetAmount && currentPnL >= profitTargetAmount) {
+        const nextPhaseNumber = phaseAccount.phaseNumber + 1
+        const nextPhaseName = nextPhaseNumber === 2 ? 'Phase 2' : nextPhaseNumber === 3 ? 'Funded' : `Phase ${nextPhaseNumber}`
+        throw new Error(
+          `This account has already passed ${phaseAccount.phaseNumber === 1 ? 'Phase 1' : phaseAccount.phaseNumber === 2 ? 'Phase 2' : 'the current phase'}. ` +
+          `Please provide your ${nextPhaseName} account ID before importing more trades. ` +
+          `Go to the account details page to complete the phase transition.`
+        )
+      }
+    } else {
+      // Try regular account
+      const regularAccount = await prisma.account.findFirst({
+        where: { id: accountId, userId },
+        select: { id: true, name: true }
+      })
+
+      if (!regularAccount) {
+        throw new Error(`Account not found (ID: ${accountId}). The account may have been deleted.`)
+      }
+
+      isPropFirm = false
+      regularAccountId = accountId
+      accountName = regularAccount.name || accountId
+    }
+
+    // STEP 3: BATCH PROCESSING FOR LARGE DATASETS
+    // For very large imports (>500 trades), batch them to avoid timeout
+    const BATCH_SIZE = 500
+    const totalBatches = Math.ceil(newTrades.length / BATCH_SIZE)
+    let totalCreated = 0
+
+    console.log(`[saveAndLinkTrades] Processing ${newTrades.length} trades in ${totalBatches} batch(es) for ${isPropFirm ? 'prop firm' : 'regular'} account`)
+
+    // Process trades in batches
+    for (let i = 0; i < totalBatches; i++) {
+      const start = i * BATCH_SIZE
+      const end = Math.min(start + BATCH_SIZE, newTrades.length)
+      const batch = newTrades.slice(start, end)
+
+      console.log(`[saveAndLinkTrades] Processing batch ${i + 1}/${totalBatches} (${batch.length} trades)`)
+
+      // OPTIMIZED TRANSACTION: Minimal queries, fast execution
+      const batchResult = await prisma.$transaction(async (tx) => {
+        // Prepare trades with linking info
+        const tradesToCreate = batch.map(trade => ({
+          ...trade,
+          phaseAccountId: isPropFirm ? phaseAccountId : null,
+          accountId: isPropFirm ? null : regularAccountId
+        }))
+
+        // Create trades in batch
+        const createResult = await tx.trade.createMany({
+          data: tradesToCreate
+        })
+
+        return createResult.count
+      }, {
+        maxWait: 10000,
+        timeout: 120000 // 2 minutes per batch (much more generous)
+      })
+
+      totalCreated += batchResult
+      console.log(`[saveAndLinkTrades] Batch ${i + 1}/${totalBatches} complete: ${batchResult} trades created`)
+    }
+
+    // Build result
+    const result = {
+      success: true,
+      linkedCount: totalCreated,
+      totalTrades: newTrades.length,
+      phaseAccountId,
+      phaseNumber,
+      accountId: regularAccountId,
+      accountName,
+      isPropFirm,
+      masterAccountId,
+      evaluation: undefined,
+      isDuplicate: false
+    }
 
     // AUTO-EVALUATION: Evaluate prop firm accounts after trade import
     if (result.isPropFirm && result.phaseAccountId && result.masterAccountId) {

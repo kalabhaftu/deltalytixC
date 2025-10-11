@@ -17,6 +17,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
+const chartConfig = {
+  pnl: {
+    label: "Trade Duration Performance",
+    color: "hsl(var(--chart-1))",
+  },
+} satisfies ChartConfig
+
 interface TradeDurationPerformanceProps {
   size?: WidgetSize
 }
@@ -38,13 +45,6 @@ interface TooltipProps {
   }>
   label?: string
 }
-
-const chartConfig = {
-  pnl: {
-    label: "Trade Duration Performance",
-    color: "hsl(var(--chart-1))",
-  },
-} satisfies ChartConfig
 
 import { formatCurrency, formatNumber } from '@/lib/utils'
 
@@ -212,10 +212,10 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
           </div>
         </div>
       </CardHeader>
-      <CardContent 
+      <CardContent
         className={cn(
           "flex-1 min-h-[200px]",
-          size === 'small' ? "p-1" : "p-2 sm:p-4"
+          size === 'small' || size === 'small-long' ? "p-1" : "p-2 sm:p-4"
         )}
       >
         <div className="w-full h-full">
@@ -224,36 +224,35 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
               <BarChart
                 data={chartData}
                 margin={
-                  size === 'small'
-                    ? { left: -10, right: -10, top: 0, bottom: 25 }
-                    : { left: -20, right: -10, top: 5, bottom: 30 }
+                  size === 'small' || size === 'small-long'
+                    ? { left: -10, right: -10, top: 0, bottom: 5 }
+                    : { left: -20, right: -10, top: 5, bottom: 10 }
                 }
                 barGap={0}
               >
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  className="text-border dark:opacity-[0.12] opacity-[0.2]"
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="hsl(var(--border))"
+                  vertical={false}
                 />
                 <XAxis
                   dataKey="bucket"
                   tickLine={false}
                   axisLine={false}
-                  height={size === 'small' ? 20 : 32}
-                  tickMargin={size === 'small' ? 4 : 8}
-                  tick={{ 
-                    fontSize: size === 'small' ? 8 : 10,
+                  height={size === 'small' || size === 'small-long' ? 20 : 24}
+                  tickMargin={size === 'small' || size === 'small-long' ? 4 : 8}
+                  tick={{
+                    fontSize: size === 'small' || size === 'small-long' ? 9 : 11,
                     fill: 'currentColor'
                   }}
-                  angle={-45}
-                  textAnchor="end"
                 />
                 <YAxis
                   tickLine={false}
                   axisLine={false}
                   width={60}
                   tickMargin={4}
-                  tick={{ 
-                    fontSize: size === 'small' ? 9 : 11,
+                  tick={{
+                    fontSize: size === 'small' || size === 'small-long' ? 9 : 11,
                     fill: 'currentColor'
                   }}
                   tickFormatter={formatCurrencyValue}
@@ -264,17 +263,17 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
                   strokeDasharray="3 3"
                   strokeOpacity={0.5}
                 />
-                <Tooltip 
+                <Tooltip
                   content={<CustomTooltip />}
-                  wrapperStyle={{ 
-                    fontSize: size === 'small' ? '10px' : '12px',
+                  wrapperStyle={{
+                    fontSize: size === 'small' || size === 'small-long' ? '10px' : '12px',
                     zIndex: 1000
-                  }} 
+                  }}
                 />
                 <Bar
                   dataKey="pnl"
                   radius={[3, 3, 0, 0]}
-                  maxBarSize={size === 'small' ? 30 : 50}
+                  maxBarSize={size === 'small' || size === 'small-long' ? 40 : 60}
                 >
                   {chartData.map((entry, index) => (
                     <Cell

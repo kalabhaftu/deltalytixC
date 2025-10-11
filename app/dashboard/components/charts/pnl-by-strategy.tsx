@@ -1,7 +1,9 @@
 "use client"
 
 import * as React from "react"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { useData } from "@/context/data-provider"
 import { cn } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
@@ -12,17 +14,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  ReferenceLine
-} from 'recharts'
+
+const chartConfig = {
+  pnl: {
+    label: "P&L by Strategy",
+    color: "hsl(var(--chart-1))",
+  },
+} satisfies ChartConfig
 
 interface PnLByStrategyProps {
   size?: WidgetSize
@@ -171,52 +169,81 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
         </div>
       </CardHeader>
 
-      <CardContent 
+      <CardContent
         className={cn(
           "flex-1 min-h-[200px]",
-          size === 'small' ? "p-1" : "p-2 sm:p-4"
+          size === 'small' || size === 'small-long' ? "p-1" : "p-2 sm:p-4"
         )}
       >
         {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-            <BarChart
-              data={chartData}
-              margin={{ top: 5, right: 5, left: 0, bottom: 45 }}
-            >
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                stroke="hsl(var(--border))" 
-                vertical={false}
-              />
-              <XAxis 
-                dataKey="strategy" 
-                angle={-45}
-                textAnchor="end"
-                height={60}
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={size === 'small' || size === 'small-long' ? 10 : 11}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis 
-                tickFormatter={formatYAxis}
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={size === 'small' || size === 'small-long' ? 9 : 11}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))' }} />
-              <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" opacity={0.5} />
-              <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
-                {chartData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={entry.pnl >= 0 ? 'hsl(var(--chart-profit))' : 'hsl(var(--chart-loss))'}
+          <div className="w-full h-full">
+            <ChartContainer config={chartConfig} className="w-full h-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartData}
+                  margin={
+                    size === 'small' || size === 'small-long'
+                      ? { left: -5, right: -10, top: 0, bottom: 5 }
+                      : { left: -15, right: -10, top: 5, bottom: 10 }
+                  }
+                  barGap={0}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                    vertical={false}
                   />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+                  <XAxis
+                    dataKey="strategy"
+                    tickLine={false}
+                    axisLine={false}
+                    height={size === 'small' || size === 'small-long' ? 20 : 24}
+                    tickMargin={size === 'small' || size === 'small-long' ? 4 : 8}
+                    tick={{
+                      fontSize: size === 'small' || size === 'small-long' ? 9 : 11,
+                      fill: 'currentColor'
+                    }}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={60}
+                    tickMargin={4}
+                    tick={{
+                      fontSize: size === 'small' || size === 'small-long' ? 9 : 11,
+                      fill: 'currentColor'
+                    }}
+                    tickFormatter={formatYAxis}
+                  />
+                  <ReferenceLine
+                    y={0}
+                    stroke="hsl(var(--muted-foreground))"
+                    strokeDasharray="3 3"
+                    strokeOpacity={0.5}
+                  />
+                  <Tooltip
+                    content={<CustomTooltip />}
+                    wrapperStyle={{
+                      fontSize: size === 'small' || size === 'small-long' ? '10px' : '12px',
+                      zIndex: 1000
+                    }}
+                  />
+                  <Bar
+                    dataKey="pnl"
+                    radius={[3, 3, 0, 0]}
+                    maxBarSize={size === 'small' || size === 'small-long' ? 40 : 60}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.pnl >= 0 ? 'hsl(var(--chart-profit))' : 'hsl(var(--chart-loss))'}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </div>
         ) : (
           <div className="flex-1 flex items-center justify-center min-h-[200px]">
             <div className="text-center space-y-2">

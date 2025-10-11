@@ -45,6 +45,7 @@ import { LinkedAccounts } from "@/components/linked-accounts"
 import { toast } from "sonner"
 import { PrimaryButton, SecondaryButton, DestructiveButton } from "@/components/ui/button-styles"
 import { DataSerializer } from "@/lib/data-serialization"
+import { CacheManagement } from "./components/cache-management"
 
 import {
   Collapsible,
@@ -743,6 +744,9 @@ export default function SettingsPage() {
 
         {/* Linked Accounts Section */}
         <LinkedAccounts />
+
+        {/* Cache Management Section */}
+        <CacheManagement />
 
         {/* Account Management Section */}
         <Card>

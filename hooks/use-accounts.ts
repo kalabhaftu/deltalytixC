@@ -87,6 +87,19 @@ export function invalidateAccountsCache(reason?: string) {
   lastFetchTime = 0
   cacheInvalidationTags.clear()
   
+  // Also clear localStorage account caches
+  if (typeof window !== 'undefined') {
+    try {
+      // Clear Zustand stores that cache account data
+      localStorage.removeItem('accounts-store')
+      localStorage.removeItem('equity-chart-store')
+      
+      console.log('[Cache] Cleared account-related localStorage on account change')
+    } catch (error) {
+      console.error('[Cache] Error clearing account localStorage:', error)
+    }
+  }
+  
   // Notify all subscribers about the cache invalidation
   broadcastAccountsUpdate()
 }

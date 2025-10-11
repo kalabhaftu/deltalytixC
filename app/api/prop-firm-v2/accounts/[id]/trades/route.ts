@@ -113,6 +113,38 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     })
 
+    // CRITICAL: Evaluate phase after trade is added (async, don't wait)
+    // This will detect breaches including historical daily drawdowns
+    try {
+      const { PhaseEvaluationEngine } = await import('@/lib/prop-firm/phase-evaluation-engine')
+      
+      // Run evaluation asynchronously (don't block the response)
+      PhaseEvaluationEngine.evaluatePhase(masterAccountId, currentPhase.id).then(async (evaluation) => {
+        if (evaluation.isFailed) {
+          console.log(`[TRADES_API] Phase failed after trade added - updating status`)
+          
+          await prisma.$transaction(async (tx) => {
+            await tx.phaseAccount.update({
+              where: { id: currentPhase.id },
+              data: { status: 'failed', endDate: new Date() }
+            })
+            await tx.masterAccount.update({
+              where: { id: masterAccountId },
+              data: { isActive: false }
+            })
+          })
+          
+          // Invalidate cache
+          const { revalidateTag } = await import('next/cache')
+          revalidateTag(`accounts-${userId}`)
+        }
+      }).catch(err => {
+        console.error('[TRADES_API] Error evaluating phase:', err)
+      })
+    } catch (evalError) {
+      console.error('[TRADES_API] Failed to run evaluation:', evalError)
+    }
+
     return NextResponse.json({
       success: true,
       data: trade,

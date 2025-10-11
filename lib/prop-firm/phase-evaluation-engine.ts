@@ -67,6 +67,7 @@ export class PhaseEvaluationEngine {
    * CRITICAL: Evaluate phase status with FAILURE-FIRST PRIORITY
    * Always check for failure conditions before checking if profit target is met
    * ENHANCED: Detailed logging in development mode
+   * FIXED: Now checks HISTORICAL daily drawdowns, not just today
    */
   static async evaluatePhase(
     masterAccountId: string,
@@ -132,7 +133,49 @@ export class PhaseEvaluationEngine {
 
     this.log(`High-water mark calculated: ${highWaterMark}`)
 
-    // Get daily start balance from daily anchor system
+    // CRITICAL FIX: Check historical daily drawdowns for ALL days
+    const historicalBreachCheck = await this.checkHistoricalDailyDrawdowns(
+      phaseAccount,
+      trades,
+      masterAccount.accountSize,
+      timezone
+    )
+
+    if (historicalBreachCheck.isBreached) {
+      this.log(`HISTORICAL BREACH DETECTED on ${historicalBreachCheck.breachDate}`, {
+        breachAmount: historicalBreachCheck.breachAmount,
+        dayLoss: historicalBreachCheck.dayLoss,
+        dailyLimit: historicalBreachCheck.dailyLimit
+      })
+
+      // Return immediate failure
+      return {
+        drawdown: {
+          currentEquity,
+          dailyStartBalance: historicalBreachCheck.dayStartBalance,
+          highWaterMark,
+          dailyDrawdownUsed: historicalBreachCheck.dayLoss,
+          dailyDrawdownLimit: historicalBreachCheck.dailyLimit,
+          dailyDrawdownRemaining: 0,
+          dailyDrawdownPercent: (historicalBreachCheck.dayLoss / historicalBreachCheck.dayStartBalance) * 100,
+          maxDrawdownUsed: masterAccount.accountSize - currentEquity,
+          maxDrawdownLimit: masterAccount.accountSize * (phaseAccount.maxDrawdownPercent / 100),
+          maxDrawdownRemaining: 0,
+          maxDrawdownPercent: ((masterAccount.accountSize - currentEquity) / masterAccount.accountSize) * 100,
+          isBreached: true,
+          breachType: 'daily_drawdown',
+          breachAmount: historicalBreachCheck.breachAmount,
+          breachTime: historicalBreachCheck.breachTime
+        },
+        progress: this.calculateProgress(phaseAccount, currentPnL, trades),
+        isFailed: true,
+        isPassed: false,
+        canAdvance: false,
+        nextAction: 'fail'
+      }
+    }
+
+    // Get daily start balance from daily anchor system (for current day display)
     const dailyStartBalance = await this.getDailyStartBalance(
       phaseAccountId,
       timezone,
@@ -208,6 +251,126 @@ export class PhaseEvaluationEngine {
       isPassed: canAdvance,
       canAdvance,
       nextAction: canAdvance ? 'advance' : 'continue'
+    }
+  }
+
+  /**
+   * CRITICAL METHOD: Check historical daily drawdowns for ALL trading days
+   * This catches breaches that happened on past dates when importing historical trades
+   */
+  private static async checkHistoricalDailyDrawdowns(
+    phaseAccount: any,
+    trades: any[],
+    accountSize: number,
+    timezone: string
+  ): Promise<{
+    isBreached: boolean
+    breachDate?: string
+    breachTime?: Date
+    dayStartBalance: number
+    dayEndBalance: number
+    dayLoss: number
+    dailyLimit: number
+    breachAmount?: number
+  }> {
+    
+    if (trades.length === 0) {
+      return {
+        isBreached: false,
+        dayStartBalance: accountSize,
+        dayEndBalance: accountSize,
+        dayLoss: 0,
+        dailyLimit: accountSize * (phaseAccount.dailyDrawdownPercent / 100)
+      }
+    }
+
+    // Calculate daily drawdown limit
+    const dailyDrawdownLimit = accountSize * (phaseAccount.dailyDrawdownPercent / 100)
+
+    // Group trades by day
+    const tradesByDay = new Map<string, any[]>()
+    
+    for (const trade of trades) {
+      const exitDate = trade.exitTime || trade.createdAt
+      const dateStr = this.getDateInTimezone(new Date(exitDate), timezone)
+      
+      if (!tradesByDay.has(dateStr)) {
+        tradesByDay.set(dateStr, [])
+      }
+      tradesByDay.get(dateStr)!.push(trade)
+    }
+
+    this.log(`Checking ${tradesByDay.size} days for historical breaches`, {
+      dailyDrawdownLimit,
+      dailyDrawdownPercent: phaseAccount.dailyDrawdownPercent
+    })
+
+    // Sort days chronologically
+    const sortedDays = Array.from(tradesByDay.keys()).sort()
+
+    // Track running balance
+    let runningBalance = accountSize
+
+    // Check each day
+    for (const dayStr of sortedDays) {
+      const dayTrades = tradesByDay.get(dayStr)!
+      const dayStartBalance = runningBalance
+
+      // Calculate day's P&L
+      let dayPnL = 0
+      for (const trade of dayTrades) {
+        dayPnL += (trade.pnl || 0)
+      }
+
+      const dayEndBalance = dayStartBalance + dayPnL
+      const dayLoss = dayPnL < 0 ? Math.abs(dayPnL) : 0
+
+      this.log(`Day ${dayStr}`, {
+        dayStartBalance,
+        dayEndBalance,
+        dayPnL,
+        dayLoss,
+        dailyLimit: dailyDrawdownLimit,
+        isBreached: dayLoss > dailyDrawdownLimit
+      })
+
+      // Check if this day breached the daily drawdown limit
+      if (dayLoss > dailyDrawdownLimit) {
+        const breachAmount = dayLoss - dailyDrawdownLimit
+        
+        console.error(`[EVALUATION_ENGINE] HISTORICAL DAILY DRAWDOWN BREACH DETECTED!`, {
+          date: dayStr,
+          dayStartBalance,
+          dayEndBalance,
+          dayLoss,
+          dailyLimit: dailyDrawdownLimit,
+          breachAmount,
+          tradesOnDay: dayTrades.length
+        })
+
+        return {
+          isBreached: true,
+          breachDate: dayStr,
+          breachTime: new Date(dayStr),
+          dayStartBalance,
+          dayEndBalance,
+          dayLoss,
+          dailyLimit: dailyDrawdownLimit,
+          breachAmount
+        }
+      }
+
+      // Update running balance for next day
+      runningBalance = dayEndBalance
+    }
+
+    // No breach detected
+    return {
+      isBreached: false,
+      dayStartBalance: accountSize,
+      dayEndBalance: runningBalance,
+      dayLoss: 0,
+      dailyLimit: dailyDrawdownLimit
     }
   }
 

@@ -209,10 +209,11 @@ export default function WeekdayPnL({ size = 'small-long' }: WeekdayPnLProps) {
                 }
                 barGap={0}
               >
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  className="text-border dark:opacity-[0.12] opacity-[0.2]"
-                />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+                vertical={false}
+              />
                 <XAxis
                   dataKey="dayName"
                   tickLine={false}
