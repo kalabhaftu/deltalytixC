@@ -1,8 +1,10 @@
 "use client"
 
 import * as React from "react"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, ReferenceLine, PieChart, Pie } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { useData } from "@/context/data-provider"
 import { cn } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
@@ -13,18 +15,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  PieChart,
-  Pie
-} from 'recharts'
+
+const chartConfig = {
+  winRate: {
+    label: "Win Rate by Strategy",
+    color: "hsl(var(--chart-1))",
+  },
+} satisfies ChartConfig
 
 interface WinRateByStrategyProps {
   size?: WidgetSize
@@ -49,7 +46,7 @@ const getStrategyColor = (winRate: number, index: number) => {
 
 export default function WinRateByStrategy({ size = 'small-long' }: WinRateByStrategyProps) {
   const { formattedTrades } = useData()
-  const [viewMode, setViewMode] = React.useState<'pie' | 'bar'>('pie')
+  const [viewMode, setViewMode] = React.useState<'pie' | 'bar'>('bar')
 
   const chartData = React.useMemo(() => {
     // Group trades by strategy
@@ -198,7 +195,7 @@ export default function WinRateByStrategy({ size = 'small-long' }: WinRateByStra
 
       <CardContent
         className={cn(
-          "flex-1 p-4 pt-4 flex flex-col",
+          "flex-1 min-h-[280px] p-4 pt-4 flex flex-col",
           size === 'small' ? "p-2 pt-2" : ""
         )}
       >
@@ -206,66 +203,98 @@ export default function WinRateByStrategy({ size = 'small-long' }: WinRateByStra
           <>
             {viewMode === 'pie' ? (
               /* Pie Chart View */
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    dataKey="winRate"
-                    nameKey="strategy"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    label={renderLabel}
-                    labelLine={false}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={getStrategyColor(entry.winRate, index)} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
+              <div className="w-full h-full">
+                <ChartContainer config={chartConfig} className="w-full h-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        dataKey="winRate"
+                        nameKey="strategy"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={size === 'small' || size === 'small-long' ? 60 : 80}
+                        label={renderLabel}
+                        labelLine={false}
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={getStrategyColor(entry.winRate, index)} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </div>
             ) : (
               /* Bar Chart View */
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 5, right: 5, left: 0, bottom: 45 }}
-                >
-                  <CartesianGrid 
-                    strokeDasharray="3 3" 
-                    stroke="hsl(var(--border))" 
-                    vertical={false}
-                  />
-                  <XAxis 
-                    dataKey="strategy" 
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={size === 'small' || size === 'small-long' ? 10 : 11}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    domain={[0, 100]}
-                    tickFormatter={(value) => `${value}%`}
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={size === 'small' || size === 'small-long' ? 10 : 11}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))' }} />
-                  <Bar dataKey="winRate" radius={[4, 4, 0, 0]}>
-                    {chartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={getWinRateColor(entry.winRate)}
+              <div className="w-full h-full">
+                <ChartContainer config={chartConfig} className="w-full h-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={chartData}
+                      margin={
+                        size === 'small' || size === 'small-long'
+                          ? { left: -10, right: -10, top: 0, bottom: 5 }
+                          : { left: -20, right: -10, top: 5, bottom: 10 }
+                      }
+                      barGap={0}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        className="text-border dark:opacity-[0.12] opacity-[0.2]"
                       />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                      <XAxis
+                        dataKey="strategy"
+                        tickLine={false}
+                        axisLine={false}
+                        height={size === 'small' || size === 'small-long' ? 20 : 24}
+                        tickMargin={size === 'small' || size === 'small-long' ? 4 : 8}
+                        tick={{
+                          fontSize: size === 'small' || size === 'small-long' ? 9 : 11,
+                          fill: 'currentColor'
+                        }}
+                      />
+                      <YAxis
+                        tickLine={false}
+                        axisLine={false}
+                        width={60}
+                        tickMargin={4}
+                        tick={{
+                          fontSize: size === 'small' || size === 'small-long' ? 9 : 11,
+                          fill: 'currentColor'
+                        }}
+                        tickFormatter={(value) => `${value}%`}
+                      />
+                      <ReferenceLine
+                        y={0}
+                        stroke="hsl(var(--muted-foreground))"
+                        strokeDasharray="3 3"
+                        strokeOpacity={0.5}
+                      />
+                      <Tooltip
+                        content={<CustomTooltip />}
+                        wrapperStyle={{
+                          fontSize: size === 'small' || size === 'small-long' ? '10px' : '12px',
+                          zIndex: 1000
+                        }}
+                      />
+                      <Bar
+                        dataKey="winRate"
+                        radius={[3, 3, 0, 0]}
+                        maxBarSize={size === 'small' || size === 'small-long' ? 40 : 60}
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={getWinRateColor(entry.winRate)}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </div>
             )}
 
             {/* Best Strategy Summary */}
