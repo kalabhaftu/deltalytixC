@@ -127,7 +127,7 @@ export function CacheManagement() {
           <Info className="h-4 w-4" />
           <AlertDescription>
             The app automatically clears stale caches when detecting version changes. 
-            Only use manual clearing if you're experiencing issues with outdated data.
+            Only use manual clearing if you&apos;re experiencing issues with outdated data.
           </AlertDescription>
         </Alert>
 

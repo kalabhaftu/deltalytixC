@@ -32,21 +32,21 @@ type ColumnConfig = {
 };
 
 const columnConfig: ColumnConfig = {
-  "accountNumber": { defaultMapping: ["account", "accountnumber"], required: false },
   "instrument": { defaultMapping: ["symbol", "ticker"], required: true },
-  "entryId": { defaultMapping: ["entryId", "entryorderid"], required: false },
-  "closeId": { defaultMapping: ["closeId", "closeorderid"], required: false },
-  "quantity": { defaultMapping: ["qty", "amount"], required: true },
-  "entryPrice": { defaultMapping: ["entryprice", "entryprice"], required: true },
+  "entryId": { defaultMapping: ["id", "tradeid", "orderid"], required: false },
+  "quantity": { defaultMapping: ["qty", "amount", "volume"], required: true },
+  "entryPrice": { defaultMapping: ["entryprice", "openprice"], required: true },
   "closePrice": { defaultMapping: ["closeprice", "exitprice"], required: true },
-  "entryDate": { defaultMapping: ["entrydate", "entrydate"], required: true },
-  "closeDate": { defaultMapping: ["closedate", "exitdate"], required: true },
+  "entryDate": { defaultMapping: ["entrydate", "opentime"], required: true },
+  "closeDate": { defaultMapping: ["closedate", "exitdate", "closetime"], required: true },
   "pnl": { defaultMapping: ["pnl", "profit"], required: true },
   "timeInPosition": { defaultMapping: ["timeinposition", "duration"], required: false },
   "side": { defaultMapping: ["side", "direction"], required: false },
   "commission": { defaultMapping: ["commission", "fee"], required: false },
   "stopLoss": { defaultMapping: ["stoploss", "sl", "stop"], required: false },
   "takeProfit": { defaultMapping: ["takeprofit", "tp", "target"], required: false },
+  "closeReason": { defaultMapping: ["closereason", "reason", "exitreason"], required: false },
+  "symbol": { defaultMapping: ["symbol", "ticker", "instrument"], required: false },
 }
 
 export type Step = 
@@ -128,7 +128,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
               side: cleanTrade.side || '',
               commission: cleanTrade.commission || 0,
               entryId: cleanTrade.entryId || null,
-              closeId: cleanTrade.closeId || null,
               comment: cleanTrade.comment || null,
               imageBase64: cleanTrade.imageBase64 || null,
               imageBase64Second: cleanTrade.imageBase64Second || null,

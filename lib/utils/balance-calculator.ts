@@ -69,8 +69,32 @@ export function calculateAccountBalance(
   // Start with account's starting balance
   let balance = account.startingBalance || 0
 
-  // Filter trades if needed
-  let relevantTrades = trades.filter(trade => trade.accountNumber === account.number)
+  // Filter trades based on account type
+  // For prop firm accounts: match by phase ID (UUID) since trades use phaseAccountId
+  // For regular accounts: match by account number
+  let relevantTrades: (Trade | any)[]
+  
+  if (account.accountType === 'prop-firm') {
+    // Prop firm accounts use phase ID (UUID) for linking trades
+    relevantTrades = trades.filter(trade => 
+      trade.phaseAccountId === account.id || 
+      trade.accountNumber === account.number
+    )
+    
+    // Debug logging for prop firm accounts
+    if (account.status === 'failed') {
+      console.log(`[Balance Calculator] Failed account ${account.displayName}:`, {
+        accountId: account.id,
+        accountNumber: account.number,
+        tradesCount: relevantTrades.length,
+        startingBalance: balance,
+        tradesPnL: relevantTrades.reduce((sum, t) => sum + ((t.pnl || 0) - (t.commission || 0)), 0)
+      })
+    }
+  } else {
+    // Regular accounts use account number
+    relevantTrades = trades.filter(trade => trade.accountNumber === account.number)
+  }
 
   // For failed accounts, we still want to show the actual current balance
   // including trade P&L, so we don't exclude them here
@@ -111,19 +135,45 @@ export function calculateAccountBalances(
 ): Map<string, number> {
   const balanceMap = new Map<string, number>()
 
-  // Group trades by account number for efficiency
-  const tradesByAccount = new Map<string, any[]>()
+  // Group trades by account number AND phase ID for efficiency
+  const tradesByAccountNumber = new Map<string, any[]>()
+  const tradesByPhaseId = new Map<string, any[]>()
+  
   allTrades.forEach(trade => {
-    if (!trade.accountNumber) return
-    if (!tradesByAccount.has(trade.accountNumber)) {
-      tradesByAccount.set(trade.accountNumber, [])
+    // Group by account number (for regular accounts and backwards compatibility)
+    if (trade.accountNumber) {
+      if (!tradesByAccountNumber.has(trade.accountNumber)) {
+        tradesByAccountNumber.set(trade.accountNumber, [])
+      }
+      tradesByAccountNumber.get(trade.accountNumber)!.push(trade)
     }
-    tradesByAccount.get(trade.accountNumber)!.push(trade)
+    
+    // Group by phase ID (for prop firm accounts)
+    if (trade.phaseAccountId) {
+      if (!tradesByPhaseId.has(trade.phaseAccountId)) {
+        tradesByPhaseId.set(trade.phaseAccountId, [])
+      }
+      tradesByPhaseId.get(trade.phaseAccountId)!.push(trade)
+    }
   })
 
   // Calculate balance for each account
   accounts.forEach(account => {
-    const accountTrades = tradesByAccount.get(account.number) || []
+    let accountTrades: any[] = []
+    
+    if (account.accountType === 'prop-firm') {
+      // For prop firm accounts, use phase ID primarily
+      accountTrades = tradesByPhaseId.get(account.id) || []
+      
+      // Fallback to account number for backwards compatibility
+      if (accountTrades.length === 0 && account.number) {
+        accountTrades = tradesByAccountNumber.get(account.number) || []
+      }
+    } else {
+      // For regular accounts, use account number
+      accountTrades = tradesByAccountNumber.get(account.number) || []
+    }
+    
     const balance = calculateAccountBalance(account, accountTrades, options)
     balanceMap.set(account.number, balance)
   })

@@ -26,19 +26,21 @@ type ColumnConfig = {
 };
 
 const columnConfig: ColumnConfig = {
-  "accountNumber": { defaultMapping: ["account", "accountnumber"], required: false },
   "instrument": { defaultMapping: ["symbol", "ticker"], required: true },
-  "entryId": { defaultMapping: ["buyid", "buyorderid"], required: false },
-  "closeId": { defaultMapping: ["sellid", "sellorderid"], required: false },
-  "quantity": { defaultMapping: ["qty", "amount"], required: true },
-  "entryPrice": { defaultMapping: ["buyprice", "entryprice"], required: true },
-  "closePrice": { defaultMapping: ["sellprice", "exitprice"], required: true },
-  "entryDate": { defaultMapping: ["buydate", "entrydate"], required: true },
-  "closeDate": { defaultMapping: ["selldate", "exitdate"], required: true },
+  "entryId": { defaultMapping: ["id", "tradeid", "orderid"], required: false },
+  "quantity": { defaultMapping: ["qty", "amount", "volume"], required: true },
+  "entryPrice": { defaultMapping: ["buyprice", "entryprice", "openprice"], required: true },
+  "closePrice": { defaultMapping: ["sellprice", "exitprice", "closeprice"], required: true },
+  "entryDate": { defaultMapping: ["buydate", "entrydate", "opentime"], required: true },
+  "closeDate": { defaultMapping: ["selldate", "exitdate", "closetime"], required: true },
   "pnl": { defaultMapping: ["pnl", "profit"], required: true },
   "timeInPosition": { defaultMapping: ["timeinposition", "duration"], required: false },
   "side": { defaultMapping: ["side", "direction"], required: false },
   "commission": { defaultMapping: ["commission", "fee"], required: false },
+  "stopLoss": { defaultMapping: ["stoploss", "sl", "stop"], required: false },
+  "takeProfit": { defaultMapping: ["takeprofit", "tp", "target"], required: false },
+  "closeReason": { defaultMapping: ["closereason", "reason", "exitreason"], required: false },
+  "symbol": { defaultMapping: ["symbol", "ticker", "instrument"], required: false },
 }
 
 const destinationColumns = Object.keys(columnConfig)
@@ -186,10 +188,8 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
                     <SelectContent>
                       {destinationColumns.map((column, i) => (
                         <SelectItem key={i} value={column} disabled={Object.values(mappings).includes(column) && mappings[header] !== column}>
-                          {column === 'accountNumber' ? 'Account Number' :
-                           column === 'instrument' ? 'Instrument' :
+                          {column === 'instrument' ? 'Instrument' :
                            column === 'entryId' ? 'Entry ID' :
-                           column === 'closeId' ? 'Close ID' :
                            column === 'quantity' ? 'Quantity' :
                            column === 'entryPrice' ? 'Entry Price' :
                            column === 'closePrice' ? 'Close Price' :
@@ -199,6 +199,10 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
                            column === 'timeInPosition' ? 'Time in Position' :
                            column === 'side' ? 'Side' :
                            column === 'commission' ? 'Commission' :
+                           column === 'stopLoss' ? 'Stop Loss' :
+                           column === 'takeProfit' ? 'Take Profit' :
+                           column === 'closeReason' ? 'Close Reason' :
+                           column === 'symbol' ? 'Symbol' :
                            column}
                           {columnConfig[column].required && (
                             <span className="ml-1 text-yellow-500">*</span>

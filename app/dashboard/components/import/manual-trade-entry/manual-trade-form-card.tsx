@@ -84,6 +84,10 @@ const tradeFormSchema = z.object({
   pnl: z.number(),
   commission: z.number().default(0),
   
+  // Risk management (required)
+  stopLoss: z.string().min(1, 'Stop Loss is required'),
+  takeProfit: z.string().min(1, 'Take Profit is required'),
+  
   // Analysis fields (optional)
   session: z.string().optional(),
   bias: z.string().optional(),
@@ -102,7 +106,12 @@ interface ManualTradeFormCardProps {
   accountNumber?: string
 }
 
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7
+
+const TOTAL_STEPS = 7
+
 export default function ManualTradeFormCard({ accountId, accountNumber: propFirmAccountNumber }: ManualTradeFormCardProps) {
+  const [currentStep, setCurrentStep] = useState<Step>(1)
   const [phaseValidationError, setPhaseValidationError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [calculatedPnL, setCalculatedPnL] = useState<number | null>(null)
@@ -122,6 +131,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
     formState: { errors }
   } = useForm<TradeFormData>({
     resolver: zodResolver(tradeFormSchema),
+    mode: 'onChange',
     defaultValues: {
       entryDate: new Date().toISOString().split('T')[0],
       entryTime: new Date().toTimeString().split('T')[0].slice(0, 5),
@@ -130,6 +140,8 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
       quantity: 1,
       commission: 0,
       pnl: 0,
+      stopLoss: '',
+      takeProfit: '',
       accountNumber: propFirmAccountNumber || '',
     }
   })
@@ -185,18 +197,21 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
     }
   }, [watchedValues.entryDate, watchedValues.entryTime, watchedValues.closeDate, watchedValues.closeTime, watchedValues])
 
-  // Get unified accounts for dropdown - server returns clean data without duplicates
-  const { accounts: allAccounts } = useAccounts()
+  // Get unified accounts for dropdown - same as CSV import
+  const { accounts: allAccounts, isLoading: isLoadingAccounts } = useAccounts()
   
   // For manual trade entry, only show active phases (where user can add trades)
+  // Use same logic as account-selection component
   const unifiedAccounts = React.useMemo(() => {
     return allAccounts.filter(acc => {
       // Show all live accounts
       if (acc.accountType === 'live') return true
       
-      // For prop-firm accounts: only show active phases
+      // For prop-firm accounts: only show active phases (NOT passed or failed)
       if (acc.accountType === 'prop-firm') {
-        return acc.status === 'active'
+        // Check phase status - must be active (not passed, not failed)
+        const phaseStatus = (acc as any).currentPhase?.status || acc.status
+        return phaseStatus === 'active'
       }
       
       return false
@@ -271,7 +286,6 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
         comment: data.comment || null,
         userId: currentUser.id,
         entryId: null,
-        closeId: null,
         imageBase64: null,
         imageBase64Second: null,
         imageBase64Third: null,
@@ -389,12 +403,11 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
                   </Select>
                 )}
               />
-              {!COMMON_INSTRUMENTS.includes(watchedValues.instrument as any) && (
-                <Input
-                  placeholder="Or type custom instrument"
-                  {...register('instrument')}
-                />
-              )}
+              <Input
+                placeholder="Or type custom instrument"
+                {...register('instrument')}
+                className="mt-2"
+              />
               {errors.instrument && (
                 <p className="text-sm text-red-500">{errors.instrument.message}</p>
               )}

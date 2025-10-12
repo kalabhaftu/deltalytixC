@@ -182,7 +182,7 @@ export async function createTemplate(name: string): Promise<DashboardTemplate> {
   )
 
   if (existing) {
-    throw new Error('A template with this name already exists')
+    throw new Error(`A template with the name "${name}" already exists. Please use a different name or delete the existing template.`)
   }
 
   // Always copy from the global DEFAULT_LAYOUT (not from user's default template)

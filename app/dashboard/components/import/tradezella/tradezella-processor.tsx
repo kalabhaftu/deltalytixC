@@ -32,7 +32,6 @@ const newMappings: { [key: string]: string } = {
   "Side": "side",
   "Symbol": "instrument",
   "Adjusted Cost": "entryId",
-  "Adjusted Proceeds": "closeId",
 }
 
 
@@ -59,7 +58,6 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
   // Side: "side"
   // Symbol: "instrument"
   // Adjusted Cost: "entryId"
-  // Adjusted Proceeds: "closeId"
   const processTrades = useCallback(async () => {
     const currentUser = user || supabaseUser
     if (!currentUser?.id) {
@@ -122,7 +120,6 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
         accountNumber: item.accountNumber || accountNumber,
         quantity: item.quantity || 1,
         entryId: item.entryId || null,
-        closeId: item.closeId || null,
         instrument: item.instrument || '',
         entryPrice: item.entryPrice || '',
         closePrice: item.closePrice || '',

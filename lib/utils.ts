@@ -137,7 +137,6 @@ export function formatTradeData(trade: Trade) {
     // IDs
     id: trade.id,
     entryId: trade.entryId || null,
-    closeId: trade.closeId || null,
     groupId: trade.groupId || null,
     
     // Raw data for custom formatting
@@ -367,7 +366,7 @@ export function groupBy<T>(array: T[], key: keyof T): { [key: string]: T[] } {
 
 export function generateTradeHash(trade: Partial<Trade>): string {
   // Handle undefined values by converting them to empty strings or default values
-  const hashString = `${trade.userId || ''}-${trade.accountNumber || ''}-${trade.instrument || ''}-${trade.entryDate || ''}-${trade.closeDate || ''}-${trade.quantity || 0}-${trade.entryId || ''}-${trade.closeId || ''}-${trade.timeInPosition || 0}`
+  const hashString = `${trade.userId || ''}-${trade.accountNumber || ''}-${trade.instrument || ''}-${trade.entryDate || ''}-${trade.closeDate || ''}-${trade.quantity || 0}-${trade.entryId || ''}-${trade.timeInPosition || 0}`
   return hashString
 }
 

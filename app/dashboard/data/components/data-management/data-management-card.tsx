@@ -16,7 +16,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Trade } from '@prisma/client'
-import ExportButton from '@/components/export-button'
+import { AdvancedExportDialog } from './advanced-export-dialog'
+import { ImportDialog } from './import-dialog'
 import { useUserStore } from '@/store/user-store'
 import { useTradesStore } from '@/store/trades-store'
 import { useAccounts } from '@/hooks/use-accounts'
@@ -304,7 +305,8 @@ export function DataManagementCard() {
         <CardTitle className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
           <span className="text-xl lg:text-2xl">Data Management</span>
           <div className="flex flex-wrap gap-2 w-full lg:w-auto">
-            <ExportButton trades={trades} />
+            <ImportDialog />
+            <AdvancedExportDialog />
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
               <AlertDialogTrigger asChild>
                 <Button

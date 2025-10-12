@@ -79,7 +79,6 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
           side: cleanTrade.side || '',
           commission: cleanTrade.commission || 0,
           entryId: cleanTrade.entryId || null,
-          closeId: cleanTrade.closeId || null,
           comment: cleanTrade.comment || null,
                   imageBase64: cleanTrade.imageBase64 || null,
         imageBase64Second: cleanTrade.imageBase64Second || null,
@@ -121,7 +120,6 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
           },
           select: {
             entryId: true,
-            closeId: true,
             accountNumber: true,
             entryDate: true,
             instrument: true,
@@ -134,13 +132,13 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         // Create set of existing signatures for fast lookup
         const existingSignatures = new Set(
           existingTrades.map(trade => 
-            `${trade.entryId || ''}-${trade.closeId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
+            `${trade.entryId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
           )
         )
 
         // Filter out duplicate trades
         const newTrades = cleanedData.filter(trade => {
-          const signature = `${trade.entryId || ''}-${trade.closeId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
+          const signature = `${trade.entryId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
           return !existingSignatures.has(signature)
         })
 

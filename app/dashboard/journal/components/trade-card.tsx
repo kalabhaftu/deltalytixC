@@ -115,11 +115,18 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
   const hasIncompleteRRData = rrResult.hasIncompleteData
   const duration = trade.timeInPosition || 0
 
-  const formatDuration = (minutes: number) => {
-    if (minutes < 60) return `${Math.round(minutes)}m`
-    const hours = Math.floor(minutes / 60)
-    const remainingMinutes = Math.round(minutes % 60)
-    return `${hours}h ${remainingMinutes}m`
+  const formatDuration = (timeInPosition: number) => {
+    const hours = Math.floor(timeInPosition / 3600)
+    const minutes = Math.floor((timeInPosition % 3600) / 60)
+    const seconds = Math.floor(timeInPosition % 60)
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`
+    } else {
+      return `${seconds}s`
+    }
   }
 
   return (

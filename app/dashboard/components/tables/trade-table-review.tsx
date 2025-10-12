@@ -274,7 +274,6 @@ export function TradeTableReview() {
           accountNumber: trade.accountNumber,
           quantity: trade.quantity,
           entryId: null,
-          closeId: null,
           entryPrice: trade.entryPrice,
           closePrice: trade.closePrice,
           pnl: trade.pnl,

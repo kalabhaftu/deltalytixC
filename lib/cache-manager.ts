@@ -47,7 +47,7 @@ export function updateCacheVersion(): void {
  * LocalStorage cache management
  */
 export interface LocalStorageCacheItem {
-  key: string
+  key?: string
   pattern?: RegExp
   description: string
 }
@@ -228,7 +228,7 @@ export async function clearAllCaches(options: {
     keepTheme = true,
     keepConsent = true,
     clearServiceWorker = false, // Conservative by default
-    clearIndexedDB = false // Conservative by default
+    clearIndexedDB: shouldClearIndexedDB = false // Conservative by default
   } = options
   
   console.log('[Cache] Starting comprehensive cache clear...')
@@ -241,7 +241,7 @@ export async function clearAllCaches(options: {
   const localStorageCleared = clearLocalStorageCache(keysToKeep)
   const sessionStorageCleared = clearSessionStorage()
   const serviceWorkerCleared = clearServiceWorker ? await clearServiceWorkerCaches() : 0
-  const indexedDBCleared = clearIndexedDB ? await clearIndexedDB() : 0
+  const indexedDBCleared = shouldClearIndexedDB ? await clearIndexedDB() : 0
   
   // Clear Next.js cache
   clearNextJSCache()

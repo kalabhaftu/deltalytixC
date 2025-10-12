@@ -92,43 +92,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       phase.phaseNumber === masterAccount.currentPhase
     )
 
-    // CRITICAL: Auto-evaluate phase when account is viewed
-    // This ensures status is always up-to-date, catching historical breaches
-    if (currentPhase && currentPhase.status === 'active') {
-      try {
-        const { PhaseEvaluationEngine } = await import('@/lib/prop-firm/phase-evaluation-engine')
-        
-        const evaluation = await PhaseEvaluationEngine.evaluatePhase(
-          masterAccount.id,
-          currentPhase.id
-        )
-
-        if (evaluation.isFailed && currentPhase.status !== 'failed') {
-          console.log(`[ACCOUNT_GET] Auto-evaluation detected failure - updating status`)
-          
-          await prisma.$transaction(async (tx) => {
-            await tx.phaseAccount.update({
-              where: { id: currentPhase.id },
-              data: { status: 'failed', endDate: new Date() }
-            })
-            await tx.masterAccount.update({
-              where: { id: masterAccount.id },
-              data: { isActive: false }
-            })
-          })
-          
-          // Update local reference
-          currentPhase.status = 'failed'
-          masterAccount.isActive = false
-          
-          // Invalidate cache
-          const { revalidateTag } = await import('next/cache')
-          revalidateTag(`accounts-${userId}`)
-        }
-      } catch (evalError) {
-        console.error('[ACCOUNT_GET] Error during auto-evaluation:', evalError)
-      }
-    }
+    // NOTE: Evaluation is now done in the background after trade import
+    // This keeps the GET request fast and responsive
 
     // Calculate statistics from aggregated data (FAST - no array operations)
     const totalTrades = tradeStats.reduce((sum, stat) => sum + stat._count.id, 0)

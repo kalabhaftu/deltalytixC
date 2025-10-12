@@ -348,6 +348,81 @@ export function FormatPreview({
       },
       size: 120,
     },
+    {
+      accessorKey: "stopLoss",
+      header: ({ column }) => (
+        <div className="font-medium">Stop Loss</div>
+      ),
+      cell: ({ row }) => {
+        const stopLoss = (row.original as any).stopLoss;
+        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'stopLoss')];
+        return stopLoss ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                ${stopLoss}
+              </TooltipTrigger>
+              {originalData && (
+                <TooltipContent>
+                  <p>Original: {originalData}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        ) : <span className="text-muted-foreground">-</span>;
+      },
+      size: 120,
+    },
+    {
+      accessorKey: "takeProfit",
+      header: ({ column }) => (
+        <div className="font-medium">Take Profit</div>
+      ),
+      cell: ({ row }) => {
+        const takeProfit = (row.original as any).takeProfit;
+        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'takeProfit')];
+        return takeProfit ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                ${takeProfit}
+              </TooltipTrigger>
+              {originalData && (
+                <TooltipContent>
+                  <p>Original: {originalData}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        ) : <span className="text-muted-foreground">-</span>;
+      },
+      size: 120,
+    },
+    {
+      accessorKey: "closeReason",
+      header: ({ column }) => (
+        <div className="font-medium">Close Reason</div>
+      ),
+      cell: ({ row }) => {
+        const closeReason = (row.original as any).closeReason;
+        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'closeReason')];
+        return closeReason ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <span className="capitalize">{closeReason}</span>
+              </TooltipTrigger>
+              {originalData && (
+                <TooltipContent>
+                  <p>Original: {originalData}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        ) : <span className="text-muted-foreground">-</span>;
+      },
+      size: 140,
+    },
   ], [validTrades, headers, mappings]);
 
   const table = useReactTable({

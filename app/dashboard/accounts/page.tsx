@@ -129,6 +129,9 @@ export default function AccountsPage() {
     }
   }, []) // Only run on mount
 
+  // REMOVED: Transition detection from accounts page - now handled by import component
+  // Dialog appears immediately after import when profit target is achieved
+
   // Removed auto-refresh effects for better UX
 
 
@@ -146,10 +149,15 @@ export default function AccountsPage() {
 
       const matchesType = filterType === 'all' || account.accountType === filterType
 
-      // Handle status filtering - hide failed/passed/pending by default, show when specifically requested
-      const shouldHideByDefault = account.status === 'failed' || account.status === 'passed' || account.status === 'pending'
+      // Handle status filtering - ALWAYS hide passed accounts, hide failed/pending by default
+      const isPassedAccount = account.status === 'passed'
+      const shouldHideByDefault = account.status === 'failed' || account.status === 'pending'
+      
+      // ALWAYS hide passed accounts (they've transitioned to next phase)
+      if (isPassedAccount) return false
+      
       const matchesStatus = filterStatus === 'all'
-        ? !shouldHideByDefault  // When 'all', hide failed/passed/pending accounts
+        ? !shouldHideByDefault  // When 'all', hide failed/pending accounts
         : account.status === filterStatus  // When specific status, show only matching accounts
 
       return matchesSearch && matchesType && matchesStatus
@@ -565,6 +573,7 @@ export default function AccountsPage() {
             refetchAccounts()
           }}
         />
+
             </div>
     </div>
   )

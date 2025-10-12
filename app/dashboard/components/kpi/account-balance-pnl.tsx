@@ -40,6 +40,8 @@ export default function AccountBalancePnl({ size }: AccountBalancePnlProps) {
   }, [filteredAccounts, formattedTrades])
   
   const totalBalance = balanceInfo.currentBalance
+  const grossPnl = balanceInfo.totalPnL
+  const totalCommissions = Math.abs(balanceInfo.totalCommissions)
   const netPnl = balanceInfo.netPnL
   
   const formatCurrency = (amount: number) => {
@@ -63,45 +65,60 @@ export default function AccountBalancePnl({ size }: AccountBalancePnlProps) {
   }
 
   return (
-    <Card className="w-full h-24">
-      <CardContent className="p-4 h-full flex flex-col justify-center">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs text-muted-foreground font-medium">
-                Account Balance & P&L
+    <Card className="w-full h-24 overflow-hidden">
+      <CardContent className="p-3 h-full flex flex-col justify-center gap-1">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] text-muted-foreground font-medium whitespace-nowrap">
+            Account Balance & P&L
+          </span>
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="w-3 h-3 rounded-full bg-muted flex items-center justify-center cursor-help flex-shrink-0">
+                  <HelpCircle className="h-2 w-2 text-muted-foreground" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={5} className="max-w-[300px]">
+                <p>
+                  {accountNumbers && accountNumbers.length > 0
+                    ? `Balance for ${accountNumbers.length} selected account${accountNumbers.length > 1 ? 's' : ''} including trading fees.`
+                    : 'Current total balance across all accounts including trading fees.'}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        
+        <div className="text-xl font-bold text-foreground">
+          {formatCompactCurrency(totalBalance)}
+        </div>
+        
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-3 text-[10px]">
+            <div className="flex items-center gap-1">
+              <span className="text-muted-foreground">P&L:</span>
+              <span className={cn(
+                "font-medium",
+                grossPnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+              )}>
+                {formatCompactCurrency(grossPnl)}
               </span>
-              <TooltipProvider delayDuration={100}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="w-3 h-3 rounded-full bg-muted flex items-center justify-center cursor-help">
-                      <HelpCircle className="h-2 w-2 text-muted-foreground" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" sideOffset={5} className="max-w-[300px]">
-                    <p>
-                      {accountNumbers && accountNumbers.length > 0
-                        ? `Balance for ${accountNumbers.length} selected account${accountNumbers.length > 1 ? 's' : ''} with net P&L (profit/loss) including fees.`
-                        : 'Current total balance across all accounts with net P&L (profit/loss) including fees.'}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-xl font-bold text-foreground">
-                {formatCompactCurrency(totalBalance)}
+            <div className="flex items-center gap-1">
+              <span className="text-muted-foreground">Fees:</span>
+              <span className="font-medium text-orange-600 dark:text-orange-400">
+                -{formatCompactCurrency(totalCommissions)}
               </span>
-              <div className="text-xs">
-                <span className="text-muted-foreground">P&L:</span>
-                <span className={cn(
-                  "ml-1 font-medium",
-                  netPnl >= 0 ? "text-green-600" : "text-red-600"
-                )}>
-                  {formatCompactCurrency(netPnl)}
-                </span>
-              </div>
             </div>
+          </div>
+          <div className="flex items-center gap-1 text-[10px]">
+            <span className="text-muted-foreground">Net:</span>
+            <span className={cn(
+              "font-medium",
+              netPnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+            )}>
+              {formatCompactCurrency(netPnl)}
+            </span>
           </div>
         </div>
       </CardContent>

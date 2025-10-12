@@ -20,7 +20,7 @@ interface UseAutoCacheCleanupOptions {
 export function useAutoCacheCleanup(options: UseAutoCacheCleanupOptions = {}) {
   const { userId, enabled = true } = options
   const hasRunRef = useRef(false)
-  const lastUserIdRef = useRef<string | undefined>()
+  const lastUserIdRef = useRef<string | undefined>(undefined)
   
   useEffect(() => {
     if (!enabled) return

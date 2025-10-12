@@ -1,10 +1,12 @@
 'use client'
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, getDay, endOfWeek, addDays, isSameDay, getYear } from "date-fns"
 import { formatInTimeZone } from 'date-fns-tz'
 import { enUS } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Calendar, CalendarDays } from "lucide-react"
+import { ChevronLeft, ChevronRight, Calendar, CalendarDays, BookOpen, Camera } from "lucide-react"
+import html2canvas from 'html2canvas'
+import { toast } from "sonner"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -123,6 +125,51 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [calendarDays, setCalendarDays] = useState<Date[]>([])
 
+  // State to store notes from database
+  const [dailyNotes, setDailyNotes] = useState<Record<string, string>>({})
+  
+  // Ref for the calendar container to capture screenshot
+  const calendarRef = useRef<HTMLDivElement>(null)
+
+  // Fetch notes from database
+  const fetchNotes = React.useCallback(async () => {
+    try {
+      const response = await fetch('/api/calendar/notes')
+      if (response.ok) {
+        const data = await response.json()
+        const notesMap = data.notes.reduce((acc: Record<string, string>, note: any) => {
+          const dateKey = new Date(note.date).toISOString().split('T')[0]
+          acc[dateKey] = note.note
+          return acc
+        }, {})
+        setDailyNotes(notesMap)
+      }
+    } catch (error) {
+      console.error('Failed to fetch notes:', error)
+    }
+  }, [])
+
+  // Fetch notes on mount and when notes are saved
+  useEffect(() => {
+    fetchNotes()
+    
+    // Listen for notes saved event
+    const handleNotesSaved = () => {
+      fetchNotes()
+    }
+    window.addEventListener('notesSaved', handleNotesSaved)
+    
+    return () => {
+      window.removeEventListener('notesSaved', handleNotesSaved)
+    }
+  }, [fetchNotes])
+
+  // Check if a note exists for a given date
+  const hasNoteForDate = React.useCallback((date: Date) => {
+    const dateKey = date.toISOString().split('T')[0]
+    return dailyNotes[dateKey] && dailyNotes[dateKey].trim().length > 0
+  }, [dailyNotes])
+
   // Memoize monthStart and monthEnd calculations
   const { monthStart, monthEnd } = React.useMemo(() => ({
     monthStart: startOfMonth(currentDate),
@@ -136,6 +183,46 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
 
   // Use the calendar view store
   const { viewMode, setViewMode, selectedDate, setSelectedDate, selectedWeekDate, setSelectedWeekDate } = useCalendarViewStore()
+
+  // Screenshot handler
+  const handleScreenshot = React.useCallback(async () => {
+    if (!calendarRef.current) return
+
+    try {
+      toast.info("Capturing screenshot...")
+      
+      const canvas = await html2canvas(calendarRef.current, {
+        backgroundColor: null,
+        scale: 2, // Higher quality
+        logging: false,
+        useCORS: true,
+      })
+
+      // Convert canvas to blob
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          toast.error("Failed to capture screenshot")
+          return
+        }
+
+        // Create download link
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        const fileName = `calendar-${format(currentDate, 'yyyy-MM')}-${viewMode}.png`
+        link.href = url
+        link.download = fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+
+        toast.success("Screenshot saved!")
+      }, 'image/png')
+    } catch (error) {
+      console.error('Error capturing screenshot:', error)
+      toast.error("Failed to capture screenshot")
+    }
+  }, [currentDate, viewMode])
 
 
   const handlePrevMonth = React.useCallback(() => {
@@ -180,15 +267,41 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
     const startOfWeekIndex = index - 6
     const weekDays = calendarDays.slice(startOfWeekIndex, index + 1)
     
-    return weekDays.reduce((total, day) => {
+    const weekTotal = weekDays.reduce((total, day) => {
       const dayData = calendarData[formatInTimeZone(day, timezone, 'yyyy-MM-dd')]
       return total + (dayData ? dayData.pnl : 0)
     }, 0)
+    
+    return weekTotal
+  }, [timezone])
+  
+  const calculateWeeklyStats = React.useCallback((index: number, calendarDays: Date[], calendarData: CalendarData) => {
+    const startOfWeekIndex = index - 6
+    const weekDays = calendarDays.slice(startOfWeekIndex, index + 1)
+    
+    let totalTrades = 0
+    let winningTrades = 0
+    let totalPnl = 0
+    let tradingDays = 0
+    
+    weekDays.forEach(day => {
+      const dayData = calendarData[formatInTimeZone(day, timezone, 'yyyy-MM-dd')]
+      if (dayData) {
+        totalTrades += dayData.tradeNumber
+        totalPnl += dayData.pnl
+        if (dayData.tradeNumber > 0) tradingDays++
+        winningTrades += dayData.trades.filter(t => (t.pnl - (t.commission || 0)) > 0).length
+      }
+    })
+    
+    const winRate = totalTrades > 0 ? ((winningTrades / totalTrades) * 100).toFixed(1) : '0.0'
+    
+    return { totalPnl, totalTrades, winRate, tradingDays }
   }, [timezone])
 
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card ref={calendarRef} className="h-full flex flex-col">
       <CardHeader
         className="flex flex-row items-center justify-between space-y-0 border-b shrink-0 p-3 sm:p-4 h-[56px]"
       >
@@ -235,6 +348,18 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
               <span className="text-xs">{"Weekly"}</span>
             </Button>
           </div>
+          
+          {/* Screenshot Button */}
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleScreenshot}
+            title="Save screenshot"
+          >
+            <Camera className="h-5 w-5" />
+          </Button>
+          
           <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
@@ -280,45 +405,18 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
                 const isLastDayOfWeek = dayOfWeek === 6
                 const isCurrentMonth = isSameMonth(date, currentDate)
                 const dateRenewals = getRenewalsForDate(date)
-
-                // Add calculations if dayData exists
-                let maxProfit = 0;
-                let maxDrawdown = 0;
-                if (dayData) {
-                  const sortedTrades = dayData.trades.sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
-                  const equity = [0];
-                  let cumulative = 0;
-                  sortedTrades.forEach(trade => {
-                    cumulative += trade.pnl - (trade.commission || 0);
-                    equity.push(cumulative);
-                  });
-
-                  // Max drawdown
-                  let peak = -Infinity;
-                  let maxDD = 0;
-                  equity.forEach(val => {
-                    if (val > peak) peak = val;
-                    const dd = peak - val;
-                    if (dd > maxDD) maxDD = dd;
-                  });
-                  maxDrawdown = maxDD;
-
-                  // Max profit (runup)
-                  let trough = Infinity;
-                  let maxRU = 0;
-                  equity.forEach(val => {
-                    if (val < trough) trough = val;
-                    const ru = val - trough;
-                    if (ru > maxRU) maxRU = ru;
-                  });
-                  maxProfit = maxRU;
-                }
+                const hasNote = hasNoteForDate(date)
+                
+                // Calculate win rate if there's data
+                const winRate = dayData && dayData.tradeNumber > 0
+                  ? ((dayData.trades.filter(t => (t.pnl - (t.commission || 0)) > 0).length / dayData.tradeNumber) * 100).toFixed(1)
+                  : '0.0'
 
                 return (
                   <React.Fragment key={dateString}>
                     <div
                       className={cn(
-                        "h-full flex flex-col cursor-pointer transition-all duration-200 rounded-md p-1",
+                        "h-full min-h-[100px] flex flex-col cursor-pointer transition-all duration-200 rounded-md overflow-hidden",
                         "border",
                         "hover:border-primary hover:shadow-sm hover:scale-[1.02]",
                         dayData && dayData.pnl >= 0
@@ -335,70 +433,66 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
                         }
                       }}
                     >
-                      <div className="flex justify-between items-start gap-0.5">
-                        <span className={cn(
-                          "text-[9px] sm:text-[11px] font-medium min-w-[14px] text-center",
-                          isToday(date) && "text-primary font-semibold",
-                          !isCurrentMonth && "opacity-50"
-                        )}>
-                          {format(date, 'd')}
-                        </span>
-                        <div className="flex flex-col gap-0.5">
-                          {dateRenewals.length > 0 && <RenewalBadge renewals={dateRenewals} />}
-                        </div>
-                      </div>
-                      <div className="flex-1 flex flex-col justify-end gap-0.5">
-                        {dayData ? (
-                          <div className={cn(
-                            "text-[9px] sm:text-[11px] font-semibold truncate text-center",
-                            dayData.pnl >= 0
-                              ? "text-green-600 dark:text-green-400"
-                              : "text-red-600 dark:text-red-400",
+                      <div className="flex flex-col h-full">
+                        <div className="flex justify-between items-start px-1 pt-1">
+                          <span className={cn(
+                            "text-xs font-medium",
+                            isToday(date) && "text-orange-600 dark:text-orange-400 font-semibold",
                             !isCurrentMonth && "opacity-50"
                           )}>
-                            {formatCurrency(dayData.pnl)}
+                            {format(date, 'd')}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {hasNote && (
+                              <BookOpen className={cn(
+                                "h-3.5 w-3.5 text-white/90 dark:text-gray-200",
+                                !isCurrentMonth && "opacity-30"
+                              )} />
+                            )}
+                            {dateRenewals.length > 0 && <RenewalBadge renewals={dateRenewals} />}
                           </div>
-                        ) : (
-                          <div className={cn(
-                            "text-[9px] sm:text-[11px] font-semibold invisible text-center",
-                            !isCurrentMonth && "opacity-50"
-                          )}>$0</div>
-                        )}
-                        <div className={cn(
-                          "text-[7px] sm:text-[9px] text-muted-foreground truncate text-center",
-                          !isCurrentMonth && "opacity-50"
-                        )}>
-                          {dayData
-                            ? `${dayData.tradeNumber} ${dayData.tradeNumber > 1 ? "trades" : "trade"}`
-                            : "No trades"}
                         </div>
-                        <div className={cn(
-                          "text-[7px] sm:text-[9px] text-green-600 dark:text-green-400 truncate text-center",
-                          !isCurrentMonth && "opacity-50",
-                          !dayData && "invisible"
-                        )}>
-                          Max Profit: {dayData ? formatCurrency(maxProfit) : "$0"}
-                        </div>
-                        <div className={cn(
-                          "text-[7px] sm:text-[9px] text-red-600 dark:text-red-400 truncate text-center",
-                          !isCurrentMonth && "opacity-50",
-                          !dayData && "invisible"
-                        )}>
-                          Max Drawdown: -{dayData ? formatCurrency(maxDrawdown) : "$0"}
-                        </div>
+                        {dayData ? (
+                          <div className="flex-1 flex flex-col items-center justify-center gap-0.5 px-1">
+                            <div className={cn(
+                              "text-base font-bold leading-tight text-center",
+                              dayData.pnl >= 0
+                                ? "text-green-600 dark:text-green-400"
+                                : "text-red-600 dark:text-red-400",
+                              !isCurrentMonth && "opacity-50"
+                            )}>
+                              {formatCurrency(dayData.pnl)}
+                            </div>
+                            <div className={cn(
+                              "text-[10px] text-muted-foreground text-center",
+                              !isCurrentMonth && "opacity-50"
+                            )}>
+                              {dayData.tradeNumber} {dayData.tradeNumber > 1 ? "trades" : "trade"}
+                            </div>
+                            <div className={cn(
+                              "text-[10px] font-medium text-center",
+                              dayData.pnl >= 0
+                                ? "text-green-600 dark:text-green-400"
+                                : "text-red-600 dark:text-red-400",
+                              !isCurrentMonth && "opacity-50"
+                            )}>
+                              {winRate}%
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                     {isLastDayOfWeek && (() => {
-                      const weeklyTotal = calculateWeeklyTotal(index, calendarDays, calendarData)
+                      const weeklyStats = calculateWeeklyStats(index, calendarDays, calendarData)
                       return (
                         <div
                           className={cn(
-                            "h-full flex items-center justify-center rounded-md cursor-pointer transition-all duration-200",
+                            "h-full min-h-[100px] flex flex-col items-center justify-center rounded-md cursor-pointer transition-all duration-200 px-1 py-1",
                             "border",
                             "hover:border-primary hover:shadow-sm hover:scale-[1.02]",
-                            weeklyTotal >= 0
+                            weeklyStats.totalPnl >= 0
                               ? "bg-green-50/80 dark:bg-green-950/40 border-green-100 dark:border-green-900/50"
-                              : weeklyTotal < 0
+                              : weeklyStats.totalPnl < 0
                                 ? "bg-red-50/60 dark:bg-red-950/30 border-red-100/80 dark:border-red-900/40"
                                 : "bg-card border-border"
                           )}
@@ -412,12 +506,23 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
                           }}
                         >
                           <div className={cn(
-                            "text-[9px] sm:text-[11px] font-semibold truncate px-0.5",
-                            weeklyTotal >= 0
+                            "text-base font-bold text-center leading-tight",
+                            weeklyStats.totalPnl >= 0
                               ? "text-green-600 dark:text-green-400"
                               : "text-red-600 dark:text-red-400"
                           )}>
-                            {formatCurrency(weeklyTotal)}
+                            {formatCurrency(weeklyStats.totalPnl)}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground text-center mt-0.5">
+                            {weeklyStats.tradingDays} {weeklyStats.tradingDays > 1 ? "days" : "day"}
+                          </div>
+                          <div className={cn(
+                            "text-[10px] font-medium text-center",
+                            weeklyStats.totalPnl >= 0
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-red-600 dark:text-red-400"
+                          )}>
+                            {weeklyStats.winRate}%
                           </div>
                         </div>
                       )

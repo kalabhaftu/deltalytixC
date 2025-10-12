@@ -134,6 +134,9 @@ export class PhaseEvaluationEngine {
     this.log(`High-water mark calculated: ${highWaterMark}`)
 
     // CRITICAL FIX: Check historical daily drawdowns for ALL days
+    console.error(`[EVAL] Starting historical breach check for ${trades.length} trades`)
+    console.error(`[EVAL] Account size: $${masterAccount.accountSize}, Daily DD%: ${phaseAccount.dailyDrawdownPercent}%, Limit: $${(masterAccount.accountSize * phaseAccount.dailyDrawdownPercent / 100).toFixed(2)}`)
+    
     const historicalBreachCheck = await this.checkHistoricalDailyDrawdowns(
       phaseAccount,
       trades,
@@ -142,7 +145,7 @@ export class PhaseEvaluationEngine {
     )
 
     if (historicalBreachCheck.isBreached) {
-      this.log(`HISTORICAL BREACH DETECTED on ${historicalBreachCheck.breachDate}`, {
+      console.error(`[EVAL] ⛔ HISTORICAL BREACH DETECTED on ${historicalBreachCheck.breachDate}`, {
         breachAmount: historicalBreachCheck.breachAmount,
         dayLoss: historicalBreachCheck.dayLoss,
         dailyLimit: historicalBreachCheck.dailyLimit
@@ -290,9 +293,12 @@ export class PhaseEvaluationEngine {
     // Group trades by day
     const tradesByDay = new Map<string, any[]>()
     
+    console.error(`[EVAL] Grouping ${trades.length} trades by day...`)
     for (const trade of trades) {
       const exitDate = trade.exitTime || trade.createdAt
       const dateStr = this.getDateInTimezone(new Date(exitDate), timezone)
+      
+      console.error(`[EVAL] Trade: ${trade.instrument} PnL=$${trade.pnl} exitDate=${exitDate} -> day=${dateStr}`)
       
       if (!tradesByDay.has(dateStr)) {
         tradesByDay.set(dateStr, [])
@@ -300,6 +306,9 @@ export class PhaseEvaluationEngine {
       tradesByDay.get(dateStr)!.push(trade)
     }
 
+    console.error(`[EVAL] Grouped into ${tradesByDay.size} days: ${Array.from(tradesByDay.keys()).join(', ')}`)
+    console.error(`[EVAL] Daily limit: $${dailyDrawdownLimit.toFixed(2)} (${phaseAccount.dailyDrawdownPercent}%)`)
+    
     this.log(`Checking ${tradesByDay.size} days for historical breaches`, {
       dailyDrawdownLimit,
       dailyDrawdownPercent: phaseAccount.dailyDrawdownPercent
@@ -325,6 +334,16 @@ export class PhaseEvaluationEngine {
       const dayEndBalance = dayStartBalance + dayPnL
       const dayLoss = dayPnL < 0 ? Math.abs(dayPnL) : 0
 
+      console.error(`[EVAL] 📅 Day: ${dayStr}`, {
+        dayStartBalance: `$${dayStartBalance.toFixed(2)}`,
+        dayPnL: `$${dayPnL.toFixed(2)}`,
+        dayEndBalance: `$${dayEndBalance.toFixed(2)}`,
+        dayLoss: `$${dayLoss.toFixed(2)}`,
+        dailyLimit: `$${dailyDrawdownLimit.toFixed(2)}`,
+        tradesCount: dayTrades.length,
+        isBreached: dayLoss > dailyDrawdownLimit
+      })
+      
       this.log(`Day ${dayStr}`, {
         dayStartBalance,
         dayEndBalance,

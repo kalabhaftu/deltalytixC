@@ -76,7 +76,6 @@ const MatchTraderProcessor = ({
           accountNumber,
           instrument,
           entryId: tradeId,
-          closeId: null,
           quantity: Math.abs(quantity), // Ensure positive quantity
           entryPrice: entryPrice.toString(),
           closePrice: closePrice.toString(),
@@ -102,8 +101,8 @@ const MatchTraderProcessor = ({
           groupId: null,
           // Prisma optional fields
           symbol: null,
-          entryTime: null,
-          exitTime: null,
+          entryTime: entryDate, // CRITICAL FIX: Set actual entry time
+          exitTime: closeDate, // CRITICAL FIX: Set actual exit time for historical breach detection
           accountId: null,
           stopLoss: stopLoss,
           takeProfit: takeProfit,

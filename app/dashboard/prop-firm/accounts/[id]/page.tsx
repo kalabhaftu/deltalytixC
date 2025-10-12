@@ -26,12 +26,10 @@ import {
   Activity,
   BarChart3,
   Calendar,
-  CreditCard,
-  PartyPopper
+  CreditCard
 } from "lucide-react"
 import { cn, formatCurrency, formatQuantity, formatPercent } from "@/lib/utils"
 import { AccountDashboardData, AccountSummary, PhaseType, AccountStatus, PropFirmTrade } from "@/types/prop-firm"
-import { PhaseTransitionDialog } from "@/app/dashboard/components/prop-firm/phase-transition-dialog"
 import { RealtimeStatusIndicatorV2 } from "@/components/prop-firm/realtime-status-indicator-v2"
 import { AccountLoadingState } from "@/components/prop-firm/account-loading-skeleton"
 import { PropFirmErrorBoundary, AccountNotFoundError, ConnectionError } from "@/components/prop-firm/account-error-boundary"
@@ -49,7 +47,6 @@ export default function AccountDetailPage() {
   const router = useRouter()
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('trades')
-  const [showTransitionDialog, setShowTransitionDialog] = useState(false)
   const [accountData, setAccountData] = useState<any>(null) // For legacy compatibility
   const [isEditingSettings, setIsEditingSettings] = useState(false)
   const [editedAccountName, setEditedAccountName] = useState('')
@@ -153,6 +150,8 @@ export default function AccountDetailPage() {
     }
   }, [realtimeAccount, accountId])
 
+  // REMOVED: Transition detection moved to accounts list page to avoid showing everywhere
+
   // Sync real-time data with legacy state for compatibility
   useEffect(() => {
     if (realtimeAccount) {
@@ -229,34 +228,7 @@ export default function AccountDetailPage() {
     }
   }, [accountData?.account?.name])
 
-  // Phase transition detection - check if current phase meets requirements
-  useEffect(() => {
-    if (realtimeAccount && realtimeAccount.phases) {
-      const currentActivePhase = realtimeAccount.phases.find(phase =>
-        phase.phaseNumber === realtimeAccount.currentPhase?.phaseNumber && phase.status === 'active'
-      )
-      
-      if (currentActivePhase && currentActivePhase.profitTargetPercent > 0) {
-        // Calculate current progress (this is simplified - in real app you'd get this from the backend)
-        const currentPnL = realtimeAccount.currentPnL || 0
-        const accountSize = realtimeAccount.accountSize || 0
-        const currentProgress = accountSize > 0 ? (currentPnL / accountSize) * 100 : 0
-        
-        // IMPORTANT: Only trigger dialog if the phase has trades
-        // This prevents immediate re-triggering after phase transitions
-        const hasTradesInPhase = tradesData && tradesData.length > 0
-        
-        // Check if profit target is met - REMOVED !showTransitionDialog condition
-        // Dialog should keep appearing until user transitions
-        if (currentProgress >= currentActivePhase.profitTargetPercent && hasTradesInPhase) {
-          // Always show dialog when profit target is met
-          if (!showTransitionDialog) {
-            setShowTransitionDialog(true)
-          }
-        }
-      }
-    }
-  }, [realtimeAccount, tradesData]) // Removed showTransitionDialog from dependencies
+  // (Removed duplicate phase transition detection - handled by the useEffect above)
 
   // Handler for saving settings
   const handleSaveSettings = async () => {
@@ -411,44 +383,6 @@ export default function AccountDetailPage() {
           </AlertDescription>
         </Alert>
       )}
-
-      {/* Phase Transition Ready Alert */}
-      {(() => {
-        if (!realtimeAccount?.phases) return null
-        
-        const currentActivePhase = realtimeAccount.phases.find(phase =>
-          phase.phaseNumber === realtimeAccount.currentPhase?.phaseNumber && phase.status === 'active'
-        )
-        
-        if (!currentActivePhase || !currentActivePhase.profitTargetPercent) return null
-        
-        const currentPnL = realtimeAccount.currentPnL || 0
-        const accountSize = realtimeAccount.accountSize || 0
-        const currentProgress = accountSize > 0 ? (currentPnL / accountSize) * 100 : 0
-        const hasTradesInPhase = tradesData && tradesData.length > 0
-        
-        if (currentProgress >= currentActivePhase.profitTargetPercent && hasTradesInPhase) {
-          return (
-            <Alert className="border-green-200 bg-green-50 text-green-800">
-              <PartyPopper className="h-4 w-4 text-green-600" />
-              <AlertDescription className="flex items-center justify-between">
-                <span>
-                  Profit target reached! You&apos;re ready to advance to Phase {(realtimeAccount.currentPhase?.phaseNumber || 1) + 1}.
-                </span>
-                <Button 
-                  onClick={() => setShowTransitionDialog(true)}
-                  size="sm"
-                  className="ml-4 bg-green-600 hover:bg-green-600/90"
-                >
-                  Advance Phase
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )
-        }
-        
-        return null
-      })()}
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
@@ -1396,27 +1330,6 @@ export default function AccountDetailPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Phase Transition Dialog */}
-      {showTransitionDialog && realtimeAccount && realtimeAccount.phases && (
-        <PhaseTransitionDialog
-          isOpen={showTransitionDialog}
-          onClose={() => setShowTransitionDialog(false)}
-          masterAccountId={accountId}
-          currentPhase={{
-            phaseNumber: realtimeAccount.currentPhase?.phaseNumber || 1,
-            profitTargetPercent: realtimeAccount.phases.find(p => p.phaseNumber === realtimeAccount.currentPhase?.phaseNumber)?.profitTargetPercent || 0,
-            currentPnL: realtimeAccount.currentPnL || 0,
-            phaseId: realtimeAccount.phases.find(p => p.phaseNumber === realtimeAccount.currentPhase?.phaseNumber)?.phaseId || ''
-          }}
-          nextPhaseNumber={(realtimeAccount.currentPhase?.phaseNumber || 1) + 1}
-          propFirmName={realtimeAccount.propFirmName || 'Prop Firm'}
-          accountName={realtimeAccount.accountName || 'Account'}
-          onSuccess={() => {
-            setShowTransitionDialog(false)
-            refetch() // Refresh data after successful transition
-          }}
-        />
-      )}
     </div>
     </PropFirmErrorBoundary>
   )

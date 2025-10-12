@@ -114,40 +114,7 @@ export async function signInWithEmail(email: string, next: string | null = null)
     console.warn('[signInWithEmail] Prisma DB unavailable:', dbError instanceof Error ? dbError.message : String(dbError))
   }
 
-  // If user doesn't exist in Prisma DB, try magic link first to detect Supabase user
-  let supabaseUserExists = false
-  if (!dbUserExists) {
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
-          emailRedirectTo: `${websiteURL}api/auth/callback${next ? `?next=${encodeURIComponent(next)}` : '?next=/dashboard'}`,
-        }
-      })
-      
-      if (!error) {
-        // Magic link sent successfully - user exists in Supabase Auth
-        supabaseUserExists = true
-        return { isExistingUser: true, emailSent: true }
-      } else if (error.message?.includes('User not found') || error.message?.includes('Invalid login credentials')) {
-        // User doesn't exist in Supabase Auth either
-        supabaseUserExists = false
-      } else {
-        // Other error (rate limit, etc.)
-        console.error('[signInWithEmail] Magic link error:', error)
-        return {
-          error: error.message,
-          rateLimited: error.status === 429,
-          isExistingUser: true,
-          emailSent: false
-        }
-      }
-    } catch (supabaseError) {
-      console.warn('[signInWithEmail] Supabase Auth check failed:', supabaseError instanceof Error ? supabaseError.message : String(supabaseError))
-    }
-  }
-
-  // User is existing if they exist in Prisma database (Supabase check is done above)
+  // User is existing if they exist in Prisma database
   const isExistingUser = dbUserExists
 
   if (isExistingUser) {

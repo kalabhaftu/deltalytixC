@@ -162,19 +162,29 @@ export async function deleteTradesByIdsAction(tradeIds: string[]): Promise<void>
   try {
     const userId = await getUserId()
 
-    // Delete trades and invalidate cache in parallel for faster response
-    const [result] = await Promise.all([
-      prisma.trade.deleteMany({
+    // Batch delete for large sets to avoid timeout
+    const BATCH_SIZE = 500
+    const totalBatches = Math.ceil(tradeIds.length / BATCH_SIZE)
+
+    console.log(`[deleteTradesByIds] Deleting ${tradeIds.length} trades in ${totalBatches} batch(es)`)
+
+    for (let i = 0; i < totalBatches; i++) {
+      const start = i * BATCH_SIZE
+      const end = Math.min(start + BATCH_SIZE, tradeIds.length)
+      const batch = tradeIds.slice(start, end)
+
+      await prisma.trade.deleteMany({
         where: {
-          id: { in: tradeIds },
-          userId: userId // Ensure user can only delete their own trades
+          id: { in: batch },
+          userId: userId
         }
-      }),
-      // Invalidate multiple related caches immediately
-      (async () => {
-        await invalidateUserCaches(userId)
-      })()
-    ])
+      })
+      
+      console.log(`[deleteTradesByIds] Batch ${i + 1}/${totalBatches} deleted (${batch.length} trades)`)
+    }
+
+    // Invalidate caches after all deletes complete
+    await invalidateUserCaches(userId)
 
   } catch (error) {
     console.error('[deleteTradesByIds] Error deleting trades:', error)
@@ -900,7 +910,6 @@ async function _legacyLinkTradesToCurrentPhase_SLOW(accountId: string, trades: a
         select: {
           id: true,
           entryId: true,
-          closeId: true,
           accountNumber: true,
           entryDate: true,
           instrument: true,
@@ -912,12 +921,12 @@ async function _legacyLinkTradesToCurrentPhase_SLOW(accountId: string, trades: a
 
       const existingSignatures = new Set(
         existingTrades.map(trade =>
-          `${trade.entryId || ''}-${trade.closeId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
+          `${trade.entryId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
         )
       )
 
       const tradesToLink = trades.filter(trade => {
-        const signature = `${trade.entryId || ''}-${trade.closeId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
+        const signature = `${trade.entryId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
         return !existingSignatures.has(signature) && trade.id // Only link existing trades with IDs
       })
 
@@ -1011,7 +1020,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
         side: cleanTrade.side || '',
         commission: cleanTrade.commission || 0,
         entryId: cleanTrade.entryId || null,
-        closeId: cleanTrade.closeId || null,
         comment: cleanTrade.comment || null,
         imageBase64: cleanTrade.imageBase64 || null,
         imageBase64Second: cleanTrade.imageBase64Second || null,
@@ -1023,37 +1031,30 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
     })
 
     // STEP 1: DUPLICATE DETECTION (OUTSIDE TRANSACTION - faster)
-    const tradesWithIds = cleanedData.filter(t => t.entryId || t.closeId)
-    const tradesWithoutIds = cleanedData.filter(t => !t.entryId && !t.closeId)
+    const tradesWithIds = cleanedData.filter(t => t.entryId)
+    const tradesWithoutIds = cleanedData.filter(t => !t.entryId)
     
     let newTrades = [...tradesWithoutIds] // Assume trades without IDs are new
     
     if (tradesWithIds.length > 0) {
       // Only query for trades that have IDs (much faster)
       const entryIds = tradesWithIds.filter(t => t.entryId).map(t => t.entryId!)
-      const closeIds = tradesWithIds.filter(t => t.closeId).map(t => t.closeId!)
       
       const existingTrades = await prisma.trade.findMany({
-        where: { 
+        where: {
           userId,
-          OR: [
-            { entryId: { in: entryIds } },
-            { closeId: { in: closeIds } }
-          ]
+          entryId: { in: entryIds }
         },
         select: {
-          entryId: true,
-          closeId: true
+          entryId: true
         }
       })
 
       const existingEntryIds = new Set(existingTrades.map(t => t.entryId).filter(Boolean))
-      const existingCloseIds = new Set(existingTrades.map(t => t.closeId).filter(Boolean))
 
       // Filter out duplicates
       newTrades.push(...tradesWithIds.filter(trade => {
         if (trade.entryId && existingEntryIds.has(trade.entryId)) return false
-        if (trade.closeId && existingCloseIds.has(trade.closeId)) return false
         return true
       }))
     }
@@ -1148,20 +1149,41 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
       const batch = newTrades.slice(start, end)
 
       console.log(`[saveAndLinkTrades] Processing batch ${i + 1}/${totalBatches} (${batch.length} trades)`)
+      const batchStartTime = Date.now()
 
       // OPTIMIZED TRANSACTION: Minimal queries, fast execution
       const batchResult = await prisma.$transaction(async (tx) => {
-        // Prepare trades with linking info
-        const tradesToCreate = batch.map(trade => ({
-          ...trade,
-          phaseAccountId: isPropFirm ? phaseAccountId : null,
-          accountId: isPropFirm ? null : regularAccountId
-        }))
+        const prepStartTime = Date.now()
+        
+        // Prepare trades with linking info (remove null/undefined fields to reduce payload)
+        const tradesToCreate = batch.map(trade => {
+          const cleanTrade: any = {}
+          
+          // Only include non-null fields
+          Object.keys(trade).forEach((key: string) => {
+            const tradeKey = key as keyof typeof trade
+            if (trade[tradeKey] !== null && trade[tradeKey] !== undefined) {
+              (cleanTrade as any)[key] = trade[tradeKey]
+            }
+          })
+          
+          // Add linking fields
+          cleanTrade.phaseAccountId = isPropFirm ? phaseAccountId : null
+          cleanTrade.accountId = isPropFirm ? null : regularAccountId
+          
+          return cleanTrade
+        })
+        
+        const prepTime = Date.now() - prepStartTime
+        console.log(`[saveAndLinkTrades] Data preparation: ${prepTime}ms`)
 
         // Create trades in batch
+        const insertStartTime = Date.now()
         const createResult = await tx.trade.createMany({
           data: tradesToCreate
         })
+        const insertTime = Date.now() - insertStartTime
+        console.log(`[saveAndLinkTrades] Database insert: ${insertTime}ms for ${batch.length} trades (${(insertTime/batch.length).toFixed(0)}ms per trade)`)
 
         return createResult.count
       }, {
@@ -1170,7 +1192,8 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
       })
 
       totalCreated += batchResult
-      console.log(`[saveAndLinkTrades] Batch ${i + 1}/${totalBatches} complete: ${batchResult} trades created`)
+      const batchTotalTime = Date.now() - batchStartTime
+      console.log(`[saveAndLinkTrades] Batch ${i + 1}/${totalBatches} complete: ${batchResult} trades created in ${batchTotalTime}ms`)
     }
 
     // Build result
@@ -1184,102 +1207,196 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
       accountName,
       isPropFirm,
       masterAccountId,
-      evaluation: undefined,
+      evaluation: undefined as any,
       isDuplicate: false
     }
 
-    // AUTO-EVALUATION: Evaluate prop firm accounts after trade import
+    // AUTO-EVALUATION: Check for breaches synchronously (FAST - breach detection only)
     if (result.isPropFirm && result.phaseAccountId && result.masterAccountId) {
       try {
         const { PhaseEvaluationEngine } = await import('@/lib/prop-firm/phase-evaluation-engine')
+        
+        console.log(`[AUTO-EVALUATION] Running breach check for ${result.phaseAccountId}...`)
+        const startTime = Date.now()
+        
         const evaluation = await PhaseEvaluationEngine.evaluatePhase(
           result.masterAccountId,
           result.phaseAccountId
         )
+        
+        const evalTime = Date.now() - startTime
+        console.log(`[AUTO-EVALUATION] Evaluation completed in ${evalTime}ms`)
 
-        // If account failed, mark phase as failed and record breach
-        if (evaluation.isFailed) {
+        // CRITICAL: Check for PASSING first (profit target achieved)
+        if (evaluation.isPassed && evaluation.canAdvance) {
+          console.log(`[AUTO-EVALUATION] ✅ PROFIT TARGET ACHIEVED`)
+          
+          if (!phaseAccount) {
+            console.log(`[AUTO-EVALUATION] ⚠️ No phase account found`)
+            throw new Error('Phase account not found')
+          }
+          
+          const currentPhaseNumber = phaseAccount.phaseNumber
+          const nextPhaseNumber = currentPhaseNumber + 1
+          
+          // Get master account to determine if there's a next phase
+          const masterAccountData = await prisma.masterAccount.findUnique({
+            where: { id: result.masterAccountId },
+            include: { phases: { orderBy: { phaseNumber: 'asc' } } }
+          })
+          
+          if (!masterAccountData) {
+            throw new Error('Master account not found')
+          }
+          
+          // Check if next phase exists
+          const nextPhase = masterAccountData.phases.find(p => p.phaseNumber === nextPhaseNumber)
+          
+          if (nextPhase) {
+            // Check if next phase has a phaseId (account number)
+            // If not, this requires MANUAL transition (user must provide Phase 2 account ID)
+            if (!nextPhase.phaseId || nextPhase.phaseId.trim() === '') {
+              console.log(`[AUTO-EVALUATION] ⚠️ Phase ${currentPhaseNumber} ready to pass, but requires MANUAL transition (next phase has no account ID)`)
+              console.log(`[AUTO-EVALUATION] Profit target: ${evaluation.progress?.profitTargetPercent?.toFixed(2)}% - Leaving phase as 'active' for manual transition`)
+              
+              // DON'T mark as passed yet - leave as 'active' so transition API can process it
+              // The transition API will mark it as 'passed' when user provides Phase 2 account ID
+              
+              ;(result as any).evaluation = {
+                status: 'ready_for_transition',
+                reason: 'profit_target_achieved',
+                message: `Phase ${currentPhaseNumber} profit target achieved! Ready to advance to Phase ${nextPhaseNumber}.`,
+                requiresManualTransition: true,
+                nextPhase: nextPhaseNumber,
+                currentPnL: evaluation.progress?.currentPnL || 0,
+                profitTargetPercent: evaluation.progress?.profitTargetPercent || 0
+              }
+            } else {
+              // Next phase has an account ID - safe to auto-advance
+              console.log(`[AUTO-EVALUATION] ✅ Auto-advancing from Phase ${currentPhaseNumber} to Phase ${nextPhaseNumber}`)
+              
+              await prisma.$transaction([
+                // Mark current phase as passed
+                prisma.phaseAccount.update({
+                  where: { id: result.phaseAccountId },
+                  data: { status: 'passed', endDate: new Date() }
+                }),
+                // Activate next phase
+                prisma.phaseAccount.update({
+                  where: { id: nextPhase.id },
+                  data: { 
+                    status: 'active',
+                    startDate: new Date()
+                  }
+                }),
+                // Update master account current phase
+                prisma.masterAccount.update({
+                  where: { id: result.masterAccountId },
+                  data: { currentPhase: nextPhaseNumber }
+                })
+              ])
+              
+              console.log(`[AUTO-EVALUATION] ✅ Successfully advanced to Phase ${nextPhaseNumber}`)
+              
+              ;(result as any).evaluation = {
+                status: 'passed',
+                reason: 'profit_target_achieved',
+                message: `Phase ${currentPhaseNumber} passed! Advanced to Phase ${nextPhaseNumber}`,
+                nextPhase: nextPhaseNumber
+              }
+            }
+          } else {
+            // This was the final phase - account is now fully funded
+            console.log(`[AUTO-EVALUATION] 🎉 ACCOUNT FULLY FUNDED!`)
+            
+            await prisma.$transaction([
+              prisma.phaseAccount.update({
+                where: { id: result.phaseAccountId },
+                data: { status: 'passed', endDate: new Date() }
+              }),
+              prisma.masterAccount.update({
+                where: { id: result.masterAccountId },
+                data: { 
+                  isActive: true,
+                  status: 'funded'
+                }
+              })
+            ])
+            
+            result.evaluation = {
+              status: 'funded',
+              reason: 'all_phases_completed',
+              message: `Congratulations! Your account is now fully funded!`
+            }
+          }
+          
+          // Invalidate cache so UI updates
+          await invalidateUserCaches(userId)
+        }
+        // Check for FAILURE (breach detected)
+        else if (evaluation.isFailed) {
+          console.log(`[AUTO-EVALUATION] ❌ BREACH DETECTED - marking account as FAILED`)
+          
+          // Fetch account size for breach record
+          const phaseAccountData = await prisma.phaseAccount.findUnique({
+            where: { id: result.phaseAccountId },
+            include: { masterAccount: { select: { accountSize: true } } }
+          })
+          
           await prisma.$transaction([
-            // Update phase status
             prisma.phaseAccount.update({
               where: { id: result.phaseAccountId },
-              data: {
-                status: 'failed',
-                endDate: new Date()
+              data: { status: 'failed', endDate: new Date() }
+            }),
+            prisma.masterAccount.update({
+              where: { id: result.masterAccountId },
+              data: { 
+                isActive: false,
+                status: 'failed'
               }
             }),
-            // Mark master account as inactive
-            prisma.masterAccount.update({
-              where: { id: result.masterAccountId! },
-              data: { isActive: false }
-            }),
-            // Record the breach
             prisma.breachRecord.create({
               data: {
                 phaseAccountId: result.phaseAccountId,
                 breachType: evaluation.drawdown.breachType || 'unknown',
                 breachAmount: evaluation.drawdown.breachAmount || 0,
-                breachTime: new Date(),
+                breachTime: evaluation.drawdown.breachTime || new Date(),
                 currentEquity: evaluation.drawdown.currentEquity,
-                accountSize: evaluation.drawdown.dailyStartBalance || 0,
+                accountSize: phaseAccountData?.masterAccount.accountSize || 0,
                 dailyStartBalance: evaluation.drawdown.dailyStartBalance,
                 highWaterMark: evaluation.drawdown.highWaterMark,
                 notes: `Auto-detected breach during trade import. ${evaluation.drawdown.breachType?.replace('_', ' ')} exceeded by $${evaluation.drawdown.breachAmount?.toFixed(2)}`
               }
             })
           ])
-
-          // Add evaluation result to response
-          return {
-            ...result,
-            evaluation: {
-              status: 'failed',
-              reason: evaluation.drawdown.breachType,
-              message: `Account failed due to ${evaluation.drawdown.breachType?.replace('_', ' ')} breach`
-            }
-          }
-        }
-
-        // If account passed, DON'T mark as passed yet - let user transition manually
-        if (evaluation.isPassed) {
-          // Get master account data for dialog
-          const masterAccountData = await prisma.masterAccount.findUnique({
-            where: { id: result.masterAccountId! },
-            select: {
-              propFirmName: true,
-              currentPhase: true
-            }
-          })
           
+          console.log(`[AUTO-EVALUATION] Account marked as FAILED: ${evaluation.drawdown.breachType}`)
           
-          return {
-            ...result,
-            evaluation: {
-              status: 'passed',
-              message: 'Profit target reached! Ready to advance to next phase.',
-              canAdvance: true,
-              currentPhaseNumber: masterAccountData?.currentPhase || 1,
-              profitTargetProgress: evaluation.progress?.profitTargetPercent || 0,
-              currentPnL: evaluation.progress?.currentPnL || 0,
-              propFirmName: masterAccountData?.propFirmName || 'Prop Firm'
-            }
+          // Invalidate cache immediately so UI updates
+          await invalidateUserCaches(userId)
+          
+          // Add evaluation result to response for user feedback
+          result.evaluation = {
+            status: 'failed',
+            reason: evaluation.drawdown.breachType,
+            message: `Account failed due to ${evaluation.drawdown.breachType?.replace('_', ' ')} breach`
           }
-        }
-
-        // Account is still active
-        return {
-          ...result,
-          evaluation: {
-            status: 'active',
-            dailyDrawdownRemaining: evaluation.drawdown.dailyDrawdownRemaining,
-            maxDrawdownRemaining: evaluation.drawdown.maxDrawdownRemaining,
-            profitTargetProgress: evaluation.progress.profitTargetPercent
+        } 
+        // Account is still in progress
+        else {
+          const progressPercent = evaluation.progress?.profitTargetPercent?.toFixed(1) || '0.0'
+          console.log(`[AUTO-EVALUATION] ✅ No breach - account in progress (${progressPercent}% of profit target)`)
+          
+          result.evaluation = {
+            status: 'in_progress',
+            reason: 'profit_target_not_met',
+            message: `Phase in progress: ${progressPercent}% of profit target achieved`,
+            progressPercent: parseFloat(progressPercent)
           }
         }
       } catch (evalError) {
-        console.error('[AUTO-EVALUATION] Failed to evaluate phase:', evalError)
+        console.error('[AUTO-EVALUATION] Error during evaluation:', evalError)
         // Don't fail the import if evaluation fails
-        return result
       }
     }
 
@@ -1590,14 +1707,23 @@ export async function failAccount(accountId: string, currentPhase: any, breachDe
     })
 
     if (masterAccount && currentPhase) {
-      // Update the phase status to failed
-      await prisma.phaseAccount.update({
-        where: { id: currentPhase.id },
-        data: {
-          status: 'failed',
-          endDate: new Date()
-        }
-      })
+      // Update the phase status to failed and master account status
+      await prisma.$transaction([
+        prisma.phaseAccount.update({
+          where: { id: currentPhase.id },
+          data: {
+            status: 'failed',
+            endDate: new Date()
+          }
+        }),
+        prisma.masterAccount.update({
+          where: { id: accountId },
+          data: {
+            isActive: false,
+            status: 'failed'
+          }
+        })
+      ])
 
       return {
         isFailed: true,

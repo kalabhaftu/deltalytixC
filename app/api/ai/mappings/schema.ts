@@ -1,21 +1,13 @@
 import { z } from 'zod';
 
 export const mappingSchema = z.object({
-  accountNumber: z
-    .string()
-    .optional()
-    .describe("The account number or name associated with the trade"),
   instrument: z
     .string()
     .describe("The trading instrument (e.g., stock symbol, ticker)"),
   entryId: z
     .string()
     .optional()
-    .describe("The unique identifier for the buy transaction"),
-  closeId: z
-    .string()
-    .optional()
-    .describe("The unique identifier for the sell transaction"),
+    .describe("The unique identifier for the trade transaction (often labeled as 'ID' in CSV)"),
   quantity: z
     .string()
     .describe("The number of units traded"),
@@ -41,9 +33,25 @@ export const mappingSchema = z.object({
   side: z
     .string()
     .optional()
-    .describe("The entry side of the trade (e.g., buy or sell)"),
+    .describe("The entry side of the trade (e.g., BUY, SELL, buy, sell)"),
   commission: z
     .string()
     .optional()
     .describe("The commission charged for the trade"),
+  stopLoss: z
+    .string()
+    .optional()
+    .describe("The stop loss price set for the trade"),
+  takeProfit: z
+    .string()
+    .optional()
+    .describe("The take profit price set for the trade"),
+  closeReason: z
+    .string()
+    .optional()
+    .describe("The reason for closing the trade (e.g., User, Stop Loss, Take Profit)"),
+  symbol: z
+    .string()
+    .optional()
+    .describe("The original symbol from the CSV"),
 }); 

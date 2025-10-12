@@ -23,7 +23,6 @@ model Trade {
   accountNumber     String
   quantity          Float         @default(0)
   entryId           String?       @default("")
-  closeId           String?       @default("")
   instrument        String
   entryPrice        String
   closePrice        String
@@ -69,9 +68,7 @@ model Trade {
   @@index([userId, accountNumber])
   @@index([userId, entryTime])
   @@index([entryId]) // CRITICAL: Fast duplicate detection for large imports
-  @@index([closeId]) // CRITICAL: Fast duplicate detection for large imports
   @@index([userId, entryId]) // Compound index for optimal query performance
-  @@index([userId, closeId]) // Compound index for optimal query performance
   @@schema("public")
 }
 
@@ -97,6 +94,7 @@ model User {
   dashboardTemplates    DashboardTemplate[]
   groups                Group[]
   backtestTrades        BacktestTrade[] // Backtesting trades
+  dailyNotes            DailyNote[] // Daily calendar notes
 
   @@index([email])
   @@schema("public")
@@ -118,15 +116,16 @@ model Group {
 
 // New Master Account Model for Prop Firm Account Tracking
 model MasterAccount {
-  id             String   @id @default(uuid())
+  id             String              @id @default(uuid())
   userId         String
   accountName    String // e.g., "FTMO $100k Challenge"
   propFirmName   String // e.g., "FTMO", "The5ers", "Custom"
   accountSize    Float // e.g., 100000
   evaluationType String // "One Step", "Two Step", "Instant"
   currentPhase   Int // 1, 2, 3 for Funded - Crucial for state management
-  isActive       Boolean  @default(true) // false if failed/passed
-  createdAt      DateTime @default(now())
+  isActive       Boolean             @default(true) // false if failed/passed
+  status         MasterAccountStatus @default(active) // active (evaluation), funded, failed
+  createdAt      DateTime            @default(now())
 
   user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   phases  PhaseAccount[]
@@ -137,6 +136,8 @@ model MasterAccount {
   @@index([currentPhase])
   @@index([isActive])
   @@index([userId, isActive])
+  @@index([status])
+  @@index([userId, status])
   @@schema("public")
 }
 
@@ -322,6 +323,14 @@ enum PhaseAccountStatus {
   @@schema("public")
 }
 
+enum MasterAccountStatus {
+  active
+  funded
+  failed
+
+  @@schema("public")
+}
+
 // Backtesting Enums
 enum BacktestDirection {
   BUY
@@ -404,5 +413,23 @@ model BacktestTrade {
   @@index([userId, session])
   @@index([userId, model])
   @@index([dateExecuted])
+  @@schema("public")
+}
+
+// Daily Note Model for Calendar Notes
+model DailyNote {
+  id        String   @id @default(uuid())
+  userId    String
+  date      DateTime @db.Date // The trading day this note is for
+  note      String   @db.Text // The actual note content
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, date]) // One note per day per user
+  @@index([userId])
+  @@index([date])
+  @@index([userId, date])
   @@schema("public")
 }
