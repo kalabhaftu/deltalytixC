@@ -8,6 +8,7 @@ import ColumnMapping from '../column-mapping'
 import { FormatPreview } from '../components/format-preview'
 import TradezellaProcessor from '../tradezella/tradezella-processor'
 import MatchTraderProcessor from '../match-trader/match-trader-processor'
+import ExnessProcessor from '../exness/exness-processor'
 import ManualTradeFormCard from '../manual-trade-entry/manual-trade-form-card'
 import { Step } from '../import-button'
 import { Sparkles, Plus } from 'lucide-react'
@@ -94,6 +95,26 @@ const processMatchTraderCsv = (data: string[][]): ProcessedData => {
   
   if (!hasRequiredHeaders) {
     throw new Error("This doesn't appear to be a valid Match Trader CSV file. Please ensure it contains the expected columns.")
+  }
+  
+  return { headers, processedData: data.slice(1) };
+};
+
+const processExnessCsv = (data: string[][]): ProcessedData => {
+  if (data.length === 0) {
+    throw new Error("The CSV file appears to be empty or invalid.")
+  }
+  
+  // Exness CSV has a known header format
+  const headers = data[0].filter(header => header && header.trim() !== '')
+  
+  // Verify this is an Exness CSV by checking for key columns
+  const hasRequiredHeaders = ['ticket', 'opening_time_utc', 'closing_time_utc', 'type', 'lots', 'symbol', 'opening_price', 'closing_price', 'profit_usd'].every(
+    requiredHeader => headers.some(header => header.includes(requiredHeader))
+  )
+  
+  if (!hasRequiredHeaders) {
+    throw new Error("This doesn't appear to be a valid Exness CSV file. Please ensure it contains the expected columns.")
   }
   
   return { headers, processedData: data.slice(1) };
@@ -256,6 +277,48 @@ export const platforms: PlatformConfig[] = [
         title: 'Process Trades',
         description: 'Processing your trades',
         component: MatchTraderProcessor,
+        isLastStep: true
+      }
+    ]
+  },
+  {
+    platformName: 'exness',
+    type: 'exness',
+    name: 'Exness',
+    description: 'Import trades from Exness CSV file',
+    category: 'Platform CSV Import',
+    details: 'Fast import for Exness CSV files with auto-detection',
+    logo: {
+      path: '/logos/exness-icon.png',
+      alt: 'Exness Logo'
+    },
+    requiresAccountSelection: true,
+    processFile: processExnessCsv, // Use specialized processor
+    processorComponent: ExnessProcessor,
+    steps: [
+      {
+        id: 'select-import-type',
+        title: 'Select Platform',
+        description: 'Choose the platform you want to import from',
+        component: ImportTypeSelection
+      },
+      {
+        id: 'upload-file',
+        title: 'Upload File',
+        description: 'Upload the CSV file you want to import',
+        component: FileUpload
+      },
+      {
+        id: 'select-account',
+        title: 'Select Account',
+        description: 'Select the account you want to import the trades to',
+        component: AccountSelection
+      },
+      {
+        id: 'preview-trades',
+        title: 'Process Trades',
+        description: 'Processing your trades',
+        component: ExnessProcessor,
         isLastStep: true
       }
     ]

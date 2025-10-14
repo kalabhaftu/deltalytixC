@@ -443,98 +443,100 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
       <Separator />
 
       {/* Account List */}
-      <ScrollArea className="h-[220px] sm:h-[260px] pr-2">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-foreground mb-2 sm:mb-3"></div>
-            <p className="text-xs sm:text-sm text-muted-foreground">Loading accounts...</p>
-          </div>
-        ) : totalAccounts === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
-            <p className="text-xs sm:text-sm text-muted-foreground">No accounts found</p>
-            <p className="text-xs text-muted-foreground mt-1">Create an account to get started</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {Object.entries(filteredGroupedAccounts).map(([accountName, accountData]) => {
-              const selectedPhasesCount = accountData.phases.filter((p: any) => selectedAccounts.has(p.id)).length
-              const totalPhasesCount = accountData.phases.filter((p: any) => p.status !== 'pending').length
-              
-              return (
-                <Collapsible key={accountName} open={expandedAccounts.has(accountName)} onOpenChange={() => toggleAccountExpansion(accountName)}>
-                  <div className="flex items-center gap-2">
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="flex-1 justify-between p-2 h-auto text-left hover:bg-muted/50"
-                      >
-                        <div className="flex items-center gap-2">
-                          {expandedAccounts.has(accountName) ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                          <div>
-                            <div className="font-medium text-sm">{accountName}</div>
-                            {accountData.propFirm && (
-                              <div className="text-xs text-muted-foreground">{accountData.propFirm}</div>
+      <ScrollArea className="h-[220px] sm:h-[260px]">
+        <div className="pr-3">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
+              <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-foreground mb-2 sm:mb-3"></div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Loading accounts...</p>
+            </div>
+          ) : totalAccounts === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
+              <p className="text-xs sm:text-sm text-muted-foreground">No accounts found</p>
+              <p className="text-xs text-muted-foreground mt-1">Create an account to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {Object.entries(filteredGroupedAccounts).map(([accountName, accountData]) => {
+                const selectedPhasesCount = accountData.phases.filter((p: any) => selectedAccounts.has(p.id)).length
+                const totalPhasesCount = accountData.phases.filter((p: any) => p.status !== 'pending').length
+                
+                return (
+                  <Collapsible key={accountName} open={expandedAccounts.has(accountName)} onOpenChange={() => toggleAccountExpansion(accountName)}>
+                    <div className="flex items-center gap-2">
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="flex-1 justify-between p-2 h-auto text-left hover:bg-muted/50"
+                        >
+                          <div className="flex items-center gap-2">
+                            {expandedAccounts.has(accountName) ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                            <div>
+                              <div className="font-medium text-sm">{accountName}</div>
+                              {accountData.propFirm && (
+                                <div className="text-xs text-muted-foreground">{accountData.propFirm}</div>
+                              )}
+                            </div>
+                          </div>
+                          <Badge variant="secondary" className="text-xs h-4 px-1.5">
+                            {totalPhasesCount}
+                          </Badge>
+                        </Button>
+                      </CollapsibleTrigger>
+                    </div>
+                    <CollapsibleContent className="ml-6 space-y-1 overflow-visible">
+                      {accountData.phases
+                        .filter((phase: any) => phase.status && phase.status !== 'pending') // Filter out pending phases that don't exist
+                        .map((phase: any) => (
+                        <div key={phase.id} className="flex items-center gap-2 py-1">
+                        <Checkbox
+                            checked={selectedAccounts.has(phase.id)}
+                            onCheckedChange={(checked) => handleToggleAccount(phase.id, checked as boolean)}
+                            id={phase.id}
+                        />
+                        <Label
+                            htmlFor={phase.id}
+                            className="flex-1 text-xs sm:text-sm cursor-pointer leading-tight"
+                        >
+                          <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium">{phase.number}</span>
+                              <Badge
+                                variant={
+                                  phase.status === 'active' ? 'outline' :
+                                  phase.status === 'funded' || phase.status === 'passed' ? 'default' :
+                                  phase.status === 'failed' || phase.status === 'archived' ? 'destructive' : 'secondary'
+                                }
+                                className="text-[10px] h-4 px-1.5 min-w-[3rem] justify-center"
+                              >
+                                {phase.status === 'archived' ? 'failed' : phase.status}
+                              </Badge>
+                              <Badge variant="outline" className="text-[10px] h-4 px-1.5 min-w-[2.5rem] justify-center">
+                                Phase {phase.currentPhase || phase.phaseDetails?.phaseNumber || 'N/A'}
+                              </Badge>
+                              {phase.tradeCount > 0 && (
+                                <span className="text-muted-foreground text-xs">• {phase.tradeCount} trades</span>
                             )}
                           </div>
-                        </div>
-                        <Badge variant="secondary" className="text-xs h-4 px-1.5">
-                          {totalPhasesCount}
-                        </Badge>
-                      </Button>
-                    </CollapsibleTrigger>
-                  </div>
-                  <CollapsibleContent className="ml-6 space-y-1">
-                    {accountData.phases
-                      .filter((phase: any) => phase.status && phase.status !== 'pending') // Filter out pending phases that don't exist
-                      .map((phase: any) => (
-                      <div key={phase.id} className="flex items-center gap-2 py-1">
-                      <Checkbox
-                          checked={selectedAccounts.has(phase.id)}
-                          onCheckedChange={(checked) => handleToggleAccount(phase.id, checked as boolean)}
-                          id={phase.id}
-                      />
-                      <Label
-                          htmlFor={phase.id}
-                          className="flex-1 text-xs sm:text-sm cursor-pointer leading-tight"
-                      >
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium">{phase.number}</span>
-                            <Badge
-                              variant={
-                                phase.status === 'active' ? 'outline' :
-                                phase.status === 'funded' || phase.status === 'passed' ? 'default' :
-                                phase.status === 'failed' || phase.status === 'archived' ? 'destructive' : 'secondary'
-                              }
-                              className="text-[10px] h-4 px-1.5 min-w-[3rem] justify-center"
-                            >
-                              {phase.status === 'archived' ? 'failed' : phase.status}
-                            </Badge>
-                            <Badge variant="outline" className="text-[10px] h-4 px-1.5 min-w-[2.5rem] justify-center">
-                              Phase {phase.currentPhase || phase.phaseDetails?.phaseNumber || 'N/A'}
-                            </Badge>
-                            {phase.tradeCount > 0 && (
-                              <span className="text-muted-foreground text-xs">• {phase.tradeCount} trades</span>
-                          )}
-                        </div>
-                      </Label>
-                    </div>
-                  ))}
-                  </CollapsibleContent>
-                </Collapsible>
-              )
-            })}
-              </div>
-            )}
+                        </Label>
+                      </div>
+                    ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+                )
+              })}
+            </div>
+          )}
 
-        {Object.keys(filteredGroupedAccounts).length === 0 && searchQuery && (
-          <div className="text-center py-6 sm:py-8 text-muted-foreground text-xs sm:text-sm">
-                No accounts match &quot;{searchQuery}&quot;
-          </div>
-        )}
+          {Object.keys(filteredGroupedAccounts).length === 0 && searchQuery && (
+            <div className="text-center py-6 sm:py-8 text-muted-foreground text-xs sm:text-sm">
+              No accounts match &quot;{searchQuery}&quot;
+            </div>
+          )}
+        </div>
       </ScrollArea>
 
       <Separator />

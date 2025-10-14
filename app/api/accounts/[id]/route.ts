@@ -52,14 +52,27 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     })
 
+    // Fetch transactions (deposits/withdrawals)
+    const transactions = await prisma.liveAccountTransaction.findMany({
+      where: {
+        accountId: account.id,
+      },
+      select: {
+        amount: true,
+      }
+    })
+
     // Calculate profitLoss (net of commissions)
     const profitLoss = trades.reduce((sum, trade) => {
       const netPnL = trade.pnl - (trade.commission || 0)
       return sum + netPnL
     }, 0)
 
-    // Calculate current equity
-    const currentEquity = account.startingBalance + profitLoss
+    // Calculate total transactions (deposits are positive, withdrawals are negative)
+    const totalTransactions = transactions.reduce((sum, tx) => sum + tx.amount, 0)
+
+    // Calculate current equity including transactions
+    const currentEquity = account.startingBalance + profitLoss + totalTransactions
 
     // Get last trade date
     const lastTradeDate = trades.length > 0 ? trades[0].entryDate : null

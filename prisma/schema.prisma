@@ -95,6 +95,7 @@ model User {
   groups                Group[]
   backtestTrades        BacktestTrade[] // Backtesting trades
   dailyNotes            DailyNote[] // Daily calendar notes
+  liveAccountTransactions LiveAccountTransaction[] // Live account deposits/withdrawals
 
   @@index([email])
   @@schema("public")
@@ -265,9 +266,10 @@ model Account {
   groupId         String?
   createdAt       DateTime @default(now())
 
-  group  Group?  @relation(fields: [groupId], references: [id])
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trades Trade[]
+  group        Group?                   @relation(fields: [groupId], references: [id])
+  user         User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades       Trade[]
+  transactions LiveAccountTransaction[]
 
   @@unique([number, userId])
   @@index([number])
@@ -431,5 +433,32 @@ model DailyNote {
   @@index([userId])
   @@index([date])
   @@index([userId, date])
+  @@schema("public")
+}
+
+model LiveAccountTransaction {
+  id          String    @id @default(uuid())
+  accountId   String    // Reference to Account (live account)
+  userId      String    // Reference to User
+  type        TransactionType
+  amount      Float     // Positive for deposits, negative for withdrawals
+  description String?   // Optional description
+  createdAt   DateTime  @default(now())
+  
+  // Relations
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([accountId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([accountId, createdAt])
+  @@schema("public")
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  
   @@schema("public")
 }

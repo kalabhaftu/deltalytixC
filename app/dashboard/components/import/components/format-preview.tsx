@@ -119,12 +119,15 @@ export function FormatPreview({
           existingTrade.quantity === newTrade.quantity
         )
       );
-      setProcessedTrades([...processedTrades, ...uniqueTrades]);
+      if (uniqueTrades.length > 0) {
+        setProcessedTrades([...processedTrades, ...uniqueTrades]);
+      }
       setTimeout(() => {
         scrollToBottom()
       }, 100)
     }
-  }, [object, processedTrades, setProcessedTrades])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [object])
 
   const columns = useMemo<ColumnDef<Partial<Trade>>[]>(() => [
     {

@@ -1229,7 +1229,7 @@ export const DataProvider: React.FC<{
       // Calculate balanceToDate for each account using the trades we just loaded
       const accountsWithBalance = (data.accounts || []).map(account => ({
         ...account,
-        balanceToDate: calcBalance(account, allTrades, {
+        balanceToDate: calcBalance(account, allTrades, [], {
           excludeFailedAccounts: false,
           includePayouts: true
         })
@@ -1356,6 +1356,7 @@ export const DataProvider: React.FC<{
         ('digest' in error && typeof error.digest === 'string' && error.digest.startsWith('NEXT_REDIRECT'))
       )) {
         // Don't log redirect errors as they are expected behavior
+        setIsLoading(false); // Ensure loading is set to false before redirect
         throw error; // Re-throw to let Next.js handle the redirect
       }
 
@@ -1371,6 +1372,12 @@ export const DataProvider: React.FC<{
       
       // Silently handle other errors to avoid console spam
       setIsLoading(false)
+    } finally {
+      // Ensure loading is always set to false, even if loadData() doesn't handle it properly
+      // Add a small delay to prevent flickering
+      setTimeout(() => {
+        setIsLoading(false)
+      }, 200)
     }
   }, [user?.id, loadData, setIsLoading, locale])
 

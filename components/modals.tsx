@@ -21,8 +21,29 @@ export default function Modals() {
   const isLoading = useUserStore((state) => state.isLoading)
   const trades = useTradesStore((state) => state.trades)
   const [isTradesDialogOpen, setIsTradesDialogOpen] = useState(false)
+  const [showLoadingToast, setShowLoadingToast] = useState(false)
   const { accountGroupBoardOpen, setAccountGroupBoardOpen } = useModalStateStore()
 
+  // Debounce loading state to prevent flickering
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout | undefined
+
+    if (isLoading) {
+      // Show loading toast after 500ms delay to avoid flickering on quick operations
+      timeoutId = setTimeout(() => {
+        setShowLoadingToast(true)
+      }, 500)
+    } else {
+      // Hide loading toast immediately when loading stops
+      setShowLoadingToast(false)
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [isLoading])
 
   useEffect(() => {
     if (!isLoading) {
@@ -38,7 +59,7 @@ export default function Modals() {
   if (!user) return null
   return (
     <>
-      {isLoading && <LoadingOverlay />}
+      {showLoadingToast && <LoadingOverlay />}
       <OnboardingModal />
 
       {/* Account Group Board */}

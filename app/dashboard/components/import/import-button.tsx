@@ -62,6 +62,7 @@ export type Step =
   | 'preview-trades'
   | 'complete'
   | 'process-file'
+  | 'process-trades'
 
 export default function ImportButton() {
   const [isOpen, setIsOpen] = useState<boolean>(false)
@@ -298,11 +299,6 @@ export default function ImportButton() {
   }
 
   const renderStep = () => {
-    // Show loading animation when processing trades
-    if (isLoading) {
-      return <ImportLoading />
-    }
-
     const platform = platforms.find(p => p.type === importType) || platforms.find(p => p.platformName === 'csv-ai')
     if (!platform) return null
 
@@ -310,6 +306,11 @@ export default function ImportButton() {
     if (!currentStep) return null
 
     const Component = currentStep.component
+
+    // Show loading animation when processing trades (EXCEPT for FormatPreview which handles its own loading)
+    if (isLoading && Component !== FormatPreview) {
+      return <ImportLoading />
+    }
 
     // Handle special cases for components that need specific props
     if (Component === ImportTypeSelection) {
@@ -422,6 +423,9 @@ export default function ImportButton() {
     
     // Account selection for platforms - require account ID for linking
     if (currentStep.component === AccountSelection && !selectedAccountId) return true
+
+    // FormatPreview step - require processed trades before saving
+    if (currentStep.component === FormatPreview && processedTrades.length === 0) return true
 
     return false
   }

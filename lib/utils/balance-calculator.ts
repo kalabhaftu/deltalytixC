@@ -59,6 +59,7 @@ export interface DailyBalancePoint {
 export function calculateAccountBalance(
   account: Account | any,
   trades: (Trade | any)[],
+  transactions: any[] = [], // Add transactions parameter
   options: BalanceCalculationOptions = {}
 ): number {
   const {
@@ -97,6 +98,13 @@ export function calculateAccountBalance(
 
   balance += cumulativePnL
 
+  // For live accounts, add deposits and subtract withdrawals
+  if (account.accountType === 'live' && transactions.length > 0) {
+    const accountTransactions = transactions.filter(tx => tx.accountId === account.id)
+    const totalTransactions = accountTransactions.reduce((sum, tx) => sum + tx.amount, 0)
+    balance += totalTransactions
+  }
+
   // Add payouts if requested (only for funded accounts)
   if (includePayouts && account.payouts && Array.isArray(account.payouts)) {
     const payoutsSum = account.payouts.reduce((sum: number, payout: any) => {
@@ -120,6 +128,7 @@ export function calculateAccountBalance(
 export function calculateAccountBalances(
   accounts: (Account | any)[],
   allTrades: (Trade | any)[],
+  allTransactions: any[] = [], // Add transactions parameter
   options: BalanceCalculationOptions = {}
 ): Map<string, number> {
   const balanceMap = new Map<string, number>()
@@ -146,6 +155,15 @@ export function calculateAccountBalances(
     }
   })
 
+  // Group transactions by account ID for efficiency
+  const transactionsByAccountId = new Map<string, any[]>()
+  allTransactions.forEach(transaction => {
+    if (!transactionsByAccountId.has(transaction.accountId)) {
+      transactionsByAccountId.set(transaction.accountId, [])
+    }
+    transactionsByAccountId.get(transaction.accountId)!.push(transaction)
+  })
+
   // Calculate balance for each account
   accounts.forEach(account => {
     let accountTrades: any[] = []
@@ -163,7 +181,8 @@ export function calculateAccountBalances(
       accountTrades = tradesByAccountNumber.get(account.number) || []
     }
     
-    const balance = calculateAccountBalance(account, accountTrades, options)
+    const accountTransactions = transactionsByAccountId.get(account.id) || []
+    const balance = calculateAccountBalance(account, accountTrades, accountTransactions, options)
     balanceMap.set(account.number, balance)
   })
 
@@ -181,9 +200,10 @@ export function calculateAccountBalances(
 export function calculateTotalEquity(
   accounts: (Account | any)[],
   allTrades: (Trade | any)[],
+  allTransactions: any[] = [],
   options: BalanceCalculationOptions = {}
 ): number {
-  const balances = calculateAccountBalances(accounts, allTrades, options)
+  const balances = calculateAccountBalances(accounts, allTrades, allTransactions, options)
   return Array.from(balances.values()).reduce((sum, balance) => sum + balance, 0)
 }
 

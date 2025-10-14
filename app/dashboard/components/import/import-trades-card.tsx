@@ -58,6 +58,7 @@ export type Step =
   | 'preview-trades'
   | 'complete'
   | 'process-file'
+  | 'process-trades'
 
 interface ImportTradesCardProps {
   accountId: string
@@ -454,6 +455,9 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
     
     // Account selection for platforms
     if (currentStep.component === AccountSelection && !accountNumber) return true
+
+    // FormatPreview step - require processed trades before saving
+    if (currentStep.component === FormatPreview && processedTrades.length === 0) return true
 
     return false
   }

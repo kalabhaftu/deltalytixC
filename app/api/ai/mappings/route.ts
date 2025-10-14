@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
         `Map these column names to the correct fields in our database (instrument, entryId, quantity, entryPrice, closePrice, entryDate, closeDate, pnl, timeInPosition, side, commission, stopLoss, takeProfit, closeReason, symbol) by providing the matching column name for each field. ` +
         `You may also consult the first few rows of data to help you make the mapping, but you are mapping the columns, not the values. ` +
         `Common column mappings: 'ID' -> entryId, 'Open time' -> entryDate, 'Close time' -> closeDate, 'Open price' -> entryPrice, 'Close Price' -> closePrice, 'Volume' -> quantity, 'Profit' -> pnl, 'Side' -> side, 'Symbol' -> instrument, 'Stop loss' -> stopLoss, 'Take profit' -> takeProfit, 'Reason' -> closeReason. ` +
+        `CRITICAL: 'instrument' is the PRIMARY field for trading pairs (EURUSD, XAUUSD, etc.) - map the main symbol/pair column to this. 'symbol' is optional and stores the original symbol from CSV for reference. Usually only map to 'instrument', not both. ` +
         `IMPORTANT: Do NOT map account number or account-related columns. Account linking is handled separately by the import system. ` +
         `If you are not sure or there is no matching column, omit the value.\n\n` +
         `Columns:\n${fieldColumns.join(",")}\n\n` +

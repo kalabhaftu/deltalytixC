@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,15 +15,14 @@ import {
   Activity,
   TrendingUp,
   Calendar,
-  Building2
+  Building2,
+  Plus,
+  Minus
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-interface LiveAccountDetailProps {
-  params: {
-    id: string
-  }
-}
+import { EditLiveAccountDialog } from "@/components/edit-live-account-dialog"
+import { TransactionDialog } from "@/app/dashboard/components/accounts/transaction-dialog"
+import { TransactionHistory } from "@/app/dashboard/components/accounts/transaction-history"
 
 interface LiveAccountData {
   id: string
@@ -41,49 +40,55 @@ interface LiveAccountData {
   createdAt: string
 }
 
-export default function LiveAccountDetailPage({ params }: LiveAccountDetailProps) {
+export default function LiveAccountDetailPage() {
+  const params = useParams()
   const router = useRouter()
   const [account, setAccount] = useState<LiveAccountData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+  const [refreshKey, setRefreshKey] = useState(0)
 
-  const accountId = params.id
+  const accountId = params.id as string
 
   // Fetch account data with calculated metrics
-  useEffect(() => {
-    const fetchAccountData = async () => {
-      try {
-        // Fetch account details with calculated metrics from enhanced endpoint
-        const response = await fetch(`/api/accounts/${accountId}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch account')
-        }
-        
-        const data = await response.json()
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to fetch account data')
-        }
-
-        const accountData = data.data
-        
-        if (!accountData || accountData.accountType !== 'live') {
-          router.push('/dashboard/accounts')
-          return
-        }
-
-        setAccount(accountData)
-      } catch (error) {
-        console.error('Error fetching account data:', error)
-        router.push('/dashboard/accounts')
-      } finally {
-        setIsLoading(false)
+  const fetchAccountData = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      // Fetch account details with calculated metrics from enhanced endpoint
+      const response = await fetch(`/api/accounts/${accountId}?t=${Date.now()}`, {
+        cache: 'no-store'
+      })
+      if (!response.ok) {
+        throw new Error('Failed to fetch account')
       }
-    }
+      
+      const data = await response.json()
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch account data')
+      }
 
+      const accountData = data.data
+      
+      if (!accountData || accountData.accountType !== 'live') {
+        router.push('/dashboard/accounts')
+        return
+      }
+
+      setAccount(accountData)
+    } catch (error) {
+      console.error('Error fetching account data:', error)
+      router.push('/dashboard/accounts')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [accountId, router])
+
+  useEffect(() => {
     if (accountId) {
       fetchAccountData()
     }
-  }, [accountId, router])
+  }, [accountId, refreshKey, fetchAccountData])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
@@ -141,46 +146,51 @@ export default function LiveAccountDetailPage({ params }: LiveAccountDetailProps
     <div className="container mx-auto p-6">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col gap-3">
             <Button
               variant="ghost"
+              size="sm"
               onClick={() => router.push('/dashboard/accounts')}
-              className="p-2"
+              className="w-fit"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
             </Button>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">{account.displayName}</h1>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <User className="h-4 w-4" />
-                <span>{account.broker || 'Live Account'}</span>
-                <Badge variant={
-                  account.status === 'active' ? 'outline' :
-                  account.status === 'funded' ? 'default' :
-                  account.status === 'failed' ? 'destructive' : 'secondary'
-                } className="text-xs">
-                  {account.status?.toUpperCase()}
-                </Badge>
-              </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={
+                account.status === 'active' ? 'outline' :
+                account.status === 'funded' ? 'default' :
+                account.status === 'failed' ? 'destructive' : 'secondary'
+              } className="text-xs">
+                {account.status?.toUpperCase()}
+              </Badge>
+              <span className="text-sm text-muted-foreground hidden sm:inline">•</span>
+              <span className="text-sm text-muted-foreground">{account.broker || 'Live Account'}</span>
+              <span className="text-sm text-muted-foreground hidden sm:inline">•</span>
+              <span className="text-xs sm:text-sm text-muted-foreground truncate">
+                ID: {account.id}
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => window.location.reload()}
               size="sm"
+              onClick={() => window.location.reload()}
+              className="w-fit"
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
+              <RefreshCw className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
             <Button
               variant="outline"
-              onClick={() => router.push(`/dashboard/accounts/${accountId}/edit`)}
               size="sm"
+              onClick={() => setEditDialogOpen(true)}
+              className="w-fit"
             >
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
+              <Settings className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Settings</span>
             </Button>
           </div>
         </div>
@@ -294,16 +304,56 @@ export default function LiveAccountDetailPage({ params }: LiveAccountDetailProps
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    Account Management
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <p className="text-muted-foreground text-center py-4">
-                      Trade activity and performance data will be displayed here
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <TransactionDialog
+                      accountId={account.id}
+                      accountNumber={account.number}
+                      currentBalance={account.currentEquity || 0}
+                      onTransactionComplete={() => {
+                        // Refresh account data by incrementing refresh key
+                        setRefreshKey(prev => prev + 1)
+                      }}
+                    >
+                      <Button className="w-full bg-green-600 hover:bg-green-700">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Deposit
+                      </Button>
+                    </TransactionDialog>
+
+                    <TransactionDialog
+                      accountId={account.id}
+                      accountNumber={account.number}
+                      currentBalance={account.currentEquity || 0}
+                      onTransactionComplete={() => {
+                        // Refresh account data by incrementing refresh key
+                        setRefreshKey(prev => prev + 1)
+                      }}
+                    >
+                      <Button variant="outline" className="w-full border-red-200 text-red-600 hover:bg-red-50">
+                        <Minus className="w-4 h-4 mr-2" />
+                        Withdraw
+                      </Button>
+                    </TransactionDialog>
+                  </div>
+                  
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Deposit:</strong> Minimum $5.00<br />
+                      <strong>Withdrawal:</strong> Minimum $10.00
                     </p>
                   </div>
                 </CardContent>
               </Card>
+            </div>
+
+            <div className="mt-6">
+              <TransactionHistory accountId={account.id} key={refreshKey} />
             </div>
           </TabsContent>
 
@@ -348,6 +398,17 @@ export default function LiveAccountDetailPage({ params }: LiveAccountDetailProps
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Edit Account Dialog */}
+      <EditLiveAccountDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        account={account}
+        onSuccess={() => {
+          // Refresh the page to get updated account data
+          window.location.reload()
+        }}
+      />
     </div>
   )
 }

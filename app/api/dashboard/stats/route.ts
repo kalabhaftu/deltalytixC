@@ -161,9 +161,18 @@ export async function GET(request: NextRequest) {
 
       const totalAccounts = filteredAccounts.length
 
+      // Fetch all transactions for balance calculation
+      const allTransactions = await prisma.liveAccountTransaction.findMany({
+        where: { userId: currentUserId },
+        select: {
+          accountId: true,
+          amount: true
+        }
+      })
+
       // Calculate proper current equity by account using unified calculator
       // This ensures consistency with all other balance calculations
-      const accountEquities = calculateAccountBalances(filteredAccounts, allTradesForEquity, {
+      const accountEquities = calculateAccountBalances(filteredAccounts, allTradesForEquity, allTransactions, {
         excludeFailedAccounts: false, // Include failed accounts to show their actual current balance
         includePayouts: true
       })

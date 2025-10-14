@@ -37,6 +37,7 @@ import {
 } from "lucide-react"
 import { EnhancedCreateLiveAccountDialog } from "../components/accounts/enhanced-create-live-account-dialog"
 import { EnhancedCreateAccountDialog as CreatePropFirmAccountDialog } from "../components/prop-firm/enhanced-create-account-dialog"
+import { EditLiveAccountDialog } from "@/components/edit-live-account-dialog"
 import { Separator } from "@/components/ui/separator"
 import { motion, AnimatePresence } from "framer-motion"
 import { LoadingSkeleton } from "@/components/ui/loading"
@@ -67,6 +68,7 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { calculateAccountBalances } from "@/lib/utils/balance-calculator"
+import { useLiveAccountTransactions } from '@/hooks/use-live-account-transactions'
 
 // Types
 interface Account {
@@ -106,6 +108,8 @@ export default function AccountsPage() {
   // Get ALL trades (unfiltered) for accurate balance calculations
   // formattedTrades is filtered by navbar, which would exclude failed account trades
   const allTrades = useTradesStore(state => state.trades)
+  // Get all transactions for balance calculations
+  const { transactions } = useLiveAccountTransactions()
   
   // State
   const [searchQuery, setSearchQuery] = useState('')
@@ -113,6 +117,7 @@ export default function AccountsPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'failed'>('all')
   const [createLiveDialogOpen, setCreateLiveDialogOpen] = useState(false)
   const [createPropFirmDialogOpen, setCreatePropFirmDialogOpen] = useState(false)
+  const [editLiveDialogOpen, setEditLiveDialogOpen] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null)
@@ -172,7 +177,8 @@ export default function AccountsPage() {
   // IMPORTANT: Use allTrades (unfiltered) instead of formattedTrades (filtered by navbar)
   // This ensures failed accounts show correct balance even when an active account is selected in navbar
   const accountsWithRealEquity = useMemo(() => {
-    const accountEquities = calculateAccountBalances(filteredAccounts, allTrades, {
+    // Include transactions for accurate balance calculation (deposits/withdrawals)
+    const accountEquities = calculateAccountBalances(filteredAccounts, allTrades, transactions, {
       excludeFailedAccounts: false, // Include failed accounts to show their actual current balance
       includePayouts: true
     })
@@ -182,7 +188,7 @@ export default function AccountsPage() {
       ...account,
       calculatedEquity: accountEquities.get(account.number) || account.startingBalance || 0
     }))
-  }, [filteredAccounts, allTrades])
+  }, [filteredAccounts, allTrades, transactions])
 
   const accountStats = useMemo(() => {
     return {
@@ -228,27 +234,41 @@ export default function AccountsPage() {
     })
   }, [refetchAccounts])
 
+  const handleAccountUpdated = useCallback(() => {
+    // Clear cache to ensure immediate refresh
+    clearAccountsCache()
+    refetchAccounts()
+    setLastUpdated(new Date())
+    setEditLiveDialogOpen(false)
+    setEditingAccount(null)
+    toast.success("Account updated", {
+      description: "Account has been updated successfully",
+    })
+  }, [refetchAccounts])
+
   const handleViewAccount = useCallback((account: Account) => {
     if (account.accountType === 'prop-firm') {
       // Use master account ID for prop-firm accounts, not phase ID
       const masterAccountId = account.currentPhaseDetails?.masterAccountId || account.id
       router.push(`/dashboard/prop-firm/accounts/${masterAccountId}`)
     } else {
-      router.push(`/dashboard?account=${account.id}`)
+      // Use dedicated route for live accounts like prop firm
+      router.push(`/dashboard/accounts/${account.id}`)
     }
   }, [router])
 
   const handleEditAccount = useCallback((account: Account) => {
-    // Navigate to edit page (only works for live accounts currently)
+    // Open edit dialog for live accounts
     if (account.accountType === 'live') {
-      router.push(`/dashboard/accounts/${account.id}/edit`)
+      setEditingAccount(account)
+      setEditLiveDialogOpen(true)
     } else {
       // For prop firm accounts, show a message that editing isn't available yet
       toast.error("Edit Not Available", {
         description: "Prop firm account editing is not yet available. Contact support for changes.",
       })
     }
-  }, [router])
+  }, [])
 
   const handleDeleteAccount = useCallback((account: Account) => {
     setDeletingAccount(account)
@@ -578,6 +598,14 @@ export default function AccountsPage() {
           onSuccess={() => {
             refetchAccounts()
           }}
+        />
+
+        {/* Edit Live Account Dialog */}
+        <EditLiveAccountDialog
+          open={editLiveDialogOpen}
+          onOpenChange={setEditLiveDialogOpen}
+          account={editingAccount}
+          onSuccess={handleAccountUpdated}
         />
 
             </div>

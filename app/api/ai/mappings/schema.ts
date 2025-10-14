@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const mappingSchema = z.object({
   instrument: z
     .string()
-    .describe("The trading instrument (e.g., stock symbol, ticker)"),
+    .describe("The PRIMARY trading instrument/pair (e.g., EURUSD, XAUUSD, AAPL) - this is the main field used throughout the app"),
   entryId: z
     .string()
     .optional()
@@ -53,5 +53,5 @@ export const mappingSchema = z.object({
   symbol: z
     .string()
     .optional()
-    .describe("The original symbol from the CSV"),
+    .describe("The original symbol from the CSV (for reference only) - usually not needed if instrument is mapped"),
 }); 
