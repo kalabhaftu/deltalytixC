@@ -83,7 +83,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   return null
 }
 
-export default function WeekdayPnL({ size = 'small-long' }: WeekdayPnLProps) {
+const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: WeekdayPnLProps) {
   const { formattedTrades } = useData()
   const [showAverage, setShowAverage] = React.useState(false)
 
@@ -194,7 +194,7 @@ export default function WeekdayPnL({ size = 'small-long' }: WeekdayPnLProps) {
       <CardContent 
         className={cn(
           "flex-1 min-h-[200px]",
-          size === 'small' ? "p-1" : "p-2 sm:p-4"
+          size === 'small' || size === 'small-long' ? "p-1" : "p-2 sm:p-4"
         )}
       >
         <div className="w-full h-full">
@@ -268,4 +268,6 @@ export default function WeekdayPnL({ size = 'small-long' }: WeekdayPnLProps) {
       </CardContent>
     </Card>
   )
-}
+})
+
+export default WeekdayPnL

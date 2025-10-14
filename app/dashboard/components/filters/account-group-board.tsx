@@ -156,7 +156,7 @@ export function AccountGroupBoard() {
       console.error("Error moving account:", error)
       toast.error("Error", { description: "Failed to move account" })
     }
-  }, [groups, user?.id, saveGroup, moveAccountToGroup, saveAccount, existingAccounts])
+  }, [groups, user?.id, saveGroup, moveAccountToGroup, saveAccount])
 
   const handleDeleteGroup = useCallback(async (groupId: string, groupName: string) => {
     try {

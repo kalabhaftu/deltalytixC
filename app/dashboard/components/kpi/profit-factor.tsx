@@ -16,7 +16,7 @@ interface ProfitFactorProps {
   size?: string
 }
 
-export default function ProfitFactor({ size }: ProfitFactorProps) {
+const ProfitFactor = React.memo(function ProfitFactor({ size }: ProfitFactorProps) {
   const { profitFactor, grossWin, grossLosses } = useTradeStatistics()
   
   // Convert profit factor to percentage for circular progress (capped at 100%)
@@ -69,4 +69,6 @@ export default function ProfitFactor({ size }: ProfitFactorProps) {
       </CardContent>
     </Card>
   )
-}
+})
+
+export default ProfitFactor

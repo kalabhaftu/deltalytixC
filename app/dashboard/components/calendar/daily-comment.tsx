@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import { useCalendarNotes } from "@/app/dashboard/hooks/use-calendar-notes"
 import { CalendarEntry } from "@/app/dashboard/types/calendar"
 
 interface DailyCommentProps {
@@ -19,41 +20,25 @@ export function DailyComment({ dayData, selectedDate }: DailyCommentProps) {
   const [isSavingComment, setIsSavingComment] = React.useState(false)
   const [isEditing, setIsEditing] = React.useState(false)
   const [hasExistingNote, setHasExistingNote] = React.useState(false)
-  const [isLoadingNote, setIsLoadingNote] = React.useState(true)
 
-  // Ensure we have a valid Date object
-  const validDate = selectedDate && selectedDate instanceof Date ? selectedDate : new Date()
+  // Use centralized calendar notes hook
+  const { notes, isLoading: isLoadingNote, saveNote: saveNoteToDb } = useCalendarNotes()
 
-  // Load comment from database on mount
+  // Ensure we have a valid Date object - wrapped in useMemo to prevent recreation
+  const validDate = React.useMemo(() => 
+    selectedDate && selectedDate instanceof Date ? selectedDate : new Date()
+  , [selectedDate])
+
+  // Load comment from hook when date changes
   React.useEffect(() => {
     if (!validDate) return
     
-    setIsLoadingNote(true)
-    const fetchComment = async () => {
-      try {
-        const response = await fetch('/api/calendar/notes')
-        if (response.ok) {
-          const data = await response.json()
-          const dateKey = validDate.toISOString().split('T')[0]
-          const note = data.notes.find((n: any) => {
-            const noteDate = new Date(n.date).toISOString().split('T')[0]
-            return noteDate === dateKey
-          })
-          const noteContent = note?.note || ''
-          setComment(noteContent)
-          setHasExistingNote(noteContent.trim().length > 0)
-          setIsEditing(noteContent.trim().length === 0) // Start in edit mode if no note exists
-        }
-      } catch (error) {
-        console.error('Error loading comment:', error)
-        setIsEditing(true) // Default to edit mode on error
-      } finally {
-        setIsLoadingNote(false)
-      }
-    }
-    
-    fetchComment()
-  }, [validDate])
+    const dateKey = validDate.toISOString().split('T')[0]
+    const noteContent = notes[dateKey] || ''
+    setComment(noteContent)
+    setHasExistingNote(noteContent.trim().length > 0)
+    setIsEditing(noteContent.trim().length === 0)
+  }, [validDate, notes])
 
   const handleSaveComment = async () => {
     if (!validDate) return
@@ -61,31 +46,15 @@ export function DailyComment({ dayData, selectedDate }: DailyCommentProps) {
     setIsSavingComment(true)
     
     try {
-      const dateKey = validDate.toISOString().split('T')[0]
-      
-      const response = await fetch('/api/calendar/notes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          date: dateKey,
-          note: comment,
-        }),
+      await saveNoteToDb(validDate, comment)
+      toast.success("Success", {
+        description: 'Note saved successfully',
       })
-
-      if (response.ok) {
-        toast.success("Success", {
-          description: 'Note saved successfully',
-        })
-        // Trigger a refresh of the calendar to update the icon
-        window.dispatchEvent(new CustomEvent('notesSaved'))
-        // Exit edit mode and update state
-        setIsEditing(false)
-        setHasExistingNote(comment.trim().length > 0)
-      } else {
-        throw new Error('Failed to save note')
-      }
+      // Trigger a refresh of the calendar to update the icon
+      window.dispatchEvent(new CustomEvent('notesSaved'))
+      // Exit edit mode and update state
+      setIsEditing(false)
+      setHasExistingNote(comment.trim().length > 0)
     } catch (error) {
       console.error('Error saving comment:', error)
       toast.error("Error", {
@@ -131,23 +100,12 @@ export function DailyComment({ dayData, selectedDate }: DailyCommentProps) {
             
             <div className="flex justify-end gap-2">
               {hasExistingNote && (
-                <Button
-                  onClick={() => {
-                    setIsEditing(false)
-                    // Reset to original comment if canceling
-                    const fetchComment = async () => {
-                      const response = await fetch('/api/calendar/notes')
-                      if (response.ok) {
-                        const data = await response.json()
-                        const dateKey = validDate.toISOString().split('T')[0]
-                        const note = data.notes.find((n: any) => {
-                          const noteDate = new Date(n.date).toISOString().split('T')[0]
-                          return noteDate === dateKey
-                        })
-                        setComment(note?.note || '')
-                      }
-                    }
-                    fetchComment()
+                  <Button
+                    onClick={() => {
+                      setIsEditing(false)
+                      // Reset to original comment if canceling
+                      const dateKey = validDate.toISOString().split('T')[0]
+                      setComment(notes[dateKey] || '')
                   }}
                   variant="outline"
                   size="sm"

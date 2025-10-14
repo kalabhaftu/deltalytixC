@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -190,6 +190,7 @@ export function EnhancedCreateAccountDialog({
     if (watchedPropFirm && watchedEvaluationType && templates[watchedPropFirm]) {
       loadTemplateRules()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchedPropFirm, watchedEvaluationType, templates])
 
   // Handle evaluation type changes
@@ -846,10 +847,10 @@ export function EnhancedCreateAccountDialog({
                           </div>
 
                           {/* Drawdown Rules Section */}
-                          <div className="space-y-4 p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
+                          <div className="space-y-4 p-4 rounded-lg border">
                             <div className="flex items-center gap-2">
                               <AlertTriangle className="h-4 w-4" />
-                              <h5 className="font-medium text-sm text-red-700 dark:text-red-300">Risk Management</h5>
+                              <h5 className="font-medium text-sm">Risk Management</h5>
                             </div>
                             
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

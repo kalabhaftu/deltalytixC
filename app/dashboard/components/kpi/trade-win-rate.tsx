@@ -16,7 +16,7 @@ interface TradeWinRateProps {
   size?: string
 }
 
-export default function TradeWinRate({ size }: TradeWinRateProps) {
+const TradeWinRate = React.memo(function TradeWinRate({ size }: TradeWinRateProps) {
   const { winRate, nbWin, nbTrades } = useTradeStatistics()
   
   // Determine color based on win rate
@@ -64,4 +64,6 @@ export default function TradeWinRate({ size }: TradeWinRateProps) {
       </CardContent>
     </Card>
   )
-}
+})
+
+export default TradeWinRate

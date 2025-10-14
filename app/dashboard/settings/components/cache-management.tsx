@@ -7,7 +7,7 @@
  * in the settings page
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -23,7 +23,17 @@ import { toast } from 'sonner'
 export function CacheManagement() {
   const [isClearing, setIsClearing] = useState(false)
   const [lastCleared, setLastCleared] = useState<Date | null>(null)
-  const [stats, setStats] = useState(getCacheStats())
+  const [stats, setStats] = useState({
+    version: '0',
+    localStorageSize: 0,
+    localStorageKeys: 0,
+    sessionStorageKeys: 0
+  })
+  
+  // Load cache stats only on client side to avoid hydration mismatch
+  useEffect(() => {
+    setStats(getCacheStats())
+  }, [])
 
   const handleClearAccountCache = async () => {
     setIsClearing(true)

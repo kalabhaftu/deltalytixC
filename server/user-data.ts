@@ -27,99 +27,87 @@ export async function getUserData(): Promise<{
 
     const locale = 'en' // Default to English since i18n was removed
 
+    // IMPORTANT: Removed unstable_cache wrapper to prevent "items over 2MB cannot be cached" errors
+    // User data includes accounts which can exceed Next.js 2MB cache limit
+    // Database queries are already fast with proper indexing
+    try {
+      // PERFORMANCE FIX: Removed aggressive timeout wrapper - let Prisma handle connection timeouts naturally
+      // Aggressive timeouts cause premature failures when network is slow
+      
+      // PERFORMANCE OPTIMIZATION: Reduce database queries and use parallel fetching
+      const [userData, accounts, groups] = await Promise.all([
+        // User data - essential only with error handling
+        (async () => {
+          try {
+            return await prisma.user.findUnique({
+              where: {
+                auth_user_id: userId
+              },
+              select: {
+                id: true,
+                email: true,
+                auth_user_id: true,
+                isFirstConnection: true,
+                thorToken: true,
+                timezone: true,
+                theme: true,
+                firstName: true,
+                lastName: true,
+                accountFilterSettings: true,
+                backtestInputMode: true
+              }
+            })
+          } catch (error) {
+            console.error('[getUserData] User query failed:', error)
+            return null
+          }
+        })(),
+        // Use getAccountsAction for unified account handling (regular + prop firm)
+        (async () => {
+          try {
+            // Import and use the existing account logic
+            const { getAccountsAction } = await import('./accounts')
+            return await getAccountsAction()
+          } catch (error) {
+            console.error('[getUserData] Accounts query failed:', error)
+            return []
+          }
+        })(),
+        // Groups - minimal data with error handling
+        (async () => {
+          try {
+            return await prisma.group.findMany({
+              where: {
+                userId: userId
+              },
+              select: {
+                id: true,
+                name: true,
+                userId: true,
+                createdAt: true,
+                updatedAt: true,
+                accounts: true
+              }
+            })
+          } catch (error) {
+            console.error('[getUserData] Groups query failed:', error)
+            return []
+          }
+        })(),
+        Promise.resolve([]), // Placeholder for removed financial events
+        Promise.resolve([]) // Placeholder for removed mood feature
+      ])
 
-  return unstable_cache(
-    async () => {
-      try {
-        // Add timeout for database operations - reduced for better performance
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Database timeout')), 10000)
-        )
-
-        // PERFORMANCE OPTIMIZATION: Reduce database queries and use parallel fetching
-    const dataPromise = Promise.all([
-      // User data - essential only with error handling
-      (async () => {
-        try {
-          return await prisma.user.findUnique({
-            where: {
-              auth_user_id: userId
-            },
-            select: {
-              id: true,
-              email: true,
-              auth_user_id: true,
-              isFirstConnection: true,
-              timezone: true,
-              theme: true,
-              firstName: true,
-              lastName: true,
-              accountFilterSettings: true
-            }
-          })
-        } catch (error) {
-          console.error('[getUserData] User query failed:', error)
-          return null
-        }
-      })(),
-      // Use getAccountsAction for unified account handling (regular + prop firm)
-      (async () => {
-        try {
-          // Import and use the existing account logic
-          const { getAccountsAction } = await import('./accounts')
-          return await getAccountsAction()
-        } catch (error) {
-          console.error('[getUserData] Accounts query failed:', error)
-          return []
-        }
-      })(),
-      // Groups - minimal data with error handling
-      (async () => {
-        try {
-          return await prisma.group.findMany({
-            where: {
-              userId: userId
-            },
-            select: {
-              id: true,
-              name: true,
-              userId: true,
-              createdAt: true
-            }
-          })
-        } catch (error) {
-          console.error('[getUserData] Groups query failed:', error)
-          return []
-        }
-      })(),
-      Promise.resolve([]), // Placeholder for removed financial events
-      Promise.resolve([]) // Placeholder for removed mood feature
-    ])
-
-        const [
-          userData,
-          accounts,
-          groups
-        ] = await Promise.race([dataPromise, timeoutPromise]) as any
-
-
-        return { userData, accounts, groups }
-      } catch (error) {
-        console.error('[getUserData] Database error:', error)
-        // Return empty data structure if database is unavailable
-        return {
-          userData: null,
-          accounts: [],
-          groups: []
-        }
+      return { userData, accounts, groups }
+    } catch (error) {
+      console.error('[getUserData] Database error:', error)
+      // Return empty data structure if database is unavailable
+      return {
+        userData: null,
+        accounts: [],
+        groups: []
       }
-    },
-      [`user-data-${userId}-${locale}`],
-    {
-      tags: [`user-data-${userId}-${locale}`, `user-data-${userId}`],
-      revalidate: 60 // 1 minute cache for faster updates
     }
-  )()
   } catch (error) {
     console.error('[getUserData] Error getting user ID or locale:', error)
     // Return empty data structure if we can't get user information

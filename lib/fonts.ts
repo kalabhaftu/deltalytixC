@@ -1,13 +1,12 @@
 import { Inter } from "next/font/google";
 
-// Next.js 13+ font configuration with optimized loading and better fallbacks
+// PERFORMANCE FIX: Simplified font config to work better with Turbopack
+// Removed problematic options that cause issues when Google Fonts is unreachable
 export const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
-  display: 'swap',
-  preload: true, // Enable preload for better performance
-  fallback: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 'sans-serif'],
-  adjustFontFallback: true, // Enable automatic fallback adjustments
+  display: 'optional', // Changed from 'swap' to 'optional' - app works without font
+  fallback: ['system-ui', 'sans-serif'], // Simplified fallback
 })
 
 // System font fallback for when Google Fonts is completely unavailable

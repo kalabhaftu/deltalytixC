@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useTheme } from 'next-themes'
 
 interface TradeData {
@@ -41,29 +41,8 @@ export function TradingViewAdvancedChart({
   const [error, setError] = useState<string | null>(null)
   const { resolvedTheme } = useTheme()
 
-  // Initialize the TradingView Chart using iframe
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      initializeChart()
-    }, 100)
-
-    return () => {
-      clearTimeout(timer)
-      if (widgetRef.current) {
-        try {
-          // If it's an iframe, just clear the container
-          if (widgetRef.current.tagName === 'IFRAME' && containerRef.current) {
-            containerRef.current.innerHTML = ''
-          }
-        } catch (e) {
-          console.warn('Error removing widget:', e)
-        }
-      }
-    }
-  }, [])
-
   // Initialize the TradingView Chart using iframe approach
-  const initializeChart = () => {
+  const initializeChart = useCallback(() => {
     if (!containerRef.current) {
       console.error('Container not available')
       setError('Chart container not available')
@@ -144,7 +123,31 @@ export function TradingViewAdvancedChart({
       setError('Failed to initialize chart')
       setIsLoading(false)
     }
-  }
+  }, [tradeData, resolvedTheme])
+
+  // Initialize the TradingView Chart using iframe
+  useEffect(() => {
+    // Capture current container ref for cleanup
+    const container = containerRef.current
+    
+    const timer = setTimeout(() => {
+      initializeChart()
+    }, 100)
+
+    return () => {
+      clearTimeout(timer)
+      if (widgetRef.current) {
+        try {
+          // If it's an iframe, just clear the container
+          if (widgetRef.current.tagName === 'IFRAME' && container) {
+            container.innerHTML = ''
+          }
+        } catch (e) {
+          console.warn('Error removing widget:', e)
+        }
+      }
+    }
+  }, [initializeChart])
 
   if (error) {
     return (

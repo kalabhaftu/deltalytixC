@@ -152,7 +152,7 @@ export function RealtimeStatusIndicatorV2({
     // PERFORMANCE FIX: Disable automatic polling that was causing constant requests
     // Users can manually refresh if needed
     
-  }, [accountId]) // Remove fetchAccountStatus and refreshInterval from deps to prevent infinite loops
+  }, [accountId, fetchAccountStatus]) // fetchAccountStatus is stable via useCallback
 
   // Render loading state
   if (isLoading) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -40,23 +40,22 @@ const createLiveAccountSchema = z.object({
 
 type CreateLiveAccountForm = z.infer<typeof createLiveAccountSchema>
 
-// Popular brokers with logos/colors
+// Popular brokers - Desktop shows all, Mobile shows only first 5
 const POPULAR_BROKERS = [
-  { name: 'Interactive Brokers', category: 'Professional' },
-  { name: 'TD Ameritrade', category: 'US Retail' },
-  { name: 'E*TRADE', category: 'US Retail' },
-  { name: 'Charles Schwab', category: 'US Retail' },
-  { name: 'Fidelity', category: 'US Retail' },
-  { name: 'IC Markets', category: 'Forex/CFD' },
   { name: 'Exness', category: 'Forex/CFD' },
-  { name: 'MetaTrader 4', category: 'Platform' },
+  { name: 'FBS', category: 'Forex/CFD' },
+  { name: 'IC Markets', category: 'Forex/CFD' },
   { name: 'MetaTrader 5', category: 'Platform' },
-  { name: 'cTrader', category: 'Platform' },
   { name: 'NinjaTrader', category: 'Platform' },
+  { name: 'cTrader', category: 'Platform' },
   { name: 'TradingView', category: 'Platform' },
 ]
 
+// Mobile shows only first 5, rest go here
+const MOBILE_BROKER_COUNT = 5
+
 const OTHER_BROKERS = [
+  'cTrader', 'TradingView', // Desktop popular brokers that don't fit on mobile
   'Alpaca', 'Robinhood', 'Webull', 'Tastyworks', 'TradeStation', 
   'Thinkorswim', 'OANDA', 'FXCM', 'Pepperstone', 'XTB',
   'eToro', 'Plus500', 'AvaTrade', 'XM', 'Admiral Markets'
@@ -76,6 +75,15 @@ export function EnhancedCreateLiveAccountDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [step, setStep] = useState<'broker' | 'details' | 'confirm'>('broker')
   const [selectedBroker, setSelectedBroker] = useState('')
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile on mount
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const {
     register,
@@ -100,7 +108,7 @@ export function EnhancedCreateLiveAccountDialog({
   const watchedBroker = watch('broker')
   const watchedBalance = watch('startingBalance')
 
-  const onSubmit = async (data: CreateLiveAccountForm) => {
+  const onSubmit = useCallback(async (data: CreateLiveAccountForm) => {
     try {
       setIsSubmitting(true)
 
@@ -148,7 +156,7 @@ export function EnhancedCreateLiveAccountDialog({
     } finally {
       setIsSubmitting(false)
     }
-  }
+  }, [reset, onSuccess, onOpenChange])
 
   const handleCancel = () => {
     reset()
@@ -261,7 +269,7 @@ export function EnhancedCreateLiveAccountDialog({
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                          {POPULAR_BROKERS.map((broker) => (
+                          {(isMobile ? POPULAR_BROKERS.slice(0, MOBILE_BROKER_COUNT) : POPULAR_BROKERS).map((broker) => (
                             <Card
                               key={broker.name}
                               className={cn(

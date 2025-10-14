@@ -42,7 +42,7 @@ import { useModalStateStore } from '@/store/modal-state-store'
 import { useDashboardEditStore } from '@/store/dashboard-edit-store'
 import { WidgetType, WidgetSize } from '../types/dashboard'
 import { defaultLayouts, defaultLayoutsWithKPI } from '@/context/data-provider'
-import { WIDGET_REGISTRY } from '../config/widget-registry'
+import { WIDGET_REGISTRY } from '../config/widget-registry-lazy'
 import { toast } from 'sonner'
 
 // Helper function to convert widget size to grid dimensions
@@ -310,7 +310,7 @@ export default function Navbar() {
   return (
     <>
       <motion.nav 
-        className="fixed py-3 top-0 left-0 right-0 z-50 flex flex-col text-foreground bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-xl shadow-background/10 w-screen transition-all duration-300 ease-out"
+        className="fixed py-3 top-0 left-0 right-0 z-50 flex flex-col text-foreground bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-xl shadow-background/10 w-full transition-all duration-300 ease-out"
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
@@ -481,15 +481,6 @@ export default function Navbar() {
                       <DropdownMenuSeparator />
                     </div>
                     
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard" className="hover:bg-muted/50 transition-colors duration-200">
-                        <div className="flex w-full">
-                          <LayoutDashboard className="mr-2 h-4 w-4" />
-                          <span>Dashboard</span>
-                          <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard/settings" className="hover:bg-muted/50 transition-colors duration-200">
                         <div className="flex w-full">

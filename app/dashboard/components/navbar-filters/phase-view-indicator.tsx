@@ -3,13 +3,13 @@
 import { X, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useAccountFilterSettings } from "@/hooks/use-account-filter-settings"
+import { useData } from "@/context/data-provider"
 import { cn } from "@/lib/utils"
 
 export function PhaseViewIndicator() {
-  const { settings, updateSettings } = useAccountFilterSettings()
+  const { accountFilterSettings: settings, updateAccountFilterSettings: updateSettings } = useData()
 
-  if (!settings.viewingSpecificPhase || !settings.selectedMasterAccountId) {
+  if (!settings || !settings.viewingSpecificPhase || !settings.selectedMasterAccountId) {
     return null
   }
 

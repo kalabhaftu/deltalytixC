@@ -181,11 +181,11 @@ export function LinkedAccounts() {
             <h4 className="text-sm font-medium mb-3">Primary Account</h4>
             <div className="space-y-3">
               {identities.map((identity, index) => (
-                <div key={identity.id || index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
+                <div key={identity.id || index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 border rounded-lg">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     {getProviderIcon(identity.provider)}
-                    <div>
-                      <p className="font-medium">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">
                         {identity.identity_data?.email || getProviderName(identity.provider)}
                       </p>
                       <p className="text-sm text-muted-foreground">
@@ -198,16 +198,17 @@ export function LinkedAccounts() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     {identity.provider === 'email' && (
                        <Badge variant="secondary">Primary</Badge>
                     )}
                     {identity.provider !== 'email' && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Unlink className="mr-2 h-4 w-4" />
-                            Link Discord
+                          <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                            <Unlink className="h-4 w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Unlink</span>
+                            <span className="sm:hidden">Unlink Account</span>
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>

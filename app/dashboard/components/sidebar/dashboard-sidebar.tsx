@@ -116,7 +116,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
                     transition={{ delay: index * 0.1, duration: 0.3 }}
                   >
                     <Button
-                      variant={isActive ? "default" : "ghost"}
+                      variant="ghost"
                       className={cn(
                         "w-full justify-start transition-all duration-300 ease-out group",
                         isCollapsed && !isMobile ? "px-2" : "px-3",

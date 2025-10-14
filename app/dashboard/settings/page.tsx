@@ -391,13 +391,13 @@ export default function SettingsPage() {
 
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-8 px-4 pb-20 md:pb-8 max-w-7xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground mt-2">Manage your account settings and preferences</p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 xl:grid-cols-2">
         {/* Profile Section */}
         <Card>
           <CardHeader>
@@ -411,25 +411,23 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
+              <Avatar className="h-16 w-16 shrink-0">
                 <AvatarImage src={user?.user_metadata.avatar_url} />
                 <AvatarFallback className="text-lg">
                   {user?.email![0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-semibold">{user?.email}</h3>
-                  <Badge variant="secondary">Active</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold truncate mb-1">{user?.email}</h3>
+                <p className="text-sm text-muted-foreground mb-2">
                   Member since {new Date(user?.created_at || '').toLocaleDateString()}
                 </p>
+                <Badge variant="secondary" className="w-fit">Active</Badge>
               </div>
             </div>
             <Separator />
             <div className="grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName">First Name</Label>
                   <Input 
@@ -484,7 +482,7 @@ export default function SettingsPage() {
               <div className="mt-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-[200px] justify-start">
+                    <Button variant="outline" className="w-full sm:w-[200px] justify-start">
                       {getThemeIcon()}
                       <span className="ml-2">
                         {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'System'}
@@ -522,7 +520,7 @@ export default function SettingsPage() {
               <div className="mt-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-[200px] justify-start">
+                    <Button variant="outline" className="w-full sm:w-[200px] justify-start">
                       <Clock className="mr-2 h-4 w-4" />
                       {timezone}
                     </Button>
@@ -560,8 +558,8 @@ export default function SettingsPage() {
             {/* Journal Card Hover Effect */}
             <div className="space-y-3">
               <Label className="text-sm font-medium text-muted-foreground">Journal Card Hover Effect</Label>
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex-1">
                   <Label htmlFor="journal-hover-effect">Hover Style</Label>
                   <p className="text-sm text-muted-foreground">
                     Choose how trade cards behave when hovered in the journal
@@ -569,7 +567,7 @@ export default function SettingsPage() {
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-[200px] justify-start">
+                    <Button variant="outline" className="w-full sm:w-[200px] justify-start">
                       <Settings className="mr-2 h-4 w-4" />
                       {journalHoverEffect === 'simple' ? 'Simple' : 'Detailed'}
                     </Button>
@@ -641,7 +639,7 @@ export default function SettingsPage() {
                       </Button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                     {visibleModels.map((model, index) => {
                       const isDefaultModel = defaultModelsDisplay.includes(model)
                       const isCustomModel = customModels.some(customModel => formatModelName(customModel) === model)

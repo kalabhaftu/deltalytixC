@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, memo } from "react"
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, getDay, endOfWeek, addDays, isSameDay, getYear } from "date-fns"
 import { formatInTimeZone } from 'date-fns-tz'
 import { enUS } from 'date-fns/locale'
@@ -15,6 +15,7 @@ import { CalendarModal } from "./daily-modal"
 import { WeeklyModal } from "./weekly-modal"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useCalendarViewStore } from "@/store/calendar-view"
+import { useCalendarNotes } from "@/app/dashboard/hooks/use-calendar-notes"
 import WeeklyCalendarPnl from "./weekly-calendar"
 import { CalendarData } from "@/app/dashboard/types/calendar"
 import { useUserStore } from "@/store/user-store"
@@ -116,7 +117,7 @@ function RenewalBadge({ renewals }: { renewals: Account[] }) {
   )
 }
 
-export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
+const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps) {
   const accounts = useUserStore(state => state.accounts)
   const locale = 'en' // Fixed to English since we removed i18n
   const timezone = useUserStore(state => state.timezone)
@@ -131,38 +132,31 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
   // Ref for the calendar container to capture screenshot
   const calendarRef = useRef<HTMLDivElement>(null)
 
-  // Fetch notes from database
-  const fetchNotes = React.useCallback(async () => {
-    try {
-      const response = await fetch('/api/calendar/notes')
-      if (response.ok) {
-        const data = await response.json()
-        const notesMap = data.notes.reduce((acc: Record<string, string>, note: any) => {
-          const dateKey = new Date(note.date).toISOString().split('T')[0]
-          acc[dateKey] = note.note
-          return acc
-        }, {})
-        setDailyNotes(notesMap)
-      }
-    } catch (error) {
-      console.error('Failed to fetch notes:', error)
-    }
-  }, [])
+  // Use centralized calendar notes hook
+  const { notes: dailyNotesFromHook, refetchNotes } = useCalendarNotes()
+
+  // Fetch notes once when calendar becomes visible
+  useEffect(() => {
+    refetchNotes()
+  }, [refetchNotes]) // Refetch on mount and when refetchNotes changes
+
+  // Update local state when hook data changes
+  useEffect(() => {
+    setDailyNotes(dailyNotesFromHook)
+  }, [dailyNotesFromHook])
 
   // Fetch notes on mount and when notes are saved
   useEffect(() => {
-    fetchNotes()
-    
     // Listen for notes saved event
     const handleNotesSaved = () => {
-      fetchNotes()
+      refetchNotes()
     }
     window.addEventListener('notesSaved', handleNotesSaved)
     
     return () => {
       window.removeEventListener('notesSaved', handleNotesSaved)
     }
-  }, [fetchNotes])
+  }, [refetchNotes])
 
   // Check if a note exists for a given date
   const hasNoteForDate = React.useCallback((date: Date) => {
@@ -561,4 +555,9 @@ export default function CalendarPnl({ calendarData }: CalendarPnlProps) {
       />
     </Card>
   )
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison: only re-render if calendarData actually changed
+  return JSON.stringify(prevProps.calendarData) === JSON.stringify(nextProps.calendarData)
+})
+
+export default CalendarPnl

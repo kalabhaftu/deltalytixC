@@ -1,6 +1,10 @@
 'use client'
 
-import dynamic from 'next/dynamic'
+// Force dynamic rendering for this client component
+// Note: ISR (revalidate) only works with Server Components in Next.js 15
+export const dynamic = 'force-dynamic'
+
+import NextDynamic from 'next/dynamic'
 import { useEffect, useRef, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useUserStore } from "@/store/user-store"
@@ -11,67 +15,46 @@ import { DashboardErrorBoundary, ErrorBoundaryWrapper } from '@/components/error
 import { TemplateProvider } from '@/context/template-provider'
 
 // Dynamically import heavy components for better performance
-const TradeTableReview = dynamic(() =>
-  import('./components/tables/trade-table-review').then(module => ({ default: module.TradeTableReview })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary shadow-lg"></div>
-      </div>
-    )
-  }
-)
-
-const WidgetCanvas = dynamic(() => import('./components/widget-canvas-with-drag'), {
+const WidgetCanvas = NextDynamic(() => import('./components/widget-canvas-with-drag'), {
   ssr: false
 })
 
-const EditModeControls = dynamic(() => import('./components/edit-mode-controls'), {
+const EditModeControls = NextDynamic(() => import('./components/edit-mode-controls'), {
   ssr: false
 })
 
-const AccountsPage = dynamic(() => import('./accounts/page'), {
-  ssr: false
-})
+// Accounts, Journal, Backtesting, and Table are now standalone routes
+// They don't need to be imported here anymore
 
-const JournalPage = dynamic(() => import('./journal/page'), {
-  ssr: false
-})
-
-const BacktestingPage = dynamic(() => import('./backtesting/page'), {
-  ssr: false
-})
-
-const DashboardSidebar = dynamic(() =>
-  import('./components/sidebar/dashboard-sidebar').then(module => ({ default: module.DashboardSidebar })),
-  {
-    ssr: false
-  }
-)
+// Sidebar moved to layout.tsx - it now wraps all dashboard routes
 
 // Dynamic imports for heavy dependencies
 import { motion, AnimatePresence } from 'framer-motion'
 
-const TemplateSelector = dynamic(() => import('./components/template-selector'), {
+const TemplateSelector = NextDynamic(() => import('./components/template-selector'), {
   ssr: false
 })
 
 function DashboardContent() {
   const mainRef = useRef<HTMLElement>(null)
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState('widgets')
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
 
   // Simple user check
   const user = useUserStore(state => state.user)
 
-  // Check for tab parameter in URL
+  // Redirect old ?tab= URLs to new standalone routes (backwards compatibility)
   useEffect(() => {
     const tab = searchParams?.get('tab')
-    if (tab && ['widgets', 'table', 'accounts', 'journal', 'backtesting'].includes(tab)) {
-      setActiveTab(tab)
+    if (tab) {
+      const routes: Record<string, string> = {
+        'table': '/dashboard/table',
+        'accounts': '/dashboard/accounts',
+        'journal': '/dashboard/journal',
+        'backtesting': '/dashboard/backtesting'
+      }
+      if (routes[tab]) {
+        window.location.href = routes[tab]
+      }
     }
   }, [searchParams])
 
@@ -148,167 +131,55 @@ function DashboardContent() {
     }
   }, [])
 
-  // Check if mobile and load sidebar state
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-    
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-
-    // Load sidebar state from localStorage after hydration
-    const savedCollapsed = localStorage.getItem('dashboard-sidebar-collapsed')
-    if (savedCollapsed) {
-      try {
-        setSidebarCollapsed(JSON.parse(savedCollapsed))
-      } catch (error) {
-        console.warn('Failed to parse sidebar state:', error)
-        setSidebarCollapsed(false)
-      }
-    }
-    
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
+  // Sidebar state management moved to sidebar-layout.tsx
 
 
   const pageVariants = {
-    initial: { opacity: 0, y: 20 },
-    in: { opacity: 1, y: 0 },
-    out: { opacity: 0, y: -20 }
+    initial: { opacity: 0 },
+    in: { opacity: 1 },
+    out: { opacity: 0 }
   }
 
   const pageTransition = {
     type: 'tween',
-    ease: 'anticipate',
-    duration: 0.4
+    ease: 'easeInOut',
+    duration: 0.2
   }
 
+  // Main dashboard only renders widgets now
+  // All other views (table, accounts, journal, backtesting) are standalone routes
   const renderContent = () => {
-    switch (activeTab) {
-      case 'table':
-        return (
-          <ErrorBoundaryWrapper context="TradeTable">
-            <motion.div
-              key="table"
-              initial="initial"
-              animate="in"
-              exit="out"
-              variants={pageVariants}
-              transition={pageTransition}
-              className="w-full"
-            >
-              <TradeTableReview />
-            </motion.div>
-          </ErrorBoundaryWrapper>
-        )
-      case 'accounts':
-        return (
-          <ErrorBoundaryWrapper context="Accounts">
-            <motion.div
-              key="accounts"
-              initial="initial"
-              animate="in"
-              exit="out"
-              variants={pageVariants}
-              transition={pageTransition}
-              className="w-full"
-            >
-              <AccountsPage />
-            </motion.div>
-          </ErrorBoundaryWrapper>
-        )
-      case 'journal':
-        return (
-          <ErrorBoundaryWrapper context="Journal">
-            <motion.div
-              key="journal"
-              initial="initial"
-              animate="in"
-              exit="out"
-              variants={pageVariants}
-              transition={pageTransition}
-              className="w-full"
-            >
-              <JournalPage />
-            </motion.div>
-          </ErrorBoundaryWrapper>
-        )
-      case 'backtesting':
-        return (
-          <ErrorBoundaryWrapper context="Backtesting">
-            <motion.div
-              key="backtesting"
-              initial="initial"
-              animate="in"
-              exit="out"
-              variants={pageVariants}
-              transition={pageTransition}
-              className="w-full"
-            >
-              <BacktestingPage />
-            </motion.div>
-          </ErrorBoundaryWrapper>
-        )
-      case 'widgets':
-      default:
-        return (
-          <ErrorBoundaryWrapper context="Widgets">
-            <motion.div
-              key="widgets"
-              initial="initial"
-              animate="in"
-              exit="out"
-              variants={pageVariants}
-              transition={pageTransition}
-              className="px-4"
-            >
-              <WidgetCanvas />
-            </motion.div>
-          </ErrorBoundaryWrapper>
-        )
-    }
+    return (
+      <ErrorBoundaryWrapper context="Widgets">
+        <motion.div
+          key="widgets"
+          initial="initial"
+          animate="in"
+          exit="out"
+          variants={pageVariants}
+          transition={pageTransition}
+          className="px-4"
+        >
+          <WidgetCanvas />
+        </motion.div>
+      </ErrorBoundaryWrapper>
+    )
   }
 
 
   return (
     <DashboardErrorBoundary>
       <TemplateProvider>
-        <div className="flex w-full min-h-screen bg-gradient-to-br from-background via-background to-background/95">
-          {/* Sidebar */}
-          <DashboardSidebar
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            onCollapsedChange={setSidebarCollapsed}
-          />
-
-          {/* Main Content */}
-          <motion.main
-            ref={mainRef}
-            className={cn(
-              "flex-1 transition-all duration-300 ease-in-out relative",
-              isMobile ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-64"
-            )}
-            style={{
-              paddingTop: `var(--navbar-height, 48px)`,
-              minHeight: `calc(100vh - var(--navbar-height, 48px))`
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="flex flex-1 flex-col w-full -mt-10">
-              {/* Template Selector - Below navbar */}
-              <TemplateSelector />
-              
-              {/* Edit Mode Controls */}
-              <EditModeControls />
-              
-              <AnimatePresence mode="wait">
-                {renderContent()}
-              </AnimatePresence>
-            </div>
-          </motion.main>
+        <div className="flex flex-1 flex-col w-full -mt-10">
+          {/* Template Selector - Below navbar */}
+          <TemplateSelector />
+          
+          {/* Edit Mode Controls */}
+          <EditModeControls />
+          
+          <AnimatePresence mode="wait" initial={false}>
+            {renderContent()}
+          </AnimatePresence>
         </div>
       </TemplateProvider>
     </DashboardErrorBoundary>
@@ -317,11 +188,7 @@ function DashboardContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary shadow-lg"></div>
-      </div>
-    }>
+    <Suspense fallback={null}>
       <DashboardContent />
     </Suspense>
   )

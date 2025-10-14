@@ -169,7 +169,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
       setCalculatedPnL(pnl)
       setValue('pnl', pnl)
     }
-  }, [watchedValues.entryPrice, watchedValues.closePrice, watchedValues.quantity, watchedValues.side, watchedValues.commission, setValue])
+  }, [watchedValues, setValue])
 
   // Auto-calculate duration
   useEffect(() => {

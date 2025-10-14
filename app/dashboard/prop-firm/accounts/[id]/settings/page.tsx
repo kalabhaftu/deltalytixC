@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "sonner"
@@ -82,7 +82,7 @@ export default function AccountSettingsPage() {
   const accountId = params.id as string
 
   // Fetch account details
-  const fetchAccount = async () => {
+  const fetchAccount = useCallback(async () => {
     try {
       setIsLoading(true)
       const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}`)
@@ -114,14 +114,14 @@ export default function AccountSettingsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [accountId])
 
   // Load account on mount
   useEffect(() => {
     if (user && accountId) {
       fetchAccount()
     }
-  }, [user, accountId])
+  }, [user, accountId, fetchAccount])
 
   const getStatusColor = (status: AccountStatus) => {
     switch (status) {

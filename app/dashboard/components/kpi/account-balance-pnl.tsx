@@ -19,17 +19,15 @@ interface AccountBalancePnlProps {
   size?: string
 }
 
-export default function AccountBalancePnl({ size }: AccountBalancePnlProps) {
+const AccountBalancePnl = React.memo(function AccountBalancePnl({ size }: AccountBalancePnlProps) {
   const { accountNumbers, formattedTrades } = useData()
   const { accounts } = useAccounts()
   
   // Filter accounts based on selection
   const filteredAccounts = React.useMemo(() => {
     if (!accounts || !Array.isArray(accounts) || accounts.length === 0) return []
-    // If no filter is set (empty array), return empty array to show no data
     if (!accountNumbers || accountNumbers.length === 0) return []
-    // Otherwise, filter to selected accounts by matching account number (phaseId) ONLY
-    // This ensures we only get the exact phases selected, not all phases of a master account
+    // Filter to selected accounts by matching account number (phaseId) ONLY
     return accounts.filter(acc => accountNumbers.includes(acc.number))
   }, [accounts, accountNumbers])
   
@@ -124,4 +122,6 @@ export default function AccountBalancePnl({ size }: AccountBalancePnlProps) {
       </CardContent>
     </Card>
   )
-}
+})
+
+export default AccountBalancePnl

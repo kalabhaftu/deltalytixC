@@ -1,8 +1,14 @@
 /** @type {import('next').NextConfig} */
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
+
 const baseExperimental = {
   serverActions: {
     bodySizeLimit: '10mb', // Increased from default 1MB to 10MB
   },
+  // Note: PPR requires Next.js canary. Uncomment when upgrading:
+  // ppr: 'incremental',
   // Optimized Turbopack configuration with additional optimizations
   turbo: {
     rules: {
@@ -91,4 +97,4 @@ if (typeof process !== 'undefined') {
   process.setMaxListeners(20)
 }
 
-module.exports = nextConfig
+module.exports = withBundleAnalyzer(nextConfig)

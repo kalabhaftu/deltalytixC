@@ -16,7 +16,7 @@ interface DayWinRateProps {
   size?: string
 }
 
-export default function DayWinRate({ size }: DayWinRateProps) {
+const DayWinRate = React.memo(function DayWinRate({ size }: DayWinRateProps) {
   const { calendarData } = useData()
   
   // Calculate day win rate from calendar data
@@ -70,4 +70,6 @@ export default function DayWinRate({ size }: DayWinRateProps) {
       </CardContent>
     </Card>
   )
-}
+})
+
+export default DayWinRate

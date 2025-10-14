@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAccountFilterSettings } from './use-account-filter-settings'
+import { AccountFilterSettings, DEFAULT_FILTER_SETTINGS } from '@/types/account-filter-settings'
 
 interface DashboardStats {
   totalAccounts: number
@@ -19,11 +19,10 @@ interface UseDashboardStatsResult {
   refetch: () => Promise<void>
 }
 
-export function useDashboardStats(): UseDashboardStatsResult {
+export function useDashboardStats(settings: AccountFilterSettings = DEFAULT_FILTER_SETTINGS): UseDashboardStatsResult {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { settings } = useAccountFilterSettings()
 
   const fetchStats = useCallback(async () => {
     try {

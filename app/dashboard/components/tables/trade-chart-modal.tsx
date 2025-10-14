@@ -22,7 +22,7 @@ export function TradeChartModal({ isOpen, onClose, trade }: TradeChartModalProps
   // Add a key to force remount when trade changes
   const modalKey = React.useMemo(() => {
     return trade ? `${trade.id}_${trade.entryDate}_${trade.closeDate}` : 'empty'
-  }, [trade?.id, trade?.entryDate, trade?.closeDate])
+  }, [trade])
   // Validate required trade data
   if (!trade || !trade.entryDate || !trade.closeDate || !trade.entryPrice || !trade.closePrice) {
     return (

@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-provider"
 import { toast } from "sonner"
 import { useAccounts, clearAccountsCache } from "@/hooks/use-accounts"
 import { useData } from '@/context/data-provider'
+import { useTradesStore } from '@/store/trades-store'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -102,6 +103,9 @@ export default function AccountsPage() {
   const { user } = useAuth()
   const { accounts, isLoading, refetch: refetchAccounts } = useAccounts()
   const { formattedTrades } = useData()
+  // Get ALL trades (unfiltered) for accurate balance calculations
+  // formattedTrades is filtered by navbar, which would exclude failed account trades
+  const allTrades = useTradesStore(state => state.trades)
   
   // State
   const [searchQuery, setSearchQuery] = useState('')
@@ -165,8 +169,10 @@ export default function AccountsPage() {
   }, [accounts, searchQuery, filterType, filterStatus])
 
   // Calculate real equity using unified balance calculator
+  // IMPORTANT: Use allTrades (unfiltered) instead of formattedTrades (filtered by navbar)
+  // This ensures failed accounts show correct balance even when an active account is selected in navbar
   const accountsWithRealEquity = useMemo(() => {
-    const accountEquities = calculateAccountBalances(filteredAccounts, formattedTrades, {
+    const accountEquities = calculateAccountBalances(filteredAccounts, allTrades, {
       excludeFailedAccounts: false, // Include failed accounts to show their actual current balance
       includePayouts: true
     })
@@ -176,7 +182,7 @@ export default function AccountsPage() {
       ...account,
       calculatedEquity: accountEquities.get(account.number) || account.startingBalance || 0
     }))
-  }, [filteredAccounts, formattedTrades])
+  }, [filteredAccounts, allTrades])
 
   const accountStats = useMemo(() => {
     return {
@@ -316,7 +322,7 @@ export default function AccountsPage() {
         description: "Failed to delete account. Please try again.",
       })
     }
-  }, [deletingAccount, refetchAccounts, deleteConfirmText])
+  }, [deletingAccount, refetchAccounts, deleteConfirmText, user])
 
   if (isLoading) {
     return <OptimizedAccountsLoading accountCount={6} />

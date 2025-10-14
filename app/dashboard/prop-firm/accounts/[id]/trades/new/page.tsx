@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "sonner"
@@ -35,7 +35,7 @@ export default function NewTradePage() {
   const accountId = params.id as string
 
   // Fetch account details
-  const fetchAccount = async () => {
+  const fetchAccount = useCallback(async () => {
     try {
       const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}`)
       
@@ -57,14 +57,14 @@ export default function NewTradePage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [accountId])
 
   // Load account on mount
   useEffect(() => {
     if (user && accountId) {
       fetchAccount()
     }
-  }, [user, accountId])
+  }, [user, accountId, fetchAccount])
 
   if (isLoading) {
     return (

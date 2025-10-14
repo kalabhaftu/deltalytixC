@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, X } from 'lucide-react'
-import { WIDGET_REGISTRY } from '../config/widget-registry'
+import { WIDGET_REGISTRY } from '../config/widget-registry-lazy'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import type { WidgetLayout } from '@/server/dashboard-templates'

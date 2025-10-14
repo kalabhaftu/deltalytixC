@@ -4,8 +4,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
 import { getActiveAccountsWhereClause } from '@/lib/utils/account-filters'
-import { calculateAverageWinLoss } from '@/lib/utils'
 import { calculateAccountBalances } from '@/lib/utils/balance-calculator'
+import { CacheHeaders } from '@/lib/api-cache-headers'
 
 // GET /api/dashboard/stats - Fast dashboard statistics for charts
 export async function GET(request: NextRequest) {
@@ -24,19 +24,21 @@ export async function GET(request: NextRequest) {
       }
 
       if (!currentUserId) {
-        return NextResponse.json({
-          success: true,
-          data: {
-            totalAccounts: 0,
-            totalTrades: 0,
-            totalEquity: 0,
-            totalPnL: 0,
-            winRate: 0,
-            chartData: [],
-            isAuthenticated: false,
-            lastUpdated: new Date().toISOString()
-          }
-        })
+      return NextResponse.json({
+        success: true,
+        data: {
+          totalAccounts: 0,
+          totalTrades: 0,
+          totalEquity: 0,
+          totalPnL: 0,
+          winRate: 0,
+          chartData: [],
+          isAuthenticated: false,
+          lastUpdated: new Date().toISOString()
+        }
+      }, {
+        headers: CacheHeaders.noCache // Don't cache unauthenticated responses
+      })
       }
 
       // Get user's account filter settings if they exist
@@ -112,36 +114,37 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Get statistics with proper filtering applied consistently
-      const [
-        totalAccounts,
-        totalTrades,
-        recentTrades,
-        allTradesForEquity
-      ] = await Promise.all([
-        // Total accounts count (already filtered)
-        Promise.resolve(filteredAccounts.length),
-        
+      // Optimized: Use single query with aggregation instead of separate queries
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      
+      const [totalTrades, recentTrades, allTradesForEquity] = await Promise.all([
         // Total trades count (only from filtered accounts)
         prisma.trade.count({
           where: tradeWhereClause
         }),
         
-        // Recent trades for chart data (last 30 days, only from filtered accounts)
+        // Recent trades for chart and stats (last 30 days, only from filtered accounts)
         prisma.trade.findMany({
           where: {
             ...tradeWhereClause,
             createdAt: {
-              gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
+              gte: thirtyDaysAgo
             }
+          },
+          select: {
+            id: true,
+            pnl: true,
+            commission: true,
+            createdAt: true,
+            accountNumber: true
           },
           orderBy: {
             createdAt: 'desc'
           },
-          take: 500 // Increased limit for better chart data
+          take: 500
         }),
 
-        // All trades for equity calculation (only from filtered accounts)
+        // All trades for equity calculation (optimized selection)
         prisma.trade.findMany({
           where: tradeWhereClause,
           select: {
@@ -156,6 +159,8 @@ export async function GET(request: NextRequest) {
         })
       ])
 
+      const totalAccounts = filteredAccounts.length
+
       // Calculate proper current equity by account using unified calculator
       // This ensures consistency with all other balance calculations
       const accountEquities = calculateAccountBalances(filteredAccounts, allTradesForEquity, {
@@ -166,11 +171,11 @@ export async function GET(request: NextRequest) {
       // Calculate total equity
       const totalEquity = Array.from(accountEquities.values()).reduce((sum, equity) => sum + equity, 0)
 
-      // Calculate daily PnL for chart (net of commissions and fees)
+      // Calculate daily PnL for chart (net of commissions)
       const dailyPnL = new Map<string, number>()
       recentTrades.forEach(trade => {
         const date = trade.createdAt.toISOString().split('T')[0]
-        const netPnL = trade.pnl - (trade.commission || 0) - ((trade as any).fees || 0)
+        const netPnL = trade.pnl - (trade.commission || 0)
         dailyPnL.set(date, (dailyPnL.get(date) || 0) + netPnL)
       })
 
@@ -180,20 +185,24 @@ export async function GET(request: NextRequest) {
         .sort((a, b) => a.date.localeCompare(b.date))
         .slice(-14) // Last 14 days for chart
 
-      // Use centralized calculation for statistics
-      const { avgWin, avgLoss, riskRewardRatio } = calculateAverageWinLoss(recentTrades)
+      // Calculate average win/loss directly from recent trades
+      const wins = recentTrades.filter(t => (t.pnl - (t.commission || 0)) > 0)
+      const losses = recentTrades.filter(t => (t.pnl - (t.commission || 0)) < 0)
+      const avgWin = wins.length > 0 ? wins.reduce((sum, t) => sum + (t.pnl - (t.commission || 0)), 0) / wins.length : 0
+      const avgLoss = losses.length > 0 ? losses.reduce((sum, t) => sum + Math.abs(t.pnl - (t.commission || 0)), 0) / losses.length : 0
+      const riskRewardRatio = avgLoss > 0 ? avgWin / avgLoss : 0
 
-      // Calculate trading statistics (net of commissions and fees)
+      // Calculate trading statistics (net of commissions)
       const winningTrades = recentTrades.filter(trade => {
-        const netPnL = trade.pnl - (trade.commission || 0) - ((trade as any).fees || 0)
+        const netPnL = trade.pnl - (trade.commission || 0)
         return netPnL > 0
       }).length
       const losingTrades = recentTrades.filter(trade => {
-        const netPnL = trade.pnl - (trade.commission || 0) - ((trade as any).fees || 0)
+        const netPnL = trade.pnl - (trade.commission || 0)
         return netPnL < 0
       }).length
       const breakEvenTrades = recentTrades.filter(trade => {
-        const netPnL = trade.pnl - (trade.commission || 0) - ((trade as any).fees || 0)
+        const netPnL = trade.pnl - (trade.commission || 0)
         return netPnL === 0
       }).length
 
@@ -201,17 +210,17 @@ export async function GET(request: NextRequest) {
       const tradableTradesCount = winningTrades + losingTrades
       const winRate = tradableTradesCount > 0 ? (winningTrades / tradableTradesCount) * 100 : 0
 
-      // Calculate total PnL (net of commissions and fees)
-      const totalPnL = recentTrades.reduce((sum, trade) => sum + (trade.pnl - (trade.commission || 0) - ((trade as any).fees || 0)), 0)
+      // Calculate total PnL (net of commissions)
+      const totalPnL = recentTrades.reduce((sum, trade) => sum + (trade.pnl - (trade.commission || 0)), 0)
 
-      // Calculate gross profits and losses for profit factor (net of costs)
+      // Calculate gross profits and losses for profit factor
       const grossProfits = recentTrades.reduce((sum, trade) => {
-        const netPnL = trade.pnl - (trade.commission || 0) - ((trade as any).fees || 0)
+        const netPnL = trade.pnl - (trade.commission || 0)
         return netPnL > 0 ? sum + netPnL : sum
       }, 0)
 
       const grossLosses = Math.abs(recentTrades.reduce((sum, trade) => {
-        const netPnL = trade.pnl - (trade.commission || 0) - ((trade as any).fees || 0)
+        const netPnL = trade.pnl - (trade.commission || 0)
         return netPnL < 0 ? sum + netPnL : sum
       }, 0))
 
@@ -243,6 +252,8 @@ export async function GET(request: NextRequest) {
           },
           lastUpdated: new Date().toISOString()
         }
+      }, {
+        headers: CacheHeaders.short // Cache for 60 seconds with stale-while-revalidate
       })
     }
 

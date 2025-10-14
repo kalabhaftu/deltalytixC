@@ -7,86 +7,25 @@ import { AuthProvider } from "@/context/auth-provider";
 import { ConsentBanner } from "@/components/consent-banner";
 import { ConsoleFilterWrapper } from "@/components/console-filter-wrapper";
 import { ThemeProvider } from "@/context/theme-provider";
+import { DeploymentMonitor } from "@/components/deployment-monitor";
 import Script from "next/script"
 
 // Font configuration now imported from lib/fonts.ts
 
+// Simplified metadata for personal app (no SEO needed)
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://deltalytix.com'),
   title: "Deltalytix",
-  description: "Next generation trading dashboard",
-  openGraph: {
-    title: "Deltalytix",
-    description: "Deltalytix is a next generation trading dashboard that provides real-time insights and analytics for traders.",
-    images: [
-      {
-        url: '/opengraph-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Deltalytix Open Graph Image',
-      },
-      {
-        url: '/twitter-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Deltalytix Twitter Image',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: "Deltalytix",
-    description: "Next generation trading dashboard",
-    images: ['/twitter-image.png'],
-  },
+  description: "Personal trading analytics dashboard",
   icons: {
-    // Default icons
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
       { url: '/icon.png', type: 'image/png', sizes: '32x32' },
     ],
-    // Apple-specific icons
     apple: [
       { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
     ],
-    // Other platform icons
-    other: [
-      {
-        rel: 'mask-icon',
-        url: '/safari-pinned-tab.svg',
-        color: '#000000'
-      },
-      {
-        rel: 'android-chrome',
-        sizes: '192x192',
-        url: '/android-chrome-192x192.png',
-      },
-      {
-        rel: 'android-chrome',
-        sizes: '512x512',
-        url: '/android-chrome-512x512.png',
-      }
-    ]
   },
-  // Web manifest for PWA support
   manifest: '/site.webmanifest',
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
-  other:{
-    'google': 'notranslate',
-  },
-  authors: [{ name: 'Deltalytix' }],
-  creator: 'Deltalytix',
-  publisher: 'Deltalytix',
   formatDetection: {
     email: false,
     address: false,
@@ -222,6 +161,18 @@ export default async function RootLayout({
           href="https://fonts.gstatic.com"
           crossOrigin="anonymous"
         />
+        
+        {/* Performance: Preconnect to Supabase for faster API calls */}
+        <link
+          rel="preconnect"
+          href={process.env.NEXT_PUBLIC_SUPABASE_URL || ''}
+          crossOrigin="anonymous"
+        />
+        
+        {/* Performance: DNS prefetch for external resources */}
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} />
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
@@ -300,11 +251,12 @@ export default async function RootLayout({
         </style>
 
       </head>
-      <body className={`${inter.variable} font-sans min-h-screen overflow-x-hidden w-screen`}>
+      <body className={`${inter.variable} font-sans min-h-screen overflow-x-hidden w-full`}>
         <ThemeProvider>
           <ConsoleFilterWrapper>
             <AuthProvider>
               {/* Analytics components removed to comply with essential-only cookie policy */}
+              <DeploymentMonitor />
               <ConsentBanner />
               <SafeToaster />
               {children}

@@ -16,7 +16,7 @@ interface AvgWinLossProps {
   size?: string
 }
 
-export default function AvgWinLoss({ size }: AvgWinLossProps) {
+const AvgWinLoss = React.memo(function AvgWinLoss({ size }: AvgWinLossProps) {
   const { avgWin, avgLoss, riskRewardRatio } = useTradeStatistics()
   
   // Calculate the percentage for the progress bar
@@ -100,4 +100,6 @@ export default function AvgWinLoss({ size }: AvgWinLossProps) {
       </CardContent>
     </Card>
   )
-}
+})
+
+export default AvgWinLoss

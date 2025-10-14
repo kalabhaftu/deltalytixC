@@ -123,6 +123,7 @@ export default function AccountTradesPage() {
     if (user && accountId) {
       fetchTrades(phaseFilter)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phaseFilter])
 
   // Load data on mount
@@ -131,6 +132,7 @@ export default function AccountTradesPage() {
       fetchAccount()
       fetchTrades()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, accountId])
 
   const formatCurrency = (amount: number) => {

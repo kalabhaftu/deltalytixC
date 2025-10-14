@@ -7,63 +7,62 @@ import { unstable_cache } from 'next/cache'
 // GET /api/settings/account-filters - Get user's account filter settings
 export async function GET(request: NextRequest) {
   try {
-    const userId = await getUserId()
-    if (!userId) {
+    const authUserId = await getUserId()
+    if (!authUserId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    // Cache the settings query
-    const getCachedSettings = unstable_cache(
-      async (uid: string) => {
-        const user = await prisma.user.findUnique({
-          where: { id: uid },
-          select: { accountFilterSettings: true }
-        })
-        
-        if (user?.accountFilterSettings) {
-          try {
-            return JSON.parse(user.accountFilterSettings) as AccountFilterSettings
-          } catch {
-            return DEFAULT_FILTER_SETTINGS
-          }
+    const user = await prisma.user.findUnique({
+      where: { auth_user_id: authUserId },
+      select: { accountFilterSettings: true }
+    })
+    
+    let settings = DEFAULT_FILTER_SETTINGS
+    if (user?.accountFilterSettings) {
+      try {
+        const savedSettings = JSON.parse(user.accountFilterSettings) as Partial<AccountFilterSettings>
+        settings = {
+          ...DEFAULT_FILTER_SETTINGS,
+          ...savedSettings
         }
-        return DEFAULT_FILTER_SETTINGS
-      },
-      [`account-filters-${userId}`],
-      {
-        tags: [`account-filters-${userId}`],
-        revalidate: 60 // Cache for 60 seconds
+      } catch (error) {
+        console.error('[API /account-filters] Parse error:', error)
       }
-    )
-
-    const settings = await getCachedSettings(userId)
+    }
 
     return NextResponse.json({
       success: true,
       data: settings
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120'
+        'Cache-Control': 'private, max-age=10, stale-while-revalidate=30'
       }
     })
 
   } catch (error) {
     console.error('Error fetching account filter settings:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch settings' },
-      { status: 500 }
-    )
+    
+    // Return defaults on error to prevent UI blocking
+    return NextResponse.json({
+      success: true,
+      data: DEFAULT_FILTER_SETTINGS
+    }, {
+      status: 200, // Return 200 with defaults rather than erroring
+      headers: {
+        'Cache-Control': 'no-store' // Don't cache errors
+      }
+    })
   }
 }
 
 // POST /api/settings/account-filters - Update user's account filter settings
 export async function POST(request: NextRequest) {
   try {
-    const userId = await getUserId()
-    if (!userId) {
+    const authUserId = await getUserId()
+    if (!authUserId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -73,21 +72,21 @@ export async function POST(request: NextRequest) {
     const settings: AccountFilterSettings = await request.json()
     settings.updatedAt = new Date().toISOString()
 
-    // Save to database
+    // Save to database - Prisma handles connection timeout
     await prisma.user.update({
-      where: { id: userId },
+      where: { auth_user_id: authUserId },
       data: {
         accountFilterSettings: JSON.stringify(settings)
       }
     })
 
-    // Invalidate cache
-    const { revalidateTag } = await import('next/cache')
-    revalidateTag(`account-filters-${userId}`)
-
     return NextResponse.json({
       success: true,
       data: settings
+    }, {
+      headers: {
+        'Cache-Control': 'no-store' // Don't cache POST responses
+      }
     })
 
   } catch (error) {

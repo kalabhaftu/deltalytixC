@@ -238,13 +238,13 @@ export async function getTradesAction(userId: string | null = null, options?: {
     accountNumbers?: string[]
   }
 }): Promise<Trade[]> {
-    try {
-      const supabase = await createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user && !userId) {
-        // No user found, returning empty array
-        return []
-      }
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user && !userId) {
+      // No user found, returning empty array
+      return []
+    }
 
     const actualUserId = userId || user?.id
     if (!actualUserId) {
@@ -257,70 +257,64 @@ export async function getTradesAction(userId: string | null = null, options?: {
     const limit = options?.limit || 100000 // Load all trades by default
     const offset = options?.offset || (page - 1) * limit
 
-    // PERFORMANCE OPTIMIZATION: Use paginated queries for better memory efficiency
-    return unstable_cache(
-      async () => {
-        try {
-          let whereClause: any = { userId: actualUserId }
+    // IMPORTANT: Removed unstable_cache wrapper to prevent "items over 2MB cannot be cached" errors
+    // Trade data with images and large datasets exceeds Next.js 2MB cache limit
+    // Database queries are already fast with proper indexing
+    try {
+      let whereClause: any = { userId: actualUserId }
 
-          // Apply filters if provided
-          if (options?.filters?.dateRange?.from && options?.filters?.dateRange?.to) {
-            whereClause.entryDate = {
-              gte: options.filters.dateRange.from,
-              lte: options.filters.dateRange.to
-            }
-          }
-
-          if (options?.filters?.instruments?.length) {
-            whereClause.instrument = { in: options.filters.instruments }
-          }
-
-          if (options?.filters?.accountNumbers?.length) {
-            whereClause.accountNumber = { in: options.filters.accountNumbers }
-          }
-
-          const query: any = {
-            where: whereClause,
-            orderBy: { entryDate: 'desc' },
-            skip: offset,
-            take: limit
-          }
-
-          const trades = await prisma.trade.findMany(query)
-
-          // Loaded trades successfully
-
-          return trades.map(trade => ({
-            ...trade,
-            entryDate: new Date(trade.entryDate).toISOString(),
-            exitDate: trade.closeDate ? new Date(trade.closeDate).toISOString() : null
-          }))
-        } catch (error) {
-          if (error instanceof Error) {
-            // Handle table doesn't exist error
-            if (error.message.includes('does not exist')) {
-              // Trade table does not exist yet, returning empty array
-              return []
-            }
-            // Handle database connection errors
-            if (error.message.includes("Can't reach database server") ||
-                error.message.includes('P1001') ||
-                error.message.includes('connection') ||
-                error.message.includes('timeout')) {
-              // Database connection error, returning empty array
-              return []
-            }
-          }
-          // Unexpected error occurred
-          return [] // Return empty array instead of throwing
+      // Apply filters if provided
+      if (options?.filters?.dateRange?.from && options?.filters?.dateRange?.to) {
+        whereClause.entryDate = {
+          gte: options.filters.dateRange.from,
+          lte: options.filters.dateRange.to
         }
-      },
-      [`trades-${actualUserId}-${page}-${limit}-${offset}-${JSON.stringify(options?.filters || {})}`],
-      {
-        tags: [`trades-${actualUserId}`],
-        revalidate: 1800 // 30 minutes cache
       }
-    )()
+
+      if (options?.filters?.instruments?.length) {
+        whereClause.instrument = { in: options.filters.instruments }
+      }
+
+      if (options?.filters?.accountNumbers?.length) {
+        whereClause.accountNumber = { in: options.filters.accountNumbers }
+      }
+
+      const query: any = {
+        where: whereClause,
+        orderBy: { entryDate: 'desc' },
+        skip: offset,
+        take: limit
+      }
+
+      const trades = await prisma.trade.findMany(query)
+
+      return trades.map(trade => ({
+        ...trade,
+        entryDate: new Date(trade.entryDate).toISOString(),
+        exitDate: trade.closeDate ? new Date(trade.closeDate).toISOString() : null
+      }))
+    } catch (error) {
+      console.error('[getTradesAction] Database error:', error)
+      
+      if (error instanceof Error) {
+        // Handle table doesn't exist error
+        if (error.message.includes('does not exist')) {
+          console.warn('[getTradesAction] Trade table does not exist')
+          return []
+        }
+        // Handle database connection errors
+        if (error.message.includes("Can't reach database server") ||
+            error.message.includes('P1001') ||
+            error.message.includes('connection') ||
+            error.message.includes('timeout')) {
+          console.error('[getTradesAction] Database connection error')
+          return []
+        }
+      }
+      // Unexpected error occurred
+      console.error('[getTradesAction] Unexpected error, returning empty array')
+      return []
+    }
 
   } catch (error) {
     // Error in getTradesAction

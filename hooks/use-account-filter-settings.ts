@@ -41,7 +41,6 @@ export function useAccountFilterSettings(): UseAccountFilterSettingsResult {
     } catch (err) {
       console.error('Error fetching account filter settings:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
-      // Use defaults on error
       setSettings(DEFAULT_FILTER_SETTINGS)
     } finally {
       setIsLoading(false)
@@ -95,8 +94,15 @@ export function useAccountFilterSettings(): UseAccountFilterSettingsResult {
     }
   }, [updateSettings])
 
+  // PERFORMANCE: Don't fetch on mount - use defaults and fetch lazily
+  // This prevents blocking the main data load
   useEffect(() => {
-    fetchSettings()
+    // Defer fetch to not block initial page load
+    const timer = setTimeout(() => {
+      fetchSettings()
+    }, 1000) // Wait 1 second after mount
+    
+    return () => clearTimeout(timer)
   }, [fetchSettings])
 
   return {

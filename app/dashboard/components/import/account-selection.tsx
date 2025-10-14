@@ -68,7 +68,7 @@ export default function AccountSelection({
     } else {
       setHasError(false)
     }
-  }, [error, toast])
+  }, [error])
 
   // Filter accounts for import - only show active phases and all live accounts
   useEffect(() => {

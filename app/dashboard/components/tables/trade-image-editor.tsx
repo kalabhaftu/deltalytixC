@@ -136,12 +136,12 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
     }
   }
 
-  const handleUpdateImage = async (imageBase64: string, isSecondImage: boolean) => {
+  const handleUpdateImage = useCallback(async (imageBase64: string, isSecondImage: boolean) => {
     const update = {
       [isSecondImage ? 'imageBase64Second' : 'imageBase64']: imageBase64
     }
     await updateTrades(tradeIds, update)
-  }
+  }, [updateTrades, tradeIds])
 
   // Listen for successful uploads from first image upload
   useEffect(() => {
@@ -165,7 +165,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
         duration: 5000
       })
     }
-  }, [firstImageUploadProps.isSuccess, firstImageUploadProps.files, firstImageUploadProps.errors, userId, generatedId])
+  }, [firstImageUploadProps, handleUpdateImage, userId, generatedId])
 
   // Listen for successful uploads from second image upload
   useEffect(() => {
@@ -189,7 +189,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
         duration: 5000
       })
     }
-  }, [secondImageUploadProps.isSuccess, secondImageUploadProps.files, secondImageUploadProps.errors, userId, generatedId])
+  }, [secondImageUploadProps, handleUpdateImage, userId, generatedId])
 
   // Reset upload state when dialog closes to ensure clean state for next upload
   useEffect(() => {
@@ -199,7 +199,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
       secondImageUploadProps.setFiles([])
       secondImageUploadProps.setErrors([])
     }
-  }, [uploadDialogOpen])
+  }, [uploadDialogOpen, firstImageUploadProps, secondImageUploadProps])
 
   const imageArray = [trade.imageBase64, trade.imageBase64Second].filter(Boolean)
 

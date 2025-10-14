@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+const { memo } = React
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip, Dot } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
@@ -113,14 +114,25 @@ const CustomDot = (props: any) => {
   )
 }
 
-export default function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) {
-  const { calendarData, formattedTrades } = useData()
-  const accounts = useUserStore(state => state.accounts)
+function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) {
+  const { calendarData, formattedTrades, accountNumbers } = useData()
+  const allAccounts = useUserStore(state => state.accounts)
+  
+  // ✅ FILTER to selected accounts only
+  const accounts = React.useMemo(() => {
+    if (!allAccounts || allAccounts.length === 0) return []
+    if (!accountNumbers || accountNumbers.length === 0) return []
+    return allAccounts.filter(acc => accountNumbers.includes(acc.number))
+  }, [allAccounts, accountNumbers])
 
   const chartData = React.useMemo(() => {
     // ✅ USE UNIFIED CALCULATOR - Handles prop firm phase deduplication
-    // This replaces the old naive sum that would triple-count prop firm accounts
     const initialBalance = calculateTotalStartingBalance(accounts)
+    
+    // If no accounts selected, return empty
+    if (accounts.length === 0 || initialBalance === 0) {
+      return []
+    }
     
     // Group trades by date and calculate wins/losses
     const tradesByDate = formattedTrades.reduce((acc, trade) => {
@@ -151,12 +163,35 @@ export default function AccountBalanceChart({ size = 'small-long' }: AccountBala
 
     // Filter to only days with trades (activity)
     const daysWithActivity = sortedData.filter(item => item.trades > 0)
+    
+    if (daysWithActivity.length === 0) {
+      return []
+    }
+
+    // ✅ FIX: ADD INITIAL BALANCE AS FIRST DATA POINT
+    // This ensures the chart starts from the actual account starting balance
+    const firstTradeDate = daysWithActivity[0].date
+    const dayBeforeFirstTrade = new Date(firstTradeDate + 'T00:00:00Z')
+    dayBeforeFirstTrade.setDate(dayBeforeFirstTrade.getDate() - 1)
+    const startingPointDate = dayBeforeFirstTrade.toISOString().split('T')[0]
+    
+    // Create starting point with initial balance
+    const result: ChartDataPoint[] = [{
+      date: startingPointDate,
+      balance: initialBalance,
+      change: 0,
+      changePercent: 0,
+      trades: 0,
+      wins: 0,
+      losses: 0,
+      hasActivity: false,
+    }]
 
     // Calculate cumulative balance starting from initial balance
     let runningBalance = initialBalance
     let previousBalance = initialBalance
 
-    return daysWithActivity.map((item, index) => {
+    const activityPoints = daysWithActivity.map((item, index) => {
       runningBalance += item.dailyPnL
       const change = runningBalance - previousBalance
       const changePercent = previousBalance !== 0 ? (change / Math.abs(previousBalance)) * 100 : 0
@@ -175,6 +210,8 @@ export default function AccountBalanceChart({ size = 'small-long' }: AccountBala
       previousBalance = runningBalance
       return point
     })
+    
+    return [...result, ...activityPoints]
   }, [calendarData, formattedTrades, accounts])
 
   // Determine line color based on current balance vs initial balance
@@ -269,6 +306,10 @@ export default function AccountBalanceChart({ size = 'small-long' }: AccountBala
                     fill: 'currentColor'
                   }}
                   tickFormatter={formatCurrencyValue}
+                  domain={[
+                    (dataMin: number) => Math.floor(dataMin * 0.98),
+                    (dataMax: number) => Math.ceil(dataMax * 1.02)
+                  ]}
                 />
                 <Tooltip 
                   content={<CustomTooltip />}
@@ -294,3 +335,6 @@ export default function AccountBalanceChart({ size = 'small-long' }: AccountBala
     </Card>
   )
 }
+
+// Memoize chart to prevent unnecessary re-renders
+export default memo(AccountBalanceChart)

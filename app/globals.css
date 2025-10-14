@@ -403,7 +403,7 @@ code > [data-line]::before {
   }
   
   .calendar-container .rdp-nav {
-    @apfrom the platform csv import remove topstep at all completlyply absolute inset-0 flex justify-between items-center px-1;
+    @apply absolute inset-0 flex justify-between items-center px-1;
   }
 
 

@@ -15,7 +15,7 @@ interface CurrentStreakProps {
   size?: string
 }
 
-export default function CurrentStreak({ size }: CurrentStreakProps) {
+const CurrentStreak = React.memo(function CurrentStreak({ size }: CurrentStreakProps) {
   const { 
     currentDayStreak, 
     bestDayStreak, 
@@ -106,4 +106,6 @@ export default function CurrentStreak({ size }: CurrentStreakProps) {
       </CardContent>
     </Card>
   )
-}
+})
+
+export default CurrentStreak

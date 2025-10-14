@@ -75,6 +75,7 @@ import { AccountFilterSettings } from '@/types/account-filter-settings';
 import { calculateStatistics, formatCalendarData } from '@/lib/utils';
 import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
+import { handleServerActionError } from '@/lib/utils/server-action-error-handler';
 
 // Types from trades-data.tsx
 type StatisticsProps = {
@@ -938,6 +939,9 @@ interface DataContextType {
   refreshTrades: () => Promise<void>
   isPlusUser: () => boolean
   isLoading: boolean
+  isLoadingAccountFilterSettings: boolean
+  accountFilterSettings: AccountFilterSettings | null
+  updateAccountFilterSettings: (newSettings: Partial<AccountFilterSettings>) => Promise<void>
   isMobile: boolean
   changeIsFirstConnection: (isFirstConnection: boolean) => void
   isFirstConnection: boolean
@@ -1056,7 +1060,7 @@ export const DataProvider: React.FC<{
   // Remove unused states that caused dependency issues
 
   // Account filter settings
-  const { settings: accountFilterSettings } = useAccountFilterSettings()
+  const { settings: accountFilterSettings, isLoading: isLoadingAccountFilterSettings, updateSettings: updateAccountFilterSettings } = useAccountFilterSettings()
 
   // Local states
 
@@ -1073,35 +1077,62 @@ export const DataProvider: React.FC<{
 
   // Initialize account filter from saved settings
   useEffect(() => {
-    if (accountFilterSettings?.selectedPhaseAccountIds && accountFilterSettings.selectedPhaseAccountIds.length > 0) {
+    // ✅ DON'T WAIT! Apply cached settings immediately, fetch updates in background
+    if (!accountFilterSettings || !accounts || accounts.length === 0) return
+    
+    // SIMPLE LOGIC: Use saved selections OR auto-select active accounts
+    if (accountFilterSettings.selectedPhaseAccountIds && accountFilterSettings.selectedPhaseAccountIds.length > 0) {
+      // User has saved preferences - use them IMMEDIATELY
       setAccountNumbers(accountFilterSettings.selectedPhaseAccountIds)
-    } else if (accountFilterSettings?.selectedAccounts && accountFilterSettings.selectedAccounts.length > 0) {
-      // Fallback for old format
-      setAccountNumbers(accountFilterSettings.selectedAccounts)
+    } else if (accountNumbers.length === 0) {
+      // No saved selections and nothing currently selected - auto-select active accounts
+      const activeAccountNumbers = accounts
+        .filter(acc => !acc.status || acc.status === 'active' || acc.status === 'funded')
+        .map(acc => acc.number)
+      
+      if (activeAccountNumbers.length > 0) {
+        setAccountNumbers(activeAccountNumbers)
+        
+        // SAVE to database in background (non-blocking)
+        fetch('/api/settings/account-filters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...accountFilterSettings,
+            selectedPhaseAccountIds: activeAccountNumbers,
+            updatedAt: new Date().toISOString()
+          })
+        }).catch(err => console.error('[DataProvider] Failed to save auto-selection:', err))
+      }
     }
-  }, [accountFilterSettings?.selectedPhaseAccountIds, accountFilterSettings?.selectedAccounts, setAccountNumbers])
+  }, [accountFilterSettings, accounts, accountNumbers.length])
 
-  // Track active data loading to prevent concurrent calls
-  let activeLoadPromise: Promise<void> | null = null
+  // Track active data loading to prevent concurrent calls - MOVED TO useRef FOR PERSISTENCE
+  const activeLoadPromiseRef = React.useRef<Promise<void> | null>(null)
+  const hasLoadedDataRef = React.useRef(false)
 
   // Load data from the server
   const loadData = useCallback(async () => {
-    // PERFORMANCE FIX: Add loading state check to prevent redundant calls
-    if (isLoading) {
+    // PERFORMANCE FIX: Prevent multiple simultaneous loads
+    if (isLoading || hasLoadedDataRef.current) {
+      console.log('[DataProvider] Skipping loadData - already loading or loaded')
       return
     }
 
-    // Prevent concurrent data loading
-    if (activeLoadPromise) {
-      return activeLoadPromise
+    // Prevent concurrent data loading - reuse in-flight promise
+    if (activeLoadPromiseRef.current) {
+      console.log('[DataProvider] Reusing existing load promise')
+      return activeLoadPromiseRef.current
     }
 
+    console.log('[DataProvider] ⏳ Starting data load...')
+    
     // Create the load promise
-    activeLoadPromise = (async () => {
+    activeLoadPromiseRef.current = (async () => {
       try {
         setIsLoading(true);
 
-      // Step 1: Get Supabase user
+      // Step 1: Get Supabase user (fast)
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user?.id) {
@@ -1110,6 +1141,7 @@ export const DataProvider: React.FC<{
         } catch (error) {
         }
         setIsLoading(false)
+        hasLoadedDataRef.current = false
         return;
       }
 
@@ -1157,17 +1189,8 @@ export const DataProvider: React.FC<{
         }
       }
 
-      // Note: Dashboard layout moved to DashboardTemplate model
-      // Template management is now handled separately in the dashboard components
-
-      // Step 2: Fetch ALL trades in single optimized query (server has caching)
-      // OPTIMIZED: Load all trades at once using server-side caching instead of progressive loading
-      const allTrades = await getTradesAction(null, { limit: 10000 })
-      setTrades(Array.isArray(allTrades) ? allTrades : [])
-
-      // Step 3: Fetch user data
+      // Step 2: Fetch user data (fast - just user info, accounts, groups)
       const data = await getUserData()
-
 
       if (!data) {
         try {
@@ -1175,31 +1198,51 @@ export const DataProvider: React.FC<{
         } catch (error) {
         }
         setIsLoading(false)
+        hasLoadedDataRef.current = false
         return;
       }
 
       setUser(data.userData);
-      await ensureUserInDatabase(user, locale)
-        
-
       setGroups(data.groups);
       setIsFirstConnection(data.userData?.isFirstConnection || false)
+      
+      // PERFORMANCE FIX: Parallelize independent operations
+      let allTrades: PrismaTrade[] = []
+      
+      try {
+        const [trades] = await Promise.all([
+          getTradesAction(null, { limit: 5000 }), // Simplified - load all recent trades
+          ensureUserInDatabase(user, locale) // Run in parallel with trades fetch
+        ])
+        allTrades = Array.isArray(trades) ? trades : []
+      } catch (error) {
+        // Handle Server Action errors (deployment mismatches)
+        if (handleServerActionError(error, { context: 'Data Provider - Initial Load' })) {
+          allTrades = [] // Return empty data on deployment error (will refresh)
+        } else {
+          throw error // Re-throw other errors
+        }
+      }
+      
+      setTrades(allTrades)
 
-
-      // Calculate balanceToDate for each account using unified calculator
-      // For prop firms: All phases share one balance history (cumulative across entire journey)
+      // Calculate balanceToDate for each account using the trades we just loaded
       const accountsWithBalance = (data.accounts || []).map(account => ({
         ...account,
-        balanceToDate: calcBalance(account, Array.isArray(trades) ? trades : [], {
-          excludeFailedAccounts: false, // Include failed accounts to show their actual current balance
+        balanceToDate: calcBalance(account, allTrades, {
+          excludeFailedAccounts: false,
           includePayouts: true
         })
       }));
       
-      
       setAccounts(accountsWithBalance);
+      
+      // ✅ SUCCESS: Mark as loaded only when everything completes successfully
+      hasLoadedDataRef.current = true;
 
     } catch (error) {
+      console.error('[DataProvider] ❌ Error in loadData():', error)
+      
       // Handle Next.js redirect errors (these are normal and expected)
       if (error instanceof Error && (
         error.message === 'NEXT_REDIRECT' || 
@@ -1216,6 +1259,7 @@ export const DataProvider: React.FC<{
         error.message.includes('User not found') ||
         error.message.includes('Unauthorized')
       )) {
+        console.log('[DataProvider] 🔐 Authentication error, signing out')
         try {
           await signOut();
         } catch (signOutError) {
@@ -1223,42 +1267,29 @@ export const DataProvider: React.FC<{
         return;
       }
 
-      console.error('Error loading data:', error);
-      // Optionally handle specific error cases here
-      if (error instanceof Error) {
-        console.error('Error details:', error.message);
-      }
+      // DON'T set hasLoadedDataRef on error - allow retry!
+      hasLoadedDataRef.current = false;
     } finally {
       setIsLoading(false);
       // Clear the active load promise to allow new loads
-      activeLoadPromise = null;
+      activeLoadPromiseRef.current = null;
     }
-
-    // Set a timeout to ensure loading doesn't get stuck
-    setTimeout(() => {
-      if (activeLoadPromise) {
-        console.warn('[DataProvider] Loading timeout reached, forcing completion');
-        setIsLoading(false);
-        activeLoadPromise = null;
-      }
-    }, 10000); // 10 second timeout
   })();
 
   // Return the promise for any waiting calls
-  return activeLoadPromise
-  }, []); // No dependencies - load once on mount
+  return activeLoadPromiseRef.current
+  }, []); // Empty deps - load once on mount, prevent re-creation
 
   // Load data on mount only
   useEffect(() => {
     let mounted = true;
-    let hasLoadedData = false; // Prevent multiple loads
 
     const loadDataIfMounted = async () => {
-      if (!mounted || hasLoadedData) return;
-      hasLoadedData = true;
+      if (!mounted) return;
       
       try {
-        await loadData();
+        // ✅ Just load main data - account filter settings are handled by the hook
+        await loadData()
       } catch (error) {
         // Handle Next.js redirect errors (these are normal and expected)
         if (error instanceof Error && (
@@ -1293,7 +1324,7 @@ export const DataProvider: React.FC<{
     return () => {
       mounted = false;
     };
-  }, []); // Load once on mount only
+  }, [loadData]); // Include loadData as dependency
 
   const refreshTrades = useCallback(async () => {
     if (!user?.id) return
@@ -1343,77 +1374,25 @@ export const DataProvider: React.FC<{
     }
   }, [user?.id, loadData, setIsLoading, locale])
 
-  // Get hidden accounts for filtering (moved outside useMemo to avoid circular dependency)
-  const hiddenGroup = groups.find(g => g.name === "Hidden Accounts");
-  const hiddenAccountNumbers = accounts
-    .filter(a => a.groupId === hiddenGroup?.id)
-    .map(a => a.number);
+  // Memoize hidden account numbers to prevent unnecessary re-renders
+  const hiddenAccountNumbers = useMemo(() => {
+    const hiddenGroup = groups.find(g => g.name === "Hidden Accounts");
+    return accounts
+      .filter(a => a.groupId === hiddenGroup?.id)
+      .map(a => a.number);
+  }, [groups, accounts]);
 
   const formattedTrades = useMemo(() => {
-    // Early return if no trades or if trades is not an array
-    if (!trades || !Array.isArray(trades) || trades.length === 0) return [];
-
-    // Filter accounts based on user settings - NAVBAR FILTER APPLIES TO WIDGETS/TABLE/JOURNAL ONLY
-    // Accounts page has its own separate filtering
-    const getFilteredAccountNumbers = (): string[] => {
-      if (accountFilterSettings.showMode === 'all-accounts') {
-        return [] // No filtering, include all accounts
-      }
-      
-      if (accountFilterSettings.showMode === 'active-only') {
-        // Default behavior: exclude failed and passed accounts
-        return accounts
-          .filter(a => a.status === 'failed' || a.status === 'passed')
-          .map(a => a.number)
-      }
-      
-      // Custom filtering
-      const excludedNumbers: string[] = []
-      
-      accounts.forEach(account => {
-        // Filter by account type - CORRECTED LOGIC
-        if (account.accountType === 'live' && !accountFilterSettings.showLiveAccounts) {
-          excludedNumbers.push(account.number)
-          return
-        }
-
-        if (account.accountType === 'prop-firm' && !accountFilterSettings.showPropFirmAccounts) {
-          excludedNumbers.push(account.number)
-          return
-        }
-
-        // Filter by status
-        if (account.status === 'failed' && !accountFilterSettings.showFailedAccounts) {
-          excludedNumbers.push(account.number)
-          return
-        }
-
-        if (account.status === 'passed' && !accountFilterSettings.showPassedAccounts) {
-          excludedNumbers.push(account.number)
-          return
-        }
-
-        if (account.status && !accountFilterSettings.includeStatuses.includes(account.status as any)) {
-          excludedNumbers.push(account.number)
-          return
-        }
-      })
-      
-      return excludedNumbers
+    // Early return if no trades
+    if (!trades || !Array.isArray(trades) || trades.length === 0) {
+      return [];
     }
 
-    const excludedAccountNumbers = getFilteredAccountNumbers()
-
-    // Apply all filters in a single pass
-    return trades
+    // SIMPLE FILTERING: Only by selected accounts and hidden accounts
+    const result = trades
       .filter((trade) => {
         // Skip trades from hidden accounts
         if (hiddenAccountNumbers.includes(trade.accountNumber)) {
-          return false;
-        }
-
-        // Skip trades from filtered accounts (based on user settings)
-        if (excludedAccountNumbers.includes(trade.accountNumber)) {
           return false;
         }
 
@@ -1430,18 +1409,17 @@ export const DataProvider: React.FC<{
           return false;
         }
 
-        // Account filter - require explicit account selection
-        if (accountNumbers.length === 0) {
-          return false; // Don't show any trades if no account is selected
-        }
+        // Account filter - if no accounts selected, show all (unless settings explicitly filter)
+        if (accountNumbers.length > 0) {
+          // Check if trade matches selected account numbers (by accountNumber or phaseAccountId)
+          const matchesAccount = accountNumbers.includes(trade.accountNumber) ||
+                                (trade.phaseAccountId && accountNumbers.includes(trade.phaseAccountId));
 
-        // Check if trade matches selected account numbers (by accountNumber or phaseAccountId)
-        const matchesAccount = accountNumbers.includes(trade.accountNumber) ||
-                              (trade.phaseAccountId && accountNumbers.includes(trade.phaseAccountId));
-
-        if (!matchesAccount) {
-          return false;
+          if (!matchesAccount) {
+            return false;
+          }
         }
+        // If accountNumbers is empty, show all trades (don't filter by account)
 
         // Date range filter
         if (dateRange?.from && dateRange?.to) {
@@ -1493,11 +1471,10 @@ export const DataProvider: React.FC<{
         return true;
       })
       .sort((a, b) => parseISO(a.entryDate).getTime() - parseISO(b.entryDate).getTime());
+    
+    return result;
   }, [
     trades,
-    groups,
-    accounts,
-    instruments,
     accountNumbers,
     dateRange,
     pnlRange,
@@ -1505,8 +1482,8 @@ export const DataProvider: React.FC<{
     weekdayFilter,
     hourFilter,
     timezone,
-    accountFilterSettings, // CRITICAL: Missing dependency that caused trades not to re-filter
-    hiddenAccountNumbers // CRITICAL: Missing dependency for hidden accounts
+    instruments,
+    hiddenAccountNumbers
   ]);
 
   const statistics = useMemo(() => {
@@ -1564,6 +1541,9 @@ export const DataProvider: React.FC<{
       return newGroup
     } catch (error) {
       console.error('Error creating group:', error)
+      if (handleServerActionError(error, { context: 'Create Group' })) {
+        return // Return early on deployment error (will refresh)
+      }
       throw error
     }
   }, [user?.id, accounts, groups, setGroups])
@@ -1575,6 +1555,9 @@ export const DataProvider: React.FC<{
       await renameGroupAction(groupId, name)
     } catch (error) {
       console.error('Error renaming group:', error)
+      if (handleServerActionError(error, { context: 'Rename Group' })) {
+        return // Return early on deployment error (will refresh)
+      }
       throw error
     }
   }, [user?.id])
@@ -1594,6 +1577,9 @@ export const DataProvider: React.FC<{
       await deleteGroupAction(groupId)
     } catch (error) {
       console.error('Error deleting group:', error)
+      if (handleServerActionError(error, { context: 'Delete Group' })) {
+        return // Return early on deployment error (will refresh)
+      }
       throw error
     }
   }, [accounts, setAccounts])
@@ -1635,6 +1621,9 @@ export const DataProvider: React.FC<{
       await moveAccountToGroupAction(accountId, targetGroupId)
     } catch (error) {
       console.error('Error moving account to group:', error)
+      if (handleServerActionError(error, { context: 'Move Account to Group' })) {
+        return // Return early on deployment error (will refresh)
+      }
       throw error
     }
   }, [accounts, setAccounts, setGroups, groups])
@@ -1676,6 +1665,9 @@ export const DataProvider: React.FC<{
       await deleteAccountAction(account);
     } catch (error) {
       console.error('Error deleting account:', error);
+      if (handleServerActionError(error, { context: 'Delete Account' })) {
+        return // Return early on deployment error (will refresh)
+      }
       throw error;
     }
   }, [user?.id, accounts, setAccounts]);
@@ -1699,6 +1691,9 @@ export const DataProvider: React.FC<{
 
     } catch (error) {
       console.error('Error deleting payout:', error);
+      if (handleServerActionError(error, { context: 'Delete Payout' })) {
+        return // Return early on deployment error (will refresh)
+      }
       throw error;
     }
   }, [user?.id, accounts, setAccounts]);
@@ -1759,6 +1754,9 @@ export const DataProvider: React.FC<{
   const contextValue: DataContextType = {
     isPlusUser,
     isLoading,
+    isLoadingAccountFilterSettings,
+    accountFilterSettings,
+    updateAccountFilterSettings,
     isMobile,
     refreshTrades,
     changeIsFirstConnection,

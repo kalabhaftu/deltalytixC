@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "sonner"
@@ -43,7 +43,7 @@ export default function PayoutDetailPage() {
   const payoutId = params.id as string
 
   // Fetch payout details
-  const fetchPayout = async () => {
+  const fetchPayout = useCallback(async () => {
     try {
       setIsLoading(true)
       const response = await fetch(`/api/prop-firm/payouts/${payoutId}`)
@@ -66,14 +66,14 @@ export default function PayoutDetailPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [payoutId])
 
   // Load payout on mount
   useEffect(() => {
     if (user && payoutId) {
       fetchPayout()
     }
-  }, [user, payoutId])
+  }, [user, payoutId, fetchPayout])
 
   const getStatusColor = (status: string) => {
     switch (status) {

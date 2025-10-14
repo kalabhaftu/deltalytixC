@@ -262,213 +262,153 @@ export async function getAccountsAction() {
       return []
     }
 
-    // ENHANCED PERFORMANCE OPTIMIZATION: Faster queries and better caching
-    return unstable_cache(
-      async () => {
-        let accounts: any[] = [];
-        let masterAccounts: any[] = [];
+    // IMPORTANT: Removed unstable_cache wrapper to prevent "items over 2MB cannot be cached" errors
+    // Account data with many phases and trades can exceed Next.js 2MB cache limit
+    // Database queries are already fast with proper indexing
+    let accounts: any[] = [];
+    let masterAccounts: any[] = [];
 
-        try {
-          // Fetch regular live trading accounts with optimized query
-          const accountsPromise = prisma.account.findMany({
-            where: {
-              userId: userId,
-            },
-            select: {
-              id: true,
-              number: true,
-              name: true,
-              broker: true,
-              startingBalance: true,
-              createdAt: true,
-              userId: true,
-              groupId: true,
-            },
+    try {
+      // Fetch regular live trading accounts with optimized query
+      const accountsPromise = prisma.account.findMany({
+        where: {
+          userId: userId,
+        },
+        select: {
+          id: true,
+          number: true,
+          name: true,
+          broker: true,
+          startingBalance: true,
+          createdAt: true,
+          userId: true,
+          groupId: true,
+        },
+        orderBy: {
+          createdAt: 'desc' // Show newest accounts first
+        }
+      })
+
+      // Fetch prop firm master accounts in parallel with better error handling
+      const masterAccountsPromise = prisma.masterAccount.findMany({
+        where: {
+          userId: userId,
+        },
+        include: {
+          phases: {
             orderBy: {
-              createdAt: 'desc' // Show newest accounts first
-            }
-          })
-
-          // Fetch prop firm master accounts in parallel with better error handling
-          const masterAccountsPromise = prisma.masterAccount.findMany({
-            where: {
-              userId: userId,
+              phaseNumber: 'desc' // Most recent first
             },
-            include: {
-              phases: {
-                orderBy: {
-                  phaseNumber: 'asc'
-                }
-                // Fetch ALL phases, not just active ones
-              }
-            },
-            orderBy: {
-              createdAt: 'desc'
-            }
-          }).catch((masterAccountError) => {
-            return []
-          })
-
-          // Execute both queries in parallel for better performance
-          const [regularAccounts, propFirmAccounts] = await Promise.all([
-            accountsPromise,
-            masterAccountsPromise
-          ])
-          
-          accounts = regularAccounts
-          masterAccounts = propFirmAccounts
-        } catch (dbError) {
-          console.error('[getAccountsAction] Database error:', dbError)
-          // Return empty array instead of throwing to prevent app crash
-          return []
-        }
-
-        // Parallel trade count queries for better performance
-        const accountIds = accounts.map(account => account.id)
-        const masterAccountIds = masterAccounts.map((ma: any) => ma.id)
-        const phaseAccountIds = masterAccounts.flatMap((ma: any) => ma.phases?.map((p: any) => p.id) || [])
-
-        // Execute trade count queries in parallel
-        const tradeCountPromises = []
-        
-        // Regular accounts trade counts
-        if (accountIds.length > 0) {
-          tradeCountPromises.push(
-            prisma.trade.groupBy({
-              by: ['accountId'],
-              where: {
-                accountId: { in: accountIds }
-              },
-              _count: {
-                id: true
-              }
-            })
-          )
-        } else {
-          tradeCountPromises.push(Promise.resolve([]))
-        }
-
-        // Phase accounts trade counts
-        if (phaseAccountIds.length > 0) {
-          tradeCountPromises.push(
-            prisma.trade.groupBy({
-              by: ['phaseAccountId'],
-              where: {
-                phaseAccountId: { in: phaseAccountIds },
-                NOT: {
-                  phaseAccountId: null
-                }
-              },
-              _count: {
-                id: true
-              }
-            }).catch((error) => {
-              return []
-            })
-          )
-        } else {
-          tradeCountPromises.push(Promise.resolve([]))
-        }
-
-        const [tradeCounts, phaseTradeCounts] = await Promise.all(tradeCountPromises)
-
-        // Create trade count maps with proper type handling
-        const tradeCountMap = new Map()
-        if (Array.isArray(tradeCounts)) {
-          tradeCounts.forEach((tc: any) => {
-            if (tc.accountId) {
-              tradeCountMap.set(tc.accountId, tc._count.id)
-            }
-          })
-        }
-
-        // Create phase trade count map
-        const phaseTradeCountMap = new Map()
-        if (Array.isArray(phaseTradeCounts)) {
-          phaseTradeCounts.forEach((ptc: any) => {
-            if (ptc.phaseAccountId) {
-              phaseTradeCountMap.set(ptc.phaseAccountId, ptc._count.id)
-            }
-          })
-        }
-
-        // Calculate master account trade counts (sum all phases)
-        const masterTradeCountMap = new Map()
-        masterAccounts.forEach((ma: any) => {
-          const totalTrades = ma.phases?.reduce((sum: number, phase: any) => {
-            return sum + (phaseTradeCountMap.get(phase.id) || 0)
-          }, 0) || 0
-          masterTradeCountMap.set(ma.id, totalTrades)
-        })
-
-        // Transform regular accounts
-        const transformedAccounts = accounts.map((account: any) => ({
-          ...account,
-          propfirm: '',
-          accountType: 'live' as const,
-          displayName: account.name || account.number,
-          tradeCount: tradeCountMap.get(account.id) || 0,
-          owner: { id: userId, email: '' },
-          isOwner: true,
-          status: 'active' as const,
-          currentPhase: 'live',
-          group: null
-        }))
-
-        // Transform master accounts to unified format - create one entry per phase
-        // Only include active and funded phases (accounts page has its own status filter)
-        const transformedMasterAccounts: any[] = []
-        masterAccounts.forEach((masterAccount: any) => {
-          
-          if (masterAccount.phases && masterAccount.phases.length > 0) {
-            // Create one entry for each phase (excluding pending phases)
-            masterAccount.phases.forEach((phase: any) => {
-              // Skip pending phases - they don't exist yet until user reaches them
-              if (phase.status === 'pending') return
-              
-              
-              transformedMasterAccounts.push({
-                id: phase.id, // Use phase ID instead of composite key
-                number: phase.phaseId,
-                name: masterAccount.accountName,
-                propfirm: masterAccount.propFirmName,
-                broker: undefined,
-                startingBalance: phase.accountSize || masterAccount.accountSize,
-                accountType: 'prop-firm' as const,
-                displayName: `${masterAccount.accountName} (Phase ${phase.phaseNumber})`,
-                tradeCount: phaseTradeCountMap.get(phase.id) || 0,
-                owner: { id: userId, email: '' },
-                isOwner: true,
-                status: phase.status,
-                currentPhase: phase.phaseNumber,
-                createdAt: phase.createdAt || masterAccount.createdAt,
-                userId: masterAccount.userId,
-                groupId: null,
-                group: null,
-                // Add phase details for UI components that need them (named currentPhaseDetails to match useAccounts)
-                currentPhaseDetails: {
-                  phaseNumber: phase.phaseNumber,
-                  status: phase.status,
-                  phaseId: phase.phaseId,
-                  masterAccountId: masterAccount.id, // This is the key for deduplication
-                  masterAccountName: masterAccount.accountName
-                }
-              })
-            })
+            take: 10 // Get latest 10 phases
           }
-          // Remove fallback master account creation - it causes duplicates
-          // If a master account has no phases, it won't be shown (correct behavior)
-        })
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      }).catch((masterAccountError) => {
+        console.error('[getAccountsAction] Master accounts query failed:', masterAccountError)
+        return []
+      })
 
-        // Combine both account types
-        return [...transformedAccounts, ...transformedMasterAccounts]
-      },
-      [`accounts-${userId}`],
-      {
-        tags: [`accounts-${userId}`, `user-data-${userId}`],
-        revalidate: 30 // 30 seconds cache - optimized for performance
+      // Execute both queries in parallel for better performance
+      const [regularAccounts, propFirmAccounts] = await Promise.all([
+        accountsPromise,
+        masterAccountsPromise
+      ])
+      
+      accounts = regularAccounts
+      masterAccounts = propFirmAccounts
+    } catch (dbError) {
+      console.error('[getAccountsAction] Database error:', dbError)
+      // Return empty array instead of throwing to prevent app crash
+      return []
+    }
+
+    // Query trade counts for all accounts in parallel
+    const [liveTradeCounts, phaseTradeCounts] = await Promise.all([
+      // Live account trade counts (by account number)
+      prisma.trade.groupBy({
+        by: ['accountNumber'],
+        where: { userId },
+        _count: { id: true }
+      }),
+      // Phase account trade counts (by account number which is phaseId for prop firm)
+      prisma.trade.groupBy({
+        by: ['accountNumber'],
+        where: { userId },
+        _count: { id: true }
+      })
+    ])
+    
+    // Create maps for quick lookup
+    const tradeCountMap = new Map(
+      liveTradeCounts.map(tc => [tc.accountNumber, tc._count.id])
+    )
+    const phaseTradeCountMap = new Map(
+      phaseTradeCounts.map(tc => [tc.accountNumber, tc._count.id])
+    )
+
+    // Transform regular accounts
+    const transformedAccounts = accounts.map((account: any) => ({
+      ...account,
+      propfirm: '',
+      accountType: 'live' as const,
+      displayName: account.name || account.number,
+      tradeCount: tradeCountMap.get(account.number) || 0,
+      owner: { id: userId, email: '' },
+      isOwner: true,
+      status: 'active' as const,
+      currentPhase: 'live',
+      group: null
+    }))
+
+    // Transform master accounts to unified format - create one entry per phase
+    // Only include active and funded phases (accounts page has its own status filter)
+    const transformedMasterAccounts: any[] = []
+    masterAccounts.forEach((masterAccount: any) => {
+      
+      if (masterAccount.phases && masterAccount.phases.length > 0) {
+        // Create one entry for each phase (excluding pending phases)
+        masterAccount.phases.forEach((phase: any) => {
+          // Skip pending phases - they don't exist yet until user reaches them
+          if (phase.status === 'pending') return
+          
+          
+          transformedMasterAccounts.push({
+            id: phase.id, // Use phase ID instead of composite key
+            number: phase.phaseId,
+            name: masterAccount.accountName,
+            propfirm: masterAccount.propFirmName,
+            broker: undefined,
+            startingBalance: phase.accountSize || masterAccount.accountSize,
+            accountType: 'prop-firm' as const,
+            displayName: `${masterAccount.accountName} (Phase ${phase.phaseNumber})`,
+            tradeCount: phaseTradeCountMap.get(phase.phaseId) || 0,
+            owner: { id: userId, email: '' },
+            isOwner: true,
+            status: phase.status,
+            currentPhase: phase.phaseNumber,
+            createdAt: phase.createdAt || masterAccount.createdAt,
+            userId: masterAccount.userId,
+            groupId: null,
+            group: null,
+            // Add phase details for UI components that need them (named currentPhaseDetails to match useAccounts)
+            currentPhaseDetails: {
+              phaseNumber: phase.phaseNumber,
+              status: phase.status,
+              phaseId: phase.phaseId,
+              masterAccountId: masterAccount.id, // This is the key for deduplication
+              masterAccountName: masterAccount.accountName
+            }
+          })
+        })
       }
-    )()
+      // Remove fallback master account creation - it causes duplicates
+      // If a master account has no phases, it won't be shown (correct behavior)
+    })
+
+    // Combine both account types
+    return [...transformedAccounts, ...transformedMasterAccounts]
   } catch (error) {
     console.error('Error fetching accounts:', error)
     // Return empty array instead of throwing error to prevent frontend crashes

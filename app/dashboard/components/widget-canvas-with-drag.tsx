@@ -4,14 +4,17 @@ import React, { useState, useMemo } from 'react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { X, Plus, GripVertical } from "lucide-react"
-import { getWidgetComponent, WIDGET_REGISTRY } from '../config/widget-registry'
+import { WIDGET_REGISTRY } from '../config/widget-registry-lazy'
 import { useTemplateEditStore } from '@/store/template-edit-store'
 import { useTemplates } from '@/context/template-provider'
+import { useData } from '@/context/data-provider'
+import { useAccounts } from '@/hooks/use-accounts'
 import { cn } from '@/lib/utils'
 import type { WidgetLayout } from '@/server/dashboard-templates'
 import type { WidgetType } from '../types/dashboard'
 import WidgetLibraryDialog from './widget-library-dialog'
 import KpiWidgetSelector from './kpi-widget-selector'
+import { EmptyAccountState } from './empty-account-state'
 import {
   DndContext,
   closestCenter,
@@ -107,6 +110,8 @@ function SortableWidget({
 export default function WidgetCanvasWithDrag() {
   const { isEditMode, currentLayout, updateLayout } = useTemplateEditStore()
   const { activeTemplate, isLoading } = useTemplates()
+  const { accountNumbers, formattedTrades, isLoadingAccountFilterSettings, accountFilterSettings } = useData()
+  const { accounts } = useAccounts()
   const [showWidgetLibrary, setShowWidgetLibrary] = useState(false)
   const [showKpiSelector, setShowKpiSelector] = useState(false)
   const [targetSlot, setTargetSlot] = useState<{
@@ -508,6 +513,22 @@ export default function WidgetCanvasWithDrag() {
     }
   }
   
+  // Show empty state ONLY if:
+  // 1. Not in edit mode
+  // 2. Main data has finished loading
+  // 3. No accounts are currently selected
+  // 4. NO saved selections exist in settings (this prevents flash while useEffect runs)
+  // 5. Accounts exist (so we know data is loaded)
+  const showEmptyState = !isEditMode && 
+                         !isLoading &&  // ✅ WAIT for main data to load
+                         accountNumbers.length === 0 && 
+                         (!accountFilterSettings?.selectedPhaseAccountIds || accountFilterSettings.selectedPhaseAccountIds.length === 0) &&  // ✅ Check if settings have saved selections
+                         accounts && accounts.length > 0
+  
+  if (showEmptyState) {
+    return <EmptyAccountState />
+  }
+  
   return (
     <div className="space-y-4">
       {/* Upper Section - KPI Widgets Row */}
@@ -536,7 +557,7 @@ export default function WidgetCanvasWithDrag() {
                         onRemove={() => handleRemoveWidget(widget.i)}
                         isEditMode={isEditMode}
                       >
-                        {getWidgetComponent(widget.type as WidgetType, 'kpi')}
+                        {WIDGET_REGISTRY[widget.type as WidgetType]?.getComponent({ size: 'kpi' })}
                       </SortableWidget>
                     ) : (
                       /* Empty Slot Placeholder */
@@ -631,7 +652,7 @@ export default function WidgetCanvasWithDrag() {
                                 onRemove={() => handleRemoveWidget(widget.i)}
                                 isEditMode={isEditMode}
                               >
-                                {getWidgetComponent(widget.type as WidgetType, widget.size as any)}
+                                {WIDGET_REGISTRY[widget.type as WidgetType]?.getComponent({ size: widget.size as any })}
                               </SortableWidget>
                             </div>
                           )

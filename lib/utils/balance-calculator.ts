@@ -80,17 +80,6 @@ export function calculateAccountBalance(
       trade.phaseAccountId === account.id || 
       trade.accountNumber === account.number
     )
-    
-    // Debug logging for prop firm accounts
-    if (account.status === 'failed') {
-      console.log(`[Balance Calculator] Failed account ${account.displayName}:`, {
-        accountId: account.id,
-        accountNumber: account.number,
-        tradesCount: relevantTrades.length,
-        startingBalance: balance,
-        tradesPnL: relevantTrades.reduce((sum, t) => sum + ((t.pnl || 0) - (t.commission || 0)), 0)
-      })
-    }
   } else {
     // Regular accounts use account number
     relevantTrades = trades.filter(trade => trade.accountNumber === account.number)

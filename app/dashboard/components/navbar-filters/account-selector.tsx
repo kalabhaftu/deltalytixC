@@ -36,7 +36,9 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         .filter(acc => accountNumbers.includes(acc.number))
         .map(acc => acc.id)
       
-      setSelectedAccounts(new Set(matchingAccountIds))
+      if (matchingAccountIds.length > 0) {
+        setSelectedAccounts(new Set(matchingAccountIds))
+      }
     }
   }, [accountNumbers, accounts])
 
@@ -154,34 +156,66 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
     }
   }, [accounts, accountNumbers, selectedAccounts.size])
 
-  // Auto-select first active account if none selected and no saved selection
+  // Auto-select all active accounts ONLY for new users (no saved selections)
   useEffect(() => {
-    if (activeAccounts.length > 0 && selectedAccounts.size === 0 && accountNumbers.length === 0) {
-      const firstActive = activeAccounts[0].id
-      setSelectedAccounts(new Set([firstActive]))
-      
-      // Auto-expand the parent group for the first active account
-      const firstActiveAccount = accounts?.find(acc => acc.id === firstActive)
-      if (firstActiveAccount) {
-        const accountName = firstActiveAccount.name || firstActiveAccount.number
-        setExpandedAccounts(new Set([accountName]))
-        
-        // Use account.number which is the phaseId that trades are stored with
-        const accountNumber = firstActiveAccount.number || firstActive
+    // Only auto-select if:
+    // 1. Has active accounts
+    // 2. No local selections
+    // 3. No saved selections in context
+    // 4. Not already initialized (to prevent race conditions)
+    if (
+      activeAccounts.length > 0 && 
+      selectedAccounts.size === 0 && 
+      accountNumbers.length === 0 &&
+      accounts && accounts.length > 0
+    ) {
+      // Wait a bit to ensure settings have loaded
+      const timer = setTimeout(() => {
+        // Double-check no selections loaded in the meantime
+        if (accountNumbers.length === 0 && selectedAccounts.size === 0) {
+          // Select ALL active accounts (better UX for new users)
+          const activeIds = activeAccounts.map(acc => acc.id)
+          setSelectedAccounts(new Set(activeIds))
+          
+          // Auto-expand all parent groups for active accounts
+          const accountNames = new Set(activeAccounts.map(acc => acc.name || acc.number))
+          setExpandedAccounts(accountNames)
+          
+          // Get all active account numbers (phaseIds) for filtering
+          const activeAccountNumbers = activeAccounts.map(acc => acc.number)
 
-        fetch('/api/settings/account-filters', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            selectedAccount: firstActive,
-            selectedPhaseAccountIds: [accountNumber],
-            accountNumber: accountNumber,
-            updatedAt: new Date().toISOString()
+          // CRITICAL: Preserve existing settings when auto-selecting
+          fetch('/api/settings/account-filters', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
           })
-        }).then(() => {
-          setAccountNumbers([accountNumber])
-        }).catch(console.error)
-      }
+            .then(response => response.json())
+            .then(data => {
+              const currentSettings = data.data || {}
+              
+              // Only save if still no selections (prevent overwriting user actions)
+              if (accountNumbers.length === 0) {
+                return fetch('/api/settings/account-filters', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    ...currentSettings,
+                    showMode: 'active-only', // Ensure active-only mode for new users
+                    selectedAccounts: activeIds,
+                    selectedPhaseAccountIds: activeAccountNumbers,
+                    updatedAt: new Date().toISOString()
+                  })
+                })
+              }
+            })
+            .then(() => {
+              setAccountNumbers(activeAccountNumbers)
+            })
+            .catch(console.error)
+        }
+      }, 500) // 500ms delay to let settings load first
+
+      return () => clearTimeout(timer)
     }
   }, [activeAccounts, selectedAccounts.size, accountNumbers, setAccountNumbers, accounts])
 
@@ -221,10 +255,24 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         })
         .filter(Boolean)
 
+      // CRITICAL FIX: Fetch current settings first, then merge with new selections
+      // This prevents overwriting other settings like showMode, includeStatuses, etc.
+      const currentSettingsResponse = await fetch('/api/settings/account-filters', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      
+      let currentSettings = {}
+      if (currentSettingsResponse.ok) {
+        const data = await currentSettingsResponse.json()
+        currentSettings = data.data || {}
+      }
+
       const response = await fetch('/api/settings/account-filters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          ...currentSettings, // Preserve existing settings
           selectedAccounts: Array.from(selectedAccounts),
           selectedPhaseAccountIds: accountNumbersToSave,
           updatedAt: new Date().toISOString()
@@ -289,10 +337,23 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
     try {
       setIsSaving(true)
       
+      // CRITICAL FIX: Preserve existing settings when clearing selections
+      const currentSettingsResponse = await fetch('/api/settings/account-filters', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      
+      let currentSettings = {}
+      if (currentSettingsResponse.ok) {
+        const data = await currentSettingsResponse.json()
+        currentSettings = data.data || {}
+      }
+      
       const response = await fetch('/api/settings/account-filters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          ...currentSettings, // Preserve existing settings
           selectedAccounts: [],
           selectedPhaseAccountIds: [],
           updatedAt: new Date().toISOString()

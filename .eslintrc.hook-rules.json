@@ -1,0 +1,68 @@
+{
+  "// EXPLANATION": "Custom ESLint configuration for React Hooks",
+  "// PURPOSE": "Provides granular control over exhaustive-deps warnings",
+  "// USAGE": "Extend this in .eslintrc.json to customize hook rules",
+  
+  "rules": {
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": [
+      "warn",
+      {
+        "additionalHooks": "(useStableCallback|useStableAsyncCallback|useDebouncedCallback)"
+      }
+    ]
+  },
+  
+  "// COMMON FIXES": {
+    "1. Missing Dependencies": {
+      "problem": "React Hook has a missing dependency",
+      "solutions": [
+        "Add the dependency to the array",
+        "Use useCallback/useMemo to stabilize the dependency",
+        "Use useStableCallback if you need latest values without re-creating",
+        "Add // eslint-disable-next-line react-hooks/exhaustive-deps if intentional"
+      ]
+    },
+    "2. Unnecessary Dependencies": {
+      "problem": "React Hook has an unnecessary dependency",
+      "solutions": [
+        "Remove the dependency (e.g., 'toast', stable imports)",
+        "Verify the value actually causes re-renders",
+        "Check if it's a stable reference (useCallback, imported function)"
+      ]
+    },
+    "3. Complex Expressions": {
+      "problem": "React Hook has a complex expression in dependency array",
+      "solutions": [
+        "Extract the expression to a variable with useMemo",
+        "Use a stable reference with useCallback",
+        "Simplify the dependency to a primitive value"
+      ]
+    },
+    "4. Ref Cleanup Issues": {
+      "problem": "Ref value will likely have changed by cleanup time",
+      "solutions": [
+        "Copy ref.current to a variable inside the effect",
+        "Use the copied variable in the cleanup function",
+        "Example: const element = ref.current; return () => cleanup(element)"
+      ]
+    }
+  },
+  
+  "// PERFORMANCE IMPACT": {
+    "High": [
+      "Missing callback dependencies causing unnecessary re-renders",
+      "Unnecessary dependencies triggering effect loops",
+      "Complex expressions recalculating on every render"
+    ],
+    "Medium": [
+      "Missing effect dependencies causing stale closures",
+      "Improper ref usage in effects"
+    ],
+    "Low": [
+      "Unnecessary deps on stable values (just noise)",
+      "eslint-disable comments (technical debt)"
+    ]
+  }
+}
+

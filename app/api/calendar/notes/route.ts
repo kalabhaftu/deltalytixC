@@ -4,30 +4,46 @@ import { getUserId } from '@/server/auth'
 
 export async function GET(request: NextRequest) {
   try {
-    const authUserId = await getUserId()
+    // Try to get user ID - don't throw if not authenticated
+    let authUserId: string
+    try {
+      authUserId = await getUserId()
+    } catch (authError) {
+      // Not authenticated - return empty notes gracefully
+      return NextResponse.json({ notes: [] }, {
+        status: 200,
+        headers: { 'Cache-Control': 'no-store' }
+      })
+    }
 
     // Get user from database
     const user = await prisma.user.findUnique({
-      where: { auth_user_id: authUserId }
+      where: { auth_user_id: authUserId },
+      select: { id: true }
     })
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ notes: [] }, { status: 200 })
     }
 
-    // Get all notes for the user
+    // Get notes for the user - limited to 1 year
     const notes = await prisma.dailyNote.findMany({
       where: { userId: user.id },
-      orderBy: { date: 'desc' }
+      orderBy: { date: 'desc' },
+      take: 365
     })
 
-    return NextResponse.json({ notes })
+    return NextResponse.json({ notes }, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60'
+      }
+    })
   } catch (error) {
-    console.error('Error fetching daily notes:', error)
-    if (error instanceof Error && error.message.includes('not authenticated')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    return NextResponse.json({ error: 'Failed to fetch notes' }, { status: 500 })
+    // Gracefully return empty notes on any error
+    return NextResponse.json({ notes: [] }, { 
+      status: 200,
+      headers: { 'Cache-Control': 'no-store' }
+    })
   }
 }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "sonner"
@@ -79,7 +79,7 @@ export default function AccountDetailPage() {
   }
 
   // Fetch complete trade data
-  const fetchCompleteTradeData = async () => {
+  const fetchCompleteTradeData = useCallback(async () => {
     try {
       const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}/trades?phase=all`)
       const data = await response.json()
@@ -88,10 +88,10 @@ export default function AccountDetailPage() {
       console.error('Error fetching trades:', error)
       return []
     }
-  }
+  }, [accountId])
 
   // Fetch payout data
-  const fetchPayoutData = async () => {
+  const fetchPayoutData = useCallback(async () => {
     try {
       const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}/payouts`)
       const data = await response.json()
@@ -99,10 +99,10 @@ export default function AccountDetailPage() {
     } catch (error) {
       return { eligibility: null, history: [] }
     }
-  }
+  }, [accountId])
 
   // Fetch all complete data
-  const fetchCompleteData = async () => {
+  const fetchCompleteData = useCallback(async () => {
     setIsLoadingCompleteData(true)
     setDataFetchError(null)
     
@@ -123,7 +123,7 @@ export default function AccountDetailPage() {
     } finally {
       setIsLoadingCompleteData(false)
     }
-  }
+  }, [fetchCompleteTradeData, fetchPayoutData])
 
   // Handle real-time data updates and error states
   useEffect(() => {
@@ -148,7 +148,7 @@ export default function AccountDetailPage() {
     if (realtimeAccount && accountId) {
       fetchCompleteData()
     }
-  }, [realtimeAccount, accountId])
+  }, [realtimeAccount, accountId, fetchCompleteData])
 
   // REMOVED: Transition detection moved to accounts list page to avoid showing everywhere
 
@@ -191,8 +191,9 @@ export default function AccountDetailPage() {
             label: (realtimeAccount.currentPhase?.phaseNumber ?? 1) === 1 ? 'Phase 1' : 
                    (realtimeAccount.currentPhase?.phaseNumber ?? 1) === 2 ? 'Phase 2' : 
                    (realtimeAccount.currentPhase?.phaseNumber ?? 1) >= 3 ? 'Funded' : 'Phase 1',
-            color: (realtimeAccount.currentPhase?.phaseNumber ?? 1) === 1 ? 'bg-foreground' : 
-                   (realtimeAccount.currentPhase?.phaseNumber ?? 1) === 2 ? 'bg-foreground' : 'bg-green-600',
+            color: (realtimeAccount.currentPhase?.phaseNumber ?? 1) === 1 ? 'bg-foreground text-background' : 
+                   (realtimeAccount.currentPhase?.phaseNumber ?? 1) === 2 ? 'bg-foreground text-background' : 
+                   'bg-green-600 text-white',
             accountNumber: realtimeAccount.currentPhase?.phaseId || realtimeAccount.accountName
           }
         },
@@ -326,49 +327,44 @@ export default function AccountDetailPage() {
     <PropFirmErrorBoundary onReset={() => window.location.reload()}>
       <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col gap-3">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push('/dashboard?tab=accounts')}
+            onClick={() => router.push('/dashboard/accounts')}
+            className="w-fit"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <div>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant={getStatusVariant(account.status)} className="text-xs">
-                {account.status === 'active' ? 'Active' : (account.currentPhase || 1) >= 3 ? 'Funded' : account.status === 'failed' ? 'Failed' : account.status}
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={getStatusVariant(account.status)} className="text-xs">
+              {account.status === 'active' ? 'Active' : (account.currentPhase || 1) >= 3 ? 'Funded' : account.status === 'failed' ? 'Failed' : account.status}
+            </Badge>
+            {currentPhase?.phaseDisplayInfo && (
+              <Badge variant="outline">
+                {currentPhase.phaseDisplayInfo.label}
               </Badge>
-              {currentPhase?.phaseDisplayInfo && (
-                <Badge className={cn("text-white", currentPhase.phaseDisplayInfo.color)}>
-                  {currentPhase.phaseDisplayInfo.label}
-                  {currentPhase.accountNumber && ` (${currentPhase.accountNumber})`}
-                </Badge>
-              )}
-              <span className="text-muted-foreground">•</span>
-              <span className="text-sm text-muted-foreground">{realtimeAccount?.propFirmName || 'Prop Firm'}</span>
-              <span className="text-muted-foreground">•</span>
-              <span className="text-sm text-muted-foreground">
-                Master ID: {account.id}
-              </span>
-            </div>
+            )}
+            <span className="text-sm text-muted-foreground hidden sm:inline">•</span>
+            <span className="text-sm text-muted-foreground">{realtimeAccount?.propFirmName || 'Prop Firm'}</span>
+            <span className="text-sm text-muted-foreground hidden sm:inline">•</span>
+            <span className="text-xs sm:text-sm text-muted-foreground truncate">
+              ID: {account.id}
+            </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex flex-col items-end gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchAccountData}
-              disabled={isLoading}
-            >
-              <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
-              Refresh
-            </Button>
-          </div>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchAccountData}
+          disabled={isLoading}
+          className="w-fit"
+        >
+          <RefreshCw className={cn("h-4 w-4 sm:mr-2", isLoading && "animate-spin")} />
+          <span className="hidden sm:inline">Refresh</span>
+        </Button>
       </div>
 
       {/* Risk Alert */}
@@ -385,7 +381,7 @@ export default function AccountDetailPage() {
       )}
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -539,7 +535,7 @@ export default function AccountDetailPage() {
 
       {/* Detailed Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="trades">Trades</TabsTrigger>
           <TabsTrigger value="stats">Statistics</TabsTrigger>
           <TabsTrigger value="payouts">Payouts</TabsTrigger>
@@ -587,7 +583,7 @@ export default function AccountDetailPage() {
                   ) : (
                     <>
                       {/* Phase Breakdown */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                         {accountData?.phases?.map((phase: any) => {
                           const phaseTradeCount = accountData.recentTrades.filter((t: any) => 
                             t.phase?.id === phase.id || t.phaseAccountId === phase.id
@@ -599,7 +595,14 @@ export default function AccountDetailPage() {
                         return (
                           <Card key={phase.id} className="p-4">
                             <div className="flex items-center justify-between mb-2">
-                              <Badge variant={phase.status === 'active' ? 'default' : phase.status === 'passed' ? 'secondary' : 'destructive'}>
+                              <Badge 
+                                variant={phase.status === 'active' ? 'default' : phase.status === 'passed' ? 'secondary' : 'destructive'}
+                                className={cn(
+                                  phase.phaseNumber === 1 ? 'bg-blue-600 hover:bg-blue-700' : 
+                                  phase.phaseNumber === 2 ? 'bg-red-600 hover:bg-red-700' : 
+                                  phase.phaseNumber >= 3 ? 'bg-green-600 hover:bg-green-700' : ''
+                                )}
+                              >
                                 {phase.phaseNumber === 1 ? 'PHASE 1' : phase.phaseNumber === 2 ? 'PHASE 2' : phase.phaseNumber >= 3 ? 'FUNDED' : `PHASE ${phase.phaseNumber}`}
                               </Badge>
                               <span className="text-sm text-muted-foreground">
@@ -726,7 +729,7 @@ export default function AccountDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Total Trades</p>
                     <p className="text-2xl font-bold">{accountData?.recentTrades?.length || 0}</p>
@@ -791,24 +794,31 @@ export default function AccountDetailPage() {
                     
                     return (
                       <Card key={phase.id} className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <Badge variant={phase.status === 'active' ? 'default' : phase.status === 'passed' ? 'secondary' : 'destructive'}>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <Badge 
+                              variant={phase.status === 'active' ? 'default' : phase.status === 'passed' ? 'secondary' : 'destructive'}
+                              className={cn(
+                                phase.phaseNumber === 1 ? 'bg-blue-600 hover:bg-blue-700 w-fit' : 
+                                phase.phaseNumber === 2 ? 'bg-red-600 hover:bg-red-700 w-fit' : 
+                                phase.phaseNumber >= 3 ? 'bg-green-600 hover:bg-green-700 w-fit' : 'w-fit'
+                              )}
+                            >
                               {phase.phaseNumber === 1 ? 'PHASE 1' : phase.phaseNumber === 2 ? 'PHASE 2' : phase.phaseNumber >= 3 ? 'FUNDED' : `PHASE ${phase.phaseNumber}`}
                             </Badge>
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-xs sm:text-sm text-muted-foreground">
                               {phase.status} • Started {new Date(phase.startDate).toLocaleDateString()}
                             </span>
                           </div>
                           {phase.profitTarget && (
-                            <div className="text-right">
-                              <p className="text-sm text-muted-foreground">Target</p>
+                            <div className="text-left sm:text-right">
+                              <p className="text-xs sm:text-sm text-muted-foreground">Target</p>
                               <p className="font-medium">{formatCurrency(phase.profitTarget)}</p>
                             </div>
                           )}
                         </div>
                         
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                           <div>
                             <p className="text-muted-foreground">Trades</p>
                             <p className="font-medium text-lg">{phaseTrades.length}</p>
@@ -882,14 +892,14 @@ export default function AccountDetailPage() {
                         <p className="text-muted-foreground text-center py-4">No trading data available</p>
                       ) : (
                         sortedInstruments.map(([symbol, stats]: any) => (
-                          <div key={symbol} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="font-medium">{symbol}</div>
-                              <Badge variant="outline">{stats.trades} trades</Badge>
+                          <div key={symbol} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 border rounded-lg">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="font-medium truncate">{symbol}</div>
+                              <Badge variant="outline" className="shrink-0">{stats.trades} trades</Badge>
                             </div>
-                            <div className="flex items-center gap-4 text-sm">
-                              <div className="text-center">
-                                <p className="text-muted-foreground">Win Rate</p>
+                            <div className="flex items-center gap-4 sm:gap-6 text-sm">
+                              <div className="text-left sm:text-center">
+                                <p className="text-xs text-muted-foreground">Win Rate</p>
                                 <p className="font-medium text-green-600">
                                   {(() => {
                                     const tradableTradesCount = stats.wins + stats.losses
@@ -897,8 +907,8 @@ export default function AccountDetailPage() {
                                   })()}%
                                 </p>
                               </div>
-                              <div className="text-center">
-                                <p className="text-muted-foreground">Total P&L</p>
+                              <div className="text-left sm:text-center">
+                                <p className="text-xs text-muted-foreground">Total P&L</p>
                                 <p className={cn("font-medium", stats.pnl >= 0 ? "text-green-600" : "text-red-600")}>
                                   {formatCurrency(stats.pnl)}
                                 </p>
@@ -961,7 +971,7 @@ export default function AccountDetailPage() {
                           {accountData.payoutEligibility.isEligible ? "Eligible" : "Not Eligible"}
                         </Badge>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-muted-foreground">Days Since Funded:</span>
                           <span className="font-medium ml-2">{accountData.payoutEligibility.daysSinceFunded}</span>
@@ -1142,7 +1152,7 @@ export default function AccountDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm text-muted-foreground">Account Number</label>
@@ -1234,7 +1244,7 @@ export default function AccountDetailPage() {
                 <CardTitle>Trading Rules & Limits</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm text-muted-foreground">Daily Drawdown Limit</label>
@@ -1286,7 +1296,7 @@ export default function AccountDetailPage() {
                   <CardTitle>Payout Configuration</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-4">
                       <div>
                         <label className="text-sm text-muted-foreground">Profit Split</label>

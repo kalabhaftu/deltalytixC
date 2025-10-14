@@ -1,11 +1,27 @@
 'use client'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import TradeTable from "@/app/dashboard/data/components/data-management/trade-table"
-import { DataManagementCard } from "@/app/dashboard/data/components/data-management/data-management-card"
-import { useEffect } from "react"
+import { useEffect, lazy, Suspense } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
 
-export default function DashboardPage() {
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic'
+
+// Lazy load heavy components
+const TradeTable = lazy(() => import("@/app/dashboard/data/components/data-management/trade-table"))
+const DataManagementCard = lazy(() => import("@/app/dashboard/data/components/data-management/data-management-card").then(mod => ({ default: mod.DataManagementCard })))
+
+// Loading skeleton for tables
+function TableSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-64 w-full" />
+    </div>
+  )
+}
+
+function DashboardContent() {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
@@ -24,13 +40,25 @@ export default function DashboardPage() {
             <TabsTrigger value="trades">Trades</TabsTrigger>
           </TabsList>
           <TabsContent value="accounts" className="mt-6">
-            <DataManagementCard />
+            <Suspense fallback={<TableSkeleton />}>
+              <DataManagementCard />
+            </Suspense>
           </TabsContent>
           <TabsContent value="trades" className="mt-6">
-            <TradeTable />
+            <Suspense fallback={<TableSkeleton />}>
+              <TradeTable />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<TableSkeleton />}>
+      <DashboardContent />
+    </Suspense>
   )
 }

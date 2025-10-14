@@ -47,12 +47,15 @@ export function DataTableColumnHeader<TData, TValue>({
   const [minValue, setMinValue] = useState(currentFilter?.min?.toString() || '')
   const [maxValue, setMaxValue] = useState(currentFilter?.max?.toString() || '')
 
+  // Extract filter value for dependency array
+  const filterValue = column.getFilterValue()
+  
   // Update local state when filter changes externally
   useEffect(() => {
-    const filter = column.getFilterValue() as { min?: number; max?: number } | undefined
+    const filter = filterValue as { min?: number; max?: number } | undefined
     setMinValue(filter?.min?.toString() || '')
     setMaxValue(filter?.max?.toString() || '')
-  }, [column.getFilterValue(), column])
+  }, [filterValue])
 
   const handleHideColumn = () => {
     if (tableId) {

@@ -118,6 +118,7 @@ export default function AccountPayoutsPage() {
       fetchAccount()
       fetchPayouts()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, accountId])
 
   if (!account) {
