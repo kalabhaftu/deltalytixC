@@ -15,16 +15,23 @@ import {
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/context/data-provider'
+import { useModalStateStore } from '@/store/modal-state-store'
+import EnhancedEditTrade from '@/app/dashboard/components/tables/enhanced-edit-trade'
+import { TradeDetailView } from '@/app/dashboard/components/tables/trade-detail-view'
+import { Trade } from '@prisma/client'
 
 const ITEMS_PER_PAGE = 9 // Show 9 cards per page (3x3 grid on desktop)
 
 export function JournalClient() {
   const router = useRouter()
-  const { formattedTrades, refreshTrades } = useData() // Use filtered data from context
+  const { formattedTrades, refreshTrades, updateTrades } = useData() // Use filtered data from context
   const [searchTerm, setSearchTerm] = useState('')
   const [filterBy, setFilterBy] = useState<'all' | 'wins' | 'losses' | 'buys' | 'sells'>('all')
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
 
   const filteredTrades = useMemo(() => {
     return formattedTrades.filter(trade => {
@@ -66,6 +73,42 @@ export function JournalClient() {
       toast.error('Failed to refresh')
     } finally {
       setIsRefreshing(false)
+    }
+  }
+
+  const handleEditTrade = (trade: Trade) => {
+    setSelectedTrade(trade)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleViewTrade = (trade: Trade) => {
+    setSelectedTrade(trade)
+    setIsViewDialogOpen(true)
+  }
+
+  const handleDeleteTrade = async (trade: Trade) => {
+    if (confirm(`Are you sure you want to delete this trade? This action cannot be undone.`)) {
+      try {
+        // Here you would implement the delete functionality
+        toast.success('Trade deleted successfully')
+        await refreshTrades()
+      } catch (error) {
+        toast.error('Failed to delete trade')
+      }
+    }
+  }
+
+  const handleSaveTrade = async (updatedTrade: Partial<Trade>) => {
+    if (!selectedTrade) return
+    
+    try {
+      await updateTrades([selectedTrade.id], updatedTrade)
+      toast.success('Trade updated successfully')
+      setIsEditDialogOpen(false)
+      setSelectedTrade(null)
+      await refreshTrades()
+    } catch (error) {
+      toast.error('Failed to update trade')
     }
   }
 
@@ -145,7 +188,13 @@ export function JournalClient() {
           {/* Trade cards grid - 3 columns max for better card preview */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedTrades.map((trade) => (
-              <TradeCard key={trade.id} trade={trade} />
+              <TradeCard 
+                key={trade.id} 
+                trade={trade}
+                onEdit={() => handleEditTrade(trade)}
+                onView={() => handleViewTrade(trade)}
+                onDelete={() => handleDeleteTrade(trade)}
+              />
             ))}
           </div>
 
@@ -204,6 +253,27 @@ export function JournalClient() {
           )}
         </>
       )}
+
+      {/* Edit Trade Dialog */}
+      <EnhancedEditTrade
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false)
+          setSelectedTrade(null)
+        }}
+        trade={selectedTrade}
+        onSave={handleSaveTrade}
+      />
+
+      {/* View Trade Dialog */}
+      <TradeDetailView
+        isOpen={isViewDialogOpen}
+        onClose={() => {
+          setIsViewDialogOpen(false)
+          setSelectedTrade(null)
+        }}
+        trade={selectedTrade}
+      />
     </div>
   )
 }

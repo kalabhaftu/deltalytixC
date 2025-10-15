@@ -901,11 +901,11 @@ export default function EnhancedEditTrade({
                   </div>
                 </div>
 
-                {/* Card Preview - Full width */}
+                {/* Card Preview - Smaller size like backtest */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Card Preview Image</Label>
-                  <div className="relative">
-                    <div className="border-2 border-dashed rounded-lg p-4 text-center aspect-video flex items-center justify-center min-h-[200px] border-border bg-muted/30">
+                  <div className="w-full sm:w-64">
+                    <div className="border-2 border-dashed rounded-lg p-3 text-center aspect-video flex items-center justify-center min-h-[120px] border-border bg-muted/30">
                       <input
                         type="file"
                         accept="image/*"
@@ -952,13 +952,10 @@ export default function EnhancedEditTrade({
                       ) : (
                         <label
                           htmlFor="card-preview"
-                          className="cursor-pointer flex flex-col items-center text-foreground hover:text-foreground/80 transition-colors"
+                          className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
                         >
-                          <Camera className="w-8 h-8 mb-2" />
-                          <span className="text-sm font-medium">Upload Card Preview</span>
-                          <span className="text-xs text-muted-foreground mt-1">
-                            Optimized for journal cards
-                          </span>
+                          <Camera className="w-6 h-6 mb-1" />
+                          <span className="text-xs">Upload</span>
                         </label>
                       )}
                     </div>
