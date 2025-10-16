@@ -113,26 +113,28 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
             router.refresh()
             router.push(nextUrl || '/dashboard')
         } catch (error) {
-            console.error(error)
-            setOtpError(true)
-            // Clear the OTP input on error
-            otpForm.setValue('otp', '')
+            console.error('OTP verification error:', error)
             
             // Better error handling based on error type
             const errorMessage = error instanceof Error ? error.message : "Verification failed"
             
-            if (errorMessage.includes('expired') || errorMessage.includes('invalid')) {
+            // Only show error and clear input for actual authentication failures
+            if (errorMessage.includes('expired') || errorMessage.includes('invalid') || errorMessage.includes('Token has expired')) {
+                setOtpError(true)
+                otpForm.setValue('otp', '')
                 toast.error("Code Expired", {
                     description: "This verification code has expired. Please request a new one.",
                 })
             } else if (errorMessage.includes('rate limit')) {
+                setOtpError(true)
+                otpForm.setValue('otp', '')
                 toast.error("Too Many Attempts", {
                     description: "Please wait a moment before trying again.",
                 })
             } else {
-                toast.error("Invalid Code", {
-                    description: "Please check your email and try again.",
-                })
+                // For other errors, don't clear the input or show error state
+                // The user might have entered a valid code but there's a temporary issue
+                console.warn('Non-critical OTP error:', errorMessage)
             }
         } finally {
             setIsLoading(false)

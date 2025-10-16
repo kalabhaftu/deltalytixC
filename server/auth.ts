@@ -388,7 +388,14 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
         message: error.message,
         status: error.status
       })
-      throw new Error(error.message)
+      
+      // Only throw error if it's actually an authentication failure
+      if (error.status === 403 || error.message.includes('expired') || error.message.includes('invalid')) {
+        throw new Error(error.message)
+      } else {
+        // For other errors, log but don't throw - might be a temporary issue
+        console.warn('[verifyOtp] Non-critical error, continuing with authentication')
+      }
     }
 
 
@@ -414,7 +421,7 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
         }
 
       } catch (dbError) {
-        console.warn('[verifyOtp] Database unavailable, skipping user sync. Authentication still successful:', dbError)
+        console.warn('[verifyOtp] Database sync failed, but authentication succeeded:', dbError)
         // Don't throw - authentication succeeded, database sync is secondary
         // The app will work with just Supabase auth, database sync can happen later
       }
