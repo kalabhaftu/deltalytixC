@@ -213,39 +213,66 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         }
     }, [form, otpForm, router, nextUrl, isVerifying, isLoading, failedAttempts, isRateLimited])
 
-    // Auto-verify when OTP is complete with debouncing
+    // Auto-verify when OTP is complete - REBUILT FROM SCRATCH using industry best practices
+    // Reference: https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/input_event
+    // Pattern: Only trigger on actual user input completion, not on every keystroke
     React.useEffect(() => {
-        const otpValue = otpForm.getValues('otp')
-        
-        // Clear any existing timeout
-        if (verificationTimeoutRef.current) {
-            clearTimeout(verificationTimeoutRef.current)
-        }
-        
-        if (otpValue && otpValue.length === 6 && !isLoading && !isVerifying && !isRateLimited) {
-            // Clear any previous errors
+        // Get current form subscription to OTP field changes
+        const subscription = otpForm.watch((value, { name }) => {
+            // Only proceed if the OTP field changed
+            if (name !== 'otp') return
+            
+            const otpValue = value.otp
+            
+            // Validate: Must be exactly 6 digits, no partial completion
+            if (!otpValue || otpValue.length !== 6) {
+                // Clear any pending verification if user is still typing
+                if (verificationTimeoutRef.current) {
+                    clearTimeout(verificationTimeoutRef.current)
+                    verificationTimeoutRef.current = null
+                }
+                return
+            }
+            
+            // Guard: Prevent verification if already in progress or rate limited
+            if (isLoading || isVerifying || isRateLimited) {
+                return
+            }
+            
+            // Clear any previous errors when user completes OTP entry
             setOtpError(false)
             
-            // Longer debounce for mobile to prevent rapid-fire attempts
-            verificationTimeoutRef.current = setTimeout(() => {
-                // Double-check conditions before verifying
-                const currentOtpValue = otpForm.getValues('otp')
-                if (currentOtpValue && currentOtpValue.length === 6 && !isLoading && !isVerifying && !isRateLimited) {
-                    onSubmitOtp({ otp: currentOtpValue })
-                }
-            }, 800) // 800ms debounce for better mobile stability
-        }
-        
-        // Cleanup timeouts on unmount
-        return () => {
+            // Cancel any pending verification from previous input
             if (verificationTimeoutRef.current) {
                 clearTimeout(verificationTimeoutRef.current)
             }
+            
+            // Immediate verification on completion (no artificial delay)
+            // Using requestAnimationFrame ensures DOM updates complete before verification
+            verificationTimeoutRef.current = setTimeout(() => {
+                requestAnimationFrame(() => {
+                    // Final safety check before verification
+                    const finalValue = otpForm.getValues('otp')
+                    if (finalValue === otpValue && finalValue.length === 6 && !isLoading && !isVerifying && !isRateLimited) {
+                        onSubmitOtp({ otp: finalValue })
+                    }
+                })
+            }, 0) // Zero delay - immediate execution after render cycle
+        })
+        
+        // Cleanup: Unsubscribe and clear timeouts on unmount or dependency change
+        return () => {
+            subscription.unsubscribe()
+            if (verificationTimeoutRef.current) {
+                clearTimeout(verificationTimeoutRef.current)
+                verificationTimeoutRef.current = null
+            }
             if (rateLimitTimeoutRef.current) {
                 clearTimeout(rateLimitTimeoutRef.current)
+                rateLimitTimeoutRef.current = null
             }
         }
-    }, [otpForm.watch('otp'), isLoading, isVerifying, isRateLimited, onSubmitOtp])
+    }, [otpForm, isLoading, isVerifying, isRateLimited, onSubmitOtp])
 
 
     async function onSubmitEmail(values: z.infer<typeof formSchema>) {
