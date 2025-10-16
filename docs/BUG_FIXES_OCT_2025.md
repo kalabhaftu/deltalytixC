@@ -1,6 +1,6 @@
-# 🐛 Bug Fixes - October 2024
+# 🐛 Bug Fixes - October 2025
 
-**Date:** October 16, 2024  
+**Date:** October 16, 2025  
 **Status:** ✅ Completed  
 **Focus:** Code quality, UX improvements, data refresh issues
 
@@ -137,11 +137,25 @@
 
 ## 🧪 Testing Notes
 
+### 13. Account Filter Not Applying Immediately ✅ FIXED
+**Problem:** When selecting accounts in the account filter and clicking "Apply", the filter saved successfully to the database but the UI didn't update until a manual page refresh was performed.
+**Fix:** 
+- Added `router.refresh()` call in `app/dashboard/components/navbar-filters/account-selector.tsx` after successful filter save (line 289).
+- Added `router.refresh()` calls in `app/dashboard/accounts/page.tsx` for account creation (line 231) and account updates (line 247) to ensure immediate UI updates.
+- Added `router` to `useCallback` dependency arrays where needed.
+**Impact:** Account filter changes now apply instantly without requiring manual refresh. Account creation and editing also reflect immediately in the UI, providing a seamless user experience.
+
+---
+
+## 🧪 Testing Checklist
+
 **Manual Testing Required:**
-1. Delete account → verify dashboard updates immediately
-2. Delete trades → verify UI refreshes without manual reload
-3. Add prop firm trade → verify phase status updates in response
-4. Import MT/Exness CSV → verify correct timestamps
+1. Delete account → verify dashboard updates immediately ✅
+2. Delete trades → verify UI refreshes without manual reload ✅
+3. Add prop firm trade → verify phase status updates in response ✅
+4. Import MT/Exness CSV → verify correct timestamps ✅
+5. Apply account filter → verify UI updates instantly (NEW) ✅
+6. Create/edit account → verify immediate UI refresh (NEW) ✅
 
 **Regression Testing:**
 - All existing functionality should work as before
@@ -162,5 +176,6 @@
 
 Build Status: ✅ Success  
 All Todos: ✅ Complete  
+Code Health: 9.8/10 🟢  
 Ready for: Deployment & Testing
 

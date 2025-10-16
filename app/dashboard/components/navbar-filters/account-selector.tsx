@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useState, useMemo, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Search, ChevronDown, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -21,6 +22,7 @@ interface AccountSelectorProps {
 }
 
 export function AccountSelector({ onSave }: AccountSelectorProps) {
+  const router = useRouter()
   const { accountNumbers, setAccountNumbers } = useData()
   const { accounts, isLoading } = useAccounts()
   const [searchQuery, setSearchQuery] = useState("")
@@ -282,6 +284,10 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
       if (response.ok) {
         // Set accountNumbers to the account numbers (phaseIds) for proper trade filtering
         setAccountNumbers(accountNumbersToSave)
+        
+        // CRITICAL: Force router refresh to update UI immediately
+        router.refresh()
+        
         toast.success(`${selectedAccounts.size} account(s) selected`)
         onSave?.()
       } else {

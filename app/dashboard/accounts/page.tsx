@@ -226,25 +226,33 @@ export default function AccountsPage() {
     // Clear cache to ensure immediate refresh
     clearAccountsCache()
     refetchAccounts()
+    
+    // CRITICAL: Force router refresh to update UI immediately
+    router.refresh()
+    
     setLastUpdated(new Date())
     setCreateLiveDialogOpen(false)
     setCreatePropFirmDialogOpen(false)
     toast.success("Account created", {
       description: "New account has been added successfully",
     })
-  }, [refetchAccounts])
+  }, [refetchAccounts, router])
 
   const handleAccountUpdated = useCallback(() => {
     // Clear cache to ensure immediate refresh
     clearAccountsCache()
     refetchAccounts()
+    
+    // CRITICAL: Force router refresh to update UI immediately
+    router.refresh()
+    
     setLastUpdated(new Date())
     setEditLiveDialogOpen(false)
     setEditingAccount(null)
     toast.success("Account updated", {
       description: "Account has been updated successfully",
     })
-  }, [refetchAccounts])
+  }, [refetchAccounts, router])
 
   const handleViewAccount = useCallback((account: Account) => {
     if (account.accountType === 'prop-firm') {
