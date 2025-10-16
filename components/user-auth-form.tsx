@@ -100,10 +100,22 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         }
     }
 
+    // Track verification attempts to prevent spam
+    const [isVerifying, setIsVerifying] = React.useState(false)
+    const verificationTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+
     // OTP submission function
     const onSubmitOtp = React.useCallback(async (values: z.infer<typeof otpFormSchema>) => {
+        // Prevent multiple simultaneous verification attempts
+        if (isVerifying || isLoading) {
+            console.log('OTP verification already in progress, skipping...')
+            return
+        }
+
+        setIsVerifying(true)
         setIsLoading(true)
         setOtpError(false)
+        
         try {
             const email = form.getValues('email')
             await verifyOtp(email, values.otp)
@@ -143,19 +155,40 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
             }
         } finally {
             setIsLoading(false)
+            setIsVerifying(false)
         }
-    }, [form, otpForm, router, nextUrl])
+    }, [form, otpForm, router, nextUrl, isVerifying, isLoading])
 
-    // Auto-verify when OTP is complete
+    // Auto-verify when OTP is complete with debouncing
     React.useEffect(() => {
         const otpValue = otpForm.getValues('otp')
-        if (otpValue && otpValue.length === 6 && !isLoading) {
+        
+        // Clear any existing timeout
+        if (verificationTimeoutRef.current) {
+            clearTimeout(verificationTimeoutRef.current)
+        }
+        
+        if (otpValue && otpValue.length === 6 && !isLoading && !isVerifying) {
             // Clear any previous errors
             setOtpError(false)
-            // Auto-submit immediately
-            onSubmitOtp({ otp: otpValue })
+            
+            // Debounce the verification to prevent spam on mobile
+            verificationTimeoutRef.current = setTimeout(() => {
+                // Double-check conditions before verifying
+                const currentOtpValue = otpForm.getValues('otp')
+                if (currentOtpValue && currentOtpValue.length === 6 && !isLoading && !isVerifying) {
+                    onSubmitOtp({ otp: currentOtpValue })
+                }
+            }, 500) // 500ms debounce
         }
-    }, [otpForm.watch('otp'), isLoading, onSubmitOtp])
+        
+        // Cleanup timeout on unmount
+        return () => {
+            if (verificationTimeoutRef.current) {
+                clearTimeout(verificationTimeoutRef.current)
+            }
+        }
+    }, [otpForm.watch('otp'), isLoading, isVerifying, onSubmitOtp])
 
 
     async function onSubmitEmail(values: z.infer<typeof formSchema>) {

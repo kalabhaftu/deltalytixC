@@ -394,11 +394,14 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
           error.message.includes('expired') || 
           error.message.includes('invalid') ||
           error.message.includes('Token has expired') ||
-          error.message.includes('Invalid token')) {
+          error.message.includes('Invalid token') ||
+          error.message.includes('Invalid login credentials') ||
+          error.message.includes('Email not confirmed') ||
+          error.message.includes('User not found')) {
         throw new Error(error.message)
       } else {
         // For other errors, log but don't throw - might be a temporary issue
-        console.warn('[verifyOtp] Non-critical error, continuing with authentication')
+        console.warn('[verifyOtp] Non-critical error, continuing with authentication:', error.message)
       }
     }
 
