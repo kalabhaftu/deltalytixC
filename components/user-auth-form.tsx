@@ -190,22 +190,27 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                     setFailedAttempts(0)
                 }, 30000)
             }
-            // Only show error and clear input for actual authentication failures
-            else if (errorMessage.includes('expired') || 
-                errorMessage.includes('invalid') || 
-                errorMessage.includes('Token has expired') ||
-                errorMessage.includes('Invalid token') ||
-                errorMessage.includes('Authentication failed')) {
+            // Handle all authentication failures - wrong codes, expired, invalid
+            else {
+                // Always show error and clear input for any verification failure
                 setOtpError(true)
                 otpForm.setValue('otp', '')
-                toast.error("Invalid Code", {
-                    description: `Invalid verification code. ${5 - failedAttempts - 1} attempts remaining.`,
+                
+                // Determine the specific error message
+                let errorTitle = "Invalid Code"
+                let errorDescription = `Incorrect verification code. ${5 - failedAttempts - 1} attempts remaining.`
+                
+                if (errorMessage.includes('expired') || errorMessage.includes('Token has expired')) {
+                    errorTitle = "Code Expired"
+                    errorDescription = "This verification code has expired. Please request a new one."
+                } else if (errorMessage.includes('Authentication failed')) {
+                    errorTitle = "Verification Failed"
+                    errorDescription = "Unable to verify the code. Please try again."
+                }
+                
+                toast.error(errorTitle, {
+                    description: errorDescription,
                 })
-            } else {
-                // For other errors, don't clear the input or show error state
-                // The user might have entered a valid code but there's a temporary issue
-                console.warn('Non-critical OTP error:', errorMessage)
-                // Don't show error state for non-critical errors
             }
         } finally {
             setIsLoading(false)
