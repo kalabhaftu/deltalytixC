@@ -18,7 +18,7 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form"
-import { Mail, Hash } from "lucide-react"
+import { Mail, Hash, Shield, Copy, Check } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
@@ -49,6 +49,8 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
     const [showOtpInput, setShowOtpInput] = React.useState<boolean>(false)
     const [nextUrl, setNextUrl] = React.useState<string | null>(null)
     const [isExistingUser, setIsExistingUser] = React.useState<boolean>(false)
+    const [otpError, setOtpError] = React.useState<boolean>(false)
+    const [showPasteButton, setShowPasteButton] = React.useState<boolean>(false)
     const router = useRouter()
 
     React.useEffect(() => {
@@ -77,6 +79,76 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
             otp: "",
         },
     })
+
+    // Handle paste functionality
+    const handlePaste = async () => {
+        try {
+            const text = await navigator.clipboard.readText()
+            const cleanText = text.replace(/\D/g, '') // Remove non-digits
+            if (cleanText.length === 6) {
+                otpForm.setValue('otp', cleanText)
+                setShowPasteButton(false)
+            } else {
+                toast.error("Invalid code", {
+                    description: "Please copy a 6-digit verification code"
+                })
+            }
+        } catch (error) {
+            toast.error("Paste failed", {
+                description: "Could not read from clipboard"
+            })
+        }
+    }
+
+    // OTP submission function
+    const onSubmitOtp = React.useCallback(async (values: z.infer<typeof otpFormSchema>) => {
+        setIsLoading(true)
+        setOtpError(false)
+        try {
+            const email = form.getValues('email')
+            await verifyOtp(email, values.otp)
+            toast.success("Success", {
+                description: "Successfully verified. Redirecting...",
+            })
+            router.refresh()
+            router.push(nextUrl || '/dashboard')
+        } catch (error) {
+            console.error(error)
+            setOtpError(true)
+            // Clear the OTP input on error
+            otpForm.setValue('otp', '')
+            
+            // Better error handling based on error type
+            const errorMessage = error instanceof Error ? error.message : "Verification failed"
+            
+            if (errorMessage.includes('expired') || errorMessage.includes('invalid')) {
+                toast.error("Code Expired", {
+                    description: "This verification code has expired. Please request a new one.",
+                })
+            } else if (errorMessage.includes('rate limit')) {
+                toast.error("Too Many Attempts", {
+                    description: "Please wait a moment before trying again.",
+                })
+            } else {
+                toast.error("Invalid Code", {
+                    description: "Please check your email and try again.",
+                })
+            }
+        } finally {
+            setIsLoading(false)
+        }
+    }, [form, otpForm, router, nextUrl])
+
+    // Auto-verify when OTP is complete
+    React.useEffect(() => {
+        const otpValue = otpForm.getValues('otp')
+        if (otpValue && otpValue.length === 6 && !isLoading) {
+            // Clear any previous errors
+            setOtpError(false)
+            // Auto-submit immediately
+            onSubmitOtp({ otp: otpValue })
+        }
+    }, [otpForm.watch('otp'), isLoading, onSubmitOtp])
 
 
     async function onSubmitEmail(values: z.infer<typeof formSchema>) {
@@ -110,25 +182,6 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         }
     }
 
-    async function onSubmitOtp(values: z.infer<typeof otpFormSchema>) {
-        setIsLoading(true)
-        try {
-            const email = form.getValues('email')
-            await verifyOtp(email, values.otp)
-            toast.success("Success", {
-                description: "Successfully verified. Redirecting...",
-            })
-            router.refresh()
-            router.push(nextUrl || '/dashboard')
-        } catch (error) {
-            console.error(error)
-            toast.error("Error", {
-                description: error instanceof Error ? error.message : "Failed to verify code",
-            })
-        } finally {
-            setIsLoading(false)
-        }
-    }
 
     async function onSubmitDiscord(event: React.SyntheticEvent) {
         event.preventDefault()
@@ -257,7 +310,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                                         </>
                                     ) : (
                                         <>
-                                            <Hash className="h-4 w-4" />
+                                            <Shield className="h-4 w-4" />
                                             Verification Code Sent!
                                         </>
                                     )}
@@ -303,44 +356,137 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                             control={otpForm.control}
                             name="otp"
                             render={({ field }) => (
-                                <FormItem className="space-y-2">
-                                    <FormLabel className="text-center block">Enter Verification Code</FormLabel>
+                                <FormItem className="space-y-3">
+                                    <FormLabel className="text-center block text-sm font-medium">
+                                        Enter Verification Code
+                                    </FormLabel>
                                     <FormControl>
-                                        <div className="flex justify-center">
-                                            <InputOTP
-                                                maxLength={6}
-                                                value={field.value}
-                                                onChange={field.onChange}
-                                                className="gap-2"
-                                            >
-                                                <InputOTPGroup>
-                                                    <InputOTPSlot index={0} />
-                                                    <InputOTPSlot index={1} />
-                                                    <InputOTPSlot index={2} />
-                                                </InputOTPGroup>
-                                                <InputOTPSeparator />
-                                                <InputOTPGroup>
-                                                    <InputOTPSlot index={3} />
-                                                    <InputOTPSlot index={4} />
-                                                    <InputOTPSlot index={5} />
-                                                </InputOTPGroup>
-                                            </InputOTP>
+                                        <div className="flex flex-col items-center space-y-3">
+                                            {/* Paste Button Tooltip */}
+                                            {showPasteButton && (
+                                                <div className="relative">
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={handlePaste}
+                                                        className="text-xs px-3 py-1 h-auto bg-background/80 backdrop-blur-sm border-border/50"
+                                                    >
+                                                        <Copy className="h-3 w-3 mr-1" />
+                                                        Paste Code
+                                                    </Button>
+                                                </div>
+                                            )}
+                                            
+                                            {/* OTP Input */}
+                                            <div className="relative">
+                                                <InputOTP
+                                                    maxLength={6}
+                                                    value={field.value}
+                                                    onChange={(value) => {
+                                                        field.onChange(value)
+                                                        setOtpError(false)
+                                                        // Show paste button when first input is focused and empty
+                                                        if (value.length === 0) {
+                                                            setShowPasteButton(true)
+                                                        } else {
+                                                            setShowPasteButton(false)
+                                                        }
+                                                    }}
+                                                    onFocus={() => {
+                                                        if (field.value.length === 0) {
+                                                            setShowPasteButton(true)
+                                                        }
+                                                    }}
+                                                    onBlur={() => {
+                                                        setTimeout(() => setShowPasteButton(false), 200)
+                                                    }}
+                                                    className={`gap-2 transition-all duration-200 ${
+                                                        otpError ? 'animate-pulse' : ''
+                                                    }`}
+                                                >
+                                                    <InputOTPGroup>
+                                                        <InputOTPSlot 
+                                                            index={0} 
+                                                            className={`transition-all duration-200 ${
+                                                                otpError ? 'border-destructive bg-destructive/10' : ''
+                                                            }`}
+                                                        />
+                                                        <InputOTPSlot 
+                                                            index={1}
+                                                            className={`transition-all duration-200 ${
+                                                                otpError ? 'border-destructive bg-destructive/10' : ''
+                                                            }`}
+                                                        />
+                                                        <InputOTPSlot 
+                                                            index={2}
+                                                            className={`transition-all duration-200 ${
+                                                                otpError ? 'border-destructive bg-destructive/10' : ''
+                                                            }`}
+                                                        />
+                                                    </InputOTPGroup>
+                                                    <InputOTPSeparator />
+                                                    <InputOTPGroup>
+                                                        <InputOTPSlot 
+                                                            index={3}
+                                                            className={`transition-all duration-200 ${
+                                                                otpError ? 'border-destructive bg-destructive/10' : ''
+                                                            }`}
+                                                        />
+                                                        <InputOTPSlot 
+                                                            index={4}
+                                                            className={`transition-all duration-200 ${
+                                                                otpError ? 'border-destructive bg-destructive/10' : ''
+                                                            }`}
+                                                        />
+                                                        <InputOTPSlot 
+                                                            index={5}
+                                                            className={`transition-all duration-200 ${
+                                                                otpError ? 'border-destructive bg-destructive/10' : ''
+                                                            }`}
+                                                        />
+                                                    </InputOTPGroup>
+                                                </InputOTP>
+                                                
+                                                {/* Auto-verification indicator */}
+                                                {field.value.length === 6 && isLoading && (
+                                                    <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2">
+                                                        <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                                                            <Icons.spinner className="h-3 w-3 animate-spin" />
+                                                            <span>Verifying...</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            {/* Error message */}
+                                            {otpError && (
+                                                <div className="text-center space-y-2">
+                                                    <p className="text-xs text-destructive animate-in fade-in-0">
+                                                        Invalid or expired code. Please try again.
+                                                    </p>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setOtpError(false)
+                                                            otpForm.setValue('otp', '')
+                                                            // Trigger resend email
+                                                            form.handleSubmit(onSubmitEmail)()
+                                                        }}
+                                                        className="text-xs px-3 py-1 h-auto"
+                                                    >
+                                                        Request New Code
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     </FormControl>
                                     <FormMessage className="text-center" />
                                 </FormItem>
                             )}
                         />
-                        <Button
-                            type="submit"
-                            className="w-full transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
-                            disabled={isLoading}
-                        >
-                            {isLoading ? (
-                                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                            ) : null}
-                            Verify Code
-                        </Button>
                     </form>
                 </Form>
             )}
@@ -358,6 +504,9 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
             )}
             */}
 
+            {/* Only show Google/Discord options when not in OTP mode */}
+            {!showOtpInput && (
+                <>
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">
                             <span className="w-full border-t" />
@@ -368,36 +517,38 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                             </span>
                         </div>
                     </div>
-            <div className="space-y-3">
-                <Button
-                    variant="outline"
-                    type="button"
-                    disabled={isLoading || authMethod === 'email'}
-                    onClick={onSubmitGoogle}
-                    className="w-full h-12 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] hover:bg-muted/50"
-                >
-                    {isLoading && authMethod === 'google' ? (
-                        <Icons.spinner className="mr-3 h-5 w-5 animate-spin" />
-                    ) : (
-                        <Icons.google className="mr-3 h-5 w-5" />
-                    )}
-                    Continue with Google
-                </Button>
-                <Button
-                    variant="outline"
-                    type="button"
-                    disabled={isLoading || authMethod === 'email'}
-                    onClick={onSubmitDiscord}
-                    className="w-full h-12 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] hover:bg-discord/5 hover:border-discord/20"
-                >
-                    {isLoading && authMethod === 'discord' ? (
-                        <Icons.spinner className="mr-3 h-5 w-5 animate-spin" />
-                    ) : (
-                        <Icons.discord className="mr-3 h-5 w-5" />
-                    )}
-                    Continue with Discord
-                </Button>
-            </div>
+                    <div className="space-y-3">
+                        <Button
+                            variant="outline"
+                            type="button"
+                            disabled={isLoading || authMethod === 'email'}
+                            onClick={onSubmitGoogle}
+                            className="w-full h-12 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] hover:bg-muted/50"
+                        >
+                            {isLoading && authMethod === 'google' ? (
+                                <Icons.spinner className="mr-3 h-5 w-5 animate-spin" />
+                            ) : (
+                                <Icons.google className="mr-3 h-5 w-5" />
+                            )}
+                            Continue with Google
+                        </Button>
+                        <Button
+                            variant="outline"
+                            type="button"
+                            disabled={isLoading || authMethod === 'email'}
+                            onClick={onSubmitDiscord}
+                            className="w-full h-12 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] hover:bg-discord/5 hover:border-discord/20"
+                        >
+                            {isLoading && authMethod === 'discord' ? (
+                                <Icons.spinner className="mr-3 h-5 w-5 animate-spin" />
+                            ) : (
+                                <Icons.discord className="mr-3 h-5 w-5" />
+                            )}
+                            Continue with Discord
+                        </Button>
+                    </div>
+                </>
+            )}
         </div>
     )
 }

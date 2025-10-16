@@ -1,6 +1,12 @@
 'use server'
 import { createClient, ensureUserInDatabase } from '@/server/auth'
 import { NextResponse } from 'next/server'
+
+// Helper function to determine if we're in local development
+function isLocalDevelopment() {
+  const isVercel = process.env.VERCEL === '1'
+  return process.env.NODE_ENV === 'development' && !isVercel
+}
 // The client you created from the Server-Side Auth instructions
 
 export async function GET(request: Request) {
@@ -14,8 +20,7 @@ export async function GET(request: Request) {
 
   // Handle OAuth errors from the provider
   if (error_code) {
-    const isLocalEnv = process.env.NODE_ENV === 'development'
-    const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
+    const baseUrl = isLocalDevelopment() ? 'http://localhost:3000' : origin
     
     if (error_code === 'bad_oauth_state') {
       // OAuth state mismatch - redirect to authentication to retry
@@ -52,15 +57,13 @@ export async function GET(request: Request) {
         // Handle identity linking redirect
         if (action === 'link') {
           const forwardedHost = request.headers.get('host')
-          const isLocalEnv = process.env.NODE_ENV === 'development'
-          const baseUrl = isLocalEnv
+          const baseUrl = isLocalDevelopment()
             ? `${origin}/dashboard/settings`
             : `https://${forwardedHost || origin}/dashboard/settings`
           return NextResponse.redirect(new URL('/dashboard/settings?linked=true', baseUrl))
         }
 
-        const isLocalEnv = process.env.NODE_ENV === 'development'
-        const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
+        const baseUrl = isLocalDevelopment() ? 'http://localhost:3000' : origin
 
         // Redirect to dashboard after successful authentication
         const redirectPath = decodedNext || '/dashboard'
@@ -68,8 +71,7 @@ export async function GET(request: Request) {
       }
       
       // Handle specific auth errors
-      const isLocalEnv = process.env.NODE_ENV === 'development'
-      const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
+      const baseUrl = isLocalDevelopment() ? 'http://localhost:3000' : origin
 
       if (error?.message?.includes('timeout') || error?.message?.includes('fetch failed')) {
         return NextResponse.redirect(new URL('/', baseUrl))
@@ -77,14 +79,12 @@ export async function GET(request: Request) {
 
       return NextResponse.redirect(new URL('/', baseUrl))
     } catch (networkError) {
-      const isLocalEnv = process.env.NODE_ENV === 'development'
-      const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
+      const baseUrl = isLocalDevelopment() ? 'http://localhost:3000' : origin
       return NextResponse.redirect(new URL('/', baseUrl))
     }
   }
 
   // return the user to the authentication page
-  const isLocalEnv = process.env.NODE_ENV === 'development'
-  const baseUrl = isLocalEnv ? 'http://localhost:3000' : origin
+  const baseUrl = isLocalDevelopment() ? 'http://localhost:3000' : origin
   return NextResponse.redirect(new URL('/', baseUrl))
 }

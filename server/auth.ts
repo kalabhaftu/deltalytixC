@@ -6,21 +6,36 @@ import { prisma } from '@/lib/prisma'
 import { headers } from "next/headers"
 // Removed locales import - using plain English strings
 
+// Helper function to determine if we're in local development
+function isLocalDevelopment() {
+  const isVercel = process.env.VERCEL === '1'
+  return process.env.NODE_ENV === 'development' && !isVercel
+}
+
 export async function getWebsiteURL() {
-  // In development, always use localhost
-  if (process.env.NODE_ENV === 'development') {
+  // Only use localhost if we're truly in local development (not on Vercel)
+  if (isLocalDevelopment()) {
     return 'http://localhost:3000/'
   }
   
   let url =
     process?.env?.NEXT_PUBLIC_SITE_URL ?? // Set this to your site URL in production env.
     process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set by Vercel.
+    process?.env?.NEXT_PUBLIC_APP_URL ?? // Your custom app URL
     'http://localhost:3000/'
   
   // Make sure to include `https://` when not localhost.
   url = url.startsWith('http') ? url : `https://${url}`
   // Make sure to include a trailing `/`.
   url = url.endsWith('/') ? url : `${url}/`
+  
+  console.log('[getWebsiteURL] Environment check:', {
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL: process.env.VERCEL,
+    isLocal: isLocalDevelopment(),
+    finalUrl: url
+  })
+  
   return url
 }
 
