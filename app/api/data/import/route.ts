@@ -426,18 +426,30 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        await prisma.dashboardTemplate.create({
-          data: {
-            userId: user.id,
-            name: template.name,
-            isDefault: template.isDefault === 'true' || template.isDefault === true,
-            isActive: false, // Don't automatically activate imported templates
-            layout: layout,
-            createdAt: template.createdAt ? new Date(template.createdAt) : new Date(),
-            updatedAt: template.updatedAt ? new Date(template.updatedAt) : new Date()
+        try {
+          await prisma.dashboardTemplate.create({
+            data: {
+              userId: user.id,
+              name: template.name,
+              isDefault: template.isDefault === 'true' || template.isDefault === true,
+              isActive: false, // Don't automatically activate imported templates
+              layout: layout,
+              createdAt: template.createdAt ? new Date(template.createdAt) : new Date(),
+              updatedAt: template.updatedAt ? new Date(template.updatedAt) : new Date()
+            }
+          })
+          results.dashboardTemplates++
+        } catch (templateError: any) {
+          // Handle unique constraint error - template with same name already exists
+          if (templateError.code === 'P2002' && templateError.meta?.target?.includes('name')) {
+            console.log(`  ⚠️ Skipping duplicate template: ${template.name}`)
+            // Don't increment counter for duplicates
+          } else {
+            console.error(`  ❌ Error importing template ${template.name}:`, templateError)
+            // Re-throw if it's not a duplicate constraint error
+            throw templateError
           }
-        })
-        results.dashboardTemplates++
+        }
       }
       console.log(`  ✓ Imported ${results.dashboardTemplates} dashboard templates`)
     }

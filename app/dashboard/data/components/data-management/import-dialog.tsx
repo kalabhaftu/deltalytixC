@@ -35,9 +35,8 @@ export function ImportDialog() {
 
     try {
       setIsImporting(true)
-      toast('Importing data...', { 
-        id: 'import',
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
+      toast.info('Importing data...', {
+        description: 'Please wait while your data is being imported.',
         duration: Infinity
       })
 
@@ -56,7 +55,9 @@ export function ImportDialog() {
       }
 
       setImportResults(data.results)
-      toast.success('Data imported successfully!', { id: 'import' })
+      toast.success('Data imported successfully!', {
+        description: `Imported ${data.results?.trades || 0} trades and ${data.results?.accounts || 0} accounts.`
+      })
 
       // Refresh data
       setTimeout(() => {
@@ -66,7 +67,9 @@ export function ImportDialog() {
 
     } catch (error) {
       console.error('Import error:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to import data', { id: 'import' })
+      toast.error('Failed to import data', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred'
+      })
     } finally {
       setIsImporting(false)
     }
