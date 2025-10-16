@@ -386,8 +386,14 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
       console.error('[verifyOtp] Supabase OTP verification error:', error)
       console.error('[verifyOtp] Error details:', {
         message: error.message,
-        status: error.status
+        status: error.status,
+        code: error.code
       })
+      
+      // Handle rate limiting specifically
+      if (error.status === 429 || error.message?.includes('rate limit') || error.message?.includes('too many requests')) {
+        throw new Error('Too many verification attempts. Please wait a moment before trying again.')
+      }
       
       // Only throw error for actual authentication failures
       if (error.status === 403 || 

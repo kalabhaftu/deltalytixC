@@ -100,15 +100,49 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         }
     }
 
-    // Track verification attempts to prevent spam
+    // Track verification attempts to prevent spam and rate limiting
     const [isVerifying, setIsVerifying] = React.useState(false)
+    const [failedAttempts, setFailedAttempts] = React.useState(0)
+    const [isRateLimited, setIsRateLimited] = React.useState(false)
     const verificationTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+    const rateLimitTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
     // OTP submission function
     const onSubmitOtp = React.useCallback(async (values: z.infer<typeof otpFormSchema>) => {
         // Prevent multiple simultaneous verification attempts
         if (isVerifying || isLoading) {
             console.log('OTP verification already in progress, skipping...')
+            return
+        }
+
+        // Client-side rate limiting: max 5 attempts, then 30 second cooldown
+        if (isRateLimited) {
+            toast.error("Rate Limited", {
+                description: "Too many attempts. Please wait 30 seconds before trying again.",
+            })
+            return
+        }
+
+        // After 5 failed attempts, enforce rate limit
+        if (failedAttempts >= 5) {
+            setIsRateLimited(true)
+            setOtpError(true)
+            otpForm.setValue('otp', '')
+            toast.error("Too Many Failed Attempts", {
+                description: "Please wait 30 seconds before trying again.",
+            })
+            
+            // Reset after 30 seconds
+            if (rateLimitTimeoutRef.current) {
+                clearTimeout(rateLimitTimeoutRef.current)
+            }
+            rateLimitTimeoutRef.current = setTimeout(() => {
+                setIsRateLimited(false)
+                setFailedAttempts(0)
+                toast.info("Ready to Try Again", {
+                    description: "You can now attempt verification again.",
+                })
+            }, 30000) // 30 seconds
             return
         }
 
@@ -119,6 +153,11 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         try {
             const email = form.getValues('email')
             await verifyOtp(email, values.otp)
+            
+            // Reset failed attempts on success
+            setFailedAttempts(0)
+            setIsRateLimited(false)
+            
             toast.success("Success", {
                 description: "Successfully verified. Redirecting...",
             })
@@ -127,25 +166,40 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         } catch (error) {
             console.error('OTP verification error:', error)
             
+            // Increment failed attempts
+            setFailedAttempts(prev => prev + 1)
+            
             // Better error handling based on error type
             const errorMessage = error instanceof Error ? error.message : "Verification failed"
             
+            // Handle rate limiting from server
+            if (errorMessage.includes('Too many') || errorMessage.includes('rate limit')) {
+                setIsRateLimited(true)
+                setOtpError(true)
+                otpForm.setValue('otp', '')
+                toast.error("Too Many Attempts", {
+                    description: "Please wait 30 seconds before trying again.",
+                })
+                
+                // Reset after 30 seconds
+                if (rateLimitTimeoutRef.current) {
+                    clearTimeout(rateLimitTimeoutRef.current)
+                }
+                rateLimitTimeoutRef.current = setTimeout(() => {
+                    setIsRateLimited(false)
+                    setFailedAttempts(0)
+                }, 30000)
+            }
             // Only show error and clear input for actual authentication failures
-            if (errorMessage.includes('expired') || 
+            else if (errorMessage.includes('expired') || 
                 errorMessage.includes('invalid') || 
                 errorMessage.includes('Token has expired') ||
                 errorMessage.includes('Invalid token') ||
                 errorMessage.includes('Authentication failed')) {
                 setOtpError(true)
                 otpForm.setValue('otp', '')
-                toast.error("Code Expired", {
-                    description: "This verification code has expired. Please request a new one.",
-                })
-            } else if (errorMessage.includes('rate limit')) {
-                setOtpError(true)
-                otpForm.setValue('otp', '')
-                toast.error("Too Many Attempts", {
-                    description: "Please wait a moment before trying again.",
+                toast.error("Invalid Code", {
+                    description: `Invalid verification code. ${5 - failedAttempts - 1} attempts remaining.`,
                 })
             } else {
                 // For other errors, don't clear the input or show error state
@@ -157,7 +211,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
             setIsLoading(false)
             setIsVerifying(false)
         }
-    }, [form, otpForm, router, nextUrl, isVerifying, isLoading])
+    }, [form, otpForm, router, nextUrl, isVerifying, isLoading, failedAttempts, isRateLimited])
 
     // Auto-verify when OTP is complete with debouncing
     React.useEffect(() => {
@@ -168,27 +222,30 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
             clearTimeout(verificationTimeoutRef.current)
         }
         
-        if (otpValue && otpValue.length === 6 && !isLoading && !isVerifying) {
+        if (otpValue && otpValue.length === 6 && !isLoading && !isVerifying && !isRateLimited) {
             // Clear any previous errors
             setOtpError(false)
             
-            // Debounce the verification to prevent spam on mobile
+            // Longer debounce for mobile to prevent rapid-fire attempts
             verificationTimeoutRef.current = setTimeout(() => {
                 // Double-check conditions before verifying
                 const currentOtpValue = otpForm.getValues('otp')
-                if (currentOtpValue && currentOtpValue.length === 6 && !isLoading && !isVerifying) {
+                if (currentOtpValue && currentOtpValue.length === 6 && !isLoading && !isVerifying && !isRateLimited) {
                     onSubmitOtp({ otp: currentOtpValue })
                 }
-            }, 500) // 500ms debounce
+            }, 800) // 800ms debounce for better mobile stability
         }
         
-        // Cleanup timeout on unmount
+        // Cleanup timeouts on unmount
         return () => {
             if (verificationTimeoutRef.current) {
                 clearTimeout(verificationTimeoutRef.current)
             }
+            if (rateLimitTimeoutRef.current) {
+                clearTimeout(rateLimitTimeoutRef.current)
+            }
         }
-    }, [otpForm.watch('otp'), isLoading, isVerifying, onSubmitOtp])
+    }, [otpForm.watch('otp'), isLoading, isVerifying, isRateLimited, onSubmitOtp])
 
 
     async function onSubmitEmail(values: z.infer<typeof formSchema>) {
