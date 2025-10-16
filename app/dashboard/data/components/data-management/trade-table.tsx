@@ -124,9 +124,8 @@ export default function TradeTable() {
     
     try {
       // Show loading toast and store the ID
-      loadingToastId = toast("Deleting Trades", {
+      loadingToastId = toast.info("Deleting Trades", {
         description: `Deleting ${ids.length} trade(s)...`,
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
         duration: Infinity
       })
       

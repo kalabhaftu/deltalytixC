@@ -97,9 +97,9 @@ export function AdvancedExportDialog() {
   const handleExport = async () => {
     try {
       setIsExporting(true)
-      toast('Preparing export...', { 
+      toast.info('Preparing export...', { 
         id: 'export',
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
+        description: 'Please wait while your data is being prepared for export.',
         duration: Infinity
       })
 

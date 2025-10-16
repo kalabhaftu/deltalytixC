@@ -119,7 +119,11 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
             const errorMessage = error instanceof Error ? error.message : "Verification failed"
             
             // Only show error and clear input for actual authentication failures
-            if (errorMessage.includes('expired') || errorMessage.includes('invalid') || errorMessage.includes('Token has expired')) {
+            if (errorMessage.includes('expired') || 
+                errorMessage.includes('invalid') || 
+                errorMessage.includes('Token has expired') ||
+                errorMessage.includes('Invalid token') ||
+                errorMessage.includes('Authentication failed')) {
                 setOtpError(true)
                 otpForm.setValue('otp', '')
                 toast.error("Code Expired", {
@@ -135,6 +139,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                 // For other errors, don't clear the input or show error state
                 // The user might have entered a valid code but there's a temporary issue
                 console.warn('Non-critical OTP error:', errorMessage)
+                // Don't show error state for non-critical errors
             }
         } finally {
             setIsLoading(false)

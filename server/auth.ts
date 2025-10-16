@@ -389,8 +389,12 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
         status: error.status
       })
       
-      // Only throw error if it's actually an authentication failure
-      if (error.status === 403 || error.message.includes('expired') || error.message.includes('invalid')) {
+      // Only throw error for actual authentication failures
+      if (error.status === 403 || 
+          error.message.includes('expired') || 
+          error.message.includes('invalid') ||
+          error.message.includes('Token has expired') ||
+          error.message.includes('Invalid token')) {
         throw new Error(error.message)
       } else {
         // For other errors, log but don't throw - might be a temporary issue
@@ -398,11 +402,10 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
       }
     }
 
-
-    // After successful OTP verification, ensure user exists in database (if DB is available)
-    if (data.user) {
+    // If we have a user from Supabase, authentication was successful
+    if (data?.user) {
+      // After successful OTP verification, ensure user exists in database (if DB is available)
       try {
-
         // Check if user already exists in our database with this email
         const existingUser = await prisma.user.findUnique({
           where: { email: email }
@@ -425,9 +428,14 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
         // Don't throw - authentication succeeded, database sync is secondary
         // The app will work with just Supabase auth, database sync can happen later
       }
+      
+      // Return the successful authentication data
+      return data
+    } else {
+      // No user data means authentication failed
+      throw new Error('Authentication failed - no user data returned')
     }
 
-    return data
   } catch (error) {
     console.error('[verifyOtp] Unexpected error:', error)
     throw error
