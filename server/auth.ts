@@ -18,11 +18,17 @@ export async function getWebsiteURL() {
     return 'http://localhost:3000/'
   }
   
-  let url =
+  // Priority order for production URLs
+  let url = 
+    process?.env?.NEXT_PUBLIC_APP_URL ?? // Your custom app URL (highest priority)
     process?.env?.NEXT_PUBLIC_SITE_URL ?? // Set this to your site URL in production env.
     process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set by Vercel.
-    process?.env?.NEXT_PUBLIC_APP_URL ?? // Your custom app URL
     'http://localhost:3000/'
+  
+  // Remove any path from VERCEL_URL (it might include /dashboard)
+  if (url.includes('NEXT_PUBLIC_VERCEL_URL') || url.includes('vercel.app')) {
+    url = url.split('/').slice(0, 3).join('/') // Keep only protocol + domain
+  }
   
   // Make sure to include `https://` when not localhost.
   url = url.startsWith('http') ? url : `https://${url}`
@@ -32,6 +38,9 @@ export async function getWebsiteURL() {
   console.log('[getWebsiteURL] Environment check:', {
     NODE_ENV: process.env.NODE_ENV,
     VERCEL: process.env.VERCEL,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    NEXT_PUBLIC_VERCEL_URL: process.env.NEXT_PUBLIC_VERCEL_URL,
     isLocal: isLocalDevelopment(),
     finalUrl: url
   })
