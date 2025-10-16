@@ -67,18 +67,20 @@ export async function batchUpdateTrades(
  * Batch delete trades with transaction
  */
 export async function batchDeleteTrades(
-  tradeIds: string[]
+  tradeIds: string[],
+  userId: string
 ): Promise<{ count: number; errors: any[] }> {
   const errors: any[] = []
   let count = 0
 
   try {
-    // Use deleteMany for bulk delete
+    // Use deleteMany for bulk delete with user filtering for security
     const result = await prisma.trade.deleteMany({
       where: {
         id: {
           in: tradeIds,
         },
+        userId: userId, // CRITICAL: Ensure user can only delete their own trades
       },
     })
     
