@@ -324,9 +324,6 @@ export default function AccountsPage() {
         await caches.delete('next-data')
       }
 
-      // Force hard refresh to clear all cached data
-      await refetchAccounts()
-
       // Clear local storage that might have cached account data
       if (typeof window !== 'undefined') {
         const keysToRemove = Object.keys(localStorage).filter(key =>
@@ -335,6 +332,12 @@ export default function AccountsPage() {
         keysToRemove.forEach(key => localStorage.removeItem(key))
       }
 
+      // Force hard refresh to clear all cached data
+      await refetchAccounts()
+      
+      // CRITICAL: Force full page refresh to ensure UI updates
+      router.refresh()
+
       setDeletingAccount(null)
       setDeleteConfirmText('')
     } catch (error) {
@@ -342,7 +345,7 @@ export default function AccountsPage() {
         description: "Failed to delete account. Please try again.",
       })
     }
-  }, [deletingAccount, refetchAccounts, deleteConfirmText, user])
+  }, [deletingAccount, refetchAccounts, deleteConfirmText, user, router])
 
   if (isLoading) {
     return <OptimizedAccountsLoading accountCount={6} />

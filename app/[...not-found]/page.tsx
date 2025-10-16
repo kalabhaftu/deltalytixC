@@ -1,12 +1,11 @@
-// import { notFound } from 'next/navigation'
+import { notFound } from 'next/navigation'
 
-// This catch-all route will handle any unmatched routes within the [locale] directory
-// It immediately calls notFound() which will render the not-found.tsx page from the same directory level
+// This catch-all route handles any unmatched routes
+// It calls notFound() which renders the not-found.tsx page
 export default function CatchAllPage() {
-  // Temporarily disabled to debug build issues
-  // notFound()
-
-  // Simple fallback for now
+  notFound()
+  
+  // Fallback (never reached due to notFound())
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
       <h1 className="text-4xl font-bold">404 - Page Not Found</h1>

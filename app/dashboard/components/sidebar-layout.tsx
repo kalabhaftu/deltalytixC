@@ -49,7 +49,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
     router.push(tabRoutes[tab] || '/dashboard')
   }
 
-  // Check if mobile
+  // Check if mobile and load sidebar state
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
@@ -58,14 +58,16 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
     checkMobile()
     window.addEventListener('resize', checkMobile)
 
-    // Load sidebar state from localStorage after hydration
-    const savedCollapsed = localStorage.getItem('dashboard-sidebar-collapsed')
-    if (savedCollapsed) {
-      try {
-        setSidebarCollapsed(JSON.parse(savedCollapsed))
-      } catch (error) {
-        console.warn('Failed to parse sidebar state:', error)
-        setSidebarCollapsed(false)
+    // Load sidebar state from localStorage only after client-side mount
+    if (typeof window !== 'undefined') {
+      const savedCollapsed = localStorage.getItem('dashboard-sidebar-collapsed')
+      if (savedCollapsed) {
+        try {
+          setSidebarCollapsed(JSON.parse(savedCollapsed))
+        } catch (error) {
+          console.warn('Failed to parse sidebar state:', error)
+          setSidebarCollapsed(false)
+        }
       }
     }
     

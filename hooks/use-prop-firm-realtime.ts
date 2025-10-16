@@ -247,23 +247,18 @@ export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePro
   }, [fetchAccountData])
 
   // PERFORMANCE FIX: Disable auto-polling that was causing performance issues
+  // Fetch once on mount, then cleanup on unmount
   useEffect(() => {
     if (enabled && accountId) {
       // Only fetch once on mount, no polling
       fetchAccountData(true)
     }
 
+    // Cleanup on unmount
     return () => {
       stopPolling()
     }
-  }, [enabled, accountId]) // Remove polling functions from deps to prevent infinite loops
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopPolling()
-    }
-  }, [stopPolling])
+  }, [enabled, accountId, fetchAccountData, stopPolling])
 
   return {
     account,

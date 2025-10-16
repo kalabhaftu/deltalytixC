@@ -134,9 +134,9 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
     mode: 'onChange',
     defaultValues: {
       entryDate: new Date().toISOString().split('T')[0],
-      entryTime: new Date().toTimeString().split('T')[0].slice(0, 5),
+      entryTime: new Date().toTimeString().split(' ')[0].slice(0, 5),
       closeDate: new Date().toISOString().split('T')[0],
-      closeTime: new Date().toTimeString().split('T')[0].slice(0, 5),
+      closeTime: new Date().toTimeString().split(' ')[0].slice(0, 5),
       quantity: 1,
       commission: 0,
       pnl: 0,

@@ -147,6 +147,7 @@ function NotFoundContent() {
         onClick={handleThemeToggle}
         className="absolute top-4 right-4 flex items-center gap-2"
         title={`Current theme: ${theme}`}
+        aria-label={`Toggle theme (current: ${theme})`}
       >
         {getThemeIcon()}
       </Button>

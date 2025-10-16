@@ -113,41 +113,55 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     })
 
-    // CRITICAL: Evaluate phase after trade is added (async, don't wait)
-    // This will detect breaches including historical daily drawdowns
+    // CRITICAL: Evaluate phase after trade is added and WAIT for result
+    // This ensures client gets updated phase status immediately
+    let evaluationResult = null
     try {
       const { PhaseEvaluationEngine } = await import('@/lib/prop-firm/phase-evaluation-engine')
       
-      // Run evaluation asynchronously (don't block the response)
-      PhaseEvaluationEngine.evaluatePhase(masterAccountId, currentPhase.id).then(async (evaluation) => {
-        if (evaluation.isFailed) {
-          console.log(`[TRADES_API] Phase failed after trade added - updating status`)
-          
-          await prisma.$transaction(async (tx) => {
-            await tx.phaseAccount.update({
-              where: { id: currentPhase.id },
-              data: { status: 'failed', endDate: new Date() }
-            })
-            await tx.masterAccount.update({
-              where: { id: masterAccountId },
-              data: { isActive: false }
-            })
+      // Await evaluation to get result before sending response
+      evaluationResult = await PhaseEvaluationEngine.evaluatePhase(masterAccountId, currentPhase.id)
+      
+      if (evaluationResult.isFailed) {
+        console.log(`[TRADES_API] Phase failed after trade added - updating status`)
+        
+        await prisma.$transaction(async (tx) => {
+          await tx.phaseAccount.update({
+            where: { id: currentPhase.id },
+            data: { status: 'failed', endDate: new Date() }
           })
-          
-          // Invalidate cache
-          const { revalidateTag } = await import('next/cache')
-          revalidateTag(`accounts-${userId}`)
-        }
-      }).catch(err => {
-        console.error('[TRADES_API] Error evaluating phase:', err)
-      })
+          await tx.masterAccount.update({
+            where: { id: masterAccountId },
+            data: { isActive: false }
+          })
+        })
+        
+        // Invalidate cache
+        const { revalidateTag } = await import('next/cache')
+        revalidateTag(`accounts-${userId}`)
+      }
     } catch (evalError) {
-      console.error('[TRADES_API] Failed to run evaluation:', evalError)
+      console.error('[TRADES_API] Error evaluating phase:', evalError)
+      // Don't fail the trade creation if evaluation fails
     }
 
     return NextResponse.json({
       success: true,
       data: trade,
+      evaluation: evaluationResult ? {
+        passed: !evaluationResult.isFailed,
+        status: evaluationResult.isFailed ? 'failed' : 'active',
+        drawdown: {
+          isBreached: evaluationResult.drawdown.isBreached,
+          breachType: evaluationResult.drawdown.breachType,
+          dailyDrawdownPercent: evaluationResult.drawdown.dailyDrawdownPercent,
+          maxDrawdownPercent: evaluationResult.drawdown.maxDrawdownPercent
+        },
+        progress: {
+          profitTargetPercent: evaluationResult.progress.profitTargetPercent,
+          canPassPhase: evaluationResult.progress.canPassPhase
+        }
+      } : null,
       message: 'Trade added successfully'
     })
 

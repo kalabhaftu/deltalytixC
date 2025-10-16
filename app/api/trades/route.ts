@@ -3,20 +3,14 @@ import { deleteTrade } from '@/server/trades'
 import { getUserIdSafe } from '@/server/auth'
 import { prisma } from '@/lib/prisma'
 import { DataSerializer } from '@/lib/data-serialization'
+import { createSuccessResponse, createErrorResponse, ErrorResponses } from '@/lib/api-response'
 
 export async function GET(request: NextRequest) {
   try {
-
-    // Try to get trades without authentication first (for debugging)
     const userId = await getUserIdSafe()
 
     if (!userId) {
-      return NextResponse.json({
-        success: true,
-        data: [],
-        count: 0,
-        debug: 'No authenticated user'
-      })
+      return createSuccessResponse([], undefined, { count: 0 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -51,22 +45,11 @@ export async function GET(request: NextRequest) {
         dbStatus = 'disconnected'
       }
 
-      return NextResponse.json({
-        success: true,
-        test: true,
-        message: 'API is working',
-        timestamp: new Date().toISOString(),
-        debug: {
-          userId,
-          stream,
-          page,
-          limit,
-          offset,
-          databaseStatus: dbStatus,
-          tradeCount: tradeCount,
-          requestUrl: request.url
-        }
-      })
+      return createSuccessResponse(
+        { test: true, timestamp: new Date().toISOString() },
+        'API is working',
+        { databaseStatus: dbStatus, tradeCount }
+      )
     }
 
     // Regular paginated response (removed streaming for simplicity)

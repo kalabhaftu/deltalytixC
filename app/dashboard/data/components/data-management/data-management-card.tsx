@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -58,6 +59,7 @@ type GroupedAccount = {
 }
 
 export function DataManagementCard() {
+  const router = useRouter()
   const user = useUserStore((state) => state.user)
   const trades = useTradesStore((state) => state.trades)
   const { accounts: allAccounts, isLoading: accountsLoading, refetch: refetchAccounts } = useAccounts()
@@ -209,6 +211,9 @@ export function DataManagementCard() {
         await invalidateUserCaches(user.id)
       }
       
+      // CRITICAL: Force router refresh to update UI immediately
+      router.refresh()
+      
       await Promise.all([
         refetchAccounts(),
         refreshTrades()
@@ -228,7 +233,7 @@ export function DataManagementCard() {
       setDeleteLoading(false)
       setDeleteDialogOpen(false)
     }
-  }, [user, accountsWithTrades, selectedAccounts, refetchAccounts, refreshTrades])
+  }, [user, accountsWithTrades, selectedAccounts, refetchAccounts, refreshTrades, router])
 
 
   const handleSelectAccount = useCallback((accountNumber: string) => {

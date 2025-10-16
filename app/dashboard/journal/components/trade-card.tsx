@@ -46,7 +46,7 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
   }
 
   // Calculate R:R ratio and detect incomplete data
-  const calculateRiskRewardRatio = (trade: Trade): { ratio: number; hasIncompleteData: boolean; debugInfo?: string } => {
+  const calculateRiskRewardRatio = (trade: Trade): { ratio: number; hasIncompleteData: boolean } => {
     // Parse entry price from string
     const entryPrice = parseFloat(trade.entryPrice)
     
@@ -60,11 +60,6 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
     
     const side = trade.side?.toUpperCase()
 
-    // Debug info for development
-    const debugInfo = `Entry: ${entryPrice}, SL: ${stopLoss}, TP: ${takeProfit}, Side: ${side}, SL_Raw: ${stopLossRaw}, TP_Raw: ${takeProfitRaw}`
-    
-    // Log for debugging in console
-
     // Check for incomplete data
     const hasIncompleteData = !entryPrice || !stopLoss || !takeProfit || !side
 
@@ -73,9 +68,9 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
       // Fallback to TradeAnalytics if available
       const analyticsRR = (trade as any).tradeAnalytics?.riskRewardRatio
       if (analyticsRR && analyticsRR > 0) {
-        return { ratio: analyticsRR, hasIncompleteData: false, debugInfo }
+        return { ratio: analyticsRR, hasIncompleteData: false }
       }
-      return { ratio: 0.00, hasIncompleteData: true, debugInfo } // 0.00 indicates missing data (1:1 is real data!)
+      return { ratio: 0.00, hasIncompleteData: true } // 0.00 indicates missing data (1:1 is real data!)
     }
 
     let potentialRisk: number
@@ -94,20 +89,19 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
       potentialRisk = stopLoss - entryPrice
       potentialReward = entryPrice - takeProfit
     } else {
-      return { ratio: 0.00, hasIncompleteData: true, debugInfo } // Unknown side
+      return { ratio: 0.00, hasIncompleteData: true } // Unknown side
     }
 
     // Ensure risk and reward are positive (invalid setup returns 0.00)
     if (potentialRisk <= 0 || potentialReward <= 0) {
-      return { ratio: 0.00, hasIncompleteData: true, debugInfo } // Invalid calculation
+      return { ratio: 0.00, hasIncompleteData: true } // Invalid calculation
     }
 
     // R:R = Potential Reward ÷ Potential Risk
     const rrRatio = potentialReward / potentialRisk
     
-    
     // Return calculated R:R, capped at reasonable maximum (99.99)
-    return { ratio: Math.min(rrRatio, 99.99), hasIncompleteData: false, debugInfo }
+    return { ratio: Math.min(rrRatio, 99.99), hasIncompleteData: false }
   }
 
   const rrResult = calculateRiskRewardRatio(trade)

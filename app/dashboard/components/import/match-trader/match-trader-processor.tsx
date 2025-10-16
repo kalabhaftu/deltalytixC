@@ -43,8 +43,9 @@ const MatchTraderProcessor = ({
           return null // Skip invalid rows
         }
 
-        const entryDate = new Date(entryDateStr)
-        const closeDate = new Date(closeDateStr)
+        // MatchTrader timestamps are in UTC - parse them correctly
+        const entryDate = new Date(entryDateStr + 'Z') // Add 'Z' to indicate UTC
+        const closeDate = new Date(closeDateStr + 'Z') // Add 'Z' to indicate UTC
 
         // Calculate time in position in seconds
         const timeInPosition = Math.round((closeDate.getTime() - entryDate.getTime()) / 1000)

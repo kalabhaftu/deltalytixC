@@ -43,8 +43,10 @@ const ExnessProcessor = ({
           continue // Skip invalid rows
         }
 
-        const entryDate = new Date(entryDateStr)
-        const closeDate = new Date(closeDateStr)
+        // Exness timestamps are already in UTC format - parse them correctly
+        // Note: 'opening_time_utc' and 'closing_time_utc' already include timezone info
+        const entryDate = entryDateStr.endsWith('Z') ? new Date(entryDateStr) : new Date(entryDateStr + 'Z')
+        const closeDate = closeDateStr.endsWith('Z') ? new Date(closeDateStr) : new Date(closeDateStr + 'Z')
 
         // Calculate time in position in seconds
         const timeInPosition = Math.round((closeDate.getTime() - entryDate.getTime()) / 1000)

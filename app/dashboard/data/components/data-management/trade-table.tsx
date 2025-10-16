@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { Trade } from '@prisma/client'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
@@ -27,6 +28,7 @@ type SideFilter = 'all' | 'buy' | 'sell'
 type PnlFilter = 'all' | 'wins' | 'losses'
 
 export default function TradeTable() {
+  const router = useRouter()
   const { refreshTrades, formattedTrades, updateTrades } = useData()
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'entryDate', direction: 'desc' })
   const [selectedTrades, setSelectedTrades] = useState<Set<string>>(new Set())
@@ -134,6 +136,9 @@ export default function TradeTable() {
       
       // Refresh trades data immediately
       refreshTrades()
+      
+      // CRITICAL: Force router refresh to update UI everywhere
+      router.refresh()
       
       // Dismiss loading toast before showing success
       if (loadingToastId) {

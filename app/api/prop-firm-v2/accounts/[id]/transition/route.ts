@@ -49,12 +49,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
 
     if (!masterAccount) {
-      // Debug: Check if account exists without userId filter
-      const anyAccount = await prisma.masterAccount.findUnique({
-        where: { id: masterAccountId },
-        select: { id: true, userId: true, accountName: true, isActive: true }
-      })
-      
       return NextResponse.json(
         { success: false, error: 'Master account not found or unauthorized' },
         { status: 404 }
