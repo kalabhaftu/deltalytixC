@@ -65,7 +65,6 @@ import { useTradesStore } from '@/store/trades-store';
 import {
   endOfDay,
   isValid,
-  parseISO,
   startOfDay
 } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -1476,8 +1475,7 @@ export const DataProvider: React.FC<{
 
 
         return true;
-      })
-      .sort((a, b) => parseISO(a.entryDate).getTime() - parseISO(b.entryDate).getTime());
+      });
     
     return result;
   }, [

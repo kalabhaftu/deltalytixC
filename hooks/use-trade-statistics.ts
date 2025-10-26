@@ -61,12 +61,13 @@ export function useTradeStatistics() {
     // Calculate trade streaks
     for (let i = 0; i < formattedTrades.length; i++) {
       const trade = formattedTrades[i]
-      const isWin = trade.pnl > 0
+      const netPnl = trade.pnl - (trade.commission || 0)
+      const isWin = netPnl > 0
       
       if (isWin) {
         tempTradeStreak = tempTradeStreak >= 0 ? tempTradeStreak + 1 : 1
         bestTradeStreak = Math.max(bestTradeStreak, tempTradeStreak)
-      } else if (trade.pnl < 0) {
+      } else if (netPnl < 0) {
         tempTradeStreak = tempTradeStreak <= 0 ? tempTradeStreak - 1 : -1
         worstTradeStreak = Math.min(worstTradeStreak, tempTradeStreak)
       }
@@ -94,7 +95,7 @@ export function useTradeStatistics() {
     let tempDayStreak = 0
     for (let i = 0; i < sortedDays.length; i++) {
       const dayTrades = tradesByDay[sortedDays[i]]
-      const dayPnl = dayTrades.reduce((sum, t) => sum + t.pnl, 0)
+      const dayPnl = dayTrades.reduce((sum, t) => sum + (t.pnl - (t.commission || 0)), 0)
       const isWinDay = dayPnl > 0
       
       if (isWinDay) {

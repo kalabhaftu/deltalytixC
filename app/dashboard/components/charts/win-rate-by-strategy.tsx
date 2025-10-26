@@ -169,8 +169,8 @@ export default function WinRateByStrategy({ size = 'small-long' }: WinRateByStra
                     size === 'small-long' ? "h-3.5 w-3.5" : "h-4 w-4"
                   )} />
                 </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[250px]">
-                  <p>Win rate distribution and success metrics across different trading strategies/models.</p>
+                <TooltipContent side="top" className="max-w-[200px]">
+                  <p className="text-xs">Win rate distribution and success metrics across different trading strategies/models.</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>

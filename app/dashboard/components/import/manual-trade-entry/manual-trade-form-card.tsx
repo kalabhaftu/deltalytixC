@@ -146,13 +146,19 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
     }
   })
 
-  // Watch form values for calculations
-  const watchedValues = watch()
+  // Watch specific form values for calculations (not all values to prevent infinite loops)
+  const entryPrice = watch('entryPrice')
+  const closePrice = watch('closePrice')
+  const quantity = watch('quantity')
+  const side = watch('side')
+  const commission = watch('commission')
+  const entryDate = watch('entryDate')
+  const entryTime = watch('entryTime')
+  const closeDate = watch('closeDate')
+  const closeTime = watch('closeTime')
 
   // Auto-calculate P&L when prices change
   useEffect(() => {
-    const { entryPrice, closePrice, quantity, side, commission } = watchedValues
-    
     if (entryPrice && closePrice && quantity) {
       const entry = parseFloat(entryPrice)
       const close = parseFloat(closePrice)
@@ -167,14 +173,12 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
       }
       
       setCalculatedPnL(pnl)
-      setValue('pnl', pnl)
+      setValue('pnl', pnl, { shouldValidate: false, shouldDirty: false })
     }
-  }, [watchedValues, setValue])
+  }, [entryPrice, closePrice, quantity, side, commission, setValue])
 
   // Auto-calculate duration
   useEffect(() => {
-    const { entryDate, entryTime, closeDate, closeTime } = watchedValues
-    
     if (entryDate && entryTime && closeDate && closeTime) {
       try {
         const entryDateTime = new Date(`${entryDate}T${entryTime}`)
@@ -195,7 +199,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
         setCalculatedDuration('')
       }
     }
-  }, [watchedValues.entryDate, watchedValues.entryTime, watchedValues.closeDate, watchedValues.closeTime, watchedValues])
+  }, [entryDate, entryTime, closeDate, closeTime])
 
   // Get unified accounts for dropdown - same as CSV import
   const { accounts: allAccounts, isLoading: isLoadingAccounts } = useAccounts()

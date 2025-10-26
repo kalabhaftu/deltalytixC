@@ -9,15 +9,6 @@ datasource db {
   schemas   = ["public"]
 }
 
-enum TradingModel {
-  ICT_2022
-  MSNR
-  TTFM
-  PRICE_ACTION
-
-  @@schema("public")
-}
-
 model Trade {
   id                String        @id @default(uuid())
   accountNumber     String
@@ -40,18 +31,18 @@ model Trade {
   groupId           String?       @default("")
   imageBase64Third  String?
   imageBase64Fourth String?
-  imageBase64Fifth  String? // Fifth screenshot
-  imageBase64Sixth  String? // Sixth screenshot
-  cardPreviewImage  String? // Optimized preview image for journal cards
+  imageBase64Fifth  String?
+  imageBase64Sixth  String?
+  cardPreviewImage  String?
   accountId         String?
-  phaseAccountId    String? // Relation to PhaseAccount for prop firm trades
+  phaseAccountId    String?
   symbol            String?
   entryTime         DateTime?
   exitTime          DateTime?
   closeReason       String?
-  stopLoss          String? // Stop loss price from Match Trader CSV
-  takeProfit        String? // Take profit price from Match Trader CSV
-  tradingModel      TradingModel? // Trading model used (ICT 2022, MSNR, TTFM, Price Action)
+  stopLoss          String?
+  takeProfit        String?
+  tradingModel      TradingModel?
   account           Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   phaseAccount      PhaseAccount? @relation(fields: [phaseAccountId], references: [id], onDelete: Cascade)
 
@@ -67,35 +58,31 @@ model Trade {
   @@index([accountId, exitTime])
   @@index([userId, accountNumber])
   @@index([userId, entryTime])
-  @@index([entryId]) // CRITICAL: Fast duplicate detection for large imports
-  @@index([userId, entryId]) // Compound index for optimal query performance
+  @@index([entryId])
+  @@index([userId, entryId])
   @@schema("public")
 }
 
-// TickDetails model removed - tick details feature was fully deleted from application
-
-// Notification model removed - no notification functionality in application
-// Only referenced in account deletion cleanup (can use direct SQL if needed)
-
 model User {
-  id                    String              @id @default(cuid())
-  email                 String              @unique
-  auth_user_id          String              @unique
-  isFirstConnection     Boolean             @default(true)
-  thorToken             String?
-  timezone              String              @default("UTC")
-  theme                 String              @default("system")
-  firstName             String?
-  lastName              String?
-  accountFilterSettings String? // JSON string storing account filter preferences
-  backtestInputMode     String              @default("manual") // "manual" or "simple"
-  accounts              Account[]
-  masterAccounts        MasterAccount[] // New relation for master accounts
-  dashboardTemplates    DashboardTemplate[]
-  groups                Group[]
-  backtestTrades        BacktestTrade[] // Backtesting trades
-  dailyNotes            DailyNote[] // Daily calendar notes
-  liveAccountTransactions LiveAccountTransaction[] // Live account deposits/withdrawals
+  id                      String                   @id @default(cuid())
+  email                   String                   @unique
+  auth_user_id            String                   @unique
+  isFirstConnection       Boolean                  @default(true)
+  thorToken               String?
+  timezone                String                   @default("UTC")
+  theme                   String                   @default("system")
+  firstName               String?
+  lastName                String?
+  accountFilterSettings   String?
+  backtestInputMode       String                   @default("manual")
+  customTradingModels     String?                  @db.Text // JSON array of custom model names
+  accounts                Account[]
+  backtestTrades          BacktestTrade[]
+  dailyNotes              DailyNote[]
+  dashboardTemplates      DashboardTemplate[]
+  groups                  Group[]
+  liveAccountTransactions LiveAccountTransaction[]
+  masterAccounts          MasterAccount[]
 
   @@index([email])
   @@schema("public")
@@ -115,22 +102,20 @@ model Group {
   @@schema("public")
 }
 
-// New Master Account Model for Prop Firm Account Tracking
 model MasterAccount {
   id             String              @id @default(uuid())
   userId         String
-  accountName    String // e.g., "FTMO $100k Challenge"
-  propFirmName   String // e.g., "FTMO", "The5ers", "Custom"
-  accountSize    Float // e.g., 100000
-  evaluationType String // "One Step", "Two Step", "Instant"
-  currentPhase   Int // 1, 2, 3 for Funded - Crucial for state management
-  isActive       Boolean             @default(true) // false if failed/passed
-  status         MasterAccountStatus @default(active) // active (evaluation), funded, failed
+  accountName    String
+  propFirmName   String
+  accountSize    Float
+  evaluationType String
+  currentPhase   Int
+  isActive       Boolean             @default(true)
   createdAt      DateTime            @default(now())
-
-  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  phases  PhaseAccount[]
-  payouts Payout[]
+  status         MasterAccountStatus @default(active)
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payouts        Payout[]
+  phases         PhaseAccount[]
 
   @@index([userId])
   @@index([propFirmName])
@@ -142,35 +127,28 @@ model MasterAccount {
   @@schema("public")
 }
 
-// New Phase Account Model for Individual Phase Management
 model PhaseAccount {
-  id              String             @id @default(uuid())
-  masterAccountId String
-  phaseNumber     Int // 1 for Phase 1, 2 for Phase 2, 3 for Funded
-  phaseId         String? // User-provided ID/Account Number (e.g., "753251")
-  status          PhaseAccountStatus @default(active) // "active", "passed", "failed", "archived"
-
-  // Rules object
+  id                     String             @id @default(uuid())
+  masterAccountId        String
+  phaseNumber            Int
+  phaseId                String?
+  status                 PhaseAccountStatus @default(active)
   profitTargetPercent    Float
   dailyDrawdownPercent   Float
   maxDrawdownPercent     Float
-  maxDrawdownType        String @default("static") // "static" or "trailing"
-  minTradingDays         Int    @default(0) // can be 0
-  timeLimitDays          Int? // null for unlimited
-  consistencyRulePercent Float  @default(0) // can be 0 for none
-
-  // Payout config (only relevant for Funded phase)
-  profitSplitPercent Float? // only for funded
-  payoutCycleDays    Int? // only for funded
-
-  startDate DateTime  @default(now())
-  endDate   DateTime? // null if active
-
-  masterAccount MasterAccount  @relation(fields: [masterAccountId], references: [id], onDelete: Cascade)
-  trades        Trade[]
-  dailyAnchors  DailyAnchor[]
-  breachRecords BreachRecord[]
-  payouts       Payout[]
+  maxDrawdownType        String             @default("static")
+  minTradingDays         Int                @default(0)
+  timeLimitDays          Int?
+  consistencyRulePercent Float              @default(0)
+  profitSplitPercent     Float?
+  payoutCycleDays        Int?
+  startDate              DateTime           @default(now())
+  endDate                DateTime?
+  breachRecords          BreachRecord[]
+  dailyAnchors           DailyAnchor[]
+  payouts                Payout[]
+  masterAccount          MasterAccount      @relation(fields: [masterAccountId], references: [id], onDelete: Cascade)
+  trades                 Trade[]
 
   @@index([masterAccountId])
   @@index([phaseNumber])
@@ -181,31 +159,22 @@ model PhaseAccount {
   @@schema("public")
 }
 
-// Payout Model for Tracking Funded Account Withdrawals
 model Payout {
-  id String @id @default(cuid())
-
-  // Relations
+  id              String        @id @default(cuid())
   masterAccountId String
+  phaseAccountId  String
+  amount          Float
+  status          String        @default("pending")
+  requestDate     DateTime      @default(now())
+  approvedDate    DateTime?
+  paidDate        DateTime?
+  rejectedDate    DateTime?
+  notes           String?
+  rejectionReason String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   masterAccount   MasterAccount @relation(fields: [masterAccountId], references: [id], onDelete: Cascade)
-
-  phaseAccountId String
-  phaseAccount   PhaseAccount @relation(fields: [phaseAccountId], references: [id], onDelete: Cascade)
-
-  // Payout details
-  amount       Float
-  status       String    @default("pending") // pending, approved, paid, rejected
-  requestDate  DateTime  @default(now())
-  approvedDate DateTime?
-  paidDate     DateTime?
-  rejectedDate DateTime?
-
-  // Optional metadata
-  notes           String? @db.Text
-  rejectionReason String? @db.Text
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  phaseAccount    PhaseAccount  @relation(fields: [phaseAccountId], references: [id], onDelete: Cascade)
 
   @@index([masterAccountId])
   @@index([phaseAccountId])
@@ -213,15 +182,13 @@ model Payout {
   @@schema("public")
 }
 
-// Daily Anchor Model for Daily Drawdown Calculation
 model DailyAnchor {
-  id             String   @id @default(uuid())
-  phaseAccountId String // Links to PhaseAccount for new architecture
-  date           DateTime @db.Date
+  id             String       @id @default(uuid())
+  phaseAccountId String
+  date           DateTime     @db.Date
   anchorEquity   Float
-  computedAt     DateTime @default(now())
-
-  phaseAccount PhaseAccount @relation(fields: [phaseAccountId], references: [id], onDelete: Cascade)
+  computedAt     DateTime     @default(now())
+  phaseAccount   PhaseAccount @relation(fields: [phaseAccountId], references: [id], onDelete: Cascade)
 
   @@unique([phaseAccountId, date])
   @@index([phaseAccountId])
@@ -229,25 +196,19 @@ model DailyAnchor {
   @@schema("public")
 }
 
-// Breach History - Track all rule violations
 model BreachRecord {
-  id             String   @id @default(uuid())
-  phaseAccountId String
-  breachType     String // "daily_drawdown", "max_drawdown", "consistency_rule", "time_limit"
-  breachAmount   Float // How much the rule was exceeded by
-  breachTime     DateTime @default(now())
-
-  // Snapshot of account state at breach
+  id                String       @id @default(uuid())
+  phaseAccountId    String
+  breachType        String
+  breachAmount      Float
+  breachTime        DateTime     @default(now())
   currentEquity     Float
   accountSize       Float
   dailyStartBalance Float?
   highWaterMark     Float?
-
-  // Additional context
-  tradeId String? // The trade that caused the breach (if applicable)
-  notes   String? // Additional context
-
-  phaseAccount PhaseAccount @relation(fields: [phaseAccountId], references: [id], onDelete: Cascade)
+  tradeId           String?
+  notes             String?
+  phaseAccount      PhaseAccount @relation(fields: [phaseAccountId], references: [id], onDelete: Cascade)
 
   @@index([phaseAccountId])
   @@index([breachType])
@@ -255,21 +216,19 @@ model BreachRecord {
   @@schema("public")
 }
 
-// Live Trading Account Model (simplified, no prop firm fields)
 model Account {
-  id              String   @id @default(uuid())
+  id              String                   @id @default(uuid())
   number          String
   name            String?
   broker          String?
-  startingBalance Float    @default(0)
+  startingBalance Float                    @default(0)
   userId          String
   groupId         String?
-  createdAt       DateTime @default(now())
-
-  group        Group?                   @relation(fields: [groupId], references: [id])
-  user         User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trades       Trade[]
-  transactions LiveAccountTransaction[]
+  createdAt       DateTime                 @default(now())
+  group           Group?                   @relation(fields: [groupId], references: [id])
+  user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions    LiveAccountTransaction[]
+  trades          Trade[]
 
   @@unique([number, userId])
   @@index([number])
@@ -283,8 +242,8 @@ model DashboardTemplate {
   userId    String
   name      String
   isDefault Boolean  @default(false)
-  isActive  Boolean  @default(false) // Currently selected template
-  layout    Json     @default("[]") // Stores widget layout configuration
+  isActive  Boolean  @default(false)
+  layout    Json     @default("[]")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -296,17 +255,88 @@ model DashboardTemplate {
   @@schema("public")
 }
 
-// Shared model removed - trade sharing feature not implemented, was incomplete/unused
+model BacktestTrade {
+  id               String            @id @default(uuid())
+  userId           String
+  pair             String
+  direction        BacktestDirection
+  outcome          BacktestOutcome
+  session          BacktestSession
+  model            BacktestModel
+  customModel      String?
+  riskRewardRatio  Float
+  entryPrice       Float
+  stopLoss         Float
+  takeProfit       Float
+  exitPrice        Float
+  pnl              Float
+  imageOne         String?
+  imageTwo         String?
+  imageThree       String?
+  imageFour        String?
+  imageFive        String?
+  imageSix         String?
+  cardPreviewImage String?
+  notes            String?
+  tags             String[]
+  dateExecuted     DateTime
+  backtestDate     DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  riskPoints       Float             @default(0)
+  rewardPoints     Float             @default(0)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-// Tag model removed - tags are stored as string array in Trade model, no separate Tag table used
+  @@index([userId])
+  @@index([userId, outcome])
+  @@index([userId, session])
+  @@index([userId, model])
+  @@index([dateExecuted])
+  @@schema("public")
+}
 
-// Order model removed - orders are processed in-memory during IBKR import, not persisted to database
+model DailyNote {
+  id        String   @id @default(uuid())
+  userId    String
+  date      DateTime @db.Date
+  note      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-// TradeAnalytics model removed - MAE/MFE analytics not actively used, no database queries found
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@index([userId, date])
+  @@schema("public")
+}
 
-// HistoricalData model removed - no database queries found, historical data not persisted
+model LiveAccountTransaction {
+  id          String          @id @default(uuid())
+  accountId   String
+  userId      String
+  type        TransactionType
+  amount      Float
+  description String?
+  createdAt   DateTime        @default(now())
+  account     Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-// FilterPreset model removed - no database queries found, filter presets not implemented
+  @@index([accountId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([accountId, createdAt])
+  @@schema("public")
+}
+
+enum TradingModel {
+  ICT_2022
+  MSNR
+  TTFM
+  PRICE_ACTION
+
+  @@schema("public")
+}
 
 enum BreachType {
   daily_drawdown
@@ -333,7 +363,6 @@ enum MasterAccountStatus {
   @@schema("public")
 }
 
-// Backtesting Enums
 enum BacktestDirection {
   BUY
   SELL
@@ -369,96 +398,9 @@ enum BacktestModel {
   @@schema("public")
 }
 
-// Backtesting Trade Model
-model BacktestTrade {
-  id                String            @id @default(uuid())
-  userId            String
-  
-  // Core trade data
-  pair              String
-  direction         BacktestDirection
-  outcome           BacktestOutcome
-  session           BacktestSession
-  model             BacktestModel
-  customModel       String?
-  
-  // Risk/Reward and Performance
-  riskRewardRatio   Float
-  entryPrice        Float
-  stopLoss          Float
-  takeProfit        Float
-  exitPrice         Float
-  pnl               Float
-  
-  // Images (6 screenshots + 1 preview)
-  imageOne          String?
-  imageTwo          String?
-  imageThree        String?
-  imageFour         String?
-  imageFive         String?
-  imageSix          String?
-  cardPreviewImage  String?
-  
-  // Metadata
-  notes             String?
-  tags              String[] // Array of tag strings
-  dateExecuted      DateTime
-  backtestDate      DateTime? // When the backtest was performed
-  
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId])
-  @@index([userId, outcome])
-  @@index([userId, session])
-  @@index([userId, model])
-  @@index([dateExecuted])
-  @@schema("public")
-}
-
-// Daily Note Model for Calendar Notes
-model DailyNote {
-  id        String   @id @default(uuid())
-  userId    String
-  date      DateTime @db.Date // The trading day this note is for
-  note      String   @db.Text // The actual note content
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, date]) // One note per day per user
-  @@index([userId])
-  @@index([date])
-  @@index([userId, date])
-  @@schema("public")
-}
-
-model LiveAccountTransaction {
-  id          String    @id @default(uuid())
-  accountId   String    // Reference to Account (live account)
-  userId      String    // Reference to User
-  type        TransactionType
-  amount      Float     // Positive for deposits, negative for withdrawals
-  description String?   // Optional description
-  createdAt   DateTime  @default(now())
-  
-  // Relations
-  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([accountId])
-  @@index([userId])
-  @@index([createdAt])
-  @@index([accountId, createdAt])
-  @@schema("public")
-}
-
 enum TransactionType {
   DEPOSIT
   WITHDRAWAL
-  
+
   @@schema("public")
 }

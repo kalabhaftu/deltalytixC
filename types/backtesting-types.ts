@@ -18,6 +18,8 @@ export interface BacktestTrade {
   
   // Risk/Reward and Performance
   riskRewardRatio: number // e.g., 1.5 for 1:1.5
+  riskPoints: number // Distance from entry to stop loss in points/pips
+  rewardPoints: number // Distance from entry to take profit/exit in points/pips
   entryPrice: number
   stopLoss: number
   takeProfit: number

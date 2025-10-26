@@ -137,8 +137,8 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
                     size === 'small-long' ? "h-3.5 w-3.5" : "h-4 w-4"
                   )} />
                 </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[250px]">
-                  <p>Profit & Loss breakdown by trading instrument/pair. Shows total P&L, trade count, and win rate for each instrument.</p>
+                <TooltipContent side="top" className="max-w-[220px]">
+                  <p className="text-xs">Profit & Loss breakdown by trading instrument/pair. Shows total P&L, trade count, and win rate for each instrument.</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>

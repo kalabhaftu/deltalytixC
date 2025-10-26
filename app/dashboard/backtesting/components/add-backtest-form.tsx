@@ -54,7 +54,8 @@ const simpleBacktestSchema = z.object({
   customModel: z.string().optional(),
   
   riskRewardRatio: z.string().min(1, 'R:R ratio is required'),
-  pnl: z.string().min(1, 'P&L is required'),
+  riskPoints: z.string().min(1, 'Risk is required'),
+  rewardPoints: z.string().min(1, 'Reward is required'),
   
   outcome: z.enum(['WIN', 'LOSS', 'BREAKEVEN']),
   notes: z.string().optional(),
@@ -139,7 +140,10 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
   const watchedPair = watch('pair')
   const watchedEntryPrice = watch('entryPrice')
   const watchedExitPrice = watch('exitPrice')
-  const watchedPnl = watch('pnl')
+  const watchedStopLoss = watch('stopLoss')
+  const watchedRiskPoints = watch('riskPoints')
+  const watchedRewardPoints = watch('rewardPoints')
+  const watchedRR = watch('riskRewardRatio')
 
   // Get price placeholders based on selected pair
   const getPricePlaceholder = () => {
@@ -205,29 +209,36 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
     }
   }
 
-  // Auto-detect outcome based on P&L
+  // Auto-detect outcome based on P&L (manual mode) or validate (simple mode)
   useEffect(() => {
     const currentPnL = calculatePnL()
+    const currentOutcome = watch('outcome')
     
-    if (currentPnL !== 0) {
+    if (inputMode === 'manual' && currentPnL !== 0) {
+      // In manual mode, auto-detect outcome from P&L
       const detectedOutcome = currentPnL > 0 ? 'WIN' : currentPnL < 0 ? 'LOSS' : 'BREAKEVEN'
-      const currentOutcome = watch('outcome')
       
-      // Auto-set outcome based on P&L
       if (currentOutcome !== detectedOutcome) {
         setValue('outcome', detectedOutcome)
       }
+    } else if (inputMode === 'simple') {
+      // In simple mode, validate that outcome matches the risk/reward logic
+      const risk = parseFloat(watch('riskPoints') || '0')
+      const reward = parseFloat(watch('rewardPoints') || '0')
       
-      // Validate: If user tries to set WIN with negative P&L or LOSS with positive P&L
-      if ((currentOutcome === 'WIN' && currentPnL < 0) || (currentOutcome === 'LOSS' && currentPnL > 0)) {
-        toast.error('Outcome mismatch!', {
-          description: `P&L is ${currentPnL >= 0 ? 'positive' : 'negative'} but outcome is set to ${currentOutcome}. Auto-correcting...`
-        })
-        setValue('outcome', detectedOutcome)
+      if (risk > 0 && reward > 0) {
+        // Ensure P&L calculation matches outcome
+        const expectedPnL = calculatePnL()
+        
+        if (currentOutcome === 'WIN' && expectedPnL <= 0) {
+          toast.warning('Outcome set to WIN but P&L will be negative')
+        } else if (currentOutcome === 'LOSS' && expectedPnL >= 0) {
+          toast.warning('Outcome set to LOSS but P&L will be positive')
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedEntryPrice, watchedExitPrice, watchedPnl, inputMode])
+  }, [watchedEntryPrice, watchedExitPrice, watchedStopLoss, watchedRiskPoints, watchedRewardPoints, inputMode])
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -267,68 +278,86 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
     setImages(prev => prev.filter((_, i) => i !== index))
   }
 
+  // Calculate Risk in Points/Pips
+  const calculateRisk = () => {
+    if (inputMode === 'simple') {
+      return parseFloat(watch('riskPoints') || '0')
+    }
+
+    const entry = parseFloat(watch('entryPrice') || '0')
+    const sl = parseFloat(watch('stopLoss') || '0')
+    
+    if (!entry || !sl) return 0
+    
+    // Risk is always the absolute distance from entry to stop loss
+    return Math.abs(entry - sl)
+  }
+
+  // Calculate Reward in Points/Pips
+  const calculateReward = () => {
+    if (inputMode === 'simple') {
+      return parseFloat(watch('rewardPoints') || '0')
+    }
+
+    const entry = parseFloat(watch('entryPrice') || '0')
+    const exit = parseFloat(watch('exitPrice') || '0')
+    
+    if (!entry || !exit) return 0
+    
+    // Reward is always the absolute distance from entry to exit
+    return Math.abs(entry - exit)
+  }
+
+  // Calculate R:R Ratio
   const calculateRR = () => {
     if (inputMode === 'simple') {
       const rr = parseFloat(watch('riskRewardRatio') || '0')
       return rr
     }
 
-    const entry = parseFloat(watch('entryPrice') || '0')
-    const sl = parseFloat(watch('stopLoss') || '0')
-    const exit = parseFloat(watch('exitPrice') || '0')
-    const direction = watch('direction')
-
-    // Need all values to calculate
-    if (!entry || !sl || !exit) return 0
-
-    let risk = 0
-    let reward = 0
-
-    if (direction === 'BUY') {
-      // For long positions:
-      // Risk = Entry - Stop Loss (how much we can lose)
-      // Reward = Exit - Entry (how much we gained/lost)
-      risk = Math.abs(entry - sl)
-      reward = exit - entry
-    } else if (direction === 'SELL') {
-      // For short positions:
-      // Risk = Stop Loss - Entry (how much we can lose)
-      // Reward = Entry - Exit (how much we gained/lost)
-      risk = Math.abs(sl - entry)
-      reward = entry - exit
-    }
-
-    // Risk must be positive, reward can be negative (for losses)
+    const risk = calculateRisk()
+    const reward = calculateReward()
+    
     if (risk <= 0) return 0
     
-    // Return absolute R:R ratio
-    return Math.abs(reward) / risk
+    // R:R ratio is reward divided by risk
+    return reward / risk
   }
 
+  // Calculate P&L based on outcome
   const calculatePnL = () => {
+    const outcome = watch('outcome')
+    const direction = watch('direction')
+    
     if (inputMode === 'simple') {
-      const pnl = parseFloat(watch('pnl') || '0')
-      return pnl
+      // In simple mode, calculate P&L from risk/reward and outcome
+      const risk = parseFloat(watch('riskPoints') || '0')
+      const reward = parseFloat(watch('rewardPoints') || '0')
+      
+      if (!risk || !reward) return 0
+      
+      // If WIN, P&L = +reward; if LOSS, P&L = -risk; if BREAKEVEN, P&L = 0
+      if (outcome === 'WIN') return reward
+      if (outcome === 'LOSS') return -risk
+      return 0
     }
 
+    // In manual mode, calculate from actual prices
     const entry = parseFloat(watch('entryPrice') || '0')
     const exit = parseFloat(watch('exitPrice') || '0')
-    const direction = watch('direction')
 
-    // Need both prices to calculate
     if (!entry || !exit) return 0
 
-    // P&L is the difference between exit and entry
-    // Positive = profit, Negative = loss
+    let pnl = 0
     if (direction === 'BUY') {
       // Long: P&L = Exit Price - Entry Price
-      return exit - entry
+      pnl = exit - entry
     } else if (direction === 'SELL') {
       // Short: P&L = Entry Price - Exit Price
-      return entry - exit
+      pnl = entry - exit
     }
     
-    return 0
+    return pnl
   }
 
   const onSubmit = async (data: any) => {
@@ -336,6 +365,8 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
     try {
       const rr = calculateRR()
       const pnl = calculatePnL()
+      const risk = calculateRisk()
+      const reward = calculateReward()
       
       // Final validation: Check P&L vs Outcome consistency
       if (pnl !== 0) {
@@ -377,6 +408,8 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
         exitPrice,
         outcome: data.outcome,
         riskRewardRatio: rr,
+        riskPoints: risk,
+        rewardPoints: reward,
         pnl: pnl,
         notes: data.notes,
         tags: data.tags ? data.tags.split(',').map((t: string) => t.trim()) : [],
@@ -636,8 +669,40 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
               </div>
             </div>
           ) : (
-            // Simple R:R Mode - Just R:R and P&L
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            // Simple R:R Mode - Risk, Reward, and R:R Ratio
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="riskPoints">Risk (Points/Pips) *</Label>
+                <Input
+                  id="riskPoints"
+                  type="number"
+                  step="0.01"
+                  {...register('riskPoints')}
+                  placeholder="50"
+                  className={errors.riskPoints ? 'border-destructive' : ''}
+                />
+                {errors.riskPoints && (
+                  <p className="text-xs text-destructive">{String(errors.riskPoints.message)}</p>
+                )}
+                <p className="text-xs text-muted-foreground">SL distance from entry</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="rewardPoints">Reward (Points/Pips) *</Label>
+                <Input
+                  id="rewardPoints"
+                  type="number"
+                  step="0.01"
+                  {...register('rewardPoints')}
+                  placeholder="150"
+                  className={errors.rewardPoints ? 'border-destructive' : ''}
+                />
+                {errors.rewardPoints && (
+                  <p className="text-xs text-destructive">{String(errors.rewardPoints.message)}</p>
+                )}
+                <p className="text-xs text-muted-foreground">TP distance from entry</p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="riskRewardRatio">R:R Ratio *</Label>
                 <Input
@@ -645,38 +710,30 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
                   type="number"
                   step="0.1"
                   {...register('riskRewardRatio')}
-                  placeholder="4.5 (for 1:4.5)"
+                  placeholder="3.0"
                   className={errors.riskRewardRatio ? 'border-destructive' : ''}
                 />
                 {errors.riskRewardRatio && (
                   <p className="text-xs text-destructive">{String(errors.riskRewardRatio.message)}</p>
                 )}
-                <p className="text-xs text-muted-foreground">Enter 4.5 for 1:4.5</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="pnl">P&L (Points/Pips) *</Label>
-                <Input
-                  id="pnl"
-                  type="number"
-                  step="0.01"
-                  {...register('pnl')}
-                  placeholder="250 or -150"
-                  className={errors.pnl ? 'border-destructive' : ''}
-                />
-                {errors.pnl && (
-                  <p className="text-xs text-destructive">{String(errors.pnl.message)}</p>
-                )}
-                <p className="text-xs text-muted-foreground">Use - for losses (e.g., -150)</p>
+                <p className="text-xs text-muted-foreground">Should match risk/reward</p>
               </div>
             </div>
           )}
 
           {/* Calculated Metrics */}
           {inputMode === 'manual' && (
-            <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Calculated R:R</p>
+                <p className="text-sm text-muted-foreground mb-1">Risk (Points)</p>
+                <p className="text-lg font-bold">{calculateRisk().toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Reward (Points)</p>
+                <p className="text-lg font-bold">{calculateReward().toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">R:R Ratio</p>
                 <p className="text-lg font-bold">1:{calculateRR().toFixed(2)}</p>
               </div>
               <div>
@@ -697,11 +754,14 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
           {inputMode === 'simple' && (
             <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">R:R Ratio</p>
+                <p className="text-sm text-muted-foreground mb-1">Calculated R:R</p>
                 <p className="text-lg font-bold">1:{calculateRR().toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {calculateReward().toFixed(2)} ÷ {calculateRisk().toFixed(2)}
+                </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">P&L (Points)</p>
+                <p className="text-sm text-muted-foreground mb-1">Calculated P&L</p>
                 <div className="flex items-center gap-2">
                   <p className={`text-lg font-bold ${calculatePnL() >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {calculatePnL() >= 0 ? '+' : ''}{calculatePnL().toFixed(2)}
@@ -712,6 +772,9 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
                     </Badge>
                   )}
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Based on {watch('outcome')} outcome
+                </p>
               </div>
             </div>
           )}

@@ -473,7 +473,7 @@ export default function ImportButton() {
       </motion.div>
       
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="flex flex-col max-w-[85vw] h-[85vh] p-0 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl">
+        <DialogContent className="flex flex-col w-[95vw] max-w-[85vw] h-[90vh] sm:h-[85vh] p-0 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl overflow-hidden">
           <VisuallyHidden>
             <DialogTitle>Import Data</DialogTitle>
           </VisuallyHidden>

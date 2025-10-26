@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { VisuallyHidden } from '@/components/ui/visually-hidden'
 import { Badge } from '@/components/ui/badge'
-import { Eye, Calendar, Clock, TrendingUp, TrendingDown, DollarSign, Hash, User, X } from 'lucide-react'
+import { Eye, Calendar, Clock, TrendingUp, TrendingDown, DollarSign, Hash, User } from 'lucide-react'
 import { cn, formatCurrency, formatNumber, formatQuantity, formatTradeData } from '@/lib/utils'
 import Image from 'next/image'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
@@ -292,14 +292,6 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
               <DialogTitle>Image Viewer</DialogTitle>
             </DialogHeader>
             <div className="relative w-full h-[85vh]">
-              <Button
-                variant="outline"
-                size="icon"
-                className="absolute top-2 right-2 z-10"
-                onClick={() => setSelectedImage(null)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
               <TransformWrapper
                 initialScale={1}
                 minScale={0.1}

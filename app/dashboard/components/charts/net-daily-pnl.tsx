@@ -139,8 +139,8 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
                     size === 'small-long' ? "h-3.5 w-3.5" : "h-4 w-4"
                   )} />
                 </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>Daily profit and loss with trade details. Green bars = profitable days, red bars = losing days.</p>
+                <TooltipContent side="top" className="max-w-[200px]">
+                  <p className="text-xs">Daily profit and loss with trade details. Green bars = profitable days, red bars = losing days.</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>

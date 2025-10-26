@@ -43,8 +43,8 @@ const CurrentStreak = React.memo(function CurrentStreak({ size }: CurrentStreakP
                   <HelpCircle className="h-2 w-2 text-muted-foreground" />
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={5} className="max-w-[300px]">
-                <p>Combined view of winning trade and day streaks. Shows current streak (number in circle) and best/worst streaks for both days and trades.</p>
+              <TooltipContent side="bottom" sideOffset={5} className="max-w-[220px]">
+                <p className="text-xs">Combined view of winning trade and day streaks. Shows current streak (number in circle) and best/worst streaks for both days and trades.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

@@ -41,8 +41,8 @@ const TradeWinRate = React.memo(function TradeWinRate({ size }: TradeWinRateProp
                     <HelpCircle className="h-2 w-2 text-muted-foreground" />
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" sideOffset={5} className="max-w-[300px]">
-                  <p>Percentage of winning trades out of total trades. Excludes break-even trades from calculation.</p>
+                <TooltipContent side="bottom" sideOffset={5} className="max-w-[220px]">
+                  <p className="text-xs">Percentage of winning trades out of total trades. Excludes break-even trades from calculation.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

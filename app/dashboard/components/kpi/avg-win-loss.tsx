@@ -56,8 +56,8 @@ const AvgWinLoss = React.memo(function AvgWinLoss({ size }: AvgWinLossProps) {
                   <HelpCircle className="h-2 w-2 text-muted-foreground" />
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={5} className="max-w-[300px]">
-                <p>Average profit on winning trades vs average loss on losing trades. Higher ratios indicate better risk/reward management.</p>
+              <TooltipContent side="bottom" sideOffset={5} className="max-w-[200px]">
+                <p className="text-xs">Average profit on winning trades vs average loss on losing trades. Higher ratios indicate better risk/reward management.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

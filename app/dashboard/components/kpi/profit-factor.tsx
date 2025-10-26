@@ -45,8 +45,8 @@ const ProfitFactor = React.memo(function ProfitFactor({ size }: ProfitFactorProp
                     <HelpCircle className="h-2 w-2 text-muted-foreground" />
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" sideOffset={5} className="max-w-[300px]">
-                  <p>Total profits divided by total losses. Values above 1.0 indicate profitability. Higher values mean better risk management.</p>
+                <TooltipContent side="bottom" sideOffset={5} className="max-w-[220px]">
+                  <p className="text-xs">Total profits divided by total losses. Values above 1.0 indicate profitability. Higher values mean better risk management.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

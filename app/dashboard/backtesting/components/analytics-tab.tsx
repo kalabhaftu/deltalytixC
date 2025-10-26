@@ -59,17 +59,23 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
     // By Pair - with safe P&L and R:R calculation
     const byPair = backtests.reduce((acc, b) => {
       if (!acc[b.pair]) {
-        acc[b.pair] = { total: 0, wins: 0, losses: 0, totalPnl: 0, avgRR: 0 }
+        acc[b.pair] = { total: 0, wins: 0, losses: 0, totalPnl: 0, avgRR: 0, totalWinPips: 0, totalLossPips: 0 }
       }
       acc[b.pair].total++
-      if (b.outcome === 'WIN') acc[b.pair].wins++
-      if (b.outcome === 'LOSS') acc[b.pair].losses++
+      if (b.outcome === 'WIN') {
+        acc[b.pair].wins++
+        acc[b.pair].totalWinPips += (b.pnl || 0)
+      }
+      if (b.outcome === 'LOSS') {
+        acc[b.pair].losses++
+        acc[b.pair].totalLossPips += Math.abs(b.pnl || 0)
+      }
       acc[b.pair].totalPnl += (b.pnl || 0)
       acc[b.pair].avgRR += (b.riskRewardRatio || 0)
       return acc
-    }, {} as Record<string, { total: number; wins: number; losses: number; totalPnl: number; avgRR: number }>)
+    }, {} as Record<string, { total: number; wins: number; losses: number; totalPnl: number; avgRR: number; totalWinPips: number; totalLossPips: number }>)
 
-    // Calculate avg RR for each pair - safe division
+    // Calculate avg RR, avg win, and avg loss for each pair - safe division
     Object.keys(byPair).forEach(pair => {
       byPair[pair].avgRR = byPair[pair].total > 0 ? byPair[pair].avgRR / byPair[pair].total : 0
     })
@@ -101,8 +107,8 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
       return acc
     }, {} as Record<string, Record<string, { total: number; wins: number; losses: number; totalPnl: number }>>)
 
-    // Total P&L - safe calculation
-    const totalPnl = backtests.reduce((sum, b) => sum + (b.pnl || 0), 0)
+    // Total Points/Pips - safe calculation
+    const totalPips = backtests.reduce((sum, b) => sum + (b.pnl || 0), 0)
     
     // Average R:R - only count valid R:R values
     const validRRs = backtests.filter(b => (b.riskRewardRatio || 0) > 0)
@@ -110,13 +116,45 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
       ? validRRs.reduce((sum, b) => sum + b.riskRewardRatio, 0) / validRRs.length
       : 0
 
+    // Winning trades analysis
+    const winningTrades = backtests.filter(b => b.outcome === 'WIN')
+    const totalWinningPips = winningTrades.reduce((sum, b) => sum + (b.pnl || 0), 0)
+    const avgWin = wins > 0 ? totalWinningPips / wins : 0
+    const largestWin = winningTrades.length > 0 
+      ? Math.max(...winningTrades.map(b => b.pnl || 0))
+      : 0
+
+    // Losing trades analysis
+    const losingTrades = backtests.filter(b => b.outcome === 'LOSS')
+    const totalLosingPips = Math.abs(losingTrades.reduce((sum, b) => sum + (b.pnl || 0), 0))
+    const avgLoss = losses > 0 ? totalLosingPips / losses : 0
+    const largestLoss = losingTrades.length > 0 
+      ? Math.abs(Math.min(...losingTrades.map(b => b.pnl || 0)))
+      : 0
+
+    // Profit Factor - Total winning pips ÷ Total losing pips
+    // If no losses: returns -1 as indicator for "Perfect"
+    // If no wins: returns 0
+    const profitFactor = totalLosingPips > 0 
+      ? totalWinningPips / totalLosingPips 
+      : (wins > 0 ? -1 : 0) // -1 = Perfect record (no losses)
+
+    // Expectancy - Average pips per trade
+    const expectancy = total > 0 ? totalPips / total : 0
+
     return {
       winRate,
       wins,
       losses,
       total,
-      totalPnl,
+      totalPips,
       avgRR,
+      avgWin,
+      avgLoss,
+      largestWin,
+      largestLoss,
+      profitFactor,
+      expectancy,
       byModel,
       bySession,
       byDirection,
@@ -147,7 +185,7 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
   return (
     <div className="space-y-6">
       {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Win Rate</CardTitle>
@@ -172,13 +210,25 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total P&L</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Points/Pips</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${analytics.totalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-              {analytics.totalPnl >= 0 ? '+' : ''}{analytics.totalPnl.toFixed(2)}
+            <div className={`text-2xl font-bold ${analytics.totalPips >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              {analytics.totalPips >= 0 ? '+' : ''}{analytics.totalPips.toFixed(2)}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Points/Pips</p>
+            <p className="text-xs text-muted-foreground mt-1">Cumulative result</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Expectancy</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${analytics.expectancy >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              {analytics.expectancy >= 0 ? '+' : ''}{analytics.expectancy.toFixed(2)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Avg pips per trade</p>
           </CardContent>
         </Card>
 
@@ -189,6 +239,85 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
           <CardContent>
             <div className="text-2xl font-bold">1:{analytics.avgRR.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground mt-1">Risk/Reward ratio</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Secondary Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Avg Win</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              +{analytics.avgWin.toFixed(2)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Pips per winning trade</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Avg Loss</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${analytics.avgLoss > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+              {analytics.avgLoss > 0 ? `-${analytics.avgLoss.toFixed(2)}` : '-'}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {analytics.avgLoss > 0 ? 'Pips per losing trade' : 'No losses'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Largest Win</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              +{analytics.largestWin.toFixed(2)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Best single trade</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Largest Loss</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${analytics.largestLoss > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+              {analytics.largestLoss > 0 ? `-${analytics.largestLoss.toFixed(2)}` : '-'}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {analytics.largestLoss > 0 ? 'Worst single trade' : 'No losses'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Profit Factor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${
+              analytics.profitFactor === -1 || analytics.profitFactor >= 1 
+                ? 'text-green-600 dark:text-green-400' 
+                : analytics.profitFactor > 0 
+                ? 'text-red-600 dark:text-red-400' 
+                : 'text-muted-foreground'
+            }`}>
+              {analytics.profitFactor === -1 
+                ? '∞' 
+                : analytics.profitFactor > 0 
+                ? analytics.profitFactor.toFixed(2) 
+                : '-'}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {analytics.profitFactor === -1 ? 'Perfect record' : 'Win pips ÷ Loss pips'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -221,7 +350,7 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
                           {winRate.toFixed(1)}% WR
                         </span>
                         <span className={`text-sm font-semibold ${stats.totalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {stats.totalPnl >= 0 ? '+' : ''}{stats.totalPnl.toFixed(2)}
+                          {stats.totalPnl >= 0 ? '+' : ''}{stats.totalPnl.toFixed(2)} pips
                         </span>
                       </div>
                     </div>
@@ -265,9 +394,15 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
                         <span className="font-medium">{stats.total}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">P&L</span>
+                        <span className="text-muted-foreground">Total Pips</span>
                         <span className={`font-semibold ${stats.totalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                           {stats.totalPnl >= 0 ? '+' : ''}{stats.totalPnl.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Avg Pips/Trade</span>
+                        <span className={`font-medium ${(stats.totalPnl / stats.total) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {(stats.totalPnl / stats.total) >= 0 ? '+' : ''}{(stats.totalPnl / stats.total).toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -303,9 +438,15 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
                       <span className="font-medium">{stats.wins}W / {stats.losses}L</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Total P&L</span>
+                      <span className="text-muted-foreground">Total Pips</span>
                       <span className={`font-semibold ${stats.totalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                         {stats.totalPnl >= 0 ? '+' : ''}{stats.totalPnl.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Avg Pips/Trade</span>
+                      <span className={`font-medium ${(stats.totalPnl / stats.total) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {(stats.totalPnl / stats.total) >= 0 ? '+' : ''}{(stats.totalPnl / stats.total).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -330,6 +471,8 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
               .sort((a, b) => (b[1].wins / b[1].total) - (a[1].wins / a[1].total))
               .map(([pair, stats]) => {
                 const winRate = (stats.wins / stats.total) * 100
+                const avgWin = stats.wins > 0 ? stats.totalWinPips / stats.wins : 0
+                const avgLoss = stats.losses > 0 ? stats.totalLossPips / stats.losses : 0
                 return (
                   <div key={pair} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center gap-3">
@@ -338,7 +481,7 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
                         {stats.total} trades
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-6 text-sm">
+                    <div className="flex items-center gap-4 text-sm">
                       <div className="text-right">
                         <p className="text-muted-foreground text-xs">Win Rate</p>
                         <p className="font-medium">{winRate.toFixed(1)}%</p>
@@ -348,7 +491,19 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
                         <p className="font-medium">1:{stats.avgRR.toFixed(2)}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-muted-foreground text-xs">P&L</p>
+                        <p className="text-muted-foreground text-xs">Avg Win</p>
+                        <p className="font-medium text-green-600 dark:text-green-400">
+                          +{avgWin.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-muted-foreground text-xs">Avg Loss</p>
+                        <p className="font-medium text-red-600 dark:text-red-400">
+                          -{avgLoss.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-muted-foreground text-xs">Total Pips</p>
                         <p className={`font-semibold ${stats.totalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                           {stats.totalPnl >= 0 ? '+' : ''}{stats.totalPnl.toFixed(2)}
                         </p>
@@ -390,7 +545,7 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
                           {winRate.toFixed(1)}% WR
                         </span>
                         <span className={`font-semibold ${stats.totalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {stats.totalPnl >= 0 ? '+' : ''}{stats.totalPnl.toFixed(2)}
+                          {stats.totalPnl >= 0 ? '+' : ''}{stats.totalPnl.toFixed(2)} pips
                         </span>
                       </div>
                     </div>
@@ -433,7 +588,7 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
                             <span className="font-medium">{winRate.toFixed(1)}%</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">P&L</span>
+                            <span className="text-muted-foreground">Pips</span>
                             <span className={`font-semibold ${stats.totalPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                               {stats.totalPnl >= 0 ? '+' : ''}{stats.totalPnl.toFixed(2)}
                             </span>

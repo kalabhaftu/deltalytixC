@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Eye, TrendingUp, Clock, DollarSign, Target, X } from 'lucide-react'
+import { Eye, TrendingUp, Clock, Target } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BacktestTrade } from '@/types/backtesting-types'
 
@@ -252,7 +252,7 @@ export function ViewBacktestDialog({ isOpen, onClose, backtest }: ViewBacktestDi
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <DollarSign className="w-5 h-5" />
+                    <TrendingUp className="w-5 h-5" />
                     Key Metrics
                   </CardTitle>
                 </CardHeader>
@@ -268,12 +268,12 @@ export function ViewBacktestDialog({ isOpen, onClose, backtest }: ViewBacktestDi
                     </Badge>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Profit/Loss</span>
+                    <span className="text-sm text-muted-foreground">Points/Pips</span>
                     <span className={cn(
                       "font-medium",
                       backtest.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                     )}>
-                      ${backtest.pnl.toFixed(2)}
+                      {backtest.pnl >= 0 ? '+' : ''}{backtest.pnl.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -318,14 +318,6 @@ export function ViewBacktestDialog({ isOpen, onClose, backtest }: ViewBacktestDi
               <DialogTitle>Image Viewer</DialogTitle>
             </DialogHeader>
             <div className="relative w-full h-[85vh]">
-              <Button
-                variant="outline"
-                size="icon"
-                className="absolute top-2 right-2 z-10"
-                onClick={() => setSelectedImage(null)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
               <div className="w-full h-full flex items-center justify-center">
                 <Image
                   src={selectedImage}

@@ -124,27 +124,27 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
   }
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 h-full flex flex-col">
+    <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 h-full flex flex-col w-full max-w-full overflow-hidden">
       <CardHeader className="pb-4">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-4 h-4 bg-muted-foreground rounded-full flex-shrink-0" />
               <h3 className="font-semibold text-foreground truncate">
                 {trade.instrument}
               </h3>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground truncate">
               {trade.accountNumber ? `Account: ${trade.accountNumber}` : 'No Account'}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Badge variant={getStatusVariant(trade.pnl)} className="text-xs">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Badge variant={getStatusVariant(trade.pnl)} className="text-xs whitespace-nowrap">
               {isWin ? 'WIN' : 'LOSS'}
             </Badge>
             {(trade as any).tradingModel && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs whitespace-nowrap hidden sm:inline-flex">
                 {(trade as any).tradingModel}
               </Badge>
             )}
@@ -204,60 +204,60 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
         </div>
 
         {/* Trade Information */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className="min-w-0">
             <p className="text-xs text-muted-foreground mb-1">P&L</p>
             <div className="flex items-center gap-1">
-              {isWin ? <TrendingUp className="h-3 w-3 text-green-600" /> : <TrendingDown className="h-3 w-3 text-red-600" />}
-              <p className={`font-semibold ${isWin ? 'text-green-600' : 'text-red-600'}`}>
+              {isWin ? <TrendingUp className="h-3 w-3 text-green-600 flex-shrink-0" /> : <TrendingDown className="h-3 w-3 text-red-600 flex-shrink-0" />}
+              <p className={`font-semibold truncate ${isWin ? 'text-green-600' : 'text-red-600'}`}>
                 {formatCurrency(trade.pnl)}
               </p>
             </div>
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xs text-muted-foreground mb-1">Quantity</p>
-            <p className="font-semibold text-foreground">
+            <p className="font-semibold text-foreground truncate">
               {formatTradeData(trade).quantityWithUnit}
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="min-w-0">
             <p className="text-xs text-muted-foreground mb-1">Entry Price</p>
-            <p className="font-semibold text-foreground">
+            <p className="font-semibold text-foreground text-sm truncate">
               {trade.entryPrice}
             </p>
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xs text-muted-foreground mb-1">Exit Price</p>
-            <p className="font-semibold text-foreground">
+            <p className="font-semibold text-foreground text-sm truncate">
               {trade.closePrice}
             </p>
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xs text-muted-foreground mb-1">Side</p>
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs w-fit">
               {trade.side || 'N/A'}
             </Badge>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="min-w-0">
             <p className="text-xs text-muted-foreground mb-1">Date</p>
-            <p className="font-semibold text-foreground">
+            <p className="font-semibold text-foreground text-sm truncate">
               {new Date(trade.entryDate).toLocaleDateString()}
             </p>
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-1 mb-1">
               <p className="text-xs text-muted-foreground">R:R</p>
               {hasIncompleteRRData && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <AlertTriangle className="h-3 w-3 text-amber-500" />
+                      <AlertTriangle className="h-3 w-3 text-amber-500 flex-shrink-0" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="text-xs">Trade has incomplete SL or TP data</p>
@@ -266,13 +266,13 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
                 </TooltipProvider>
               )}
             </div>
-            <p className="font-semibold text-foreground">
+            <p className="font-semibold text-foreground text-sm truncate">
               {hasIncompleteRRData ? '-' : rrRatio.toFixed(2)}
             </p>
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-xs text-muted-foreground mb-1">Duration</p>
-            <p className="font-semibold text-foreground">{formatDuration(duration)}</p>
+            <p className="font-semibold text-foreground text-sm truncate">{formatDuration(duration)}</p>
           </div>
         </div>
       </CardContent>

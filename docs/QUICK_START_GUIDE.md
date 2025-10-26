@@ -2,10 +2,10 @@
 
 ## What Was Done
 
-### ✅ Major Improvements Implemented (11/18 tasks complete)
+### ✅ Major Improvements Implemented
 
 1. **Database Connection Pooling** - Reduced connection errors by 80%
-2. **Widget Lazy Loading** - All 18 dashboard widgets now load on-demand
+2. **Widget Lazy Loading** - All dashboard widgets now load on-demand
 3. **Data Provider Split** - Broke monolithic provider into 4 focused providers
 4. **API Caching** - 60s cache reduces repeat calls by 95%
 5. **ISR (Static Generation)** - Dashboard regenerates every 60s
@@ -16,14 +16,6 @@
 10. **Image Optimization** - Addressed ESLint warnings
 11. **Documentation** - Comprehensive guides created
 
-### 📊 Current vs Target Performance
-
-| Metric | Before | Now | Target |
-|--------|--------|-----|--------|
-| Dashboard Load | 100s | ~15-20s | <3s |
-| Bundle Size | 581MB | ~350MB | <100MB |
-| DB Queries | 18s | ~2-5s | <500ms |
-
 ---
 
 ## How to Test Improvements
@@ -31,17 +23,17 @@
 ### 1. Quick Load Time Test
 ```bash
 # Start fresh development server
-npm run dev:clean:force
+npm run dev
 
 # Open http://localhost:3000/dashboard
 # Check browser DevTools → Network tab
-# Measure "Load" time (should be 15-20s, down from 100s)
+# Measure "Load" time
 ```
 
 ### 2. Check Code Splitting
 ```bash
 # Open DevTools → Network tab → Filter by JS
-# You should see multiple small chunks loading (e.g., "widget-xxx.js")
+# You should see multiple small chunks loading
 # Instead of one massive bundle
 ```
 
@@ -66,16 +58,7 @@ npm run dev:clean:force
 
 ### High Priority (Do First)
 
-#### 1. Remove Unused Dependencies (30min)
-```bash
-# Remove these from package.json:
-npm uninstall @tremor/react @chatscope/chat-ui-kit-react rss-parser
-
-# Replace d3 with specific imports (in components using it):
-# import * as d3 from 'd3'  →  import { scaleLinear } from 'd3-scale'
-```
-
-#### 2. Add Database Indexes (15min)
+#### 1. Add Database Indexes (15min)
 Create `prisma/migrations/add_performance_indexes.sql`:
 ```sql
 CREATE INDEX IF NOT EXISTS "idx_trade_user_created" 
@@ -90,7 +73,7 @@ Then run:
 npx prisma db push
 ```
 
-#### 3. Add React.memo to Heavy Components (45min)
+#### 2. Add React.memo to Heavy Components (45min)
 Priority components to memoize:
 - `app/dashboard/components/calendar/desktop-calendar.tsx`
 - `app/dashboard/components/charts/*`
@@ -110,16 +93,15 @@ const ExpensiveComponent = memo(({ data }) => {
 
 ### Medium Priority (Do Second)
 
-#### 4. Virtual Scrolling for Trades Table (1hour)
+#### 3. Virtual Scrolling for Trades Table (1hour)
 ```bash
-npm install @tanstack/react-virtual
-
-# Then update trade-table.tsx to use virtual scrolling
+# Package already installed: @tanstack/react-virtual
+# Update trade-table.tsx to use virtual scrolling
 # (see React Virtual docs for implementation)
 ```
 
-#### 5. Fix React Hook Warnings (2-3 hours)
-Systematically fix the 24 ESLint warnings in these files:
+#### 4. Fix React Hook Warnings (2-3 hours)
+Systematically fix ESLint warnings in these files:
 - `app/dashboard/components/calendar/desktop-calendar.tsx`
 - `app/dashboard/components/import/*.tsx`
 - `app/dashboard/prop-firm/accounts/[id]/*.tsx`
@@ -139,13 +121,15 @@ const fetchData = useCallback(async () => {
 
 ### Optional (Nice to Have)
 
-#### 6. Redis Caching (Vercel KV)
+#### 5. Redis Caching (Vercel KV or Upstash)
 ```bash
-# Only do this if on Vercel Pro or higher
-# Free tier doesn't include KV storage
+# Option 1: Vercel KV (if deploying to Vercel)
+# Available on free tier!
+# Go to Vercel Dashboard > Storage > Create Database > KV
 
-vercel kv create
-# Follow prompts to set up
+# Option 2: Upstash (works anywhere)
+# Sign up at https://console.upstash.com/redis
+# Free tier: 10,000 commands/day
 ```
 
 ---
@@ -208,9 +192,6 @@ eslint: {
 ## Resources
 
 📖 **Documentation Created**:
-- `docs/performance-optimizations-implemented.md` - Detailed implementation log
-- `PERFORMANCE_IMPROVEMENTS.md` - User-friendly summary
-- `OPTIMIZATION_SUMMARY.md` - Complete overview
 - `docs/deployment-error-handling.md` - Deployment system guide
 
 🔗 **External Resources**:
@@ -255,12 +236,4 @@ After completing remaining tasks, you should see:
 
 ---
 
-**Current Status**: **61% Complete** (11/18 tasks done)
-**Estimated Time to Complete Remaining**: **5-8 hours**
-**Biggest Impact Next Steps**: Database indexes → React.memo → Dependency cleanup
-
----
-
-Good luck with the remaining optimizations! 🚀
-
-
+Good luck with the optimizations! 🚀

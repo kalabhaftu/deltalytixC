@@ -180,9 +180,9 @@ export function EditBacktestDialog({
                 </p>
               </div>
               <div>
-                <Label className="text-sm text-muted-foreground">P&L</Label>
+                <Label className="text-sm text-muted-foreground">Points/Pips</Label>
                 <p className={`font-bold ${backtest.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  ${backtest.pnl.toFixed(2)}
+                  {backtest.pnl >= 0 ? '+' : ''}{backtest.pnl.toFixed(2)}
                 </p>
               </div>
               <div>

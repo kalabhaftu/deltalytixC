@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts"
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useData } from "@/context/data-provider"
 import { cn } from "@/lib/utils"
@@ -23,13 +23,17 @@ interface MetricData {
   metric: string
   value: number
   fullMark: number
+  rawValue?: number
+  weight?: number
+  description?: string
+  target?: string
 }
 
 export default function PerformanceScore({ size = 'small-long' }: PerformanceScoreProps) {
   const { formattedTrades } = useData()
 
-  const { chartData, overallScore, zellaResult, hasData } = React.useMemo(() => {
-    // Calculate metrics using Zella Score formula
+  const { chartData, overallScore, scoreResult, hasData } = React.useMemo(() => {
+    // Calculate metrics using Performance Score formula
     const metrics = calculateMetricsFromTrades(formattedTrades)
     
     // No data case
@@ -45,27 +49,75 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
       return {
         chartData: emptyData,
         overallScore: 0,
-        zellaResult: null,
+        scoreResult: null,
         hasData: false
       }
     }
 
-    const zellaResult = calculateZellaScore(metrics)
+    const scoreResult = calculateZellaScore(metrics)
 
-    // Create radar chart data using Zella Score breakdown
+    // Create radar chart data using Performance Score breakdown with full metadata
     const radarData: MetricData[] = [
-      { metric: 'Win %', value: zellaResult.breakdown.tradeWinPercentageScore, fullMark: 100 },
-      { metric: 'Profit Factor', value: zellaResult.breakdown.profitFactorScore, fullMark: 100 },
-      { metric: 'Avg W/L', value: zellaResult.breakdown.avgWinLossScore, fullMark: 100 },
-      { metric: 'Recovery', value: zellaResult.breakdown.recoveryFactorScore, fullMark: 100 },
-      { metric: 'Consistency', value: zellaResult.breakdown.consistencyScoreValue, fullMark: 100 },
-      { metric: 'Drawdown', value: zellaResult.breakdown.maxDrawdownScore, fullMark: 100 },
+      { 
+        metric: 'Win %', 
+        value: scoreResult.breakdown.tradeWinPercentageScore, 
+        fullMark: 100,
+        rawValue: scoreResult.metrics.tradeWinPercentage,
+        weight: 15,
+        description: 'Percentage of winning trades',
+        target: '60%+'
+      },
+      { 
+        metric: 'Profit Factor', 
+        value: scoreResult.breakdown.profitFactorScore, 
+        fullMark: 100,
+        rawValue: scoreResult.metrics.profitFactor,
+        weight: 25,
+        description: 'Total Wins ÷ Total Losses',
+        target: '2.6+'
+      },
+      { 
+        metric: 'Avg W/L', 
+        value: scoreResult.breakdown.avgWinLossScore, 
+        fullMark: 100,
+        rawValue: scoreResult.metrics.avgWinLoss,
+        weight: 20,
+        description: 'Average Win ÷ Average Loss',
+        target: '2.6+'
+      },
+      { 
+        metric: 'Recovery', 
+        value: scoreResult.breakdown.recoveryFactorScore, 
+        fullMark: 100,
+        rawValue: scoreResult.metrics.recoveryFactor,
+        weight: 10,
+        description: 'Net Profit ÷ Max Drawdown',
+        target: '3.5+'
+      },
+      { 
+        metric: 'Consistency', 
+        value: scoreResult.breakdown.consistencyScoreValue, 
+        fullMark: 100,
+        rawValue: scoreResult.metrics.consistencyScore,
+        weight: 10,
+        description: 'Stability of daily returns',
+        target: 'Higher is better'
+      },
+      { 
+        metric: 'Drawdown', 
+        value: scoreResult.breakdown.maxDrawdownScore, 
+        fullMark: 100,
+        rawValue: scoreResult.metrics.maxDrawdown,
+        weight: 20,
+        description: 'Maximum peak-to-trough decline',
+        target: 'Lower is better'
+      },
     ]
 
     return { 
       chartData: radarData, 
-      overallScore: zellaResult.overallScore,
-      zellaResult,
+      overallScore: scoreResult.overallScore,
+      scoreResult,
       hasData: true
     }
   }, [formattedTrades])
@@ -81,6 +133,64 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
     if (score >= 70) return 'bg-green-600'
     if (score >= 40) return 'bg-yellow-600'
     return 'bg-red-600'
+  }
+
+  // Custom tooltip component for radar chart
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload || !payload.length) return null
+
+    const data = payload[0].payload as MetricData
+
+    // Format raw value based on metric type
+    const formatRawValue = (metric: string, value: number) => {
+      if (metric === 'Win %') return `${value.toFixed(1)}%`
+      if (metric === 'Drawdown') return `${value.toFixed(1)}%`
+      if (metric === 'Consistency') return `${value.toFixed(0)}/100`
+      return value.toFixed(2)
+    }
+
+    return (
+      <div className="bg-background border border-border rounded-lg p-2.5 shadow-lg max-w-[240px]">
+        <div className="space-y-1.5">
+          {/* Metric Name */}
+          <div className="font-semibold text-xs border-b border-border pb-1">
+            {data.metric}
+          </div>
+          
+          {/* Raw Value */}
+          <div className="flex justify-between items-center text-xs gap-3">
+            <span className="text-muted-foreground">Value:</span>
+            <span className="font-semibold">{formatRawValue(data.metric, data.rawValue || 0)}</span>
+          </div>
+          
+          {/* Score */}
+          <div className="flex justify-between items-center text-xs gap-3">
+            <span className="text-muted-foreground">Score:</span>
+            <span className="font-semibold">{Math.round(data.value)}/100</span>
+          </div>
+          
+          {/* Weight */}
+          <div className="flex justify-between items-center text-xs gap-3">
+            <span className="text-muted-foreground">Weight:</span>
+            <span className="font-semibold">{data.weight}%</span>
+          </div>
+          
+          {/* Divider */}
+          <div className="border-t border-border pt-1.5 space-y-0.5">
+            {/* Description */}
+            <div className="text-[11px] leading-snug text-muted-foreground">
+              {data.description}
+            </div>
+            
+            {/* Target */}
+            <div className="text-[11px]">
+              <span className="text-muted-foreground">Target: </span>
+              <span className="text-primary font-medium">{data.target}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -109,8 +219,8 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
                     size === 'small-long' ? "h-3.5 w-3.5" : "h-4 w-4"
                   )} />
                 </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[300px]">
-                  <p>Zella Score: Your ultimate trading performance tracker combining 6 key metrics with weighted importance.</p>
+                <TooltipContent side="top" className="max-w-[260px]">
+                  <p className="text-xs">Your ultimate trading performance tracker combining 6 key metrics with weighted importance.</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>
@@ -173,6 +283,7 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
                     tick={false}
                     axisLine={false}
                   />
+                  <Tooltip content={<CustomTooltip />} />
                   <Radar
                     name="Score"
                     dataKey="value"

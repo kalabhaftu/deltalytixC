@@ -27,11 +27,11 @@ function DashboardContent() {
   }, [])
 
   return (
-    <div className="container mx-auto px-6 py-6 max-w-full pr-8">
+    <div className="w-full max-w-full px-4 sm:px-6 py-6">
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Data Management</h1>
-          <p className="text-muted-foreground">Manage your trading accounts and trades</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Data Management</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">Manage your trading accounts and trades</p>
         </div>
 
         <Tabs defaultValue="accounts" className="w-full">

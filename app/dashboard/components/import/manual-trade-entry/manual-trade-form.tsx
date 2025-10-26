@@ -142,13 +142,22 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
     }
   })
 
-  // Watch form values for calculations
+  // Watch specific form values for calculations (not all values to prevent infinite loops)
+  const entryPrice = watch('entryPrice')
+  const closePrice = watch('closePrice')
+  const quantity = watch('quantity')
+  const side = watch('side')
+  const commission = watch('commission')
+  const entryDate = watch('entryDate')
+  const entryTime = watch('entryTime')
+  const closeDate = watch('closeDate')
+  const closeTime = watch('closeTime')
+  
+  // Watch all values for the review step display
   const watchedValues = watch()
 
   // Auto-calculate P&L when prices change
   useEffect(() => {
-    const { entryPrice, closePrice, quantity, side, commission } = watchedValues
-    
     if (entryPrice && closePrice && quantity) {
       const entry = parseFloat(entryPrice)
       const close = parseFloat(closePrice)
@@ -163,14 +172,12 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
       }
       
       setCalculatedPnL(pnl)
-      setValue('pnl', pnl)
+      setValue('pnl', pnl, { shouldValidate: false, shouldDirty: false })
     }
-  }, [watchedValues, setValue])
+  }, [entryPrice, closePrice, quantity, side, commission, setValue])
 
   // Auto-calculate duration
   useEffect(() => {
-    const { entryDate, entryTime, closeDate, closeTime } = watchedValues
-    
     if (entryDate && entryTime && closeDate && closeTime) {
       try {
         const entryDateTime = new Date(`${entryDate}T${entryTime}`)
@@ -191,7 +198,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
         setCalculatedDuration('')
       }
     }
-  }, [watchedValues.entryDate, watchedValues.entryTime, watchedValues.closeDate, watchedValues.closeTime, watchedValues])
+  }, [entryDate, entryTime, closeDate, closeTime])
 
   // Get unified accounts for dropdown - same as CSV import
   const { accounts: allAccounts, isLoading: isLoadingAccounts } = useAccounts()
@@ -218,7 +225,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
 
   // Step validation
   const validateStep = (step: Step): boolean => {
-    const values = watchedValues
+    const values = watch()
     
     switch (step) {
       case 1: // Account & Instrument
@@ -916,16 +923,16 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="text-center mb-3 px-6 pt-1">
-        <h3 className="text-base font-semibold">Add Single Trade</h3>
-        <p className="text-xs text-muted-foreground">
+      <div className="text-center mb-3 px-4 sm:px-6 pt-1">
+        <h3 className="text-sm sm:text-base font-semibold">Add Single Trade</h3>
+        <p className="text-xs text-muted-foreground truncate">
           Step {currentStep} of {TOTAL_STEPS}: {getStepTitle(currentStep)}
         </p>
       </div>
 
       {/* Progress Indicator */}
-      <div className="px-6 mb-4">
-        <div className="flex items-center justify-center space-x-2">
+      <div className="px-4 sm:px-6 mb-4">
+        <div className="flex items-center justify-center space-x-1 sm:space-x-2">
           {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((step) => (
             <div
               key={step}
@@ -941,19 +948,20 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-4">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4">
         <form id="manual-trade-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {renderStepContent()}
         </form>
       </div>
       
       {/* Form Actions - Navigation Buttons */}
-      <div className="flex justify-between bg-background border-t px-6 py-3 mt-auto">
-        <div className="flex space-x-3">
+      <div className="flex flex-col sm:flex-row justify-between gap-3 bg-background border-t px-4 sm:px-6 py-3 mt-auto">
+        <div className="flex gap-2 sm:gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={() => setIsOpen(false)}
+            className="flex-1 sm:flex-none"
           >
             Cancel
           </Button>
@@ -962,17 +970,19 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
               type="button"
               variant="outline"
               onClick={handleBack}
+              className="flex-1 sm:flex-none"
             >
               Back
             </Button>
           )}
         </div>
-        <div>
+        <div className="w-full sm:w-auto">
           {currentStep < TOTAL_STEPS ? (
             <Button
               type="button"
               onClick={handleNext}
               disabled={!canProceedToNext}
+              className="w-full sm:w-auto"
             >
               Next
             </Button>
@@ -981,6 +991,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
               type="submit"
               form="manual-trade-form"
               disabled={isSubmitting || !canProceedToNext}
+              className="w-full sm:w-auto"
             >
               {isSubmitting ? 'Adding Trade...' : 'Add Trade'}
             </Button>

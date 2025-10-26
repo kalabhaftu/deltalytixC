@@ -170,8 +170,8 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
                     size === 'small-long' ? "h-3.5 w-3.5" : "h-4 w-4"
                   )} />
                 </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>P&L breakdown by weekday (Mon-Fri). Toggle to show average P&L per trade.</p>
+                <TooltipContent side="top" className="max-w-[180px]">
+                  <p className="text-xs">P&L breakdown by weekday (Mon-Fri). Toggle to show average P&L per trade.</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>

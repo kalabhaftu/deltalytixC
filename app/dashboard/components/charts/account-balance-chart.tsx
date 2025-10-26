@@ -246,8 +246,8 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
                     size === 'small-long' ? "h-3.5 w-3.5" : "h-4 w-4"
                   )} />
                 </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>Account balance progression over time. Only shows days with trading activity.</p>
+                <TooltipContent side="top" className="max-w-[200px]">
+                  <p className="text-xs">Account balance progression over time. Only shows days with trading activity.</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>

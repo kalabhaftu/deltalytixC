@@ -361,7 +361,7 @@ export default function AccountsPage() {
     
     return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 py-8 max-w-7xl">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Header Section */}
       <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -682,15 +682,15 @@ function AccountCard({
   )
     
     return (
-    <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 h-full flex flex-col">
+    <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 h-full flex flex-col w-full max-w-full overflow-hidden">
           <CardHeader className="pb-4">
-            <div className="flex items-start justify-between">
-          <div className="flex-1">
+            <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
                   {account.accountType === 'prop-firm' ? (
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   ) : (
-                <User className="h-4 w-4 text-muted-foreground" />
+                <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   )}
               <h3 className="font-semibold text-foreground truncate">
                 {account.displayName || account.name || account.number}
@@ -698,7 +698,7 @@ function AccountCard({
               </div>
         </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -727,7 +727,7 @@ function AccountCard({
 
       <CardContent className="space-y-4 flex-1 flex flex-col">
         {/* Balance Information */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <div>
             <p className="text-xs text-muted-foreground mb-1">Current Equity</p>
             <p className="font-semibold text-foreground">
@@ -894,7 +894,7 @@ function EmptyState({
 function AccountsLoadingSkeleton() {
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 py-8 max-w-7xl">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Header skeleton - Optimized for faster loading */}
         <motion.div
           initial={{ opacity: 0 }}

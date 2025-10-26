@@ -135,8 +135,8 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
                     size === 'small-long' ? "h-3.5 w-3.5" : "h-4 w-4"
                   )} />
                 </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>Running total of profit/loss over time. Shows how your account balance changes day by day.</p>
+                <TooltipContent side="top" className="max-w-[200px]">
+                  <p className="text-xs">Running total of profit/loss over time. Shows how your account balance changes day by day.</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>

@@ -67,7 +67,15 @@ export class DataSerializer {
   static deserializeTradingModels(serializedData: string): string[] {
     try {
       const parsed = JSON.parse(serializedData)
-      return Array.isArray(parsed.models) ? parsed.models : []
+      // Handle both old format (parsed.models) and new format (parsed.data)
+      if (Array.isArray(parsed.data)) {
+        return parsed.data
+      } else if (Array.isArray(parsed.models)) {
+        return parsed.models
+      } else if (Array.isArray(parsed)) {
+        return parsed
+      }
+      return []
     } catch (error) {
       console.error('Failed to deserialize trading models:', error)
       return []
@@ -80,8 +88,26 @@ export class DataSerializer {
   static getTradingModels(): string[] {
     if (typeof window === 'undefined') return []
 
-    const stored = localStorage.getItem(this.STORAGE_KEYS.TRADING_MODELS)
-    return stored ? this.deserializeTradingModels(stored) : []
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEYS.TRADING_MODELS)
+      if (!stored) return []
+      
+      const models = this.deserializeTradingModels(stored)
+      
+      // Validate that we got an array
+      if (!Array.isArray(models)) {
+        console.warn('Invalid trading models data, resetting...')
+        localStorage.removeItem(this.STORAGE_KEYS.TRADING_MODELS)
+        return []
+      }
+      
+      return models
+    } catch (error) {
+      console.error('Error loading trading models:', error)
+      // Clear corrupted data
+      localStorage.removeItem(this.STORAGE_KEYS.TRADING_MODELS)
+      return []
+    }
   }
 
   /**
@@ -99,12 +125,17 @@ export class DataSerializer {
    */
   static addTradingModel(modelName: string): string[] {
     const currentModels = this.getTradingModels()
+    
+    console.log('Adding model:', modelName)
+    console.log('Current models before add:', currentModels)
 
     if (currentModels.includes(modelName)) {
       throw new Error(`Model "${modelName}" already exists`)
     }
 
     const updatedModels = [...currentModels, modelName]
+    console.log('Updated models after add:', updatedModels)
+    
     this.saveTradingModels(updatedModels)
     return updatedModels
   }

@@ -38,7 +38,17 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
 
   const refreshBacktests = async () => {
     try {
-      const response = await fetch('/api/backtesting')
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      
+      const response = await fetch('/api/backtesting', {
+        signal: controller.signal,
+        cache: 'no-cache'
+      })
+      
+      clearTimeout(timeoutId)
+      
       if (!response.ok) throw new Error('Failed to fetch backtests')
       const data = await response.json()
       
@@ -51,6 +61,8 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
         model: bt.model,
         customModel: bt.customModel,
         riskRewardRatio: bt.riskRewardRatio,
+        riskPoints: bt.riskPoints,
+        rewardPoints: bt.rewardPoints,
         entryPrice: bt.entryPrice,
         stopLoss: bt.stopLoss,
         takeProfit: bt.takeProfit,
@@ -76,7 +88,10 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
       setBacktests(transformedBacktests)
     } catch (err) {
       console.error('Error fetching backtests:', err)
-      toast.error('Failed to load backtests')
+      // Only show error toast if it's not an abort error
+      if (err instanceof Error && err.name !== 'AbortError') {
+        toast.error('Failed to load backtests')
+      }
     }
   }
 
@@ -154,23 +169,24 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="w-full max-w-full py-6 px-4 sm:px-6 space-y-6">
       <Tabs defaultValue="backtests" className="w-full">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Backtesting</h1>
-            <p className="text-muted-foreground mt-1">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">Backtesting</h1>
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base truncate">
               Track and analyze your paper trades
             </p>
           </div>
-          <TabsList className="grid w-fit grid-cols-2">
+          <TabsList className="grid w-full sm:w-fit grid-cols-2 flex-shrink-0">
             <TabsTrigger value="backtests" className="gap-2">
               <BarChart3 className="h-4 w-4" />
-              Backtests
+              <span className="hidden sm:inline">Backtests</span>
+              <span className="sm:hidden">Tests</span>
             </TabsTrigger>
             <TabsTrigger value="analytics" className="gap-2">
               <TrendingUp className="h-4 w-4" />
-              Analytics
+              <span>Analytics</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -236,16 +252,16 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
             </Card>
             <Card>
               <CardContent className="p-6">
-                <p className="text-sm text-muted-foreground">Total P&L</p>
+                <p className="text-sm text-muted-foreground">Total Points/Pips</p>
                 <p className={`text-2xl font-bold ${stats.totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  ${stats.totalPnL.toFixed(2)}
+                  {stats.totalPnL >= 0 ? '+' : ''}{stats.totalPnL.toFixed(2)}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-6">
                 <p className="text-sm text-muted-foreground">Avg R:R</p>
-                <p className="text-2xl font-bold">{stats.averageRR.toFixed(1)}</p>
+                <p className="text-2xl font-bold">1:{stats.averageRR.toFixed(2)}</p>
               </CardContent>
             </Card>
           </div>
@@ -300,9 +316,31 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
       <AddBacktestDialog
         isOpen={isAddDialogOpen}
         onClose={() => setIsAddDialogOpen(false)}
-        onAdd={async () => {
-          await refreshBacktests()
-          setIsAddDialogOpen(false)
+        onAdd={async (backtestData) => {
+          try {
+            const response = await fetch('/api/backtesting', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(backtestData),
+            })
+
+            if (!response.ok) throw new Error('Failed to create backtest')
+
+            // Close dialog immediately after successful POST
+            setIsAddDialogOpen(false)
+            
+            // Show success toast
+            toast.success('Backtest added successfully')
+            
+            // Refresh in background with small delay to ensure UI is smooth
+            setTimeout(async () => {
+              await refreshBacktests()
+            }, 100)
+          } catch (error) {
+            console.error('Error creating backtest:', error)
+            toast.error('Failed to create backtest')
+            throw error // Re-throw to prevent dialog close on error
+          }
         }}
       />
 

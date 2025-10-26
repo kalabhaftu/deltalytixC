@@ -110,26 +110,63 @@ export default function SettingsPage() {
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
 
-
-  // Journal hover effect setting (local state for now, can be moved to store later)
-  const [journalHoverEffect, setJournalHoverEffect] = useState<'simple' | 'detailed'>('simple')
-
   // Trading models settings
   const [customModelName, setCustomModelName] = useState('')
   const [customModels, setCustomModels] = useState<string[]>([])
   const [scrollPosition, setScrollPosition] = useState(0)
   const [deleteModelName, setDeleteModelName] = useState<string | null>(null)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
 
-  // Load custom models from DataSerializer on component mount
+  // Load custom models from database on component mount
   useEffect(() => {
-    const savedModels = DataSerializer.getTradingModels()
-    setCustomModels(savedModels)
+    const loadModels = async () => {
+      try {
+        const response = await fetch('/api/user/trading-models')
+        if (response.ok) {
+          const data = await response.json()
+          setCustomModels(data.models || [])
+          // Sync to localStorage as backup
+          DataSerializer.saveTradingModels(data.models || [])
+        } else {
+          // Fallback to localStorage if API fails
+          const savedModels = DataSerializer.getTradingModels()
+          setCustomModels(savedModels)
+        }
+      } catch (error) {
+        console.error('Error loading models from database:', error)
+        // Fallback to localStorage
+        const savedModels = DataSerializer.getTradingModels()
+        setCustomModels(savedModels)
+      } finally {
+        setIsInitialLoad(false)
+      }
+    }
+    
+    loadModels()
   }, [])
 
-  // Save custom models using DataSerializer whenever they change
+  // Save custom models to both localStorage and database whenever they change (skip initial mount)
   useEffect(() => {
-    DataSerializer.saveTradingModels(customModels)
-  }, [customModels])
+    if (!isInitialLoad) {
+      // Save to localStorage (fast, local backup)
+      DataSerializer.saveTradingModels(customModels)
+      
+      // Save to database (persistent, synced)
+      const saveToDatabase = async () => {
+        try {
+          await fetch('/api/user/trading-models', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ models: customModels })
+          })
+        } catch (error) {
+          console.error('Error saving models to database:', error)
+        }
+      }
+      
+      saveToDatabase()
+    }
+  }, [customModels, isInitialLoad])
 
   const handleAddModel = () => {
     const trimmedName = customModelName.trim()
@@ -218,28 +255,6 @@ export default function SettingsPage() {
       'Price Action': 'PRICE_ACTION'
     }
     return enumMap[displayName] || null
-  }
-
-
-  const handleJournalHoverChange = (value: 'simple' | 'detailed') => {
-    setJournalHoverEffect(value)
-    // Save to localStorage for now (can be persisted to database later)
-    localStorage.setItem('journal-hover-effect', value)
-
-    toast.success("Journal Settings Updated", {
-      description: `Journal hover effect changed to ${value} mode.`,
-      duration: 2000
-    })
-  }
-
-  const handleResetSettings = () => {
-    setJournalHoverEffect('simple')
-    localStorage.removeItem('journal-hover-effect')
-
-    toast.success("Settings Reset", {
-      description: "All settings have been reset to default values.",
-      duration: 2000
-    })
   }
 
   
@@ -391,10 +406,10 @@ export default function SettingsPage() {
 
 
   return (
-    <div className="container mx-auto py-8 px-4 pb-20 md:pb-8 max-w-7xl">
+    <div className="w-full max-w-7xl mx-auto py-8 px-4 sm:px-6 pb-20 md:pb-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-2">Manage your account settings and preferences</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-muted-foreground mt-2 text-sm sm:text-base">Manage your account settings and preferences</p>
       </div>
 
       <div className="grid gap-6 grid-cols-1 xl:grid-cols-2">
@@ -555,39 +570,6 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Journal Card Hover Effect */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-muted-foreground">Journal Card Hover Effect</Label>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex-1">
-                  <Label htmlFor="journal-hover-effect">Hover Style</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Choose how trade cards behave when hovered in the journal
-                  </p>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full sm:w-[200px] justify-start">
-                      <Settings className="mr-2 h-4 w-4" />
-                      {journalHoverEffect === 'simple' ? 'Simple' : 'Detailed'}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => handleJournalHoverChange('simple')}>
-                      <div className="mr-2 h-4 w-4" />
-                      <span>Simple</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleJournalHoverChange('detailed')}>
-                      <div className="mr-2 h-4 w-4" />
-                      <span>Detailed</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-
-            <Separator />
-
             {/* Future UI Settings Placeholder */}
             <div className="space-y-3">
               <Label className="text-sm font-medium text-muted-foreground">More UI Settings</Label>

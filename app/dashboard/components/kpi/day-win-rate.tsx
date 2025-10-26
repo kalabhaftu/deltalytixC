@@ -47,8 +47,8 @@ const DayWinRate = React.memo(function DayWinRate({ size }: DayWinRateProps) {
                     <HelpCircle className="h-2 w-2 text-muted-foreground" />
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" sideOffset={5} className="max-w-[300px]">
-                  <p>Percentage of profitable trading days out of total trading days. Shows consistency in daily performance.</p>
+                <TooltipContent side="bottom" sideOffset={5} className="max-w-[200px]">
+                  <p className="text-xs">Percentage of profitable trading days out of total trading days. Shows consistency in daily performance.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

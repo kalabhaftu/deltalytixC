@@ -113,11 +113,11 @@ export function JournalClient() {
   }
 
   return (
-    <div className="container mx-auto py-6 px-4 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Trading Journal</h1>
-          <p className="text-muted-foreground mt-1">
+    <div className="w-full max-w-full py-6 px-4 sm:px-6 space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">Trading Journal</h1>
+          <p className="text-muted-foreground mt-1 text-sm truncate">
             Review and analyze your trade history
           </p>
         </div>
@@ -126,10 +126,10 @@ export function JournalClient() {
           size="sm" 
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="gap-2"
+          className="gap-2 flex-shrink-0"
         >
           <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh
+          <span className="hidden sm:inline">Refresh</span>
         </Button>
       </div>
 
@@ -146,9 +146,11 @@ export function JournalClient() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Filter className="h-4 w-4" />
-              {filterBy === 'all' ? 'All' : filterBy === 'wins' ? 'Wins' : filterBy === 'losses' ? 'Losses' : filterBy === 'buys' ? 'Buys' : 'Sells'}
+            <Button variant="outline" className="gap-2 whitespace-nowrap">
+              <Filter className="h-4 w-4 flex-shrink-0" />
+              <span className="truncate">
+                {filterBy === 'all' ? 'All' : filterBy === 'wins' ? 'Wins' : filterBy === 'losses' ? 'Losses' : filterBy === 'buys' ? 'Buys' : 'Sells'}
+              </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -200,8 +202,8 @@ export function JournalClient() {
 
           {/* Pagination controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-8">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
+              <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
                 Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredTrades.length)} of {filteredTrades.length} trades
               </div>
               <div className="flex items-center gap-2">
@@ -210,9 +212,10 @@ export function JournalClient() {
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
+                  className="gap-1"
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">Previous</span>
                 </Button>
                 <div className="flex items-center gap-1">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -232,7 +235,7 @@ export function JournalClient() {
                         variant={currentPage === pageNum ? "default" : "outline"}
                         size="sm"
                         onClick={() => setCurrentPage(pageNum)}
-                        className="w-9 h-9 p-0"
+                        className="w-8 h-8 sm:w-9 sm:h-9 p-0 text-xs sm:text-sm"
                       >
                         {pageNum}
                       </Button>
@@ -244,9 +247,10 @@ export function JournalClient() {
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
+                  className="gap-1"
                 >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                  <span className="hidden sm:inline">Next</span>
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>

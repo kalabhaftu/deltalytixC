@@ -76,8 +76,8 @@ const AccountBalancePnl = React.memo(function AccountBalancePnl({ size }: Accoun
                   <HelpCircle className="h-2 w-2 text-muted-foreground" />
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={5} className="max-w-[300px]">
-                <p>
+              <TooltipContent side="bottom" sideOffset={5} className="max-w-[200px]">
+                <p className="text-xs">
                   {accountNumbers && accountNumbers.length > 0
                     ? `Balance for ${accountNumbers.length} selected account${accountNumbers.length > 1 ? 's' : ''} including trading fees.`
                     : 'Current total balance across all accounts including trading fees.'}

@@ -160,8 +160,8 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
                     size === 'small-long' ? "h-3.5 w-3.5" : "h-4 w-4"
                   )} />
                 </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[250px]">
-                  <p>Performance breakdown by trading strategy/model. Shows total P&L, win/loss ratio, and profit factor.</p>
+                <TooltipContent side="top" className="max-w-[200px]">
+                  <p className="text-xs">Performance breakdown by trading strategy/model. Shows total P&L, win/loss ratio, and profit factor.</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>

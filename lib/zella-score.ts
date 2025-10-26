@@ -1,6 +1,6 @@
 /**
- * Zella Score Calculation
- * Based on TradeZella's performance scoring system
+ * Performance Score Calculation
+ * Comprehensive trading performance scoring system
  * 
  * Combines 6 key trading metrics with specific weights:
  * - Recovery Factor: 10%
@@ -42,7 +42,7 @@ export interface ZellaScoreResult {
 
 /**
  * Calculate Average Win/Loss Ratio Score
- * Formula from TradeZella documentation
+ * Scoring formula for average win/loss ratio
  */
 export function calculateAvgWinLossScore(avgWinLoss: number): number {
   if (avgWinLoss >= 2.6) return 100
@@ -79,7 +79,7 @@ export function calculateMaxDrawdownScore(maxDrawdownPercent: number): number {
 
 /**
  * Calculate Profit Factor Score
- * Formula from TradeZella documentation
+ * Scoring formula for profit factor
  */
 export function calculateProfitFactorScore(profitFactor: number): number {
   if (profitFactor >= 2.6) return 100
@@ -93,7 +93,7 @@ export function calculateProfitFactorScore(profitFactor: number): number {
 
 /**
  * Calculate Recovery Factor Score
- * Formula from TradeZella documentation
+ * Scoring formula for recovery factor
  */
 export function calculateRecoveryFactorScore(recoveryFactor: number): number {
   if (recoveryFactor >= 3.5) return 100
@@ -123,7 +123,7 @@ export function calculateConsistencyScore(
 }
 
 /**
- * Calculate Complete Zella Score
+ * Calculate Complete Performance Score
  * Weighted combination of all metrics
  */
 export function calculateZellaScore(metrics: ZellaScoreMetrics): ZellaScoreResult {
