@@ -46,7 +46,7 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
     const groupedTrades = groupTradesByExecution(formattedTrades)
 
     // Group trades by date to calculate wins/losses
-    const tradesByDate = groupedTrades.reduce((acc, trade) => {
+    const tradesByDate = groupedTrades.reduce((acc: Record<string, { wins: number; losses: number }>, trade) => {
       const date = trade.entryDate.split('T')[0]
       if (!acc[date]) {
         acc[date] = { wins: 0, losses: 0 }
@@ -58,7 +58,7 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
         acc[date].losses++
       }
       return acc
-    }, {} as Record<string, { wins: number; losses: number }>)
+    }, {})
 
     return Object.entries(calendarData)
       .map(([date, values]) => ({

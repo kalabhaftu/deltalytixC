@@ -148,23 +148,24 @@ export default function AccountTradesPage() {
   }
 
   // CRITICAL FIX: Group trades first to handle partial closes
+  // @ts-ignore - require is available in Node.js context
   const { groupTradesByExecution } = require('@/lib/utils')
   const groupedTrades = groupTradesByExecution(trades)
 
   // Filter GROUPED trades based on search term
-  const filteredTrades = groupedTrades.filter(trade =>
+  const filteredTrades = groupedTrades.filter((trade: any) =>
     trade.symbol.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   // Calculate trade statistics using GROUPED trades and NET P&L
   const totalTrades = groupedTrades.length
-  const winningTrades = groupedTrades.filter(trade => (trade.pnl - (trade.commission || 0)) > 0).length
-  const losingTrades = groupedTrades.filter(trade => (trade.pnl - (trade.commission || 0)) < 0).length
-  const breakEvenTrades = groupedTrades.filter(trade => (trade.pnl - (trade.commission || 0)) === 0).length
+  const winningTrades = groupedTrades.filter((trade: any) => (trade.pnl - (trade.commission || 0)) > 0).length
+  const losingTrades = groupedTrades.filter((trade: any) => (trade.pnl - (trade.commission || 0)) < 0).length
+  const breakEvenTrades = groupedTrades.filter((trade: any) => (trade.pnl - (trade.commission || 0)) === 0).length
   // Calculate win rate excluding break-even trades (industry standard)
   const tradableTradesCount = winningTrades + losingTrades
   const winRate = tradableTradesCount > 0 ? Math.round((winningTrades / tradableTradesCount) * 1000) / 10 : 0
-  const totalPnl = groupedTrades.reduce((sum, trade) => sum + trade.pnl, 0)
+  const totalPnl = groupedTrades.reduce((sum: number, trade: any) => sum + trade.pnl, 0)
 
   if (isLoading) {
     return (
@@ -249,7 +250,7 @@ export default function AccountTradesPage() {
               >
                 Current Phase Only
               </Button>
-              {availablePhases.map((phase) => (
+              {availablePhases.map((phase: any) => (
                 <Button
                   key={phase.phaseNumber}
                   variant={phaseFilter === phase.phaseNumber.toString() ? 'default' : 'outline'}
@@ -347,7 +348,7 @@ export default function AccountTradesPage() {
           <Input
             placeholder="Search trades..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e: any) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -391,7 +392,7 @@ export default function AccountTradesPage() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {filteredTrades.map((trade) => (
+              {filteredTrades.map((trade: any) => (
                 <Card key={trade.id}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -474,7 +475,7 @@ export default function AccountTradesPage() {
         <TabsContent value="open">
           {/* Open Positions */}
           {(() => {
-            const openTrades = filteredTrades.filter(trade => trade.status === 'open')
+            const openTrades = filteredTrades.filter((trade: any) => trade.status === 'open')
             return openTrades.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center h-64">
@@ -485,7 +486,7 @@ export default function AccountTradesPage() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {openTrades.map((trade) => (
+                {openTrades.map((trade: any) => (
                   <Card key={trade.id}>
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
@@ -551,7 +552,7 @@ export default function AccountTradesPage() {
         <TabsContent value="closed">
           {/* Closed Trades */}
           {(() => {
-            const closedTrades = filteredTrades.filter(trade => trade.status === 'closed')
+            const closedTrades = filteredTrades.filter((trade: any) => trade.status === 'closed')
             return closedTrades.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center h-64">
@@ -562,7 +563,7 @@ export default function AccountTradesPage() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {closedTrades.map((trade) => (
+                {closedTrades.map((trade: any) => (
                   <Card key={trade.id}>
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
