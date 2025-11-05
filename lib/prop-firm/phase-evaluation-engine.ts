@@ -112,22 +112,27 @@ export class PhaseEvaluationEngine {
     const trades = phaseAccount.trades
     const timezone = masterAccount.user.timezone || 'UTC'
 
-    // Calculate current metrics
-    const currentPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
+    // CRITICAL FIX: Calculate current metrics using NET P&L (after commission)
+    // Prop firms must account for commission as it affects actual account balance
+    const currentPnL = trades.reduce((sum, trade) => {
+      const netPnl = (trade.pnl || 0) - (trade.commission || 0)
+      return sum + netPnl
+    }, 0)
     const currentEquity = masterAccount.accountSize + currentPnL
 
-    this.log(`Current metrics calculated`, {
+    this.log(`Current metrics calculated (NET of commission)`, {
       currentPnL,
       currentEquity,
       startingBalance: masterAccount.accountSize
     })
 
-    // Calculate high-water mark (highest equity since phase start)
+    // Calculate high-water mark (highest equity since phase start) using NET P&L
     let highWaterMark = masterAccount.accountSize
     let runningBalance = masterAccount.accountSize
     
     for (const trade of trades) {
-      runningBalance += trade.pnl || 0
+      const netPnl = (trade.pnl || 0) - (trade.commission || 0)
+      runningBalance += netPnl
       highWaterMark = Math.max(highWaterMark, runningBalance)
     }
 
@@ -328,7 +333,9 @@ export class PhaseEvaluationEngine {
       // Calculate day's P&L
       let dayPnL = 0
       for (const trade of dayTrades) {
-        dayPnL += (trade.pnl || 0)
+        // CRITICAL FIX: Use net P&L for daily drawdown calculations
+        const netPnl = (trade.pnl || 0) - (trade.commission || 0)
+        dayPnL += netPnl
       }
 
       const dayEndBalance = dayStartBalance + dayPnL
@@ -572,8 +579,11 @@ export class PhaseEvaluationEngine {
         return fallbackBalance
       }
 
-      // STEP 3: Calculate current equity for anchor
-      const tradesPnL = phaseAccount.trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
+      // STEP 3: Calculate current equity for anchor using NET P&L
+      const tradesPnL = phaseAccount.trades.reduce((sum, trade) => {
+        const netPnl = (trade.pnl || 0) - (trade.commission || 0)
+        return sum + netPnl
+      }, 0)
       const anchorEquity = phaseAccount.masterAccount.accountSize + tradesPnL
 
       // STEP 4: Try to create the missing anchor (atomic operation)

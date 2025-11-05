@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { useData } from '@/context/data-provider'
 import { Trade } from '@prisma/client'
-import { calculateStatistics, calculateAverageWinLoss } from '@/lib/utils'
+import { calculateStatistics, calculateAverageWinLoss, groupTradesByExecution } from '@/lib/utils'
 
 /**
  * Custom hook that provides all trading statistics calculations
@@ -11,6 +11,9 @@ import { calculateStatistics, calculateAverageWinLoss } from '@/lib/utils'
  */
 export function useTradeStatistics() {
   const { formattedTrades, accounts } = useData()
+
+  // CRITICAL: Group trades by execution first for accurate counting
+  const groupedTrades = useMemo(() => groupTradesByExecution(formattedTrades), [formattedTrades])
 
   // Core statistics from the centralized calculation
   const coreStats = useMemo(() => {
@@ -58,9 +61,9 @@ export function useTradeStatistics() {
     let bestDayStreak = 0
     let worstDayStreak = 0
     
-    // Calculate trade streaks
-    for (let i = 0; i < formattedTrades.length; i++) {
-      const trade = formattedTrades[i]
+    // Calculate trade streaks using GROUPED trades
+    for (let i = 0; i < groupedTrades.length; i++) {
+      const trade = groupedTrades[i]
       const netPnl = trade.pnl - (trade.commission || 0)
       const isWin = netPnl > 0
       
@@ -73,13 +76,13 @@ export function useTradeStatistics() {
       }
       
       // Current streak is the last one
-      if (i === formattedTrades.length - 1) {
+      if (i === groupedTrades.length - 1) {
         currentTradeStreak = tempTradeStreak
       }
     }
     
-    // Calculate day streaks (group trades by day)
-    const tradesByDay = formattedTrades.reduce((acc, trade) => {
+    // Calculate day streaks (group GROUPED trades by day)
+    const tradesByDay = groupedTrades.reduce((acc, trade) => {
       const date = new Date(trade.entryDate).toDateString()
       if (!acc[date]) {
         acc[date] = []
@@ -131,7 +134,7 @@ export function useTradeStatistics() {
       bestDayStreak,
       worstDayStreak,
     }
-  }, [coreStats, avgWinLossStats, formattedTrades])
+  }, [coreStats, avgWinLossStats, groupedTrades])
 
   return {
     // Core statistics

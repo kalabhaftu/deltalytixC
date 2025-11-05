@@ -26,7 +26,8 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { BacktestTrade, BacktestDirection, BacktestSession, BacktestModel, BacktestOutcome } from '@/types/backtesting-types'
-import { Edit, Camera, X, Target } from 'lucide-react'
+import { Edit, Camera, X, Target, Download } from 'lucide-react'
+import { formatPrice } from '@/lib/utils'
 
 const editBacktestSchema = z.object({
   notes: z.string().optional(),
@@ -68,7 +69,7 @@ export function EditBacktestDialog({
 
   const watchedModel = watch('model')
 
-  // Initialize form with backtest data
+  // Initialize form with backtest data and cleanup state
   useEffect(() => {
     if (backtest && isOpen) {
       reset({
@@ -79,6 +80,14 @@ export function EditBacktestDialog({
       })
       setImages(backtest.images || [])
       setCardPreview(backtest.cardPreviewImage || '')
+      
+      // CRITICAL FIX: Reset fullscreen image state when dialog opens
+      setFullscreenImage(null)
+    }
+    
+    // Cleanup when dialog closes
+    if (!isOpen) {
+      setFullscreenImage(null)
     }
   }, [backtest, isOpen, reset])
 
@@ -187,7 +196,7 @@ export function EditBacktestDialog({
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">Entry → Exit</Label>
-                <p className="font-medium">{backtest.entryPrice.toFixed(5)} → {backtest.exitPrice.toFixed(5)}</p>
+                <p className="font-medium">{formatPrice(backtest.entryPrice, backtest.pair)} → {formatPrice(backtest.exitPrice, backtest.pair)}</p>
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">R:R Ratio</Label>
@@ -455,14 +464,34 @@ export function EditBacktestDialog({
               className="max-w-full max-h-full object-contain"
             />
           </div>
-          <Button
-            variant="destructive"
-            size="icon"
-            className="absolute top-4 right-4"
-            onClick={() => setFullscreenImage(null)}
-          >
-            <X className="w-4 h-4" />
-          </Button>
+          <div className="absolute top-4 right-4 flex gap-2">
+            <Button
+              variant="secondary"
+              size="icon"
+              className="bg-white/10 hover:bg-white/20"
+              onClick={(e) => {
+                e.stopPropagation()
+                const link = document.createElement('a')
+                link.href = fullscreenImage
+                link.download = `backtest-${backtest?.pair || 'analysis'}-${Date.now()}.png`
+                link.click()
+              }}
+              title="Download image"
+            >
+              <Download className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="destructive"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation()
+                setFullscreenImage(null)
+              }}
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       )}
     </>

@@ -182,13 +182,17 @@ export function calculateMetricsFromTrades(trades: Trade[]): ZellaScoreMetrics |
     return null
   }
 
-  // Calculate wins and losses
-  const wins = trades.filter(t => {
+  // CRITICAL FIX: Group trades to handle partial closes
+  const { groupTradesByExecution } = require('@/lib/utils')
+  const groupedTrades = groupTradesByExecution(trades)
+
+  // Calculate wins and losses using NET P&L
+  const wins = groupedTrades.filter(t => {
     const netPnL = t.pnl - (t.commission || 0)
     return netPnL > 0
   })
   
-  const losses = trades.filter(t => {
+  const losses = groupedTrades.filter(t => {
     const netPnL = t.pnl - (t.commission || 0)
     return netPnL < 0
   })
@@ -202,18 +206,19 @@ export function calculateMetricsFromTrades(trades: Trade[]): ZellaScoreMetrics |
   const avgLoss = losses.length > 0 ? grossLoss / losses.length : 0
   const avgWinLoss = avgLoss > 0 ? avgWin / avgLoss : avgWin > 0 ? 5 : 0
 
-  // Trade Win Percentage
-  const tradeWinPercentage = trades.length > 0 ? (wins.length / trades.length) * 100 : 0
+  // Trade Win Percentage (exclude break-even trades - industry standard)
+  const tradableCount = wins.length + losses.length
+  const tradeWinPercentage = tradableCount > 0 ? (wins.length / tradableCount) * 100 : 0
 
   // Profit Factor
   const profitFactor = grossLoss > 0 ? grossWin / grossLoss : grossWin > 0 ? 5 : 0
 
-  // Calculate Max Drawdown
+  // Calculate Max Drawdown using GROUPED trades for consistency
   let peak = 0
   let maxDrawdown = 0
   let runningPnL = 0
   
-  const sortedTrades = [...trades].sort((a, b) => 
+  const sortedTrades = [...groupedTrades].sort((a, b) => 
     new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime()
   )
   
@@ -226,15 +231,15 @@ export function calculateMetricsFromTrades(trades: Trade[]): ZellaScoreMetrics |
   
   const maxDrawdownPercent = peak > 0 ? (maxDrawdown / peak) * 100 : 0
 
-  // Net Profit
-  const netProfit = trades.reduce((sum, t) => sum + (t.pnl - (t.commission || 0)), 0)
+  // Net Profit using GROUPED trades
+  const netProfit = groupedTrades.reduce((sum, t) => sum + (t.pnl - (t.commission || 0)), 0)
 
   // Recovery Factor
   const recoveryFactor = maxDrawdown > 0 ? netProfit / maxDrawdown : netProfit > 0 ? 5 : 0
 
-  // Consistency Score
+  // Consistency Score using GROUPED trades for consistency
   const dailyPnL: Record<string, number> = {}
-  trades.forEach(trade => {
+  groupedTrades.forEach(trade => {
     const date = trade.entryDate.split('T')[0]
     if (!dailyPnL[date]) dailyPnL[date] = 0
     dailyPnL[date] += (trade.pnl - (trade.commission || 0))

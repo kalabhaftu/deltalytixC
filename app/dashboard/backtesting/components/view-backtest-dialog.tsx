@@ -13,8 +13,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Eye, TrendingUp, Clock, Target } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Eye, TrendingUp, Clock, Target, Download } from 'lucide-react'
+import { cn, formatPrice } from '@/lib/utils'
 import { BacktestTrade } from '@/types/backtesting-types'
 
 interface ViewBacktestDialogProps {
@@ -99,11 +99,11 @@ export function ViewBacktestDialog({ isOpen, onClose, backtest }: ViewBacktestDi
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">Entry Price</Label>
-                    <p className="font-medium">{backtest.entryPrice.toFixed(5)}</p>
+                    <p className="font-medium">{formatPrice(backtest.entryPrice, backtest.pair)}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">Exit Price</Label>
-                    <p className="font-medium">{backtest.exitPrice.toFixed(5)}</p>
+                    <p className="font-medium">{formatPrice(backtest.exitPrice, backtest.pair)}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">P&L</Label>
@@ -314,8 +314,21 @@ export function ViewBacktestDialog({ isOpen, onClose, backtest }: ViewBacktestDi
       {selectedImage && (
         <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
           <DialogContent className="max-w-[95vw] max-h-[95vh] p-2">
-            <DialogHeader>
+            <DialogHeader className="flex flex-row items-center justify-between">
               <DialogTitle>Image Viewer</DialogTitle>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  const link = document.createElement('a')
+                  link.href = selectedImage
+                  link.download = `backtest-${backtest?.pair || 'analysis'}-${Date.now()}.png`
+                  link.click()
+                }}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download
+              </Button>
             </DialogHeader>
             <div className="relative w-full h-[85vh]">
               <div className="w-full h-full flex items-center justify-center">

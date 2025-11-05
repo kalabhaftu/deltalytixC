@@ -41,10 +41,14 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
   const { formattedTrades } = useData()
 
   const chartData = React.useMemo(() => {
+    // CRITICAL FIX: Group trades first to handle partial closes
+    const { groupTradesByExecution } = require('@/lib/utils')
+    const groupedTrades = groupTradesByExecution(formattedTrades)
+
     // Group trades by strategy (both tradingModel and custom strategy)
     const strategyMap: Record<string, { pnl: number; trades: number; wins: number; losses: number; grossWin: number; grossLoss: number }> = {}
     
-    formattedTrades.forEach(trade => {
+    groupedTrades.forEach(trade => {
       const strategy = trade.tradingModel || 'No Strategy'
       
       if (!strategyMap[strategy]) {
@@ -66,7 +70,9 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
     
     // Convert to array and calculate metrics
     const data: StrategyData[] = Object.entries(strategyMap).map(([strategy, stats]) => {
-      const winRate = stats.trades > 0 ? (stats.wins / stats.trades) * 100 : 0
+      // CRITICAL FIX: Exclude break-even trades from win rate denominator
+      const tradableCount = stats.wins + stats.losses
+      const winRate = tradableCount > 0 ? (stats.wins / tradableCount) * 100 : 0
       const avgPnl = stats.trades > 0 ? stats.pnl / stats.trades : 0
       const profitFactor = stats.grossLoss > 0 ? stats.grossWin / stats.grossLoss : stats.grossWin > 0 ? 999 : 0
       

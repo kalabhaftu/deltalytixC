@@ -4,8 +4,7 @@ import { memo, useMemo } from 'react'
 import { Trade } from '@prisma/client'
 import { TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
-import { formatQuantity } from '@/lib/utils'
+import { cn, formatQuantity, formatPrice } from "@/lib/utils"
 import { TrendingUp, TrendingDown } from "lucide-react"
 
 interface VirtualizedTradeTableProps {
@@ -76,12 +75,12 @@ const TradeRow = memo(({ trade, isSelected, onTradeClick, onTradeSelect }: {
 
       {/* Entry Price */}
       <div className="flex-shrink-0 w-28 text-right text-sm font-mono">
-        {parseFloat(trade.entryPrice).toFixed(2)}
+        {formatPrice(trade.entryPrice, trade.instrument)}
       </div>
 
       {/* Close Price */}
       <div className="flex-shrink-0 w-28 text-right text-sm font-mono">
-        {parseFloat(trade.closePrice).toFixed(2)}
+        {formatPrice(trade.closePrice, trade.instrument)}
       </div>
 
       {/* Quantity */}

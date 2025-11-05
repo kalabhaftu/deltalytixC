@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Trade } from '@prisma/client'
 import { TrendingUp, TrendingDown, Calendar, Clock, Target, DollarSign, MoreHorizontal, Eye, Edit, Trash2, AlertTriangle } from 'lucide-react'
-import { formatCurrency, formatQuantity, formatTradeData } from '@/lib/utils'
+import { formatCurrency, formatQuantity, formatTradeData, formatPrice } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -47,8 +47,9 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
 
   // Calculate R:R ratio and detect incomplete data
   const calculateRiskRewardRatio = (trade: Trade): { ratio: number; hasIncompleteData: boolean } => {
-    // Parse entry price from string
+    // Parse prices from strings
     const entryPrice = parseFloat(trade.entryPrice)
+    const closePrice = parseFloat(trade.closePrice)
     
     // Get stop loss and take profit from database fields
     const stopLossRaw = (trade as any).stopLoss || null
@@ -59,11 +60,12 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
     const takeProfit = takeProfitRaw && parseFloat(takeProfitRaw.toString()) !== 0 ? parseFloat(takeProfitRaw.toString()) : null
     
     const side = trade.side?.toUpperCase()
+    const isWin = trade.pnl > 0
 
     // Check for incomplete data
-    const hasIncompleteData = !entryPrice || !stopLoss || !takeProfit || !side
+    const hasIncompleteData = !entryPrice || !closePrice || !stopLoss || !side
 
-    // Need all required fields for calculation (entry, stop, take profit, and side)
+    // Need all required fields for calculation
     if (hasIncompleteData) {
       // Fallback to TradeAnalytics if available
       const analyticsRR = (trade as any).tradeAnalytics?.riskRewardRatio
@@ -77,17 +79,31 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
     let potentialReward: number
 
     if (side === 'BUY' || side === 'LONG') {
-      // For long positions:
       // Risk = Entry Price - Stop Loss
-      // Reward = Take Profit - Entry Price
       potentialRisk = entryPrice - stopLoss
-      potentialReward = takeProfit - entryPrice
+      
+      // Reward calculation depends on win/loss:
+      // WINS: Use actual close price (what trader actually captured)
+      // LOSSES: Use planned TP (shows setup quality, avoid negative RR)
+      if (isWin) {
+        potentialReward = closePrice - entryPrice  // ✅ Actual reward captured
+      } else {
+        // For losses, use planned TP if available, otherwise use close
+        potentialReward = takeProfit ? (takeProfit - entryPrice) : Math.abs(closePrice - entryPrice)
+      }
     } else if (side === 'SELL' || side === 'SHORT') {
-      // For short positions:
-      // Risk = Stop Loss - Entry Price  
-      // Reward = Entry Price - Take Profit
+      // Risk = Stop Loss - Entry Price
       potentialRisk = stopLoss - entryPrice
-      potentialReward = entryPrice - takeProfit
+      
+      // Reward calculation depends on win/loss:
+      // WINS: Use actual close price (what trader actually captured)
+      // LOSSES: Use planned TP (shows setup quality, avoid negative RR)
+      if (isWin) {
+        potentialReward = entryPrice - closePrice  // ✅ Actual reward captured
+      } else {
+        // For losses, use planned TP if available, otherwise use close
+        potentialReward = takeProfit ? (entryPrice - takeProfit) : Math.abs(entryPrice - closePrice)
+      }
     } else {
       return { ratio: 0.00, hasIncompleteData: true } // Unknown side
     }
@@ -123,6 +139,10 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
     }
   }
 
+  // Check if this is a grouped trade with partials
+  const hasPartials = (trade as any).isGrouped || (trade as any).partialTrades?.length > 1
+  const partialCount = (trade as any).partialTrades?.length || 1
+
   return (
     <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 h-full flex flex-col w-full max-w-full overflow-hidden">
       <CardHeader className="pb-4">
@@ -133,6 +153,11 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
               <h3 className="font-semibold text-foreground truncate">
                 {trade.instrument}
               </h3>
+              {hasPartials && (
+                <Badge variant="outline" className="text-[10px] h-4 px-1.5 ml-1 shrink-0">
+                  {partialCount}x
+                </Badge>
+              )}
             </div>
             <p className="text-sm text-muted-foreground truncate">
               {trade.accountNumber ? `Account: ${trade.accountNumber}` : 'No Account'}
@@ -226,13 +251,13 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground mb-1">Entry Price</p>
             <p className="font-semibold text-foreground text-sm truncate">
-              {trade.entryPrice}
+              {formatPrice(trade.entryPrice, trade.instrument)}
             </p>
           </div>
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground mb-1">Exit Price</p>
             <p className="font-semibold text-foreground text-sm truncate">
-              {trade.closePrice}
+              {formatPrice(trade.closePrice, trade.instrument)}
             </p>
           </div>
           <div className="min-w-0">

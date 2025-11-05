@@ -8,6 +8,8 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { CalendarEntry } from "@/app/dashboard/types/calendar"
+import { groupTradesByExecution } from '@/lib/utils'
+
 interface DailyStatsProps {
   dayData: CalendarEntry | undefined;
   isWeekly?: boolean;
@@ -29,20 +31,24 @@ const formatDuration = (seconds: number) => {
 }
 
 export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
-  // Calculate stats
-  const { totalPnL, avgTimeInPosition, accountCount, maxDrawdown, maxProfit } = React.useMemo(() => {
+  // Calculate stats using GROUPED trades
+  const { totalPnL, avgTimeInPosition, accountCount, maxDrawdown, maxProfit, tradeCount } = React.useMemo(() => {
     if (!dayData?.trades?.length) {
       return {
         totalPnL: 0,
         avgTimeInPosition: 0,
         accountCount: 0,
         maxDrawdown: 0,
-        maxProfit: 0
+        maxProfit: 0,
+        tradeCount: 0
       }
     }
 
+    // CRITICAL: Group trades to show correct execution count
+    const groupedTrades = groupTradesByExecution(dayData.trades)
+
     // Calculate P&L for each account
-    const accountPnL = dayData.trades.reduce((acc, trade) => {
+    const accountPnL = groupedTrades.reduce((acc, trade) => {
       const accountNumber = trade.accountNumber || 'Unknown'
       const totalPnL = trade.pnl - (trade.commission || 0)
       acc[accountNumber] = (acc[accountNumber] || 0) + totalPnL
@@ -50,11 +56,11 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
     }, {} as Record<string, number>)
 
     const totalPnL = Object.values(accountPnL).reduce((sum, pnl) => sum + pnl, 0)
-    const avgTimeInPosition = dayData.trades.reduce((sum, trade) => sum + trade.timeInPosition, 0) / dayData.trades.length
+    const avgTimeInPosition = groupedTrades.reduce((sum, trade) => sum + trade.timeInPosition, 0) / groupedTrades.length
     const accountCount = Object.keys(accountPnL).length
 
-    // Add sorting and equity curve
-    const sortedTrades = dayData.trades.sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
+    // Add sorting and equity curve using grouped trades
+    const sortedTrades = groupedTrades.sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
     const equity = [0];
     let cumulative = 0;
     sortedTrades.forEach(trade => {
@@ -85,7 +91,8 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
       avgTimeInPosition,
       accountCount,
       maxDrawdown: maxDD,
-      maxProfit: maxRU
+      maxProfit: maxRU,
+      tradeCount: groupedTrades.length
     }
   }, [dayData?.trades])
 
@@ -125,7 +132,7 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
               {formatDuration(avgTimeInPosition)}
             </p>
             <p className="text-xs md:text-sm text-muted-foreground mt-1">
-              {dayData.trades.length} {dayData.trades.length > 1 
+              {tradeCount} {tradeCount > 1 
                 ? "trades" 
                 : "trade"}
             </p>

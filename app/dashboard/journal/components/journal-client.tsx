@@ -19,6 +19,7 @@ import { useModalStateStore } from '@/store/modal-state-store'
 import EnhancedEditTrade from '@/app/dashboard/components/tables/enhanced-edit-trade'
 import { TradeDetailView } from '@/app/dashboard/components/tables/trade-detail-view'
 import { Trade } from '@prisma/client'
+import { groupTradesByExecution } from '@/lib/utils'
 
 const ITEMS_PER_PAGE = 9 // Show 9 cards per page (3x3 grid on desktop)
 
@@ -33,8 +34,11 @@ export function JournalClient() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
 
+  // CRITICAL: Group trades first to show correct counts
+  const groupedTrades = useMemo(() => groupTradesByExecution(formattedTrades), [formattedTrades])
+
   const filteredTrades = useMemo(() => {
-    return formattedTrades.filter(trade => {
+    return groupedTrades.filter(trade => {
       const matchesSearch = searchTerm === '' ||
         trade.symbol?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         trade.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -49,7 +53,7 @@ export function JournalClient() {
 
       return matchesSearch && matchesFilter
     })
-  }, [formattedTrades, searchTerm, filterBy])
+  }, [groupedTrades, searchTerm, filterBy])
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredTrades.length / ITEMS_PER_PAGE)

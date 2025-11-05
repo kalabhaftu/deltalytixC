@@ -124,6 +124,7 @@ export async function GET(request: NextRequest) {
         }),
         
         // Recent trades for chart and stats (last 30 days, only from filtered accounts)
+        // Include fields needed for grouping
         prisma.trade.findMany({
           where: {
             ...tradeWhereClause,
@@ -133,10 +134,19 @@ export async function GET(request: NextRequest) {
           },
           select: {
             id: true,
+            entryId: true,
+            entryDate: true,
+            instrument: true,
+            side: true,
             pnl: true,
             commission: true,
             createdAt: true,
-            accountNumber: true
+            accountNumber: true,
+            quantity: true,
+            timeInPosition: true,
+            closeDate: true,
+            closePrice: true,
+            exitTime: true,
           },
           orderBy: {
             createdAt: 'desc'
@@ -194,23 +204,27 @@ export async function GET(request: NextRequest) {
         .sort((a, b) => a.date.localeCompare(b.date))
         .slice(-14) // Last 14 days for chart
 
-      // Calculate average win/loss directly from recent trades
-      const wins = recentTrades.filter(t => (t.pnl - (t.commission || 0)) > 0)
-      const losses = recentTrades.filter(t => (t.pnl - (t.commission || 0)) < 0)
+      // CRITICAL: Group trades by execution to handle partial closes correctly
+      const { groupTradesByExecution } = await import('@/lib/utils')
+      const groupedTrades = groupTradesByExecution(recentTrades as any[])
+
+      // Calculate average win/loss from GROUPED trades
+      const wins = groupedTrades.filter(t => (t.pnl - (t.commission || 0)) > 0)
+      const losses = groupedTrades.filter(t => (t.pnl - (t.commission || 0)) < 0)
       const avgWin = wins.length > 0 ? wins.reduce((sum, t) => sum + (t.pnl - (t.commission || 0)), 0) / wins.length : 0
       const avgLoss = losses.length > 0 ? losses.reduce((sum, t) => sum + Math.abs(t.pnl - (t.commission || 0)), 0) / losses.length : 0
       const riskRewardRatio = avgLoss > 0 ? avgWin / avgLoss : 0
 
-      // Calculate trading statistics (net of commissions)
-      const winningTrades = recentTrades.filter(trade => {
+      // Calculate trading statistics (net of commissions) using GROUPED trades
+      const winningTrades = groupedTrades.filter(trade => {
         const netPnL = trade.pnl - (trade.commission || 0)
         return netPnL > 0
       }).length
-      const losingTrades = recentTrades.filter(trade => {
+      const losingTrades = groupedTrades.filter(trade => {
         const netPnL = trade.pnl - (trade.commission || 0)
         return netPnL < 0
       }).length
-      const breakEvenTrades = recentTrades.filter(trade => {
+      const breakEvenTrades = groupedTrades.filter(trade => {
         const netPnL = trade.pnl - (trade.commission || 0)
         return netPnL === 0
       }).length
@@ -219,16 +233,16 @@ export async function GET(request: NextRequest) {
       const tradableTradesCount = winningTrades + losingTrades
       const winRate = tradableTradesCount > 0 ? (winningTrades / tradableTradesCount) * 100 : 0
 
-      // Calculate total PnL (net of commissions)
-      const totalPnL = recentTrades.reduce((sum, trade) => sum + (trade.pnl - (trade.commission || 0)), 0)
+      // Calculate total PnL (net of commissions) using GROUPED trades
+      const totalPnL = groupedTrades.reduce((sum, trade) => sum + (trade.pnl - (trade.commission || 0)), 0)
 
-      // Calculate gross profits and losses for profit factor
-      const grossProfits = recentTrades.reduce((sum, trade) => {
+      // Calculate gross profits and losses for profit factor using GROUPED trades
+      const grossProfits = groupedTrades.reduce((sum, trade) => {
         const netPnL = trade.pnl - (trade.commission || 0)
         return netPnL > 0 ? sum + netPnL : sum
       }, 0)
 
-      const grossLosses = Math.abs(recentTrades.reduce((sum, trade) => {
+      const grossLosses = Math.abs(groupedTrades.reduce((sum, trade) => {
         const netPnL = trade.pnl - (trade.commission || 0)
         return netPnL < 0 ? sum + netPnL : sum
       }, 0))
@@ -242,7 +256,7 @@ export async function GET(request: NextRequest) {
         success: true,
         data: {
           totalAccounts,
-          totalTrades,
+          totalTrades: groupedTrades.length, // CRITICAL: Use grouped count
           totalEquity: Math.round(totalEquity * 100) / 100, // Round to 2 decimal places
           totalPnL: Math.round(totalPnL * 100) / 100,
           winRate: Math.round(winRate * 100) / 100,

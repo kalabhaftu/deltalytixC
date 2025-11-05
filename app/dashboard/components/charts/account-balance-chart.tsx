@@ -134,8 +134,12 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
       return []
     }
     
+    // CRITICAL FIX: Group trades first to handle partial closes
+    const { groupTradesByExecution } = require('@/lib/utils')
+    const groupedTrades = groupTradesByExecution(formattedTrades)
+    
     // Group trades by date and calculate wins/losses
-    const tradesByDate = formattedTrades.reduce((acc, trade) => {
+    const tradesByDate = groupedTrades.reduce((acc, trade) => {
       const date = trade.entryDate.split('T')[0]
       if (!acc[date]) {
         acc[date] = { wins: 0, losses: 0, trades: 0 }

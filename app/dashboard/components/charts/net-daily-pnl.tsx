@@ -41,8 +41,12 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
   const { calendarData, formattedTrades } = useData()
 
   const chartData = React.useMemo(() => {
+    // CRITICAL FIX: Group trades first to handle partial closes
+    const { groupTradesByExecution } = require('@/lib/utils')
+    const groupedTrades = groupTradesByExecution(formattedTrades)
+
     // Group trades by date to calculate wins/losses
-    const tradesByDate = formattedTrades.reduce((acc, trade) => {
+    const tradesByDate = groupedTrades.reduce((acc, trade) => {
       const date = trade.entryDate.split('T')[0]
       if (!acc[date]) {
         acc[date] = { wins: 0, losses: 0 }

@@ -34,43 +34,104 @@ const MatchTraderProcessor = ({
 
       const trades: Trade[] = []
 
+      // Create case-insensitive header lookup helper
+      const findHeaderIndex = (possibleNames: string[]) => {
+        const normalizedHeaders = headers.map(h => h.toLowerCase().trim())
+        for (const name of possibleNames) {
+          const index = normalizedHeaders.indexOf(name.toLowerCase().trim())
+          if (index !== -1) return index
+        }
+        return -1
+      }
+
+      // Parse date in multiple formats (ISO and DD/MM/YYYY)
+      const parseDate = (dateStr: string): Date => {
+        if (!dateStr) return new Date()
+        
+        // Try ISO format first (2025-11-05T14:59:06.38)
+        if (dateStr.includes('T')) {
+          const date = new Date(dateStr + 'Z') // Add 'Z' to indicate UTC
+          if (!isNaN(date.getTime())) return date
+        }
+        
+        // Try DD/MM/YYYY HH:MM:SS format (05/11/2025 14:59:06)
+        const ddmmyyyyMatch = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/)
+        if (ddmmyyyyMatch) {
+          const [, day, month, year, hour, minute, second] = ddmmyyyyMatch
+          // Create UTC date from components
+          return new Date(Date.UTC(
+            parseInt(year), 
+            parseInt(month) - 1, // Month is 0-indexed
+            parseInt(day),
+            parseInt(hour),
+            parseInt(minute),
+            parseInt(second)
+          ))
+        }
+        
+        // Fallback to direct parsing
+        return new Date(dateStr)
+      }
+
+      // PERFORMANCE FIX: Calculate header indices ONCE before the loop (not for every row!)
+      const openTimeIdx = findHeaderIndex(['Open time', 'Open Time'])
+      const closeTimeIdx = findHeaderIndex(['Close time', 'Close Time'])
+      const openPriceIdx = findHeaderIndex(['Open price', 'Open Price'])
+      const closePriceIdx = findHeaderIndex(['Close Price', 'Close price'])
+      const stopLossIdx = findHeaderIndex(['Stop loss', 'Stop Loss'])
+      const takeProfitIdx = findHeaderIndex(['Take profit', 'Take Profit'])
+      const volumeIdx = findHeaderIndex(['Volume'])
+      const profitIdx = findHeaderIndex(['Profit'])
+      const commissionIdx = findHeaderIndex(['Commission'])
+      const swapIdx = findHeaderIndex(['Swap'])
+      const symbolIdx = findHeaderIndex(['Symbol'])
+      const sideIdx = findHeaderIndex(['Side'])
+      const idIdx = findHeaderIndex(['ID'])
+      const reasonIdx = findHeaderIndex(['Reason'])
+
       for (const row of csvData) {
-        // Handle Match Trader CSV format
-        const entryDateStr = row[headers.indexOf('Open time')]
-        const closeDateStr = row[headers.indexOf('Close time')]
+
+        // Get values from row
+        const entryDateStr = openTimeIdx !== -1 ? row[openTimeIdx] : null
+        const closeDateStr = closeTimeIdx !== -1 ? row[closeTimeIdx] : null
         
         if (!entryDateStr || !closeDateStr) {
-          return null // Skip invalid rows
+          console.warn('Skipping row with missing dates:', row)
+          continue // Skip invalid rows (not return null!)
         }
 
-        // MatchTrader timestamps are in UTC - parse them correctly
-        const entryDate = new Date(entryDateStr + 'Z') // Add 'Z' to indicate UTC
-        const closeDate = new Date(closeDateStr + 'Z') // Add 'Z' to indicate UTC
+        // Parse dates using smart parser
+        const entryDate = parseDate(entryDateStr)
+        const closeDate = parseDate(closeDateStr)
+
+        // Validate dates
+        if (isNaN(entryDate.getTime()) || isNaN(closeDate.getTime())) {
+          console.warn('Skipping row with invalid dates:', entryDateStr, closeDateStr)
+          continue
+        }
 
         // Calculate time in position in seconds
         const timeInPosition = Math.round((closeDate.getTime() - entryDate.getTime()) / 1000)
 
         // Parse prices and handle potential string/number conversion
-        const entryPrice = parseFloat(row[headers.indexOf('Open price')] || '0')
-        const closePrice = parseFloat(row[headers.indexOf('Close Price')] || '0')
-        const quantity = parseFloat(row[headers.indexOf('Volume')] || '0')
-        const pnl = parseFloat(row[headers.indexOf('Profit')] || '0')
-        const commission = parseFloat(row[headers.indexOf('Commission')] || '0')
-        const swap = parseFloat(row[headers.indexOf('Swap')] || '0')
+        const entryPrice = parseFloat(openPriceIdx !== -1 ? row[openPriceIdx] : '0') || 0
+        const closePrice = parseFloat(closePriceIdx !== -1 ? row[closePriceIdx] : '0') || 0
+        const quantity = parseFloat(volumeIdx !== -1 ? row[volumeIdx] : '0') || 0
+        const pnl = parseFloat(profitIdx !== -1 ? row[profitIdx] : '0') || 0
+        const commission = parseFloat(commissionIdx !== -1 ? row[commissionIdx] : '0') || 0
+        const swap = parseFloat(swapIdx !== -1 ? row[swapIdx] : '0') || 0
         
         // Parse Stop Loss and Take Profit (treat 0.00 as null/incomplete)
-        const stopLossRaw = row[headers.indexOf('Stop loss')] || null
-        const takeProfitRaw = row[headers.indexOf('Take profit')] || null
+        const stopLossRaw = stopLossIdx !== -1 ? row[stopLossIdx] : null
+        const takeProfitRaw = takeProfitIdx !== -1 ? row[takeProfitIdx] : null
         const stopLoss = stopLossRaw && parseFloat(stopLossRaw) !== 0 ? stopLossRaw : null
         const takeProfit = takeProfitRaw && parseFloat(takeProfitRaw) !== 0 ? takeProfitRaw : null
 
         // Get instrument and side
-        const instrument = row[headers.indexOf('Symbol')] || ''
-        const side = row[headers.indexOf('Side')] || ''
-        const tradeId = row[headers.indexOf('ID')] || ''
-        const reason = row[headers.indexOf('Reason')] || ''
-        
-        // Don't use trade ID as account - account number comes from selection step
+        const instrument = symbolIdx !== -1 ? row[symbolIdx] : ''
+        const side = sideIdx !== -1 ? row[sideIdx] : ''
+        const tradeId = idIdx !== -1 ? row[idIdx] : ''
+        const reason = reasonIdx !== -1 ? row[reasonIdx] : ''
 
         const trade = {
           id: uuidv4(),

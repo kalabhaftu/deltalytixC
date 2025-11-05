@@ -130,11 +130,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     })
 
+    // CRITICAL FIX: Use net P&L and exclude break-even trades
     const winningTrades = allTradesMinimal.filter(trade => {
       const netPnL = trade.pnl - (trade.commission || 0)
       return netPnL > 0
     }).length
-    const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0
+    const losingTrades = allTradesMinimal.filter(trade => {
+      const netPnL = trade.pnl - (trade.commission || 0)
+      return netPnL < 0
+    }).length
+    const tradableCount = winningTrades + losingTrades
+    const winRate = tradableCount > 0 ? (winningTrades / tradableCount) * 100 : 0
 
     // Calculate current phase statistics - PHASE SPECIFIC!
     const currentPhaseStat = tradeStats.find(stat => stat.phaseAccountId === currentPhase?.id)

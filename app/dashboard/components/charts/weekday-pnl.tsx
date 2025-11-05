@@ -88,10 +88,14 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
   const [showAverage, setShowAverage] = React.useState(false)
 
   const chartData = React.useMemo(() => {
+    // CRITICAL FIX: Group trades first to handle partial closes
+    const { groupTradesByExecution } = require('@/lib/utils')
+    const groupedTrades = groupTradesByExecution(formattedTrades)
+
     // Group trades by weekday (0=Sunday, 1=Monday, ..., 6=Saturday)
     const weekdayMap: Record<number, { pnl: number; trades: number; wins: number; losses: number }> = {}
     
-    formattedTrades.forEach(trade => {
+    groupedTrades.forEach(trade => {
       const date = new Date(trade.entryDate)
       const dayOfWeek = date.getDay()
       

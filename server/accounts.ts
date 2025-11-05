@@ -1555,34 +1555,43 @@ export async function getAccountHistory(accountId: string) {
       sum + phase.trades.reduce((tradeSum, trade) => tradeSum + trade.commission, 0), 0)
 
     const netProfit = totalPnl - totalCommission
+    // CRITICAL FIX: Use NET P&L (after commission) for win categorization
     const winningTrades = phases.reduce((sum, phase) =>
-      sum + phase.trades.filter(trade => trade.pnl > 0).length, 0)
+      sum + phase.trades.filter(trade => (trade.pnl - (trade.commission || 0)) > 0).length, 0)
 
     return {
       account: {
         id: account.id,
         name: account.name
       },
-      phases: phases.map(phase => ({
-        id: phase.id,
-        phaseNumber: phase.phaseNumber,
-        status: phase.status,
-        phaseId: phase.phaseId,
-        profitTargetPercent: phase.profitTargetPercent,
-        dailyDrawdownPercent: phase.dailyDrawdownPercent,
-        maxDrawdownPercent: phase.maxDrawdownPercent,
-        totalTrades: phase._count.trades,
-        winningTrades: phase.trades?.filter(trade => trade.pnl > 0).length || 0,
-        winRate: phase._count.trades > 0 ? (phase.trades?.filter(trade => trade.pnl > 0).length || 0 / phase._count.trades) * 100 : 0,
-        startDate: phase.startDate,
-        endDate: phase.endDate
-      })),
+      phases: phases.map(phase => {
+        // Calculate win rate excluding break-even trades
+        const phaseWins = phase.trades?.filter(trade => (trade.pnl - (trade.commission || 0)) > 0).length || 0
+        const phaseLosses = phase.trades?.filter(trade => (trade.pnl - (trade.commission || 0)) < 0).length || 0
+        const tradableCount = phaseWins + phaseLosses
+        
+        return {
+          id: phase.id,
+          phaseNumber: phase.phaseNumber,
+          status: phase.status,
+          phaseId: phase.phaseId,
+          profitTargetPercent: phase.profitTargetPercent,
+          dailyDrawdownPercent: phase.dailyDrawdownPercent,
+          maxDrawdownPercent: phase.maxDrawdownPercent,
+          totalTrades: phase._count.trades,
+          winningTrades: phaseWins,
+          winRate: tradableCount > 0 ? (phaseWins / tradableCount) * 100 : 0,
+          startDate: phase.startDate,
+          endDate: phase.endDate
+        }
+      }),
       summary: {
         totalTrades,
         totalPnl,
         totalCommission,
         netProfit,
         winningTrades,
+        // Calculate summary win rate excluding break-even
         winRate: totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0
       }
     }

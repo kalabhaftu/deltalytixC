@@ -8,6 +8,9 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CalendarData } from "@/app/dashboard/types/calendar"
 import { Charts } from "./charts"
+import { Trade } from '@prisma/client'
+import { groupTradesByExecution } from '@/lib/utils'
+
 interface WeeklyModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -43,14 +46,17 @@ export function WeeklyModal({
       }
     }
 
-    // Calculate long and short numbers
-    const longNumber = trades.filter(trade => trade.side?.toLowerCase() === 'long').length
-    const shortNumber = trades.filter(trade => trade.side?.toLowerCase() === 'short').length
+    // CRITICAL: Group trades to show correct execution count
+    const groupedTrades = groupTradesByExecution(trades)
+
+    // Calculate long and short numbers from grouped trades
+    const longNumber = groupedTrades.filter(trade => trade.side?.toLowerCase() === 'long' || trade.side?.toUpperCase() === 'BUY').length
+    const shortNumber = groupedTrades.filter(trade => trade.side?.toLowerCase() === 'short' || trade.side?.toUpperCase() === 'SELL').length
 
     return {
-      trades,
-      tradeNumber: trades.length,
-      pnl: trades.reduce((sum, trade) => sum + trade.pnl, 0),
+      trades: groupedTrades,
+      tradeNumber: groupedTrades.length,
+      pnl: groupedTrades.reduce((sum, trade) => sum + trade.pnl, 0),
       longNumber,
       shortNumber,
     }

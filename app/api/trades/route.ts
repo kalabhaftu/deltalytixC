@@ -374,7 +374,9 @@ async function getTradesStatistics(offset: number, limit: number) {
     winRate: 0
   })
 
-  const winRate = stats.totalTrades > 0 ? (stats.winningTrades / stats.totalTrades) * 100 : 0
+  // CRITICAL FIX: Exclude break-even trades from win rate denominator
+  const tradableCount = stats.winningTrades + stats.losingTrades
+  const winRate = tradableCount > 0 ? (stats.winningTrades / tradableCount) * 100 : 0
   stats.winRate = winRate
 
   return stats

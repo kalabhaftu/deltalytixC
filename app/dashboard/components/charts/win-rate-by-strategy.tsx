@@ -49,10 +49,14 @@ export default function WinRateByStrategy({ size = 'small-long' }: WinRateByStra
   const [viewMode, setViewMode] = React.useState<'pie' | 'bar'>('bar')
 
   const chartData = React.useMemo(() => {
+    // CRITICAL FIX: Group trades first to handle partial closes
+    const { groupTradesByExecution } = require('@/lib/utils')
+    const groupedTrades = groupTradesByExecution(formattedTrades)
+
     // Group trades by strategy
     const strategyMap: Record<string, { wins: number; losses: number; grossWin: number; grossLoss: number; allWins: number[] }> = {}
     
-    formattedTrades.forEach(trade => {
+    groupedTrades.forEach(trade => {
       const strategy = trade.tradingModel || 'No Strategy'
       
       if (!strategyMap[strategy]) {

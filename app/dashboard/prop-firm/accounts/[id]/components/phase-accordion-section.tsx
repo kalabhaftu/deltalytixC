@@ -80,8 +80,12 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
 
   const totalTrades = phase.trades?.length || 0
   const totalPnL = phase.trades?.reduce((sum, t) => sum + (t.pnl || 0), 0) || 0
-  const winningTrades = phase.trades?.filter(t => (t.pnl || 0) > 0).length || 0
-  const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0
+  
+  // CRITICAL FIX: Use net P&L and exclude break-even trades
+  const winningTrades = phase.trades?.filter(t => ((t.pnl || 0) - (t.commission || 0)) > 0).length || 0
+  const losingTrades = phase.trades?.filter(t => ((t.pnl || 0) - (t.commission || 0)) < 0).length || 0
+  const tradableCount = winningTrades + losingTrades
+  const winRate = tradableCount > 0 ? (winningTrades / tradableCount) * 100 : 0
   const currentBalance = accountSize + totalPnL
   const profitTargetAmount = (phase.profitTargetPercent / 100) * accountSize
   const profitProgress = profitTargetAmount > 0 ? Math.min((totalPnL / profitTargetAmount) * 100, 100) : 0

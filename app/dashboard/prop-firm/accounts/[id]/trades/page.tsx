@@ -147,20 +147,24 @@ export default function AccountTradesPage() {
     return new Date(dateString).toLocaleString()
   }
 
-  // Filter trades based on search term
-  const filteredTrades = trades.filter(trade =>
+  // CRITICAL FIX: Group trades first to handle partial closes
+  const { groupTradesByExecution } = await import('@/lib/utils')
+  const groupedTrades = groupTradesByExecution(trades)
+
+  // Filter GROUPED trades based on search term
+  const filteredTrades = groupedTrades.filter(trade =>
     trade.symbol.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  // Calculate trade statistics
-  const totalTrades = trades.length
-  const winningTrades = trades.filter(trade => trade.pnl > 0).length
-  const losingTrades = trades.filter(trade => trade.pnl < 0).length
-  const breakEvenTrades = trades.filter(trade => trade.pnl === 0).length
+  // Calculate trade statistics using GROUPED trades and NET P&L
+  const totalTrades = groupedTrades.length
+  const winningTrades = groupedTrades.filter(trade => (trade.pnl - (trade.commission || 0)) > 0).length
+  const losingTrades = groupedTrades.filter(trade => (trade.pnl - (trade.commission || 0)) < 0).length
+  const breakEvenTrades = groupedTrades.filter(trade => (trade.pnl - (trade.commission || 0)) === 0).length
   // Calculate win rate excluding break-even trades (industry standard)
   const tradableTradesCount = winningTrades + losingTrades
   const winRate = tradableTradesCount > 0 ? Math.round((winningTrades / tradableTradesCount) * 1000) / 10 : 0
-  const totalPnl = trades.reduce((sum, trade) => sum + trade.pnl, 0)
+  const totalPnl = groupedTrades.reduce((sum, trade) => sum + trade.pnl, 0)
 
   if (isLoading) {
     return (

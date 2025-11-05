@@ -73,14 +73,16 @@ export function getPricePrecision(instrument: string): number {
   return 5
 }
 
-// Format price based on instrument type
+// Format price based on instrument type (removes trailing zeros)
 export function formatPrice(price: string | number, instrument: string): string {
   if (!price) return '0'
   const numPrice = typeof price === 'string' ? parseFloat(price) : price
   if (isNaN(numPrice) || !isFinite(numPrice)) return '0'
   
   const precision = getPricePrecision(instrument)
-  return numPrice.toFixed(precision)
+  // Use toFixed for precision but remove trailing zeros
+  const fixed = numPrice.toFixed(precision)
+  return parseFloat(fixed).toString()
 }
 
 // Unified trade data formatter - single source of truth for all trade displays
@@ -162,6 +164,67 @@ export function parsePositionTime(timeInSeconds: number): string {
   return formattedTime;
 }
 
+/**
+ * Groups trades by execution (handles partial closes)
+ * Groups by entryId first, falls back to instrument+entryDate+side
+ * Returns array of grouped trades where partials are combined
+ */
+export interface GroupedTrade extends Trade {
+  partialTrades?: Trade[]  // Array of all partial closes
+  isGrouped?: boolean      // Flag to indicate this is a grouped trade
+}
+
+export function groupTradesByExecution(trades: Trade[]): GroupedTrade[] {
+  const groups = new Map<string, GroupedTrade>()
+
+  trades.forEach(trade => {
+    // Create grouping key - prefer entryId, fallback to instrument+time+side
+    let key: string
+    if (trade.entryId && trade.entryId.trim() !== '') {
+      key = `entryId:${trade.entryId}`
+    } else {
+      // Fallback: group by instrument, entry date (to nearest minute), and side
+      const entryDate = new Date(trade.entryDate)
+      const roundedTime = new Date(entryDate)
+      roundedTime.setSeconds(0, 0) // Round to nearest minute
+      key = `fallback:${trade.instrument}:${roundedTime.toISOString()}:${trade.side}`
+    }
+
+    if (!groups.has(key)) {
+      // First trade in group - create grouped trade
+      groups.set(key, {
+        ...trade,
+        partialTrades: [trade],
+        isGrouped: false, // Will be set to true if more trades added
+      })
+    } else {
+      // Additional trade in group (partial close) - merge data
+      const group = groups.get(key)!
+      
+      // Add to partial trades array
+      group.partialTrades!.push(trade)
+      group.isGrouped = true
+      
+      // Sum P&L and commission
+      group.pnl += trade.pnl || 0
+      group.commission += trade.commission || 0
+      
+      // Sum quantities
+      group.quantity += trade.quantity || 0
+      
+      // Use the longest timeInPosition (last close)
+      if ((trade.timeInPosition || 0) > (group.timeInPosition || 0)) {
+        group.timeInPosition = trade.timeInPosition
+        group.closeDate = trade.closeDate // Update close date to match longest time
+        group.closePrice = trade.closePrice // Update close price to last execution
+        if (trade.exitTime) group.exitTime = trade.exitTime
+      }
+    }
+  })
+
+  return Array.from(groups.values())
+}
+
 export function calculateStatistics(trades: Trade[], accounts: Account[] = []): StatisticsProps {
   if (!trades.length) {
     return {
@@ -187,11 +250,14 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
     }
   }
 
+  // CRITICAL: Group trades by execution to handle partial closes correctly
+  const groupedTrades = groupTradesByExecution(trades)
+
   // Create a map of accounts for quick lookup
   const accountMap = new Map(accounts.map(account => [account.number, account]));
 
-  // Use all trades (resetDate feature removed)
-  const filteredTrades = trades;
+  // Use grouped trades for accurate statistics
+  const filteredTrades = groupedTrades;
 
   if (!filteredTrades.length) {
     return {
@@ -328,11 +394,14 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
 }
 
 export function formatCalendarData(trades: Trade[], accounts: Account[] = []) {
+  // CRITICAL: Group trades by execution to handle partial closes correctly
+  const groupedTrades = groupTradesByExecution(trades)
+  
   // Create a map of accounts for quick lookup
   const accountMap = new Map(accounts.map(account => [account.number, account]));
 
-  // Use all trades (resetDate feature removed)
-  const filteredTrades = trades;
+  // Use grouped trades for accurate calendar data
+  const filteredTrades = groupedTrades;
 
   return filteredTrades.reduce((acc: any, trade: Trade) => {
     // Parse the date and format it in UTC to ensure consistency across timezones
@@ -372,6 +441,7 @@ export function generateTradeHash(trade: Partial<Trade>): string {
 
 /**
  * Calculate average win and loss amounts for risk/reward analysis
+ * CRITICAL: This function now groups trades by execution to handle partial closes correctly
  * @param trades - Array of trades to analyze
  * @returns Object containing average win, average loss, and risk/reward ratio
  */
@@ -382,12 +452,15 @@ export function calculateAverageWinLoss(trades: Trade[]): {
   winningTrades: Trade[];
   losingTrades: Trade[];
 } {
-  const winningTrades = trades.filter(trade => {
+  // CRITICAL FIX: Group trades first to get accurate averages
+  const groupedTrades = groupTradesByExecution(trades)
+
+  const winningTrades = groupedTrades.filter(trade => {
     const netPnl = trade.pnl - (trade.commission || 0);
     return netPnl > 0;
   });
 
-  const losingTrades = trades.filter(trade => {
+  const losingTrades = groupedTrades.filter(trade => {
     const netPnl = trade.pnl - (trade.commission || 0);
     return netPnl < 0;
   });

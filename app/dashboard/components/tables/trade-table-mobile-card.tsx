@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { formatInTimeZone } from 'date-fns-tz'
-import { cn, formatCurrency, parsePositionTime, formatNumber } from '@/lib/utils'
+import { cn, formatCurrency, parsePositionTime, formatNumber, formatPrice } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -111,11 +111,11 @@ export function TradeTableMobileCard({
         </div>
         <div>
           <p className="text-muted-foreground text-xs">Entry Price</p>
-          <p className="font-medium">{trade.entryPrice || 'N/A'}</p>
+          <p className="font-medium">{formatPrice(trade.entryPrice, trade.instrument)}</p>
         </div>
         <div>
           <p className="text-muted-foreground text-xs">Exit Price</p>
-          <p className="font-medium">{trade.closePrice || 'N/A'}</p>
+          <p className="font-medium">{formatPrice(trade.closePrice, trade.instrument)}</p>
         </div>
         <div>
           <p className="text-muted-foreground text-xs">Size</p>

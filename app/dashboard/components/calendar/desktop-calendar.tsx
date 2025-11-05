@@ -288,7 +288,12 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
       }
     })
     
-    const winRate = totalTrades > 0 ? ((winningTrades / totalTrades) * 100).toFixed(1) : '0.0'
+    // CRITICAL FIX: Exclude break-even trades from win rate denominator
+    const losingTrades = Object.values(calendarData).reduce((sum, dayData) => {
+      return sum + dayData.trades.filter(t => (t.pnl - (t.commission || 0)) < 0).length
+    }, 0)
+    const tradableCount = winningTrades + losingTrades
+    const winRate = tradableCount > 0 ? ((winningTrades / tradableCount) * 100).toFixed(1) : '0.0'
     
     return { totalPnl, totalTrades, winRate, tradingDays }
   }, [timezone])

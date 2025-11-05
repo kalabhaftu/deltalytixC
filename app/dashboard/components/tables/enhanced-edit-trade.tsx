@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { Trade } from '@prisma/client'
-import { Edit, Camera, X, Target, ChevronDown } from 'lucide-react'
+import { Edit, Camera, X, Target, ChevronDown, Download } from 'lucide-react'
 import {
   Collapsible,
   CollapsibleContent,
@@ -97,15 +97,15 @@ interface EnhancedEditTradeProps {
 
 // File validation helpers
 const validateImageFile = (file: File): void => {
-  const maxSize = 5 * 1024 * 1024 // 5MB
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+  const maxSize = 10 * 1024 * 1024 // 10MB
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/svg+xml']
   
   if (file.size > maxSize) {
-    throw new Error('Image must be smaller than 5MB')
+    throw new Error('Image must be smaller than 10MB')
   }
   
   if (!allowedTypes.includes(file.type)) {
-    throw new Error('Only JPG, PNG, and WebP images are allowed')
+    throw new Error('Only JPG, PNG, WebP, GIF, BMP, and SVG images are allowed')
   }
 }
 
@@ -127,7 +127,11 @@ const compressImageForCard = (file: File): Promise<File> => {
   })
 }
 
-// Generate a random 6-character alphanumeric ID
+// Note: Images are now stored as base64 data URLs in the database
+// This prevents orphaned cloud storage files if user cancels without saving
+// Future enhancement: Optionally upload to cloud storage on save for better performance
+
+// Generate a random 6-character alphanumeric ID for trade identification
 function generateShortId(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
@@ -135,107 +139,6 @@ function generateShortId(): string {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
-}
-
-const uploadImageToSupabase = async (file: File, userId: string, tradeId: string): Promise<string> => {
-  const { createClient } = await import("@/lib/supabase")
-  const supabase = createClient()
-  
-  // Generate a unique filename
-  const fileExtension = file.name.split('T').pop()
-  const fileName = `trades_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExtension}`
-  
-  // Create a robust bucket fallback system
-  const preferredBuckets = ['images', 'trade-images', 'public', 'avatars']
-  let bucketName = 'images'
-  let uploadSuccess = false
-  
-  try {
-    // First try to list buckets to see what's available
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets()
-    
-    if (!listError && buckets) {
-      const availableBuckets = buckets.map(b => b.name)
-      
-      // Try preferred buckets in order
-      for (const preferred of preferredBuckets) {
-        if (availableBuckets.includes(preferred)) {
-          bucketName = preferred
-          break
-        }
-      }
-      
-      // If no preferred buckets exist, use the first available one
-      if (!preferredBuckets.some(b => availableBuckets.includes(b)) && availableBuckets.length > 0) {
-        bucketName = availableBuckets[0]
-      }
-    }
-    
-    // Try uploading to the selected bucket
-    const { error: uploadError, data: uploadData } = await supabase.storage
-      .from(bucketName)
-      .upload(`trades/${userId}/${tradeId}/${fileName}`, file, {
-        cacheControl: '3600',
-        upsert: false,
-      })
-    
-    if (!uploadError && uploadData) {
-      uploadSuccess = true
-    } else if (uploadError) {
-      console.warn(`Upload to ${bucketName} failed:`, uploadError)
-      
-      // If upload failed, try creating the images bucket
-      if (bucketName !== 'images') {
-        const { error: createError } = await supabase.storage.createBucket('images')
-        
-        if (!createError) {
-          bucketName = 'images'
-          const { error: retryError } = await supabase.storage
-            .from(bucketName)
-            .upload(`trades/${userId}/${tradeId}/${fileName}`, file, {
-              cacheControl: '3600',
-              upsert: false,
-            })
-          
-          if (!retryError) {
-            uploadSuccess = true
-          }
-        }
-      }
-      
-      // Final fallback: convert to base64 data URL if all else fails
-      if (!uploadSuccess) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => resolve(reader.result as string)
-          reader.onerror = () => reject(new Error('Failed to convert image to base64'))
-          reader.readAsDataURL(file)
-        })
-      }
-    }
-    
-    if (!uploadSuccess) {
-      throw new Error('All upload methods failed')
-    }
-    
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(`trades/${userId}/${tradeId}/${fileName}`)
-    
-    return urlData.publicUrl
-    
-  } catch (error) {
-    console.error('Upload error:', error)
-    
-    // Ultimate fallback: convert to base64 data URL
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result as string)
-      reader.onerror = () => reject(new Error('Failed to convert image to base64'))
-      reader.readAsDataURL(file)
-    })
-  }
 }
 
 export default function EnhancedEditTrade({
@@ -281,7 +184,7 @@ export default function EnhancedEditTrade({
 
   const watchedValues = watch()
 
-  // Initialize form with trade data
+  // Initialize form with trade data and cleanup state
   useEffect(() => {
     if (trade && isOpen) {
       reset({
@@ -295,61 +198,43 @@ export default function EnhancedEditTrade({
         cardPreviewImage: (trade as any)?.cardPreviewImage || '',
         tradingModel: (trade as any)?.tradingModel || '',
       })
-
+      
+      // CRITICAL FIX: Reset fullscreen image state when dialog opens
+      setFullscreenImage(null)
+    }
+    
+    // Cleanup when dialog closes
+    if (!isOpen) {
+      setFullscreenImage(null)
     }
   }, [trade, isOpen, reset])
 
   const handleImageUpload = async (field: 'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth' | 'imageBase64Fifth' | 'imageBase64Sixth' | 'cardPreviewImage', file: File) => {
-    // Check for both user types - prioritize supabaseUser for auth, fallback to user.id
-    const userId = supabaseUser?.id || user?.id
-    
-    if (!userId) {
-      toast.error('Upload failed', {
-        description: 'User not authenticated. Please sign in again.',
-      })
-      return
-    }
-
     try {
       validateImageFile(file)
 
-      // Compress image if it's for card preview
+      // Compress image ONLY if it's for card preview (NOT for analysis images to preserve quality)
       let processedFile = file
       if (field === 'cardPreviewImage') {
         processedFile = await compressImageForCard(file)
-        toast.info('Processing image', {
-          description: 'Card preview image ready for upload...',
-        })
       }
       
-      // Create temporary URL for immediate display
-      const tempUrl = URL.createObjectURL(processedFile)
-      setValue(field, tempUrl)
-      
-      // Show immediate success feedback
-      toast.success('Image added', {
-        description: field === 'cardPreviewImage'
-          ? 'Card preview image optimized and added. Uploading to storage...'
-          : 'Image has been added. Uploading to storage...',
-      })
-      
-      // Upload to Supabase in background
-      try {
-        const imageUrl = await uploadImageToSupabase(processedFile, userId, tradeId)
-        setValue(field, imageUrl) // Update with permanent URL
+      // Convert to base64 for local storage (upload happens on save)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const result = e.target?.result as string
+        setValue(field, result)
         
-        toast.success('Upload complete', {
+        toast.success('Image added', {
           description: field === 'cardPreviewImage'
-            ? 'Card preview image has been saved to cloud storage.'
-            : 'Image has been saved to cloud storage.',
+            ? 'Card preview ready. Will upload when you save.'
+            : 'Analysis image added. Will upload when you save.',
         })
-        
-        // Clean up temp URL
-        URL.revokeObjectURL(tempUrl)
-      } catch (uploadError) {
-        console.warn('Background upload failed, keeping local version:', uploadError)
-        // Keep the temp URL - image will still work locally
       }
+      reader.onerror = () => {
+        toast.error('Failed to process image')
+      }
+      reader.readAsDataURL(processedFile)
       
     } catch (error) {
       console.error('Image processing error:', error)
@@ -999,14 +884,34 @@ export default function EnhancedEditTrade({
               className="max-w-full max-h-full object-contain"
             />
           </div>
-          <Button
-            variant="destructive"
-            size="icon"
-            className="absolute top-4 right-4"
-            onClick={() => setFullscreenImage(null)}
-          >
-            <X className="w-4 h-4" />
-          </Button>
+          <div className="absolute top-4 right-4 flex gap-2">
+            <Button
+              variant="secondary"
+              size="icon"
+              className="bg-white/10 hover:bg-white/20"
+              onClick={(e) => {
+                e.stopPropagation()
+                const link = document.createElement('a')
+                link.href = fullscreenImage
+                link.download = `trade-${trade?.instrument || 'analysis'}-${Date.now()}.png`
+                link.click()
+              }}
+              title="Download image"
+            >
+              <Download className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="destructive"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation()
+                setFullscreenImage(null)
+              }}
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       )}
     </>
