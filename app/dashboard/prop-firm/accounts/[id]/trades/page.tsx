@@ -148,7 +148,7 @@ export default function AccountTradesPage() {
   }
 
   // CRITICAL FIX: Group trades first to handle partial closes
-  const { groupTradesByExecution } = await import('@/lib/utils')
+  const { groupTradesByExecution } = require('@/lib/utils')
   const groupedTrades = groupTradesByExecution(trades)
 
   // Filter GROUPED trades based on search term
