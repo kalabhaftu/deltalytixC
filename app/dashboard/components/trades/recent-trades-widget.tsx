@@ -19,7 +19,7 @@ export default function RecentTradesWidget() {
   // Limited to fit height without scrolling
   const recentTrades = React.useMemo(() => {
     return groupedTrades
-      .sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime())
+      .sort((a: any, b: any) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime())
       .slice(0, 14)
   }, [groupedTrades])
 
