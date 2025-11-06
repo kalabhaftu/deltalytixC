@@ -87,9 +87,10 @@ const processMatchTraderCsv = (data: string[][]): ProcessedData => {
   const expectedHeaders = ['ID', 'Symbol', 'Open time', 'Volume', 'Side', 'Close time', 'Open price', 'Close Price', 'Stop loss', 'Take profit', 'Swap', 'Commission', 'Profit', 'Reason']
   const headers = data[0].filter(header => header && header.trim() !== '')
   
-  // Verify this is a Match Trader CSV by checking for key columns
+  // Verify this is a Match Trader CSV by checking for key columns (case-insensitive)
+  const normalizedHeaders = headers.map(h => h.toLowerCase().trim())
   const hasRequiredHeaders = ['Symbol', 'Open time', 'Close time', 'Volume', 'Side', 'Profit'].every(
-    requiredHeader => headers.some(header => header.includes(requiredHeader))
+    requiredHeader => normalizedHeaders.some(header => header.includes(requiredHeader.toLowerCase().trim()))
   )
   
   if (!hasRequiredHeaders) {
