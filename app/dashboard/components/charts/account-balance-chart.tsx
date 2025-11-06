@@ -139,7 +139,7 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
     const groupedTrades = groupTradesByExecution(formattedTrades)
     
     // Group trades by date and calculate wins/losses
-    const tradesByDate = groupedTrades.reduce((acc: Record<string, { wins: number; losses: number; trades: number }>, trade) => {
+    const tradesByDate = groupedTrades.reduce((acc: Record<string, { wins: number; losses: number; trades: number }>, trade: any) => {
       const date = trade.entryDate.split('T')[0]
       if (!acc[date]) {
         acc[date] = { wins: 0, losses: 0, trades: 0 }

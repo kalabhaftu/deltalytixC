@@ -1,13 +1,22 @@
-import { Inter } from "next/font/google";
+// Temporarily disabled Google Fonts due to network connectivity issues
+// import { Inter } from "next/font/google";
 
-// PERFORMANCE FIX: Simplified font config to work better with Turbopack
-// Removed problematic options that cause issues when Google Fonts is unreachable
-export const inter = Inter({
-  subsets: ["latin"],
+// PERFORMANCE FIX: Using system fonts to avoid Google Fonts network dependency
+// export const inter = Inter({
+//   subsets: ["latin"],
+//   variable: "--font-inter",
+//   display: 'optional', // Changed from 'swap' to 'optional' - app works without font
+//   fallback: ['system-ui', 'sans-serif'], // Simplified fallback
+// })
+
+// Using system font as primary font
+export const inter = {
   variable: "--font-inter",
-  display: 'optional', // Changed from 'swap' to 'optional' - app works without font
-  fallback: ['system-ui', 'sans-serif'], // Simplified fallback
-})
+  className: "font-sans",
+  style: {
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif'
+  }
+}
 
 // System font fallback for when Google Fonts is completely unavailable
 export const systemFont = {

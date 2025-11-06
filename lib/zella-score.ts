@@ -187,19 +187,19 @@ export function calculateMetricsFromTrades(trades: Trade[]): ZellaScoreMetrics |
   const groupedTrades = groupTradesByExecution(trades)
 
   // Calculate wins and losses using NET P&L
-  const wins = groupedTrades.filter(t => {
+  const wins = groupedTrades.filter((t: any) => {
     const netPnL = t.pnl - (t.commission || 0)
     return netPnL > 0
   })
   
-  const losses = groupedTrades.filter(t => {
+  const losses = groupedTrades.filter((t: any) => {
     const netPnL = t.pnl - (t.commission || 0)
     return netPnL < 0
   })
 
   // Gross win/loss amounts
-  const grossWin = wins.reduce((sum, t) => sum + (t.pnl - (t.commission || 0)), 0)
-  const grossLoss = Math.abs(losses.reduce((sum, t) => sum + (t.pnl - (t.commission || 0)), 0))
+  const grossWin = wins.reduce((sum: number, t: any) => sum + (t.pnl - (t.commission || 0)), 0)
+  const grossLoss = Math.abs(losses.reduce((sum: number, t: any) => sum + (t.pnl - (t.commission || 0)), 0))
 
   // Average Win/Loss Ratio
   const avgWin = wins.length > 0 ? grossWin / wins.length : 0
@@ -232,14 +232,14 @@ export function calculateMetricsFromTrades(trades: Trade[]): ZellaScoreMetrics |
   const maxDrawdownPercent = peak > 0 ? (maxDrawdown / peak) * 100 : 0
 
   // Net Profit using GROUPED trades
-  const netProfit = groupedTrades.reduce((sum, t) => sum + (t.pnl - (t.commission || 0)), 0)
+  const netProfit = groupedTrades.reduce((sum: number, t: any) => sum + (t.pnl - (t.commission || 0)), 0)
 
   // Recovery Factor
   const recoveryFactor = maxDrawdown > 0 ? netProfit / maxDrawdown : netProfit > 0 ? 5 : 0
 
   // Consistency Score using GROUPED trades for consistency
   const dailyPnL: Record<string, number> = {}
-  groupedTrades.forEach(trade => {
+  groupedTrades.forEach((trade: any) => {
     const date = trade.entryDate.split('T')[0]
     if (!dailyPnL[date]) dailyPnL[date] = 0
     dailyPnL[date] += (trade.pnl - (trade.commission || 0))

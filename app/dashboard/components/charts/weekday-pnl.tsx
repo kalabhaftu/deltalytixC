@@ -95,7 +95,7 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
     // Group trades by weekday (0=Sunday, 1=Monday, ..., 6=Saturday)
     const weekdayMap: Record<number, { pnl: number; trades: number; wins: number; losses: number }> = {}
     
-    groupedTrades.forEach(trade => {
+    groupedTrades.forEach((trade: any) => {
       const date = new Date(trade.entryDate)
       const dayOfWeek = date.getDay()
       

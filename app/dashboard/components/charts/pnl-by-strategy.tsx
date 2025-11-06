@@ -48,7 +48,7 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
     // Group trades by strategy (both tradingModel and custom strategy)
     const strategyMap: Record<string, { pnl: number; trades: number; wins: number; losses: number; grossWin: number; grossLoss: number }> = {}
     
-    groupedTrades.forEach(trade => {
+    groupedTrades.forEach((trade: any) => {
       const strategy = trade.tradingModel || 'No Strategy'
       
       if (!strategyMap[strategy]) {

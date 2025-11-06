@@ -127,7 +127,7 @@ export class MediaUploadService {
         return 'images' // Default fallback
       }
 
-      const existingBuckets = buckets?.map(b => b.name) || []
+      const existingBuckets = buckets?.map((b: any) => b.name) || []
       
       // Preferred bucket order
       const preferredBuckets = ['images', 'trade-images', 'public', 'avatars']

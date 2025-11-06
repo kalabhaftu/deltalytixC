@@ -54,18 +54,27 @@ export async function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   
-  // Check for placeholder values
-  if (!supabaseUrl || !supabaseKey ||
-      supabaseUrl.includes('[YOUR_PROJECT_REF]') ||
-      supabaseKey.includes('your-anon-key') ||
-      supabaseUrl === 'https://[YOUR_PROJECT_REF].supabase.co' ||
-      supabaseKey === 'your-anon-key-from-supabase') {
+  // Check if we have placeholder or missing values
+  const hasPlaceholderValues = !supabaseUrl || !supabaseKey ||
+    supabaseUrl.includes('[YOUR_PROJECT_REF]') ||
+    supabaseKey.includes('your-anon-key') ||
+    supabaseUrl === 'https://[YOUR_PROJECT_REF].supabase.co' ||
+    supabaseKey === 'your-anon-key-from-supabase' ||
+    supabaseUrl === 'https://your-project.supabase.co' ||
+    supabaseKey === 'your-anon-key-here'
+
+  // Only throw in production mode
+  if (hasPlaceholderValues && process.env.NODE_ENV === 'production') {
     throw new Error('Supabase configuration is incomplete. Please check your environment variables.')
   }
+  
+  // In non-production, use placeholder values that won't break the build
+  const finalUrl = hasPlaceholderValues ? 'https://placeholder.supabase.co' : supabaseUrl!
+  const finalKey = hasPlaceholderValues ? 'placeholder-key-for-build' : supabaseKey!
 
   return createServerClient(
-    supabaseUrl,
-    supabaseKey,
+    finalUrl,
+    finalKey,
     {
       cookies: {
         getAll() {

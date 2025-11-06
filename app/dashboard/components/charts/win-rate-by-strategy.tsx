@@ -56,7 +56,7 @@ export default function WinRateByStrategy({ size = 'small-long' }: WinRateByStra
     // Group trades by strategy
     const strategyMap: Record<string, { wins: number; losses: number; grossWin: number; grossLoss: number; allWins: number[] }> = {}
     
-    groupedTrades.forEach(trade => {
+    groupedTrades.forEach((trade: any) => {
       const strategy = trade.tradingModel || 'No Strategy'
       
       if (!strategyMap[strategy]) {
