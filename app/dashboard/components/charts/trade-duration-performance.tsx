@@ -108,6 +108,10 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
   const [showAverage, setShowAverage] = React.useState(false)
 
   const chartData = React.useMemo(() => {
+    // CRITICAL FIX: Group trades first to handle partial closes correctly
+    const { groupTradesByExecution } = require('@/lib/utils')
+    const groupedTrades = groupTradesByExecution(formattedTrades)
+    
     // Define bucket order
     const bucketOrder = [
       "< 1min",
@@ -127,7 +131,7 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
       durationMap[bucket] = { pnl: 0, trades: 0, wins: 0, losses: 0 }
     })
 
-    formattedTrades.forEach(trade => {
+    groupedTrades.forEach((trade: any) => {
       if (trade.entryDate && trade.closeDate) {
         const durationMinutes = calculateDurationMinutes(trade.entryDate, trade.closeDate)
         const bucket = getDurationBucket(durationMinutes)

@@ -104,18 +104,42 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }, 0)
 
     // FIXED: Get trades ONLY for the current active phase (not all phases)
-    const currentPhaseTradesMinimal = currentPhase ? await prisma.trade.findMany({
+    // CRITICAL: Fetch full trade data to enable grouping of partial closes
+    const currentPhaseTradesFull = currentPhase ? await prisma.trade.findMany({
       where: {
         phaseAccountId: currentPhase.id  // ✅ Only current phase trades
       },
       select: {
+        id: true,
         pnl: true,
-        commission: true
+        commission: true,
+        entryId: true,
+        instrument: true,
+        symbol: true,
+        side: true,
+        entryDate: true,
+        closeDate: true,
+        entryTime: true,
+        exitTime: true,
+        quantity: true,
+        entryPrice: true,
+        closePrice: true
       },
       orderBy: {
         exitTime: 'asc'  // Ordered for proper high-water mark calculation
       }
     }) : []
+
+    // CRITICAL FIX: Group trades to handle partial closes correctly
+    const { groupTradesByExecution } = await import('@/lib/utils')
+    const groupedTrades = groupTradesByExecution(currentPhaseTradesFull as any)
+    
+    // Create minimal version for response (after grouping)
+    const currentPhaseTradesMinimal = groupedTrades.map(trade => ({
+      pnl: trade.pnl,
+      commission: trade.commission,
+      netPnL: trade.pnl - (trade.commission || 0)
+    }))
 
     // Get ALL trades for overall statistics
     const allTradesMinimal = await prisma.trade.findMany({
@@ -177,11 +201,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (currentPhase) {
       // Calculate highest equity (high-water mark) - track peak balance
       // IMPORTANT: Use only CURRENT PHASE trades, not all phases!
+      // Use grouped trades for accurate high-water mark calculation
       let highWaterMark = masterAccount.accountSize
       let runningBalance = masterAccount.accountSize
       
-      // Calculate high-water mark from CURRENT PHASE trades in order
-      for (const trade of currentPhaseTradesMinimal) {
+      // Calculate high-water mark from CURRENT PHASE grouped trades in order
+      // Grouped trades ensure partial closes are counted as single trades
+      for (const trade of groupedTrades) {
         runningBalance += (trade.pnl - (trade.commission || 0))
         highWaterMark = Math.max(highWaterMark, runningBalance)
       }
@@ -357,10 +383,27 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         currentPhaseTrades: currentPhaseStat?._count.id || 0,
         currentPhasePnL
       },
-      recentTrades: currentPhaseTradesMinimal.slice(-20).reverse().map(trade => ({  // ✅ FIXED: Show recent trades from CURRENT PHASE only
+      recentTrades: groupedTrades.slice(-20).reverse().map(trade => ({  // ✅ FIXED: Show recent grouped trades from CURRENT PHASE only
+        id: trade.id,
         pnl: trade.pnl,
         commission: trade.commission,
-        netPnL: trade.pnl - (trade.commission || 0)
+        netPnL: trade.pnl - (trade.commission || 0),
+        instrument: trade.instrument || trade.symbol,
+        symbol: trade.symbol,
+        side: trade.side,
+        quantity: trade.quantity,
+        entryPrice: trade.entryPrice,
+        closePrice: trade.closePrice,
+        exitPrice: trade.closePrice,
+        entryDate: trade.entryDate,
+        closeDate: trade.closeDate,
+        entryTime: trade.entryTime,
+        exitTime: trade.exitTime,
+        phase: currentPhase ? {
+          id: currentPhase.id,
+          phaseNumber: currentPhase.phaseNumber
+        } : null,
+        phaseAccountId: currentPhase?.id
       })),
       summary: {
         totalPhases: phases.length,

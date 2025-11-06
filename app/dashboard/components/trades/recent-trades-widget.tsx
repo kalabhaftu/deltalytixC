@@ -8,11 +8,20 @@ import { cn } from '@/lib/utils'
 export default function RecentTradesWidget() {
   const { formattedTrades } = useData()
 
+  // CRITICAL FIX: Group trades first to handle partial closes correctly
+  // This ensures partial closes are shown as single trades, not multiple entries
+  const { groupTradesByExecution } = require('@/lib/utils')
+  const groupedTrades = React.useMemo(() => {
+    return groupTradesByExecution(formattedTrades)
+  }, [formattedTrades])
+
   // Get last 14 trades (sorted by most recent entry date)
   // Limited to fit height without scrolling
-  const recentTrades = formattedTrades
-    .sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime())
-    .slice(0, 14)
+  const recentTrades = React.useMemo(() => {
+    return groupedTrades
+      .sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime())
+      .slice(0, 14)
+  }, [groupedTrades])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {

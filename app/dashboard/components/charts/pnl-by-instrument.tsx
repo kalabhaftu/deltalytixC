@@ -39,10 +39,14 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
   const { formattedTrades } = useData()
 
   const chartData = React.useMemo(() => {
+    // CRITICAL FIX: Group trades first to handle partial closes correctly
+    const { groupTradesByExecution } = require('@/lib/utils')
+    const groupedTrades = groupTradesByExecution(formattedTrades)
+    
     // Group trades by instrument
     const instrumentMap: Record<string, { pnl: number; trades: number; wins: number; losses: number }> = {}
     
-    formattedTrades.forEach(trade => {
+    groupedTrades.forEach((trade: any) => {
       const instrument = trade.symbol || trade.instrument || 'Unknown'
       
       if (!instrumentMap[instrument]) {
