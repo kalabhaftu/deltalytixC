@@ -62,7 +62,7 @@ export default function RecentTradesWidget() {
                 No trades yet
               </div>
             ) : (
-              recentTrades.map((trade, index) => {
+              recentTrades.map((trade: any, index: number) => {
                 const netPnL = (trade.pnl || 0) - (trade.commission || 0)
                 const isProfitable = netPnL > 0
 

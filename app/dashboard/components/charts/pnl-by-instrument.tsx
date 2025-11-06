@@ -65,7 +65,7 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
     })
     
     // Convert to array and calculate win rate
-    const data: InstrumentData[] = Object.entries(instrumentMap).map(([instrument, stats]) => ({
+    const data: InstrumentData[] = Object.entries(instrumentMap).map(([instrument, stats]: [string, { pnl: number; trades: number; wins: number; losses: number }]) => ({
       instrument,
       pnl: stats.pnl,
       trades: stats.trades,
@@ -75,7 +75,7 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
     }))
     
     // Sort by PnL (highest first)
-    return data.sort((a, b) => b.pnl - a.pnl)
+    return data.sort((a: InstrumentData, b: InstrumentData) => b.pnl - a.pnl)
   }, [formattedTrades])
 
   const formatCurrency = (value: number) => {
@@ -111,7 +111,7 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
     return null
   }
 
-  const totalPnl = chartData.reduce((sum, item) => sum + item.pnl, 0)
+  const totalPnl = chartData.reduce((sum: number, item: InstrumentData) => sum + item.pnl, 0)
   const bestInstrument = chartData.length > 0 ? chartData[0] : null
   const worstInstrument = chartData.length > 0 ? chartData[chartData.length - 1] : null
 
@@ -226,7 +226,7 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
                     radius={[3, 3, 0, 0]}
                     maxBarSize={size === 'small' || size === 'small-long' ? 40 : 60}
                   >
-                    {chartData.map((entry, index) => (
+                    {chartData.map((entry: InstrumentData, index: number) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={entry.pnl >= 0 ? 'hsl(var(--chart-profit))' : 'hsl(var(--chart-loss))'}

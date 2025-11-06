@@ -279,7 +279,7 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
                   radius={[3, 3, 0, 0]}
                   maxBarSize={size === 'small' || size === 'small-long' ? 40 : 60}
                 >
-                  {chartData.map((entry, index) => (
+                  {chartData.map((entry: DurationData, index: number) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={entry.pnl >= 0 ? positiveColor : negativeColor}

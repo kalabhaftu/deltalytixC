@@ -96,8 +96,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // This keeps the GET request fast and responsive
 
     // Calculate statistics from aggregated data (FAST - no array operations)
-    const totalTrades = tradeStats.reduce((sum, stat) => sum + stat._count.id, 0)
-    const totalPnL = tradeStats.reduce((sum, stat) => {
+    const totalTrades = tradeStats.reduce((sum: number, stat: any) => sum + stat._count.id, 0)
+    const totalPnL = tradeStats.reduce((sum: number, stat: any) => {
       const pnl = stat._sum.pnl || 0
       const commission = stat._sum.commission || 0
       return sum + (pnl - commission)
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const groupedTrades = groupTradesByExecution(currentPhaseTradesFull as any)
     
     // Create minimal version for response (after grouping)
-    const currentPhaseTradesMinimal = groupedTrades.map(trade => ({
+    const currentPhaseTradesMinimal = groupedTrades.map((trade: any) => ({
       pnl: trade.pnl,
       commission: trade.commission,
       netPnL: trade.pnl - (trade.commission || 0)
@@ -383,7 +383,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         currentPhaseTrades: currentPhaseStat?._count.id || 0,
         currentPhasePnL
       },
-      recentTrades: groupedTrades.slice(-20).reverse().map(trade => ({  // ✅ FIXED: Show recent grouped trades from CURRENT PHASE only
+      recentTrades: groupedTrades.slice(-20).reverse().map((trade: any) => ({  // ✅ FIXED: Show recent grouped trades from CURRENT PHASE only
         id: trade.id,
         pnl: trade.pnl,
         commission: trade.commission,
