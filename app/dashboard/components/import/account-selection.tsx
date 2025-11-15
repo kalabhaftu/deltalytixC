@@ -117,7 +117,6 @@ export default function AccountSelection({
         
         setAccountsWithPhases(accountsWithPhaseData)
       } catch (error) {
-        console.error('Error preparing accounts:', error)
         setAccountsWithPhases(accounts) // Fallback to accounts without phase formatting
       } finally {
         setIsLoadingPhases(false)

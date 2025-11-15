@@ -133,7 +133,6 @@ export default function SettingsPage() {
           setCustomModels(savedModels)
         }
       } catch (error) {
-        console.error('Error loading models from database:', error)
         // Fallback to localStorage
         const savedModels = DataSerializer.getTradingModels()
         setCustomModels(savedModels)
@@ -160,7 +159,6 @@ export default function SettingsPage() {
             body: JSON.stringify({ models: customModels })
           })
         } catch (error) {
-          console.error('Error saving models to database:', error)
         }
       }
       
@@ -288,7 +286,6 @@ export default function SettingsPage() {
           })
         }
       } catch (error) {
-        console.error('Error fetching profile:', error)
       } finally {
         setIsLoadingProfile(false)
       }

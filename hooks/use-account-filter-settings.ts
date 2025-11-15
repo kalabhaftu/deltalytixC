@@ -11,8 +11,20 @@ interface UseAccountFilterSettingsResult {
 }
 
 export function useAccountFilterSettings(): UseAccountFilterSettingsResult {
-  const [settings, setSettings] = useState<AccountFilterSettings>(DEFAULT_FILTER_SETTINGS)
-  const [isLoading, setIsLoading] = useState(true)
+  const [settings, setSettings] = useState<AccountFilterSettings>(() => {
+    // Try to load from bundled data in localStorage first (from getUserData)
+    try {
+      const bundled = localStorage.getItem('account-filter-settings-cache')
+      if (bundled) {
+        const parsed = JSON.parse(bundled)
+        return parsed || DEFAULT_FILTER_SETTINGS
+      }
+    } catch (error) {
+      // Ignore parsing errors
+    }
+    return DEFAULT_FILTER_SETTINGS
+  })
+  const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -38,8 +50,8 @@ export function useAccountFilterSettings(): UseAccountFilterSettingsResult {
       }
 
       setSettings(data.data)
+      localStorage.setItem('account-filter-settings-cache', JSON.stringify(data.data))
     } catch (err) {
-      console.error('Error fetching account filter settings:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
       setSettings(DEFAULT_FILTER_SETTINGS)
     } finally {
@@ -76,8 +88,8 @@ export function useAccountFilterSettings(): UseAccountFilterSettingsResult {
       }
 
       setSettings(data.data)
+      localStorage.setItem('account-filter-settings-cache', JSON.stringify(data.data))
     } catch (err) {
-      console.error('Error updating account filter settings:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
       throw err
     } finally {
@@ -89,21 +101,13 @@ export function useAccountFilterSettings(): UseAccountFilterSettingsResult {
     try {
       await updateSettings(DEFAULT_FILTER_SETTINGS)
     } catch (err) {
-      console.error('Error resetting settings to defaults:', err)
       throw err
     }
   }, [updateSettings])
 
-  // PERFORMANCE: Don't fetch on mount - use defaults and fetch lazily
+  // Don't fetch automatically - settings are bundled with getUserData
+  // Only fetch if explicitly needed (e.g., after long session)
   // This prevents blocking the main data load
-  useEffect(() => {
-    // Defer fetch to not block initial page load
-    const timer = setTimeout(() => {
-      fetchSettings()
-    }, 1000) // Wait 1 second after mount
-    
-    return () => clearTimeout(timer)
-  }, [fetchSettings])
 
   return {
     settings,

@@ -87,7 +87,6 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
 
       setBacktests(transformedBacktests)
     } catch (err) {
-      console.error('Error fetching backtests:', err)
       // Only show error toast if it's not an abort error
       if (err instanceof Error && err.name !== 'AbortError') {
         toast.error('Failed to load backtests')
@@ -163,7 +162,6 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
       toast.success('Backtest deleted successfully')
       await refreshBacktests()
     } catch (error) {
-      console.error('Error deleting backtest:', error)
       toast.error('Failed to delete backtest')
     }
   }
@@ -337,7 +335,6 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
               await refreshBacktests()
             }, 100)
           } catch (error) {
-            console.error('Error creating backtest:', error)
             toast.error('Failed to create backtest')
             throw error // Re-throw to prevent dialog close on error
           }

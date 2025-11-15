@@ -97,7 +97,6 @@ export function FormatPreview({
     api: '/api/ai/format-trades',
     schema: z.array(tradeSchema),
     onError(error) {
-      console.error('Error processing trades:', error);
       setError(`Failed to process trades: ${error.message}`);
       setIsLoading(false);
     }

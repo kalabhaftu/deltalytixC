@@ -13,6 +13,7 @@ interface TradezellaProcessorProps {
   headers: string[];
   csvData: string[][];
   setProcessedTrades: React.Dispatch<React.SetStateAction<Trade[]>>;
+  accountNumber?: string; // Account selected by user in previous step
 }
 
 const newMappings: { [key: string]: string } = {
@@ -36,7 +37,7 @@ const newMappings: { [key: string]: string } = {
 
 
 
-export default function TradezellaProcessor({ headers, csvData, setProcessedTrades }: TradezellaProcessorProps) {
+export default function TradezellaProcessor({ headers, csvData, setProcessedTrades, accountNumber }: TradezellaProcessorProps) {
   const [trades, setTrades] = useState<Trade[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const user = useUserStore(state => state.user)
@@ -66,8 +67,10 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
 
     setIsProcessing(true)
     const newTrades: Trade[] = [];
-    //TODO: Ask user for account number using account selection component
-    const accountNumber = 'default-account';
+    
+    // Use account number from props (selected in previous step)
+    // Fallback to 'default-account' if somehow not provided
+    const selectedAccount = accountNumber || 'default-account';
 
     csvData.forEach(row => {
       const item: Partial<Trade> = {};
@@ -117,7 +120,7 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
       // Create complete Trade object with all required fields
       const completeTrade: Trade = {
         id: uuidv4(),
-        accountNumber: item.accountNumber || accountNumber,
+        accountNumber: item.accountNumber || selectedAccount,
         quantity: item.quantity || 1,
         entryId: item.entryId || null,
         instrument: item.instrument || '',
@@ -157,7 +160,7 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
     setTrades(newTrades);
     setProcessedTrades(newTrades);
     setIsProcessing(false);
-  }, [csvData, headers, setProcessedTrades, user, supabaseUser]);
+  }, [csvData, headers, setProcessedTrades, user, supabaseUser, accountNumber]);
 
   useEffect(() => {
     processTrades();

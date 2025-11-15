@@ -63,7 +63,6 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
       setIsOpen(false)
     } catch (error) {
       // Error already shown by hook via toast
-      console.error('Template creation failed:', error)
     }
   }
 

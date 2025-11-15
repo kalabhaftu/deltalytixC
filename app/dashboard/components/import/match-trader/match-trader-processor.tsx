@@ -96,7 +96,6 @@ const MatchTraderProcessor = ({
         const closeDateStr = closeTimeIdx !== -1 ? row[closeTimeIdx] : null
         
         if (!entryDateStr || !closeDateStr) {
-          console.warn('Skipping row with missing dates:', row)
           continue // Skip invalid rows (not return null!)
         }
 
@@ -106,7 +105,6 @@ const MatchTraderProcessor = ({
 
         // Validate dates
         if (isNaN(entryDate.getTime()) || isNaN(closeDate.getTime())) {
-          console.warn('Skipping row with invalid dates:', entryDateStr, closeDateStr)
           continue
         }
 

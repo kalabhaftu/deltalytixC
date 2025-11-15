@@ -85,7 +85,6 @@ export function AccountGroupBoard() {
       setNewGroupName("")
       toast.success("Group Created", { description: "Account group created successfully" })
     } catch (error) {
-      console.error("Error creating group:", error)
       toast.error("Error", { description: "Failed to create group" })
     } finally {
       setIsCreating(false)
@@ -99,7 +98,6 @@ export function AccountGroupBoard() {
       setEditingGroupName("")
       toast.success("Group Updated", { description: "Group name updated successfully" })
     } catch (error) {
-      console.error("Error updating group:", error)
       toast.error("Error", { description: "Failed to update group" })
     }
   }, [renameGroup])
@@ -153,7 +151,6 @@ export function AccountGroupBoard() {
       }
       await moveAccountToGroup(account.id, groupId)
     } catch (error) {
-      console.error("Error moving account:", error)
       toast.error("Error", { description: "Failed to move account" })
     }
   }, [groups, user?.id, saveGroup, moveAccountToGroup, saveAccount])
@@ -164,7 +161,6 @@ export function AccountGroupBoard() {
       await deleteGroup(groupId)
       toast.success("Group Deleted", { description: "Group deleted successfully" })
     } catch (error) {
-      console.error("Error deleting group:", error)
       toast.error("Error", { description: "Failed to delete group" })
     } finally {
       setIsDeleting(false)

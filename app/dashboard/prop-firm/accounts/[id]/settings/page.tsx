@@ -107,7 +107,6 @@ export default function AccountSettingsPage() {
         throw new Error(data.error || 'Failed to fetch account details')
       }
     } catch (error) {
-      console.error('Error fetching account details:', error)
       toast.error('Failed to fetch account details', {
         description: 'An error occurred while fetching account details'
       })
@@ -187,7 +186,6 @@ export default function AccountSettingsPage() {
         throw new Error(data.error || 'Failed to update account')
       }
     } catch (error) {
-      console.error('Error updating account:', error)
       toast.error('Failed to update account', {
         description: 'An error occurred while updating account settings'
       })
@@ -220,7 +218,6 @@ export default function AccountSettingsPage() {
         throw new Error(data.error || 'Failed to delete account')
       }
     } catch (error) {
-      console.error('Error deleting account:', error)
       toast.error('Failed to delete account', {
         description: 'An error occurred while deleting the account'
       })

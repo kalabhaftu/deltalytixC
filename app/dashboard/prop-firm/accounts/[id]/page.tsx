@@ -85,7 +85,6 @@ export default function AccountDetailPage() {
       const data = await response.json()
       return data.success ? data.data.trades : []
     } catch (error) {
-      console.error('Error fetching trades:', error)
       return []
     }
   }, [accountId])
@@ -115,7 +114,6 @@ export default function AccountDetailPage() {
       setTradesData(trades)
       setPayoutsData(payouts)
     } catch (error) {
-      console.error('Error fetching complete data:', error)
       setDataFetchError('Failed to load complete account data')
       toast.error("Data Loading Error", {
         description: "Some account data could not be loaded. Please try refreshing."
@@ -248,7 +246,6 @@ export default function AccountDetailPage() {
       setIsEditingSettings(false)
       await refetch()
     } catch (error) {
-      console.error('Error updating settings:', error)
       toast.error("Failed to update settings")
     }
   }

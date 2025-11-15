@@ -59,7 +59,6 @@ export default function PayoutDetailPage() {
         throw new Error(data.error || 'Failed to fetch payout details')
       }
     } catch (error) {
-      console.error('Error fetching payout details:', error)
       toast.error('Failed to fetch payout details', {
         description: 'An error occurred while fetching payout details'
       })

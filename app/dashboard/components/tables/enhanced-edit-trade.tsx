@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -17,9 +17,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { Trade } from '@prisma/client'
-import { Edit, Camera, X, Target, ChevronDown, Download } from 'lucide-react'
+import { Edit, Camera, X, Target, ChevronDown, AlertTriangle } from 'lucide-react'
 import {
   Collapsible,
   CollapsibleContent,
@@ -28,6 +38,7 @@ import {
 import { useUserStore } from '@/store/user-store'
 import { formatCurrency } from '@/lib/utils'
 import { DataSerializer } from '@/lib/data-serialization'
+import { uploadService } from '@/lib/upload-service'
 
 // Utility function to format trading model names consistently
 const formatModelName = (model: string): string => {
@@ -109,29 +120,17 @@ const validateImageFile = (file: File): void => {
   }
 }
 
-// Compress image for card preview (smaller size, optimized for journal cards)
 const compressImageForCard = (file: File): Promise<File> => {
   return new Promise((resolve) => {
     try {
-      // For now, skip compression to avoid DOM issues
-      // The backend will handle compression
-      resolve(file) // Return original file
-
-      // TODO: Implement proper compression using a library like browser-image-compression
-      // This would provide better compatibility and compression without DOM issues
-
+      resolve(file)
+      // TODO: Implement WebP compression (currently disabled - see upload-service.ts)
     } catch (error) {
-      console.warn('Image compression setup failed:', error)
-      resolve(file) // Fallback to original
+      resolve(file)
     }
   })
 }
 
-// Note: Images are now stored as base64 data URLs in the database
-// This prevents orphaned cloud storage files if user cancels without saving
-// Future enhancement: Optionally upload to cloud storage on save for better performance
-
-// Generate a random 6-character alphanumeric ID for trade identification
 function generateShortId(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
@@ -139,6 +138,48 @@ function generateShortId(): string {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
+}
+
+const DRAFT_KEY_PREFIX = 'trade-edit-draft-'
+
+function saveDraftToLocalStorage(tradeId: string, data: EditTradeFormData) {
+  try {
+    const key = `${DRAFT_KEY_PREFIX}${tradeId}`
+    localStorage.setItem(key, JSON.stringify({
+      ...data,
+      timestamp: Date.now()
+    }))
+  } catch (error) {
+    // Silent fail
+  }
+}
+
+function loadDraftFromLocalStorage(tradeId: string): EditTradeFormData | null {
+  try {
+    const key = `${DRAFT_KEY_PREFIX}${tradeId}`
+    const saved = localStorage.getItem(key)
+    if (!saved) return null
+    
+    const parsed = JSON.parse(saved)
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000)
+    if (parsed.timestamp && parsed.timestamp < sevenDaysAgo) {
+      localStorage.removeItem(key)
+      return null
+    }
+    
+    return parsed
+  } catch (error) {
+    return null
+  }
+}
+
+function clearDraftFromLocalStorage(tradeId: string) {
+  try {
+    const key = `${DRAFT_KEY_PREFIX}${tradeId}`
+    localStorage.removeItem(key)
+  } catch (error) {
+    // Silent fail
+  }
 }
 
 export default function EnhancedEditTrade({
@@ -151,6 +192,20 @@ export default function EnhancedEditTrade({
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null)
   const [additionalLinks, setAdditionalLinks] = useState<string[]>([])
   const [isTradingModelOpen, setIsTradingModelOpen] = useState(false)
+  
+  // Confirmation dialogs state
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false)
+  const [showDeleteImageDialog, setShowDeleteImageDialog] = useState(false)
+  const [imageToDelete, setImageToDelete] = useState<'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth' | 'imageBase64Fifth' | 'imageBase64Sixth' | 'cardPreviewImage' | null>(null)
+  const [pendingClose, setPendingClose] = useState(false)
+  
+  // Track if form has unsaved changes
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [initialFormState, setInitialFormState] = useState<EditTradeFormData | null>(null)
+  
+  // Track if draft was loaded from localStorage
+  const [draftLoaded, setDraftLoaded] = useState(false)
+  
   const [tradeId] = useState(() => {
     if (trade?.id?.includes('undefined')) {
       return generateShortId()
@@ -184,10 +239,10 @@ export default function EnhancedEditTrade({
 
   const watchedValues = watch()
 
-  // Initialize form with trade data and cleanup state
+  // Initialize form with trade data and load draft if available
   useEffect(() => {
     if (trade && isOpen) {
-      reset({
+      const defaultFormState: EditTradeFormData = {
         comment: trade.comment || '',
         imageBase64: trade.imageBase64 || '',
         imageBase64Second: trade.imageBase64Second || '',
@@ -197,7 +252,31 @@ export default function EnhancedEditTrade({
         imageBase64Sixth: (trade as any)?.imageBase64Sixth || '',
         cardPreviewImage: (trade as any)?.cardPreviewImage || '',
         tradingModel: (trade as any)?.tradingModel || '',
-      })
+      }
+      
+      // Try to load draft from localStorage
+      const draft = loadDraftFromLocalStorage(trade.id)
+      
+      if (draft) {
+        // Show toast to inform user about draft
+        toast.info('Draft found', {
+          description: 'Your unsaved changes have been restored.',
+          duration: 3000,
+        })
+        
+        // Load draft instead of default
+        reset(draft)
+        setDraftLoaded(true)
+        setHasUnsavedChanges(true)
+      } else {
+        // No draft, use default
+        reset(defaultFormState)
+        setDraftLoaded(false)
+        setHasUnsavedChanges(false)
+      }
+      
+      // Store initial state for comparison
+      setInitialFormState(draft || defaultFormState)
       
       // CRITICAL FIX: Reset fullscreen image state when dialog opens
       setFullscreenImage(null)
@@ -206,46 +285,104 @@ export default function EnhancedEditTrade({
     // Cleanup when dialog closes
     if (!isOpen) {
       setFullscreenImage(null)
+      setHasUnsavedChanges(false)
+      setDraftLoaded(false)
+      setInitialFormState(null)
     }
   }, [trade, isOpen, reset])
+  
+  // Auto-save draft to localStorage when form changes
+  useEffect(() => {
+    if (!trade || !isOpen) return
+    
+    const subscription = watch((formData) => {
+      // Check if form has changes compared to initial state
+      if (initialFormState) {
+        const hasChanges = JSON.stringify(formData) !== JSON.stringify(initialFormState)
+        setHasUnsavedChanges(hasChanges)
+        
+        // Auto-save draft if there are changes
+        if (hasChanges) {
+          saveDraftToLocalStorage(trade.id, formData as EditTradeFormData)
+        }
+      }
+    })
+    
+    return () => subscription.unsubscribe()
+  }, [watch, trade, isOpen, initialFormState])
+  
+  // Handle browser/tab close with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges && isOpen) {
+        e.preventDefault()
+        e.returnValue = '' // Required for Chrome
+      }
+    }
+    
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [hasUnsavedChanges, isOpen])
 
   const handleImageUpload = async (field: 'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth' | 'imageBase64Fifth' | 'imageBase64Sixth' | 'cardPreviewImage', file: File) => {
     try {
       validateImageFile(file)
+      
+      const currentUser = user || supabaseUser
+      if (!currentUser?.id) {
+        toast.error('Upload failed', { description: 'User not authenticated' })
+        return
+      }
 
-      // Compress image ONLY if it's for card preview (NOT for analysis images to preserve quality)
-      let processedFile = file
-      if (field === 'cardPreviewImage') {
-        processedFile = await compressImageForCard(file)
+      // Upload directly to Supabase storage (no base64)
+      toast.loading('Uploading image...', { id: `upload-${field}` })
+      
+      const result = await uploadService.uploadImage(file, {
+        userId: currentUser.id,
+        folder: 'trades',
+        tradeId: trade?.id,
+      })
+      
+      if (!result.success || !result.url) {
+        throw new Error(result.error || 'Upload failed')
       }
       
-      // Convert to base64 for local storage (upload happens on save)
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const result = e.target?.result as string
-        setValue(field, result)
-        
-        toast.success('Image added', {
-          description: field === 'cardPreviewImage'
-            ? 'Card preview ready. Will upload when you save.'
-            : 'Analysis image added. Will upload when you save.',
-        })
-      }
-      reader.onerror = () => {
-        toast.error('Failed to process image')
-      }
-      reader.readAsDataURL(processedFile)
+      // Store the storage URL instead of base64
+      setValue(field, result.url)
+      
+      toast.success('Image uploaded', {
+        id: `upload-${field}`,
+        description: field === 'cardPreviewImage'
+          ? 'Card preview uploaded successfully.'
+          : 'Analysis image uploaded successfully.',
+      })
       
     } catch (error) {
-      console.error('Image processing error:', error)
       toast.error('Upload failed', {
-        description: error instanceof Error ? error.message : 'Failed to process image',
+        id: `upload-${field}`,
+        description: error instanceof Error ? error.message : 'Failed to upload image',
       })
     }
   }
 
   const removeImage = (field: 'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth' | 'imageBase64Fifth' | 'imageBase64Sixth' | 'cardPreviewImage') => {
-    setValue(field, '', { shouldDirty: true }) // Set to empty string to mark for deletion
+    // Show confirmation dialog before deleting
+    setImageToDelete(field)
+    setShowDeleteImageDialog(true)
+  }
+  
+  const confirmDeleteImage = () => {
+    if (imageToDelete) {
+      setValue(imageToDelete, '', { shouldDirty: true }) // Set to empty string to mark for deletion
+      toast.success('Image removed', {
+        description: 'The image will be deleted when you save changes.'
+      })
+    }
+    setShowDeleteImageDialog(false)
+    setImageToDelete(null)
   }
 
   const addLink = () => {
@@ -286,13 +423,16 @@ export default function EnhancedEditTrade({
       // Call the save function
       await onSave(updateData)
       
+      // Clear draft from localStorage after successful save
+      clearDraftFromLocalStorage(trade.id)
+      setHasUnsavedChanges(false)
+      
       toast.success('Trade updated', {
         description: 'Trade has been successfully updated.',
       })
 
       onClose()
     } catch (error) {
-      console.error('Error updating trade:', error)
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'Failed to update trade',
       })
@@ -302,8 +442,31 @@ export default function EnhancedEditTrade({
   }
 
   const handleClose = () => {
+    // Check if there are unsaved changes
+    if (hasUnsavedChanges) {
+      // Show confirmation dialog
+      setPendingClose(true)
+      setShowUnsavedChangesDialog(true)
+    } else {
+      // No unsaved changes, close directly
+      performClose()
+    }
+  }
+  
+  const performClose = () => {
     reset()
+    setHasUnsavedChanges(false)
+    setShowUnsavedChangesDialog(false)
+    setPendingClose(false)
     onClose()
+  }
+  
+  const discardChanges = () => {
+    // Clear draft from localStorage
+    if (trade) {
+      clearDraftFromLocalStorage(trade.id)
+    }
+    performClose()
   }
 
   if (!trade) return null
@@ -869,51 +1032,81 @@ export default function EnhancedEditTrade({
         </DialogContent>
       </Dialog>
 
-      {/* Fullscreen Image Viewer */}
+      {/* Image Viewer - Same as View Dialog */}
       {fullscreenImage && (
-        <div
-          className="fixed inset-0 z-[10001] bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setFullscreenImage(null)}
-        >
-          <div className="w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-            <Image
-              src={fullscreenImage}
-              alt="Fullscreen view"
-              width={1200}
-              height={800}
-              className="max-w-full max-h-full object-contain"
-            />
-          </div>
-          <div className="absolute top-4 right-4 flex gap-2">
-            <Button
-              variant="secondary"
-              size="icon"
-              className="bg-white/10 hover:bg-white/20"
-              onClick={(e) => {
-                e.stopPropagation()
-                const link = document.createElement('a')
-                link.href = fullscreenImage
-                link.download = `trade-${trade?.instrument || 'analysis'}-${Date.now()}.png`
-                link.click()
-              }}
-              title="Download image"
-            >
-              <Download className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="destructive"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation()
-                setFullscreenImage(null)
-              }}
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
+        <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
+          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 gap-0 z-[10002]">
+            <DialogHeader className="px-4 pt-4 pb-2">
+              <DialogTitle>Image Viewer</DialogTitle>
+              <DialogDescription>
+                Click and drag to pan • Scroll to zoom • Double-click to reset
+              </DialogDescription>
+            </DialogHeader>
+            <div className="relative w-full h-[85vh] px-2 pb-2">
+              <Image
+                src={fullscreenImage}
+                alt="Fullscreen view"
+                fill
+                className="object-contain"
+                sizes="95vw"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
+      
+      {/* Unsaved Changes Confirmation Dialog */}
+      <AlertDialog open={showUnsavedChangesDialog} onOpenChange={setShowUnsavedChangesDialog}>
+        <AlertDialogContent className="z-[10002]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Unsaved Changes
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes that will be lost if you close this dialog. 
+              Your progress has been auto-saved as a draft and will be restored when you reopen this trade.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowUnsavedChangesDialog(false)
+              setPendingClose(false)
+            }}>
+              Keep Editing
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={discardChanges} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Delete Image Confirmation Dialog */}
+      <AlertDialog open={showDeleteImageDialog} onOpenChange={setShowDeleteImageDialog}>
+        <AlertDialogContent className="z-[10002]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Delete Image?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this image? This action will be applied when you save the trade.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowDeleteImageDialog(false)
+              setImageToDelete(null)
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteImage} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete Image
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

@@ -24,18 +24,33 @@ let cacheTimestamp: number = 0
 const CACHE_DURATION = 30000 // 30 seconds cache
 
 export function useCalendarNotes(): UseCalendarNotesReturn {
-  const [notes, setNotes] = useState<Record<string, string>>(notesCache)
+  const [notes, setNotes] = useState<Record<string, string>>(() => {
+    // Try to load from bundled data in localStorage first
+    try {
+      const storedNotes = localStorage.getItem('calendar-notes-cache')
+      if (storedNotes) {
+        const parsed = JSON.parse(storedNotes)
+        notesCache = parsed
+        cacheTimestamp = Date.now()
+        return parsed
+      }
+    } catch (error) {
+      // Ignore parsing errors
+    }
+    return notesCache
+  })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchNotes = useCallback(async () => {
-    // Check cache first
+    // Check cache first (skip API call if recently fetched)
     const now = Date.now()
     if (notesCache && Object.keys(notesCache).length > 0 && (now - cacheTimestamp) < CACHE_DURATION) {
       setNotes(notesCache)
       return
     }
 
+    // Only fetch from API if cache is stale or empty
     try {
       setIsLoading(true)
       setError(null)
@@ -43,7 +58,6 @@ export function useCalendarNotes(): UseCalendarNotesReturn {
       const response = await fetch('/api/calendar/notes', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        // Add cache control to help browser caching
         cache: 'no-cache'
       })
       
@@ -55,15 +69,14 @@ export function useCalendarNotes(): UseCalendarNotesReturn {
           return acc
         }, {})
         
-        // Update cache
         notesCache = notesMap
         cacheTimestamp = Date.now()
+        localStorage.setItem('calendar-notes-cache', JSON.stringify(notesMap))
         setNotes(notesMap)
       } else {
         setError('Failed to fetch notes')
       }
     } catch (err) {
-      console.error('Error fetching calendar notes:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setIsLoading(false)
@@ -92,7 +105,6 @@ export function useCalendarNotes(): UseCalendarNotesReturn {
         throw new Error('Failed to save note')
       }
     } catch (err) {
-      console.error('Error saving note:', err)
       throw err
     }
   }, [])
@@ -115,7 +127,6 @@ export function useCalendarNotes(): UseCalendarNotesReturn {
         throw new Error('Failed to delete note')
       }
     } catch (err) {
-      console.error('Error deleting note:', err)
       throw err
     }
   }, [])

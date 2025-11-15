@@ -185,7 +185,6 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
           setInputMode(data.mode || 'manual')
         }
       } catch (error) {
-        console.error('Failed to fetch backtest mode:', error)
       } finally {
         setIsLoadingMode(false)
       }
@@ -204,7 +203,6 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
       })
       toast.success(`Switched to ${newMode === 'manual' ? 'Full Manual' : 'Simple R:R'} mode`)
     } catch (error) {
-      console.error('Failed to save preference:', error)
       toast.error('Failed to save preference')
     }
   }
@@ -428,7 +426,6 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
       setImages([])
       setCardPreview('')
     } catch (error) {
-      console.error('Error adding backtest:', error)
       // Error toast is handled in parent component
     } finally {
       setIsSubmitting(false)

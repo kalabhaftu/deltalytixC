@@ -213,7 +213,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
             .then(() => {
               setAccountNumbers(activeAccountNumbers)
             })
-            .catch(console.error)
+            .catch(() => {})
         }
       }, 500) // 500ms delay to let settings load first
 
@@ -294,7 +294,6 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         toast.error("Failed to save account selection")
       }
     } catch (error) {
-      console.error('Error saving account selection:', error)
       toast.error("Failed to save account selection")
     } finally {
       setIsSaving(false)
@@ -372,7 +371,6 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         onSave?.()
       }
     } catch (error) {
-      console.error('Error clearing selection:', error)
     } finally {
       setIsSaving(false)
     }

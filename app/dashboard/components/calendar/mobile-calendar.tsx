@@ -97,7 +97,6 @@ export default function MobileCalendarPnl({ calendarData }: { calendarData: Cale
           return total + dayData.pnl
         }
       } catch (e) {
-        console.error("Error parsing date string in calculateMonthlyTotal:", dateString, e)
       }
       return total
     }, 0)
@@ -114,7 +113,6 @@ export default function MobileCalendarPnl({ calendarData }: { calendarData: Cale
           const date = toDate(dateString + 'T00:00:00Z')
           return date.getFullYear() === currentYear && date.getMonth() === currentMonth
         } catch (e) {
-          console.error("Error parsing date string in getMaxPnl:", dateString, e)
           return false
         }
       })
@@ -164,7 +162,6 @@ export default function MobileCalendarPnl({ calendarData }: { calendarData: Cale
             try {
               dateInTZ = toDate(dateString, { timeZone: timezone });
             } catch (e) {
-              console.error("Error parsing date string for display:", dateString, e);
               // Render a placeholder or skip if parsing fails
               return <div key={dateString} className="text-red-500">Error</div>;
             }

@@ -1,4 +1,5 @@
 import { DataProvider } from "@/context/data-provider";
+import { TemplateProvider } from "@/context/template-provider";
 import Modals from "@/components/modals";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ReactElement, Suspense } from "react";
@@ -11,19 +12,21 @@ export default function RootLayout({ children }: { children: ReactElement }) {
   return (
     <TooltipProvider>
       <DataProvider>
-        <AutoRefreshProvider refreshInterval={30000}>
-            <div className="min-h-screen flex flex-col">
-                  <Navbar />
-                  <div className="flex flex-1">
-                    <Suspense fallback={<div className="flex flex-1" />}>
-                      <SidebarLayout>
-                        {children}
-                      </SidebarLayout>
-                    </Suspense>
-                  </div>
-                  <Modals />
-            </div>
-        </AutoRefreshProvider>
+        <TemplateProvider>
+          <AutoRefreshProvider refreshInterval={30000}>
+              <div className="min-h-screen flex flex-col">
+                    <Navbar />
+                    <div className="flex flex-1">
+                      <Suspense fallback={<div className="flex flex-1" />}>
+                        <SidebarLayout>
+                          {children}
+                        </SidebarLayout>
+                      </Suspense>
+                    </div>
+                    <Modals />
+              </div>
+          </AutoRefreshProvider>
+        </TemplateProvider>
       </DataProvider>
     </TooltipProvider>
   );

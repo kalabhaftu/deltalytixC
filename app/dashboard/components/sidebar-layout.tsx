@@ -65,7 +65,6 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
         try {
           setSidebarCollapsed(JSON.parse(savedCollapsed))
         } catch (error) {
-          console.warn('Failed to parse sidebar state:', error)
           setSidebarCollapsed(false)
         }
       }

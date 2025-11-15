@@ -112,7 +112,6 @@ export function PhaseTransitionDialog({
       }, 500)
 
     } catch (error) {
-      console.error('Error transitioning phase:', error)
       toast.error("Transition Failed", {
         description: error instanceof Error ? error.message : 'Failed to transition to next phase',
         icon: <AlertCircle className="h-4 w-4" />

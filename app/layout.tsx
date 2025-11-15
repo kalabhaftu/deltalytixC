@@ -8,6 +8,7 @@ import { ConsentBanner } from "@/components/consent-banner";
 import { ConsoleFilterWrapper } from "@/components/console-filter-wrapper";
 import { ThemeProvider } from "@/context/theme-provider";
 import { DeploymentMonitor } from "@/components/deployment-monitor";
+import { ErrorBoundaryWrapper } from "@/components/error-boundary";
 import Script from "next/script"
 
 // Font configuration now imported from lib/fonts.ts
@@ -171,8 +172,9 @@ export default async function RootLayout({
         
         {/* Performance: DNS prefetch for external resources */}
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
@@ -252,17 +254,18 @@ export default async function RootLayout({
 
       </head>
       <body className={`${inter.variable} font-sans min-h-screen overflow-x-hidden w-full`}>
-        <ThemeProvider>
-          <ConsoleFilterWrapper>
-            <AuthProvider>
-              {/* Analytics components removed to comply with essential-only cookie policy */}
-              <DeploymentMonitor />
-              <ConsentBanner />
-              <SafeToaster />
-              {children}
-            </AuthProvider>
-          </ConsoleFilterWrapper>
-        </ThemeProvider>
+        <ErrorBoundaryWrapper showDetails={process.env.NODE_ENV === 'development'}>
+          <ThemeProvider>
+            <ConsoleFilterWrapper>
+              <AuthProvider>
+                <DeploymentMonitor />
+                <ConsentBanner />
+                <SafeToaster />
+                {children}
+              </AuthProvider>
+            </ConsoleFilterWrapper>
+          </ThemeProvider>
+        </ErrorBoundaryWrapper>
       </body>
     </html>
   );

@@ -50,7 +50,6 @@ export default function NewTradePage() {
          throw new Error(data.error || 'Failed to fetch account details')
        }
     } catch (error) {
-      console.error('Error fetching account details:', error)
       toast.error('Failed to fetch account details', {
         description: 'An error occurred while loading account details'
       })

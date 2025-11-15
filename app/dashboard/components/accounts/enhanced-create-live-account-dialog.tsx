@@ -149,7 +149,6 @@ export function EnhancedCreateLiveAccountDialog({
       onOpenChange(false)
 
     } catch (error) {
-      console.error('Error creating live account:', error)
       toast.error("Failed to create account", {
         description: error instanceof Error ? error.message : "An unexpected error occurred",
       })

@@ -239,18 +239,17 @@ export async function getTradesAction(userId: string | null = null, options?: {
   }
 }): Promise<Trade[]> {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user && !userId) {
-      // No user found, returning empty array
-      return []
-    }
-
-    const actualUserId = userId || user?.id
+    // PERFORMANCE FIX: If userId is provided (from DataProvider), use it directly
+    // Only fetch from auth if no userId provided (rare case)
+    let actualUserId = userId
+    
     if (!actualUserId) {
-      if (process.env.NODE_ENV === 'development') {
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        return []
       }
-      return []
+      actualUserId = user.id
     }
 
     const page = options?.page || 1
@@ -263,7 +262,14 @@ export async function getTradesAction(userId: string | null = null, options?: {
     try {
       let whereClause: any = { userId: actualUserId }
 
-      // Apply filters if provided
+      // CRITICAL: Primary account filter - fetch only selected accounts
+      // PERFORMANCE FIX: Use accountNumbers from filters
+      const accountsFilter = options?.filters?.accountNumbers
+      if (accountsFilter?.length) {
+        whereClause.accountNumber = { in: accountsFilter }
+      }
+
+      // Apply additional filters if provided
       if (options?.filters?.dateRange?.from && options?.filters?.dateRange?.to) {
         whereClause.entryDate = {
           gte: options.filters.dateRange.from,
@@ -273,10 +279,6 @@ export async function getTradesAction(userId: string | null = null, options?: {
 
       if (options?.filters?.instruments?.length) {
         whereClause.instrument = { in: options.filters.instruments }
-      }
-
-      if (options?.filters?.accountNumbers?.length) {
-        whereClause.accountNumber = { in: options.filters.accountNumbers }
       }
 
       const query: any = {

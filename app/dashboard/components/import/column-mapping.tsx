@@ -59,7 +59,6 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
     api: '/api/ai/mappings',
     schema: mappingSchema,
     onError(error) {
-      console.error('Error generating AI mappings:', error);
     },
     onFinish({ object }) {
       

@@ -136,7 +136,6 @@ export function AdvancedExportDialog() {
       toast.success('Export completed successfully!', { id: 'export' })
       setIsOpen(false)
     } catch (error) {
-      console.error('Export error:', error)
       toast.error('Failed to export data', { id: 'export' })
     } finally {
       setIsExporting(false)

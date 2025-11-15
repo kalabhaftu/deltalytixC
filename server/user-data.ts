@@ -12,6 +12,7 @@ export async function getUserData(): Promise<{
   userData: User | null;
   accounts: Account[];
   groups: Group[];
+  calendarNotes: Record<string, string>;
 }> {
   try {
     const userId = await getUserIdSafe()
@@ -21,7 +22,8 @@ export async function getUserData(): Promise<{
       return {
         userData: null,
         accounts: [],
-        groups: []
+        groups: [],
+        calendarNotes: {}
       }
     }
 
@@ -35,7 +37,7 @@ export async function getUserData(): Promise<{
       // Aggressive timeouts cause premature failures when network is slow
       
       // PERFORMANCE OPTIMIZATION: Reduce database queries and use parallel fetching
-      const [userData, accounts, groups] = await Promise.all([
+      const [userData, accounts, groups, calendarNotes] = await Promise.all([
         // User data - essential only with error handling
         (async () => {
           try {
@@ -59,18 +61,15 @@ export async function getUserData(): Promise<{
               }
             })
           } catch (error) {
-            console.error('[getUserData] User query failed:', error)
             return null
           }
         })(),
         // Use getAccountsAction for unified account handling (regular + prop firm)
         (async () => {
           try {
-            // Import and use the existing account logic
             const { getAccountsAction } = await import('./accounts')
             return await getAccountsAction()
           } catch (error) {
-            console.error('[getUserData] Accounts query failed:', error)
             return []
           }
         })(),
@@ -91,31 +90,46 @@ export async function getUserData(): Promise<{
               }
             })
           } catch (error) {
-            console.error('[getUserData] Groups query failed:', error)
             return []
           }
         })(),
-        Promise.resolve([]), // Placeholder for removed financial events
-        Promise.resolve([]) // Placeholder for removed mood feature
+        // Calendar notes - bundled with initial data load
+        (async () => {
+          try {
+            const notes = await prisma.dailyNote.findMany({
+              where: { userId },
+              select: {
+                date: true,
+                note: true
+              }
+            })
+            return notes.reduce((acc, note) => {
+              // Convert Date to ISO string for consistent keys
+              const dateKey = typeof note.date === 'string' ? note.date : note.date.toISOString().split('T')[0]
+              acc[dateKey] = note.note
+              return acc
+            }, {} as Record<string, string>)
+          } catch (error) {
+            return {}
+          }
+        })()
       ])
 
-      return { userData, accounts, groups }
+      return { userData, accounts, groups, calendarNotes }
     } catch (error) {
-      console.error('[getUserData] Database error:', error)
-      // Return empty data structure if database is unavailable
       return {
         userData: null,
         accounts: [],
-        groups: []
+        groups: [],
+        calendarNotes: {}
       }
     }
   } catch (error) {
-    console.error('[getUserData] Error getting user ID or locale:', error)
-    // Return empty data structure if we can't get user information
     return {
       userData: null,
       accounts: [],
-      groups: []
+      groups: [],
+      calendarNotes: {}
     }
   }
 }
@@ -142,7 +156,6 @@ export async function updateIsFirstConnectionAction(isFirstConnection: boolean) 
     
     return { success: true }
   } catch (error) {
-    console.error('Error updating onboarding status:', error)
     throw new Error('Failed to update onboarding status')
   }
 }

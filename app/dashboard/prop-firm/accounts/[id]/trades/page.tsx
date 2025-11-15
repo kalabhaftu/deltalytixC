@@ -83,7 +83,6 @@ export default function AccountTradesPage() {
         throw new Error(data.error || 'Failed to fetch account details')
       }
     } catch (error) {
-      console.error('Error fetching account details:', error)
       toast.error('Failed to fetch account details', {
         description: 'An error occurred while fetching account details'
       })
@@ -109,7 +108,6 @@ export default function AccountTradesPage() {
         throw new Error(data.error || 'Failed to fetch trades')
       }
     } catch (error) {
-      console.error('Error fetching trades:', error)
       toast.error('Failed to fetch trades', {
         description: 'An error occurred while fetching trades'
       })

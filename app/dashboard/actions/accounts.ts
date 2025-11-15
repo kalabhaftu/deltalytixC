@@ -56,7 +56,6 @@ export async function ensureAccountAndAssignGroup(
 
     return { success: true }
   } catch (error) {
-    console.error("Error in ensureAccountAndAssignGroup:", error)
     return { success: false, error: "Failed to assign account to group" }
   }
 } 
@@ -78,7 +77,6 @@ export async function getAccounts() {
     })
     return accounts
   } catch (error) {
-    console.error("Error in getAccounts:", error)
     return []
   }
 }

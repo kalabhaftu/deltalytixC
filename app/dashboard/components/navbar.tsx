@@ -320,7 +320,7 @@ export default function Navbar() {
             <div className="flex flex-col items-center">
               <Popover open={isLogoPopoverOpen} onOpenChange={setIsLogoPopoverOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="p-0 hover:bg-muted/50 transition-all duration-200 hover:scale-105 group">
+                  <Button variant="ghost" size="icon" className="p-0 hover:bg-muted/50 transition-all duration-200 hover:scale-105 group" aria-label="App menu">
                     <Logo className='fill-black h-7 w-7 dark:fill-white transition-transform duration-200 group-hover:rotate-3' />
                   </Button>
                 </PopoverTrigger>

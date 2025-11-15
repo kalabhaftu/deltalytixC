@@ -24,29 +24,17 @@ export function ActiveFilterTags({ showAccountNumbers }: { showAccountNumbers: b
       }
     }
 
-    // Create a ResizeObserver to monitor content changes
     const resizeObserver = new ResizeObserver(checkScroll)
     if (scrollRef.current) {
       resizeObserver.observe(scrollRef.current)
     }
 
-    // Initial check
     checkScroll()
-    
-    // Window resize handler
     window.addEventListener('resize', checkScroll)
     
     return () => {
       window.removeEventListener('resize', checkScroll)
       resizeObserver.disconnect()
-    }
-  }, [])  // Remove dependencies to avoid re-creating observer
-
-  // Add a separate effect to force check when content changes
-  useEffect(() => {
-    if (scrollRef.current) {
-      const { scrollWidth, clientWidth } = scrollRef.current
-      setCanScroll(scrollWidth > clientWidth)
     }
   }, [accountNumbers, instruments])
 

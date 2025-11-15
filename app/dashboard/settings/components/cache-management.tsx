@@ -49,7 +49,6 @@ export function CacheManagement() {
       setLastCleared(new Date())
       setStats(getCacheStats())
     } catch (error) {
-      console.error('Error clearing account cache:', error)
       toast.error('Failed to clear cache', {
         description: 'Please try again or contact support if the issue persists.'
       })
@@ -84,7 +83,6 @@ export function CacheManagement() {
         window.location.reload()
       }, 1500)
     } catch (error) {
-      console.error('Error clearing all caches:', error)
       toast.error('Failed to clear all caches', {
         description: 'Please try again or contact support if the issue persists.'
       })

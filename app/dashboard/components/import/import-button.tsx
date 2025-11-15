@@ -213,7 +213,6 @@ export default function ImportButton() {
       }
 
     } catch (error) {
-      console.error('Error in save and link trades:', error)
       
       // Provide more specific error messages based on error type
       let errorMessage = "An error occurred while importing trades. No trades were saved."

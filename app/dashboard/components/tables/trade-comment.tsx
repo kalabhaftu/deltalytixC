@@ -49,7 +49,6 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
       }, 1000)
       setOpen(false)
     } catch (error) {
-      console.error('Failed to update comment:', error)
       // Revert local state on error
       setLocalComment(initialComment || '')
     } finally {
@@ -71,7 +70,6 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
         setShowSuccess(false)
       }, 1000)
     } catch (error) {
-      console.error('Failed to clear comment:', error)
       // Revert local state on error
       setLocalComment(initialComment || '')
     } finally {

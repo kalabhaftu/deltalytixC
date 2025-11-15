@@ -2,16 +2,27 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { TradeCard } from './trade-card'
-import { Search, Filter, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Filter, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/context/data-provider'
@@ -20,12 +31,14 @@ import EnhancedEditTrade from '@/app/dashboard/components/tables/enhanced-edit-t
 import { TradeDetailView } from '@/app/dashboard/components/tables/trade-detail-view'
 import { Trade } from '@prisma/client'
 import { groupTradesByExecution } from '@/lib/utils'
+import Fuse from 'fuse.js'
+import { getAssetSearchTerms, getCanonicalAssetName } from '@/lib/asset-aliases'
 
-const ITEMS_PER_PAGE = 9 // Show 9 cards per page (3x3 grid on desktop)
+const ITEMS_PER_PAGE = 21 // Show 21 cards per page (3 columns × 7 rows = perfect grid)
 
 export function JournalClient() {
   const router = useRouter()
-  const { formattedTrades, refreshTrades, updateTrades } = useData() // Use filtered data from context
+  const { formattedTrades, refreshTrades, updateTrades, isLoading } = useData()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterBy, setFilterBy] = useState<'all' | 'wins' | 'losses' | 'buys' | 'sells'>('all')
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -33,17 +46,91 @@ export function JournalClient() {
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [tradeToDelete, setTradeToDelete] = useState<Trade | null>(null)
 
   // CRITICAL: Group trades first to show correct counts
   const groupedTrades = useMemo(() => groupTradesByExecution(formattedTrades), [formattedTrades])
 
   const filteredTrades = useMemo(() => {
-    return groupedTrades.filter(trade => {
-      const matchesSearch = searchTerm === '' ||
-        trade.symbol?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trade.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trade.instrument?.toLowerCase().includes(searchTerm.toLowerCase())
+    let trades = groupedTrades
 
+    // Apply smart search with alias support
+    if (searchTerm && searchTerm.trim() !== '') {
+      const term = searchTerm.trim().toLowerCase()
+      const termLength = term.length
+
+      // For very short queries (1-2 chars): Use strict prefix matching only
+      if (termLength <= 2) {
+        trades = trades.filter(trade => {
+          const instrument = (trade.instrument || '').toLowerCase()
+          const symbol = (trade.symbol || '').toLowerCase()
+          const comment = (trade.comment || '').toLowerCase()
+          
+          // Check if instrument or symbol starts with the term
+          if (instrument.startsWith(term) || symbol.startsWith(term)) return true
+          
+          // Check all aliases for prefix match
+          const aliases = getAssetSearchTerms(trade.instrument || trade.symbol || '')
+          const aliasMatch = aliases.some(alias => alias.toLowerCase().startsWith(term))
+          if (aliasMatch) return true
+          
+          // Check comment for exact substring (not prefix for comments)
+          if (comment.includes(term)) return true
+          
+          return false
+        })
+      }
+      // For short queries (3-4 chars): Use strict fuzzy search
+      else if (termLength <= 4) {
+        const tradesWithAliases = trades.map(trade => ({
+          ...trade,
+          searchableInstrument: getAssetSearchTerms(trade.instrument || trade.symbol || '').join(' '),
+        }))
+
+        const fuse = new Fuse(tradesWithAliases, {
+          keys: [
+            { name: 'instrument', weight: 0.4 },
+            { name: 'symbol', weight: 0.3 },
+            { name: 'searchableInstrument', weight: 0.4 },
+            { name: 'comment', weight: 0.1 },
+          ],
+          threshold: 0.2, // Very strict for short queries
+          distance: 50,
+          minMatchCharLength: 1,
+          includeScore: true,
+        })
+        
+        const results = fuse.search(term)
+        trades = results.map(result => result.item)
+      }
+      // For longer queries (5+ chars): Use normal fuzzy search
+      else {
+        const tradesWithAliases = trades.map(trade => ({
+          ...trade,
+          searchableInstrument: getAssetSearchTerms(trade.instrument || trade.symbol || '').join(' '),
+        }))
+
+        const fuse = new Fuse(tradesWithAliases, {
+          keys: [
+            { name: 'instrument', weight: 0.3 },
+            { name: 'symbol', weight: 0.3 },
+            { name: 'searchableInstrument', weight: 0.3 },
+            { name: 'comment', weight: 0.2 },
+          ],
+          threshold: 0.35, // More lenient for longer queries
+          distance: 100,
+          minMatchCharLength: 1,
+          includeScore: true,
+        })
+        
+        const results = fuse.search(term)
+        trades = results.map(result => result.item)
+      }
+    }
+
+    // Apply additional filters
+    return trades.filter(trade => {
       const matchesFilter = 
         filterBy === 'all' ||
         (filterBy === 'wins' && trade.pnl > 0) ||
@@ -51,7 +138,7 @@ export function JournalClient() {
         (filterBy === 'buys' && trade.side?.toUpperCase() === 'BUY') ||
         (filterBy === 'sells' && trade.side?.toUpperCase() === 'SELL')
 
-      return matchesSearch && matchesFilter
+      return matchesFilter
     })
   }, [groupedTrades, searchTerm, filterBy])
 
@@ -90,15 +177,23 @@ export function JournalClient() {
     setIsViewDialogOpen(true)
   }
 
-  const handleDeleteTrade = async (trade: Trade) => {
-    if (confirm(`Are you sure you want to delete this trade? This action cannot be undone.`)) {
-      try {
-        // Here you would implement the delete functionality
-        toast.success('Trade deleted successfully')
-        await refreshTrades()
-      } catch (error) {
-        toast.error('Failed to delete trade')
-      }
+  const handleDeleteTrade = (trade: Trade) => {
+    setTradeToDelete(trade)
+    setShowDeleteDialog(true)
+  }
+  
+  const confirmDeleteTrade = async () => {
+    if (!tradeToDelete) return
+    
+    try {
+      // Here you would implement the delete functionality
+      toast.success('Trade deleted successfully')
+      await refreshTrades()
+    } catch (error) {
+      toast.error('Failed to delete trade')
+    } finally {
+      setShowDeleteDialog(false)
+      setTradeToDelete(null)
     }
   }
 
@@ -141,11 +236,20 @@ export function JournalClient() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by symbol, notes, or tags..."
+            placeholder="Search by symbol, alias (e.g. NAS, NQ, US100), or notes..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 pr-10"
           />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         <DropdownMenu>
@@ -177,7 +281,27 @@ export function JournalClient() {
         </DropdownMenu>
       </div>
 
-      {filteredTrades.length === 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(9)].map((_, i) => (
+            <Card key={i} className="overflow-hidden">
+              <div className="p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-6 w-24" />
+                  <Skeleton className="h-6 w-20" />
+                </div>
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-28" />
+                <div className="space-y-2 pt-2">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-3/4" />
+                </div>
+                <Skeleton className="h-32 w-full rounded-md" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : filteredTrades.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
@@ -282,6 +406,33 @@ export function JournalClient() {
         }}
         trade={selectedTrade}
       />
+      
+      {/* Delete Trade Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="z-[10002]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Delete Trade?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this trade ({tradeToDelete?.instrument} {tradeToDelete?.side})? 
+              This action cannot be undone and will permanently remove the trade and all its data including screenshots and notes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowDeleteDialog(false)
+              setTradeToDelete(null)
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteTrade} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete Trade
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -30,7 +30,6 @@ export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutori
       video.load()
       const playVideo = () => {
         video.play().catch((error) => {
-          console.error('Video playback error:', error)
         })
       }
 

@@ -101,7 +101,6 @@ async function getBacktests(): Promise<BacktestTrade[]> {
       throw dbError
     }
   } catch (error) {
-    console.error('Error fetching backtests:', error)
     
     // Return empty array on any error to prevent page crash
     return []

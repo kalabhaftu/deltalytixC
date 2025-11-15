@@ -132,13 +132,11 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
   // Ref for the calendar container to capture screenshot
   const calendarRef = useRef<HTMLDivElement>(null)
 
-  // Use centralized calendar notes hook
+  // Use centralized calendar notes hook (data pre-loaded from getUserData)
   const { notes: dailyNotesFromHook, refetchNotes } = useCalendarNotes()
 
-  // Fetch notes once when calendar becomes visible
-  useEffect(() => {
-    refetchNotes()
-  }, [refetchNotes]) // Refetch on mount and when refetchNotes changes
+  // DON'T fetch on mount - notes are already bundled with initial data
+  // Only refetch when explicitly needed (e.g., after save)
 
   // Update local state when hook data changes
   useEffect(() => {
@@ -213,7 +211,6 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
         toast.success("Screenshot saved!")
       }, 'image/png')
     } catch (error) {
-      console.error('Error capturing screenshot:', error)
       toast.error("Failed to capture screenshot")
     }
   }, [currentDate, viewMode])

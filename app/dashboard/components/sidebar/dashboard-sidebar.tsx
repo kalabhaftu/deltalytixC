@@ -14,10 +14,14 @@ import {
   TrendingUp,
   ChevronLeft,
   ChevronRight,
-  Menu
+  Menu,
+  Sun,
+  Moon,
+  Laptop
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { motion } from "framer-motion"
+import { useTheme } from "next-themes"
 
 interface SidebarProps {
   activeTab: string
@@ -65,14 +69,16 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
   const [isMobile, setIsMobile] = useState(false)
   const [isHydrated, setIsHydrated] = useState(false)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
-  // Load saved state from localStorage after hydration
   useEffect(() => {
     const savedState = localStorage.getItem('dashboard-sidebar-collapsed')
     if (savedState) {
       setIsCollapsed(JSON.parse(savedState))
     }
     setIsHydrated(true)
+    setMounted(true)
   }, [])
 
   // Save state to localStorage and notify parent (only after hydration)
@@ -155,6 +161,42 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
         })}
       </nav>
 
+      {/* Theme Switcher - Mobile Only */}
+      {isMobile && mounted && (
+        <div className="p-4 border-t border-border/50">
+          <div className="text-xs font-semibold text-muted-foreground mb-2 px-3">Theme</div>
+          <div className="space-y-1">
+            <Button
+              variant={theme === 'light' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="w-full justify-start"
+              onClick={() => setTheme('light')}
+            >
+              <Sun className="h-4 w-4 mr-3" />
+              <span className="font-medium">Light</span>
+            </Button>
+            <Button
+              variant={theme === 'dark' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="w-full justify-start"
+              onClick={() => setTheme('dark')}
+            >
+              <Moon className="h-4 w-4 mr-3" />
+              <span className="font-medium">Dark</span>
+            </Button>
+            <Button
+              variant={theme === 'system' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="w-full justify-start"
+              onClick={() => setTheme('system')}
+            >
+              <Laptop className="h-4 w-4 mr-3" />
+              <span className="font-medium">System</span>
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Collapse Toggle - Desktop Only */}
       {!isMobile && (
         <motion.div 
@@ -199,7 +241,8 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
             <Button
               variant="outline"
               size="icon"
-              className="fixed top-20 left-4 z-50 md:hidden bg-background/95 backdrop-blur-xl border-border/50 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 h-12 w-12"
+              className="fixed z-50 md:hidden bg-background/95 backdrop-blur-xl border-border/50 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 h-12 w-12"
+              style={{ top: 'calc(var(--navbar-height, 56px) + 1rem)', left: '1rem' }}
               aria-label="Open navigation menu"
             >
               <Menu className="h-5 w-5" />

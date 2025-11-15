@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils"
 
 // Import components normally
 import { DashboardErrorBoundary, ErrorBoundaryWrapper } from '@/components/error-boundary'
-import { TemplateProvider } from '@/context/template-provider'
 
 // Dynamically import heavy components for better performance
 const WidgetCanvas = NextDynamic(() => import('./components/widget-canvas-with-drag'), {
@@ -169,19 +168,17 @@ function DashboardContent() {
 
   return (
     <DashboardErrorBoundary>
-      <TemplateProvider>
-        <div className="flex flex-1 flex-col w-full -mt-10">
-          {/* Template Selector - Below navbar */}
-          <TemplateSelector />
-          
-          {/* Edit Mode Controls */}
-          <EditModeControls />
-          
-          <AnimatePresence mode="wait" initial={false}>
-            {renderContent()}
-          </AnimatePresence>
-        </div>
-      </TemplateProvider>
+      <div className="flex flex-1 flex-col w-full -mt-10">
+        {/* Template Selector - Below navbar */}
+        <TemplateSelector />
+        
+        {/* Edit Mode Controls */}
+        <EditModeControls />
+        
+        <AnimatePresence mode="wait" initial={false}>
+          {renderContent()}
+        </AnimatePresence>
+      </div>
     </DashboardErrorBoundary>
   )
 }

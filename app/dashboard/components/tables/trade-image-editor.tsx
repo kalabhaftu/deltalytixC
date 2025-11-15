@@ -104,7 +104,6 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
         }
       }
     } catch (error) {
-      console.error('Error removing image:', error)
     }
   }
 
@@ -132,7 +131,6 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
         await supabase.storage.from('trade-images').remove(imagesToRemove)
       }
     } catch (error) {
-      console.error('Error removing all images:', error)
     }
   }
 

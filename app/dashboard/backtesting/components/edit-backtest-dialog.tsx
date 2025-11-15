@@ -137,7 +137,6 @@ export function EditBacktestDialog({
 
       onClose()
     } catch (error) {
-      console.error('Error updating backtest:', error)
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'Failed to update backtest',
       })

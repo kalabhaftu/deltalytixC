@@ -56,7 +56,6 @@ export function DailyComment({ dayData, selectedDate }: DailyCommentProps) {
       setIsEditing(false)
       setHasExistingNote(comment.trim().length > 0)
     } catch (error) {
-      console.error('Error saving comment:', error)
       toast.error("Error", {
         description: 'Failed to save note',
       })

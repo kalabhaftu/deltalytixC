@@ -43,29 +43,43 @@ export interface ZellaScoreResult {
 /**
  * Calculate Average Win/Loss Ratio Score
  * Scoring formula for average win/loss ratio
+ * REALISTIC thresholds for actual traders:
+ * - 1.0-1.2: Breakeven to slight edge (30-40 points)
+ * - 1.2-1.5: Decent edge (40-60 points)
+ * - 1.5-2.0: Good edge (60-80 points)
+ * - 2.0+: Excellent edge (80-100 points)
  */
 export function calculateAvgWinLossScore(avgWinLoss: number): number {
-  if (avgWinLoss >= 2.6) return 100
-  if (avgWinLoss >= 2.4) return 90 + ((avgWinLoss - 2.4) / 0.2) * 10
-  if (avgWinLoss >= 2.2) return 80 + ((avgWinLoss - 2.2) / 0.2) * 10
-  if (avgWinLoss >= 2.0) return 70 + ((avgWinLoss - 2.0) / 0.2) * 10
-  if (avgWinLoss >= 1.9) return 60 + ((avgWinLoss - 1.9) / 0.1) * 10
-  if (avgWinLoss >= 1.8) return 50 + ((avgWinLoss - 1.8) / 0.1) * 10
-  return 20
+  if (avgWinLoss >= 3.0) return 100
+  if (avgWinLoss >= 2.5) return 95 + ((avgWinLoss - 2.5) / 0.5) * 5
+  if (avgWinLoss >= 2.0) return 85 + ((avgWinLoss - 2.0) / 0.5) * 10
+  if (avgWinLoss >= 1.8) return 75 + ((avgWinLoss - 1.8) / 0.2) * 10
+  if (avgWinLoss >= 1.5) return 60 + ((avgWinLoss - 1.5) / 0.3) * 15
+  if (avgWinLoss >= 1.2) return 45 + ((avgWinLoss - 1.2) / 0.3) * 15
+  if (avgWinLoss >= 1.0) return 30 + ((avgWinLoss - 1.0) / 0.2) * 15
+  if (avgWinLoss >= 0.8) return 15 + ((avgWinLoss - 0.8) / 0.2) * 15
+  return Math.max(0, avgWinLoss * 15) // Below 0.8 scales to zero
 }
 
 /**
  * Calculate Trade Win Percentage Score
- * Formula: (Trade Win % / Top Threshold) × 100
- * Default Top Threshold: 60
- * Capped at 100
+ * REALISTIC thresholds - Win rate alone doesn't determine profitability
+ * - 30-40%: Acceptable if R:R is good (30-50 points)
+ * - 40-50%: Good (50-70 points)
+ * - 50-60%: Very good (70-90 points)
+ * - 60%+: Excellent (90-100 points)
  */
 export function calculateTradeWinPercentageScore(
   tradeWinPercentage: number,
-  topThreshold: number = 60
+  topThreshold: number = 70 // More realistic top threshold
 ): number {
-  const score = (tradeWinPercentage / topThreshold) * 100
-  return Math.min(score, 100)
+  if (tradeWinPercentage >= 70) return 100
+  if (tradeWinPercentage >= 60) return 90 + ((tradeWinPercentage - 60) / 10) * 10
+  if (tradeWinPercentage >= 50) return 70 + ((tradeWinPercentage - 50) / 10) * 20
+  if (tradeWinPercentage >= 40) return 50 + ((tradeWinPercentage - 40) / 10) * 20
+  if (tradeWinPercentage >= 30) return 30 + ((tradeWinPercentage - 30) / 10) * 20
+  if (tradeWinPercentage >= 20) return 15 + ((tradeWinPercentage - 20) / 10) * 15
+  return Math.max(0, (tradeWinPercentage / 20) * 15)
 }
 
 /**
@@ -80,28 +94,46 @@ export function calculateMaxDrawdownScore(maxDrawdownPercent: number): number {
 /**
  * Calculate Profit Factor Score
  * Scoring formula for profit factor
+ * REALISTIC thresholds - Profit Factor is the KING metric:
+ * - 1.0: Breakeven (0 points) - not profitable
+ * - 1.0-1.2: Barely profitable (30-50 points)
+ * - 1.2-1.5: Decent profitability (50-70 points)
+ * - 1.5-2.0: Good profitability (70-85 points)
+ * - 2.0+: Excellent profitability (85-100 points)
  */
 export function calculateProfitFactorScore(profitFactor: number): number {
-  if (profitFactor >= 2.6) return 100
-  if (profitFactor >= 2.4) return 90 + ((profitFactor - 2.4) / 0.2) * 10
-  if (profitFactor >= 2.2) return 80 + ((profitFactor - 2.2) / 0.2) * 10
-  if (profitFactor >= 2.0) return 70 + ((profitFactor - 2.0) / 0.2) * 10
-  if (profitFactor >= 1.9) return 60 + ((profitFactor - 1.9) / 0.1) * 10
-  if (profitFactor >= 1.8) return 50 + ((profitFactor - 1.8) / 0.1) * 10
-  return 20
+  if (profitFactor >= 3.0) return 100
+  if (profitFactor >= 2.5) return 95 + ((profitFactor - 2.5) / 0.5) * 5
+  if (profitFactor >= 2.0) return 85 + ((profitFactor - 2.0) / 0.5) * 10
+  if (profitFactor >= 1.8) return 78 + ((profitFactor - 1.8) / 0.2) * 7
+  if (profitFactor >= 1.5) return 70 + ((profitFactor - 1.5) / 0.3) * 8
+  if (profitFactor >= 1.3) return 60 + ((profitFactor - 1.3) / 0.2) * 10
+  if (profitFactor >= 1.2) return 50 + ((profitFactor - 1.2) / 0.1) * 10
+  if (profitFactor >= 1.1) return 40 + ((profitFactor - 1.1) / 0.1) * 10
+  if (profitFactor >= 1.0) return 30 + ((profitFactor - 1.0) / 0.1) * 10
+  if (profitFactor >= 0.9) return 15 + ((profitFactor - 0.9) / 0.1) * 15
+  return Math.max(0, profitFactor * 15) // Below 0.9 scales to zero
 }
 
 /**
  * Calculate Recovery Factor Score
- * Scoring formula for recovery factor
+ * Scoring formula for recovery factor (Net Profit / Max Drawdown)
+ * REALISTIC thresholds:
+ * - 0.5-1.0: Weak recovery (20-40 points)
+ * - 1.0-2.0: Decent recovery (40-70 points)
+ * - 2.0-3.0: Good recovery (70-90 points)
+ * - 3.0+: Excellent recovery (90-100 points)
  */
 export function calculateRecoveryFactorScore(recoveryFactor: number): number {
-  if (recoveryFactor >= 3.5) return 100
-  if (recoveryFactor >= 3.0) return 70 + ((recoveryFactor - 3.0) / 0.5) * 19
-  if (recoveryFactor >= 2.5) return 60 + ((recoveryFactor - 2.5) / 0.5) * 10
-  if (recoveryFactor >= 2.0) return 50 + ((recoveryFactor - 2.0) / 0.5) * 10
-  if (recoveryFactor >= 1.5) return 30 + ((recoveryFactor - 1.5) / 0.5) * 20
-  if (recoveryFactor >= 1.0) return 1 + ((recoveryFactor - 1.0) / 0.5) * 29
+  if (recoveryFactor >= 5.0) return 100
+  if (recoveryFactor >= 4.0) return 95 + ((recoveryFactor - 4.0) / 1.0) * 5
+  if (recoveryFactor >= 3.0) return 85 + ((recoveryFactor - 3.0) / 1.0) * 10
+  if (recoveryFactor >= 2.5) return 78 + ((recoveryFactor - 2.5) / 0.5) * 7
+  if (recoveryFactor >= 2.0) return 70 + ((recoveryFactor - 2.0) / 0.5) * 8
+  if (recoveryFactor >= 1.5) return 60 + ((recoveryFactor - 1.5) / 0.5) * 10
+  if (recoveryFactor >= 1.0) return 40 + ((recoveryFactor - 1.0) / 0.5) * 20
+  if (recoveryFactor >= 0.5) return 20 + ((recoveryFactor - 0.5) / 0.5) * 20
+  if (recoveryFactor > 0) return Math.max(5, recoveryFactor * 40)
   return 0
 }
 

@@ -214,10 +214,8 @@ export function EnhancedCreateAccountDialog({
       if (result.success) {
         setTemplates(result.data)
       } else {
-        console.error('Failed to load templates:', result.error)
       }
     } catch (error) {
-      console.error('Error loading templates:', error)
     } finally {
       setIsLoadingTemplates(false)
     }
@@ -300,7 +298,6 @@ export function EnhancedCreateAccountDialog({
       onOpenChange(false)
 
     } catch (error) {
-      console.error('Error creating prop firm account:', error)
       
       // Show specific messages for different error types
       let title = "Error"

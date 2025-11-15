@@ -152,7 +152,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
       try {
         result = await linkTradesToCurrentPhase(accountId, newTrades)
       } catch (linkError: any) {
-        console.error('Error linking trades:', linkError)
         
         // Handle specific error cases with user-friendly messages
         const errorMessage = linkError?.message || String(linkError)
@@ -225,7 +224,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
           })
         }
       } catch (breachError) {
-        console.warn('Account breach check failed:', breachError)
         // Don't fail the import if breach check fails
       }
 
@@ -240,7 +238,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
           }
         }
       } catch (progressError) {
-        console.warn('Phase progression check failed:', progressError)
         // Don't fail the import if phase progression check fails
       }
 
@@ -251,7 +248,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
       })
 
     } catch (error: any) {
-      console.error('Error saving trades:', error)
       
       // User-friendly error messages
       const errorMessage = error?.message || String(error)

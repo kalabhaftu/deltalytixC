@@ -66,7 +66,6 @@ export function ImportDialog() {
       }, 1000)
 
     } catch (error) {
-      console.error('Import error:', error)
       toast.error('Failed to import data', {
         description: error instanceof Error ? error.message : 'An unexpected error occurred'
       })

@@ -77,7 +77,6 @@ export default function LiveAccountDetailPage() {
 
       setAccount(accountData)
     } catch (error) {
-      console.error('Error fetching account data:', error)
       router.push('/dashboard/accounts')
     } finally {
       setIsLoading(false)

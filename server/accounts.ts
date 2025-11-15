@@ -150,7 +150,6 @@ export async function renameAccountAction(oldAccountNumber: string, newAccountNu
       })
     })
   } catch (error) {
-    console.error('Error renaming account:', error)
     if (error instanceof Error) {
       throw error
     }
@@ -166,8 +165,6 @@ export async function deleteTradesByIdsAction(tradeIds: string[]): Promise<void>
     const BATCH_SIZE = 500
     const totalBatches = Math.ceil(tradeIds.length / BATCH_SIZE)
 
-    console.log(`[deleteTradesByIds] Deleting ${tradeIds.length} trades in ${totalBatches} batch(es)`)
-
     for (let i = 0; i < totalBatches; i++) {
       const start = i * BATCH_SIZE
       const end = Math.min(start + BATCH_SIZE, tradeIds.length)
@@ -179,15 +176,12 @@ export async function deleteTradesByIdsAction(tradeIds: string[]): Promise<void>
           userId: userId
         }
       })
-      
-      console.log(`[deleteTradesByIds] Batch ${i + 1}/${totalBatches} deleted (${batch.length} trades)`)
     }
 
     // Invalidate caches after all deletes complete
     await invalidateUserCaches(userId)
 
   } catch (error) {
-    console.error('[deleteTradesByIds] Error deleting trades:', error)
     throw error
   }
 }
@@ -306,7 +300,6 @@ export async function getAccountsAction() {
           createdAt: 'desc'
         }
       }).catch((masterAccountError) => {
-        console.error('[getAccountsAction] Master accounts query failed:', masterAccountError)
         return []
       })
 
@@ -319,33 +312,21 @@ export async function getAccountsAction() {
       accounts = regularAccounts
       masterAccounts = propFirmAccounts
     } catch (dbError) {
-      console.error('[getAccountsAction] Database error:', dbError)
       // Return empty array instead of throwing to prevent app crash
       return []
     }
 
-    // Query trade counts for all accounts in parallel
-    const [liveTradeCounts, phaseTradeCounts] = await Promise.all([
-      // Live account trade counts (by account number)
-      prisma.trade.groupBy({
-        by: ['accountNumber'],
-        where: { userId },
-        _count: { id: true }
-      }),
-      // Phase account trade counts (by account number which is phaseId for prop firm)
-      prisma.trade.groupBy({
-        by: ['accountNumber'],
-        where: { userId },
-        _count: { id: true }
-      })
-    ])
+    // PERFORMANCE FIX: Single trade count query instead of duplicate
+    // Both live and prop-firm accounts use accountNumber field, so one query is sufficient
+    const tradeCounts = await prisma.trade.groupBy({
+      by: ['accountNumber'],
+      where: { userId },
+      _count: { id: true }
+    })
     
-    // Create maps for quick lookup
+    // Create a single map for quick lookup (used for both account types)
     const tradeCountMap = new Map(
-      liveTradeCounts.map(tc => [tc.accountNumber, tc._count.id])
-    )
-    const phaseTradeCountMap = new Map(
-      phaseTradeCounts.map(tc => [tc.accountNumber, tc._count.id])
+      tradeCounts.map(tc => [tc.accountNumber, tc._count.id])
     )
 
     // Transform regular accounts
@@ -383,7 +364,7 @@ export async function getAccountsAction() {
             startingBalance: phase.accountSize || masterAccount.accountSize,
             accountType: 'prop-firm' as const,
             displayName: `${masterAccount.accountName} (Phase ${phase.phaseNumber})`,
-            tradeCount: phaseTradeCountMap.get(phase.phaseId) || 0,
+            tradeCount: tradeCountMap.get(phase.phaseId) || 0,
             owner: { id: userId, email: '' },
             isOwner: true,
             status: phase.status,
@@ -410,7 +391,6 @@ export async function getAccountsAction() {
     // Combine both account types
     return [...transformedAccounts, ...transformedMasterAccounts]
   } catch (error) {
-    console.error('Error fetching accounts:', error)
     // Return empty array instead of throwing error to prevent frontend crashes
     return []
   }
@@ -525,7 +505,6 @@ export async function savePayoutAction(payout: {
       message: `Payout request created for $${payout.amount.toFixed(2)}`
     }
   } catch (error) {
-    console.error('Error creating payout:', error)
     throw error
   }
 }
@@ -580,7 +559,6 @@ export async function deletePayoutAction(payoutId: string) {
       message: 'Payout deleted successfully'
     }
   } catch (error) {
-    console.error('Error deleting payout:', error)
     throw error
   }
 }
@@ -600,7 +578,6 @@ export async function renameInstrumentAction(accountNumber: string, oldInstrumen
       }
     })
   } catch (error) {
-    console.error('Error renaming instrument:', error)
     if (error instanceof Error) {
       throw error
     }
@@ -623,7 +600,7 @@ export async function invalidateUserCaches(userId: string) {
     revalidateTag(`prop-firm-accounts-${userId}`)
     revalidateTag(`prop-firm-phases-${userId}`)
   } catch (error) {
-    console.error(`Failed to invalidate caches for user ${userId}:`, error)
+    // Ignore cache invalidation errors
   }
 }
 
@@ -639,7 +616,6 @@ export async function createAccountAction(accountNumber: string) {
     })
     return account
   } catch (error) {
-    console.error('Error creating account:', error)
     throw error
   }
 }
@@ -684,7 +660,6 @@ export async function getCurrentActivePhase(accountId: string) {
     // For regular accounts, we don't have phases, so return null
     return null
   } catch (error) {
-    console.error('Error getting current active phase:', error)
     throw error
   }
 }
@@ -716,7 +691,6 @@ export async function getAccountPhases(accountId: string) {
 
     return phases
   } catch (error) {
-    console.error('Error getting account phases:', error)
     throw error
   }
 }
@@ -817,120 +791,6 @@ export async function linkTradesToCurrentPhase(accountId: string, trades: any[])
     }
   } catch (error) {
 
-    throw error
-  }
-}
-
-// Keep this for legacy support but mark as deprecated
-async function _legacyLinkTradesToCurrentPhase_SLOW(accountId: string, trades: any[]) {
-  try {
-    const userId = await getUserId()
-
-    const masterAccount = await prisma.masterAccount.findUnique({
-      where: { id: accountId },
-      select: { id: true, accountName: true }
-    })
-
-    if (masterAccount) {
-      const currentPhase = await getCurrentActivePhase(accountId)
-
-      if (!currentPhase) {
-        throw new Error(`No active phase found for prop firm account "${masterAccount.accountName}". Please set up the account phases first.`)
-      }
-
-      if (currentPhase.status !== 'active') {
-        throw new Error(`Prop firm account "${masterAccount.accountName}" is in ${currentPhase.status} status. Cannot add trades to inactive phases.`)
-      }
-
-      const existingTrades = await prisma.trade.findMany({
-        where: {
-          userId,
-          phaseAccountId: currentPhase.id
-        },
-        select: {
-          id: true,
-          entryId: true,
-          accountNumber: true,
-          entryDate: true,
-          instrument: true,
-          quantity: true,
-          entryPrice: true,
-          closePrice: true
-        }
-      })
-
-      const existingSignatures = new Set(
-        existingTrades.map(trade =>
-          `${trade.entryId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
-        )
-      )
-
-      const tradesToLink = trades.filter(trade => {
-        const signature = `${trade.entryId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
-        return !existingSignatures.has(signature) && trade.id // Only link existing trades with IDs
-      })
-
-      // Link trades to the current phase using phaseAccountId
-      let linkedCount = 0
-      for (const trade of tradesToLink) {
-        await prisma.trade.update({
-          where: { id: trade.id },
-          data: { 
-            phaseAccountId: currentPhase.id,
-            userId,
-            // Ensure these fields are properly set for phase evaluation
-            symbol: trade.instrument,
-            entryTime: trade.entryDate ? new Date(trade.entryDate) : null,
-            exitTime: trade.closeDate ? new Date(trade.closeDate) : null
-          }
-        })
-        linkedCount++
-      }
-
-      return {
-        success: true,
-        linkedCount,
-        phaseAccountId: currentPhase.id,
-        phaseNumber: currentPhase.phaseNumber,
-        accountName: masterAccount.accountName
-      }
-    }
-
-    // If not a prop firm account, check if it's a regular account
-    const regularAccount = await prisma.account.findFirst({
-      where: { id: accountId, userId },
-      select: { id: true, name: true }
-    })
-
-    if (!regularAccount) {
-      throw new Error('Account not found')
-    }
-
-    // For regular accounts, link trades directly to the accountId
-    const regularTradesToUpdate = trades.filter(trade => 
-      trade.id && (!trade.accountId || trade.accountId !== accountId)
-    )
-
-    let linkedCount = 0
-    for (const trade of regularTradesToUpdate) {
-      await prisma.trade.update({
-        where: { id: trade.id },
-        data: { 
-          accountId,
-          userId
-        }
-      })
-      linkedCount++
-    }
-
-    return {
-      success: true,
-      linkedCount,
-      accountId,
-      accountName: regularAccount.name || accountId
-    }
-  } catch (error) {
-    console.error('Error linking trades to current phase:', error)
     throw error
   }
 }
@@ -1080,21 +940,14 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
     const totalBatches = Math.ceil(newTrades.length / BATCH_SIZE)
     let totalCreated = 0
 
-    console.log(`[saveAndLinkTrades] Processing ${newTrades.length} trades in ${totalBatches} batch(es) for ${isPropFirm ? 'prop firm' : 'regular'} account`)
-
     // Process trades in batches
     for (let i = 0; i < totalBatches; i++) {
       const start = i * BATCH_SIZE
       const end = Math.min(start + BATCH_SIZE, newTrades.length)
       const batch = newTrades.slice(start, end)
 
-      console.log(`[saveAndLinkTrades] Processing batch ${i + 1}/${totalBatches} (${batch.length} trades)`)
-      const batchStartTime = Date.now()
-
       // OPTIMIZED TRANSACTION: Minimal queries, fast execution
       const batchResult = await prisma.$transaction(async (tx) => {
-        const prepStartTime = Date.now()
-        
         // Prepare trades with linking info (remove null/undefined fields to reduce payload)
         const tradesToCreate = batch.map(trade => {
           const cleanTrade: any = {}
@@ -1113,17 +966,11 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
           
           return cleanTrade
         })
-        
-        const prepTime = Date.now() - prepStartTime
-        console.log(`[saveAndLinkTrades] Data preparation: ${prepTime}ms`)
 
         // Create trades in batch
-        const insertStartTime = Date.now()
         const createResult = await tx.trade.createMany({
           data: tradesToCreate
         })
-        const insertTime = Date.now() - insertStartTime
-        console.log(`[saveAndLinkTrades] Database insert: ${insertTime}ms for ${batch.length} trades (${(insertTime/batch.length).toFixed(0)}ms per trade)`)
 
         return createResult.count
       }, {
@@ -1132,8 +979,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
       })
 
       totalCreated += batchResult
-      const batchTotalTime = Date.now() - batchStartTime
-      console.log(`[saveAndLinkTrades] Batch ${i + 1}/${totalBatches} complete: ${batchResult} trades created in ${batchTotalTime}ms`)
     }
 
     // Build result
@@ -1156,23 +1001,14 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
       try {
         const { PhaseEvaluationEngine } = await import('@/lib/prop-firm/phase-evaluation-engine')
         
-        console.log(`[AUTO-EVALUATION] Running breach check for ${result.phaseAccountId}...`)
-        const startTime = Date.now()
-        
         const evaluation = await PhaseEvaluationEngine.evaluatePhase(
           result.masterAccountId,
           result.phaseAccountId
         )
-        
-        const evalTime = Date.now() - startTime
-        console.log(`[AUTO-EVALUATION] Evaluation completed in ${evalTime}ms`)
 
         // CRITICAL: Check for PASSING first (profit target achieved)
         if (evaluation.isPassed && evaluation.canAdvance) {
-          console.log(`[AUTO-EVALUATION] ✅ PROFIT TARGET ACHIEVED`)
-          
           if (!phaseAccount) {
-            console.log(`[AUTO-EVALUATION] ⚠️ No phase account found`)
             throw new Error('Phase account not found')
           }
           
@@ -1196,9 +1032,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
             // Check if next phase has a phaseId (account number)
             // If not, this requires MANUAL transition (user must provide Phase 2 account ID)
             if (!nextPhase.phaseId || nextPhase.phaseId.trim() === '') {
-              console.log(`[AUTO-EVALUATION] ⚠️ Phase ${currentPhaseNumber} ready to pass, but requires MANUAL transition (next phase has no account ID)`)
-              console.log(`[AUTO-EVALUATION] Profit target: ${evaluation.progress?.profitTargetPercent?.toFixed(2)}% - Leaving phase as 'active' for manual transition`)
-              
               // DON'T mark as passed yet - leave as 'active' so transition API can process it
               // The transition API will mark it as 'passed' when user provides Phase 2 account ID
               
@@ -1213,8 +1046,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
               }
             } else {
               // Next phase has an account ID - safe to auto-advance
-              console.log(`[AUTO-EVALUATION] ✅ Auto-advancing from Phase ${currentPhaseNumber} to Phase ${nextPhaseNumber}`)
-              
               await prisma.$transaction([
                 // Mark current phase as passed
                 prisma.phaseAccount.update({
@@ -1236,8 +1067,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
                 })
               ])
               
-              console.log(`[AUTO-EVALUATION] ✅ Successfully advanced to Phase ${nextPhaseNumber}`)
-              
               ;(result as any).evaluation = {
                 status: 'passed',
                 reason: 'profit_target_achieved',
@@ -1247,8 +1076,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
             }
           } else {
             // This was the final phase - account is now fully funded
-            console.log(`[AUTO-EVALUATION] 🎉 ACCOUNT FULLY FUNDED!`)
-            
             await prisma.$transaction([
               prisma.phaseAccount.update({
                 where: { id: result.phaseAccountId },
@@ -1275,8 +1102,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
         }
         // Check for FAILURE (breach detected)
         else if (evaluation.isFailed) {
-          console.log(`[AUTO-EVALUATION] ❌ BREACH DETECTED - marking account as FAILED`)
-          
           // Fetch account size for breach record
           const phaseAccountData = await prisma.phaseAccount.findUnique({
             where: { id: result.phaseAccountId },
@@ -1325,7 +1150,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
         // Account is still in progress
         else {
           const progressPercent = evaluation.progress?.profitTargetPercent?.toFixed(1) || '0.0'
-          console.log(`[AUTO-EVALUATION] ✅ No breach - account in progress (${progressPercent}% of profit target)`)
           
           result.evaluation = {
             status: 'in_progress',
@@ -1335,7 +1159,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
           }
         }
       } catch (evalError) {
-        console.error('[AUTO-EVALUATION] Error during evaluation:', evalError)
         // Don't fail the import if evaluation fails
       }
     }
@@ -1345,7 +1168,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
     
     return result
   } catch (error) {
-    console.error('Error in saveAndLinkTrades:', error)
     throw error
   }
 }
@@ -1708,7 +1530,6 @@ export async function getFailedAccountsHistory() {
 
     return failedAccounts
   } catch (error) {
-    console.error('Error getting failed accounts history:', error)
     throw error
   }
 }

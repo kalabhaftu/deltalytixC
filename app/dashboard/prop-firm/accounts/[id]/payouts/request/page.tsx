@@ -83,7 +83,6 @@ export default function RequestPayoutPage() {
           }
         }
       } catch (error) {
-        console.error('Error fetching data:', error)
         toast.error('Failed to load payout eligibility')
       } finally {
         setIsLoading(false)
@@ -137,7 +136,6 @@ export default function RequestPayoutPage() {
         throw new Error(data.error || 'Failed to submit payout request')
       }
     } catch (error) {
-      console.error('Error submitting payout:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to submit payout request')
     } finally {
       setIsSubmitting(false)

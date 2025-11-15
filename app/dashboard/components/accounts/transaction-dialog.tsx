@@ -94,7 +94,6 @@ export function TransactionDialog({
       setOpen(false)
       onTransactionComplete()
     } catch (error) {
-      console.error('Transaction error:', error)
       toast.error('Transaction Failed', {
         description: error instanceof Error ? error.message : 'An unexpected error occurred'
       })

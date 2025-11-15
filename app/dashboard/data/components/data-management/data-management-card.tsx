@@ -184,7 +184,6 @@ export function DataManagementCard() {
             accountsToDeleteData.push({ id: accountId, endpoint, displayName: account.displayName })
           }
         } else {
-          console.warn(`Account not found for number: ${accountNumber}`)
         }
       }
 
@@ -196,7 +195,6 @@ export function DataManagementCard() {
 
         if (!response.ok) {
           const errorText = await response.text()
-          console.error(`Delete failed for ${accountData.displayName}:`, errorText)
           throw new Error(`Failed to delete account ${accountData.displayName}`)
         }
       }
@@ -224,7 +222,6 @@ export function DataManagementCard() {
         description: `${accountsToDelete.length} account${accountsToDelete.length > 1 ? 's' : ''} and all associated trades have been permanently deleted.`,
       })
     } catch (error) {
-      console.error("Failed to delete accounts:", error)
       setError(error instanceof Error ? error : new Error('Failed to delete accounts'))
       toast.error('Delete failed', {
         description: error instanceof Error ? error.message : 'Failed to delete accounts. Please try again.',
@@ -287,7 +284,6 @@ export function DataManagementCard() {
       setAccountToRename("")
       setNewAccountNumber("")
     } catch (error) {
-      console.error("Failed to rename account:", error)
       setError(error instanceof Error ? error : new Error('Failed to rename account'))
       toast.error('Rename failed', {
         description: error instanceof Error ? error.message : 'Failed to rename account. Please try again.',

@@ -150,7 +150,6 @@ export default function TradeTable() {
         description: `Successfully deleted ${ids.length} trade(s).`,
       })
     } catch (error) {
-      console.error('Error deleting trades:', error)
       
       // Dismiss loading toast before showing error
       if (loadingToastId) {
@@ -207,7 +206,6 @@ export default function TradeTable() {
         description: "Trade has been successfully updated.",
       })
     } catch (error) {
-      console.error('Error updating trade:', error)
       toast.error("Error", {
         description: "Failed to update trade. Please try again.",
       })

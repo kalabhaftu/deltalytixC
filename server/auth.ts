@@ -35,16 +35,6 @@ export async function getWebsiteURL() {
   // Make sure to include a trailing `/`.
   url = url.endsWith('/') ? url : `${url}/`
   
-  console.log('[getWebsiteURL] Environment check:', {
-    NODE_ENV: process.env.NODE_ENV,
-    VERCEL: process.env.VERCEL,
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-    NEXT_PUBLIC_VERCEL_URL: process.env.NEXT_PUBLIC_VERCEL_URL,
-    isLocal: isLocalDevelopment(),
-    finalUrl: url
-  })
-  
   return url
 }
 
@@ -307,11 +297,19 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
       const newUser = await prisma.user.create({
         data: {
           auth_user_id: user.id,
-          email: user.email || '', // Provide a default empty string if email is null
+          email: user.email || '', 
           id: user.id
         },
       });
-      // New user created successfully
+      
+      // Create default dashboard template for new user (non-blocking)
+      try {
+        const { ensureDefaultTemplate } = await import('./seed-default-template')
+        await ensureDefaultTemplate()
+      } catch (templateError) {
+        // Don't block user creation if template fails
+      }
+      
       return newUser;
     } catch (createError) {
       if (createError instanceof Error &&

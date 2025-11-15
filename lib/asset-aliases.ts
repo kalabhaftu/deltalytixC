@@ -4,7 +4,7 @@
  * Used for search functionality while preserving original imported names
  *
  * SEARCH ALIASES INCLUDED:
- * Indices: NQ, NAS, USTECH → NAS100
+ * Indices: NQ, NAS, NASDAQ, NAS100, USTECH → US100
  *         DJ30, DOWJONES, WallSt30, YM → US30
  *         SP500, S&P500, SPX500, SPX, ES → US500
  *         DAX40, DE40, GER30, DAX, FDAX → GER40
@@ -20,11 +20,14 @@
 
 // Indices
 const INDICES_ALIASES: Record<string, string> = {
-  // US100 / Nasdaq 100
-  'NASDAQ100': 'NAS100',
-  'USTECH': 'NAS100',
-  'NAS': 'NAS100',
-  'NQ': 'NAS100',
+  // US100 / Nasdaq 100 / NAS100
+  'US100': 'US100',
+  'NAS100': 'US100',
+  'NASDAQ100': 'US100',
+  'NASDAQ': 'US100',
+  'USTECH': 'US100',
+  'NAS': 'US100',
+  'NQ': 'US100',
 
   // US30 / Dow Jones
   'DJ30': 'US30',

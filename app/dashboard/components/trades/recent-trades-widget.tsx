@@ -13,7 +13,7 @@ export default function RecentTradesWidget() {
   const { groupTradesByExecution } = require('@/lib/utils')
   const groupedTrades = React.useMemo(() => {
     return groupTradesByExecution(formattedTrades)
-  }, [formattedTrades])
+  }, [formattedTrades, groupTradesByExecution])
 
   // Get last 14 trades (sorted by most recent entry date)
   // Limited to fit height without scrolling

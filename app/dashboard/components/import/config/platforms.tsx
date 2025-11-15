@@ -201,6 +201,7 @@ export const platforms: PlatformConfig[] = [
       path: '/logos/tradezella.png',
       alt: 'Tradezella Logo'
     },
+    requiresAccountSelection: true,
     processFile: processStandardCsv,
     processorComponent: TradezellaProcessor,
     tutorialLink:'https://intercom.help/tradezella-4066d388d93c/en/articles/9725069-how-to-export-data-to-a-csv-file-from-the-trade-log-page',
@@ -222,6 +223,12 @@ export const platforms: PlatformConfig[] = [
         title: 'Select Headers',
         description: 'Select the headers that contain the trade data',
         component: HeaderSelection
+      },
+      {
+        id: 'select-account',
+        title: 'Select Account',
+        description: 'Select the account you want to import the trades to',
+        component: AccountSelection
       },
       {
         id: 'preview-trades',

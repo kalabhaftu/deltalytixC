@@ -20,6 +20,7 @@ import { toast } from 'sonner'
 import { Calculator, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
 import { Trade } from '@prisma/client'
 import { generateTradeHash } from '@/lib/utils'
+import { calculatePnL, calculateDuration } from '@/lib/utils/trade-calculations'
 import { useUserStore } from '@/store/user-store'
 import { useTradesStore } from '@/store/trades-store'
 import { useRouter } from 'next/navigation'
@@ -157,47 +158,24 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
   const closeDate = watch('closeDate')
   const closeTime = watch('closeTime')
 
-  // Auto-calculate P&L when prices change
   useEffect(() => {
-    if (entryPrice && closePrice && quantity) {
-      const entry = parseFloat(entryPrice)
-      const close = parseFloat(closePrice)
-      const qty = quantity
-      const comm = commission || 0
-      
-      let pnl = 0
-      if (side === 'LONG') {
-        pnl = (close - entry) * qty - comm
-      } else if (side === 'SHORT') {
-        pnl = (entry - close) * qty - comm
-      }
-      
+    if (entryPrice && closePrice && quantity && side) {
+      const pnl = calculatePnL({
+        entryPrice,
+        closePrice,
+        quantity,
+        side,
+        commission: commission || 0
+      })
       setCalculatedPnL(pnl)
       setValue('pnl', pnl, { shouldValidate: false, shouldDirty: false })
     }
   }, [entryPrice, closePrice, quantity, side, commission, setValue])
 
-  // Auto-calculate duration
   useEffect(() => {
     if (entryDate && entryTime && closeDate && closeTime) {
-      try {
-        const entryDateTime = new Date(`${entryDate}T${entryTime}`)
-        const closeDateTime = new Date(`${closeDate}T${closeTime}`)
-        
-        const diffMs = closeDateTime.getTime() - entryDateTime.getTime()
-        if (diffMs > 0) {
-          const hours = Math.floor(diffMs / (1000 * 60 * 60))
-          const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-          
-          if (hours > 0) {
-            setCalculatedDuration(`${hours}h ${minutes}m`)
-          } else {
-            setCalculatedDuration(`${minutes}m`)
-          }
-        }
-      } catch (error) {
-        setCalculatedDuration('')
-      }
+      const duration = calculateDuration(entryDate, entryTime, closeDate, closeTime)
+      setCalculatedDuration(duration)
     }
   }, [entryDate, entryTime, closeDate, closeTime])
 
@@ -330,7 +308,6 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
       router.push(`/dashboard/prop-firm/accounts/${accountId}/trades`)
 
     } catch (error) {
-      console.error('Error in save and link trade:', error)
       
       // Provide more specific error messages based on error type
       let errorMessage = 'An error occurred while saving the trade. Please try again.'

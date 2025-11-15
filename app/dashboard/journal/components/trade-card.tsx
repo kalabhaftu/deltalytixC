@@ -211,6 +211,7 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
                 className="object-cover"
                 onLoad={() => setImageLoaded(true)}
                 onError={() => setImageError(true)}
+                unoptimized
               />
               {!imageLoaded && !imageError && (
                 <div className="absolute inset-0 animate-pulse bg-muted" />

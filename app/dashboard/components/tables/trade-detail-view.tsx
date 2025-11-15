@@ -14,10 +14,11 @@ import {
 } from '@/components/ui/dialog'
 import { VisuallyHidden } from '@/components/ui/visually-hidden'
 import { Badge } from '@/components/ui/badge'
-import { Eye, Calendar, Clock, TrendingUp, TrendingDown, DollarSign, Hash, User } from 'lucide-react'
+import { Eye, Calendar, Clock, TrendingUp, TrendingDown, DollarSign, Hash, User, Download, X } from 'lucide-react'
 import { cn, formatCurrency, formatNumber, formatQuantity, formatTradeData } from '@/lib/utils'
 import Image from 'next/image'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
+import { toast } from 'sonner'
 
 interface TradeDetailViewProps {
   isOpen: boolean
@@ -25,8 +26,131 @@ interface TradeDetailViewProps {
   trade: Trade | null
 }
 
+// Helper function to extract mime type from base64 data URL
+function getMimeTypeFromBase64(base64: string): string {
+  const match = base64.match(/^data:(image\/[a-zA-Z+]+);base64,/)
+  return match ? match[1] : 'image/png'
+}
+
+// Helper function to extract extension from mime type
+function getExtensionFromMimeType(mimeType: string): string {
+  const map: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+    'image/bmp': 'bmp',
+    'image/svg+xml': 'svg',
+  }
+  return map[mimeType] || 'png'
+}
+
+// Helper function to download image with original quality and filename
+async function downloadImage(imageData: string, trade: Trade, imageIndex: number) {
+  try {
+    let blob: Blob
+    let extension = 'png'
+    let filename = ''
+    
+    // Check if it's a storage URL or base64
+    if (imageData.startsWith('http')) {
+      // Storage URL - fetch the image
+      const loadingToast = toast.loading('Preparing download...')
+      
+      const response = await fetch(imageData)
+      if (!response.ok) throw new Error('Failed to fetch image')
+      
+      blob = await response.blob()
+      
+      // Extract extension from URL or blob type
+      const urlMatch = imageData.match(/\.([a-z]+)(?:\?|$)/i)
+      if (urlMatch) {
+        extension = urlMatch[1]
+      } else {
+        extension = getExtensionFromMimeType(blob.type)
+      }
+      
+      toast.dismiss(loadingToast)
+      
+      // Determine if it's migrated (generated name) or new upload (original name)
+      // Migrated images have pattern: imageBase64Fifth_1763210693765_b381uwhsc.png
+      // New uploads should preserve their original names
+      const urlParts = imageData.split('/')
+      const storageFilename = urlParts[urlParts.length - 1].split('?')[0] // Remove query params
+      
+      // Check if it's a migrated image (has timestamp pattern and random ID)
+      const isMigratedPattern = /^image.*_\d{13}_[a-z0-9]+\./i.test(storageFilename)
+      
+      if (isMigratedPattern) {
+        // Migrated image - use descriptive format: INSTRUMENT_SIDE_DATE_1.ext
+        const date = new Date(trade.entryDate).toISOString().split('T')[0]
+        filename = `${trade.instrument}_${trade.side}_${date}_${imageIndex}.${extension}`
+      } else {
+        // New upload - extract original filename
+        // Format is: originalname_timestamp_randomid.ext
+        // We want to extract the original name before the timestamp
+        
+        // Remove extension first
+        const nameWithoutExt = storageFilename.substring(0, storageFilename.lastIndexOf('.'))
+        
+        // Try to extract original name (everything before _timestamp_randomid pattern)
+        const timestampMatch = nameWithoutExt.match(/^(.+)_\d{13}_[a-z0-9]+$/i)
+        
+        if (timestampMatch && timestampMatch[1]) {
+          // Found original name - reconstruct with extension
+          filename = `${timestampMatch[1]}.${extension}`
+        } else {
+          // Fallback - couldn't parse, use full filename
+          filename = storageFilename
+        }
+      }
+    } else {
+      // Base64 - convert to blob (legacy, shouldn't happen after migration)
+      const mimeType = getMimeTypeFromBase64(imageData)
+      extension = getExtensionFromMimeType(mimeType)
+      
+      const base64Content = imageData.split(',')[1]
+      const byteCharacters = atob(base64Content)
+      const byteNumbers = new Array(byteCharacters.length)
+      
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i)
+      }
+      
+      const byteArray = new Uint8Array(byteNumbers)
+      blob = new Blob([byteArray], { type: mimeType })
+      
+      // Base64 images use descriptive format
+      const date = new Date(trade.entryDate).toISOString().split('T')[0]
+      filename = `${trade.instrument}_${trade.side}_${date}_${imageIndex}.${extension}`
+    }
+    
+    // Create object URL and download
+    const objectUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = objectUrl
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    // Clean up object URL
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 100)
+    
+    toast.success('Download complete', {
+      description: `Saved as ${filename}`
+    })
+  } catch (error) {
+    toast.error('Download failed', {
+      description: error instanceof Error ? error.message : 'Failed to download the image'
+    })
+  }
+}
+
 export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps) {
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null)
+  const [selectedImageIndex, setSelectedImageIndex] = React.useState<number>(0)
 
   if (!trade) return null
 
@@ -74,7 +198,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="w-[95vw] max-w-6xl h-[90vh] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="w-[95vw] max-w-6xl h-[90vh] max-h-[90vh] overflow-y-auto p-4 sm:p-6 z-[10000]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
               <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -218,7 +342,10 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                           <div key={index} className="relative group">
                             <div
                               className="aspect-video relative rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-foreground transition-colors"
-                              onClick={() => setSelectedImage(image)}
+                              onClick={() => {
+                                setSelectedImage(image)
+                                setSelectedImageIndex(index + 1)
+                              }}
                             >
                               <Image
                                 src={image}
@@ -286,12 +413,31 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
 
       {/* Image Viewer Modal */}
       {selectedImage && (
-        <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-          <DialogContent className="max-w-[95vw] max-h-[95vh] p-2">
-            <DialogHeader>
-              <DialogTitle>Image Viewer</DialogTitle>
+        <Dialog open={!!selectedImage} onOpenChange={() => {
+          setSelectedImage(null)
+          setSelectedImageIndex(0)
+        }}>
+          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 gap-0 z-[10002]">
+            <DialogHeader className="px-4 pt-4 pb-2">
+              <DialogTitle>Image Viewer - {trade.instrument} {trade.side?.toUpperCase()}</DialogTitle>
+              <DialogDescription className="flex items-center justify-between">
+                <span>Click and drag to pan • Scroll to zoom • Double-click to reset</span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    await downloadImage(selectedImage, trade, selectedImageIndex)
+                  }}
+                  className="gap-1.5 shrink-0"
+                  title="Download image with original quality"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="text-xs">Download</span>
+                </Button>
+              </DialogDescription>
             </DialogHeader>
-            <div className="relative w-full h-[85vh]">
+            <div className="relative w-full h-[85vh] px-2 pb-2">
               <TransformWrapper
                 initialScale={1}
                 minScale={0.1}

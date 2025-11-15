@@ -33,18 +33,10 @@ export class MediaUploadService {
         return { success: false, error: validation.error }
       }
 
-      // Try Supabase storage first
       const supabaseResult = await this.uploadToSupabase(file, options)
-      if (supabaseResult.success) {
-        return supabaseResult
-      }
-
-      // Fallback to base64 if Supabase fails
-      console.warn('Supabase upload failed, falling back to base64:', supabaseResult.error)
-      return await this.convertToBase64(file)
+      return supabaseResult
       
     } catch (error) {
-      console.error('Upload service error:', error)
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Upload failed' 
@@ -75,11 +67,16 @@ export class MediaUploadService {
 
   private async uploadToSupabase(file: File, options: UploadOptions): Promise<UploadResult> {
     try {
-      // Generate unique filename
+      // Preserve original filename with uniqueness
+      const originalName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_') // Sanitize filename
+      const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName
       const fileExtension = file.name.split('.').pop() || 'jpg'
       const timestamp = Date.now()
-      const randomId = Math.random().toString(36).substr(2, 9)
-      const fileName = `${options.folder}_${timestamp}_${randomId}.${fileExtension}`
+      const randomId = Math.random().toString(36).substr(2, 6)
+      
+      // Format: originalname_timestamp_randomid.ext
+      // This preserves the original name while ensuring uniqueness
+      const fileName = `${nameWithoutExt}_${timestamp}_${randomId}.${fileExtension}`
 
       // Create file path
       let filePath = `${options.folder}/${options.userId}/${fileName}`
@@ -119,67 +116,69 @@ export class MediaUploadService {
 
   private async ensureBucket(): Promise<string> {
     try {
-      // List existing buckets
       const { data: buckets, error } = await this.supabase.storage.listBuckets()
       
       if (error) {
-        console.warn('Could not list buckets:', error.message)
-        return 'images' // Default fallback
+        return 'images'
       }
 
       const existingBuckets = buckets?.map((b: any) => b.name) || []
-      
-      // Preferred bucket order
       const preferredBuckets = ['images', 'trade-images', 'public', 'avatars']
       
-      // Find first existing preferred bucket
       for (const preferred of preferredBuckets) {
         if (existingBuckets.includes(preferred)) {
           return preferred
         }
       }
 
-      // If no preferred bucket exists, try to create 'images'
       if (!existingBuckets.includes('images')) {
          const { error: createError } = await this.supabase.storage.createBucket('images')
         
         if (!createError) {
           return 'images'
         }
-        
-        console.warn('Could not create images bucket:', createError.message)
       }
 
-      // Use first available bucket or default
       return existingBuckets[0] || 'images'
       
     } catch (error) {
-      console.warn('Bucket handling error:', error)
       return 'images'
     }
   }
 
-  private async convertToBase64(file: File): Promise<UploadResult> {
-    return new Promise((resolve) => {
-      const reader = new FileReader()
-      
-      reader.onload = () => {
-        resolve({ 
-          success: true, 
-          url: reader.result as string 
-        })
-      }
-      
-      reader.onerror = () => {
-        resolve({ 
-          success: false, 
-          error: 'Failed to convert image to base64' 
-        })
-      }
-      
-      reader.readAsDataURL(file)
-    })
-  }
+  /* WebP Compression - Disabled
+   * Enable when experiencing large image sizes
+   * Recommended: Max 1920px, 95% quality, WebP format
+   * Install: npm install browser-image-compression
+   */
+  
+  // private async compressImage(file: File): Promise<File> {
+  //   try {
+  //     // Import compression library
+  //     const imageCompression = (await import('browser-image-compression')).default
+  //     
+  //     const options = {
+  //       maxWidthOrHeight: 1920,  // Preserves chart details
+  //       useWebWorker: true,      // Better performance
+  //       fileType: 'image/webp',  // Modern format
+  //       initialQuality: 0.95,    // Visually lossless
+  //     }
+  //     
+  //     const compressedFile = await imageCompression(file, options)
+  //     
+  //     // Log compression results
+  //     console.log(`Compressed: ${(file.size / 1024).toFixed(2)}KB → ${(compressedFile.size / 1024).toFixed(2)}KB`)
+  //     
+  //     return compressedFile
+  //   } catch (error) {
+  //     console.warn('Compression failed, using original:', error)
+  //     return file
+  //   }
+  // }
+  
+  // To use compression, modify uploadToSupabase:
+  // const compressedFile = await this.compressImage(file)
+  // Then upload compressedFile instead of file
 }
 
 // Export singleton instance

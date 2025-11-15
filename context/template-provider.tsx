@@ -104,7 +104,7 @@ export function TemplateProvider({ children }: { children: React.ReactNode }) {
         })
       }
     } catch (error) {
-      console.error('[TemplateProvider] Failed to load templates:', error)
+      // Failed to load templates
       setTimeout(() => toast.error('Failed to load templates'), 0)
       
       // Use fallback on error

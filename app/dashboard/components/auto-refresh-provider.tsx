@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useData } from '@/context/data-provider'
 
 interface AutoRefreshProviderProps {
   children: React.ReactNode
@@ -15,42 +16,50 @@ export function AutoRefreshProvider({
   enabled = true 
 }: AutoRefreshProviderProps) {
   const router = useRouter()
+  const { refreshTrades } = useData()
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const isActiveRef = useRef(true)
+  const lastRefreshRef = useRef<number>(Date.now())
 
   useEffect(() => {
     if (!enabled) return
 
-    // Handle visibility change to pause/resume when tab is not active
     const handleVisibilityChange = () => {
       isActiveRef.current = !document.hidden
       
       if (document.hidden) {
-        // Clear interval when tab is hidden
         if (intervalRef.current) {
           clearInterval(intervalRef.current)
           intervalRef.current = null
         }
       } else {
-        // Resume interval when tab becomes visible
         startAutoRefresh()
       }
     }
 
     const startAutoRefresh = () => {
-      // PERFORMANCE FIX: Disable automatic page refreshes that were causing
-      // multi-minute load times due to complete data reloading every 30 seconds
-      // TODO: Implement targeted data refresh instead of full page reload if needed
-      return // Disabled for performance
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+      
+      intervalRef.current = setInterval(async () => {
+        const now = Date.now()
+        const timeSinceLastRefresh = now - lastRefreshRef.current
+        
+        if (isActiveRef.current && timeSinceLastRefresh >= refreshInterval) {
+          try {
+            await refreshTrades()
+            lastRefreshRef.current = now
+          } catch (error) {
+            // Silent fail
+          }
+        }
+      }, refreshInterval)
     }
 
-    // Start auto-refresh
     startAutoRefresh()
-
-    // Listen for visibility changes
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
-    // Cleanup
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
@@ -58,21 +67,7 @@ export function AutoRefreshProvider({
       }
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [router, refreshInterval, enabled])
+  }, [router, refreshInterval, enabled, refreshTrades])
 
   return <>{children}</>
 }
-
-// Hook for manual refresh trigger
-export function useManualRefresh() {
-  const router = useRouter()
-  
-  const refresh = () => {
-    router.refresh()
-  }
-
-  return { refresh }
-}
-
-
-

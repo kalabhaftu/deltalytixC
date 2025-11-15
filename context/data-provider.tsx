@@ -59,7 +59,7 @@ import {
   renameGroupAction
 } from '@/server/groups';
 import { createClient } from '@/lib/supabase';
-import { ensureUserInDatabase, signOut } from '@/server/auth';
+import { signOut } from '@/server/auth';
 import { useUserStore } from '@/store/user-store';
 import { useTradesStore } from '@/store/trades-store';
 import {
@@ -1074,37 +1074,63 @@ export const DataProvider: React.FC<{
   const [isFirstConnection, setIsFirstConnection] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize account filter from saved settings
+  // Initialize account filter from saved settings (CLIENT-SIDE ONLY)
   useEffect(() => {
-    // ✅ DON'T WAIT! Apply cached settings immediately, fetch updates in background
-    if (!accountFilterSettings || !accounts || accounts.length === 0) return
-    
-    // SIMPLE LOGIC: Use saved selections OR auto-select active accounts
-    if (accountFilterSettings.selectedPhaseAccountIds && accountFilterSettings.selectedPhaseAccountIds.length > 0) {
-      // User has saved preferences - use them IMMEDIATELY
-      setAccountNumbers(accountFilterSettings.selectedPhaseAccountIds)
-    } else if (accountNumbers.length === 0) {
-      // No saved selections and nothing currently selected - auto-select active accounts
-      const activeAccountNumbers = accounts
-        .filter(acc => !acc.status || acc.status === 'active' || acc.status === 'funded')
-        .map(acc => acc.number)
-      
-      if (activeAccountNumbers.length > 0) {
-        setAccountNumbers(activeAccountNumbers)
-        
-        // SAVE to database in background (non-blocking)
-        fetch('/api/settings/account-filters', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...accountFilterSettings,
-            selectedPhaseAccountIds: activeAccountNumbers,
-            updatedAt: new Date().toISOString()
-          })
-        }).catch(err => console.error('[DataProvider] Failed to save auto-selection:', err))
-      }
+    // Only run after accounts are loaded
+    if (!accounts || accounts.length === 0) {
+      return
     }
-  }, [accountFilterSettings, accounts, accountNumbers.length])
+    
+    // PRIORITY 1: Use DB settings (from accountFilterSettings hook - bundled with getUserData)
+    if (accountFilterSettings?.selectedPhaseAccountIds && accountFilterSettings.selectedPhaseAccountIds.length > 0) {
+      setAccountNumbers(accountFilterSettings.selectedPhaseAccountIds)
+      
+      // Update localStorage cache to match DB
+      try {
+        localStorage.setItem('account-filter-settings-cache', JSON.stringify(accountFilterSettings))
+      } catch (error) {
+        // Ignore storage errors
+      }
+      return
+    }
+    
+    // PRIORITY 2: Check localStorage cache (only if DB has no settings)
+    let cachedSelection: string[] | null = null
+    try {
+      const cached = localStorage.getItem('account-filter-settings-cache')
+      if (cached) {
+        const settings = JSON.parse(cached)
+        cachedSelection = settings.selectedPhaseAccountIds || null
+      }
+    } catch (error) {
+      // Ignore parsing errors
+    }
+    
+    if (cachedSelection && cachedSelection.length > 0) {
+      setAccountNumbers(cachedSelection)
+      return
+    }
+    
+    // PRIORITY 3: Only auto-select if BOTH DB and cache are empty (first-time user)
+    const activeAccountNumbers = accounts
+      .filter(acc => !acc.status || acc.status === 'active' || acc.status === 'funded')
+      .map(acc => acc.number)
+    
+    if (activeAccountNumbers.length > 0) {
+      setAccountNumbers(activeAccountNumbers)
+      
+      // SAVE to database in background (non-blocking)
+      fetch('/api/settings/account-filters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...accountFilterSettings,
+          selectedPhaseAccountIds: activeAccountNumbers,
+          updatedAt: new Date().toISOString()
+        })
+      }).catch(() => {})
+    }
+  }, [accounts, accountFilterSettings])
 
   // Track active data loading to prevent concurrent calls - MOVED TO useRef FOR PERSISTENCE
   const activeLoadPromiseRef = React.useRef<Promise<void> | null>(null)
@@ -1113,32 +1139,24 @@ export const DataProvider: React.FC<{
   // Load data from the server
   const loadData = useCallback(async () => {
     // PERFORMANCE FIX: Prevent multiple simultaneous loads
-    if (isLoading || hasLoadedDataRef.current) {
-      console.log('[DataProvider] Skipping loadData - already loading or loaded')
+    if (isLoading) {
       return
     }
 
     // Prevent concurrent data loading - reuse in-flight promise
     if (activeLoadPromiseRef.current) {
-      console.log('[DataProvider] Reusing existing load promise')
       return activeLoadPromiseRef.current
     }
-
-    console.log('[DataProvider] ⏳ Starting data load...')
     
     // Create the load promise
     activeLoadPromiseRef.current = (async () => {
       try {
         setIsLoading(true);
 
-      // Step 1: Get Supabase user (fast)
+      // Step 1: Get user from AuthProvider (no API call needed - already checked)
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user?.id) {
-        try {
-          await signOut();
-        } catch (error) {
-        }
         setIsLoading(false)
         hasLoadedDataRef.current = false
         return;
@@ -1146,10 +1164,8 @@ export const DataProvider: React.FC<{
 
       setSupabaseUser(user);
 
-      // CRITICAL: Set default dashboard layout immediately to prevent "no widgets" flash
-      // This ensures the dashboard always has a layout to render
+      // Set default dashboard layout if none exists
       if (!dashboardLayout) {
-        // Set default layout immediately to prevent flash
         const freshDefaultLayout = { 
           ...defaultLayouts,
           id: `default-${user.id}`,
@@ -1157,34 +1173,23 @@ export const DataProvider: React.FC<{
           createdAt: new Date(),
           updatedAt: new Date()
         }
-        setDashboardLayout(freshDefaultLayout)
 
-        // Try to load from localStorage for better user experience
         try {
           const cachedLayout = localStorage.getItem(`dashboard-layout-${user.id}`)
           if (cachedLayout) {
             const parsedLayout = JSON.parse(cachedLayout)
             if (parsedLayout.desktop && parsedLayout.mobile) {
-              // Validate that cached layout has the updated Trade Distribution position
-              const hasUpdatedTradeDistribution = parsedLayout.desktop?.find((widget: any) => 
-                widget.type === 'tradeDistribution' && widget.x === 6 && widget.y === 0
-              )
-              
-              if (hasUpdatedTradeDistribution) {
-                // Use cached layout if it has the updated position
-                setDashboardLayout(parsedLayout)
-              } else {
-                // Cache is outdated, use fresh default and update cache
-                localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(freshDefaultLayout))
-              }
+              setDashboardLayout(parsedLayout)
+            } else {
+              setDashboardLayout(freshDefaultLayout)
+              localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(freshDefaultLayout))
             }
           } else {
-            // No cache exists, cache the fresh default
+            setDashboardLayout(freshDefaultLayout)
             localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(freshDefaultLayout))
           }
         } catch (error) {
-          // Ignore localStorage errors
-          console.warn('Failed to handle layout cache:', error)
+          setDashboardLayout(freshDefaultLayout)
         }
       }
 
@@ -1205,14 +1210,46 @@ export const DataProvider: React.FC<{
       setGroups(data.groups);
       setIsFirstConnection(data.userData?.isFirstConnection || false)
       
+      // Store bundled data in localStorage for hooks to use
+      if (data.calendarNotes) {
+        localStorage.setItem('calendar-notes-cache', JSON.stringify(data.calendarNotes))
+      }
+      
+      // Store account filter settings from bundled data
+      if (data.userData?.accountFilterSettings) {
+        try {
+          const settings = JSON.parse(data.userData.accountFilterSettings)
+          localStorage.setItem('account-filter-settings-cache', JSON.stringify(settings))
+        } catch (error) {
+          // Ignore parsing errors
+        }
+      }
+      
       // PERFORMANCE FIX: Parallelize independent operations
       let allTrades: PrismaTrade[] = []
       
+      // Get account filter settings for DB-level filtering
+      let selectedAccounts: string[] = []
       try {
-        const [trades] = await Promise.all([
-          getTradesAction(null, { limit: 5000 }), // Simplified - load all recent trades
-          ensureUserInDatabase(user, locale) // Run in parallel with trades fetch
-        ])
+        const cached = localStorage.getItem('account-filter-settings-cache')
+        if (cached) {
+          const settings = JSON.parse(cached)
+          selectedAccounts = settings.selectedPhaseAccountIds || []
+        }
+      } catch (error) {
+        // Ignore - will fetch all trades
+      }
+      
+      try {
+        // PERFORMANCE FIX: Pass userId to skip redundant auth check
+        // PERFORMANCE FIX: Only call ensureUserInDatabase if user might not exist in DB
+        // (This check already happened during login, no need to repeat on every load)
+        const trades = await getTradesAction(user.id, { 
+          limit: 5000,
+          filters: {
+            accountNumbers: selectedAccounts.length > 0 ? selectedAccounts : undefined
+          }
+        })
         allTrades = Array.isArray(trades) ? trades : []
       } catch (error) {
         // Handle Server Action errors (deployment mismatches)
@@ -1235,12 +1272,9 @@ export const DataProvider: React.FC<{
       }));
       
       setAccounts(accountsWithBalance);
-      
-      // ✅ SUCCESS: Mark as loaded only when everything completes successfully
-      hasLoadedDataRef.current = true;
 
     } catch (error) {
-      console.error('[DataProvider] ❌ Error in loadData():', error)
+      // Error loading data
       
       // Handle Next.js redirect errors (these are normal and expected)
       if (error instanceof Error && (
@@ -1258,7 +1292,7 @@ export const DataProvider: React.FC<{
         error.message.includes('User not found') ||
         error.message.includes('Unauthorized')
       )) {
-        console.log('[DataProvider] 🔐 Authentication error, signing out')
+        // Authentication error, signing out
         try {
           await signOut();
         } catch (signOutError) {
@@ -1266,7 +1300,7 @@ export const DataProvider: React.FC<{
         return;
       }
 
-      // DON'T set hasLoadedDataRef on error - allow retry!
+      // Reset flag on error to allow retry
       hasLoadedDataRef.current = false;
     } finally {
       setIsLoading(false);
@@ -1279,8 +1313,19 @@ export const DataProvider: React.FC<{
   return activeLoadPromiseRef.current
   }, []); // Empty deps - load once on mount, prevent re-creation
 
-  // Load data on mount only
+  // Load data on mount only - ONCE
   useEffect(() => {
+    // CRITICAL FIX: Only run on initial mount when supabaseUser is first set
+    if (!supabaseUser) {
+      return
+    }
+    
+    // CRITICAL: Check and set flag IMMEDIATELY to prevent duplicate calls
+    if (hasLoadedDataRef.current) {
+      return
+    }
+    hasLoadedDataRef.current = true
+    
     let mounted = true;
 
     const loadDataIfMounted = async () => {
@@ -1309,8 +1354,7 @@ export const DataProvider: React.FC<{
           return;
         }
         
-        // Log other errors but don't throw to prevent unhandled promise rejections
-        console.error('[DataProvider] Error in useEffect loadData:', error);
+        // Silent fail to prevent unhandled promise rejections
         
         // Set error state to inform user
         setError('Failed to load data. Please refresh the page.');
@@ -1323,7 +1367,7 @@ export const DataProvider: React.FC<{
     return () => {
       mounted = false;
     };
-  }, [loadData]); // Include loadData as dependency
+  }, [supabaseUser]); // ONLY depend on supabaseUser, run once when it's set
 
   const refreshTrades = useCallback(async () => {
     if (!user?.id) return
@@ -1332,18 +1376,22 @@ export const DataProvider: React.FC<{
     setIsLoading(true)
     
     try {
+      // CRITICAL: Clear ALL localStorage caches to force fresh fetch
+      try {
+        localStorage.removeItem('bundled-data-cache')
+        localStorage.removeItem('bundled-data-timestamp')
+        localStorage.removeItem('account-filter-settings-cache')
+        localStorage.removeItem('calendar-notes-cache')
+        localStorage.removeItem('last-refresh-timestamp')
+      } catch (e) {
+        // Ignore storage errors
+      }
+      
       // Force cache invalidation
       await revalidateCache([`trades-${user.id}`, `user-data-${user.id}-${locale}`])
       
       // Add a small delay to ensure cache invalidation takes effect
       await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // In production, also try to force a cache miss by adding a timestamp
-      // This ensures fresh data even if revalidateTag doesn't work properly
-      if (process.env.NODE_ENV === 'production') {
-        // Force refetch by clearing any client-side caches if needed
-        // The server-side cache should be invalidated by revalidateTag
-      }
       
       // Reload data
       await loadData()
@@ -1496,7 +1544,9 @@ export const DataProvider: React.FC<{
     return calculateStatistics(formattedTrades, accounts);
   }, [formattedTrades, accounts]);
 
-  const calendarData = useMemo(() => formatCalendarData(formattedTrades, accounts), [formattedTrades, accounts]);
+  // Calendar data now uses ALL trades (not filtered) for better performance
+  // Filtering is visual-only and doesn't affect calendar
+  const calendarData = useMemo(() => formatCalendarData(trades, accounts), [trades, accounts]);
 
   const isPlusUser = () => {
     return true; // All users now have full access
@@ -1531,7 +1581,7 @@ export const DataProvider: React.FC<{
       setAccounts(updatedAccounts);
       revalidateCache([`user-data-${user.id}`])
     } catch (error) {
-      console.error('Error updating account:', error)
+      // Error updating account
       throw error
     }
   }, [user?.id, accounts, setAccounts])
@@ -1545,7 +1595,7 @@ export const DataProvider: React.FC<{
       setGroups(([...groups, newGroup]))
       return newGroup
     } catch (error) {
-      console.error('Error creating group:', error)
+      // Error creating group
       if (handleServerActionError(error, { context: 'Create Group' })) {
         return // Return early on deployment error (will refresh)
       }
@@ -1559,7 +1609,7 @@ export const DataProvider: React.FC<{
       setGroups(groups.map(group => group.id === groupId ? { ...group, name } : group))
       await renameGroupAction(groupId, name)
     } catch (error) {
-      console.error('Error renaming group:', error)
+      // Error renaming group
       if (handleServerActionError(error, { context: 'Rename Group' })) {
         return // Return early on deployment error (will refresh)
       }
@@ -1581,7 +1631,7 @@ export const DataProvider: React.FC<{
       setGroups(groups.filter(group => group.id !== groupId))
       await deleteGroupAction(groupId)
     } catch (error) {
-      console.error('Error deleting group:', error)
+      // Error deleting group
       if (handleServerActionError(error, { context: 'Delete Group' })) {
         return // Return early on deployment error (will refresh)
       }
@@ -1593,7 +1643,7 @@ export const DataProvider: React.FC<{
   const moveAccountToGroup = useCallback(async (accountId: string, targetGroupId: string | null) => {
     try {
       if (!accounts || accounts.length === 0) {
-        console.error('No accounts available to move');
+        // No accounts available to move
         return;
       }
 
@@ -1625,7 +1675,7 @@ export const DataProvider: React.FC<{
 
       await moveAccountToGroupAction(accountId, targetGroupId)
     } catch (error) {
-      console.error('Error moving account to group:', error)
+      // Error moving account to group
       if (handleServerActionError(error, { context: 'Move Account to Group' })) {
         return // Return early on deployment error (will refresh)
       }
@@ -1654,7 +1704,7 @@ export const DataProvider: React.FC<{
       );
 
     } catch (error) {
-      console.error('Error adding payout:', error);
+      // Error adding payout
       throw error;
     }
   }, [user?.id, accounts, setAccounts]);
@@ -1669,7 +1719,7 @@ export const DataProvider: React.FC<{
       // Delete from database
       await deleteAccountAction(account);
     } catch (error) {
-      console.error('Error deleting account:', error);
+      // Error deleting account
       if (handleServerActionError(error, { context: 'Delete Account' })) {
         return // Return early on deployment error (will refresh)
       }
@@ -1695,7 +1745,7 @@ export const DataProvider: React.FC<{
       await deletePayoutAction(payoutId);
 
     } catch (error) {
-      console.error('Error deleting payout:', error);
+      // Error deleting payout
       if (handleServerActionError(error, { context: 'Delete Payout' })) {
         return // Return early on deployment error (will refresh)
       }
@@ -1752,7 +1802,6 @@ export const DataProvider: React.FC<{
       localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(layout))
     } catch (error) {
       // Ignore localStorage errors
-      console.warn('Failed to update layout in localStorage:', error)
     }
   }, [user?.id, setDashboardLayout])
 

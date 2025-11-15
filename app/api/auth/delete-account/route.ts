@@ -65,37 +65,7 @@ export async function DELETE(request: NextRequest) {
       const tradeIds = userTradeIds.map(trade => trade.id)
       const accountIds = userAccounts.map(acc => acc.id)
 
-      // Delete all related data in the correct order
-      
-      // Business-related deletions - models don't exist in current schema
-      // TODO: Add business models to Prisma schema if needed
-
-      
-      // Trading-related deletions
-      
-      // Account-related deletions
       if (accountIds.length > 0) {
-        // TODO: Update for new system
-        // await tx.breach.deleteMany({
-        //   where: {
-        //     phase: {
-        //       accountId: { in: accountIds }
-        //     }
-        //   }
-        // })
-        
-        // await tx.accountPhase.deleteMany({
-        //   where: { accountId: { in: accountIds } }
-        // })
-        
-        // await tx.payout.deleteMany({
-        //   where: {
-        //     account: {
-        //       userId
-        //     }
-        //   }
-        // })
-        
         await tx.dailyAnchor.deleteMany({
           where: {
             phaseAccount: {
@@ -107,14 +77,10 @@ export async function DELETE(request: NextRequest) {
         })
       }
 
-      
-      // User-specific data deletions
       await tx.dashboardTemplate.deleteMany({
         where: { userId }
       })
 
-      
-      // Core record deletions
       await tx.trade.deleteMany({
         where: { userId }
       })
@@ -127,7 +93,6 @@ export async function DELETE(request: NextRequest) {
         where: { userId }
       })
 
-      // Finally, delete the user record
       await tx.user.delete({
         where: { auth_user_id: userId }
       })
