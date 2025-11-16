@@ -17,6 +17,7 @@ import KpiWidgetSelector from './kpi-widget-selector'
 import { EmptyAccountState } from './empty-account-state'
 import {
   DndContext,
+  rectIntersection,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
@@ -29,7 +30,8 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
-  verticalListSortingStrategy,
+  rectSortingStrategy,
+  horizontalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { toast } from 'sonner'
@@ -40,9 +42,82 @@ import {
   getNextAvailablePosition,
   groupWidgetsByRow,
   getSlotSizeDescription,
-  reflowWidgets,
 } from '../utils/grid-helpers'
 import { WIDGET_DIMENSIONS } from '../config/widget-dimensions'
+import { useMediaQuery } from '@/hooks/use-media-query'
+
+const GRID_COLUMNS = 12
+
+const generateWidgetId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `widget-${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+const isKpiRowWidget = (widget: WidgetLayout) => widget.y === 0
+
+const normalizeKpiWidgets = (widgets: WidgetLayout[], slotCount: number): WidgetLayout[] => {
+  return widgets
+    .filter(isKpiRowWidget)
+    .sort((a, b) => a.x - b.x)
+    .slice(0, slotCount)
+    .map((widget, index) => ({
+      ...widget,
+      x: index,
+      y: 0,
+    }))
+}
+
+const orderWidgetsByPosition = (widgets: WidgetLayout[]): WidgetLayout[] => {
+  return [...widgets].sort((a, b) => {
+    if (a.y !== b.y) {
+      return a.y - b.y
+    }
+    if (a.x !== b.x) {
+      return a.x - b.x
+    }
+    return a.i.localeCompare(b.i)
+  })
+}
+
+const packWidgets = (widgets: WidgetLayout[], startingRow = 1): WidgetLayout[] => {
+  let currentRow = startingRow
+  let currentX = 0
+  let rowHeight = 0
+
+  return widgets.map((originalWidget) => {
+    const widget = { ...originalWidget }
+    const colSpan = Math.min(widget.w, GRID_COLUMNS)
+
+    if (currentX + colSpan > GRID_COLUMNS) {
+      currentRow += Math.max(rowHeight, 1)
+      currentX = 0
+      rowHeight = 0
+    }
+
+    const positioned: WidgetLayout = {
+      ...widget,
+      x: currentX,
+      y: currentRow,
+      w: colSpan,
+    }
+
+    currentX += colSpan
+    rowHeight = Math.max(rowHeight, widget.h)
+
+    return positioned
+  })
+}
+
+const rebuildLayout = (widgets: WidgetLayout[], kpiSlotCount: number): WidgetLayout[] => {
+  const kpiWidgets = normalizeKpiWidgets(widgets.filter(isKpiRowWidget), kpiSlotCount)
+  const otherWidgets = packWidgets(
+    orderWidgetsByPosition(widgets.filter(widget => !isKpiRowWidget(widget))),
+    1
+  )
+  return [...kpiWidgets, ...otherWidgets]
+}
 
 // Sortable widget wrapper
 function SortableWidget({
@@ -120,6 +195,13 @@ export default function WidgetCanvasWithDrag() {
     y?: number
     width?: number
   } | null>(null)
+  const isDesktop = useMediaQuery('(min-width: 768px)')
+  const getGridColumnStyle = React.useCallback(
+    (span: number) => ({
+      gridColumn: `span ${isDesktop ? Math.min(span, GRID_COLUMNS) : GRID_COLUMNS}`,
+    }),
+    [isDesktop]
+  )
   
   // Clear targetSlot when dialogs close to prevent stale state
   React.useEffect(() => {
@@ -137,8 +219,7 @@ export default function WidgetCanvasWithDrag() {
   )
   
   // Show loading skeleton while fetching user's template
-  if (isLoading || !activeTemplate) {
-    return (
+  const renderLoadingSkeleton = () => (
       <div className="space-y-6">
         {/* Row 1: KPI Widgets - 5 in a row */}
         <div className="px-4 pt-4">
@@ -285,15 +366,17 @@ export default function WidgetCanvasWithDrag() {
           </div>
         </div>
       </div>
-    )
-  }
+  )
   
   // Use current layout if in edit mode, otherwise use active template
   const layout = isEditMode && currentLayout ? currentLayout : activeTemplate?.layout || []
   
   // KPI widgets are the first 5 slots (always present)
   const kpiSlots = 5
-  const kpiWidgets = layout.filter(w => w.y === 0 && w.x < kpiSlots).sort((a, b) => a.x - b.x)
+  const kpiWidgets = layout
+    .filter(isKpiRowWidget)
+    .sort((a, b) => a.x - b.x)
+    .slice(0, kpiSlots)
   
   // Fill empty KPI slots
   const kpiLayout: (WidgetLayout | null)[] = Array(kpiSlots).fill(null).map((_, index) => {
@@ -301,13 +384,18 @@ export default function WidgetCanvasWithDrag() {
   })
   
   // Other widgets
-  const otherWidgets = layout.filter(w => !(w.y === 0 && w.x < kpiSlots))
+  const otherWidgets = layout.filter(w => !isKpiRowWidget(w))
+  const orderedOtherWidgets = useMemo(() => orderWidgetsByPosition(otherWidgets), [otherWidgets])
+
+  if (isLoading || !activeTemplate) {
+    return renderLoadingSkeleton()
+  }
   
   // Handle widget removal
   const handleRemoveWidget = (widgetId: string) => {
     if (!currentLayout) return
     const updatedLayout = currentLayout.filter(w => w.i !== widgetId)
-    updateLayout(updatedLayout)
+    updateLayout(rebuildLayout(updatedLayout, kpiSlots))
   }
   
   // Handle add widget placeholder click
@@ -374,7 +462,7 @@ export default function WidgetCanvasWithDrag() {
     }
     
     const newWidget: WidgetLayout = {
-      i: `widget-${Date.now()}`,
+      i: generateWidgetId(),
       type: widgetType,
       size: config.defaultSize,
       x,
@@ -387,11 +475,13 @@ export default function WidgetCanvasWithDrag() {
     // Only reflow if added without a specific slot (to fill gaps automatically)
     // NOTE: Must use === undefined to handle x=0 case correctly
     const shouldReflow = !slotToUse || (slotToUse.x === undefined && slotToUse.slotIndex === undefined)
+    const baseLayout = [...currentLayout, newWidget]
     const updatedLayout = shouldReflow 
-      ? reflowWidgets([...currentLayout, newWidget])
-      : [...currentLayout, newWidget]
+      ? rebuildLayout(baseLayout, kpiSlots)
+      : baseLayout
     
     updateLayout(updatedLayout)
+    setTargetSlot(null)
     
     setTimeout(() => {
       toast.success('Widget added successfully', { duration: 2000 })
@@ -437,80 +527,16 @@ export default function WidgetCanvasWithDrag() {
 
     if (!over || active.id === over.id || !currentLayout) return
 
-    const activeWidget = otherWidgets.find(w => w.i === active.id)
-    const overWidget = otherWidgets.find(w => w.i === over.id)
+    const oldIndex = orderedOtherWidgets.findIndex(w => w.i === active.id)
+    const newIndex = orderedOtherWidgets.findIndex(w => w.i === over.id)
 
-    if (!activeWidget || !overWidget) return
+    if (oldIndex === -1 || newIndex === -1) return
 
-    // Check if dragging to a different row
-    const isDifferentRow = activeWidget.y !== overWidget.y
+    const reordered = arrayMove(orderedOtherWidgets, oldIndex, newIndex).map(widget => ({ ...widget }))
+    const normalizedKpis = normalizeKpiWidgets(currentLayout.filter(isKpiRowWidget), kpiSlots)
+    const packedOthers = packWidgets(reordered, 1)
 
-    if (isDifferentRow) {
-      // Cross-row drag - swap positions without aggressive reflowing
-      const withoutActive = otherWidgets.filter(w => w.i !== active.id)
-      
-      // Find the target row widgets
-      const targetRowWidgets = withoutActive.filter(w => w.y === overWidget.y).sort((a, b) => a.x - b.x)
-      const overIndexInRow = targetRowWidgets.findIndex(w => w.i === over.id)
-      
-      // Determine where to insert based on drag direction
-      let targetX = overWidget.x
-      const draggedToRight = overIndexInRow > targetRowWidgets.length / 2
-      
-      if (draggedToRight && overIndexInRow < targetRowWidgets.length - 1) {
-        // Insert after the over widget
-        targetX = overWidget.x + overWidget.w
-      }
-      
-      // Check if widget fits in target position
-      const spaceAvailable = 12 - targetRowWidgets.reduce((sum, w) => sum + w.w, 0)
-      
-      if (activeWidget.w <= spaceAvailable) {
-        // Fits without pushing - place at target position
-        const movedWidget = { ...activeWidget, x: targetX, y: overWidget.y }
-        
-        // Reflow only the target row to adjust spacing
-        const targetRowWithNew = [...targetRowWidgets, movedWidget].sort((a, b) => a.x - b.x)
-        let currentX = 0
-        const reflowedTargetRow = targetRowWithNew.map(widget => {
-          const positioned = { ...widget, x: currentX, y: overWidget.y }
-          currentX += widget.w
-          return positioned
-        })
-        
-        // Keep other rows unchanged
-        const otherRows = withoutActive.filter(w => w.y !== overWidget.y)
-        updateLayout([...kpiWidgets, ...otherRows, ...reflowedTargetRow])
-      } else {
-        // Doesn't fit - push widgets to next row
-        const movedWidget = { ...activeWidget, x: 0, y: overWidget.y }
-        const newLayout = reflowWidgets([...withoutActive, movedWidget])
-        updateLayout([...kpiWidgets, ...newLayout.filter(w => w.y > 0)])
-      }
-    } else {
-      // Same row - simple reorder
-      const oldIndex = otherWidgets.findIndex(w => w.i === active.id)
-      const newIndex = otherWidgets.findIndex(w => w.i === over.id)
-
-      if (oldIndex === -1 || newIndex === -1) return
-
-      const reorderedOther = arrayMove(otherWidgets, oldIndex, newIndex)
-      
-      // Update positions within the same row to maintain grid alignment
-      const rowMap = groupWidgetsByRow(reorderedOther)
-      const reflowed: WidgetLayout[] = []
-      
-      rowMap.forEach((widgets, rowY) => {
-        let currentX = 0
-        widgets.forEach(widget => {
-          reflowed.push({ ...widget, x: currentX, y: rowY })
-          currentX += widget.w
-        })
-      })
-      
-      // Combine with KPI widgets
-      updateLayout([...kpiWidgets, ...reflowed])
-    }
+    updateLayout([...normalizedKpis, ...packedOthers])
   }
   
   // Show empty state ONLY if:
@@ -546,7 +572,7 @@ export default function WidgetCanvasWithDrag() {
           >
             <SortableContext
               items={kpiWidgets.map(w => w.i)}
-              strategy={verticalListSortingStrategy}
+              strategy={horizontalListSortingStrategy}
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
                 {kpiLayout.map((widget, index) => (
@@ -587,12 +613,12 @@ export default function WidgetCanvasWithDrag() {
       <div className="px-4 pb-4">
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCenter}
+          collisionDetection={rectIntersection}
           onDragEnd={handleOtherDragEnd}
         >
           <SortableContext
-            items={otherWidgets.map(w => w.i)}
-            strategy={verticalListSortingStrategy}
+            items={orderedOtherWidgets.map(w => w.i)}
+            strategy={rectSortingStrategy}
           >
             <div className="space-y-3">
               {(() => {
@@ -619,9 +645,7 @@ export default function WidgetCanvasWithDrag() {
                               <div
                                 key={`slot-${rowY}-${currentX}`}
                                 className="col-span-1 md:col-span-12"
-                                style={{
-                                  gridColumn: window.innerWidth >= 768 ? `span ${slotWidth}` : 'span 1'
-                                }}
+                                style={getGridColumnStyle(slotWidth)}
                               >
                                 <Card
                                   className="h-32 border-2 border-dashed border-border/50 bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
@@ -643,9 +667,7 @@ export default function WidgetCanvasWithDrag() {
                             <div
                               key={widget.i}
                               className="col-span-1 md:col-span-12"
-                              style={{
-                                gridColumn: window.innerWidth >= 768 ? `span ${widget.w}` : 'span 1'
-                              }}
+                              style={getGridColumnStyle(widget.w)}
                             >
                               <SortableWidget
                                 widget={widget}
@@ -667,9 +689,7 @@ export default function WidgetCanvasWithDrag() {
                             <div
                               key={`slot-${rowY}-${currentX}`}
                               className="col-span-1 md:col-span-12"
-                              style={{
-                                gridColumn: window.innerWidth >= 768 ? `span ${slotWidth}` : 'span 1'
-                              }}
+                              style={getGridColumnStyle(slotWidth)}
                             >
                               <Card
                                 className="h-32 border-2 border-dashed border-border/50 bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"

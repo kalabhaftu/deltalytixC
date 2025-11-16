@@ -55,6 +55,9 @@ function isDateStringToday(dateString: string, timezone: string): boolean {
   return dateString === todayString;
 }
 
+const MOBILE_TODAY_CLASSES =
+  "bg-sky-500/20 text-sky-50 ring-1 ring-sky-400/70 shadow-[0_0_12px_rgba(14,165,233,0.35)]"
+
 export default function MobileCalendarPnl({ calendarData }: { calendarData: CalendarData }) {
   const locale = 'en' // Fixed to English since we removed i18n
   const timezone = useUserStore(state => state.timezone)
@@ -219,10 +222,8 @@ export default function MobileCalendarPnl({ calendarData }: { calendarData: Cale
                   </svg>
                 )}
                 <div className={cn(
-                  "w-8 h-8 flex items-center justify-center rounded-full z-10",
-                  // Check today using the date string and timezone
-                  isDateStringToday(dateString, timezone) && "bg-primary text-primary-foreground",
-                  // Style based on PnL, ensuring not to override 'today' style
+                  "w-8 h-8 flex items-center justify-center rounded-full z-10 transition-all",
+                  isDateStringToday(dateString, timezone) && MOBILE_TODAY_CLASSES,
                   dayData && dayData.pnl !== 0 && !isDateStringToday(dateString, timezone) && (
                     dayData.pnl > 0
                       ? "text-green-600 dark:text-green-400"

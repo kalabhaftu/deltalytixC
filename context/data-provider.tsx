@@ -1029,6 +1029,16 @@ import { calculateAccountBalance as calcBalance } from '@/lib/utils/balance-calc
 
 const supabase = createClient()
 
+const normalizeSelection = (selection: string[]) =>
+  Array.from(new Set(selection)).sort()
+
+const selectionsMatch = (a: string[], b: string[]) => {
+  if (a.length !== b.length) return false
+  const normalizedA = normalizeSelection(a)
+  const normalizedB = normalizeSelection(b)
+  return normalizedA.every((value, index) => value === normalizedB[index])
+}
+
 export const DataProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
@@ -1075,62 +1085,81 @@ export const DataProvider: React.FC<{
   const [error, setError] = useState<string | null>(null);
 
   // Initialize account filter from saved settings (CLIENT-SIDE ONLY)
+  const selectionInitializedRef = React.useRef(false)
+  const lastSyncedSelectionRef = React.useRef<string>('')
+
   useEffect(() => {
-    // Only run after accounts are loaded
     if (!accounts || accounts.length === 0) {
       return
     }
-    
-    // PRIORITY 1: Use DB settings (from accountFilterSettings hook - bundled with getUserData)
-    if (accountFilterSettings?.selectedPhaseAccountIds && accountFilterSettings.selectedPhaseAccountIds.length > 0) {
-      setAccountNumbers(accountFilterSettings.selectedPhaseAccountIds)
-      
-      // Update localStorage cache to match DB
+
+    const savedSelection = accountFilterSettings?.selectedPhaseAccountIds || []
+    const savedSignature = JSON.stringify(normalizeSelection(savedSelection))
+
+    if (!selectionInitializedRef.current) {
+      if (savedSelection.length > 0) {
+        setAccountNumbers(savedSelection)
+        selectionInitializedRef.current = true
+        lastSyncedSelectionRef.current = savedSignature
+
+        try {
+          localStorage.setItem('account-filter-settings-cache', JSON.stringify(accountFilterSettings))
+        } catch (error) {
+          // Ignore storage errors
+        }
+        return
+      }
+
+      let cachedSelection: string[] | null = null
       try {
-        localStorage.setItem('account-filter-settings-cache', JSON.stringify(accountFilterSettings))
+        const cached = localStorage.getItem('account-filter-settings-cache')
+        if (cached) {
+          const settings = JSON.parse(cached)
+          cachedSelection = settings.selectedPhaseAccountIds || null
+        }
       } catch (error) {
-        // Ignore storage errors
+        // Ignore parsing errors
       }
+
+      if (cachedSelection && cachedSelection.length > 0) {
+        setAccountNumbers(cachedSelection)
+        selectionInitializedRef.current = true
+        lastSyncedSelectionRef.current = JSON.stringify(normalizeSelection(cachedSelection))
+        return
+      }
+
+      const activeAccountNumbers = accounts
+        .filter(acc => !acc.status || acc.status === 'active' || acc.status === 'funded')
+        .map(acc => acc.number)
+
+      if (activeAccountNumbers.length > 0) {
+        setAccountNumbers(activeAccountNumbers)
+        selectionInitializedRef.current = true
+        lastSyncedSelectionRef.current = JSON.stringify(normalizeSelection(activeAccountNumbers))
+
+        fetch('/api/settings/account-filters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...accountFilterSettings,
+            selectedPhaseAccountIds: activeAccountNumbers,
+            updatedAt: new Date().toISOString()
+          })
+        }).catch(() => {})
+      }
+
       return
     }
-    
-    // PRIORITY 2: Check localStorage cache (only if DB has no settings)
-    let cachedSelection: string[] | null = null
-    try {
-      const cached = localStorage.getItem('account-filter-settings-cache')
-      if (cached) {
-        const settings = JSON.parse(cached)
-        cachedSelection = settings.selectedPhaseAccountIds || null
-      }
-    } catch (error) {
-      // Ignore parsing errors
+
+    if (
+      savedSelection.length > 0 &&
+      savedSignature !== lastSyncedSelectionRef.current &&
+      !selectionsMatch(savedSelection, accountNumbers)
+    ) {
+      setAccountNumbers(savedSelection)
+      lastSyncedSelectionRef.current = savedSignature
     }
-    
-    if (cachedSelection && cachedSelection.length > 0) {
-      setAccountNumbers(cachedSelection)
-      return
-    }
-    
-    // PRIORITY 3: Only auto-select if BOTH DB and cache are empty (first-time user)
-    const activeAccountNumbers = accounts
-      .filter(acc => !acc.status || acc.status === 'active' || acc.status === 'funded')
-      .map(acc => acc.number)
-    
-    if (activeAccountNumbers.length > 0) {
-      setAccountNumbers(activeAccountNumbers)
-      
-      // SAVE to database in background (non-blocking)
-      fetch('/api/settings/account-filters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...accountFilterSettings,
-          selectedPhaseAccountIds: activeAccountNumbers,
-          updatedAt: new Date().toISOString()
-        })
-      }).catch(() => {})
-    }
-  }, [accounts, accountFilterSettings])
+  }, [accounts, accountFilterSettings, accountNumbers, setAccountNumbers])
 
   // Track active data loading to prevent concurrent calls - MOVED TO useRef FOR PERSISTENCE
   const activeLoadPromiseRef = React.useRef<Promise<void> | null>(null)

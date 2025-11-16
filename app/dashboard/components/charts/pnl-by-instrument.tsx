@@ -35,6 +35,19 @@ interface InstrumentData {
   winRate: number
 }
 
+const getNiceStep = (value: number) => {
+  if (!isFinite(value) || value <= 0) return 25
+  const exponent = Math.floor(Math.log10(value))
+  const base = Math.pow(10, exponent)
+  const fraction = value / base
+
+  if (fraction <= 1) return 1 * base
+  if (fraction <= 2) return 2 * base
+  if (fraction <= 2.5) return 2.5 * base
+  if (fraction <= 5) return 5 * base
+  return 10 * base
+}
+
 export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrumentProps) {
   const { formattedTrades } = useData()
 
@@ -87,6 +100,47 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
     }).format(value)
   }
 
+  const { yDomain, yTicks } = React.useMemo(() => {
+    if (!chartData.length) {
+      return {
+        yDomain: [-100, 100] as [number, number],
+        yTicks: [-100, -50, 0, 50, 100],
+      }
+    }
+
+    const pnls = chartData.map(item => item.pnl)
+    const minValue = Math.min(...pnls)
+    const maxValue = Math.max(...pnls)
+
+    // All positive
+    if (minValue >= 0) {
+      const step = getNiceStep(maxValue / 4 || 1)
+      const niceMax = step * 4
+      return {
+        yDomain: [0, niceMax] as [number, number],
+        yTicks: [0, niceMax / 2, niceMax],
+      }
+    }
+
+    // All negative
+    if (maxValue <= 0) {
+      const step = getNiceStep(Math.abs(minValue) / 4 || 1)
+      const niceMin = step * 4
+      return {
+        yDomain: [-niceMin, 0] as [number, number],
+        yTicks: [-niceMin, -niceMin / 2, 0],
+      }
+    }
+
+    const maxAbs = Math.max(Math.abs(minValue), Math.abs(maxValue))
+    const step = getNiceStep(maxAbs / 4 || 1)
+    const niceMax = step * 4
+    const domain: [number, number] = [-niceMax, niceMax]
+    const ticks = [-niceMax, -niceMax / 2, 0, niceMax / 2, niceMax]
+
+    return { yDomain: domain, yTicks: ticks }
+  }, [chartData])
+
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload as InstrumentData
@@ -114,6 +168,8 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
   const totalPnl = chartData.reduce((sum: number, item: InstrumentData) => sum + item.pnl, 0)
   const bestInstrument = chartData.length > 0 ? chartData[0] : null
   const worstInstrument = chartData.length > 0 ? chartData[chartData.length - 1] : null
+
+  const showAngledTicks = chartData.length > 6
 
   return (
     <Card className="h-full flex flex-col">
@@ -176,8 +232,8 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
                   data={chartData}
                   margin={
                     size === 'small' || size === 'small-long'
-                      ? { left: -10, right: -10, top: 0, bottom: 5 }
-                      : { left: -20, right: -10, top: 5, bottom: 10 }
+                      ? { left: -10, right: -10, top: 0, bottom: showAngledTicks ? 30 : 10 }
+                      : { left: -20, right: -10, top: 5, bottom: showAngledTicks ? 40 : 15 }
                   }
                   barGap={0}
                 >
@@ -191,11 +247,14 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
                     tickLine={false}
                     axisLine={false}
                     height={size === 'small' || size === 'small-long' ? 20 : 24}
-                    tickMargin={size === 'small' || size === 'small-long' ? 4 : 8}
+                    tickMargin={showAngledTicks ? 12 : size === 'small' || size === 'small-long' ? 4 : 8}
                     tick={{
                       fontSize: size === 'small' || size === 'small-long' ? 9 : 11,
                       fill: 'currentColor'
                     }}
+                    interval={0}
+                    angle={showAngledTicks ? -30 : 0}
+                    textAnchor={showAngledTicks ? "end" : "middle"}
                   />
                   <YAxis
                     tickLine={false}
@@ -206,7 +265,9 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
                       fontSize: size === 'small' || size === 'small-long' ? 9 : 11,
                       fill: 'currentColor'
                     }}
-                    tickFormatter={(value) => `$${value >= 1000 ? (value / 1000).toFixed(1) + 'k' : value}`}
+                    domain={yDomain}
+                    ticks={yTicks}
+                    tickFormatter={(value) => formatCurrency(value)}
                   />
                   <ReferenceLine
                     y={0}

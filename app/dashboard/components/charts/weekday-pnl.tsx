@@ -195,9 +195,9 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
           </div>
         </div>
       </CardHeader>
-      <CardContent 
+      <CardContent
         className={cn(
-          "flex-1 min-h-[200px]",
+          "flex-1 min-h-[280px]",
           size === 'small' || size === 'small-long' ? "p-1" : "p-2 sm:p-4"
         )}
       >

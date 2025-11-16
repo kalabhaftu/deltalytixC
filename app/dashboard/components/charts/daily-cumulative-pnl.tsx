@@ -24,6 +24,8 @@ interface ChartDataPoint {
   cumulativePnL: number
   dailyPnL: number
   trades: number
+  positivePnL: number | null
+  negativePnL: number | null
 }
 
 interface TooltipProps {
@@ -94,20 +96,52 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
-    // Calculate cumulative P/L
+    // Calculate cumulative P/L with zero-crossing interpolation for smooth transitions
     let cumulative = 0
-    return sortedData.map(item => {
+    const result: ChartDataPoint[] = []
+    
+    sortedData.forEach((item, index) => {
+      const prevCumulative = cumulative
       cumulative += item.dailyPnL
-      return {
+      
+      // If line crosses zero, add interpolated point at zero for smooth transition
+      if (index > 0 && prevCumulative !== 0 && cumulative !== 0) {
+        if ((prevCumulative > 0 && cumulative < 0) || (prevCumulative < 0 && cumulative > 0)) {
+          // Line crosses zero - add interpolated point
+          const prevDate = sortedData[index - 1]?.date
+          if (prevDate) {
+            const ratio = Math.abs(prevCumulative) / (Math.abs(prevCumulative) + Math.abs(cumulative))
+            const interpolatedDate = new Date(
+              new Date(prevDate).getTime() + 
+              ratio * (new Date(item.date).getTime() - new Date(prevDate).getTime())
+            ).toISOString().split('T')[0]
+            
+            result.push({
+              date: interpolatedDate,
+              dailyPnL: 0,
+              trades: 0,
+              cumulativePnL: 0,
+              positivePnL: 0,
+              negativePnL: 0,
+            })
+          }
+        }
+      }
+
+      const positivePnL = cumulative > 0 ? cumulative : (cumulative === 0 ? 0 : null)
+      const negativePnL = cumulative < 0 ? cumulative : (cumulative === 0 ? 0 : null)
+      
+      result.push({
         ...item,
         cumulativePnL: cumulative,
-      }
+        positivePnL,
+        negativePnL,
+      })
     })
+    
+    return result
   }, [calendarData])
 
-  // Calculate gradient colors based on final cumulative value
-  const finalValue = chartData.length > 0 ? chartData[chartData.length - 1].cumulativePnL : 0
-  const isPositive = finalValue >= 0
 
   return (
     <Card className="h-full flex flex-col">
@@ -149,7 +183,7 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
           size === 'small' ? "p-1" : "p-2 sm:p-4"
         )}
       >
-        <div className="w-full h-[200px]">
+        <div className="w-full h-[280px]">
           <ChartContainer config={chartConfig} className="w-full h-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
@@ -161,16 +195,30 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
                 }
               >
                 <defs>
-                  <linearGradient id="colorPnL" x1="0" y1="0" x2="0" y2="1">
+                  {/* Green gradient for profit area (above zero) */}
+                  <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
                     <stop 
                       offset="5%" 
-                      stopColor={isPositive ? "hsl(var(--chart-profit))" : "hsl(var(--chart-loss))"} 
+                      stopColor="#10b981" 
                       stopOpacity={0.4}
                     />
                     <stop 
                       offset="95%" 
-                      stopColor={isPositive ? "hsl(var(--chart-profit))" : "hsl(var(--chart-loss))"} 
-                      stopOpacity={0.0}
+                      stopColor="#10b981" 
+                      stopOpacity={0.05}
+                    />
+                  </linearGradient>
+                  {/* Red gradient for loss area (below zero) */}
+                  <linearGradient id="colorLoss" x1="0" y1="0" x2="0" y2="1">
+                    <stop 
+                      offset="5%" 
+                      stopColor="#ef4444" 
+                      stopOpacity={0.05}
+                    />
+                    <stop 
+                      offset="95%" 
+                      stopColor="#ef4444" 
+                      stopOpacity={0.4}
                     />
                   </linearGradient>
                 </defs>
@@ -223,13 +271,27 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
                     zIndex: 1000
                   }} 
                 />
+                {/* Green line and fill for positive values */}
                 <Area
                   type="monotone"
-                  dataKey="cumulativePnL"
-                  stroke={isPositive ? "hsl(var(--chart-profit))" : "hsl(var(--chart-loss))"}
+                  dataKey="positivePnL"
+                  stroke="#10b981"
                   strokeWidth={2}
-                  fill="url(#colorPnL)"
+                  fill="url(#colorProfit)"
                   isAnimationActive={false}
+                  dot={false}
+                  activeDot={false}
+                />
+                {/* Red line and fill for negative values */}
+                <Area
+                  type="monotone"
+                  dataKey="negativePnL"
+                  stroke="#ef4444"
+                  strokeWidth={2}
+                  fill="url(#colorLoss)"
+                  isAnimationActive={false}
+                  dot={false}
+                  activeDot={false}
                 />
               </AreaChart>
             </ResponsiveContainer>

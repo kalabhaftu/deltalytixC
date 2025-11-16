@@ -40,7 +40,20 @@ interface ChartDataPoint {
 export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
   const { calendarData, formattedTrades } = useData()
 
-  const chartData = React.useMemo(() => {
+const getNiceStep = (value: number) => {
+  if (!isFinite(value) || value <= 0) return 25
+  const exponent = Math.floor(Math.log10(value))
+  const base = Math.pow(10, exponent)
+  const fraction = value / base
+
+  if (fraction <= 1) return 1 * base
+  if (fraction <= 2) return 2 * base
+  if (fraction <= 2.5) return 2.5 * base
+  if (fraction <= 5) return 5 * base
+  return 10 * base
+}
+
+const chartData = React.useMemo(() => {
     // CRITICAL FIX: Group trades first to handle partial closes
     const { groupTradesByExecution } = require('@/lib/utils')
     const groupedTrades = groupTradesByExecution(formattedTrades)
@@ -71,6 +84,34 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   }, [calendarData, formattedTrades])
+
+  const { yDomain, yTicks } = React.useMemo(() => {
+    if (!chartData.length) {
+      return {
+        yDomain: [-100, 100] as [number, number],
+        yTicks: [-100, -50, 0, 50, 100],
+      }
+    }
+
+    const pnls = chartData.map((item) => item.pnl)
+    const minValue = Math.min(0, ...pnls)
+    const maxValue = Math.max(0, ...pnls)
+    const maxAbs = Math.max(Math.abs(minValue), Math.abs(maxValue))
+
+    if (maxAbs === 0) {
+      return {
+        yDomain: [-100, 100] as [number, number],
+        yTicks: [-100, -50, 0, 50, 100],
+      }
+    }
+
+    const step = getNiceStep(maxAbs / 4 || 1)
+    const niceMax = step * 4
+    const domain: [number, number] = [-niceMax, niceMax]
+    const ticks = [-niceMax, -niceMax / 2, 0, niceMax / 2, niceMax]
+
+    return { yDomain: domain, yTicks: ticks }
+  }, [chartData])
 
   const formatCurrencyValue = (value: number) => {
     const absValue = Math.abs(value)
@@ -157,10 +198,11 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
           size === 'small' ? "p-1 pb-6" : "p-2 sm:p-4 pb-6"
         )}
       >
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={280}>
           <BarChart
             data={chartData}
             margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+            barCategoryGap={chartData.length > 20 ? "25%" : "35%"}
           >
             <CartesianGrid 
               strokeDasharray="3 3" 
@@ -188,6 +230,8 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
               fontSize={size === 'small' ? 9 : 11}
               tickLine={false}
               axisLine={false}
+              domain={yDomain}
+              ticks={yTicks}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))' }} />
             <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" opacity={0.5} />

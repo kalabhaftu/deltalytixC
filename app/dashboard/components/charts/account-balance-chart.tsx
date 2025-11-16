@@ -264,7 +264,7 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
           size === 'small' ? "p-1" : "p-2 sm:p-4"
         )}
       >
-        <div className="w-full h-[200px]">
+        <div className="w-full h-[280px]">
           <ChartContainer config={chartConfig} className="w-full h-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
@@ -310,10 +310,8 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
                     fill: 'currentColor'
                   }}
                   tickFormatter={formatCurrencyValue}
-                  domain={[
-                    (dataMin: number) => Math.floor(dataMin * 0.98),
-                    (dataMax: number) => Math.ceil(dataMax * 1.02)
-                  ]}
+                  tickCount={6}
+                  domain={['auto', 'auto']}
                 />
                 <Tooltip 
                   content={<CustomTooltip />}

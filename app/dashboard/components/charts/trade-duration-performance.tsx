@@ -218,7 +218,7 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
       </CardHeader>
       <CardContent
         className={cn(
-          "flex-1 min-h-[200px]",
+          "flex-1 min-h-[280px]",
           size === 'small' || size === 'small-long' ? "p-1" : "p-2 sm:p-4"
         )}
       >

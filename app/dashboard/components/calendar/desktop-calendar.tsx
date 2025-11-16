@@ -32,6 +32,11 @@ const WEEKDAYS = [
   'Sat'
 ] as const
 
+const TODAY_CELL_CLASSES =
+  "border-sky-500/70 bg-sky-500/10 ring-1 ring-sky-400/60 shadow-[0_0_12px_rgba(14,165,233,0.35)]"
+const TODAY_TEXT_CLASSES =
+  "text-sky-500 dark:text-sky-300 drop-shadow-[0_0_6px_rgba(14,165,233,0.45)]"
+
 
 function getCalendarDays(monthStart: Date, monthEnd: Date) {
   const startDate = startOfWeek(monthStart)
@@ -421,7 +426,7 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
                             ? "bg-red-50/60 dark:bg-red-950/30 border-red-100/80 dark:border-red-900/40"
                             : "bg-card border-border",
                         !isCurrentMonth && "opacity-50",
-                        isToday(date) && "border-foreground bg-muted/30 ring-1 ring-border",
+                        isToday(date) && TODAY_CELL_CLASSES,
                       )}
                       onClick={() => {
                         if (dayData) {
@@ -433,7 +438,7 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
                         <div className="flex justify-between items-start px-1 pt-1">
                           <span className={cn(
                             "text-xs font-medium",
-                            isToday(date) && "text-orange-600 dark:text-orange-400 font-semibold",
+                            isToday(date) && `${TODAY_TEXT_CLASSES} font-semibold`,
                             !isCurrentMonth && "opacity-50"
                           )}>
                             {format(date, 'd')}

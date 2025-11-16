@@ -177,7 +177,7 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
 
       <CardContent
         className={cn(
-          "flex-1 min-h-[200px]",
+          "flex-1 min-h-[28u 0px]",
           size === 'small' || size === 'small-long' ? "p-1" : "p-2 sm:p-4"
         )}
       >
@@ -251,7 +251,7 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
             </ChartContainer>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center min-h-[200px]">
+          <div className="w-full h-full flex items-center justify-center">
             <div className="text-center space-y-2">
               <p className="text-sm text-muted-foreground">No strategy data available</p>
               <p className="text-xs text-muted-foreground">Assign strategies to your trades to see performance</p>
