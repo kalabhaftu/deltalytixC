@@ -17,7 +17,8 @@ interface RouteParams {
 // Update validation schema (simplified for now)
 const UpdateMasterAccountSchema = z.object({
   accountName: z.string().min(1, 'Account name is required').optional(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
+  isArchived: z.boolean().optional()
 })
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
@@ -467,6 +468,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       where: { id: masterAccountId },
       data: updateData
     })
+    
+    // Invalidate caches after archiving/unarchiving to refresh dashboard
+    if (typeof updateData.isArchived === 'boolean') {
+      const { invalidateUserCaches } = await import('@/server/accounts')
+      await invalidateUserCaches(userId)
+    }
     
     return NextResponse.json({
       success: true,

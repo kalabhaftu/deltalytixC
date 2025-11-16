@@ -57,7 +57,10 @@ export async function GET(request: NextRequest) {
       }
 
       // Build account where clause based on user's filter settings
-      let accountWhereClause: any = { userId: currentUserId }
+      let accountWhereClause: any = { 
+        userId: currentUserId,
+        isArchived: false // ALWAYS exclude archived accounts from calculations
+      }
       
       // Apply filter settings if they exist, otherwise default to active accounts only
       if (!accountFilterSettings || accountFilterSettings.showMode === 'active-only') {

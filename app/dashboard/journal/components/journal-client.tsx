@@ -281,7 +281,7 @@ export function JournalClient() {
         </DropdownMenu>
       </div>
 
-      {isLoading ? (
+      {isLoading && filteredTrades.length === 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(9)].map((_, i) => (
             <Card key={i} className="overflow-hidden">

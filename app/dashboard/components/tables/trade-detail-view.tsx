@@ -56,8 +56,6 @@ async function downloadImage(imageData: string, trade: Trade, imageIndex: number
     // Check if it's a storage URL or base64
     if (imageData.startsWith('http')) {
       // Storage URL - fetch the image
-      const loadingToast = toast.loading('Preparing download...')
-      
       const response = await fetch(imageData)
       if (!response.ok) throw new Error('Failed to fetch image')
       
@@ -70,8 +68,6 @@ async function downloadImage(imageData: string, trade: Trade, imageIndex: number
       } else {
         extension = getExtensionFromMimeType(blob.type)
       }
-      
-      toast.dismiss(loadingToast)
       
       // Determine if it's migrated (generated name) or new upload (original name)
       // Migrated images have pattern: imageBase64Fifth_1763210693765_b381uwhsc.png
@@ -138,13 +134,9 @@ async function downloadImage(imageData: string, trade: Trade, imageIndex: number
     // Clean up object URL
     setTimeout(() => URL.revokeObjectURL(objectUrl), 100)
     
-    toast.success('Download complete', {
-      description: `Saved as ${filename}`
-    })
+    toast.success(`Downloaded ${filename}`)
   } catch (error) {
-    toast.error('Download failed', {
-      description: error instanceof Error ? error.message : 'Failed to download the image'
-    })
+    toast.error('Failed to download image')
   }
 }
 

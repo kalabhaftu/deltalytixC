@@ -111,6 +111,7 @@ model MasterAccount {
   evaluationType String
   currentPhase   Int
   isActive       Boolean             @default(true)
+  isArchived     Boolean             @default(false)
   createdAt      DateTime            @default(now())
   status         MasterAccountStatus @default(active)
   user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -124,6 +125,7 @@ model MasterAccount {
   @@index([userId, isActive])
   @@index([status])
   @@index([userId, status])
+  @@index([userId, isArchived])
   @@schema("public")
 }
 
@@ -224,6 +226,7 @@ model Account {
   startingBalance Float                    @default(0)
   userId          String
   groupId         String?
+  isArchived      Boolean                  @default(false)
   createdAt       DateTime                 @default(now())
   group           Group?                   @relation(fields: [groupId], references: [id])
   user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -234,6 +237,7 @@ model Account {
   @@index([number])
   @@index([groupId])
   @@index([userId])
+  @@index([userId, isArchived])
   @@schema("public")
 }
 

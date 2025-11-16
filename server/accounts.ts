@@ -247,9 +247,10 @@ export async function deleteAccountAction(account: Account) {
   })
 }
 
-export async function getAccountsAction() {
+export async function getAccountsAction(options?: { includeArchived?: boolean }) {
   try {
     const userId = await getUserIdSafe()
+    const { includeArchived = false } = options || {}
 
     // If user is not authenticated, return empty array instead of throwing error
     if (!userId) {
@@ -263,11 +264,15 @@ export async function getAccountsAction() {
     let masterAccounts: any[] = [];
 
     try {
+      // Build where clause for live accounts
+      const accountWhere: any = { userId: userId }
+      if (!includeArchived) {
+        accountWhere.isArchived = false
+      }
+
       // Fetch regular live trading accounts with optimized query
       const accountsPromise = prisma.account.findMany({
-        where: {
-          userId: userId,
-        },
+        where: accountWhere,
         select: {
           id: true,
           number: true,
@@ -277,17 +282,22 @@ export async function getAccountsAction() {
           createdAt: true,
           userId: true,
           groupId: true,
+          isArchived: true,
         },
         orderBy: {
           createdAt: 'desc' // Show newest accounts first
         }
       })
 
+      // Build where clause for prop firm accounts
+      const masterAccountWhere: any = { userId: userId }
+      if (!includeArchived) {
+        masterAccountWhere.isArchived = false
+      }
+
       // Fetch prop firm master accounts in parallel with better error handling
       const masterAccountsPromise = prisma.masterAccount.findMany({
-        where: {
-          userId: userId,
-        },
+        where: masterAccountWhere,
         include: {
           phases: {
             orderBy: {
@@ -340,7 +350,8 @@ export async function getAccountsAction() {
       isOwner: true,
       status: 'active' as const,
       currentPhase: 'live',
-      group: null
+      group: null,
+      isArchived: account.isArchived || false
     }))
 
     // Transform master accounts to unified format - create one entry per phase
@@ -373,6 +384,7 @@ export async function getAccountsAction() {
             userId: masterAccount.userId,
             groupId: null,
             group: null,
+            isArchived: masterAccount.isArchived || false,
             // Add phase details for UI components that need them (named currentPhaseDetails to match useAccounts)
             currentPhaseDetails: {
               phaseNumber: phase.phaseNumber,

@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ChartContainer } from "@/components/ui/chart"
 import { useData } from "@/context/data-provider"
 import { cn } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
@@ -29,14 +30,19 @@ interface MetricData {
   target?: string
 }
 
+const chartConfig = {
+  score: {
+    label: "Performance Score",
+    color: "hsl(var(--chart-1))",
+  },
+}
+
 export default function PerformanceScore({ size = 'small-long' }: PerformanceScoreProps) {
   const { formattedTrades } = useData()
 
   const { chartData, overallScore, scoreResult, hasData } = React.useMemo(() => {
-    // Calculate metrics using Performance Score formula
     const metrics = calculateMetricsFromTrades(formattedTrades)
     
-    // No data case
     if (!metrics) {
       const emptyData: MetricData[] = [
         { metric: 'Win %', value: 0, fullMark: 100 },
@@ -56,7 +62,6 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
 
     const scoreResult = calculateZellaScore(metrics)
 
-    // Create radar chart data using Performance Score breakdown with full metadata
     const radarData: MetricData[] = [
       { 
         metric: 'Win %', 
@@ -122,7 +127,6 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
     }
   }, [formattedTrades])
 
-  // Color based on score
   const getScoreColor = (score: number) => {
     if (score >= 70) return 'text-green-600'
     if (score >= 40) return 'text-yellow-600'
@@ -135,13 +139,11 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
     return 'bg-red-600'
   }
 
-  // Custom tooltip component for radar chart
   const CustomTooltip = ({ active, payload }: any) => {
     if (!active || !payload || !payload.length) return null
 
     const data = payload[0].payload as MetricData
 
-    // Format raw value based on metric type
     const formatRawValue = (metric: string, value: number) => {
       if (metric === 'Win %') return `${value.toFixed(1)}%`
       if (metric === 'Drawdown') return `${value.toFixed(1)}%`
@@ -150,39 +152,21 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
     }
 
     return (
-      <div className="bg-background border border-border rounded-lg p-2.5 shadow-lg max-w-[240px]">
-        <div className="space-y-1.5">
-          {/* Metric Name */}
-          <div className="font-semibold text-xs border-b border-border pb-1">
-            {data.metric}
-          </div>
-          
-          {/* Raw Value */}
-          <div className="flex justify-between items-center text-xs gap-3">
+      <div className="rounded-lg border bg-background p-3 shadow-lg">
+        <div className="grid gap-2">
+          <div className="font-semibold text-sm border-b pb-1">{data.metric}</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
             <span className="text-muted-foreground">Value:</span>
             <span className="font-semibold">{formatRawValue(data.metric, data.rawValue || 0)}</span>
-          </div>
-          
-          {/* Score */}
-          <div className="flex justify-between items-center text-xs gap-3">
+            
             <span className="text-muted-foreground">Score:</span>
             <span className="font-semibold">{Math.round(data.value)}/100</span>
-          </div>
-          
-          {/* Weight */}
-          <div className="flex justify-between items-center text-xs gap-3">
+            
             <span className="text-muted-foreground">Weight:</span>
             <span className="font-semibold">{data.weight}%</span>
           </div>
-          
-          {/* Divider */}
-          <div className="border-t border-border pt-1.5 space-y-0.5">
-            {/* Description */}
-            <div className="text-[11px] leading-snug text-muted-foreground">
-              {data.description}
-            </div>
-            
-            {/* Target */}
+          <div className="border-t pt-1.5 space-y-0.5">
+            <div className="text-[11px] text-muted-foreground">{data.description}</div>
             <div className="text-[11px]">
               <span className="text-muted-foreground">Target: </span>
               <span className="text-primary font-medium">{data.target}</span>
@@ -195,7 +179,7 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader 
+      <CardHeader
         className={cn(
           "flex flex-row items-center justify-between space-y-0 border-b shrink-0",
           size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
@@ -203,7 +187,7 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
       >
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-1.5">
-            <CardTitle 
+            <CardTitle
               className={cn(
                 "line-clamp-1",
                 size === 'small-long' ? "text-sm" : "text-base"
@@ -225,8 +209,7 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
               </UITooltip>
             </TooltipProvider>
           </div>
-          
-          {/* Score Badge in Header */}
+
           <div className={cn("flex items-center gap-2", hasData ? getScoreColor(overallScore) : "text-muted-foreground")}>
             {hasData && (overallScore >= 60 ? (
               <TrendingUp className={cn("h-4 w-4", size === 'small-long' && "h-3 w-3")} />
@@ -239,33 +222,25 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
           </div>
         </div>
       </CardHeader>
-      
-      <CardContent 
+
+      <CardContent
         className={cn(
           "flex-1 min-h-[280px]",
           size === 'small' ? "p-1" : "p-2 sm:p-4"
         )}
       >
-        {!hasData ? (
-          <div className="flex flex-col items-center justify-center h-full min-h-[280px] text-center">
-            <div className="text-muted-foreground text-sm">
-              No trading data available
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Import trades to see your performance score
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Radar Chart */}
-            <div className="mb-2">
-              <ResponsiveContainer width="100%" height={200}>
-                <RadarChart data={chartData} margin={{ 
-                  top: size === 'small-long' ? 10 : 15, 
-                  right: size === 'small-long' ? 15 : 25, 
-                  bottom: size === 'small-long' ? 10 : 15, 
-                  left: size === 'small-long' ? 15 : 25 
-                }}>
+        {chartData.length > 0 && hasData ? (
+          <div className="w-full h-full">
+            <ChartContainer config={chartConfig} className="w-full h-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart
+                  data={chartData}
+                  margin={
+                    size === 'small' || size === 'small-long'
+                      ? { top: 10, right: 15, bottom: 10, left: 15 }
+                      : { top: 15, right: 25, bottom: 15, left: 25 }
+                  }
+                >
                   <PolarGrid
                     stroke="hsl(var(--border))"
                     strokeWidth={1}
@@ -273,7 +248,7 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
                   <PolarAngleAxis
                     dataKey="metric"
                     tick={{
-                      fontSize: size === 'small-long' ? 9 : 11,
+                      fontSize: size === 'small' || size === 'small-long' ? 9 : 11,
                       fill: 'hsl(var(--muted-foreground))'
                     }}
                   />
@@ -291,42 +266,51 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
                     fill="#8b5cf6"
                     fillOpacity={0.3}
                     strokeWidth={2}
-                    dot={{ fill: '#8b5cf6', stroke: 'none', strokeWidth: 0, r: size === 'small-long' ? 3 : 4 }}
+                    dot={{
+                      fill: '#8b5cf6',
+                      stroke: 'none',
+                      strokeWidth: 0,
+                      r: size === 'small' || size === 'small-long' ? 3 : 4
+                    }}
                   />
                 </RadarChart>
               </ResponsiveContainer>
+            </ChartContainer>
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center min-h-[280px]">
+            <div className="text-center space-y-2">
+              <p className="text-sm text-muted-foreground">No trading data available</p>
+              <p className="text-xs text-muted-foreground">Import trades to see your performance score</p>
             </div>
+          </div>
+        )}
 
-            {/* Score Display */}
+        {chartData.length > 0 && hasData && (
+          <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t">
             <div className="space-y-1">
-              <div className="text-center">
-                <div className="text-xs font-medium text-muted-foreground mb-1">
-                  Your Performance Score
-                </div>
-                <div className={cn("text-lg font-bold", getScoreColor(overallScore))}>
-                  {overallScore}
-                </div>
-              </div>
-          
-              {/* Progress bar */}
-              <div className="space-y-0.5">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>0</span>
-                  <span>20</span>
-                  <span>40</span>
-                  <span>60</span>
-                  <span>80</span>
-                  <span>100</span>
-                </div>
-                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div 
+              <p className="text-xs text-muted-foreground">Your Performance Score</p>
+              <p className={cn("text-2xl font-bold", getScoreColor(overallScore))}>
+                {overallScore}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Progress</p>
+              <div className="space-y-1">
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div
                     className={cn("h-full transition-all duration-500", getScoreBarColor(overallScore))}
                     style={{ width: `${Math.min(overallScore, 100)}%` }}
                   />
                 </div>
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>0</span>
+                  <span>50</span>
+                  <span>100</span>
+                </div>
               </div>
             </div>
-          </>
+          </div>
         )}
       </CardContent>
     </Card>

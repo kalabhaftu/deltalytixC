@@ -33,11 +33,14 @@ import {
   Clock,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  Archive,
+  ArchiveRestore
 } from "lucide-react"
 import { EnhancedCreateLiveAccountDialog } from "../components/accounts/enhanced-create-live-account-dialog"
 import { EnhancedCreateAccountDialog as CreatePropFirmAccountDialog } from "../components/prop-firm/enhanced-create-account-dialog"
 import { EditLiveAccountDialog } from "@/components/edit-live-account-dialog"
+import { EditPropFirmAccountDialog } from "@/components/edit-prop-firm-account-dialog"
 import { Separator } from "@/components/ui/separator"
 import { motion, AnimatePresence } from "framer-motion"
 import { LoadingSkeleton } from "@/components/ui/loading"
@@ -92,6 +95,7 @@ interface Account {
   hasRecentBreach?: boolean
   createdAt?: string
   updatedAt?: string
+  isArchived?: boolean
   currentPhaseDetails?: {
     phaseNumber: number
     status: string
@@ -103,21 +107,25 @@ interface Account {
 export default function AccountsPage() {
   const router = useRouter()
   const { user } = useAuth()
-  const { accounts, isLoading, refetch: refetchAccounts } = useAccounts()
+  
+  // State - declare before hooks that depend on these values
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterType, setFilterType] = useState<'all' | 'live' | 'prop-firm'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'failed' | 'archived'>('all')
+  
+  const { accounts, isLoading, refetch: refetchAccounts } = useAccounts({ 
+    includeArchived: filterStatus === 'archived' 
+  })
   const { formattedTrades } = useData()
   // Get ALL trades (unfiltered) for accurate balance calculations
   // formattedTrades is filtered by navbar, which would exclude failed account trades
   const allTrades = useTradesStore(state => state.trades)
   // Get all transactions for balance calculations
   const { transactions } = useLiveAccountTransactions()
-  
-  // State
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filterType, setFilterType] = useState<'all' | 'live' | 'prop-firm'>('all')
-  const [filterStatus, setFilterStatus] = useState<'all' | 'failed'>('all')
   const [createLiveDialogOpen, setCreateLiveDialogOpen] = useState(false)
   const [createPropFirmDialogOpen, setCreatePropFirmDialogOpen] = useState(false)
   const [editLiveDialogOpen, setEditLiveDialogOpen] = useState(false)
+  const [editPropFirmDialogOpen, setEditPropFirmDialogOpen] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null)
@@ -164,6 +172,15 @@ export default function AccountsPage() {
       
       // ALWAYS hide passed accounts (they've transitioned to next phase)
       if (isPassedAccount) return false
+      
+      // Handle archived filter
+      if (filterStatus === 'archived') {
+        // When showing archived, ONLY show archived accounts
+        return matchesSearch && matchesType && account.isArchived === true
+      }
+      
+      // For 'all' and 'failed' filters, EXCLUDE archived accounts
+      if (account.isArchived === true) return false
       
       const matchesStatus = filterStatus === 'all'
         ? !shouldHideByDefault  // When 'all', hide failed/pending accounts
@@ -227,24 +244,18 @@ export default function AccountsPage() {
     clearAccountsCache()
     refetchAccounts()
     
-    // CRITICAL: Force router refresh to update UI immediately
-    router.refresh()
-    
     setLastUpdated(new Date())
     setCreateLiveDialogOpen(false)
     setCreatePropFirmDialogOpen(false)
     toast.success("Account created", {
       description: "New account has been added successfully",
     })
-  }, [refetchAccounts, router])
+  }, [refetchAccounts])
 
   const handleAccountUpdated = useCallback(() => {
     // Clear cache to ensure immediate refresh
     clearAccountsCache()
     refetchAccounts()
-    
-    // CRITICAL: Force router refresh to update UI immediately
-    router.refresh()
     
     setLastUpdated(new Date())
     setEditLiveDialogOpen(false)
@@ -252,7 +263,7 @@ export default function AccountsPage() {
     toast.success("Account updated", {
       description: "Account has been updated successfully",
     })
-  }, [refetchAccounts, router])
+  }, [refetchAccounts])
 
   const handleViewAccount = useCallback((account: Account) => {
     if (account.accountType === 'prop-firm') {
@@ -266,15 +277,11 @@ export default function AccountsPage() {
   }, [router])
 
   const handleEditAccount = useCallback((account: Account) => {
-    // Open edit dialog for live accounts
+    setEditingAccount(account)
     if (account.accountType === 'live') {
-      setEditingAccount(account)
       setEditLiveDialogOpen(true)
     } else {
-      // For prop firm accounts, show a message that editing isn't available yet
-      toast.error("Edit Not Available", {
-        description: "Prop firm account editing is not yet available. Contact support for changes.",
-      })
+      setEditPropFirmDialogOpen(true)
     }
   }, [])
 
@@ -317,34 +324,11 @@ export default function AccountsPage() {
         description: `${accountName} and all associated trades have been permanently deleted.`,
       })
 
-      // Clear all cache layers to ensure immediate refresh
+      // Clear client-side cache (server-side cache is already invalidated by the API)
       clearAccountsCache()
       
-      // Invalidate all server-side caches
-      const { invalidateUserCaches } = await import('@/server/accounts')
-      if (user?.id) {
-        await invalidateUserCaches(user.id)
-      }
-
-      // Force refresh by clearing browser cache and reloading
-      if ('caches' in window) {
-        await caches.delete('next-app')
-        await caches.delete('next-data')
-      }
-
-      // Clear local storage that might have cached account data
-      if (typeof window !== 'undefined') {
-        const keysToRemove = Object.keys(localStorage).filter(key =>
-          key.includes('account') || key.includes('trade') || key.includes('prop-firm')
-        )
-        keysToRemove.forEach(key => localStorage.removeItem(key))
-      }
-
-      // Force hard refresh to clear all cached data
+      // Refetch accounts to update the UI
       await refetchAccounts()
-      
-      // CRITICAL: Force full page refresh to ensure UI updates
-      router.refresh()
 
       setDeletingAccount(null)
       setDeleteConfirmText('')
@@ -353,7 +337,48 @@ export default function AccountsPage() {
         description: "Failed to delete account. Please try again.",
       })
     }
-  }, [deletingAccount, refetchAccounts, deleteConfirmText, user, router])
+  }, [deletingAccount, refetchAccounts, deleteConfirmText])
+
+  const handleArchiveAccount = useCallback(async (account: Account) => {
+    const accountName = account.displayName || account.name || account.number
+    const isArchived = account.isArchived || false
+    const action = isArchived ? 'unarchive' : 'archive'
+    
+    try {
+      // For prop-firm accounts, use master account ID instead of phase ID
+      const accountId = account.accountType === 'prop-firm'
+        ? (account.currentPhaseDetails?.masterAccountId || account.id)
+        : account.id
+        
+      const endpoint = account.accountType === 'prop-firm'
+        ? `/api/prop-firm-v2/accounts/${accountId}`
+        : `/api/accounts/${accountId}`
+
+      const response = await fetch(endpoint, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isArchived: !isArchived })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${action} account`)
+      }
+
+      toast.success(`Account ${isArchived ? 'Unarchived' : 'Archived'}`, {
+        description: `${accountName} has been ${isArchived ? 'restored and is now visible' : 'archived and hidden from calculations'}.`,
+      })
+
+      // Refresh accounts
+      clearAccountsCache()
+      await refetchAccounts()
+    } catch (error) {
+      toast.error(`${action.charAt(0).toUpperCase() + action.slice(1)} failed`, {
+        description: `Failed to ${action} account. Please try again.`,
+      })
+    }
+  }, [refetchAccounts])
 
   if (isLoading) {
     return <OptimizedAccountsLoading accountCount={6} />
@@ -479,6 +504,7 @@ export default function AccountsPage() {
                 <SelectContent>
                   <SelectItem value="all">All Accounts</SelectItem>
                   <SelectItem value="failed">Failed Only</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
                 </SelectContent>
               </Select>
                   </div>
@@ -513,6 +539,7 @@ export default function AccountsPage() {
                     onView={() => handleViewAccount(account)}
                     onEdit={() => handleEditAccount(account)}
                     onDelete={() => handleDeleteAccount(account)}
+                    onArchive={() => handleArchiveAccount(account)}
                   />
                 </motion.div>
               ))}
@@ -619,6 +646,14 @@ export default function AccountsPage() {
           onSuccess={handleAccountUpdated}
         />
 
+        {/* Edit Prop Firm Account Dialog */}
+        <EditPropFirmAccountDialog
+          open={editPropFirmDialogOpen}
+          onOpenChange={setEditPropFirmDialogOpen}
+          account={editingAccount}
+          onSuccess={handleAccountUpdated}
+        />
+
             </div>
     </div>
   )
@@ -659,12 +694,14 @@ function AccountCard({
   account, 
   onView, 
   onEdit, 
-  onDelete 
+  onDelete,
+  onArchive
 }: { 
   account: Account & { calculatedEquity?: number }
   onView: () => void
   onEdit: () => void
   onDelete: () => void
+  onArchive: () => void
 }) {
   const getStatusVariant = (status?: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
@@ -715,6 +752,19 @@ function AccountCard({
                   Edit Account
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onArchive}>
+                  {account.isArchived ? (
+                    <>
+                      <ArchiveRestore className="h-4 w-4 mr-2" />
+                      Unarchive Account
+                    </>
+                  ) : (
+                    <>
+                      <Archive className="h-4 w-4 mr-2" />
+                      Archive Account
+                    </>
+                  )}
+                  </DropdownMenuItem>
                 <DropdownMenuItem onClick={onDelete} className="text-destructive">
                     <Trash2 className="h-4 w-4 mr-2" />
                   Delete Account
@@ -817,16 +867,22 @@ function AccountCard({
                 </div>
                 ) : (
             <div className="space-y-3">
-                            <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Account Type</span>
                 <Badge variant="outline" className="text-xs">
                   LIVE
-                              </Badge>
-                  </div>
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Account #</span>
+                <span className="text-xs font-mono text-foreground">
+                  {account.number}
+                </span>
+              </div>
               <div className="text-xs text-muted-foreground">
                 Live trading account for real market execution
-                </div>
-                  </div>
+              </div>
+            </div>
                 )}
                     </div>
 

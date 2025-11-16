@@ -108,7 +108,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// PATCH /api/accounts/[id] - Update account
+// PATCH /api/accounts/[id] - Update account (edit details or archive/unarchive)
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId()
@@ -116,15 +116,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const accountId = resolvedParams.id
     const body = await request.json()
 
-    const { name, broker } = body
-
-    // Validate required fields
-    if (!name || !broker) {
-      return NextResponse.json(
-        { success: false, error: 'Name and broker are required' },
-        { status: 400 }
-      )
-    }
+    const { name, broker, isArchived } = body
 
     // Check if account exists and belongs to user
     const existingAccount = await prisma.account.findFirst({
@@ -141,16 +133,40 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       )
     }
 
+    // Build update data object
+    const updateData: any = {}
+    
+    // If archiving/unarchiving (isArchived is explicitly provided)
+    if (typeof isArchived === 'boolean') {
+      updateData.isArchived = isArchived
+    }
+    
+    // If updating name/broker (for edit account)
+    if (name !== undefined || broker !== undefined) {
+      // Validate required fields for account edit
+      if (!name || !broker) {
+        return NextResponse.json(
+          { success: false, error: 'Name and broker are required for account updates' },
+          { status: 400 }
+        )
+      }
+      updateData.name = name.trim()
+      updateData.broker = broker.trim()
+    }
+
     // Update account
     const updatedAccount = await prisma.account.update({
       where: {
         id: accountId,
       },
-      data: {
-        name: name.trim(),
-        broker: broker.trim(),
-      }
+      data: updateData
     })
+
+    // Invalidate caches after archiving/unarchiving to refresh dashboard
+    if (typeof isArchived === 'boolean') {
+      const { invalidateUserCaches } = await import('@/server/accounts')
+      await invalidateUserCaches(userId)
+    }
 
     return NextResponse.json({
       success: true,
@@ -161,6 +177,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         broker: updatedAccount.broker,
         displayName: updatedAccount.name || updatedAccount.number,
         startingBalance: updatedAccount.startingBalance,
+        isArchived: updatedAccount.isArchived,
       }
     })
 

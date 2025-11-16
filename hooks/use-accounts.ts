@@ -31,6 +31,7 @@ interface UnifiedAccount {
   isOwner: boolean
   currentPhase: any
   phaseAccountNumber?: string | null
+  isArchived?: boolean
   currentPhaseDetails?: {
     phaseNumber: number
     status: string
@@ -48,10 +49,12 @@ interface UseAccountsResult {
 
 interface UseAccountsOptions {
   includeFailed?: boolean
+  includeArchived?: boolean
 }
 
 // Enhanced global cache system with real-time invalidation
 let accountsCache: UnifiedAccount[] | null = null
+let accountsCacheIncludesArchived: boolean = false // Track what type of data is cached
 let accountsPromise: Promise<UnifiedAccount[]> | null = null
 let lastFetchTime = 0
 const CACHE_DURATION = 30000 // 30 seconds - balanced for performance and freshness
@@ -83,6 +86,7 @@ export function invalidateAccountsCache(reason?: string) {
   if (process.env.NODE_ENV === 'development') {
   }
   accountsCache = null
+  accountsCacheIncludesArchived = false
   accountsPromise = null
   lastFetchTime = 0
   cacheInvalidationTags.clear()
@@ -93,8 +97,6 @@ export function invalidateAccountsCache(reason?: string) {
       // Clear Zustand stores that cache account data
       localStorage.removeItem('accounts-store')
       localStorage.removeItem('equity-chart-store')
-      
-      console.log('[Cache] Cleared account-related localStorage on account change')
     } catch (error) {
       console.error('[Cache] Error clearing account localStorage:', error)
     }
@@ -111,9 +113,16 @@ export function clearAccountsCache() {
 
 
 export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult {
-  const { includeFailed = false } = options
-  const [accounts, setAccounts] = useState<UnifiedAccount[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { includeFailed = false, includeArchived = false } = options
+  
+  // Smart initial loading state: check if we have valid cache BEFORE first render
+  const now = Date.now()
+  const hasCachedData = accountsCache && 
+                        (now - lastFetchTime) < CACHE_DURATION &&
+                        accountsCacheIncludesArchived === includeArchived
+  
+  const [accounts, setAccounts] = useState<UnifiedAccount[]>(hasCachedData && accountsCache ? accountsCache : [])
+  const [isLoading, setIsLoading] = useState(!hasCachedData) // Only show loading if no valid cache
   const [error, setError] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const supabaseRef = useRef<any>(null)
@@ -121,7 +130,12 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
   const fetchAccounts = useCallback(async (forceRefresh = false, source = 'manual') => {
     // Check cache first with smarter invalidation
     const now = Date.now()
-    if (!forceRefresh && accountsCache && (now - lastFetchTime) < CACHE_DURATION) {
+    // Only use cache if it matches the current includeArchived setting
+    const cacheIsValid = accountsCache && 
+                         (now - lastFetchTime) < CACHE_DURATION &&
+                         accountsCacheIncludesArchived === includeArchived
+    
+    if (!forceRefresh && cacheIsValid && accountsCache) {
       setAccounts(accountsCache)
       setIsLoading(false)
       setError(null)
@@ -162,7 +176,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
       // Create the promise and store it globally
       accountsPromise = (async (): Promise<UnifiedAccount[]> => {
         try {
-          const accounts = await getAccountsAction()
+          const accounts = await getAccountsAction({ includeArchived })
 
           // Safety check - if accounts is undefined, treat as empty array
           if (!accounts) {
@@ -203,6 +217,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
               isOwner: true,
               currentPhase,
               phaseAccountNumber,
+              isArchived: account.isArchived || false,
               // Include phase details for components that need them
               currentPhaseDetails: phaseDetails
             }
@@ -220,6 +235,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
       if (fetchedAccounts) {
         // Update cache and notify subscribers
         accountsCache = fetchedAccounts
+        accountsCacheIncludesArchived = includeArchived // Track what type of data is cached
         lastFetchTime = now
 
         setAccounts(fetchedAccounts)
@@ -252,9 +268,14 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
       accountsPromise = null
       isCurrentlyFetching = false
     }
-  }, [])
+  }, [includeArchived])
 
   const refetch = useCallback(() => fetchAccounts(true), [fetchAccounts])
+
+  useEffect(() => {
+    // Force refetch when includeArchived changes
+    fetchAccounts(true, 'includeArchived-changed')
+  }, [includeArchived, fetchAccounts])
 
   useEffect(() => {
     fetchAccounts(false, 'initial')

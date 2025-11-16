@@ -1432,7 +1432,7 @@ export const DataProvider: React.FC<{
   const hiddenAccountNumbers = useMemo(() => {
     const hiddenGroup = groups.find(g => g.name === "Hidden Accounts");
     return accounts
-      .filter(a => a.groupId === hiddenGroup?.id)
+      .filter(a => a.groupId === hiddenGroup?.id || a.isArchived === true)
       .map(a => a.number);
   }, [groups, accounts]);
 
