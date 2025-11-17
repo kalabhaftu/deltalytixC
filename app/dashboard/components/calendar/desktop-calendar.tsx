@@ -16,26 +16,14 @@ import { WeeklyModal } from "./weekly-modal"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useCalendarViewStore } from "@/store/calendar-view"
 import { useCalendarNotes } from "@/app/dashboard/hooks/use-calendar-notes"
+import { useJournalData } from "@/app/dashboard/hooks/use-journal-data"
 import WeeklyCalendarPnl from "./weekly-calendar"
 import { CalendarData } from "@/app/dashboard/types/calendar"
 import { useUserStore } from "@/store/user-store"
 import { Account } from "@/context/data-provider"
+import { TODAY_STYLES, WEEKDAYS_FULL } from "@/app/dashboard/constants/calendar-styles"
 
-
-const WEEKDAYS = [
-  'Sun',
-  'Mon',
-  'Tue',
-  'Wed',
-  'Thu',
-  'Fri',
-  'Sat'
-] as const
-
-const TODAY_CELL_CLASSES =
-  "border-sky-500/70 bg-sky-500/10 ring-1 ring-sky-400/60 shadow-[0_0_12px_rgba(14,165,233,0.35)]"
-const TODAY_TEXT_CLASSES =
-  "text-sky-500 dark:text-sky-300 drop-shadow-[0_0_6px_rgba(14,165,233,0.45)]"
+const WEEKDAYS = WEEKDAYS_FULL
 
 
 function getCalendarDays(monthStart: Date, monthEnd: Date) {
@@ -172,6 +160,9 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
     monthStart: startOfMonth(currentDate),
     monthEnd: endOfMonth(currentDate)
   }), [currentDate])
+
+  // Fetch journal data for the current month
+  const { hasJournalForDate, getJournalForDate } = useJournalData(monthStart, monthEnd)
 
   // Update calendarDays when currentDate changes
   useEffect(() => {
@@ -407,6 +398,8 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
                 const isCurrentMonth = isSameMonth(date, currentDate)
                 const dateRenewals = getRenewalsForDate(date)
                 const hasNote = hasNoteForDate(date)
+                const hasJournal = hasJournalForDate(date)
+                const journalEntry = getJournalForDate(date)
                 
                 // Calculate win rate if there's data
                 const winRate = dayData && dayData.tradeNumber > 0
@@ -426,7 +419,7 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
                             ? "bg-red-50/60 dark:bg-red-950/30 border-red-100/80 dark:border-red-900/40"
                             : "bg-card border-border",
                         !isCurrentMonth && "opacity-50",
-                        isToday(date) && TODAY_CELL_CLASSES,
+                        isToday(date) && TODAY_STYLES.cell,
                       )}
                       onClick={() => {
                         if (dayData) {
@@ -438,15 +431,15 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
                         <div className="flex justify-between items-start px-1 pt-1">
                           <span className={cn(
                             "text-xs font-medium",
-                            isToday(date) && `${TODAY_TEXT_CLASSES} font-semibold`,
+                            isToday(date) && TODAY_STYLES.text,
                             !isCurrentMonth && "opacity-50"
                           )}>
                             {format(date, 'd')}
                           </span>
                           <div className="flex items-center gap-1">
-                            {hasNote && (
+                            {hasJournal && (
                               <BookOpen className={cn(
-                                "h-3.5 w-3.5 text-white/90 dark:text-gray-200",
+                                "h-3.5 w-3.5 text-slate-400 dark:text-slate-300",
                                 !isCurrentMonth && "opacity-30"
                               )} />
                             )}
@@ -485,20 +478,20 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
                     </div>
                     {isLastDayOfWeek && (() => {
                       const weeklyStats = calculateWeeklyStats(index, calendarDays, calendarData)
+                      const weeklyState = weeklyStats.totalPnl > 0 ? 'gain' : weeklyStats.totalPnl < 0 ? 'loss' : 'flat'
                       return (
                         <div
                           className={cn(
                             "h-full min-h-[100px] flex flex-col items-center justify-center rounded-md cursor-pointer transition-all duration-200 px-1 py-1",
                             "border",
                             "hover:border-primary hover:shadow-sm hover:scale-[1.02]",
-                            weeklyStats.totalPnl >= 0
+                            weeklyState === 'gain'
                               ? "bg-green-50/80 dark:bg-green-950/40 border-green-100 dark:border-green-900/50"
-                              : weeklyStats.totalPnl < 0
+                              : weeklyState === 'loss'
                                 ? "bg-red-50/60 dark:bg-red-950/30 border-red-100/80 dark:border-red-900/40"
-                                : "bg-card border-border"
+                                : "bg-muted/30 dark:bg-muted/10 border-dashed border-border/70"
                           )}
                           onClick={() => {
-                            // Find the start of the week for this index
                             const weekStartIndex = index - (index % 7)
                             const weekStart = calendarDays[weekStartIndex]
                             if (weekStart) {
@@ -508,9 +501,11 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
                         >
                           <div className={cn(
                             "text-base font-bold text-center leading-tight",
-                            weeklyStats.totalPnl >= 0
+                            weeklyState === 'gain'
                               ? "text-green-600 dark:text-green-400"
-                              : "text-red-600 dark:text-red-400"
+                              : weeklyState === 'loss'
+                                ? "text-red-600 dark:text-red-400"
+                                : "text-muted-foreground"
                           )}>
                             {formatCurrency(weeklyStats.totalPnl)}
                           </div>
@@ -519,9 +514,11 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
                           </div>
                           <div className={cn(
                             "text-[10px] font-medium text-center",
-                            weeklyStats.totalPnl >= 0
+                            weeklyState === 'gain'
                               ? "text-green-600 dark:text-green-400"
-                              : "text-red-600 dark:text-red-400"
+                              : weeklyState === 'loss'
+                                ? "text-red-600 dark:text-red-400"
+                                : "text-muted-foreground"
                           )}>
                             {weeklyStats.winRate}%
                           </div>

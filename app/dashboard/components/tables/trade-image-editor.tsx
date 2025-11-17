@@ -355,27 +355,27 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                         </div>
                       </TransformComponent>
 
-                      <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 rounded-lg bg-white/50 backdrop-blur-sm z-50">
+                      <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 rounded-lg bg-white/50 dark:bg-black/50 backdrop-blur-sm z-50">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="bg-gradient-to-r from-white/95 to-white/90 hover:from-white hover:to-white shadow-lg border border-gray-200 ring-1 ring-gray-100 h-7 w-7 sm:h-8 sm:w-8"
+                          className="bg-gradient-to-r from-white/95 to-white/90 dark:from-black/95 dark:to-black/90 hover:from-white hover:to-white dark:hover:from-black dark:hover:to-black shadow-sm border border-gray-200 dark:border-gray-700 h-7 w-7 sm:h-8 sm:w-8"
                           onClick={() => zoomOut()}
                           disabled={scale <= 0.5}
                         >
-                          <ZoomOut className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700" />
+                          <ZoomOut className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-300" />
                         </Button>
-                        <span className="min-w-[2.5rem] sm:min-w-[3rem] text-center text-xs sm:text-sm font-medium text-gray-700">
+                        <span className="min-w-[2.5rem] sm:min-w-[3rem] text-center text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                           {Math.round(scale * 100)}%
                         </span>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="bg-gradient-to-r from-white/95 to-white/90 hover:from-white hover:to-white shadow-lg border border-gray-200 ring-1 ring-gray-100 h-7 w-7 sm:h-8 sm:w-8"
+                          className="bg-gradient-to-r from-white/95 to-white/90 dark:from-black/95 dark:to-black/90 hover:from-white hover:to-white dark:hover:from-black dark:hover:to-black shadow-sm border border-gray-200 dark:border-gray-700 h-7 w-7 sm:h-8 sm:w-8"
                           onClick={() => zoomIn()}
                           disabled={scale >= 3}
                         >
-                          <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700" />
+                          <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-300" />
                         </Button>
                       </div>
                     </>

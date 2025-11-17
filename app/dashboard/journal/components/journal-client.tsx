@@ -2,11 +2,12 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { TradeCard } from './trade-card'
-import { Search, Filter, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Search, Filter, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, X, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AIAnalysisDialog } from '@/app/dashboard/components/journal/ai-analysis-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +49,7 @@ export function JournalClient() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [tradeToDelete, setTradeToDelete] = useState<Trade | null>(null)
+  const [showAIAnalysis, setShowAIAnalysis] = useState(false)
 
   // CRITICAL: Group trades first to show correct counts
   const groupedTrades = useMemo(() => groupTradesByExecution(formattedTrades), [formattedTrades])
@@ -220,16 +222,28 @@ export function JournalClient() {
             Review and analyze your trade history
           </p>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="gap-2 flex-shrink-0"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Refresh</span>
-        </Button>
+        <div className="flex gap-2 flex-shrink-0">
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={() => setShowAIAnalysis(true)}
+            className="gap-2"
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">AI Analysis</span>
+            <span className="sm:hidden">AI</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -433,6 +447,13 @@ export function JournalClient() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* AI Analysis Dialog */}
+      <AIAnalysisDialog
+        isOpen={showAIAnalysis}
+        onClose={() => setShowAIAnalysis(false)}
+        accountId={null}
+      />
     </div>
   )
 }

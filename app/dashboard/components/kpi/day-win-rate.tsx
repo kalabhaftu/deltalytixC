@@ -25,16 +25,15 @@ const DayWinRate = React.memo(function DayWinRate({ size }: DayWinRateProps) {
   const winningDays = dayEntries.filter(([_, data]) => data.pnl > 0).length
   const dayWinRate = totalDays > 0 ? Math.round((winningDays / totalDays) * 1000) / 10 : 0
   
-  // Determine color based on day win rate
+  // Determine color based on day win rate - use CSS variables for consistency
   const getColor = (rate: number) => {
-    if (rate >= 60) return '#22c55e' // green-500
-    if (rate >= 40) return '#eab308' // yellow-500
-    return '#ef4444' // red-500
+    if (rate >= 50) return 'hsl(var(--chart-profit))' // Profit green
+    return 'hsl(var(--chart-loss))' // Loss red
   }
 
   return (
     <Card className="w-full h-24">
-      <CardContent className="p-4 h-full flex items-center justify-between">
+      <CardContent className="p-5 h-full flex items-center justify-between">
         <div className="flex flex-col">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs text-muted-foreground font-medium">

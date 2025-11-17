@@ -199,12 +199,12 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
                   <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
                     <stop 
                       offset="5%" 
-                      stopColor="#10b981" 
+                      stopColor="hsl(var(--chart-profit))" 
                       stopOpacity={0.4}
                     />
                     <stop 
                       offset="95%" 
-                      stopColor="#10b981" 
+                      stopColor="hsl(var(--chart-profit))" 
                       stopOpacity={0.05}
                     />
                   </linearGradient>
@@ -212,12 +212,12 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
                   <linearGradient id="colorLoss" x1="0" y1="0" x2="0" y2="1">
                     <stop 
                       offset="5%" 
-                      stopColor="#ef4444" 
+                      stopColor="hsl(var(--chart-loss))" 
                       stopOpacity={0.05}
                     />
                     <stop 
                       offset="95%" 
-                      stopColor="#ef4444" 
+                      stopColor="hsl(var(--chart-loss))" 
                       stopOpacity={0.4}
                     />
                   </linearGradient>
@@ -275,7 +275,7 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
                 <Area
                   type="monotone"
                   dataKey="positivePnL"
-                  stroke="#10b981"
+                  stroke="hsl(var(--chart-profit))"
                   strokeWidth={2}
                   fill="url(#colorProfit)"
                   isAnimationActive={false}
@@ -286,7 +286,7 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
                 <Area
                   type="monotone"
                   dataKey="negativePnL"
-                  stroke="#ef4444"
+                  stroke="hsl(var(--chart-loss))"
                   strokeWidth={2}
                   fill="url(#colorLoss)"
                   isAnimationActive={false}

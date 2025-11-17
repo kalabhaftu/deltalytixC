@@ -1,80 +1,42 @@
-import React, { useState, useMemo } from 'react'
+import React from 'react'
 import { useData } from '@/context/data-provider'
 import {
   ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  getPaginationRowModel,
-  SortingState,
-  getSortedRowModel,
   ColumnFiltersState,
-  getFilteredRowModel,
-  sortingFns,
-  VisibilityState,
-  getExpandedRowModel,
   ExpandedState,
   OnChangeFn,
-} from "@tanstack/react-table"
+  SortingState,
+  VisibilityState,
+  flexRender,
+  getCoreRowModel,
+  getExpandedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+  Table as ReactTableInstance,
+} from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
-import { ChevronRight, ChevronDown, ChevronLeft, Info, Search, Filter, X, BarChart3 } from 'lucide-react'
-import { Switch } from '@/components/ui/switch'
+import { ChevronRight, ChevronDown, ChevronLeft, Info, ChevronRight as ArrowRight, BarChart3 } from 'lucide-react'
 import { Trade, TradingModel } from '@prisma/client'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { cn, parsePositionTime, formatCurrency, formatNumber, formatQuantity, formatTradeData } from '@/lib/utils'
-import { Checkbox } from "@/components/ui/checkbox"
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn, parsePositionTime, formatCurrency, formatQuantity } from '@/lib/utils'
+import { Checkbox } from '@/components/ui/checkbox'
 import { formatInTimeZone } from 'date-fns-tz'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { DataTableColumnHeader } from './column-header'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { createClient } from '@/lib/supabase'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card"
-import { useUserStore } from '@/store/user-store'
-import { useTableConfigStore } from '@/store/table-config-store'
-import { TradeImageEditor } from './trade-image-editor'
 import { ColumnConfigDialog } from '@/components/ui/column-config-dialog'
-import { Input } from '@/components/ui/input'
 import EnhancedEditTrade from './enhanced-edit-trade'
 import TradeDetailView from './trade-detail-view'
 import TradeChartModal from './trade-chart-modal'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-} from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { TradeTableMobileCard } from './trade-table-mobile-card'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { useUserStore } from '@/store/user-store'
+import { useTableConfigStore } from '@/store/table-config-store'
 
-
-export interface ExtendedTrade extends Trade {
+export interface ExtendedTrade extends Omit<Trade, 'tags'> {
   imageUrl?: string | undefined
   tags: string[]
   imageBase64: string | null
@@ -87,7 +49,6 @@ export interface ExtendedTrade extends Trade {
   tradingModel: TradingModel | null
   comment: string | null
   trades: ExtendedTrade[]
-  // phaseId field removed - use phaseAccountId in new system
   accountId: string | null
   stopLoss: string | null
   takeProfit: string | null
@@ -96,591 +57,358 @@ export interface ExtendedTrade extends Trade {
   closeReason: string | null
 }
 
-const supabase = createClient()
+const VALID_COLUMN_IDS = [
+  'tradeDate',
+  'instrument',
+  'direction',
+  'entryPrice',
+  'closePrice',
+  'timeInPosition',
+  'pnl',
+  'commission',
+  'quantity',
+]
 
-// Function to determine appropriate decimal places based on instrument type
-const getDecimalPlaces = (instrument: string, price: number): number => {
-  const instrumentUpper = instrument.toUpperCase()
-  
-  // Forex pairs typically need 4-5 decimal places
-  if (instrumentUpper.includes('USD') || instrumentUpper.includes('EUR') || 
-      instrumentUpper.includes('GBP') || instrumentUpper.includes('JPY') ||
-      instrumentUpper.includes('AUD') || instrumentUpper.includes('CAD') ||
-      instrumentUpper.includes('CHF') || instrumentUpper.includes('NZD')) {
-    // For forex pairs, use 4-5 decimal places
-    return 4
-  }
-  
-  // Precious metals like gold/silver need more precision
-  if (instrumentUpper.includes('XAU') || instrumentUpper.includes('XAG')) {
-    return 2
-  }
-  
-  // For indices and stocks, 2 decimal places is usually sufficient
-  if (instrumentUpper.includes('US') || instrumentUpper.includes('SPX') || 
-      instrumentUpper.includes('NAS') || instrumentUpper.includes('DOW')) {
-    return 2
-  }
-  
-  // Default to 2 decimal places for other instruments
-  return 2
+const DEFAULT_SORTING: SortingState = [{ id: 'tradeDate', desc: true }]
+
+const normalizeSorting = (sorting?: SortingState): SortingState => {
+  const filtered = (sorting ?? []).filter((item) => VALID_COLUMN_IDS.includes(item.id))
+  return filtered.length > 0 ? filtered : DEFAULT_SORTING
 }
 
-export function TradeTableReview() {
-  const {
-    formattedTrades: contextTrades,
-    updateTrades,
-  } = useData()
-  const timezone = useUserStore(state => state.timezone)
-  const isMobile = useMediaQuery("(max-width: 768px)")
+const areSortingStatesEqual = (a: SortingState, b: SortingState) => {
+  if (a.length !== b.length) return false
+  return a.every((item, index) => {
+    const other = b[index]
+    return other && item.id === other.id && !!item.desc === !!other.desc
+  })
+}
 
-  // Tick details are available for calculations
+const serializeFilters = (filters: ColumnFiltersState = []) =>
+  JSON.stringify(filters.map((filter) => ({ id: filter.id, value: filter.value })))
 
-  // Get table configuration from store
-  const {
-    tables,
-    updateSorting,
-    updateColumnFilters,
-    updateColumnVisibilityState,
-    updatePageSize,
-    updatePageIndex,
-    updateGroupingGranularity,
-  } = useTableConfigStore()
+const areFiltersEqual = (a: ColumnFiltersState = [], b: ColumnFiltersState = []) =>
+  serializeFilters(a) === serializeFilters(b)
 
-  const tableConfig = tables['trade-table']
-  const [sorting, setSorting] = useState<SortingState>(tableConfig?.sorting || [{ id: "closeDate", desc: true }])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(tableConfig?.columnFilters || [])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(tableConfig?.columnVisibility || {})
-  const [expanded, setExpanded] = useState<ExpandedState>({})
-  const [pageSize, setPageSize] = useState(tableConfig?.pageSize || 10)
-  const [pageIndex, setPageIndex] = useState(tableConfig?.pageIndex || 0)
-  const [selectedTrades, setSelectedTrades] = useState<string[]>([])
+const serializeVisibility = (visibility: VisibilityState = {}) =>
+  JSON.stringify(
+    Object.keys(visibility)
+      .sort()
+      .map((key) => [key, visibility[key]])
+  )
 
-  const [isEnhancedEditOpen, setIsEnhancedEditOpen] = useState(false)
-  const [selectedTradeForEdit, setSelectedTradeForEdit] = useState<Trade | null>(null)
-  const [isDetailViewOpen, setIsDetailViewOpen] = useState(false)
-  const [selectedTradeForView, setSelectedTradeForView] = useState<ExtendedTrade | null>(null)
-  const [isChartModalOpen, setIsChartModalOpen] = useState(false)
-  const [selectedTradeForChart, setSelectedTradeForChart] = useState<ExtendedTrade | null>(null)
+const areVisibilityEqual = (a: VisibilityState = {}, b: VisibilityState = {}) =>
+  serializeVisibility(a) === serializeVisibility(b)
 
-  // Sync local state with store
-  React.useEffect(() => {
-    if (tableConfig) {
-      setSorting(tableConfig.sorting)
-      setColumnFilters(tableConfig.columnFilters)
-      setColumnVisibility(tableConfig.columnVisibility)
-      setPageSize(tableConfig.pageSize)
-      setPageIndex(tableConfig.pageIndex)
-    }
-  }, [tableConfig])
-
-  // Update store when local state changes
-  const handleSortingChange: OnChangeFn<SortingState> = (updaterOrValue) => {
-    const newSorting = typeof updaterOrValue === 'function' ? updaterOrValue(sorting) : updaterOrValue
-    setSorting(newSorting)
-    updateSorting('trade-table', newSorting)
+const mergeAccountNumbers = (current: string | null | undefined, next?: string | null) => {
+  const set = new Set(
+    (current ?? '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+  )
+  if (next) {
+    next
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .forEach((value) => set.add(value))
   }
+  return Array.from(set).join(',')
+}
 
-  const handleColumnFiltersChange: OnChangeFn<ColumnFiltersState> = (updaterOrValue) => {
-    const newFilters = typeof updaterOrValue === 'function' ? updaterOrValue(columnFilters) : updaterOrValue
-    setColumnFilters(newFilters)
-    updateColumnFilters('trade-table', newFilters)
-  }
+const cloneTradeForGroup = (trade: ExtendedTrade): ExtendedTrade => ({
+  ...trade,
+  trades: [],
+  tags: Array.isArray(trade.tags) ? [...trade.tags] : [],
+})
 
-  const handleColumnVisibilityChange: OnChangeFn<VisibilityState> = (updaterOrValue) => {
-    const newVisibility = typeof updaterOrValue === 'function' ? updaterOrValue(columnVisibility) : updaterOrValue
-    setColumnVisibility(newVisibility)
-    updateColumnVisibilityState('trade-table', newVisibility)
-  }
-
-  const handlePageSizeChange = (newPageSize: number) => {
-    setPageSize(newPageSize)
-    updatePageSize('trade-table', newPageSize)
-  }
-
-  const handlePageIndexChange = (newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-    updatePageIndex('trade-table', newPageIndex)
-  }
-
-  const trades = contextTrades
-
-  const handleGroupTrades = async () => {
-    if (selectedTrades.length < 2) return
-
-    // Generate a temporary groupId using timestamp + random number
-    const tempGroupId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
-    // Update local state immediately
-    await updateTrades(selectedTrades, { groupId: tempGroupId })
-
-    // Reset table selection
-    table.resetRowSelection()
-    setSelectedTrades([])
-  }
-
-  const handleUngroupTrades = async () => {
-    if (selectedTrades.length === 0) return
-
-    // Update local state immediately
-    await updateTrades(selectedTrades, { groupId: null })
-
-    // Reset table selection
-    table.resetRowSelection()
-    setSelectedTrades([])
-  }
-
-  const handleEnhancedEditSave = async (updatedData: Partial<Trade>) => {
-    if (!selectedTradeForEdit) return
-
-    await updateTrades([selectedTradeForEdit.id], updatedData)
-  }
-
-  // Group trades by instrument, entry date, and close date with granularity
-  const groupedTrades = useMemo(() => {
+const buildGroupedTrades = (trades: ExtendedTrade[]) => {
     const groups = new Map<string, ExtendedTrade>()
 
-    trades.forEach(trade => {
-      // Create a key that accounts for granularity
+  trades.forEach((trade) => {
       const entryDate = new Date(trade.entryDate)
-
-      // No date rounding - use exact dates
-      const roundDate = (date: Date) => date
-
-      const roundedEntryDate = roundDate(entryDate)
-
-      const key = trade.groupId ? `${trade.groupId}` : `${trade.instrument}-${roundedEntryDate.toISOString()}`
+    const key = trade.groupId ? `${trade.groupId}` : `${trade.instrument}-${entryDate.toISOString()}`
 
       if (!groups.has(key)) {
         groups.set(key, {
-          instrument: trade.instrument,
-          entryDate: roundedEntryDate.toISOString(),
-          closeDate: trade.closeDate,
-          symbol: trade.symbol ?? null,
-          entryTime: null,
-          exitTime: null,
-          imageBase64: trade.imageBase64,
-          imageBase64Second: trade.imageBase64Second,
-          // phaseId field removed - use phaseAccountId in new system
-          accountId: trade.accountId ?? null,
-          imageBase64Third: trade.imageBase64Third ?? null,
-          imageBase64Fourth: trade.imageBase64Fourth ?? null,
-          imageBase64Fifth: (trade as any).imageBase64Fifth ?? null,
-          imageBase64Sixth: (trade as any).imageBase64Sixth ?? null,
-          cardPreviewImage: (trade as any).cardPreviewImage ?? null,
-          tradingModel: (trade as any).tradingModel as TradingModel | null,
-          comment: trade.comment,
-          id: '',
-          accountNumber: trade.accountNumber,
-          quantity: trade.quantity,
-          entryId: null,
-          entryPrice: trade.entryPrice,
-          closePrice: trade.closePrice,
-          pnl: trade.pnl,
-          timeInPosition: trade.timeInPosition,
-          userId: '',
-          side: trade.side,
-          commission: trade.commission,
-          closeReason: trade.closeReason,
-          tags: [],
-          stopLoss: trade.stopLoss || null,
-          takeProfit: trade.takeProfit || null,
-          trades: [{
             ...trade,
-            trades: [],
-            tags: [],
-            imageBase64Fifth: (trade as any).imageBase64Fifth ?? null,
-            imageBase64Sixth: (trade as any).imageBase64Sixth ?? null,
-            cardPreviewImage: (trade as any).cardPreviewImage ?? null,
-            tradingModel: (trade as any).tradingModel as TradingModel | null,
-          }],
-          createdAt: new Date(),
-          groupId: trade.groupId || null,
-          phaseAccountId: trade.phaseAccountId || null,
-        })
-      }
-      else {
+        id: trade.id,
+        entryDate: entryDate.toISOString(),
+        trades: [cloneTradeForGroup(trade)],
+        accountNumber: trade.accountNumber ?? '',
+      })
+    } else {
         const group = groups.get(key)!
-        group.trades.push({
-          ...trade,
-          trades: [],
-          tags: [],
-          imageBase64Fifth: (trade as any).imageBase64Fifth ?? null,
-          imageBase64Sixth: (trade as any).imageBase64Sixth ?? null,
-          cardPreviewImage: (trade as any).cardPreviewImage ?? null,
-          tradingModel: (trade as any).tradingModel as TradingModel | null,
-        })
+      group.trades.push(cloneTradeForGroup(trade))
         group.pnl += trade.pnl || 0
         group.commission += trade.commission || 0
         group.quantity += trade.quantity || 0
-        // Update closeDate to the latest one
-        if (new Date(trade.closeDate) > new Date(group.closeDate)) {
+      if (trade.closeDate && (!group.closeDate || new Date(trade.closeDate) > new Date(group.closeDate))) {
           group.closeDate = trade.closeDate
         }
-        // Update timeInPosition to the longest one
         if ((trade.timeInPosition || 0) > (group.timeInPosition || 0)) {
           group.timeInPosition = trade.timeInPosition
         }
-        if (!group.accountNumber.includes(trade.accountNumber)) {
-          group.accountNumber += ':' + trade.accountNumber;
-        }
+      group.accountNumber = mergeAccountNumbers(group.accountNumber, trade.accountNumber)
       }
     })
 
     return Array.from(groups.values())
-  }, [trades])
+}
 
-  const columns = useMemo<ColumnDef<ExtendedTrade>[]>(() => [
+const getDecimalPlaces = (instrument: string, price: number): number => {
+  const instrumentUpper = instrument?.toUpperCase?.() ?? ''
+  if (
+    instrumentUpper.includes('USD') ||
+    instrumentUpper.includes('EUR') ||
+    instrumentUpper.includes('GBP') ||
+    instrumentUpper.includes('JPY') ||
+    instrumentUpper.includes('AUD') ||
+    instrumentUpper.includes('CAD') ||
+    instrumentUpper.includes('CHF') ||
+    instrumentUpper.includes('NZD')
+  ) {
+    return 4
+  }
+
+  if (instrumentUpper.includes('XAU') || instrumentUpper.includes('XAG')) {
+    return 2
+  }
+
+  if (
+    instrumentUpper.includes('US') ||
+    instrumentUpper.includes('SPX') ||
+    instrumentUpper.includes('NAS') ||
+    instrumentUpper.includes('DOW')
+  ) {
+    return 2
+  }
+
+  return 2
+}
+
+type ColumnFactoryParams = {
+  timezone: string
+  onRowSelectionChange: (ids: string[], value: boolean) => void
+  onViewDetails: (trade: ExtendedTrade) => void
+  onEditTrade: (trade: Trade | ExtendedTrade) => void
+  onViewChart: (trade: ExtendedTrade) => void
+}
+
+const useTradeTableColumns = ({
+  timezone,
+  onRowSelectionChange,
+  onViewDetails,
+  onEditTrade,
+  onViewChart,
+}: ColumnFactoryParams) => {
+  return React.useMemo<ColumnDef<ExtendedTrade>[]>(() => [
     {
-      id: "select",
+      id: 'select',
       header: ({ table }) => (
         <Checkbox
           checked={table.getIsAllPageRowsSelected()}
           onCheckedChange={(value) => {
             table.toggleAllPageRowsSelected(!!value)
-            // Get all trade IDs including subrows
-            const allTradeIds = table.getRowModel().rows.flatMap(row => {
-              const subTradeIds = row.original.trades.map(t => t.id)
-              return [row.original.id, ...subTradeIds]
+            const allTradeIds = table.getRowModel().rows.flatMap((row) => {
+              const subTradeIds = row.original.trades.map((t) => t.id)
+              return [row.original.id, ...subTradeIds].filter(Boolean) as string[]
             })
-            setSelectedTrades(value ? allTradeIds : [])
+            onRowSelectionChange(allTradeIds, !!value)
           }}
           aria-label="Select all"
           className="translate-y-[2px]"
         />
       ),
-      cell: ({ row }) => (
+      cell: ({ row }) => {
+        const tradeIds = [row.original.id, ...row.original.trades.map((t) => t.id)].filter(Boolean) as string[]
+        return (
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => {
             row.toggleSelected(!!value)
-            // Get all trade IDs for this row including subrows
-            const tradeIds = [
-              row.original.id,
-              ...row.original.trades.map(t => t.id)
-            ]
-            setSelectedTrades(prev =>
-              value
-                ? [...prev, ...tradeIds]
-                : prev.filter(id => !tradeIds.includes(id))
-            )
+              onRowSelectionChange(tradeIds, !!value)
           }}
           aria-label="Select row"
           className="translate-y-[2px]"
         />
-      ),
+        )
+      },
       enableSorting: false,
       enableHiding: false,
     },
     {
-      id: "expand",
+      id: 'expand',
       header: () => null,
       cell: ({ row }) => {
-        const trade = row.original
-        if (trade.trades.length <= 1) return null
-
+        if (row.original.trades.length <= 1) return null
         return (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={row.getToggleExpandedHandler()}
-            className="hover:bg-transparent"
-          >
-            {row.getIsExpanded() ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
+          <Button variant="ghost" size="sm" onClick={row.getToggleExpandedHandler()} className="hover:bg-transparent">
+            {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
         )
       },
     },
     {
-      id: "accounts",
+      id: 'accounts',
       header: () => (
-        <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-3 h-8 data-[state=open]:bg-accent"
-          >
+        <Button variant="ghost" size="sm" className="-ml-3 h-8">
           Total
         </Button>
       ),
       cell: ({ row }) => {
-        const trade = row.original
-        const accounts = trade.accountNumber.split(',')
+        const accounts = row.original.accountNumber
+          ?.split(',')
+          .map((account) => account.trim())
+          .filter(Boolean) ?? []
+
         return (
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
               <Popover>
                 <PopoverTrigger asChild>
                   <div
-                    className="flex items-center justify-center w-fit min-w-6 px-2 h-6 rounded-full bg-muted text-xs font-medium cursor-pointer hover:bg-muted/80 transition-colors"
-                    title={accounts.length === 1 ? accounts[0] : accounts.join(', ')}
-                  >
-                    {accounts.length === 1 
-                      ? (accounts[0].length > 6 
-                          ? `${accounts[0].slice(0, 3)}...${accounts[0].slice(-3)}` 
-                          : accounts[0]
-                        )
-                      : `+${accounts.length}`
-                    }
+                  className="flex items-center justify-center min-w-6 px-2 h-6 rounded-full bg-muted text-xs font-medium cursor-pointer hover:bg-muted/80 transition-colors"
+                  title={accounts.join(', ')}
+                >
+                  {accounts.length <= 1
+                    ? accounts[0] ?? '--'
+                    : `+${accounts.length}`}
                   </div>
                 </PopoverTrigger>
-                <PopoverContent
-                  className="w-fit p-0"
-                  align="start"
-                  side="right"
-                >
+              <PopoverContent className="w-fit p-0" align="start" side="right">
                   <ScrollArea className="h-36 rounded-md border">
                     {accounts.map((account) => (
-                      <div
-                        key={`account-${account}`}
-                        className="px-3 py-2 text-sm hover:bg-muted/50 cursor-default"
-                      >
+                    <div key={account} className="px-3 py-2 text-sm hover:bg-muted/50 cursor-default">
                         {account}
                       </div>
                     ))}
                   </ScrollArea>
                 </PopoverContent>
               </Popover>
-            </div>
-            {trade.trades.length > 0 && (
-              <span className="text-xs text-muted-foreground">
-                ({trade.trades.length})
-              </span>
+            {row.original.trades.length > 1 && (
+              <span className="text-xs text-muted-foreground">({row.original.trades.length})</span>
             )}
           </div>
         )
       },
     },
     {
-      accessorKey: "entryDate",
+      id: 'tradeDate',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Entry Date" tableId="trade-table" />
+        <DataTableColumnHeader column={column} title="Trade Date" tableId="trade-table" />
       ),
-      cell: ({ row }) => formatInTimeZone(new Date(row.original.entryDate), timezone, 'yyyy-MM-dd'),
-      sortingFn: (rowA, rowB, columnId) => {
-        const a = new Date(rowA.getValue(columnId)).getTime();
-        const b = new Date(rowB.getValue(columnId)).getTime();
-        return a < b ? -1 : a > b ? 1 : 0;
+      cell: ({ row }) => {
+        const date = row.original.trades?.[0]?.entryDate ?? row.original.entryDate
+        return formatInTimeZone(new Date(date), timezone, 'yyyy-MM-dd')
+      },
+      sortingFn: (rowA, rowB) => {
+        const toTimestamp = (row: typeof rowA) => {
+          const first = row.original.trades?.[0]
+          const date = first?.entryDate ?? row.original.entryDate
+          return new Date(date).getTime()
+        }
+        return toTimestamp(rowA) - toTimestamp(rowB)
       },
     },
     {
-      accessorKey: "instrument",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Instrument" tableId="trade-table" />
-      ),
-      size: 140,
+      accessorKey: 'instrument',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Instrument" tableId="trade-table" />,
+      cell: ({ row }) => <div className="text-right font-medium">{row.original.instrument}</div>,
+    },
+    {
+      accessorKey: 'direction',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Direction" tableId="trade-table" />,
+      cell: ({ row }) => <div className="text-right font-medium">{row.original.side?.toUpperCase()}</div>,
+      sortingFn: (rowA, rowB) => {
+        const a = rowA.original.side?.toUpperCase() ?? ''
+        const b = rowB.original.side?.toUpperCase() ?? ''
+        if (a === 'LONG' && b === 'SHORT') return -1
+        if (a === 'SHORT' && b === 'LONG') return 1
+        return a.localeCompare(b)
+      },
+    },
+    {
+      accessorKey: 'entryPrice',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Entry Price" tableId="trade-table" />,
       cell: ({ row }) => {
-        const instrument = row.original.instrument
+        const value = parseFloat(row.original.entryPrice)
+        const decimals = getDecimalPlaces(row.original.instrument, value)
+        return <div className="text-right font-medium">{formatCurrency(value, decimals)}</div>
+      },
+    },
+    {
+      accessorKey: 'closePrice',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Close Price" tableId="trade-table" />,
+      cell: ({ row }) => {
+        const value = parseFloat(row.original.closePrice)
+        const decimals = getDecimalPlaces(row.original.instrument, value)
+        return <div className="text-right font-medium">{formatCurrency(value, decimals)}</div>
+      },
+    },
+    {
+      accessorKey: 'timeInPosition',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Time in Position" tableId="trade-table" />,
+      cell: ({ row }) => <div>{parsePositionTime(row.original.timeInPosition || 0)}</div>,
+      sortingFn: (rowA, rowB) => (rowA.original.timeInPosition || 0) - (rowB.original.timeInPosition || 0),
+    },
+    {
+      accessorKey: 'pnl',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="PnL" tableId="trade-table" />,
+      cell: ({ row }) => {
+        const value = row.original.pnl
         return (
           <div className="text-right font-medium">
-            {instrument}
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: "direction",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Direction" tableId="trade-table" />
-      ),
-      size: 120,
-      cell: ({ row }) => {
-        return (
-          <div className="text-right font-medium">
-            {row.original.side?.toUpperCase()}
-          </div>
-        )
-      },
-      sortingFn: (rowA, rowB, columnId) => {
-        const a = rowA.original.side?.toUpperCase() || ""
-        const b = rowB.original.side?.toUpperCase() || ""
-
-        // Sort LONG before SHORT
-        if (a === "LONG" && b === "SHORT") return -1
-        if (a === "SHORT" && b === "LONG") return 1
-
-        // Alphabetical fallback for any other values
-        return a < b ? -1 : a > b ? 1 : 0
-      },
-    },
-    {
-      accessorKey: "entryPrice",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Entry Price" tableId="trade-table" />
-      ),
-      cell: ({ row }) => {
-        const entryPrice = parseFloat(row.original.entryPrice)
-        const decimalPlaces = getDecimalPlaces(row.original.instrument, entryPrice)
-        return (
-          <div className="text-right font-medium">
-            {formatCurrency(entryPrice, decimalPlaces)}
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: "closePrice",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Close Price" tableId="trade-table" />
-      ),
-      cell: ({ row }) => {
-        const exitPrice = parseFloat(row.original.closePrice)
-        const decimalPlaces = getDecimalPlaces(row.original.instrument, exitPrice)
-        return (
-          <div className="text-right font-medium">
-            {formatCurrency(exitPrice, decimalPlaces)}
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: "timeInPosition",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Time in Position" tableId="trade-table" />
-      ),
-      cell: ({ row }) => {
-        const timeInPosition = row.original.timeInPosition || 0
-        return <div>{parsePositionTime(timeInPosition)}</div>
-      },
-      sortingFn: (rowA, rowB, columnId) => {
-        const a = rowA.original.timeInPosition || 0
-        const b = rowB.original.timeInPosition || 0
-        return a - b
-      },
-    },
-    {
-      accessorKey: "entryTime",
-      accessorFn: (row) => row.entryDate,
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Entry Time" tableId="trade-table" />
-      ),
-      cell: ({ row }) => {
-        const dateStr = row.original.entryDate
-        return <div>{formatInTimeZone(new Date(dateStr), timezone, 'HH:mm:ss')}</div>
-      },
-    },
-    {
-      accessorKey: "closeDate",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Close Date" tableId="trade-table" />
-      ),
-      cell: ({ row }) => {
-        const dateStr = row.original.closeDate
-        return <div>{formatInTimeZone(new Date(dateStr), timezone, 'HH:mm:ss')}</div>
-      },
-      sortingFn: (rowA, rowB, columnId) => {
-        const a = new Date(rowA.getValue(columnId)).getTime();
-        const b = new Date(rowB.getValue(columnId)).getTime();
-        return a < b ? -1 : a > b ? 1 : 0;
-      },
-    },
-    {
-      accessorKey: "pnl",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="PnL" tableId="trade-table" />
-      ),
-      cell: ({ row }) => {
-        const pnl = row.original.pnl
-        return (
-          <div className="text-right font-medium">
-            <span className={cn(
-              pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'
-            )}>
-              {formatCurrency(pnl)}
+            <span className={cn(value >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive')}>
+              {formatCurrency(value)}
             </span>
           </div>
         )
       },
-      sortingFn: "basic",
+      sortingFn: 'basic',
     },
     {
-      accessorKey: "commission",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Commission" tableId="trade-table" />
-      ),
-      cell: ({ row }) => {
-        const commission = row.original.commission
-        return (
-          <div className="text-right font-medium">
-            {formatCurrency(commission)}
-          </div>
-        )
-      },
+      accessorKey: 'commission',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Commission" tableId="trade-table" />,
+      cell: ({ row }) => <div className="text-right font-medium">{formatCurrency(row.original.commission)}</div>,
+      size: 120,
     },
     {
-      accessorKey: "quantity",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Quantity" tableId="trade-table" />
-      ),
-      cell: ({ row }) => {
-        const quantity = row.original.quantity
-        return (
-          <div className="text-right font-medium">
-            {formatQuantity(quantity)}
-          </div>
-        )
-      },
-      sortingFn: "basic",
+      accessorKey: 'quantity',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Quantity" tableId="trade-table" />,
+      cell: ({ row }) => <div className="text-right font-medium">{formatQuantity(row.original.quantity)}</div>,
+      sortingFn: 'basic',
     },
-
-
-
-
     {
-      id: "actions",
-      header: "Actions",
+      id: 'actions',
+      header: 'Actions',
       cell: ({ row }) => {
         const trade = row.original
-        // For grouped trades, edit the first trade only (or allow editing any)
         const tradeToEdit = trade.trades.length > 0 ? trade.trades[0] : trade
+        const disableChart = !trade.entryDate || !trade.closeDate || !trade.entryPrice || !trade.closePrice
         
         return (
           <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSelectedTradeForView(trade)
-                setIsDetailViewOpen(true)
-              }}
-            >
+            <Button variant='outline' size='sm' onClick={() => onViewDetails(trade)}>
               View
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSelectedTradeForEdit(tradeToEdit)
-                setIsEnhancedEditOpen(true)
-              }}
-            >
+            <Button variant='outline' size='sm' onClick={() => onEditTrade(tradeToEdit)}>
               Edit
             </Button>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={!trade.entryDate || !trade.closeDate || !trade.entryPrice || !trade.closePrice}
-                    onClick={() => {
-                      setSelectedTradeForChart(trade)
-                      setIsChartModalOpen(true)
-                    }}
+                    variant='outline'
+                    size='sm'
+                    disabled={disableChart}
+                    onClick={() => onViewChart(trade)}
                   >
                     <BarChart3 className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>
-                    {!trade.entryDate || !trade.closeDate || !trade.entryPrice || !trade.closePrice
-                      ? 'Trade data incomplete'
-                      : 'View on Chart'
-                    }
-                  </p>
+                  {disableChart ? 'Trade data incomplete' : 'View on Chart'}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -689,10 +417,153 @@ export function TradeTableReview() {
       },
       enableSorting: false,
       enableHiding: false,
-    }
-  ], [timezone])
+    },
+  ], [timezone, onRowSelectionChange, onViewDetails, onEditTrade, onViewChart])
+}
 
-  const table = useReactTable({
+export function TradeTableReview() {
+  const { formattedTrades = [], updateTrades } = useData()
+  const timezone = useUserStore((state) => state.timezone)
+  const isMobile = useMediaQuery('(max-width: 768px)')
+
+  const tableConfig = useTableConfigStore((state) => state.tables['trade-table'])
+  const updateSorting = useTableConfigStore((state) => state.updateSorting)
+  const updateColumnFilters = useTableConfigStore((state) => state.updateColumnFilters)
+  const updateColumnVisibilityState = useTableConfigStore((state) => state.updateColumnVisibilityState)
+  const updatePageSize = useTableConfigStore((state) => state.updatePageSize)
+  const updatePageIndex = useTableConfigStore((state) => state.updatePageIndex)
+
+  const [sorting, setSorting] = React.useState<SortingState>(() => normalizeSorting(tableConfig?.sorting))
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(tableConfig?.columnFilters ?? [])
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(tableConfig?.columnVisibility ?? {})
+  const [expanded, setExpanded] = React.useState<ExpandedState>({})
+  const [pageSize, setPageSize] = React.useState(tableConfig?.pageSize ?? 10)
+  const [pageIndex, setPageIndex] = React.useState(tableConfig?.pageIndex ?? 0)
+  const [selectedTrades, setSelectedTrades] = React.useState<string[]>([])
+
+  const [isEnhancedEditOpen, setIsEnhancedEditOpen] = React.useState(false)
+  const [selectedTradeForEdit, setSelectedTradeForEdit] = React.useState<ExtendedTrade | null>(null)
+  const [isDetailViewOpen, setIsDetailViewOpen] = React.useState(false)
+  const [selectedTradeForView, setSelectedTradeForView] = React.useState<ExtendedTrade | null>(null)
+  const [isChartModalOpen, setIsChartModalOpen] = React.useState(false)
+  const [selectedTradeForChart, setSelectedTradeForChart] = React.useState<ExtendedTrade | null>(null)
+
+  React.useEffect(() => {
+    if (!tableConfig) return
+    const nextSorting = normalizeSorting(tableConfig.sorting)
+    if (!areSortingStatesEqual(sorting, nextSorting)) {
+      setSorting(nextSorting)
+    }
+
+    const nextFilters = tableConfig.columnFilters ?? []
+    if (!areFiltersEqual(columnFilters, nextFilters)) {
+      setColumnFilters(nextFilters)
+    }
+
+    const nextVisibility = tableConfig.columnVisibility ?? {}
+    if (!areVisibilityEqual(columnVisibility, nextVisibility)) {
+      setColumnVisibility(nextVisibility)
+    }
+
+    if (typeof tableConfig.pageSize === 'number' && tableConfig.pageSize !== pageSize) {
+      setPageSize(tableConfig.pageSize)
+    }
+
+    if (typeof tableConfig.pageIndex === 'number' && tableConfig.pageIndex !== pageIndex) {
+      setPageIndex(tableConfig.pageIndex)
+    }
+  }, [tableConfig, sorting, columnFilters, columnVisibility, pageSize, pageIndex])
+
+  const handleSortingChange: OnChangeFn<SortingState> = React.useCallback(
+    (updater) => {
+      setSorting((prev) => {
+        const next = typeof updater === 'function' ? updater(prev) : updater
+        updateSorting('trade-table', next)
+        return next
+      })
+    },
+    [updateSorting]
+  )
+
+  const handleColumnFiltersChange: OnChangeFn<ColumnFiltersState> = React.useCallback(
+    (updater) => {
+      setColumnFilters((prev) => {
+        const next = typeof updater === 'function' ? updater(prev) : updater
+        updateColumnFilters('trade-table', next)
+        return next
+      })
+    },
+    [updateColumnFilters]
+  )
+
+  const handleColumnVisibilityChange: OnChangeFn<VisibilityState> = React.useCallback(
+    (updater) => {
+      setColumnVisibility((prev) => {
+        const next = typeof updater === 'function' ? updater(prev) : updater
+        updateColumnVisibilityState('trade-table', next)
+        return next
+      })
+    },
+    [updateColumnVisibilityState]
+  )
+
+  const handlePageSizeChange = React.useCallback(
+    (size: number) => {
+      setPageSize(size)
+      updatePageSize('trade-table', size)
+    },
+    [updatePageSize]
+  )
+
+  const handlePageIndexChange = React.useCallback(
+    (index: number) => {
+      setPageIndex(index)
+      updatePageIndex('trade-table', index)
+    },
+    [updatePageIndex]
+  )
+
+  const handleViewDetails = React.useCallback((trade: ExtendedTrade) => {
+    setSelectedTradeForView(trade)
+    setIsDetailViewOpen(true)
+  }, [])
+
+  const handleEditTrade = React.useCallback((trade: Trade | ExtendedTrade) => {
+    setSelectedTradeForEdit(trade as ExtendedTrade)
+    setIsEnhancedEditOpen(true)
+  }, [])
+
+  const handleViewChart = React.useCallback((trade: ExtendedTrade) => {
+    setSelectedTradeForChart(trade)
+    setIsChartModalOpen(true)
+  }, [])
+
+  const handleSelectTrade = React.useCallback((tradeIds: string[], value: boolean) => {
+    setSelectedTrades((prev) => {
+      if (value) {
+        const merged = new Set(prev)
+        tradeIds.forEach((id) => merged.add(id))
+        return Array.from(merged)
+      }
+      const toRemove = new Set(tradeIds)
+      return prev.filter((id) => !toRemove.has(id))
+    })
+  }, [])
+
+  const columns = useTradeTableColumns({
+    timezone,
+    onRowSelectionChange: handleSelectTrade,
+    onViewDetails: handleViewDetails,
+    onEditTrade: handleEditTrade,
+    onViewChart: handleViewChart,
+  })
+
+  const groupedTrades = React.useMemo(
+    () => buildGroupedTrades(formattedTrades as unknown as ExtendedTrade[]),
+    [formattedTrades]
+  )
+
+  const table = useReactTable<ExtendedTrade>({
     data: groupedTrades,
     columns,
     state: {
@@ -705,81 +576,93 @@ export function TradeTableReview() {
         pageSize,
       },
     },
+    enableRowSelection: true,
     paginateExpandedRows: false,
     onExpandedChange: setExpanded,
-    onPaginationChange: (updaterOrValue) => {
-      const newPagination = typeof updaterOrValue === 'function' 
-        ? updaterOrValue({ pageIndex, pageSize })
-        : updaterOrValue
-      handlePageIndexChange(newPagination.pageIndex)
-      handlePageSizeChange(newPagination.pageSize)
-    },
-    getSubRows: (row) => row.trades,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getRowCanExpand: (row) => row.original.trades.length > 0,
-    getExpandedRowModel: getExpandedRowModel(),
     onSortingChange: handleSortingChange,
     onColumnFiltersChange: handleColumnFiltersChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
-    defaultColumn: {
-      minSize: 100,
-      maxSize: 300,
+    onPaginationChange: (updaterOrValue) => {
+      const next = typeof updaterOrValue === 'function' ? updaterOrValue({ pageIndex, pageSize }) : updaterOrValue
+      handlePageIndexChange(next.pageIndex)
+      handlePageSizeChange(next.pageSize)
     },
+    getSubRows: (row) => row.trades,
+    getRowCanExpand: (row) => row.original.trades.length > 1,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
   })
 
+  const tableRef = React.useRef<ReactTableInstance<ExtendedTrade> | null>(null)
+  tableRef.current = table
+
+  const handleGroupTrades = React.useCallback(async () => {
+    if (selectedTrades.length < 2) return
+    const tempGroupId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+    await updateTrades(selectedTrades, { groupId: tempGroupId })
+    tableRef.current?.resetRowSelection()
+    setSelectedTrades([])
+  }, [selectedTrades, updateTrades])
+
+  const handleUngroupTrades = React.useCallback(async () => {
+    if (selectedTrades.length === 0) return
+    await updateTrades(selectedTrades, { groupId: null })
+    tableRef.current?.resetRowSelection()
+    setSelectedTrades([])
+  }, [selectedTrades, updateTrades])
+
+  const handleEnhancedEditSave = React.useCallback(
+    async (updatedData: Partial<Trade>) => {
+      if (!selectedTradeForEdit) return
+      await updateTrades([selectedTradeForEdit.id], updatedData)
+    },
+    [selectedTradeForEdit, updateTrades]
+  )
+
   return (
-    <Card className="w-full max-w-6xl mx-auto">
-      <CardHeader className="border-b p-4 space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <section className="w-full max-w-full space-y-6 py-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <CardTitle className="text-lg font-semibold">Trade History</CardTitle>
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Trade History</h1>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Info className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>View detailed trade information</p>
+                  <p>Review every execution, grouping, and adjustment in one view.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Fully responsive table inspired by modern trading journals—supports grouping, bulk actions, and inline tooling.
+          </p>
+          </div>
           
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2">
             {selectedTrades.length >= 2 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleGroupTrades}
-                className="flex-1 sm:flex-none"
-              >
-                <span className="hidden sm:inline">Group Trades</span>
-                <span className="sm:hidden">Group ({selectedTrades.length})</span>
+            <Button variant="outline" size="sm" onClick={handleGroupTrades} className="text-xs sm:text-sm">
+              Group ({selectedTrades.length})
               </Button>
             )}
             {selectedTrades.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleUngroupTrades}
-                className="flex-1 sm:flex-none"
-              >
-                <span className="hidden sm:inline">Ungroup Trades</span>
-                <span className="sm:hidden">Ungroup</span>
+            <Button variant="ghost" size="sm" onClick={handleUngroupTrades} className="text-xs sm:text-sm">
+              Ungroup
               </Button>
             )}
             <ColumnConfigDialog tableId="trade-table" />
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="p-0">
+
+      <div className="rounded-3xl border border-border/60 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/50 shadow-sm dark:shadow-[0_20px_70px_rgba(0,0,0,0.35)]">
         {isMobile ? (
-          /* Mobile Card View */
-          <div className="p-4 space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto">
-            {table.getRowModel().rows?.length ? (
+          <div className="p-4 space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto">
+            {table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map((row) => {
                 const trade = row.original
                 return (
@@ -792,88 +675,82 @@ export function TradeTableReview() {
                     canExpand={row.getCanExpand()}
                     onToggleSelect={() => row.toggleSelected()}
                     onToggleExpand={() => row.toggleExpanded()}
-                    onViewDetails={() => {
-                      setSelectedTradeForView(trade)
-                      setIsDetailViewOpen(true)
-                    }}
-                    onEdit={() => {
-                      setSelectedTradeForEdit(trade)
-                      setIsEnhancedEditOpen(true)
-                    }}
-                    onViewChart={() => {
-                      setSelectedTradeForChart(trade)
-                      setIsChartModalOpen(true)
-                    }}
+                    onViewDetails={() => handleViewDetails(trade)}
+                    onEdit={() => handleEditTrade(trade)}
+                    onViewChart={() => handleViewChart(trade)}
                   />
                 )
               })
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                No trades found
-              </div>
+              <div className="text-center py-12 text-muted-foreground">No trades found</div>
             )}
           </div>
         ) : (
-          /* Desktop Table View */
-          <div className="relative w-full overflow-x-auto">
-            <table className="min-w-[1400px] caption-bottom text-sm">
-              <thead className="sticky top-0 z-20 bg-background border-b">
+          <div className="relative w-full overflow-x-auto rounded-3xl">
+            <table className="w-full min-w-[1100px] lg:min-w-full text-sm">
+              <thead className="sticky top-0 z-20 bg-background/90 backdrop-blur border-b border-border/60">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
                       <th
                         key={header.id}
                         className={cn(
-                          "h-10 px-3 text-left align-middle font-medium text-muted-foreground bg-background text-xs lg:text-sm whitespace-nowrap",
-                          "[&:has([role=checkbox])]:pr-2"
+                          'h-11 px-4 text-left align-middle font-medium text-muted-foreground text-xs lg:text-sm whitespace-nowrap uppercase tracking-wide',
+                          '[&:has([role=checkbox])]:pr-2'
                         )}
                       >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                       </th>
                     ))}
                   </tr>
                 ))}
               </thead>
               <tbody>
-                {table.getRowModel().rows?.length ? (
+                {table.getRowModel().rows.length ? (
                   table.getRowModel().rows.map((row) => (
                     <React.Fragment key={row.id}>
                       <tr
-                        data-state={row.getIsSelected() && "selected"}
-                        className={cn(
-                          "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
-                          row.getIsExpanded()
-                            ? "bg-muted"
-                            : row.getCanExpand()
-                              ? ""
-                              : "bg-muted/50"
-                        )}
+                        data-state={row.getIsSelected() && 'selected'}
+                        className="border-b border-border/40 transition-colors hover:bg-muted/40 data-[state=selected]:bg-muted/60"
                       >
                         {row.getVisibleCells().map((cell) => (
                           <td
                             key={cell.id}
                             className={cn(
-                              "px-3 py-2.5 align-middle text-xs lg:text-sm whitespace-nowrap",
-                              "[&:has([role=checkbox])]:pr-2"
+                              'px-4 py-3 align-middle text-xs lg:text-sm whitespace-nowrap',
+                              '[&:has([role=checkbox])]:pr-2'
                             )}
                           >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </td>
                         ))}
                       </tr>
+                      {row.getIsExpanded() && row.original.trades.length > 1 && (
+                        <tr className="bg-muted/20">
+                          <td colSpan={columns.length} className="px-10 py-4">
+                            <div className="space-y-2 text-xs text-muted-foreground">
+                              {row.original.trades.map((trade) => (
+                                <div
+                                  key={trade.id}
+                                  className="grid grid-cols-2 md:grid-cols-4 gap-2 border border-dashed border-border/40 rounded-lg p-3 bg-background/50"
+                                >
+                                  <span className="font-semibold text-foreground">
+                                    {trade.instrument} ({trade.side})
+                                  </span>
+                                  <span>Entry: {formatCurrency(parseFloat(trade.entryPrice))}</span>
+                                  <span>Exit: {formatCurrency(parseFloat(trade.closePrice))}</span>
+                                  <span>PnL: {formatCurrency(trade.pnl)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
                     </React.Fragment>
                   ))
                 ) : (
                   <tr>
-                    <td
-                      colSpan={columns.length}
-                      className="h-24 text-center px-4 py-3 align-middle"
-                    >
+                    <td colSpan={columns.length} className="h-24 text-center px-4 py-3 align-middle">
                       No results.
                     </td>
                   </tr>
@@ -882,27 +759,25 @@ export function TradeTableReview() {
             </table>
           </div>
         )}
-      </CardContent>
-      <CardFooter className="flex flex-col gap-4 border-t bg-background px-4 py-3">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 w-full">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm text-muted-foreground">
-              {table.getFilteredRowModel().rows.length} of {table.getCoreRowModel().rows.length} trades
+      </div>
+
+      <div className="flex flex-col gap-3 pt-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 w-full">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap text-xs sm:text-sm">
+            <span className="text-muted-foreground whitespace-nowrap">
+              {table.getFilteredRowModel().rows.length} of {table.getCoreRowModel().rows.length}
             </span>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Rows:</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Rows:</span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 w-16">
+                  <Button variant="outline" size="sm" className="h-7 w-14 text-xs">
                     {pageSize}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
                   {[10, 25, 50, 100, 250].map((size) => (
-                    <DropdownMenuItem
-                      key={size}
-                      onClick={() => handlePageSizeChange(size)}
-                    >
+                    <DropdownMenuItem key={size} onClick={() => handlePageSizeChange(size)}>
                       {size}
                     </DropdownMenuItem>
                   ))}
@@ -911,33 +786,33 @@ export function TradeTableReview() {
             </div>
           </div>
           
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-end">
             <Button
               variant="outline"
               size="sm"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="h-8"
+              className="h-7 px-2 sm:px-3 text-xs"
             >
-              <ChevronLeft className="h-4 w-4 sm:mr-1" />
+              <ChevronLeft className="h-3.5 w-3.5 sm:mr-1" />
               <span className="hidden sm:inline">Previous</span>
             </Button>
-            <span className="text-sm px-2">
-              {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+            <span className="text-xs sm:text-sm px-1 sm:px-2 whitespace-nowrap">
+              {table.getState().pagination.pageIndex + 1} / {Math.max(table.getPageCount(), 1)}
             </span>
             <Button
               variant="outline"
               size="sm"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="h-8"
+              className="h-7 px-2 sm:px-3 text-xs"
             >
               <span className="hidden sm:inline">Next</span>
-              <ChevronRight className="h-4 w-4 sm:ml-1" />
+              <ArrowRight className="h-3.5 w-3.5 sm:ml-1" />
             </Button>
           </div>
         </div>
-      </CardFooter>
+      </div>
       
       <TradeDetailView
         isOpen={isDetailViewOpen}
@@ -945,7 +820,7 @@ export function TradeTableReview() {
           setIsDetailViewOpen(false)
           setSelectedTradeForView(null)
         }}
-        trade={selectedTradeForView}
+        trade={selectedTradeForView as any}
       />
       
       <EnhancedEditTrade
@@ -954,7 +829,7 @@ export function TradeTableReview() {
           setIsEnhancedEditOpen(false)
           setSelectedTradeForEdit(null)
         }}
-        trade={selectedTradeForEdit}
+        trade={selectedTradeForEdit as any}
         onSave={handleEnhancedEditSave}
       />
 
@@ -966,6 +841,7 @@ export function TradeTableReview() {
         }}
         trade={selectedTradeForChart}
       />
-    </Card>
+    </section>
   )
 }
+

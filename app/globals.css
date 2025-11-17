@@ -80,27 +80,27 @@
 
 @layer base {
   :root {
-    /* TradeZella Light Theme Colors */
-    --background: 210 20% 98%;           /* #F9FAFB - Off-white background */
-    --foreground: 222 47% 11%;           /* #111827 - Near black text */
-    --card: 0 0% 100%;                   /* #FFFFFF - Pure white cards */
-    --card-foreground: 222 47% 11%;      /* #111827 - Card text */
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    /* Light Theme Colors - Rebuilt for better UX */
+    --background: 220 14% 96%;           /* #F3F4F6 - Softer gray background */
+    --foreground: 222 47% 15%;           /* #1A2332 - Slightly softer text */
+    --card: 0 0% 99%;                    /* #FCFCFC - Near white cards */
+    --card-foreground: 222 47% 15%;      /* #1A2332 - Card text */
+    --popover: 0 0% 99%;
+    --popover-foreground: 222 47% 15%;
     --primary: 222 47% 11%;              /* #111827 - Primary (dark) */
     --primary-foreground: 0 0% 98%;      /* #FAFAFA - Primary text */
-    --secondary: 220 14% 96%;            /* #F3F4F6 - Light gray */
-    --secondary-foreground: 222 47% 11%;
-    --muted: 220 14% 96%;                /* #F3F4F6 - Muted background */
-    --muted-foreground: 220 9% 46%;      /* #6B7280 - Muted text */
+    --secondary: 220 14% 94%;            /* #EEEFF1 - Lighter gray */
+    --secondary-foreground: 222 47% 15%;
+    --muted: 220 14% 94%;                /* #EEEFF1 - Muted background */
+    --muted-foreground: 220 9% 50%;      /* #71788A - Darker for readability */
     --accent: 220 70% 45%;               /* Dark blue accent */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;            /* #DC2626 - Red for losses */
     --destructive-foreground: 0 0% 98%;
     --success: 160 84% 39%;              /* #059669 - Green for profits */
     --success-foreground: 0 0% 98%;
-    --border: 220 13% 91%;               /* #E5E7EB - Light borders */
-    --input: 220 13% 91%;
+    --border: 220 13% 88%;               /* #DADDE3 - Softer borders */
+    --input: 220 13% 88%;
     --ring: 220 70% 50%;                 /* Dark blue focus ring */
     --radius: 0.75rem;
     
@@ -150,24 +150,21 @@
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;            /* #EF4444 - Bright red for losses */
     --destructive-foreground: 0 0% 100%;
-    --success: 160 84% 39%;              /* #10B981 - Bright green for profits */
+    --success: 160 84% 35%;              /* Softer green for profits (reduced eye strain) */
     --success-foreground: 0 0% 100%;
     --border: 220 20% 18%;               /* Darker subtle borders */
     --input: 0 0% 100% / 0.1;
     --ring: 220 70% 50%;                 /* Dark blue focus ring */
     
     /* Chart colors (dark theme) */
-    --chart-profit: 160 84% 39%;         /* #10B981 - Profit green */
+    --chart-profit: 160 84% 35%;         /* Softer profit green (eye-friendly) */
     --chart-loss: 0 84% 60%;             /* #EF4444 - Loss red */
     --chart-neutral: 220 9% 46%;         /* #6B7280 - Neutral gray */
     --chart-1: 0 84% 60%;                /* Bright red */
-    --chart-2: 160 84% 39%;              /* Bright green */
+    --chart-2: 160 84% 35%;              /* Softer green */
     --chart-3: 217 91% 60%;              /* Blue */
     --chart-4: 262 83% 58%;              /* Purple */
     --chart-5: 174 72% 56%;              /* Teal */
-    
-    --chart-profit: 160 84% 39%;         /* Green for profits */
-    --chart-loss: 0 84% 60%;             /* Red for losses */
     
     /* Sidebar */
     --sidebar-background: 225 26% 18%;

@@ -64,7 +64,7 @@ const AccountBalancePnl = React.memo(function AccountBalancePnl({ size }: Accoun
 
   return (
     <Card className="w-full h-24 overflow-hidden">
-      <CardContent className="p-3 h-full flex flex-col justify-center gap-1">
+      <CardContent className="p-5 h-full flex flex-col justify-center gap-1">
         <div className="flex items-center gap-1.5">
           <span className="text-[11px] text-muted-foreground font-medium whitespace-nowrap">
             Account Balance & P&L

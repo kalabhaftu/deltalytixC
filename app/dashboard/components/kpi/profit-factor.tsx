@@ -23,16 +23,15 @@ const ProfitFactor = React.memo(function ProfitFactor({ size }: ProfitFactorProp
   // Values above 1.0 are good, so we'll map 0-2.0 to 0-100%
   const progressValue = Math.min((profitFactor / 2.0) * 100, 100)
   
-  // Determine color based on profit factor
+  // Determine color based on profit factor - use CSS variables for consistency
   const getColor = (factor: number) => {
-    if (factor >= 1.5) return '#22c55e' // green-500 - excellent
-    if (factor >= 1.0) return '#eab308' // yellow-500 - profitable
-    return '#ef4444' // red-500 - unprofitable
+    if (factor >= 1.0) return 'hsl(var(--chart-profit))' // Profit green (profitable)
+    return 'hsl(var(--chart-loss))' // Loss red (unprofitable)
   }
 
   return (
     <Card className="w-full h-24">
-      <CardContent className="p-4 h-full flex items-center justify-between">
+      <CardContent className="p-5 h-full flex items-center justify-between">
         <div className="flex flex-col">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs text-muted-foreground font-medium">

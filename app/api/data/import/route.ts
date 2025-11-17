@@ -386,8 +386,9 @@ export async function POST(request: NextRequest) {
       for (const note of dailyNotes) {
         await prisma.dailyNote.upsert({
           where: {
-            userId_date: {
+            userId_accountId_date: {
               userId: user.id,
+              accountId: '', // Empty string matches NULL in unique constraint
               date: new Date(note.date)
             }
           },
@@ -396,6 +397,7 @@ export async function POST(request: NextRequest) {
           },
           create: {
             userId: user.id,
+            accountId: null,
             date: new Date(note.date),
             note: note.note,
             createdAt: note.createdAt ? new Date(note.createdAt) : new Date(),

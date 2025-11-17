@@ -11,6 +11,7 @@ import { CalendarModal } from "./daily-modal"
 import { CalendarData } from "@/app/dashboard/types/calendar"
 import { Card, CardTitle } from "@/components/ui/card"
 import { useUserStore } from "@/store/user-store"
+import { TODAY_STYLES } from "@/app/dashboard/constants/calendar-styles"
 
 function formatCurrency(value: number): string {
   const absValue = Math.abs(value);
@@ -55,10 +56,10 @@ function isDateStringToday(dateString: string, timezone: string): boolean {
   return dateString === todayString;
 }
 
-const MOBILE_TODAY_CLASSES =
-  "bg-sky-500/20 text-sky-50 ring-1 ring-sky-400/70 shadow-[0_0_12px_rgba(14,165,233,0.35)]"
+// Removed - now using inline classes for today styling
 
-export default function MobileCalendarPnl({ calendarData }: { calendarData: CalendarData }) {
+// Memoized mobile calendar for better performance
+function MobileCalendarPnl({ calendarData }: { calendarData: CalendarData }) {
   const locale = 'en' // Fixed to English since we removed i18n
   const timezone = useUserStore(state => state.timezone)
   const dateLocale = enUS
@@ -174,67 +175,45 @@ export default function MobileCalendarPnl({ calendarData }: { calendarData: Cale
               dateInTZ.getMonth() === currentMonth &&
               dateInTZ.getFullYear() === currentYear
 
-            // contribution calculation uses dayData which is already correct
-            const contribution = dayData && monthlyTotal !== 0
-              ? Math.abs(dayData.pnl / monthlyTotal) 
-              : 0
-            const strokeDasharray = contribution > 0 
-              ? `${contribution * 100} ${100 - (contribution * 100)}`
-              : "0 100"
-
             return (
               <div
-                key={dateString} // Key is the timezone-correct date string
+                key={dateString}
                 className={cn(
-                  "relative flex items-center justify-center",
-                  !isCurrentMonthDay && "opacity-30" // Fade based on timezone-correct check
+                  "flex flex-col items-center justify-center p-1 border rounded-md min-h-[48px] sm:min-h-[60px] transition-all cursor-pointer hover:border-foreground/20",
+                  !isCurrentMonthDay && "opacity-30",
+                  isDateStringToday(dateString, timezone) && TODAY_STYLES.cell,
+                  dayData && dayData.pnl !== 0 && !isDateStringToday(dateString, timezone) && (
+                    dayData.pnl > 0 
+                      ? "border-green-500/50 bg-green-500/5 dark:bg-green-500/10" 
+                      : "border-red-500/50 bg-red-500/5 dark:bg-red-500/10"
+                  ),
+                  !dayData && !isDateStringToday(dateString, timezone) && "border-border/30"
                 )}
                 onClick={() => {
                   // Click functionality disabled - calendar UI preserved for future use
                 }}
               >
-                {dayData && (
-                  <svg
-                    className="absolute w-10 h-10 -rotate-90"
-                    viewBox="0 0 36 36"
-                  >
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="16"
-                      fill="none"
-                      className="stroke-current opacity-10"
-                      strokeWidth="2.5"
-                    />
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="16"
-                      fill="none"
-                      className={cn(
-                        "stroke-current transition-all",
-                        dayData.pnl >= 0 ? "stroke-green-500" : "stroke-red-500"
-                      )}
-                      strokeWidth="2.5"
-                      strokeDasharray={strokeDasharray}
-                      strokeDashoffset="0"
-                    />
-                  </svg>
-                )}
-                <div className={cn(
-                  "w-8 h-8 flex items-center justify-center rounded-full z-10 transition-all",
-                  isDateStringToday(dateString, timezone) && MOBILE_TODAY_CLASSES,
+                <span className={cn(
+                  "text-sm font-semibold",
+                  isDateStringToday(dateString, timezone) && TODAY_STYLES.text,
                   dayData && dayData.pnl !== 0 && !isDateStringToday(dateString, timezone) && (
-                    dayData.pnl > 0
-                      ? "text-green-600 dark:text-green-400"
+                    dayData.pnl > 0 
+                      ? "text-green-600 dark:text-green-400" 
                       : "text-red-600 dark:text-red-400"
                   )
                 )}>
-                  <span className="text-lg font-semibold">
-                    {/* Display the day number from the date parsed in the target timezone */}
-                    {format(dateInTZ, 'd')}
+                  {format(dateInTZ, 'd')}
+                </span>
+                {dayData && dayData.pnl !== 0 && (
+                  <span className={cn(
+                    "text-[10px] font-medium mt-0.5",
+                    dayData.pnl > 0 
+                      ? "text-green-600 dark:text-green-400" 
+                      : "text-red-600 dark:text-red-400"
+                  )}>
+                    ${formatCurrency(dayData.pnl)}
                   </span>
-                </div>
+                )}
               </div>
             )
           })}
@@ -253,3 +232,8 @@ export default function MobileCalendarPnl({ calendarData }: { calendarData: Cale
     </Card>
   )
 }
+
+// Export memoized version to prevent unnecessary re-renders
+export default React.memo(MobileCalendarPnl, (prevProps, nextProps) => {
+  return JSON.stringify(prevProps.calendarData) === JSON.stringify(nextProps.calendarData)
+})

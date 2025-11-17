@@ -17,7 +17,8 @@ import {
   Menu,
   Sun,
   Moon,
-  Laptop
+  Laptop,
+  FlaskConical
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { motion } from "framer-motion"
@@ -40,7 +41,7 @@ const navigationItems: NavigationItem[] = [
   {
     id: 'widgets',
     label: 'Dashboard',
-    icon: BarChart3
+    icon: LayoutDashboard
   },
   {
     id: 'table',
@@ -60,7 +61,7 @@ const navigationItems: NavigationItem[] = [
   {
     id: 'backtesting',
     label: 'Backtesting',
-    icon: TrendingUp
+    icon: FlaskConical
   },
 ]
 
@@ -142,7 +143,9 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
                       <Icon className={cn(
                         "h-5 w-5 shrink-0 transition-all duration-300",
                         isCollapsed && !isMobile ? "mr-0" : "mr-3",
-                        isActive ? "scale-110" : "group-hover:scale-110"
+                        isActive 
+                          ? "scale-110 text-foreground" 
+                          : "text-muted-foreground group-hover:scale-110 group-hover:text-foreground"
                       )} />
                       {(!isCollapsed || isMobile) && (
                         <span className="truncate font-medium">{item.label}</span>

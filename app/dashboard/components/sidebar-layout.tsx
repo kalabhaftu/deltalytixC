@@ -5,6 +5,7 @@ import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import { DashboardSidebar } from './sidebar/dashboard-sidebar'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
+import { useUserStore } from '@/store/user-store'
 
 interface SidebarLayoutProps {
   children: ReactNode
@@ -16,6 +17,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
   const router = useRouter()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const setIsLoading = useUserStore(state => state.setIsLoading)
 
   // Determine active tab from URL
   const getActiveTab = () => {
@@ -48,6 +50,16 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
     
     router.push(tabRoutes[tab] || '/dashboard')
   }
+
+  // Reset loading state on route change to prevent persistent loading toast
+  useEffect(() => {
+    // Small delay to ensure any in-flight requests complete
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 100)
+    
+    return () => clearTimeout(timer)
+  }, [pathname, setIsLoading])
 
   // Check if mobile and load sidebar state
   useEffect(() => {

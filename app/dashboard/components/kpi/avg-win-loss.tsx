@@ -44,7 +44,7 @@ const AvgWinLoss = React.memo(function AvgWinLoss({ size }: AvgWinLossProps) {
   
   return (
     <Card className="w-full h-24">
-      <CardContent className="p-4 h-full flex flex-col justify-center">
+      <CardContent className="p-5 h-full flex flex-col justify-center">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs text-muted-foreground font-medium">
             Avg win/loss trade

@@ -25,9 +25,9 @@ const CurrentStreak = React.memo(function CurrentStreak({ size }: CurrentStreakP
     worstTradeStreak
   } = useTradeStatistics()
   
-  // Determine circle colors based on current streak
-  const getDayColor = () => currentDayStreak >= 0 ? '#22c55e' : '#ef4444'
-  const getTradeColor = () => currentTradeStreak >= 0 ? '#22c55e' : '#ef4444'
+  // Determine circle colors based on current streak - use CSS variables for consistency
+  const getDayColor = () => currentDayStreak >= 0 ? 'hsl(var(--chart-profit))' : 'hsl(var(--chart-loss))'
+  const getTradeColor = () => currentTradeStreak >= 0 ? 'hsl(var(--chart-profit))' : 'hsl(var(--chart-loss))'
 
   return (
     <Card className="w-full h-24">

@@ -39,6 +39,7 @@ import { useUserStore } from '@/store/user-store'
 import { formatCurrency } from '@/lib/utils'
 import { DataSerializer } from '@/lib/data-serialization'
 import { uploadService } from '@/lib/upload-service'
+import { TagSelector } from '@/app/dashboard/components/tags/tag-selector'
 
 // Utility function to format trading model names consistently
 const formatModelName = (model: string): string => {
@@ -192,6 +193,7 @@ export default function EnhancedEditTrade({
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null)
   const [additionalLinks, setAdditionalLinks] = useState<string[]>([])
   const [isTradingModelOpen, setIsTradingModelOpen] = useState(false)
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   
   // Confirmation dialogs state
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false)
@@ -242,6 +244,10 @@ export default function EnhancedEditTrade({
   // Initialize form with trade data and load draft if available
   useEffect(() => {
     if (trade && isOpen) {
+      // Initialize tags
+      const tradeTags = (trade as any)?.tags
+      setSelectedTags(tradeTags ? tradeTags.split(',').filter(Boolean) : [])
+      
       const defaultFormState: EditTradeFormData = {
         comment: trade.comment || '',
         imageBase64: trade.imageBase64 || '',
@@ -410,6 +416,7 @@ export default function EnhancedEditTrade({
       const updateData = {
         comment: data.comment || null,
         tradingModel: data.tradingModel ? mapModelToEnum(data.tradingModel) : null,
+        tags: selectedTags.length > 0 ? selectedTags.join(',') : null,
         // For images, we need to distinguish between empty string (deleted) and undefined (not changed)
         imageBase64: data.imageBase64 === '' ? null : data.imageBase64 || null,
         imageBase64Second: data.imageBase64Second === '' ? null : data.imageBase64Second || null,
@@ -584,6 +591,25 @@ export default function EnhancedEditTrade({
                   </Collapsible>
                   <p className="text-sm text-muted-foreground">
                     Choose the trading model or strategy used for this trade.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tags */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Trade Tags</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label>Categorize this trade</Label>
+                  <TagSelector
+                    selectedTagIds={selectedTags}
+                    onChange={setSelectedTags}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Add tags to categorize and filter your trades.
                   </p>
                 </div>
               </CardContent>

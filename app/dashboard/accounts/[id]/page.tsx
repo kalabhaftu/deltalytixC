@@ -87,7 +87,8 @@ export default function LiveAccountDetailPage() {
     if (accountId) {
       fetchAccountData()
     }
-  }, [accountId, refreshKey, fetchAccountData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountId, refreshKey])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)

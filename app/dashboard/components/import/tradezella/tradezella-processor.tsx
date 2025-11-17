@@ -143,6 +143,7 @@ export default function TradezellaProcessor({ headers, csvData, setProcessedTrad
         imageBase64Sixth: null,
         cardPreviewImage: null,
         tradingModel: null,
+        tags: null,
         groupId: null,
         symbol: null,
         entryTime: null,

@@ -37,11 +37,10 @@ interface StrategyWinRate {
   consistency: number
 }
 
-// Use consistent chart colors instead of hardcoded values
+// Use consistent chart colors based on win rate thresholds
 const getStrategyColor = (winRate: number, index: number) => {
-  if (winRate >= 60) return 'hsl(var(--chart-profit))'  // Green for good win rates
-  if (winRate >= 40) return '#f59e0b'  // Orange for medium win rates  
-  return 'hsl(var(--chart-loss))'  // Red for poor win rates
+  if (winRate >= 50) return 'hsl(var(--chart-profit))'  // Green for winning strategies
+  return 'hsl(var(--chart-loss))'  // Red for losing strategies
 }
 
 export default function WinRateByStrategy({ size = 'small-long' }: WinRateByStrategyProps) {

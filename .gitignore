@@ -286,4 +286,4 @@ Temporary Items
 .nfs*
 
 .cursor/
-/temp files
+/temp filesenv-temp.txt

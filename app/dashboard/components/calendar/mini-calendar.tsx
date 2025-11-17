@@ -10,19 +10,9 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CalendarData } from "@/app/dashboard/types/calendar"
 import { useUserStore } from "@/store/user-store"
+import { TODAY_STYLES, WEEKDAYS_WEEKDAYS_ONLY } from "@/app/dashboard/constants/calendar-styles"
 
-const WEEKDAYS_MINI = [
-  'Mon',
-  'Tue',
-  'Wed',
-  'Thu',
-  'Fri'
-] as const
-
-const MINI_TODAY_CELL_CLASSES =
-  "border-sky-500/70 bg-sky-500/10 ring-1 ring-sky-400/60 shadow-[0_0_10px_rgba(14,165,233,0.35)]"
-const MINI_TODAY_TEXT_CLASSES =
-  "text-sky-500 dark:text-sky-300 drop-shadow-[0_0_6px_rgba(14,165,233,0.45)]"
+const WEEKDAYS_MINI = WEEKDAYS_WEEKDAYS_ONLY
 
 function getCalendarDays(monthStart: Date, monthEnd: Date) {
   const startDate = startOfWeek(monthStart)
@@ -54,7 +44,8 @@ interface MiniCalendarProps {
   calendarData: CalendarData;
 }
 
-export default function MiniCalendar({ calendarData }: MiniCalendarProps) {
+// Memoized mini calendar to prevent unnecessary re-renders
+function MiniCalendar({ calendarData }: MiniCalendarProps) {
   const locale = 'en'
   const timezone = useUserStore(state => state.timezone)
   const dateLocale = enUS
@@ -194,13 +185,13 @@ export default function MiniCalendar({ calendarData }: MiniCalendarProps) {
                         ? "bg-red-50/60 dark:bg-red-950/30 border-red-100/80 dark:border-red-900/40"
                         : "bg-card border-border",
                     !isCurrentMonth && "opacity-50",
-                    isToday(date) && MINI_TODAY_CELL_CLASSES,
+                    isToday(date) && TODAY_STYLES.cell,
                   )}
                 >
                   <div className="flex justify-between items-start gap-0.5">
                     <span className={cn(
                       "text-[9px] sm:text-[11px] font-medium min-w-[14px] text-center",
-                      isToday(date) && `${MINI_TODAY_TEXT_CLASSES} font-semibold`,
+                      isToday(date) && TODAY_STYLES.text,
                       !isCurrentMonth && "opacity-50"
                     )}>
                       {format(date, 'd')}
@@ -235,23 +226,25 @@ export default function MiniCalendar({ calendarData }: MiniCalendarProps) {
                 </div>
                 {isLastDayOfWeek && (() => {
                   const weeklyTotal = calculateWeeklyTotal(index, calendarDays, calendarData)
+                  const weeklyState = weeklyTotal > 0 ? 'gain' : weeklyTotal < 0 ? 'loss' : 'flat'
                   return (
                     <div
                       className={cn(
-                        "h-full flex items-center justify-center rounded-md",
-                        "border",
-                        weeklyTotal >= 0
+                        "h-full flex items-center justify-center rounded-md border",
+                        weeklyState === 'gain'
                           ? "bg-green-50/80 dark:bg-green-950/40 border-green-100 dark:border-green-900/50"
-                          : weeklyTotal < 0
+                          : weeklyState === 'loss'
                             ? "bg-red-50/60 dark:bg-red-950/30 border-red-100/80 dark:border-red-900/40"
-                            : "bg-card border-border"
+                            : "bg-muted/30 dark:bg-muted/10 border-dashed border-border/70"
                       )}
                     >
                       <div className={cn(
                         "text-[9px] sm:text-[11px] font-semibold truncate px-0.5",
-                        weeklyTotal >= 0
+                        weeklyState === 'gain'
                           ? "text-green-600 dark:text-green-400"
-                          : "text-red-600 dark:text-red-400"
+                          : weeklyState === 'loss'
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-muted-foreground"
                       )}>
                         {formatCurrency(weeklyTotal)}
                       </div>
@@ -266,4 +259,9 @@ export default function MiniCalendar({ calendarData }: MiniCalendarProps) {
     </Card>
   )
 }
+
+// Export memoized version for performance
+export default React.memo(MiniCalendar, (prevProps, nextProps) => {
+  return JSON.stringify(prevProps.calendarData) === JSON.stringify(nextProps.calendarData)
+})
 

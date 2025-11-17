@@ -10,7 +10,7 @@ const TradeTableReview = dynamic(
 
 export default function TablePage() {
   return (
-    <div className="w-full">
+    <div className="w-full px-3 sm:px-4 md:px-6">
       <TradeTableReview />
     </div>
   )

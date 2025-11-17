@@ -237,8 +237,8 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
                   data={chartData}
                   margin={
                     size === 'small' || size === 'small-long'
-                      ? { top: 10, right: 15, bottom: 10, left: 15 }
-                      : { top: 15, right: 25, bottom: 15, left: 25 }
+                      ? { top: 30, right: 40, bottom: 30, left: 40 }
+                      : { top: 30, right: 40, bottom: 30, left: 40 }
                   }
                 >
                   <PolarGrid
@@ -248,9 +248,10 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
                   <PolarAngleAxis
                     dataKey="metric"
                     tick={{
-                      fontSize: size === 'small' || size === 'small-long' ? 9 : 11,
+                      fontSize: size === 'small' || size === 'small-long' ? 8 : 10,
                       fill: 'hsl(var(--muted-foreground))'
                     }}
+                    stroke="hsl(var(--border))"
                   />
                   <PolarRadiusAxis
                     angle={90}
@@ -262,15 +263,15 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
                   <Radar
                     name="Score"
                     dataKey="value"
-                    stroke="#8b5cf6"
-                    fill="#8b5cf6"
+                    stroke="hsl(var(--chart-4))"
+                    fill="hsl(var(--chart-4))"
                     fillOpacity={0.3}
                     strokeWidth={2}
                     dot={{
-                      fill: '#8b5cf6',
-                      stroke: 'none',
-                      strokeWidth: 0,
-                      r: size === 'small' || size === 'small-long' ? 3 : 4
+                      fill: 'hsl(var(--chart-4))',
+                      stroke: 'hsl(var(--background))',
+                      strokeWidth: 1,
+                      r: size === 'small' || size === 'small-long' ? 4 : 5
                     }}
                   />
                 </RadarChart>

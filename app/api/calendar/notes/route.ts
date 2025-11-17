@@ -71,11 +71,12 @@ export async function POST(request: NextRequest) {
     const noteDate = new Date(date)
     noteDate.setHours(0, 0, 0, 0)
 
-    // Upsert the note (create or update)
+    // Upsert the note (create or update) - accountId is NULL for "all accounts" notes
     const savedNote = await prisma.dailyNote.upsert({
       where: {
-        userId_date: {
+        userId_accountId_date: {
           userId: user.id,
+          accountId: '', // Empty string matches NULL in unique constraint
           date: noteDate
         }
       },
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
       },
       create: {
         userId: user.id,
+        accountId: null,
         date: noteDate,
         note: note
       }
@@ -126,8 +128,9 @@ export async function DELETE(request: NextRequest) {
     // Delete the note
     await prisma.dailyNote.delete({
       where: {
-        userId_date: {
+        userId_accountId_date: {
           userId: user.id,
+          accountId: '', // Empty string matches NULL in unique constraint
           date: noteDate
         }
       }
