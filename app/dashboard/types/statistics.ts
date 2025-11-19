@@ -15,7 +15,11 @@ export interface StatisticsProps {
   // New metrics for enhanced statistics
   biggestWin: number;
   biggestLoss: number;
+  averageWin: number;
+  averageLoss: number;
   // Payout statistics
   totalPayouts: number;
   nbPayouts: number;
+  // Aggregated totals
+  totalPnL: number;
 }

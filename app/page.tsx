@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Moon, Sun, Laptop } from "lucide-react"
+import { Moon, Sun, Laptop, Waves } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -50,7 +50,7 @@ export default function RootPage() {
   }, [router, isClient])
 
   const handleThemeChange = (value: string) => {
-    setTheme(value as "light" | "dark" | "system")
+    setTheme(value as "light" | "dark" | "midnight-ocean" | "system")
     setThemeOpen(false)
   }
 
@@ -62,6 +62,7 @@ export default function RootPage() {
     
     // Client-side logic using effectiveTheme from context
     if (theme === 'light') return <Sun className="h-4 w-4" />
+    if (theme === 'midnight-ocean') return <Waves className="h-4 w-4" />
     if (theme === 'dark') return <Moon className="h-4 w-4" />
     if (theme === 'system') {
       return effectiveTheme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />
@@ -159,6 +160,10 @@ export default function RootPage() {
                     <CommandItem onSelect={() => handleThemeChange("dark")}>
                       <Moon className="mr-2 h-4 w-4" />
                       <span>Dark mode</span>
+                    </CommandItem>
+                    <CommandItem onSelect={() => handleThemeChange("midnight-ocean")}>
+                      <Waves className="mr-2 h-4 w-4" />
+                      <span>Midnight Ocean</span>
                     </CommandItem>
                     <CommandItem onSelect={() => handleThemeChange("system")}>
                       <Laptop className="mr-2 h-4 w-4" />

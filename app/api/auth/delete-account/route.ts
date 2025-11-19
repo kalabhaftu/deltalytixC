@@ -68,8 +68,8 @@ export async function DELETE(request: NextRequest) {
       if (accountIds.length > 0) {
         await tx.dailyAnchor.deleteMany({
           where: {
-            phaseAccount: {
-              masterAccount: {
+            PhaseAccount: {
+              MasterAccount: {
                 userId
               }
             }

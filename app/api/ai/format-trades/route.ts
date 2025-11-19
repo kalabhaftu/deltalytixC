@@ -3,6 +3,7 @@ import { streamObject } from "ai";
 import { NextRequest } from "next/server";
 import { tradeSchema } from "./schema";
 import { z } from "zod";
+import { applyRateLimit, aiLimiter } from "@/lib/rate-limiter";
 
 export const maxDuration = 30;
 
@@ -18,6 +19,10 @@ const requestSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResult = await applyRateLimit(req, aiLimiter);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const body = await req.json();
     const { headers, rows } = requestSchema.parse(body);

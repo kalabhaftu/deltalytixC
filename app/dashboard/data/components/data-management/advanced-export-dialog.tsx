@@ -19,6 +19,14 @@ export function AdvancedExportDialog() {
   const [isOpen, setIsOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
 
+  // Selection states
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([])
+  const [selectedInstruments, setSelectedInstruments] = useState<string[]>([])
+  const [selectAllAccounts, setSelectAllAccounts] = useState(true)
+  const [selectAllInstruments, setSelectAllInstruments] = useState(true)
+  const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined })
+  const [isAllTime, setIsAllTime] = useState(true)
+
   // Get unique accounts and instruments - use the same structure as data management card
   const accountsList = useMemo(() => {
     if (!allAccounts || accountsLoading) return []
@@ -29,17 +37,22 @@ export function AdvancedExportDialog() {
     }))
   }, [allAccounts, accountsLoading])
 
+  // Get instruments from ALL accounts (including failed) by fetching all trades
   const instrumentsList = useMemo(() => {
-    return Array.from(new Set(formattedTrades.map(t => t.instrument).filter(Boolean)))
-  }, [formattedTrades])
-
-  // Selection states
-  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([])
-  const [selectedInstruments, setSelectedInstruments] = useState<string[]>([])
-  const [selectAllAccounts, setSelectAllAccounts] = useState(true)
-  const [selectAllInstruments, setSelectAllInstruments] = useState(true)
-  const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined })
-  const [isAllTime, setIsAllTime] = useState(true)
+    // If we have selected accounts, filter trades by those accounts
+    // Otherwise, get all unique instruments from all trades
+    const relevantTrades = selectedAccounts.length > 0 && selectedAccounts.length < accountsList.length
+      ? formattedTrades.filter(t => {
+          // Match by account number or account ID
+          const tradeAccount = allAccounts?.find(acc => 
+            acc.number === t.accountNumber || acc.id === t.accountId
+          )
+          return tradeAccount && selectedAccounts.includes(tradeAccount.id)
+        })
+      : formattedTrades // Use all trades if no selection or all selected
+    
+    return Array.from(new Set(relevantTrades.map(t => t.instrument).filter(Boolean)))
+  }, [formattedTrades, selectedAccounts, accountsList.length, allAccounts])
 
   // Initialize selections
   useEffect(() => {

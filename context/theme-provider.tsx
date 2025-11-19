@@ -2,11 +2,11 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
 
-type Theme = 'light' | 'dark' | 'system'
+type Theme = 'light' | 'dark' | 'midnight-ocean' | 'system'
 
 type ThemeContextType = {
   theme: Theme
-  effectiveTheme: 'light' | 'dark'
+  effectiveTheme: 'light' | 'dark' | 'midnight-ocean'
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
 }
@@ -22,16 +22,16 @@ export const useTheme = () => useContext(ThemeContext)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('system')
-  const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>('light')
+  const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark' | 'midnight-ocean'>('light')
   const [mounted, setMounted] = useState(false)
 
   const applyTheme = (newTheme: Theme) => {
     if (typeof window === 'undefined') return
     
     const root = window.document.documentElement
-    root.classList.remove('light', 'dark')
+    root.classList.remove('light', 'dark', 'midnight-ocean')
 
-    let newEffectiveTheme: 'light' | 'dark' = 'light'
+    let newEffectiveTheme: 'light' | 'dark' | 'midnight-ocean' = 'light'
     if (newTheme === 'system') {
       newEffectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
     } else {
@@ -48,7 +48,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Get current theme from DOM (set by the script)
     const root = document.documentElement
     const isDark = root.classList.contains('dark')
-    const currentEffectiveTheme = isDark ? 'dark' : 'light'
+    const isMidnightOcean = root.classList.contains('midnight-ocean')
+    const currentEffectiveTheme = isMidnightOcean ? 'midnight-ocean' : (isDark ? 'dark' : 'light')
     setEffectiveTheme(currentEffectiveTheme)
     
     const savedTheme = localStorage.getItem('theme') as Theme | null
@@ -94,9 +95,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = () => {
     setThemeState(prevTheme => {
       if (prevTheme === 'system') {
-        return effectiveTheme === 'light' ? 'dark' : 'light'
+        return effectiveTheme === 'light' ? 'dark' : (effectiveTheme === 'dark' ? 'midnight-ocean' : 'light')
       }
-      return prevTheme === 'light' ? 'dark' : 'light'
+      if (prevTheme === 'light') return 'dark'
+      if (prevTheme === 'dark') return 'midnight-ocean'
+      return 'light'
     })
   }
 

@@ -39,7 +39,7 @@ export async function GET(request: Request) {
       where: journalsWhere,
       orderBy: { date: 'asc' },
       include: {
-        account: {
+        Account: {
           select: {
             name: true,
             number: true
@@ -71,13 +71,32 @@ export async function GET(request: Request) {
         pnl: true,
         commission: true,
         entryDate: true,
+        closeDate: true,
+        quantity: true,
+        entryPrice: true,
+        closePrice: true,
         comment: true, // Trade notes
         tradingModel: true
       }
     })
 
+    // Fetch funded/active accounts status (MasterAccounts for prop firms)
+    const propFirmAccounts = await prisma.masterAccount.findMany({
+      where: {
+        userId,
+        isArchived: false
+      },
+      select: {
+        accountName: true,
+        propFirmName: true,
+        status: true,
+        accountSize: true,
+        currentPhase: true
+      }
+    })
+
     // Generate AI analysis
-    const analysis = await generateAnalysis(journals, trades)
+    const analysis = await generateAnalysis(journals, trades, propFirmAccounts)
 
     return NextResponse.json({ analysis })
   } catch (error) {
@@ -89,14 +108,21 @@ export async function GET(request: Request) {
   }
 }
 
-async function generateAnalysis(journals: any[], trades: any[]) {
+async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts: any[] = []) {
   // Prepare data for AI
   const journalSummary = journals.map(j => ({
     date: j.date,
     emotion: j.emotion,
     note: j.note,
-    account: j.account?.name || 'All Accounts'
+    account: j.Account?.name || 'All Accounts'
   }))
+
+  // Format prop firm account status for AI
+  const accountStatusSummary = propFirmAccounts.length > 0 
+    ? propFirmAccounts.map(acc => 
+        `- ${acc.accountName} (${acc.propFirmName}): Status=${acc.status}, Phase=${acc.currentPhase}, Size=$${acc.accountSize}`
+      ).join('\n')
+    : 'No funded prop firm accounts found'
 
   // Extract trade notes for analysis
   const tradeNotes = trades
@@ -106,17 +132,93 @@ async function generateAnalysis(journals: any[], trades: any[]) {
       note: t.comment,
       pnl: t.pnl - (t.commission || 0),
       instrument: t.instrument,
-      side: t.side
+      side: t.side,
+      duration: t.closeDate ? (new Date(t.closeDate).getTime() - new Date(t.entryDate).getTime()) / 1000 / 60 : 0 // duration in minutes
     }))
 
   const tradeStats = {
     totalTrades: trades.length,
     winningTrades: trades.filter(t => (t.pnl - (t.commission || 0)) > 0).length,
     losingTrades: trades.filter(t => (t.pnl - (t.commission || 0)) < 0).length,
+    breakEvenTrades: trades.filter(t => (t.pnl - (t.commission || 0)) === 0).length,
     totalPnL: trades.reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0),
     averagePnL: trades.length > 0 ? trades.reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0) / trades.length : 0,
+    totalCommission: trades.reduce((sum, t) => sum + (t.commission || 0), 0),
     tradesWithNotes: tradeNotes.length
   }
+
+  // Calculate profit factor
+  const grossProfit = trades.filter(t => (t.pnl - (t.commission || 0)) > 0).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
+  const grossLoss = Math.abs(trades.filter(t => (t.pnl - (t.commission || 0)) < 0).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0))
+  const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0
+
+  // Calculate average win/loss
+  const avgWin = tradeStats.winningTrades > 0 ? grossProfit / tradeStats.winningTrades : 0
+  const avgLoss = tradeStats.losingTrades > 0 ? grossLoss / tradeStats.losingTrades : 0
+
+  // P&L by instrument
+  const pnlByInstrument: Record<string, { trades: number, pnl: number, wins: number }> = {}
+  trades.forEach(t => {
+    const netPnL = t.pnl - (t.commission || 0)
+    if (!pnlByInstrument[t.instrument]) {
+      pnlByInstrument[t.instrument] = { trades: 0, pnl: 0, wins: 0 }
+    }
+    pnlByInstrument[t.instrument].trades++
+    pnlByInstrument[t.instrument].pnl += netPnL
+    if (netPnL > 0) pnlByInstrument[t.instrument].wins++
+  })
+
+  // Sort instruments by P&L
+  const topInstruments = Object.entries(pnlByInstrument)
+    .sort((a, b) => b[1].pnl - a[1].pnl)
+    .slice(0, 5)
+
+  // P&L by strategy (trading model)
+  const pnlByStrategy: Record<string, { trades: number, pnl: number, wins: number }> = {}
+  trades.forEach(t => {
+    const strategy = t.tradingModel || 'No Strategy'
+    const netPnL = t.pnl - (t.commission || 0)
+    if (!pnlByStrategy[strategy]) {
+      pnlByStrategy[strategy] = { trades: 0, pnl: 0, wins: 0 }
+    }
+    pnlByStrategy[strategy].trades++
+    pnlByStrategy[strategy].pnl += netPnL
+    if (netPnL > 0) pnlByStrategy[strategy].wins++
+  })
+
+  // P&L by weekday
+  const pnlByWeekday: Record<string, { trades: number, pnl: number }> = {
+    Sunday: { trades: 0, pnl: 0 },
+    Monday: { trades: 0, pnl: 0 },
+    Tuesday: { trades: 0, pnl: 0 },
+    Wednesday: { trades: 0, pnl: 0 },
+    Thursday: { trades: 0, pnl: 0 },
+    Friday: { trades: 0, pnl: 0 },
+    Saturday: { trades: 0, pnl: 0 }
+  }
+  trades.forEach(t => {
+    const dayOfWeek = new Date(t.entryDate).toLocaleDateString('en-US', { weekday: 'long' })
+    const netPnL = t.pnl - (t.commission || 0)
+    pnlByWeekday[dayOfWeek].trades++
+    pnlByWeekday[dayOfWeek].pnl += netPnL
+  })
+
+  // P&L by hour of day
+  const pnlByHour: Record<number, { trades: number, pnl: number }> = {}
+  trades.forEach(t => {
+    const hour = new Date(t.entryDate).getHours()
+    const netPnL = t.pnl - (t.commission || 0)
+    if (!pnlByHour[hour]) {
+      pnlByHour[hour] = { trades: 0, pnl: 0 }
+    }
+    pnlByHour[hour].trades++
+    pnlByHour[hour].pnl += netPnL
+  })
+
+  // Find best/worst hours
+  const hourEntries = Object.entries(pnlByHour).map(([hour, data]) => ({ hour: parseInt(hour), ...data }))
+  const bestHours = hourEntries.filter(h => h.trades >= 3).sort((a, b) => b.pnl - a.pnl).slice(0, 3)
+  const worstHours = hourEntries.filter(h => h.trades >= 3).sort((a, b) => a.pnl - b.pnl).slice(0, 3)
 
   // Count emotions
   const emotionCounts: Record<string, number> = {}
@@ -156,52 +258,122 @@ async function generateAnalysis(journals: any[], trades: any[]) {
       return generateRuleBasedAnalysis(journalSummary, tradeStats, emotionCounts, emotionPerformance)
     }
 
-    const prompt = `You are a professional trading psychology analyst. Analyze the following trading data and provide insights:
+    const prompt = `You are a legendary trading psychology coach with 20+ years of experience. Think Jordan Belfort meets Mark Douglas meets a best friend who keeps it 100.
+    Your mission: Analyze this trader's data like their career depends on it—because it does.
+    
+    🔥 CORE DIRECTIVES:
+    1. **Read Between the Lines**: Their journal is full of raw, unfiltered feelings. "Fuck this market", "nailed it", "revenge mode"—these aren't just words, they're RED FLAGS or GREEN LIGHTS. Call them out.
+    2. **Connect Emotions to Money**: Show them the BRUTAL truth. "You say you're 'confident' but your P&L says you're overtrading. That's not confidence, that's ego."
+    3. **Talk Like a Human**: No corporate BS. Be direct, be real. If they're self-sabotaging, tell them straight. If they're crushing it, hype them up.
+    4. **Account Status = Reality Check**: If they have FAILED or BREACHED accounts, don't sugarcoat it. Dig into the trades/notes leading up to the failure. Was it tilt? Was it breaking rules? Call it out by name.
+    5. **Spot the Tilt**: Rapid losses + frustrated notes = revenge trading. Say it loud and clear.
+    6. **Use the Dashboard Metrics**: You have P&L by instrument, by strategy, by weekday, and by hour. USE THIS DATA. If they lose money on Fridays, tell them to take Fridays off. If they make money on NQ but lose on ES, tell them to stop trading ES. If they're profitable 9-11 AM but lose money after 2 PM, call it out.
+    7. **Give Actionable Advice**: Not generic advice like "be disciplined." SPECIFIC advice based on their data: "Stop trading after 2 PM—your worst 3 hours are 14:00, 15:00, and 16:00" or "Focus on NQ—you're up $2,500 on it but down $800 on ES"
+    
+    📊 THE DATA:
 
-**Time Period**: ${journals.length > 0 ? `${new Date(journals[0].date).toLocaleDateString()} to ${new Date(journals[journals.length - 1].date).toLocaleDateString()}` : 'No data'}
+    **Time Period**: ${journals.length > 0 ? `${new Date(journals[0].date).toLocaleDateString()} to ${new Date(journals[journals.length - 1].date).toLocaleDateString()}` : 'No data'}
 
-**Trading Performance**:
-- Total Trades: ${tradeStats.totalTrades}
-- Winning Trades: ${tradeStats.winningTrades}
-- Losing Trades: ${tradeStats.losingTrades}
-- Total P&L: $${tradeStats.totalPnL.toFixed(2)}
-- Win Rate: ${tradeStats.totalTrades > 0 ? ((tradeStats.winningTrades / tradeStats.totalTrades) * 100).toFixed(1) : 0}%
+    **📌 FUNDED ACCOUNT STATUS (Critical Context)**:
+    ${accountStatusSummary}
+    ${propFirmAccounts.filter(acc => acc.status === 'failed').length > 0 ? 
+      `⚠️ ALERT: Failed accounts detected. Analyze what went wrong based on the trades and journal entries below.` : ''}
 
-**Emotional States Tracked**:
-${Object.entries(emotionCounts).map(([emotion, count]) => `- ${emotion}: ${count} days`).join('\n')}
+    **💰 Trading Performance (Dashboard Metrics)**:
+    - Total Trades: ${tradeStats.totalTrades} (W: ${tradeStats.winningTrades}, L: ${tradeStats.losingTrades}, BE: ${tradeStats.breakEvenTrades})
+    - Win Rate: ${tradeStats.totalTrades > 0 ? ((tradeStats.winningTrades / tradeStats.totalTrades) * 100).toFixed(1) : 0}%
+    - Total P&L: $${tradeStats.totalPnL.toFixed(2)}
+    - Gross Profit: $${grossProfit.toFixed(2)} | Gross Loss: -$${grossLoss.toFixed(2)}
+    - Profit Factor: ${profitFactor === Infinity ? '∞' : profitFactor.toFixed(2)}
+    - Average Win: $${avgWin.toFixed(2)} | Average Loss: -$${avgLoss.toFixed(2)}
+    - Risk/Reward Ratio: ${avgLoss > 0 ? (avgWin / avgLoss).toFixed(2) : 'N/A'}
+    - Total Commission Paid: $${tradeStats.totalCommission.toFixed(2)}
 
-**Performance by Emotional State**:
-${Object.entries(emotionPerformance).map(([emotion, perf]) => 
-  `- ${emotion}: ${perf.trades} trades, $${perf.totalPnL.toFixed(2)} P&L${perf.trades > 0 ? ` (avg: $${(perf.totalPnL / perf.trades).toFixed(2)})` : ''}`
-).join('\n')}
+    **📊 P&L by Instrument (Top 5)**:
+    ${topInstruments.length > 0 
+      ? topInstruments.map(([inst, data]) => 
+          `- ${inst}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0}% WR`
+        ).join('\n')
+      : 'No trades'}
 
-**Daily Journal Entries** (sample):
-${journalSummary.slice(0, 5).map(j => `- ${new Date(j.date).toLocaleDateString()}: ${j.emotion || 'No emotion'} - ${j.note.substring(0, 100)}${j.note.length > 100 ? '...' : ''}`).join('\n')}
+    **🎯 P&L by Strategy/Model**:
+    ${Object.entries(pnlByStrategy).length > 0 
+      ? Object.entries(pnlByStrategy).map(([strat, data]) => 
+          `- ${strat}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0}% WR`
+        ).join('\n')
+      : 'No strategy data'}
 
-**Trade Notes** (${tradeNotes.length} trades with notes):
-${tradeNotes.slice(0, 10).map(t => `- ${new Date(t.date).toLocaleDateString()}: ${t.instrument} ${t.side} (P&L: $${t.pnl.toFixed(2)}) - ${t.note.substring(0, 80)}${t.note.length > 80 ? '...' : ''}`).join('\n')}
+    **📅 P&L by Weekday** (Identify best/worst days):
+    ${Object.entries(pnlByWeekday)
+      .filter(([_, data]) => data.trades > 0)
+      .map(([day, data]) => 
+        `- ${day}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${data.trades > 0 ? `Avg: $${(data.pnl / data.trades).toFixed(2)}` : ''}`
+      ).join('\n') || 'No weekday data'}
 
-Provide a comprehensive analysis in JSON format with the following structure:
-{
-  "summary": "2-3 sentence overview of your trading psychology and performance",
-  "emotionalPatterns": ["pattern 1", "pattern 2", "pattern 3"],
-  "performanceInsights": ["insight 1", "insight 2", "insight 3"],
-  "strengths": ["strength 1", "strength 2"],
-  "weaknesses": ["weakness 1", "weakness 2"],
-  "recommendations": ["recommendation 1", "recommendation 2", "recommendation 3"]
-}
+    **🕐 Best Trading Hours** (By P&L, min 3 trades):
+    ${bestHours.length > 0 
+      ? bestHours.map(h => `- ${h.hour}:00: ${h.trades} trades, $${h.pnl.toFixed(2)} P&L`).join('\n')
+      : 'Insufficient data'}
 
-Focus on:
-1. Analyze BOTH daily journal entries AND individual trade notes
-2. Correlation between emotions and trading performance
-3. Patterns in successful vs unsuccessful trading days identified from trade notes
-4. Psychological strengths and areas for improvement
-5. Actionable recommendations for better trading psychology
+    **🕐 Worst Trading Hours** (By P&L, min 3 trades):
+    ${worstHours.length > 0 
+      ? worstHours.map(h => `- ${h.hour}:00: ${h.trades} trades, $${h.pnl.toFixed(2)} P&L`).join('\n')
+      : 'Insufficient data'}
 
-IMPORTANT:
-- Use second person ("you", "your") when addressing the trader
-- DO NOT use emojis in your response
-- Be professional and conversational`
+    **🧠 Emotional States (Self-Reported)**:
+    ${Object.entries(emotionCounts).map(([emotion, count]) => `- ${emotion}: ${count} days`).join('\n') || 'No emotions tracked'}
+
+    **📈 Performance by Emotion** (THIS IS KEY DATA):
+    ${Object.entries(emotionPerformance).map(([emotion, perf]) => 
+      `- ${emotion}: ${perf.trades} trades, $${perf.totalPnL.toFixed(2)} P&L${perf.trades > 0 ? ` (avg: $${(perf.totalPnL / perf.trades).toFixed(2)})` : ''}`
+    ).join('\n') || 'No emotion-performance correlation data'}
+
+    **📝 Daily Journal Entries** (READ EVERY WORD - The vibe is in here):
+    ${journalSummary.map(j => `- ${new Date(j.date).toLocaleDateString()}: [${j.emotion || 'No emotion'}] "${j.note}" (${j.account})`).join('\n') || 'No journal entries'}
+
+    **💬 Individual Trade Notes** (Look for patterns in wins vs losses):
+    ${tradeNotes.slice(0, 20).map(t => `- ${new Date(t.date).toLocaleDateString()}: ${t.instrument} ${t.side} | ${t.pnl >= 0 ? 'WIN' : 'LOSS'}: $${t.pnl.toFixed(2)} | ${t.duration.toFixed(0)}min | "${t.note}"`).join('\n') || 'No trade notes available'}
+
+    🎯 YOUR ANALYSIS (JSON FORMAT):
+    {
+      "summary": "3-5 sentences. Be REAL. Start with their account status if relevant (e.g., 'Look, you failed 2 accounts this month...'). Then hit them with the truth about their trading psychology. Are they on the right track or are they spiraling? Use 'you'.",
+      "emotionalPatterns": [
+        "At least 3-5 patterns. Examples: 'You trade like garbage when you're anxious—$250 avg loss vs $120 avg win when calm.'",
+        "'Your notes say confident but your trades scream overconfident—3 failed trades after big wins.'",
+        "'You're revenge trading after losses. Journal on 11/18: angry + $500 loss = classic tilt.'"
+      ],
+      "performanceInsights": [
+        "At least 3-5 insights based on the dashboard metrics above. Examples: 'Your win rate is solid at 58% but your avg loss ($250) is 2x your avg win ($120)—fix your risk/reward.'",
+        "'You make money on NQ ($2,500) but lose on ES (-$800)—stick to what works or cut ES entirely.'",
+        "'Fridays are killing you: -$1,200 across 15 trades. Just don't trade Fridays.'",
+        "'Your best hours are 9-11 AM ($1,800 profit). After 2 PM you're down $900. Stop trading in the afternoon.'"
+      ],
+      "strengths": [
+        "At least 2-3. Examples: 'You're journaling consistently—that's rare and shows you're serious.'",
+        "'When you follow your plan, you win. 12 out of 15 rule-following trades were green.'"
+      ],
+      "weaknesses": [
+        "At least 2-3. BE BRUTALLY HONEST. Examples: 'You overtrade when stressed. 8 trades on 11/14 = all red.'",
+        "'You're breaking your own rules. You know this. Your notes prove it.'"
+      ],
+      "recommendations": [
+        "At least 4-5 SPECIFIC, actionable steps based on their data. Examples: 'Stop trading after 2 PM. Your data shows you lose money after 14:00.'",
+        "'Only trade NQ. Drop ES—you've lost $800 on it while making $2,500 on NQ.'",
+        "'Take Fridays off. You're down $1,200 on Fridays vs +$900 on Tuesdays.'",
+        "'Set a hard rule: No more than 3 trades per session when anxious—your journal shows 8-trade days are always red.'",
+        "'Review your journal every morning. If you logged \"stressed\" yesterday, reduce size by 50% today.'",
+        "'Use ICT_2022 strategy more—it has a 65% WR vs 48% on PRICE_ACTION.'"
+      ]
+    }
+
+    🗣️ TONE:
+    - Professional but RAW. Think "tough love mentor," not "corporate coach."
+    - Use "you" and "your" throughout. Make it personal.
+    - Call out BS. Praise discipline. Be real.
+    - NO EMOJIS in the JSON values (remove them if the AI adds any).
+    - If they have failed accounts, address it directly and analyze why based on their data.
+    
+    Now GO. Give them the analysis they NEED, not the one they want.`;
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
@@ -214,15 +386,19 @@ IMPORTANT:
         messages: [
           {
             role: 'system',
-            content: 'You are a professional trading psychology analyst. Provide insights in valid JSON format only.'
+            content: `You are a world-class trading psychology mentor who speaks candidly and directly. 
+            You analyze patterns in informal language, emotional states, and trading behavior. 
+            You provide tough love when needed and genuine praise when earned. 
+            You understand that traders are HUMAN—not robots—and you speak their language. 
+            Output ONLY valid JSON. No markdown, no code blocks, just pure JSON.`
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.7,
-        max_tokens: 2000
+        temperature: 0.8,
+        max_tokens: 3000
       })
     })
 

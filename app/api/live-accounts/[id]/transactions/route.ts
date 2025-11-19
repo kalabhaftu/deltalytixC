@@ -101,6 +101,7 @@ export async function POST(
 
     const transaction = await prisma.liveAccountTransaction.create({
       data: {
+        id: crypto.randomUUID(),
         accountId,
         userId,
         type: type as 'DEPOSIT' | 'WITHDRAWAL',

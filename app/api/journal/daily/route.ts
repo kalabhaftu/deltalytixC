@@ -72,6 +72,8 @@ export async function POST(request: Request) {
 
     const journal = await prisma.dailyNote.create({
       data: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         userId,
         date: new Date(date),
         note: note || '',

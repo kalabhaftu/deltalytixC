@@ -153,7 +153,7 @@ export function TradeTableMobileCard({
           <Edit className="h-4 w-4 mr-1" />
           Edit
         </Button>
-        {trade.imageBase64 && (
+        {(trade as any).imageBase64 && (
           <Button
             variant="outline"
             size="sm"

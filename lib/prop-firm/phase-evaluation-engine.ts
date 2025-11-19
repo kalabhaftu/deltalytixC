@@ -80,16 +80,16 @@ export class PhaseEvaluationEngine {
     const phaseAccount = await prisma.phaseAccount.findFirst({
       where: { id: phaseAccountId },
       include: {
-        masterAccount: {
+        MasterAccount: {
           include: {
-            user: true
+            User: true
           }
         },
-        trades: {
+        Trade: {
           where: { phaseAccountId },
           orderBy: { exitTime: 'asc' }
         },
-        dailyAnchors: {
+        DailyAnchor: {
           orderBy: { date: 'desc' },
           take: 1
         }
@@ -104,13 +104,13 @@ export class PhaseEvaluationEngine {
     this.log(`Phase account found`, {
       phaseNumber: phaseAccount.phaseNumber,
       status: phaseAccount.status,
-      tradesCount: phaseAccount.trades.length,
-      accountSize: phaseAccount.masterAccount.accountSize
+      tradesCount: phaseAccount.Trade.length,
+      accountSize: phaseAccount.MasterAccount.accountSize
     })
 
-    const masterAccount = phaseAccount.masterAccount
-    const trades = phaseAccount.trades
-    const timezone = masterAccount.user.timezone || 'UTC'
+    const masterAccount = phaseAccount.MasterAccount
+    const trades = phaseAccount.Trade
+    const timezone = masterAccount.User.timezone || 'UTC'
 
     // CRITICAL FIX: Calculate current metrics using NET P&L (after commission)
     // Prop firms must account for commission as it affects actual account balance
@@ -566,8 +566,8 @@ export class PhaseEvaluationEngine {
       const phaseAccount = await prisma.phaseAccount.findFirst({
         where: { id: phaseAccountId },
         include: {
-          masterAccount: true,
-          trades: {
+          MasterAccount: true,
+          Trade: {
             where: { phaseAccountId },
             orderBy: { exitTime: 'asc' }
           }
@@ -580,15 +580,16 @@ export class PhaseEvaluationEngine {
       }
 
       // STEP 3: Calculate current equity for anchor using NET P&L
-      const tradesPnL = phaseAccount.trades.reduce((sum, trade) => {
+      const tradesPnL = phaseAccount.Trade.reduce((sum, trade) => {
         const netPnl = (trade.pnl || 0) - (trade.commission || 0)
         return sum + netPnl
       }, 0)
-      const anchorEquity = phaseAccount.masterAccount.accountSize + tradesPnL
+      const anchorEquity = phaseAccount.MasterAccount.accountSize + tradesPnL
 
       // STEP 4: Try to create the missing anchor (atomic operation)
       const newAnchor = await prisma.dailyAnchor.create({
         data: {
+          id: crypto.randomUUID(),
           phaseAccountId,
           date: todayDate,
           anchorEquity

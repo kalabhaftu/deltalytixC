@@ -47,6 +47,8 @@ export async function ensureDefaultTemplate() {
       // Create default template
       await prisma.dashboardTemplate.create({
         data: {
+          id: crypto.randomUUID(),
+          updatedAt: new Date(),
           userId,
           name: 'Default',
           isDefault: true,

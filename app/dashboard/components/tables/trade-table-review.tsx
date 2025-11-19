@@ -39,22 +39,7 @@ import { useTableConfigStore } from '@/store/table-config-store'
 export interface ExtendedTrade extends Omit<Trade, 'tags'> {
   imageUrl?: string | undefined
   tags: string[]
-  imageBase64: string | null
-  imageBase64Second: string | null
-  imageBase64Third: string | null
-  imageBase64Fourth: string | null
-  imageBase64Fifth: string | null
-  imageBase64Sixth: string | null
-  cardPreviewImage: string | null
-  tradingModel: TradingModel | null
-  comment: string | null
-  trades: ExtendedTrade[]
-  accountId: string | null
-  stopLoss: string | null
-  takeProfit: string | null
-  entryTime: Date | null
-  exitTime: Date | null
-  closeReason: string | null
+  trades?: ExtendedTrade[]
 }
 
 const VALID_COLUMN_IDS = [
@@ -140,6 +125,7 @@ const buildGroupedTrades = (trades: ExtendedTrade[]) => {
       })
     } else {
         const group = groups.get(key)!
+      if (!group.trades) group.trades = []
       group.trades.push(cloneTradeForGroup(trade))
         group.pnl += trade.pnl || 0
         group.commission += trade.commission || 0
@@ -212,7 +198,7 @@ const useTradeTableColumns = ({
           onCheckedChange={(value) => {
             table.toggleAllPageRowsSelected(!!value)
             const allTradeIds = table.getRowModel().rows.flatMap((row) => {
-              const subTradeIds = row.original.trades.map((t) => t.id)
+              const subTradeIds = row.original.trades?.map((t) => t.id) || []
               return [row.original.id, ...subTradeIds].filter(Boolean) as string[]
             })
             onRowSelectionChange(allTradeIds, !!value)
@@ -222,7 +208,7 @@ const useTradeTableColumns = ({
         />
       ),
       cell: ({ row }) => {
-        const tradeIds = [row.original.id, ...row.original.trades.map((t) => t.id)].filter(Boolean) as string[]
+        const tradeIds = [row.original.id, ...(row.original.trades?.map((t) => t.id) || [])].filter(Boolean) as string[]
         return (
         <Checkbox
           checked={row.getIsSelected()}
@@ -242,7 +228,7 @@ const useTradeTableColumns = ({
       id: 'expand',
       header: () => null,
       cell: ({ row }) => {
-        if (row.original.trades.length <= 1) return null
+        if ((row.original.trades?.length || 0) <= 1) return null
         return (
           <Button variant="ghost" size="sm" onClick={row.getToggleExpandedHandler()} className="hover:bg-transparent">
             {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -286,8 +272,8 @@ const useTradeTableColumns = ({
                   </ScrollArea>
                 </PopoverContent>
               </Popover>
-            {row.original.trades.length > 1 && (
-              <span className="text-xs text-muted-foreground">({row.original.trades.length})</span>
+            {(row.original.trades?.length || 0) > 1 && (
+              <span className="text-xs text-muted-foreground">({row.original.trades?.length})</span>
             )}
           </div>
         )
@@ -332,7 +318,7 @@ const useTradeTableColumns = ({
       accessorKey: 'entryPrice',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Entry Price" tableId="trade-table" />,
       cell: ({ row }) => {
-        const value = parseFloat(row.original.entryPrice)
+        const value = parseFloat(String(row.original.entryPrice))
         const decimals = getDecimalPlaces(row.original.instrument, value)
         return <div className="text-right font-medium">{formatCurrency(value, decimals)}</div>
       },
@@ -341,7 +327,7 @@ const useTradeTableColumns = ({
       accessorKey: 'closePrice',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Close Price" tableId="trade-table" />,
       cell: ({ row }) => {
-        const value = parseFloat(row.original.closePrice)
+        const value = parseFloat(String(row.original.closePrice))
         const decimals = getDecimalPlaces(row.original.instrument, value)
         return <div className="text-right font-medium">{formatCurrency(value, decimals)}</div>
       },
@@ -384,7 +370,7 @@ const useTradeTableColumns = ({
       header: 'Actions',
       cell: ({ row }) => {
         const trade = row.original
-        const tradeToEdit = trade.trades.length > 0 ? trade.trades[0] : trade
+        const tradeToEdit = (trade.trades?.length || 0) > 0 ? trade.trades![0] : trade
         const disableChart = !trade.entryDate || !trade.closeDate || !trade.entryPrice || !trade.closePrice
         
         return (
@@ -588,7 +574,7 @@ export function TradeTableReview() {
       handlePageSizeChange(next.pageSize)
     },
     getSubRows: (row) => row.trades,
-    getRowCanExpand: (row) => row.original.trades.length > 1,
+    getRowCanExpand: (row) => (row.original.trades?.length || 0) > 1,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -725,11 +711,11 @@ export function TradeTableReview() {
                           </td>
                         ))}
                       </tr>
-                      {row.getIsExpanded() && row.original.trades.length > 1 && (
+                      {row.getIsExpanded() && (row.original.trades?.length || 0) > 1 && (
                         <tr className="bg-muted/20">
                           <td colSpan={columns.length} className="px-10 py-4">
                             <div className="space-y-2 text-xs text-muted-foreground">
-                              {row.original.trades.map((trade) => (
+                              {row.original.trades?.map((trade) => (
                                 <div
                                   key={trade.id}
                                   className="grid grid-cols-2 md:grid-cols-4 gap-2 border border-dashed border-border/40 rounded-lg p-3 bg-background/50"
@@ -737,8 +723,8 @@ export function TradeTableReview() {
                                   <span className="font-semibold text-foreground">
                                     {trade.instrument} ({trade.side})
                                   </span>
-                                  <span>Entry: {formatCurrency(parseFloat(trade.entryPrice))}</span>
-                                  <span>Exit: {formatCurrency(parseFloat(trade.closePrice))}</span>
+                                  <span>Entry: {formatCurrency(parseFloat(String(trade.entryPrice)))}</span>
+                                  <span>Exit: {formatCurrency(parseFloat(String(trade.closePrice)))}</span>
                                   <span>PnL: {formatCurrency(trade.pnl)}</span>
                                 </div>
                               ))}

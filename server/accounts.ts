@@ -24,7 +24,23 @@ export async function fetchGroupedTradesAction(userId: string): Promise<FetchTra
     ]
   })
 
-  const groupedTrades = trades.reduce<GroupedTrades>((acc, trade) => {
+  // Helper to convert Decimal to string
+  const convertDecimal = (value: any) => {
+    if (value && typeof value === 'object' && 'toString' in value) {
+      return value.toString()
+    }
+    return value
+  }
+
+  const serializedTrades = trades.map(trade => ({
+    ...trade,
+    entryPrice: convertDecimal(trade.entryPrice),
+    closePrice: convertDecimal(trade.closePrice),
+    stopLoss: convertDecimal(trade.stopLoss),
+    takeProfit: convertDecimal(trade.takeProfit),
+  })) as any
+
+  const groupedTrades = serializedTrades.reduce((acc: any, trade: any) => {
     if (!acc[trade.accountNumber]) {
       acc[trade.accountNumber] = {}
     }
@@ -37,7 +53,7 @@ export async function fetchGroupedTradesAction(userId: string): Promise<FetchTra
 
   return {
     groupedTrades,
-    flattenedTrades: trades
+    flattenedTrades: serializedTrades
   }
 }
 
@@ -227,8 +243,9 @@ export async function setupAccountAction(account: Account) {
 
   return await prisma.account.create({
     data: {
+      id: crypto.randomUUID(),
       ...accountDataWithGroup,
-      user: {
+      User: {
         connect: {
           id: userId
         }
@@ -299,7 +316,7 @@ export async function getAccountsAction(options?: { includeArchived?: boolean })
       const masterAccountsPromise = prisma.masterAccount.findMany({
         where: masterAccountWhere,
         include: {
-          phases: {
+          PhaseAccount: {
             orderBy: {
               phaseNumber: 'desc' // Most recent first
             },
@@ -359,9 +376,9 @@ export async function getAccountsAction(options?: { includeArchived?: boolean })
     const transformedMasterAccounts: any[] = []
     masterAccounts.forEach((masterAccount: any) => {
       
-      if (masterAccount.phases && masterAccount.phases.length > 0) {
+      if (masterAccount.PhaseAccount && masterAccount.PhaseAccount.length > 0) {
         // Create one entry for each phase (excluding pending phases)
-        masterAccount.phases.forEach((phase: any) => {
+        masterAccount.PhaseAccount.forEach((phase: any) => {
           // Skip pending phases - they don't exist yet until user reaches them
           if (phase.status === 'pending') return
           
@@ -438,7 +455,7 @@ export async function savePayoutAction(payout: {
         userId
       },
       include: {
-        phases: {
+        PhaseAccount: {
           where: {
             id: payout.phaseAccountId
           }
@@ -450,7 +467,7 @@ export async function savePayoutAction(payout: {
       throw new Error('Master account not found or unauthorized')
     }
 
-    const phaseAccount = masterAccount.phases[0]
+    const phaseAccount = masterAccount.PhaseAccount[0]
     if (!phaseAccount) {
       throw new Error('Phase account not found')
     }
@@ -499,12 +516,14 @@ export async function savePayoutAction(payout: {
     // Create the payout record
     const newPayout = await prisma.payout.create({
       data: {
+        id: crypto.randomUUID(),
         masterAccountId: payout.masterAccountId,
         phaseAccountId: payout.phaseAccountId,
         amount: payout.amount,
         requestDate: payout.requestDate || new Date(),
         status: 'pending',
-        notes: payout.notes || null
+        notes: payout.notes || null,
+        updatedAt: new Date()
       }
     })
 
@@ -537,7 +556,7 @@ export async function deletePayoutAction(payoutId: string) {
     const payout = await prisma.payout.findUnique({
       where: { id: payoutId },
       include: {
-        masterAccount: {
+        MasterAccount: {
           select: {
             userId: true
           }
@@ -549,7 +568,7 @@ export async function deletePayoutAction(payoutId: string) {
       throw new Error('Payout not found')
     }
 
-    if (payout.masterAccount.userId !== userId) {
+    if (payout.MasterAccount.userId !== userId) {
       throw new Error('Unauthorized: You do not own this payout')
     }
 
@@ -621,6 +640,7 @@ export async function createAccountAction(accountNumber: string) {
     const userId = await getUserId()
     const account = await prisma.account.create({
       data: {
+        id: crypto.randomUUID(),
         number: accountNumber,
         userId,
         startingBalance: 0,
@@ -642,7 +662,7 @@ export async function getCurrentActivePhase(accountId: string) {
     const masterAccount = await prisma.masterAccount.findUnique({
       where: { id: accountId },
       include: {
-        phases: {
+        PhaseAccount: {
           where: {
             status: 'active'
           },
@@ -655,8 +675,8 @@ export async function getCurrentActivePhase(accountId: string) {
     })
 
     // If it's a prop firm account, return the current active phase
-    if (masterAccount && masterAccount.phases.length > 0) {
-      return masterAccount.phases[0]
+    if (masterAccount && masterAccount.PhaseAccount.length > 0) {
+      return masterAccount.PhaseAccount[0]
     }
 
     // If not a prop firm account, check if it's a regular account
@@ -696,7 +716,7 @@ export async function getAccountPhases(accountId: string) {
       orderBy: { startDate: 'asc' },
       include: {
         _count: {
-          select: { trades: true }
+          select: { Trade: true }
         }
       }
     })
@@ -833,10 +853,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
         commission: cleanTrade.commission || 0,
         entryId: cleanTrade.entryId || null,
         comment: cleanTrade.comment || null,
-        imageBase64: cleanTrade.imageBase64 || null,
-        imageBase64Second: cleanTrade.imageBase64Second || null,
-        imageBase64Third: cleanTrade.imageBase64Third || null,
-        imageBase64Fourth: cleanTrade.imageBase64Fourth || null,
         groupId: cleanTrade.groupId || null,
         createdAt: cleanTrade.createdAt || new Date(),
       }
@@ -886,7 +902,7 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
     const phaseAccount = await prisma.phaseAccount.findUnique({
       where: { id: accountId },
       include: { 
-        masterAccount: { 
+        MasterAccount: { 
           select: { 
             id: true, 
             accountName: true, 
@@ -909,8 +925,8 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
       isPropFirm = true
       phaseAccountId = phaseAccount.id
       phaseNumber = phaseAccount.phaseNumber
-      accountName = phaseAccount.masterAccount.accountName
-      masterAccountId = phaseAccount.masterAccount.id
+      accountName = phaseAccount.MasterAccount.accountName
+      masterAccountId = phaseAccount.MasterAccount.id
 
       // Pre-check profit target OUTSIDE transaction to fail fast
       const pnlSum = await prisma.trade.aggregate({
@@ -919,7 +935,7 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
       })
 
       const currentPnL = pnlSum._sum.pnl || 0
-      const profitTargetAmount = (phaseAccount.profitTargetPercent / 100) * phaseAccount.masterAccount.accountSize
+      const profitTargetAmount = (phaseAccount.profitTargetPercent / 100) * phaseAccount.MasterAccount.accountSize
 
       if (profitTargetAmount && currentPnL >= profitTargetAmount) {
         const nextPhaseNumber = phaseAccount.phaseNumber + 1
@@ -1030,7 +1046,7 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
           // Get master account to determine if there's a next phase
           const masterAccountData = await prisma.masterAccount.findUnique({
             where: { id: result.masterAccountId },
-            include: { phases: { orderBy: { phaseNumber: 'asc' } } }
+            include: { PhaseAccount: { orderBy: { phaseNumber: 'asc' } } }
           })
           
           if (!masterAccountData) {
@@ -1038,7 +1054,7 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
           }
           
           // Check if next phase exists
-          const nextPhase = masterAccountData.phases.find(p => p.phaseNumber === nextPhaseNumber)
+          const nextPhase = masterAccountData.PhaseAccount.find(p => p.phaseNumber === nextPhaseNumber)
           
           if (nextPhase) {
             // Check if next phase has a phaseId (account number)
@@ -1117,7 +1133,7 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
           // Fetch account size for breach record
           const phaseAccountData = await prisma.phaseAccount.findUnique({
             where: { id: result.phaseAccountId },
-            include: { masterAccount: { select: { accountSize: true } } }
+            include: { MasterAccount: { select: { accountSize: true } } }
           })
           
           await prisma.$transaction([
@@ -1134,12 +1150,13 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
             }),
             prisma.breachRecord.create({
               data: {
+                id: crypto.randomUUID(),
                 phaseAccountId: result.phaseAccountId,
                 breachType: evaluation.drawdown.breachType || 'unknown',
                 breachAmount: evaluation.drawdown.breachAmount || 0,
                 breachTime: evaluation.drawdown.breachTime || new Date(),
                 currentEquity: evaluation.drawdown.currentEquity,
-                accountSize: phaseAccountData?.masterAccount.accountSize || 0,
+                accountSize: phaseAccountData?.MasterAccount.accountSize || 0,
                 dailyStartBalance: evaluation.drawdown.dailyStartBalance,
                 highWaterMark: evaluation.drawdown.highWaterMark,
                 notes: `Auto-detected breach during trade import. ${evaluation.drawdown.breachType?.replace('_', ' ')} exceeded by $${evaluation.drawdown.breachAmount?.toFixed(2)}`
@@ -1368,9 +1385,9 @@ export async function getAccountHistory(accountId: string) {
       orderBy: { startDate: 'asc' },
       include: {
         _count: {
-          select: { trades: true }
+          select: { Trade: true }
         },
-        trades: {
+        Trade: {
           select: {
             pnl: true,
             commission: true,
@@ -1382,16 +1399,16 @@ export async function getAccountHistory(accountId: string) {
     })
 
     // Calculate total statistics
-    const totalTrades = phases.reduce((sum, phase) => sum + phase._count.trades, 0)
+    const totalTrades = phases.reduce((sum, phase) => sum + phase._count.Trade, 0)
     const totalPnl = phases.reduce((sum, phase) =>
-      sum + phase.trades.reduce((tradeSum, trade) => tradeSum + trade.pnl, 0), 0)
+      sum + phase.Trade.reduce((tradeSum, trade) => tradeSum + trade.pnl, 0), 0)
     const totalCommission = phases.reduce((sum, phase) =>
-      sum + phase.trades.reduce((tradeSum, trade) => tradeSum + trade.commission, 0), 0)
+      sum + phase.Trade.reduce((tradeSum, trade) => tradeSum + trade.commission, 0), 0)
 
     const netProfit = totalPnl - totalCommission
     // CRITICAL FIX: Use NET P&L (after commission) for win categorization
     const winningTrades = phases.reduce((sum, phase) =>
-      sum + phase.trades.filter(trade => (trade.pnl - (trade.commission || 0)) > 0).length, 0)
+      sum + phase.Trade.filter(trade => (trade.pnl - (trade.commission || 0)) > 0).length, 0)
 
     return {
       account: {
@@ -1400,8 +1417,8 @@ export async function getAccountHistory(accountId: string) {
       },
       phases: phases.map(phase => {
         // Calculate win rate excluding break-even trades
-        const phaseWins = phase.trades?.filter(trade => (trade.pnl - (trade.commission || 0)) > 0).length || 0
-        const phaseLosses = phase.trades?.filter(trade => (trade.pnl - (trade.commission || 0)) < 0).length || 0
+        const phaseWins = phase.Trade?.filter(trade => (trade.pnl - (trade.commission || 0)) > 0).length || 0
+        const phaseLosses = phase.Trade?.filter(trade => (trade.pnl - (trade.commission || 0)) < 0).length || 0
         const tradableCount = phaseWins + phaseLosses
         
         return {
@@ -1412,7 +1429,7 @@ export async function getAccountHistory(accountId: string) {
           profitTargetPercent: phase.profitTargetPercent,
           dailyDrawdownPercent: phase.dailyDrawdownPercent,
           maxDrawdownPercent: phase.maxDrawdownPercent,
-          totalTrades: phase._count.trades,
+          totalTrades: phase._count.Trade,
           winningTrades: phaseWins,
           winRate: tradableCount > 0 ? (phaseWins / tradableCount) * 100 : 0,
           startDate: phase.startDate,

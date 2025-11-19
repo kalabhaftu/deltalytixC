@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserId } from '@/server/auth'
 import { prisma } from '@/lib/prisma'
 import JSZip from 'jszip'
+import { applyRateLimit, importLimiter } from '@/lib/rate-limiter'
 
 export const maxDuration = 300 // 5 minutes for large imports
 
 export async function POST(request: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResult = await applyRateLimit(request, importLimiter)
+  if (rateLimitResult) return rateLimitResult
+
   try {
     const authUserId = await getUserId()
     if (!authUserId) {
@@ -81,6 +86,7 @@ export async function POST(request: NextRequest) {
       for (const group of groups) {
         const newGroup = await prisma.group.create({
           data: {
+            id: crypto.randomUUID(),
             name: group.name,
             userId: user.id,
             createdAt: group.createdAt ? new Date(group.createdAt) : new Date(),
@@ -104,6 +110,7 @@ export async function POST(request: NextRequest) {
       for (const account of accounts) {
         const newAccount = await prisma.account.create({
           data: {
+            id: crypto.randomUUID(),
             number: account.number,
             name: account.name || null,
             broker: account.broker || null,
@@ -130,6 +137,7 @@ export async function POST(request: NextRequest) {
       for (const ma of masterAccounts) {
         const newMA = await prisma.masterAccount.create({
           data: {
+            id: crypto.randomUUID(),
             userId: user.id,
             accountName: ma.accountName,
             propFirmName: ma.propFirmName,
@@ -157,6 +165,7 @@ export async function POST(request: NextRequest) {
       for (const pa of phaseAccounts) {
         const newPA = await prisma.phaseAccount.create({
           data: {
+            id: crypto.randomUUID(),
             masterAccountId: idMap.masterAccounts.get(pa.masterAccountId)!,
             phaseNumber: parseInt(pa.phaseNumber),
             phaseId: pa.phaseId || null,
@@ -196,6 +205,7 @@ export async function POST(request: NextRequest) {
         }
         const newTrade = await prisma.trade.create({
           data: {
+            id: crypto.randomUUID(),
             accountNumber: trade.accountNumber,
             quantity: parseFloat(trade.quantity) || 0,
             entryId: trade.entryId || null,
@@ -210,12 +220,6 @@ export async function POST(request: NextRequest) {
             side: trade.side || null,
             commission: parseFloat(trade.commission) || 0,
             comment: trade.comment || null,
-            imageBase64: trade.imageBase64 || null,
-            imageBase64Second: trade.imageBase64Second || null,
-            imageBase64Third: trade.imageBase64Third || null,
-            imageBase64Fourth: trade.imageBase64Fourth || null,
-            imageBase64Fifth: trade.imageBase64Fifth || null,
-            imageBase64Sixth: trade.imageBase64Sixth || null,
             cardPreviewImage: trade.cardPreviewImage || null,
             groupId: trade.groupId || null,
             accountId: trade.accountId ? idMap.accounts.get(trade.accountId) || null : null,
@@ -247,6 +251,7 @@ export async function POST(request: NextRequest) {
       for (const da of dailyAnchors) {
         await prisma.dailyAnchor.create({
           data: {
+            id: crypto.randomUUID(),
             phaseAccountId: idMap.phaseAccounts.get(da.phaseAccountId)!,
             date: new Date(da.date),
             anchorEquity: parseFloat(da.anchorEquity),
@@ -269,6 +274,7 @@ export async function POST(request: NextRequest) {
       for (const br of breachRecords) {
         await prisma.breachRecord.create({
           data: {
+            id: crypto.randomUUID(),
             phaseAccountId: idMap.phaseAccounts.get(br.phaseAccountId)!,
             breachType: br.breachType,
             breachAmount: parseFloat(br.breachAmount),
@@ -297,6 +303,7 @@ export async function POST(request: NextRequest) {
       for (const payout of payouts) {
         await prisma.payout.create({
           data: {
+            id: crypto.randomUUID(),
             masterAccountId: idMap.masterAccounts.get(payout.masterAccountId)!,
             phaseAccountId: idMap.phaseAccounts.get(payout.phaseAccountId)!,
             amount: parseFloat(payout.amount),
@@ -342,6 +349,7 @@ export async function POST(request: NextRequest) {
 
         await prisma.backtestTrade.create({
           data: {
+            id: crypto.randomUUID(),
             userId: user.id,
             pair: bt.pair,
             direction: bt.direction,
@@ -396,6 +404,7 @@ export async function POST(request: NextRequest) {
             note: note.note
           },
           create: {
+            id: crypto.randomUUID(),
             userId: user.id,
             accountId: null,
             date: new Date(note.date),
@@ -431,6 +440,7 @@ export async function POST(request: NextRequest) {
         try {
           await prisma.dashboardTemplate.create({
             data: {
+              id: crypto.randomUUID(),
               userId: user.id,
               name: template.name,
               isDefault: template.isDefault === 'true' || template.isDefault === true,

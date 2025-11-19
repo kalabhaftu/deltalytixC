@@ -73,14 +73,34 @@ export function getPricePrecision(instrument: string): number {
   return 5
 }
 
-// Format price based on instrument type (removes trailing zeros)
-export function formatPrice(price: string | number, instrument: string): string {
+// Format price based on instrument type (preserves exact decimal from import for display)
+export function formatPrice(price: string | number | { toString(): string }, instrument: string, forAggregation: boolean = false): string {
   if (!price) return '0'
-  const numPrice = typeof price === 'string' ? parseFloat(price) : price
+  
+  // Handle Prisma Decimal type
+  let numPrice: number
+  if (typeof price === 'object' && 'toString' in price) {
+    // Prisma Decimal type - convert to number
+    numPrice = parseFloat(price.toString())
+  } else if (typeof price === 'string') {
+    numPrice = parseFloat(price)
+  } else {
+    numPrice = price
+  }
+  
   if (isNaN(numPrice) || !isFinite(numPrice)) return '0'
   
+  // For trade details: show exact value as imported (no rounding)
+  if (!forAggregation) {
+    // Return the original string representation if available
+    if (typeof price === 'object' && 'toString' in price) {
+      return price.toString()
+    }
+    return numPrice.toString()
+  }
+  
+  // For charts/aggregations: round to instrument-specific precision
   const precision = getPricePrecision(instrument)
-  // Use toFixed for precision but remove trailing zeros
   const fixed = numPrice.toFixed(precision)
   return parseFloat(fixed).toString()
 }
@@ -244,9 +264,12 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
       // New metrics for enhanced statistics
       biggestWin: 0,
       biggestLoss: 0,
+      averageWin: 0,
+      averageLoss: 0,
       // Payout statistics
       totalPayouts: 0,
       nbPayouts: 0,
+      totalPnL: 0,
     }
   }
 
@@ -277,9 +300,12 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
       // New metrics for enhanced statistics
       biggestWin: 0,
       biggestLoss: 0,
+      averageWin: 0,
+      averageLoss: 0,
       // Payout statistics
       totalPayouts: 0,
       nbPayouts: 0,
+      totalPnL: 0,
     }
   }
 
@@ -300,22 +326,45 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
     // New metrics for enhanced statistics
     biggestWin: 0,
     biggestLoss: 0,
+    averageWin: 0,
+    averageLoss: 0,
     // Payout statistics
     totalPayouts: 0,
     nbPayouts: 0,
+    totalPnL: 0,
   };
 
   // Track consecutive winning streak
   let currentWinningStreak = 0;
   let maxWinningStreak = 0;
 
+  // Initialize totalPnL if it's not in initialStatistics
+  if (initialStatistics.totalPnL === undefined) {
+    (initialStatistics as any).totalPnL = 0;
+  }
+  if (initialStatistics.averageWin === undefined) {
+    (initialStatistics as any).averageWin = 0;
+  }
+  if (initialStatistics.averageLoss === undefined) {
+    (initialStatistics as any).averageLoss = 0;
+  }
+
   const statistics = filteredTrades.reduce((acc: StatisticsProps, trade: Trade) => {
-    const netPnl = trade.pnl - (trade.commission || 0);
+    // Ensure all values are treated as numbers
+    const pnl = Number(trade.pnl) || 0;
+    const commission = Number(trade.commission) || 0;
+    const timeInPosition = Number(trade.timeInPosition) || 0;
+    
+    const netPnl = pnl - commission;
 
     acc.nbTrades++;
-    acc.cumulativePnl += trade.pnl;
-    acc.cumulativeFees += trade.commission || 0;
-    acc.totalPositionTime += trade.timeInPosition;
+    acc.cumulativePnl += pnl;
+    acc.cumulativeFees += commission;
+    acc.totalPositionTime += timeInPosition;
+    
+    // Update totalPnL (net P&L)
+    if ((acc as any).totalPnL === undefined) (acc as any).totalPnL = 0;
+    (acc as any).totalPnL += netPnl;
 
     // Track biggest win and loss (using net P&L)
     if (netPnl > acc.biggestWin) {
@@ -326,7 +375,7 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
     }
 
     // Categorize trades using net P&L and handle winning streak correctly
-    if (netPnl === 0) {
+    if (Math.abs(netPnl) < 0.000001) { // Treat extremely small values as 0
       acc.nbBe++;
       currentWinningStreak = 0; // Break-even breaks winning streak
     } else if (netPnl > 0) {
@@ -342,12 +391,25 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
       currentWinningStreak = 0; // Loss breaks winning streak
     }
 
-    // Calculate win rate excluding break-even trades (standard trading metric)
-    const tradableTradesCount = acc.nbWin + acc.nbLoss;
-    acc.winRate = tradableTradesCount > 0 ? (acc.nbWin / tradableTradesCount) * 100 : 0;
-
     return acc;
-  }, initialStatistics);
+  }, { ...initialStatistics });
+  
+  // Calculate Win Rate properly
+  const tradableTradesCount = statistics.nbWin + statistics.nbLoss;
+  statistics.winRate = tradableTradesCount > 0 ? (statistics.nbWin / tradableTradesCount) * 100 : 0;
+
+  // Calculate Average Win/Loss
+  if (statistics.nbWin > 0) {
+    (statistics as any).averageWin = statistics.grossWin / statistics.nbWin;
+  } else {
+    (statistics as any).averageWin = 0;
+  }
+  
+  if (statistics.nbLoss > 0) {
+    (statistics as any).averageLoss = statistics.grossLosses / statistics.nbLoss;
+  } else {
+    (statistics as any).averageLoss = 0;
+  }
 
   // Set the maximum winning streak achieved
   statistics.winningStreak = maxWinningStreak;

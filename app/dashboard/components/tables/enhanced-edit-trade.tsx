@@ -87,12 +87,6 @@ const mapModelToEnum = (model: string) => {
 // Schema for limited editing (only notes, screenshots, links)
 const editTradeSchema = z.object({
   comment: z.string().optional(),
-  imageBase64: z.string().optional(),
-  imageBase64Second: z.string().optional(),
-  imageBase64Third: z.string().optional(),
-  imageBase64Fourth: z.string().optional(),
-  imageBase64Fifth: z.string().optional(),
-  imageBase64Sixth: z.string().optional(),
   cardPreviewImage: z.string().optional(),
   tradingModel: z.string().nullable().optional(),
   links: z.array(z.string().url()).optional(),
@@ -198,7 +192,7 @@ export default function EnhancedEditTrade({
   // Confirmation dialogs state
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false)
   const [showDeleteImageDialog, setShowDeleteImageDialog] = useState(false)
-  const [imageToDelete, setImageToDelete] = useState<'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth' | 'imageBase64Fifth' | 'imageBase64Sixth' | 'cardPreviewImage' | null>(null)
+  const [imageToDelete, setImageToDelete] = useState<'cardPreviewImage' | null>(null)
   const [pendingClose, setPendingClose] = useState(false)
   
   // Track if form has unsaved changes
@@ -228,12 +222,6 @@ export default function EnhancedEditTrade({
     resolver: zodResolver(editTradeSchema),
     defaultValues: {
       comment: '',
-      imageBase64: '',
-      imageBase64Second: '',
-      imageBase64Third: '',
-      imageBase64Fourth: '',
-      imageBase64Fifth: '',
-      imageBase64Sixth: '',
       cardPreviewImage: '',
       tradingModel: '',
     }
@@ -250,12 +238,6 @@ export default function EnhancedEditTrade({
       
       const defaultFormState: EditTradeFormData = {
         comment: trade.comment || '',
-        imageBase64: trade.imageBase64 || '',
-        imageBase64Second: trade.imageBase64Second || '',
-        imageBase64Third: (trade as any).imageBase64Third || '',
-        imageBase64Fourth: (trade as any).imageBase64Fourth || '',
-        imageBase64Fifth: (trade as any)?.imageBase64Fifth || '',
-        imageBase64Sixth: (trade as any)?.imageBase64Sixth || '',
         cardPreviewImage: (trade as any)?.cardPreviewImage || '',
         tradingModel: (trade as any)?.tradingModel || '',
       }
@@ -333,7 +315,7 @@ export default function EnhancedEditTrade({
     }
   }, [hasUnsavedChanges, isOpen])
 
-  const handleImageUpload = async (field: 'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth' | 'imageBase64Fifth' | 'imageBase64Sixth' | 'cardPreviewImage', file: File) => {
+  const handleImageUpload = async (field: 'cardPreviewImage', file: File) => {
     try {
       validateImageFile(file)
       
@@ -374,7 +356,7 @@ export default function EnhancedEditTrade({
     }
   }
 
-  const removeImage = (field: 'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth' | 'imageBase64Fifth' | 'imageBase64Sixth' | 'cardPreviewImage') => {
+  const removeImage = (field: 'cardPreviewImage') => {
     // Show confirmation dialog before deleting
     setImageToDelete(field)
     setShowDeleteImageDialog(true)
@@ -417,13 +399,6 @@ export default function EnhancedEditTrade({
         comment: data.comment || null,
         tradingModel: data.tradingModel ? mapModelToEnum(data.tradingModel) : null,
         tags: selectedTags.length > 0 ? selectedTags.join(',') : null,
-        // For images, we need to distinguish between empty string (deleted) and undefined (not changed)
-        imageBase64: data.imageBase64 === '' ? null : data.imageBase64 || null,
-        imageBase64Second: data.imageBase64Second === '' ? null : data.imageBase64Second || null,
-        imageBase64Third: data.imageBase64Third === '' ? null : data.imageBase64Third || null,
-        imageBase64Fourth: data.imageBase64Fourth === '' ? null : data.imageBase64Fourth || null,
-        imageBase64Fifth: data.imageBase64Fifth === '' ? null : (data.imageBase64Fifth || null),
-        imageBase64Sixth: data.imageBase64Sixth === '' ? null : (data.imageBase64Sixth || null),
         cardPreviewImage: data.cardPreviewImage === '' ? null : data.cardPreviewImage || null,
       } as Partial<Trade>
 
@@ -511,7 +486,7 @@ export default function EnhancedEditTrade({
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">Entry → Close</Label>
-                <p className="font-medium">{trade.entryPrice} → {trade.closePrice}</p>
+                <p className="font-medium">{String(trade.entryPrice)} → {String(trade.closePrice)}</p>
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">Quantity</Label>
@@ -624,356 +599,6 @@ export default function EnhancedEditTrade({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Screenshots Grid - 2 rows of 3 */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  {/* Screenshot 1 */}
-                  <div className="space-y-2">
-                    <Label className="text-xs">Screenshot 1</Label>
-                    <div className="relative">
-                      <div className="border-2 border-dashed rounded-lg p-3 text-center aspect-video flex items-center justify-center min-h-[120px]">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          id="screenshot-1"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) handleImageUpload('imageBase64', file)
-                          }}
-                        />
-                        
-                        {watchedValues.imageBase64 ? (
-                          <div className="relative w-full h-full group">
-                            <Image
-                              src={watchedValues.imageBase64}
-                              alt="Screenshot 1"
-                              fill
-                              className="object-cover rounded cursor-pointer"
-                              onClick={() => setFullscreenImage(watchedValues.imageBase64!)}
-                            />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => removeImage('imageBase64')}
-                                className="mr-1"
-                              >
-                                <X className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => setFullscreenImage(watchedValues.imageBase64!)}
-                              >
-                                View
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <label
-                            htmlFor="screenshot-1"
-                            className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            <Camera className="w-6 h-6 mb-1" />
-                            <span className="text-xs">Upload</span>
-                          </label>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Screenshot 2 */}
-                  <div className="space-y-2">
-                    <Label className="text-xs">Screenshot 2</Label>
-                    <div className="relative">
-                      <div className="border-2 border-dashed rounded-lg p-3 text-center aspect-video flex items-center justify-center min-h-[120px]">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          id="screenshot-2"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) handleImageUpload('imageBase64Second', file)
-                          }}
-                        />
-                        
-                        {watchedValues.imageBase64Second ? (
-                          <div className="relative w-full h-full group">
-                            <Image
-                              src={watchedValues.imageBase64Second}
-                              alt="Screenshot 2"
-                              fill
-                              className="object-cover rounded cursor-pointer"
-                              onClick={() => setFullscreenImage(watchedValues.imageBase64Second!)}
-                            />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => removeImage('imageBase64Second')}
-                                className="mr-1"
-                              >
-                                <X className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => setFullscreenImage(watchedValues.imageBase64Second!)}
-                              >
-                                View
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <label
-                            htmlFor="screenshot-2"
-                            className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            <Camera className="w-6 h-6 mb-1" />
-                            <span className="text-xs">Upload</span>
-                          </label>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Screenshot 3 */}
-                  <div className="space-y-2">
-                    <Label className="text-xs">Screenshot 3</Label>
-                    <div className="relative">
-                      <div className="border-2 border-dashed rounded-lg p-3 text-center aspect-video flex items-center justify-center min-h-[120px]">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          id="screenshot-3"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) handleImageUpload('imageBase64Third', file)
-                          }}
-                        />
-                        
-                        {watchedValues.imageBase64Third ? (
-                          <div className="relative w-full h-full group">
-                            <Image
-                              src={watchedValues.imageBase64Third}
-                              alt="Screenshot 3"
-                              fill
-                              className="object-cover rounded cursor-pointer"
-                              onClick={() => setFullscreenImage(watchedValues.imageBase64Third!)}
-                            />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => removeImage('imageBase64Third')}
-                                className="mr-1"
-                              >
-                                <X className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => setFullscreenImage(watchedValues.imageBase64Third!)}
-                              >
-                                View
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <label
-                            htmlFor="screenshot-3"
-                            className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            <Camera className="w-6 h-6 mb-1" />
-                            <span className="text-xs">Upload</span>
-                          </label>
-                        )}
-                      </div>
-                      </div>
-                    </div>
-                  </div>
-
-                {/* Second row of screenshots */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Screenshot 4</Label>
-                    <div className="relative">
-                      <div className="border-2 border-dashed rounded-lg p-3 text-center aspect-video flex items-center justify-center min-h-[120px]">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          id="screenshot-4"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) handleImageUpload('imageBase64Fourth', file)
-                          }}
-                        />
-                        
-                        {watchedValues.imageBase64Fourth ? (
-                          <div className="relative w-full h-full group">
-                            <Image
-                              src={watchedValues.imageBase64Fourth}
-                              alt="Screenshot 4"
-                              fill
-                              className="object-cover rounded cursor-pointer"
-                              onClick={() => setFullscreenImage(watchedValues.imageBase64Fourth!)}
-                            />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => removeImage('imageBase64Fourth')}
-                                className="mr-1"
-                              >
-                                <X className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => setFullscreenImage(watchedValues.imageBase64Fourth!)}
-                              >
-                                View
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <label
-                            htmlFor="screenshot-4"
-                            className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            <Camera className="w-6 h-6 mb-1" />
-                            <span className="text-xs">Upload</span>
-                          </label>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs">Screenshot 5</Label>
-                    <div className="relative">
-                      <div className="border-2 border-dashed rounded-lg p-3 text-center aspect-video flex items-center justify-center min-h-[120px]">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          id="screenshot-5"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) handleImageUpload('imageBase64Fifth', file)
-                          }}
-                        />
-
-                        {watchedValues.imageBase64Fifth ? (
-                          <div className="relative w-full h-full group">
-                            <Image
-                              src={watchedValues.imageBase64Fifth}
-                              alt="Screenshot 5"
-                              fill
-                              className="object-cover rounded cursor-pointer"
-                              onClick={() => setFullscreenImage(watchedValues.imageBase64Fifth!)}
-                            />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => removeImage('imageBase64Fifth')}
-                                className="mr-1"
-                              >
-                                <X className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => setFullscreenImage(watchedValues.imageBase64Fifth!)}
-                              >
-                                View
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <label
-                            htmlFor="screenshot-5"
-                            className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            <Camera className="w-6 h-6 mb-1" />
-                            <span className="text-xs">Upload</span>
-                          </label>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs">Screenshot 6</Label>
-                    <div className="relative">
-                      <div className="border-2 border-dashed rounded-lg p-3 text-center aspect-video flex items-center justify-center min-h-[120px]">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          id="screenshot-6"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) handleImageUpload('imageBase64Sixth', file)
-                          }}
-                        />
-
-                        {watchedValues.imageBase64Sixth ? (
-                          <div className="relative w-full h-full group">
-                            <Image
-                              src={watchedValues.imageBase64Sixth}
-                              alt="Screenshot 6"
-                              fill
-                              className="object-cover rounded cursor-pointer"
-                              onClick={() => setFullscreenImage(watchedValues.imageBase64Sixth!)}
-                            />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => removeImage('imageBase64Sixth')}
-                                className="mr-1"
-                              >
-                                <X className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => setFullscreenImage(watchedValues.imageBase64Sixth!)}
-                              >
-                                View
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <label
-                            htmlFor="screenshot-6"
-                            className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            <Camera className="w-6 h-6 mb-1" />
-                            <span className="text-xs">Upload</span>
-                          </label>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
                 {/* Card Preview - Smaller size like backtest */}
                 <div className="space-y-2">

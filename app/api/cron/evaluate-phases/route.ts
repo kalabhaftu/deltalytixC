@@ -14,12 +14,12 @@ export async function GET(request: NextRequest) {
     const activePhases = await prisma.phaseAccount.findMany({
       where: {
         status: 'active',
-        masterAccount: {
+        MasterAccount: {
           isActive: true
         }
       },
       include: {
-        masterAccount: {
+        MasterAccount: {
           select: {
             id: true,
             accountName: true,
@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
             }),
             prisma.breachRecord.create({
               data: {
+                id: crypto.randomUUID(),
                 phaseAccountId: phase.id,
                 breachType: evaluation.drawdown.breachType || 'unknown',
                 breachAmount: evaluation.drawdown.breachAmount || 0,
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
         }
 
       } catch (error) {
-        const errorMsg = `Phase ${phase.id} (${phase.masterAccount.accountName}): ${error instanceof Error ? error.message : 'Unknown error'}`
+        const errorMsg = `Phase ${phase.id} (${phase.MasterAccount.accountName}): ${error instanceof Error ? error.message : 'Unknown error'}`
         errors.push(errorMsg)
         console.error('[BACKGROUND_EVAL]', errorMsg)
       }
@@ -149,6 +150,7 @@ export async function POST(request: NextRequest) {
           }),
           prisma.breachRecord.create({
             data: {
+              id: crypto.randomUUID(),
               phaseAccountId,
               breachType: evaluation.drawdown.breachType || 'unknown',
               breachAmount: evaluation.drawdown.breachAmount || 0,

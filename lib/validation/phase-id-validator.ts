@@ -41,7 +41,7 @@ export async function validatePhaseId(
     const existingPhaseAccount = await prisma.phaseAccount.findFirst({
       where: {
         phaseId: normalizedPhaseId,
-        masterAccount: {
+        MasterAccount: {
           userId,
           isActive: true, // Only check active master accounts
           ...(excludeAccountId ? { NOT: { id: excludeAccountId } } : {})
@@ -51,7 +51,7 @@ export async function validatePhaseId(
         }
       },
       include: {
-        masterAccount: {
+        MasterAccount: {
           select: {
             id: true,
             accountName: true
@@ -66,8 +66,8 @@ export async function validatePhaseId(
         isValid: false,
         error: `Phase ID "${normalizedPhaseId}" is already in use`,
         conflictingAccount: {
-          id: existingPhaseAccount.masterAccount.id,
-          accountName: existingPhaseAccount.masterAccount.accountName,
+          id: existingPhaseAccount.MasterAccount.id,
+          accountName: existingPhaseAccount.MasterAccount.accountName,
           phaseNumber: existingPhaseAccount.phaseNumber
         }
       }

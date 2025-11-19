@@ -93,15 +93,10 @@ const ExnessProcessor = ({
           createdAt: new Date(),
           comment: null, // Don't set reason as comment - reasons should be displayed separately
           closeReason: reason || null, // Store close reason in dedicated field
-          imageBase64: null,
-          imageBase64Second: null,
-          imageBase64Third: null,
-          imageBase64Fourth: null,
-          imageBase64Fifth: null,
-          imageBase64Sixth: null,
           cardPreviewImage: null,
           tradingModel: null,
           groupId: null,
+          tags: null,
           // Prisma optional fields
           symbol: instrument, // Same as instrument for Exness
           entryTime: entryDate, // Set actual entry time
@@ -109,7 +104,7 @@ const ExnessProcessor = ({
           accountId: null,
           stopLoss: stopLoss,
           takeProfit: takeProfit,
-        } as Trade
+        } as any
 
         trades.push(trade)
       }

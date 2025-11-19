@@ -40,12 +40,12 @@ export async function deleteTrade(tradeId: string) {
 }
 
 /**
- * Update trade image field
+ * Update trade image field (Supabase storage URL)
  */
 export async function updateTradeImage(
   tradeIds: string[],
-  imageBase64: string | null,
-  fieldName: 'imageBase64' | 'imageBase64Second' | 'imageBase64Third' | 'imageBase64Fourth' | 'imageBase64Fifth' | 'imageBase64Sixth' | 'cardPreviewImage'
+  imageUrl: string | null,
+  fieldName: 'cardPreviewImage'
 ) {
   try {
     const userId = await getUserIdSafe()
@@ -54,8 +54,7 @@ export async function updateTradeImage(
       throw new Error('User not authenticated')
     }
 
-  // Use image as-is (compression removed - ImageCompressor expects File not base64)
-  let processedImage = imageBase64
+  let processedImage = imageUrl
 
     // Update all specified trades
     await prisma.trade.updateMany({

@@ -130,8 +130,6 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
               commission: cleanTrade.commission || 0,
               entryId: cleanTrade.entryId || null,
               comment: cleanTrade.comment || null,
-              imageBase64: cleanTrade.imageBase64 || null,
-              imageBase64Second: cleanTrade.imageBase64Second || null,
               groupId: cleanTrade.groupId || null,
               createdAt: cleanTrade.createdAt || new Date(),
             } as Trade

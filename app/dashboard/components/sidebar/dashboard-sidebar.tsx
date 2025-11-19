@@ -18,6 +18,7 @@ import {
   Sun,
   Moon,
   Laptop,
+  Waves,
   FlaskConical
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -186,6 +187,15 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
             >
               <Moon className="h-4 w-4 mr-3" />
               <span className="font-medium">Dark</span>
+            </Button>
+            <Button
+              variant={theme === 'midnight-ocean' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="w-full justify-start"
+              onClick={() => setTheme('midnight-ocean')}
+            >
+              <Waves className="h-4 w-4 mr-3" />
+              <span className="font-medium">Midnight Ocean</span>
             </Button>
             <Button
               variant={theme === 'system' ? 'secondary' : 'ghost'}

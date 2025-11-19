@@ -19,11 +19,19 @@ interface DayWinRateProps {
 const DayWinRate = React.memo(function DayWinRate({ size }: DayWinRateProps) {
   const { calendarData } = useData()
   
-  // Calculate day win rate from calendar data
-  const dayEntries = Object.entries(calendarData)
-  const totalDays = dayEntries.length
-  const winningDays = dayEntries.filter(([_, data]) => data.pnl > 0).length
-  const dayWinRate = totalDays > 0 ? Math.round((winningDays / totalDays) * 1000) / 10 : 0
+  // Memoize expensive calculation
+  const { dayWinRate, winningDays, totalDays } = React.useMemo(() => {
+    const dayEntries = Object.entries(calendarData)
+    const total = dayEntries.length
+    const winning = dayEntries.filter(([_, data]) => data.pnl > 0).length
+    const rate = total > 0 ? Math.round((winning / total) * 1000) / 10 : 0
+    
+    return {
+      dayWinRate: rate,
+      winningDays: winning,
+      totalDays: total
+    }
+  }, [calendarData])
   
   // Determine color based on day win rate - use CSS variables for consistency
   const getColor = (rate: number) => {

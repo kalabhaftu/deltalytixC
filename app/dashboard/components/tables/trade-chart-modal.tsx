@@ -60,8 +60,8 @@ export function TradeChartModal({ isOpen, onClose, trade }: TradeChartModalProps
     )
   }
 
-  const entryPrice = parseFloat(trade.entryPrice)
-  const exitPrice = parseFloat(trade.closePrice)
+  const entryPrice = parseFloat(String(trade.entryPrice))
+  const exitPrice = parseFloat(String(trade.closePrice))
 
   // Validate prices
   if (isNaN(entryPrice) || isNaN(exitPrice)) {
@@ -138,8 +138,8 @@ export function TradeChartModal({ isOpen, onClose, trade }: TradeChartModalProps
                 exitTime,
                 entryPrice,
                 exitPrice,
-                stopLoss: trade.stopLoss ? parseFloat(trade.stopLoss) : undefined,
-                takeProfit: trade.takeProfit ? parseFloat(trade.takeProfit) : undefined,
+                stopLoss: trade.stopLoss ? parseFloat(String(trade.stopLoss)) : undefined,
+                takeProfit: trade.takeProfit ? parseFloat(String(trade.takeProfit)) : undefined,
                 side,
                 pnl: trade.pnl,
                 symbol

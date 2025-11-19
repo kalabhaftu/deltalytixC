@@ -1,9 +1,5 @@
 'use client'
 
-// Force dynamic rendering for this client component
-// Note: ISR (revalidate) only works with Server Components in Next.js 15
-export const dynamic = 'force-dynamic'
-
 import NextDynamic from 'next/dynamic'
 import { useEffect, useRef, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'

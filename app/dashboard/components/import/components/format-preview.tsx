@@ -110,7 +110,7 @@ export function FormatPreview({
 
   useEffect(() => {
     if (object) {
-      const newTrades = object.filter((trade): trade is NonNullable<typeof trade> => trade !== undefined) as Trade[];
+      const newTrades = object.filter((trade): trade is NonNullable<typeof trade> => trade !== undefined) as any[];
       const uniqueTrades = newTrades.filter(newTrade =>
         !processedTrades.some(existingTrade =>
           existingTrade.entryDate === newTrade.entryDate &&
@@ -233,11 +233,12 @@ export function FormatPreview({
       ),
       cell: ({ row }) => {
         const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'entryPrice')];
+        const priceValue = row.original.entryPrice ? String(row.original.entryPrice) : '0';
         return (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                ${row.original.entryPrice}
+                ${priceValue}
               </TooltipTrigger>
               {originalData && (
                 <TooltipContent>
@@ -257,11 +258,12 @@ export function FormatPreview({
       ),
       cell: ({ row }) => {
         const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'closePrice')];
+        const priceValue = row.original.closePrice ? String(row.original.closePrice) : '0';
         return (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                ${row.original.closePrice}
+                ${priceValue}
               </TooltipTrigger>
               {originalData && (
                 <TooltipContent>

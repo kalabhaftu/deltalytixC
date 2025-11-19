@@ -41,7 +41,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         isActive: true
       },
       include: {
-        phases: {
+        PhaseAccount: {
           orderBy: { phaseNumber: 'asc' }
         }
       }
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Find the current active phase
-    const currentPhase = masterAccount.phases.find(phase => 
+    const currentPhase = masterAccount.PhaseAccount.find(phase => 
       phase.phaseNumber === masterAccount.currentPhase && phase.status === 'active'
     )
 
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const nextPhaseNumber = masterAccount.currentPhase + 1
     
     // Find the next phase
-    const nextPhase = masterAccount.phases.find(phase => 
+    const nextPhase = masterAccount.PhaseAccount.find(phase => 
       phase.phaseNumber === nextPhaseNumber
     )
 

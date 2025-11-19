@@ -76,7 +76,7 @@ export async function getUserData(): Promise<{
         // Groups - minimal data with error handling
         (async () => {
           try {
-            return await prisma.group.findMany({
+            const groups = await prisma.group.findMany({
               where: {
                 userId: userId
               },
@@ -86,9 +86,10 @@ export async function getUserData(): Promise<{
                 userId: true,
                 createdAt: true,
                 updatedAt: true,
-                accounts: true
+                Account: true
               }
             })
+            return groups.map((g: any) => ({ ...g, accounts: g.Account || [] }))
           } catch (error) {
             return []
           }
@@ -159,3 +160,4 @@ export async function updateIsFirstConnectionAction(isFirstConnection: boolean) 
     throw new Error('Failed to update onboarding status')
   }
 }
+

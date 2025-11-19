@@ -68,7 +68,8 @@ export function calculateAccountBalance(
   } = options
 
   // Start with account's starting balance
-  let balance = account.startingBalance || 0
+  // Ensure we get a valid number (handle undefined, null, NaN)
+  let balance = Number(account.startingBalance) || 0
 
   // Filter trades based on account type
   // For prop firm accounts: match by phase ID (UUID) since trades use phaseAccountId
@@ -245,7 +246,8 @@ export function calculateTotalStartingBalance(
     const isActive = account.status === 'active'
     const isFunded = account.status === 'funded'
     const status = account.status || 'active'
-    const balance = account.startingBalance || 0
+    // Ensure we get a valid number (handle undefined, null, NaN)
+    const balance = Number(account.startingBalance) || 0
     
     
     const existing = masterAccountBalances.get(masterKey)

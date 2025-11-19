@@ -2,7 +2,6 @@ import React, { lazy, Suspense } from 'react'
 import { WidgetType, WidgetSize } from '../types/dashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { WidgetErrorBoundary } from '@/components/error-boundary'
-import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
 // Lazy load all widget components for code splitting
@@ -29,137 +28,7 @@ const PnLByInstrument = lazy(() => import('../components/charts/pnl-by-instrumen
 const PnLByStrategy = lazy(() => import('../components/charts/pnl-by-strategy'))
 const WinRateByStrategy = lazy(() => import('../components/charts/win-rate-by-strategy'))
 
-// Detailed widget loading skeletons - EXACTLY matching Step 1 design with fixed dimensions
-function KpiWidgetSkeleton() {
-  return (
-    <div className="w-full h-[120px]">
-      <Card className="h-full p-4">
-        <div className="flex items-start justify-between h-full">
-          <div className="space-y-2 flex-1">
-            <div className="h-3 w-20 bg-muted-foreground/20 rounded animate-pulse" />
-            <div className="h-6 w-24 bg-muted-foreground/30 rounded animate-pulse" />
-          </div>
-          <div className="h-12 w-12 rounded-full bg-muted-foreground/20 animate-pulse" />
-        </div>
-      </Card>
-    </div>
-  )
-}
 
-function ChartWidgetSkeleton() {
-  return (
-    <div className="w-full h-[360px]">
-      <Card className="h-full p-6">
-        <div className="space-y-4 h-full">
-          <div className="h-5 w-28 bg-muted-foreground/30 rounded animate-pulse" />
-          <div className="flex-1 bg-muted-foreground/10 rounded-lg animate-pulse flex items-end p-4">
-            <div className="flex items-end gap-1 w-full h-32">
-              {Array(8).fill(0).map((_, j) => {
-                const height = Math.random() * 80 + 20
-                return (
-                  <div 
-                    key={j} 
-                    className="flex-1 bg-muted-foreground/20 rounded-t animate-pulse"
-                    style={{ 
-                      height: `${height}%`,
-                      animationDelay: `${j * 50}ms`
-                    }}
-                  />
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      </Card>
-    </div>
-  )
-}
-
-function TableWidgetSkeleton() {
-  return (
-    <div className="w-full h-[300px]">
-      <Card className="h-full p-6">
-        <div className="space-y-4">
-          <div className="h-5 w-32 bg-muted-foreground/30 rounded animate-pulse" />
-          <div className="space-y-3">
-            {Array(5).fill(0).map((_, i) => (
-              <div key={i} className="flex justify-between items-center py-2 border-b border-muted/30">
-                <div className="flex items-center space-x-3">
-                  <div className="h-4 w-12 bg-muted-foreground/20 rounded animate-pulse" />
-                  <div className="h-4 w-16 bg-muted-foreground/20 rounded animate-pulse" />
-                </div>
-                <div className="h-4 w-20 bg-muted-foreground/30 rounded animate-pulse" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
-    </div>
-  )
-}
-
-function CalendarWidgetSkeleton() {
-  return (
-    <div className="w-full h-[300px]">
-      <Card className="h-full p-6">
-        <div className="space-y-4 h-full">
-          <div className="flex items-center justify-between">
-            <div className="h-5 w-24 bg-muted-foreground/30 rounded animate-pulse" />
-            <div className="flex gap-2">
-              <div className="h-6 w-6 bg-muted-foreground/20 rounded animate-pulse" />
-              <div className="h-6 w-6 bg-muted-foreground/20 rounded animate-pulse" />
-            </div>
-          </div>
-          <div className="flex-1 flex flex-col space-y-2">
-            {/* Weekday headers */}
-            <div className="grid grid-cols-7 gap-1">
-              {Array(7).fill(0).map((_, i) => (
-                <div key={i} className="h-4 bg-muted-foreground/20 rounded animate-pulse text-center" />
-              ))}
-            </div>
-            {/* Calendar days */}
-            <div className="flex-1 flex flex-col justify-start space-y-1 max-h-[180px] overflow-hidden">
-              {Array(4).fill(0).map((_, weekIndex) => (
-                <div key={weekIndex} className="grid grid-cols-7 gap-1 flex-1">
-                  {Array(7).fill(0).map((_, dayIndex) => (
-                    <div 
-                      key={dayIndex} 
-                      className="w-full h-full min-h-[24px] max-h-[32px] bg-muted-foreground/10 rounded animate-pulse" 
-                      style={{ animationDelay: `${(weekIndex * 7 + dayIndex) * 15}ms` }} 
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </Card>
-    </div>
-  )
-}
-
-function WidgetSkeleton({ size, type }: { size: WidgetSize, type?: WidgetType }) {
-  // Use specific skeletons based on widget type - EXACTLY matching Step 1 with fixed dimensions
-  if (type?.includes('calendar')) {
-    return <CalendarWidgetSkeleton />
-  }
-  
-  if (type?.includes('recentTrades') || type?.includes('table')) {
-    return <TableWidgetSkeleton />
-  }
-  
-  if (type?.includes('chart') || type?.includes('Chart') || type?.includes('PnL') || type?.includes('Performance')) {
-    return <ChartWidgetSkeleton />
-  }
-  
-  // Default to KPI skeleton for small widgets
-  if (size === 'small') {
-    return <KpiWidgetSkeleton />
-  }
-  
-  // Default to chart skeleton for larger widgets
-  return <ChartWidgetSkeleton />
-}
 
 // Lazy component wrapper with suspense
 function LazyWidget({ 
@@ -172,7 +41,7 @@ function LazyWidget({
   type: WidgetType
 }) {
   return (
-    <Suspense fallback={<WidgetSkeleton size={size} type={type} />}>
+    <Suspense fallback={null}>
       <WidgetErrorBoundary widgetType="Widget">
         <Component size={size} />
       </WidgetErrorBoundary>

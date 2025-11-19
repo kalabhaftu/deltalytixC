@@ -62,6 +62,8 @@ export async function POST(request: Request) {
 
     const tag = await prisma.tradeTag.create({
       data: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         name,
         color: color || '#3b82f6',
         userId

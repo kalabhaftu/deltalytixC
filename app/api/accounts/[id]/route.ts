@@ -24,7 +24,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       include: {
         _count: {
           select: {
-            trades: true
+            Trade: true
           }
         }
       }
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       currentEquity,
       profitLoss,
       status: 'active',
-      tradeCount: account._count.trades,
+      tradeCount: account._count.Trade,
       lastTradeDate,
       createdAt: account.createdAt,
     }

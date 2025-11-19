@@ -30,6 +30,7 @@ bun.lockb
 !.env.example
 vercel-env.txt
 
+
 # Vercel
 .vercel
 

@@ -19,11 +19,13 @@ interface TradeWinRateProps {
 const TradeWinRate = React.memo(function TradeWinRate({ size }: TradeWinRateProps) {
   const { winRate, nbWin, nbTrades } = useTradeStatistics()
   
-  // Determine color based on win rate - use CSS variables for consistency
-  const getColor = (rate: number) => {
-    if (rate >= 50) return 'hsl(var(--chart-profit))' // Profit green
-    return 'hsl(var(--chart-loss))' // Loss red
-  }
+  // Memoize color calculation
+  const color = React.useMemo(() => {
+    return winRate >= 50 
+      ? 'hsl(var(--chart-profit))' 
+      : 'hsl(var(--chart-loss))'
+  }, [winRate])
+  
 
   return (
     <Card className="w-full h-24">
@@ -56,7 +58,7 @@ const TradeWinRate = React.memo(function TradeWinRate({ size }: TradeWinRateProp
             value={winRate}
             size={56}
             strokeWidth={6}
-            color={getColor(winRate)}
+            color={color}
             showPercentage={false}
           />
         </div>

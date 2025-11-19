@@ -110,7 +110,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
   const handleRemoveAllImages = async () => {
     try {
       // Update both image fields to null in a single operation
-      const update = {
+      const update: any = {
         imageBase64: null,
         imageBase64Second: null
       }
@@ -118,12 +118,13 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
       
       // Remove both images from Supabase storage
       const imagesToRemove: string[] = []
-      if (trade.imageBase64) {
-        const path = trade.imageBase64.split('T')[1]
+      const tradeAny = trade as any
+      if (tradeAny.imageBase64) {
+        const path = tradeAny.imageBase64.split('T')[1]
         if (path) imagesToRemove.push(path)
       }
-      if (trade.imageBase64Second) {
-        const path = trade.imageBase64Second.split('T')[1]
+      if (tradeAny.imageBase64Second) {
+        const path = tradeAny.imageBase64Second.split('T')[1]
         if (path) imagesToRemove.push(path)
       }
       

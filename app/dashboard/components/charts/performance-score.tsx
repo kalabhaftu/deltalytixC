@@ -267,12 +267,7 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
                     fill="hsl(var(--chart-4))"
                     fillOpacity={0.3}
                     strokeWidth={2}
-                    dot={{
-                      fill: 'hsl(var(--chart-4))',
-                      stroke: 'hsl(var(--background))',
-                      strokeWidth: 1,
-                      r: size === 'small' || size === 'small-long' ? 4 : 5
-                    }}
+                    dot={false}
                   />
                 </RadarChart>
               </ResponsiveContainer>

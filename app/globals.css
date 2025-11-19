@@ -180,6 +180,55 @@
     --discord: 235 86% 65%;
     --google: 217 89% 61%;
   }
+
+  .midnight-ocean {
+    /* Midnight Ocean Theme - Deep blue professional palette */
+    --background: 207 40% 10%;           /* #111a22 - Deep ocean background */
+    --foreground: 0 0% 100%;             /* #ffffff - White text */
+    --card: 207 32% 17%;                 /* #243647 - Surface cards */
+    --card-foreground: 0 0% 100%;        /* #ffffff - Card text */
+    --popover: 207 32% 17%;              /* #243647 - Match card */
+    --popover-foreground: 0 0% 100%;
+    --primary: 207 40% 50%;              /* Ocean blue primary */
+    --primary-foreground: 0 0% 100%;     /* White text */
+    --secondary: 207 32% 22%;            /* #1a2632 - Table header */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 207 32% 22%;                /* #1a2632 - Muted background */
+    --muted-foreground: 207 23% 68%;     /* #93adc8 - Subtext */
+    --accent: 207 40% 50%;               /* Ocean blue accent */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 55%;            /* Adjusted red for ocean theme */
+    --destructive-foreground: 0 0% 100%;
+    --success: 160 70% 40%;              /* Adjusted green for ocean theme */
+    --success-foreground: 0 0% 100%;
+    --border: 207 32% 30%;               /* #344d65 - Subtle borders */
+    --input: 0 0% 100% / 0.1;
+    --ring: 207 40% 50%;                 /* Ocean blue focus ring */
+    
+    /* Chart colors (midnight ocean theme) - adjusted for ocean vibe */
+    --chart-profit: 160 70% 40%;         /* Ocean-friendly profit green */
+    --chart-loss: 0 72% 55%;             /* Ocean-friendly loss red */
+    --chart-neutral: 207 23% 68%;        /* #93adc8 - Neutral */
+    --chart-1: 0 72% 55%;                /* Red */
+    --chart-2: 160 70% 40%;              /* Green */
+    --chart-3: 207 70% 55%;              /* Ocean blue */
+    --chart-4: 262 83% 58%;              /* Purple */
+    --chart-5: 174 72% 56%;              /* Teal */
+    
+    /* Sidebar */
+    --sidebar-background: 207 32% 17%;   /* #243647 */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 207 40% 10%;
+    --sidebar-accent: 207 32% 22%;       /* #1a2632 */
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 207 32% 30%;       /* #344d65 */
+    --sidebar-ring: 207 40% 50%;
+    
+    /* Brand colors */
+    --discord: 235 86% 65%;
+    --google: 217 89% 61%;
+  }
 }
 
 @layer base {
@@ -370,6 +419,28 @@ code > [data-line]::before {
 }
 
 @layer components {
+  /* Midnight Ocean theme color overrides for profit/loss */
+  .midnight-ocean .text-green-600 {
+    color: rgb(74 222 128) !important; /* green-400 */
+  }
+  
+  .midnight-ocean .text-red-600 {
+    color: rgb(248 113 113) !important; /* red-400 */
+  }
+
+  /* Midnight Ocean Calendar Backgrounds */
+  .midnight-ocean .bg-green-50\/80,
+  .midnight-ocean .bg-green-950\/40 {
+    background-color: hsl(var(--chart-profit) / 0.2) !important;
+    border-color: hsl(var(--chart-profit) / 0.3) !important;
+  }
+
+  .midnight-ocean .bg-red-50\/60,
+  .midnight-ocean .bg-red-950\/30 {
+    background-color: hsl(var(--chart-loss) / 0.2) !important;
+    border-color: hsl(var(--chart-loss) / 0.3) !important;
+  }
+  
   /* Calendar alignment fixes */
   .calendar-container .rdp {
     @apply w-full;

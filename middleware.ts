@@ -61,8 +61,11 @@ export default async function middleware(req: NextRequest) {
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
       if (!supabaseUrl || !supabaseKey) {
-        // Configuration error - allow request to proceed and let app handle it
-        return NextResponse.next()
+        // Configuration error - redirect to login (don't allow through)
+        console.error('Missing Supabase environment variables')
+        const authUrl = new URL('/', req.url)
+        authUrl.searchParams.set('error', 'config')
+        return NextResponse.redirect(authUrl)
       }
 
       const supabase = createServerClient(
@@ -79,56 +82,38 @@ export default async function middleware(req: NextRequest) {
                   cookieStore.set(name, value, options)
                 )
               } catch {
-                // Ignore cookie setting errors
+                // Ignore cookie setting errors in middleware context
               }
             },
           },
         }
       )
 
-      // Fast session check with timeout
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 1000) // 1 second timeout
+      // Get user session from Supabase
+      const { data: { user }, error } = await supabase.auth.getUser()
 
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser()
-        clearTimeout(timeoutId)
-
-        if (error || !user) {
-          // User not authenticated, redirect to authentication
-          const authUrl = new URL('/', req.url)
-          authUrl.searchParams.set('next', pathname)
-          return NextResponse.redirect(authUrl)
-        }
-
-        // Add user info to headers for server components
-        const response = NextResponse.next()
-        response.headers.set('x-user-id', user.id)
-        response.headers.set('x-user-authenticated', 'authenticated')
-        if (user.email) {
-          response.headers.set('x-user-email', user.email)
-        }
-        return response
-
-      } catch (sessionError) {
-        clearTimeout(timeoutId)
-
-        if (sessionError instanceof Error &&
-            (sessionError.name === 'AbortError' || sessionError.message.includes('timeout'))) {
-          // Timeout - allow request to proceed rather than block user
-          return NextResponse.next()
-        }
-
-        // Other errors - redirect to auth
+      if (error || !user) {
+        // User not authenticated, redirect to authentication
         const authUrl = new URL('/', req.url)
         authUrl.searchParams.set('next', pathname)
         return NextResponse.redirect(authUrl)
       }
 
+      // Add user info to headers for server components
+      const response = NextResponse.next()
+      response.headers.set('x-user-id', user.id)
+      response.headers.set('x-user-authenticated', 'authenticated')
+      if (user.email) {
+        response.headers.set('x-user-email', user.email)
+      }
+      return response
+
     } catch (middlewareError) {
-      // If middleware auth check fails, allow request to proceed
-      // This prevents blocking users due to middleware issues
-      return NextResponse.next()
+      // If middleware auth check fails, redirect to login (don't allow through)
+      console.error('Middleware auth error:', middlewareError)
+      const authUrl = new URL('/', req.url)
+      authUrl.searchParams.set('error', 'auth')
+      return NextResponse.redirect(authUrl)
     }
   }
 

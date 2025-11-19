@@ -22,8 +22,11 @@ import { CalendarData } from "@/app/dashboard/types/calendar"
 import { useUserStore } from "@/store/user-store"
 import { Account } from "@/context/data-provider"
 import { TODAY_STYLES, WEEKDAYS_FULL } from "@/app/dashboard/constants/calendar-styles"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const WEEKDAYS = WEEKDAYS_FULL
+
+type CalendarView = 'month' | 'week'
 
 
 function getCalendarDays(monthStart: Date, monthEnd: Date) {
@@ -414,9 +417,9 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
                         "border",
                         "hover:border-primary hover:shadow-sm hover:scale-[1.02]",
                         dayData && dayData.pnl >= 0
-                          ? "bg-green-50/80 dark:bg-green-950/40 border-green-100 dark:border-green-900/50"
+                          ? "bg-green-50/80 dark:bg-green-950/40 midnight-ocean:bg-green-950/40 border-green-100 dark:border-green-900/50 midnight-ocean:border-green-900/50"
                           : dayData && dayData.pnl < 0
-                            ? "bg-red-50/60 dark:bg-red-950/30 border-red-100/80 dark:border-red-900/40"
+                            ? "bg-red-50/60 dark:bg-red-950/30 midnight-ocean:bg-red-950/30 border-red-100/80 dark:border-red-900/40 midnight-ocean:border-red-900/40"
                             : "bg-card border-border",
                         !isCurrentMonth && "opacity-50",
                         isToday(date) && TODAY_STYLES.cell,
@@ -451,8 +454,8 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
                             <div className={cn(
                               "text-base font-bold leading-tight text-center",
                               dayData.pnl >= 0
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-red-600 dark:text-red-400",
+                                ? "text-green-600 dark:text-green-400 midnight-ocean:text-green-400"
+                                : "text-red-600 dark:text-red-400 midnight-ocean:text-red-400",
                               !isCurrentMonth && "opacity-50"
                             )}>
                               {formatCurrency(dayData.pnl)}
@@ -466,8 +469,8 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
                             <div className={cn(
                               "text-[10px] font-medium text-center",
                               dayData.pnl >= 0
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-red-600 dark:text-red-400",
+                                ? "text-green-600 dark:text-green-400 midnight-ocean:text-green-400"
+                                : "text-red-600 dark:text-red-400 midnight-ocean:text-red-400",
                               !isCurrentMonth && "opacity-50"
                             )}>
                               {winRate}%
@@ -486,9 +489,9 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
                             "border",
                             "hover:border-primary hover:shadow-sm hover:scale-[1.02]",
                             weeklyState === 'gain'
-                              ? "bg-green-50/80 dark:bg-green-950/40 border-green-100 dark:border-green-900/50"
+                              ? "bg-green-50/80 dark:bg-green-950/40 midnight-ocean:bg-green-950/40 border-green-100 dark:border-green-900/50 midnight-ocean:border-green-900/50"
                               : weeklyState === 'loss'
-                                ? "bg-red-50/60 dark:bg-red-950/30 border-red-100/80 dark:border-red-900/40"
+                                ? "bg-red-50/60 dark:bg-red-950/30 midnight-ocean:bg-red-950/30 border-red-100/80 dark:border-red-900/40 midnight-ocean:border-red-900/40"
                                 : "bg-muted/30 dark:bg-muted/10 border-dashed border-border/70"
                           )}
                           onClick={() => {

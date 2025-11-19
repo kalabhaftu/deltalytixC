@@ -101,9 +101,9 @@ export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendar
               <div className={cn(
                 "text-center text-xs font-semibold px-1 py-0.5 rounded transition-colors",
                 monthlyPnl > 0 
-                  ? "text-green-700 dark:text-green-400 bg-green-50/50 dark:bg-green-950/30" 
+                  ? "text-green-700 dark:text-green-400 bg-green-50/50 dark:bg-green-950/30 midnight-ocean:bg-green-950/30" 
                   : monthlyPnl < 0 
-                    ? "text-red-600 dark:text-red-400/90 bg-red-50/50 dark:bg-red-950/30" 
+                    ? "text-red-600 dark:text-red-400/90 bg-red-50/50 dark:bg-red-950/30 midnight-ocean:bg-red-950/30" 
                     : "text-muted-foreground bg-muted/20"
               )}>
                 {formatCurrency(monthlyPnl)}
@@ -163,9 +163,9 @@ export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendar
                           "flex flex-col items-center justify-center border rounded p-2 min-h-[4rem] flex-1 cursor-pointer",
                           "transition-all duration-200 hover:scale-[1.02] hover:shadow-md",
                           pnl > 0 
-                            ? "bg-green-50/80 dark:bg-green-950/40 text-green-700 dark:text-green-400 border-green-100 dark:border-green-900/50" 
+                            ? "bg-green-50/80 dark:bg-green-950/40 midnight-ocean:bg-green-950/40 text-green-700 dark:text-green-400 border-green-100 dark:border-green-900/50 midnight-ocean:border-green-900/50" 
                             : pnl < 0 
-                              ? "bg-red-50/60 dark:bg-red-950/30 text-red-600 dark:text-red-400/90 border-red-100/80 dark:border-red-900/40" 
+                              ? "bg-red-50/60 dark:bg-red-950/30 midnight-ocean:bg-red-950/30 text-red-600 dark:text-red-400/90 border-red-100/80 dark:border-red-900/40 midnight-ocean:border-red-900/40" 
                               : "bg-muted/20 dark:bg-muted/10 text-muted-foreground border-border"
                         )}
                       >

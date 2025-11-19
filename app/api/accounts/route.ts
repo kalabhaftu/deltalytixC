@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
             groupId: true,
             _count: {
               select: {
-                trades: true
+                Trade: true
               }
             }
           },
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
           groupId: account.groupId,
           accountType: 'live',
           displayName: account.name || account.number,
-          tradeCount: account._count.trades,
+          tradeCount: account._count.Trade,
           owner: { id: userId, email: '' },
           isOwner: true,
           currentPhase: 'live',
@@ -130,6 +130,7 @@ export async function POST(request: NextRequest) {
           // Create a development user if none exists
           const devUser = await prisma.user.create({
             data: {
+              id: `dev_${Date.now()}`,
               email: 'dev@example.com',
               auth_user_id: 'dev-user-' + Date.now(),
               isFirstConnection: true
@@ -172,6 +173,7 @@ export async function POST(request: NextRequest) {
     // Create live account
     const account = await prisma.account.create({
       data: {
+        id: crypto.randomUUID(),
         number,
         name,
         startingBalance: parseFloat(startingBalance),

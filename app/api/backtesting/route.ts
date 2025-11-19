@@ -74,6 +74,8 @@ export async function POST(request: NextRequest) {
     // Create backtest
     const backtest = await prisma.backtestTrade.create({
       data: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         userId,
         pair,
         direction,

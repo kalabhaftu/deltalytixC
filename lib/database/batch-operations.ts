@@ -158,8 +158,8 @@ export async function fetchTradesWithRelations(
       take: limit,
       // Eagerly load relations to avoid N+1 queries
       include: {
-        account: true,
-        phaseAccount: true,
+        Account: true,
+        PhaseAccount: true,
       },
     })
     

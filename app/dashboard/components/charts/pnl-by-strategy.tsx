@@ -251,7 +251,7 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
             </ChartContainer>
           </div>
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
+          <div className="w-full flex items-center justify-center min-h-[280px]">
             <div className="text-center space-y-2">
               <p className="text-sm text-muted-foreground">No strategy data available</p>
               <p className="text-xs text-muted-foreground">Assign strategies to your trades to see performance</p>

@@ -29,8 +29,8 @@ async function createDailyAnchor(phaseAccountId: string, timezone: string, force
   const phaseAccount = await prisma.phaseAccount.findFirst({
     where: { id: phaseAccountId },
     include: {
-      masterAccount: true,
-      trades: {
+      MasterAccount: true,
+      Trade: {
         where: { phaseAccountId },
         select: { pnl: true, commission: true }
       }
@@ -42,14 +42,15 @@ async function createDailyAnchor(phaseAccountId: string, timezone: string, force
   }
 
   // Calculate current equity for anchor
-  const totalPnL = phaseAccount.trades.reduce((sum, trade) => {
+  const totalPnL = phaseAccount.Trade.reduce((sum, trade) => {
     return sum + (trade.pnl - (trade.commission || 0))
   }, 0)
-  const anchorEquity = phaseAccount.masterAccount.accountSize + totalPnL
+  const anchorEquity = phaseAccount.MasterAccount.accountSize + totalPnL
 
   // Create the anchor
   const anchor = await prisma.dailyAnchor.create({
     data: {
+      id: crypto.randomUUID(),
       phaseAccountId,
       date: anchorDate,
       anchorEquity
@@ -72,9 +73,9 @@ export async function GET(request: NextRequest) {
         status: 'active'
       },
       include: {
-        masterAccount: {
+        MasterAccount: {
           include: {
-            user: {
+            User: {
               select: {
                 id: true,
                 timezone: true
@@ -92,7 +93,7 @@ export async function GET(request: NextRequest) {
     // Create anchors for each active phase
     for (const phase of activePhases) {
       try {
-        const timezone = phase.masterAccount.user.timezone || 'UTC'
+        const timezone = phase.MasterAccount.User.timezone || 'UTC'
         const result = await createDailyAnchor(phase.id, timezone)
         
         if (result.created) {
@@ -147,9 +148,9 @@ export async function POST(request: NextRequest) {
       const phaseAccount = await prisma.phaseAccount.findFirst({
         where: { id: phaseAccountId },
         include: {
-          masterAccount: {
+          MasterAccount: {
             include: {
-              user: { select: { timezone: true } }
+              User: { select: { timezone: true } }
             }
           }
         }
@@ -162,7 +163,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const timezone = phaseAccount.masterAccount.user.timezone || 'UTC'
+      const timezone = phaseAccount.MasterAccount.User.timezone || 'UTC'
       const result = await createDailyAnchor(phaseAccountId, timezone, targetDate)
 
       return NextResponse.json({

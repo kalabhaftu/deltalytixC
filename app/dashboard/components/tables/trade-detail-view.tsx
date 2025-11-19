@@ -150,12 +150,6 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   const formatted = formatTradeData(trade)
 
   const images = [
-    trade.imageBase64,
-    trade.imageBase64Second,
-    trade.imageBase64Third,
-    trade.imageBase64Fourth,
-    (trade as any).imageBase64Fifth,
-    (trade as any).imageBase64Sixth,
     (trade as any).cardPreviewImage
   ].filter((img): img is string => Boolean(img) && typeof img === 'string')
 
@@ -378,7 +372,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Price Movement</span>
                     <span className="font-medium">
-                      {formatNumber((parseFloat(trade.closePrice) - parseFloat(trade.entryPrice)) / parseFloat(trade.entryPrice) * 100, 2)}%
+                      {formatNumber((parseFloat(String(trade.closePrice)) - parseFloat(String(trade.entryPrice))) / parseFloat(String(trade.entryPrice)) * 100, 2)}%
                     </span>
                   </div>
                   <div className="flex justify-between">

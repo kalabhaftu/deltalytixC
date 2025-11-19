@@ -31,12 +31,12 @@ export async function POST(request: NextRequest) {
       where: {
         phaseId: accountNumber,
         status: 'active',
-        masterAccount: {
+        MasterAccount: {
           userId
         }
       },
       include: {
-        masterAccount: true
+        MasterAccount: true
       }
     })
 

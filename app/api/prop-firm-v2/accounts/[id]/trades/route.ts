@@ -53,7 +53,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         userId
       },
       include: {
-        phases: true
+        PhaseAccount: true
       }
     })
 
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Find the current phase (regardless of status)
-    const currentPhase = masterAccount.phases.find(phase => 
+    const currentPhase = masterAccount.PhaseAccount.find(phase => 
       phase.phaseNumber === masterAccount.currentPhase
     )
 
@@ -104,6 +104,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Create the trade
     const trade = await prisma.trade.create({
       data: {
+        id: crypto.randomUUID(),
         ...tradeData,
         userId,
         phaseAccountId: currentPhase.id,
@@ -217,9 +218,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         userId
       },
       include: {
-        phases: {
+        PhaseAccount: {
           include: {
-            trades: {
+            Trade: {
               orderBy: {
                 exitTime: 'desc'
               }
@@ -237,28 +238,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // ✅ FIXED: Filter phases based on query parameter
-    let phasesToInclude = masterAccount.phases
+    let phasesToInclude = masterAccount.PhaseAccount
     
     if (phaseFilter === 'current') {
       // Only show trades from the current phase (regardless of status: active, passed, or failed)
-      phasesToInclude = masterAccount.phases.filter(phase => 
+      phasesToInclude = masterAccount.PhaseAccount.filter(phase => 
         phase.phaseNumber === masterAccount.currentPhase
       )
     } else if (phaseFilter === 'archived') {
       // Only show trades from archived phases
-      phasesToInclude = masterAccount.phases.filter(phase => phase.status === 'archived')
+      phasesToInclude = masterAccount.PhaseAccount.filter(phase => phase.status === 'archived')
     } else if (phaseFilter !== 'all') {
       // Specific phase number requested
       const requestedPhaseNumber = parseInt(phaseFilter)
       if (!isNaN(requestedPhaseNumber)) {
-        phasesToInclude = masterAccount.phases.filter(phase => phase.phaseNumber === requestedPhaseNumber)
+        phasesToInclude = masterAccount.PhaseAccount.filter(phase => phase.phaseNumber === requestedPhaseNumber)
       }
     }
     // else: phaseFilter === 'all', use all phases
 
     // Flatten trades from filtered phases
     const trades = phasesToInclude.flatMap(phase => 
-      phase.trades.map(trade => ({
+      phase.Trade.map(trade => ({
         ...trade,
         phase: {
           id: phase.id,
@@ -281,10 +282,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         trades,
         filter: {
           applied: phaseFilter,
-          availablePhases: masterAccount.phases.map(p => ({
+          availablePhases: masterAccount.PhaseAccount.map(p => ({
             phaseNumber: p.phaseNumber,
             status: p.status,
-            tradeCount: p.trades.length
+            tradeCount: p.Trade.length
           }))
         }
       }

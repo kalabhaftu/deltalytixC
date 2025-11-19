@@ -180,9 +180,9 @@ function MiniCalendar({ calendarData }: MiniCalendarProps) {
                     "h-full flex flex-col rounded-md p-1",
                     "border",
                     dayData && dayData.pnl >= 0
-                      ? "bg-green-50/80 dark:bg-green-950/40 border-green-100 dark:border-green-900/50"
+                      ? "bg-green-50/80 dark:bg-green-950/40 midnight-ocean:bg-green-950/40 border-green-100 dark:border-green-900/50 midnight-ocean:border-green-900/50"
                       : dayData && dayData.pnl < 0
-                        ? "bg-red-50/60 dark:bg-red-950/30 border-red-100/80 dark:border-red-900/40"
+                        ? "bg-red-50/60 dark:bg-red-950/30 midnight-ocean:bg-red-950/30 border-red-100/80 dark:border-red-900/40 midnight-ocean:border-red-900/40"
                         : "bg-card border-border",
                     !isCurrentMonth && "opacity-50",
                     isToday(date) && TODAY_STYLES.cell,
@@ -232,9 +232,9 @@ function MiniCalendar({ calendarData }: MiniCalendarProps) {
                       className={cn(
                         "h-full flex items-center justify-center rounded-md border",
                         weeklyState === 'gain'
-                          ? "bg-green-50/80 dark:bg-green-950/40 border-green-100 dark:border-green-900/50"
+                          ? "bg-green-50/80 dark:bg-green-950/40 midnight-ocean:bg-green-950/40 border-green-100 dark:border-green-900/50 midnight-ocean:border-green-900/50"
                           : weeklyState === 'loss'
-                            ? "bg-red-50/60 dark:bg-red-950/30 border-red-100/80 dark:border-red-900/40"
+                            ? "bg-red-50/60 dark:bg-red-950/30 midnight-ocean:bg-red-950/30 border-red-100/80 dark:border-red-900/40 midnight-ocean:border-red-900/40"
                             : "bg-muted/30 dark:bg-muted/10 border-dashed border-border/70"
                       )}
                     >

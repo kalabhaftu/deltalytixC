@@ -80,10 +80,6 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
           commission: cleanTrade.commission || 0,
           entryId: cleanTrade.entryId || null,
           comment: cleanTrade.comment || null,
-                  imageBase64: cleanTrade.imageBase64 || null,
-        imageBase64Second: cleanTrade.imageBase64Second || null,
-        imageBase64Third: (cleanTrade as any).imageBase64Third || null,
-        imageBase64Fourth: (cleanTrade as any).imageBase64Fourth || null,
           groupId: cleanTrade.groupId || null,
           createdAt: cleanTrade.createdAt || new Date(),
         } as Trade
@@ -290,11 +286,23 @@ export async function getTradesAction(userId: string | null = null, options?: {
 
       const trades = await prisma.trade.findMany(query)
 
+      // Helper to convert Decimal to string
+      const convertDecimal = (value: any) => {
+        if (value && typeof value === 'object' && 'toString' in value) {
+          return value.toString()
+        }
+        return value
+      }
+
       return trades.map(trade => ({
         ...trade,
+        entryPrice: convertDecimal(trade.entryPrice),
+        closePrice: convertDecimal(trade.closePrice),
+        stopLoss: convertDecimal(trade.stopLoss),
+        takeProfit: convertDecimal(trade.takeProfit),
         entryDate: new Date(trade.entryDate).toISOString(),
         exitDate: trade.closeDate ? new Date(trade.closeDate).toISOString() : null
-      }))
+      })) as any
     } catch (error) {
       console.error('[getTradesAction] Database error:', error)
       

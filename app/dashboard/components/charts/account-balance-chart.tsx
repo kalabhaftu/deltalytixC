@@ -121,7 +121,12 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
   // ✅ FILTER to selected accounts only
   const accounts = React.useMemo(() => {
     if (!allAccounts || allAccounts.length === 0) return []
-    if (!accountNumbers || accountNumbers.length === 0) return []
+    
+    // If no accounts selected (or explicit "all accounts" mode where accountNumbers is empty/null), return ALL accounts
+    if (!accountNumbers || accountNumbers.length === 0) {
+      return allAccounts
+    }
+    
     return allAccounts.filter(acc => accountNumbers.includes(acc.number))
   }, [allAccounts, accountNumbers])
 

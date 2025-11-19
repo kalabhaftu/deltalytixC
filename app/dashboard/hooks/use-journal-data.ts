@@ -60,7 +60,8 @@ export function useJournalData(startDate?: Date, endDate?: Date, accountId?: str
       // Convert to date-keyed object for easy lookup
       const journalMap: Record<string, JournalEntry> = {}
       data.journals?.forEach((journal: JournalEntry) => {
-        const dateKey = new Date(journal.date).toISOString().split('T')[0]
+        // Use format from date-fns to ensure consistent date formatting
+        const dateKey = format(new Date(journal.date), 'yyyy-MM-dd')
         journalMap[dateKey] = journal
       })
 
@@ -89,12 +90,14 @@ export function useJournalData(startDate?: Date, endDate?: Date, accountId?: str
   }, [cacheKey, fetchJournals])
 
   const hasJournalForDate = useCallback((date: Date): boolean => {
-    const dateKey = date.toISOString().split('T')[0]
+    // Use format from date-fns to ensure consistent date formatting
+    const dateKey = format(date, 'yyyy-MM-dd')
     return !!journals[dateKey]
   }, [journals])
 
   const getJournalForDate = useCallback((date: Date): JournalEntry | null => {
-    const dateKey = date.toISOString().split('T')[0]
+    // Use format from date-fns to ensure consistent date formatting
+    const dateKey = format(date, 'yyyy-MM-dd')
     return journals[dateKey] || null
   }, [journals])
 

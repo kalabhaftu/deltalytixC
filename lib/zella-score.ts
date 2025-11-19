@@ -1,3 +1,5 @@
+import { groupTradesByExecution } from '@/lib/utils'
+
 /**
  * Performance Score Calculation
  * Comprehensive trading performance scoring system
@@ -215,8 +217,7 @@ export function calculateMetricsFromTrades(trades: Trade[]): ZellaScoreMetrics |
   }
 
   // CRITICAL FIX: Group trades to handle partial closes
-  const { groupTradesByExecution } = require('@/lib/utils')
-  const groupedTrades = groupTradesByExecution(trades)
+  const groupedTrades = groupTradesByExecution(trades as any)
 
   // Calculate wins and losses using NET P&L
   const wins = groupedTrades.filter((t: any) => {

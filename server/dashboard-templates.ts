@@ -142,6 +142,8 @@ export async function initializeDefaultTemplate(userId: string): Promise<Dashboa
   const template = await safeDbOperation(
     () => prisma.dashboardTemplate.create({
       data: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         userId,
         name: 'Default',
         isDefault: true,
@@ -192,6 +194,8 @@ export async function createTemplate(name: string): Promise<DashboardTemplate> {
   const template = await safeDbOperation(
     () => prisma.dashboardTemplate.create({
       data: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         userId,
         name,
         isDefault: false,

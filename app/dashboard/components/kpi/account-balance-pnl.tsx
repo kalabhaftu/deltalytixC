@@ -26,7 +26,12 @@ const AccountBalancePnl = React.memo(function AccountBalancePnl({ size }: Accoun
   // Filter accounts based on selection
   const filteredAccounts = React.useMemo(() => {
     if (!accounts || !Array.isArray(accounts) || accounts.length === 0) return []
-    if (!accountNumbers || accountNumbers.length === 0) return []
+    
+    // If no accounts selected (or explicit "all accounts" mode where accountNumbers is empty/null), return ALL accounts
+    if (!accountNumbers || accountNumbers.length === 0) {
+      return accounts
+    }
+    
     // Filter to selected accounts by matching account number (phaseId) ONLY
     return accounts.filter(acc => accountNumbers.includes(acc.number))
   }, [accounts, accountNumbers])

@@ -84,6 +84,8 @@ export async function POST(request: NextRequest) {
         note: note
       },
       create: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         userId: user.id,
         accountId: null,
         date: noteDate,

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useData } from "@/context/data-provider"
-import { Database, LogOut, Globe, LayoutDashboard, HelpCircle, Clock, RefreshCw, Home, Moon, Sun, Laptop, Settings, Pencil, Plus } from "lucide-react"
+import { Database, LogOut, Globe, LayoutDashboard, HelpCircle, Clock, RefreshCw, Home, Moon, Sun, Laptop, Settings, Pencil, Plus, Waves, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -107,7 +107,7 @@ export default function Navbar() {
   useKeyboardShortcuts()
 
   const handleThemeChange = (value: string) => {
-    setTheme(value as "light" | "dark" | "system")
+    setTheme(value as "light" | "dark" | "midnight-ocean" | "system")
     setIsLogoPopoverOpen(false)
   }
 
@@ -119,6 +119,7 @@ export default function Navbar() {
 
     if (theme === 'light') return <Sun className="h-4 w-4" />;
     if (theme === 'dark') return <Moon className="h-4 w-4" />;
+    if (theme === 'midnight-ocean') return <Waves className="h-4 w-4" />;
     // For 'system' theme, check the actual applied theme after mounting
     if (theme === 'system') {
       const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -321,7 +322,7 @@ export default function Navbar() {
               <Popover open={isLogoPopoverOpen} onOpenChange={setIsLogoPopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="icon" className="p-0 hover:bg-muted/50 transition-all duration-200 hover:scale-105 group" aria-label="App menu">
-                    <Logo className='fill-black h-7 w-7 dark:fill-white transition-transform duration-200 group-hover:rotate-3' />
+                    <Logo className='h-7 w-7 transition-transform duration-200 group-hover:rotate-3' />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-48 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl" align="start">
@@ -433,6 +434,10 @@ export default function Navbar() {
                           <Moon className="mr-2 h-4 w-4" />
                           <span>Dark mode</span>
                         </CommandItem>
+                        <CommandItem onSelect={() => handleThemeChange("midnight-ocean")} className="hover:bg-muted/50 transition-colors duration-200">
+                          <Waves className="mr-2 h-4 w-4" />
+                          <span>Midnight Ocean</span>
+                        </CommandItem>
                         <CommandItem onSelect={() => handleThemeChange("system")} className="hover:bg-muted/50 transition-colors duration-200">
                           <Laptop className="mr-2 h-4 w-4" />
                           <span>System theme</span>
@@ -446,16 +451,16 @@ export default function Navbar() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Avatar className="cursor-pointer h-9 w-9 ring-2 ring-transparent hover:ring-border transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                      <AvatarImage src={user?.user_metadata.avatar_url} className="transition-transform duration-200" />
+                      <AvatarImage src={user?.user_metadata?.avatar_url} className="transition-transform duration-200" />
                       <AvatarFallback className="uppercase text-xs bg-muted text-foreground font-medium">
-                        {user?.email![0]}
+                        {user?.email?.[0] || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl">
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
                     <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                      {user?.email}
+                      {user?.email || 'Loading...'}
                     </div>
                     
                     {/* Mobile-only quick actions */}
@@ -498,6 +503,15 @@ export default function Navbar() {
                         <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
                       </DropdownMenuItem>
                     </Link>
+                    
+                    <Link href={"/docs"}>
+                      <DropdownMenuItem className="hover:bg-muted/50 transition-colors duration-200">
+                        <BookOpen className="mr-2 h-4 w-4" />
+                        <span>Documentation</span>
+                        <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
+                      </DropdownMenuItem>
+                    </Link>
+                    
                     <DropdownMenuItem onClick={async ()=>await refreshTrades()} className="hover:bg-muted/50 transition-colors duration-200">
                       <RefreshCw className="mr-2 h-4 w-4" />
                       <span>Refresh Data</span>

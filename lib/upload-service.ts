@@ -19,18 +19,32 @@ export interface UploadOptions {
   allowedTypes?: string[]
 }
 
-const DEFAULT_MAX_SIZE = 10 * 1024 * 1024 // 10MB
+const DEFAULT_MAX_SIZE = 5 * 1024 * 1024 // 5MB (reduced for security)
 const DEFAULT_ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+
+// Magic bytes (file signatures) for image validation
+const IMAGE_SIGNATURES: Record<string, number[][]> = {
+  'image/jpeg': [[0xFF, 0xD8, 0xFF]],
+  'image/png': [[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]],
+  'image/gif': [[0x47, 0x49, 0x46, 0x38, 0x37, 0x61], [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]],
+  'image/webp': [[0x52, 0x49, 0x46, 0x46]]
+}
 
 export class MediaUploadService {
   private supabase = createClient()
   
   async uploadImage(file: File, options: UploadOptions): Promise<UploadResult> {
     try {
-      // Validate file
+      // Validate file size and MIME type
       const validation = this.validateFile(file, options)
       if (!validation.valid) {
         return { success: false, error: validation.error }
+      }
+
+      // Validate file content (magic bytes)
+      const magicBytesValidation = await this.validateMagicBytes(file)
+      if (!magicBytesValidation.valid) {
+        return { success: false, error: magicBytesValidation.error }
       }
 
       const supabaseResult = await this.uploadToSupabase(file, options)
@@ -48,6 +62,7 @@ export class MediaUploadService {
     const maxSize = options.maxSizeBytes || DEFAULT_MAX_SIZE
     const allowedTypes = options.allowedTypes || DEFAULT_ALLOWED_TYPES
 
+    // Size validation
     if (file.size > maxSize) {
       return { 
         valid: false, 
@@ -55,6 +70,15 @@ export class MediaUploadService {
       }
     }
 
+    // Minimum size check (avoid empty files)
+    if (file.size < 100) {
+      return {
+        valid: false,
+        error: 'File is too small or empty'
+      }
+    }
+
+    // MIME type validation
     if (!allowedTypes.includes(file.type)) {
       return { 
         valid: false, 
@@ -63,6 +87,44 @@ export class MediaUploadService {
     }
 
     return { valid: true }
+  }
+
+  /**
+   * Validate file content by checking magic bytes (file signature)
+   * This prevents malicious files disguised with wrong extensions
+   */
+  private async validateMagicBytes(file: File): Promise<{ valid: boolean; error?: string }> {
+    try {
+      // Read first 12 bytes (enough for all image signatures)
+      const arrayBuffer = await file.slice(0, 12).arrayBuffer()
+      const bytes = new Uint8Array(arrayBuffer)
+
+      const signatures = IMAGE_SIGNATURES[file.type]
+      if (!signatures) {
+        // If we don't have signature for this type, allow it (fallback)
+        return { valid: true }
+      }
+
+      // Check if file starts with any of the valid signatures
+      const isValid = signatures.some(signature =>
+        signature.every((byte, index) => bytes[index] === byte)
+      )
+
+      if (!isValid) {
+        return {
+          valid: false,
+          error: 'File content does not match its type. This may be a security risk.'
+        }
+      }
+
+      return { valid: true }
+    } catch (error) {
+      // If we can't read the file, reject it
+      return {
+        valid: false,
+        error: 'Could not validate file content'
+      }
+    }
   }
 
   private async uploadToSupabase(file: File, options: UploadOptions): Promise<UploadResult> {

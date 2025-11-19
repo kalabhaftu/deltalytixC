@@ -28,6 +28,7 @@ export async function ensureAccountAndAssignGroup(
     if (!account) {
       account = await prisma.account.create({
         data: {
+          id: crypto.randomUUID(),
           number: accountNumber,
           userId: user.id,
         },

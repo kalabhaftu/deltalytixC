@@ -67,7 +67,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       prisma.trade.groupBy({
         by: ['phaseAccountId'],
         where: {
-          phaseAccount: {
+          PhaseAccount: {
             masterAccountId
           }
         },
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Get ALL trades for overall statistics
     const allTradesMinimal = await prisma.trade.findMany({
       where: {
-        phaseAccount: {
+        PhaseAccount: {
           masterAccountId
         }
       },
@@ -524,7 +524,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         userId
       },
       include: {
-        phases: {
+        PhaseAccount: {
           select: { id: true, phaseId: true }
         }
       }
@@ -540,8 +540,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Delete all associated data in a transaction
     await prisma.$transaction(async (tx) => {
       // Get all phase IDs for this master account
-      const phaseIds = existingAccount.phases.map(phase => phase.id)
-      const phaseAccountNumbers = existingAccount.phases.map(phase => phase.phaseId).filter(Boolean) as string[]
+      const phaseIds = existingAccount.PhaseAccount.map(phase => phase.id)
+      const phaseAccountNumbers = existingAccount.PhaseAccount.map(phase => phase.phaseId).filter(Boolean) as string[]
 
       // Delete all trades associated with this master account
       // This covers both phaseAccountId and accountNumber links
@@ -568,7 +568,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       // Delete daily anchors
       await tx.dailyAnchor.deleteMany({
         where: {
-          phaseAccount: {
+          PhaseAccount: {
             masterAccountId
           }
         }

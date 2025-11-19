@@ -28,10 +28,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const masterAccount = await prisma.masterAccount.findFirst({
       where: { id: masterAccountId, userId },
       include: {
-        phases: {
+        PhaseAccount: {
           where: { status: { in: ['active', 'passed', 'archived'] } },
           include: { 
-            trades: {
+            Trade: {
               select: {
                 pnl: true,
                 commission: true,
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get current phase
-    const currentPhase = masterAccount.phases.find(p => p.phaseNumber === masterAccount.currentPhase)
+    const currentPhase = masterAccount.PhaseAccount.find(p => p.phaseNumber === masterAccount.currentPhase)
     const isFunded = currentPhase && currentPhase.phaseNumber >= 3
 
     let eligibility = null
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       const daysSinceFunded = Math.floor((Date.now() - fundedDate.getTime()) / (1000 * 60 * 60 * 24))
       
       // Calculate net profit since funded
-      const netProfit = currentPhase.trades.reduce((sum, trade) => 
+      const netProfit = currentPhase.Trade.reduce((sum, trade) => 
         sum + (trade.pnl || 0) - (trade.commission || 0), 0
       )
       

@@ -4,6 +4,7 @@ import { getUserIdSafe } from '@/server/auth'
 import { prisma } from '@/lib/prisma'
 import { DataSerializer } from '@/lib/data-serialization'
 import { createSuccessResponse, createErrorResponse, ErrorResponses } from '@/lib/api-response'
+import { tradeQuerySchema, tradeDeleteSchema } from '@/lib/validation/trade-schemas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,8 +15,26 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '200')
+    
+    // Validate query parameters
+    const queryParams = {
+      page: searchParams.get('page'),
+      limit: searchParams.get('limit'),
+      accountId: searchParams.get('accountId'),
+      startDate: searchParams.get('startDate'),
+      endDate: searchParams.get('endDate'),
+      instrument: searchParams.get('instrument'),
+    }
+
+    const validationResult = tradeQuerySchema.safeParse(queryParams)
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid input', details: validationResult.error.errors.map(e => e.message).join(', ') },
+        { status: 400 }
+      )
+    }
+
+    const { page, limit } = validationResult.data
     const offset = (page - 1) * limit
     const stream = searchParams.get('stream') === 'true'
     const test = searchParams.get('test') === '1'
@@ -109,7 +128,7 @@ async function getTradesPaginated(offset: number, limit: number) {
   const trades = await prisma.trade.findMany({
     where: { userId },
     include: {
-      account: true
+      Account: true
       // phase: true, // Phase field not available
       // propFirmPhase: true, // PropFirmPhase field not available
     },
@@ -154,7 +173,7 @@ export async function PUT(request: NextRequest) {
     const { updateTradeImage } = await import('@/server/trades')
 
     // Handle image updates
-    const imageFields = ['imageBase64', 'imageBase64Second', 'imageBase64Third', 'imageBase64Fourth', 'imageBase64Fifth', 'imageBase64Sixth', 'cardPreviewImage']
+    const imageFields = ['cardPreviewImage']
 
     for (const field of imageFields) {
       if (updatedTrade[field] !== undefined) {
@@ -175,12 +194,6 @@ export async function PUT(request: NextRequest) {
 
     // Update the trade with non-image fields
     const { id, ...updateData } = updatedTrade
-    delete updateData.imageBase64
-    delete updateData.imageBase64Second
-    delete updateData.imageBase64Third
-    delete updateData.imageBase64Fourth
-    delete updateData.imageBase64Fifth
-    delete updateData.imageBase64Sixth
     delete updateData.cardPreviewImage
     delete updateData.tradingModel // Handle tradingModel separately
 
@@ -315,7 +328,7 @@ async function getTradesBatch(offset: number, limit: number, filters: any = {}) 
   const trades = await prisma.trade.findMany({
     where: whereClause,
     include: {
-      account: true
+      Account: true
       // phase: true, // Phase field not available
       // propFirmPhase: true, // PropFirmPhase field not available
     },

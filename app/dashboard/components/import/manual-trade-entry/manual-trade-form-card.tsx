@@ -253,7 +253,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
       const timeInPosition = (closeDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60)
 
       // Create trade object
-      const tradeData: Partial<Trade> = {
+      const tradeData: any = {
         accountNumber: data.accountNumber,
         instrument: data.instrument,
         quantity: data.quantity,
@@ -268,20 +268,16 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
         comment: data.comment || null,
         userId: currentUser.id,
         entryId: null,
-        imageBase64: null,
-        imageBase64Second: null,
-        imageBase64Third: null,
-        imageBase64Fourth: null,
         groupId: null,
       }
 
       // Generate unique ID for the trade
       const tradeId = generateTradeHash({ ...tradeData, userId: currentUser.id })
-      const completeTrade: Trade = {
+      const completeTrade: any = {
         ...tradeData,
         id: tradeId,
         createdAt: new Date(),
-      } as Trade
+      }
 
       // Atomic save and link operation
       const { saveAndLinkTrades } = await import("@/server/accounts")

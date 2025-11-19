@@ -36,7 +36,7 @@ export async function GET(request: Request) {
         date: 'desc'
       },
       include: {
-        account: {
+        Account: {
           select: {
             id: true,
             name: true,

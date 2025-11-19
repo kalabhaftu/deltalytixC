@@ -34,7 +34,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         isActive: true
       },
       include: {
-        phases: {
+        PhaseAccount: {
           where: { status: 'active' },
           orderBy: { phaseNumber: 'asc' },
           take: 1
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const activePhase = masterAccount.phases[0]
+    const activePhase = masterAccount.PhaseAccount[0]
     if (!activePhase) {
       return NextResponse.json(
         { success: false, error: 'No active phase found' },
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         userId
       },
       include: {
-        phases: {
+        PhaseAccount: {
           where: { status: 'active' },
           orderBy: { phaseNumber: 'asc' },
           take: 1
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const activePhase = masterAccount.phases[0]
+    const activePhase = masterAccount.PhaseAccount[0]
     if (!activePhase) {
       return NextResponse.json(
         { success: false, error: 'No active phase found' },

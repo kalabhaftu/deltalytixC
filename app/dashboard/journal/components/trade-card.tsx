@@ -48,8 +48,8 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
   // Calculate R:R ratio and detect incomplete data
   const calculateRiskRewardRatio = (trade: Trade): { ratio: number; hasIncompleteData: boolean } => {
     // Parse prices from strings
-    const entryPrice = parseFloat(trade.entryPrice)
-    const closePrice = parseFloat(trade.closePrice)
+    const entryPrice = parseFloat(String(trade.entryPrice))
+    const closePrice = parseFloat(String(trade.closePrice))
     
     // Get stop loss and take profit from database fields
     const stopLossRaw = (trade as any).stopLoss || null

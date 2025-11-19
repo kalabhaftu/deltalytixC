@@ -1128,11 +1128,13 @@ export const DataProvider: React.FC<{
         return
       }
 
+      // Try to auto-select active accounts first
       const activeAccountNumbers = accounts
         .filter(acc => !acc.status || acc.status === 'active' || acc.status === 'funded')
         .map(acc => acc.number)
 
       if (activeAccountNumbers.length > 0) {
+        // We have active accounts - select them by default
         setAccountNumbers(activeAccountNumbers)
         selectionInitializedRef.current = true
         lastSyncedSelectionRef.current = JSON.stringify(normalizeSelection(activeAccountNumbers))
@@ -1146,6 +1148,38 @@ export const DataProvider: React.FC<{
             updatedAt: new Date().toISOString()
           })
         }).catch(() => {})
+      } else {
+        // No active accounts found (all failed/archived)
+        // Less strict: select the most recently active account (by trade activity)
+        const accountsWithTrades = accounts.filter(acc => 
+          (acc as any).tradeCount > 0 || (acc as any)._count?.Trade > 0
+        )
+        
+        if (accountsWithTrades.length > 0) {
+          // Select the most recent one (first in list, as they're ordered by createdAt desc)
+          const fallbackAccountNumber = [accountsWithTrades[0].number]
+          setAccountNumbers(fallbackAccountNumber)
+          selectionInitializedRef.current = true
+          lastSyncedSelectionRef.current = JSON.stringify(normalizeSelection(fallbackAccountNumber))
+          
+          fetch('/api/settings/account-filters', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...accountFilterSettings,
+              selectedPhaseAccountIds: fallbackAccountNumber,
+              updatedAt: new Date().toISOString()
+            })
+          }).catch(() => {})
+        } else {
+          // No accounts with trades - just select the first account as last resort
+          if (accounts.length > 0) {
+            const fallbackAccountNumber = [accounts[0].number]
+            setAccountNumbers(fallbackAccountNumber)
+            selectionInitializedRef.current = true
+            lastSyncedSelectionRef.current = JSON.stringify(normalizeSelection(fallbackAccountNumber))
+          }
+        }
       }
 
       return
@@ -1353,6 +1387,9 @@ export const DataProvider: React.FC<{
     if (hasLoadedDataRef.current) {
       return
     }
+    
+    // START LOADING IMMEDIATELY before any async work
+    setIsLoading(true);
     hasLoadedDataRef.current = true
     
     let mounted = true;

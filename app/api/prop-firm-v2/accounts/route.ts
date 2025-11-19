@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
       // Create the master account
       const masterAccount = await tx.masterAccount.create({
         data: {
+          id: crypto.randomUUID(),
           userId,
           accountName: validatedData.accountName,
           propFirmName: validatedData.propFirmName,
@@ -93,6 +94,7 @@ export async function POST(request: NextRequest) {
       // Create Phase 1 (always exists and is active)
       const phase1 = await tx.phaseAccount.create({
         data: {
+          id: crypto.randomUUID(),
           masterAccountId: masterAccount.id,
           phaseNumber: 1,
           phaseId: validatedData.phase1AccountId,
@@ -112,6 +114,7 @@ export async function POST(request: NextRequest) {
       if (validatedData.evaluationType === 'Two Step') {
         phase2 = await tx.phaseAccount.create({
           data: {
+            id: crypto.randomUUID(),
             masterAccountId: masterAccount.id,
             phaseNumber: 2,
             phaseId: null, // Will be set when user transitions
@@ -133,6 +136,7 @@ export async function POST(request: NextRequest) {
       
       const fundedPhase = await tx.phaseAccount.create({
         data: {
+          id: crypto.randomUUID(),
           masterAccountId: masterAccount.id,
           phaseNumber: fundedPhaseNumber,
           phaseId: null, // Will be set when user transitions (for One Step/Two Step) or uses current ID (for Instant)
@@ -241,7 +245,7 @@ export async function GET(request: NextRequest) {
     const masterAccounts = await prisma.masterAccount.findMany({
       where: { userId },
       include: {
-        phases: {
+        PhaseAccount: {
           orderBy: { phaseNumber: 'asc' }
         }
       },

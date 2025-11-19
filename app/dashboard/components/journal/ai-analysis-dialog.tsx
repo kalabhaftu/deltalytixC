@@ -14,11 +14,12 @@ import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { Loader2, Sparkles, Calendar as CalendarIcon, TrendingUp, Brain, AlertTriangle, Target, Lightbulb } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+import { CustomDateRangePicker } from '@/components/ui/custom-date-range-picker'
 
 interface DateRangeTemplate {
   id: string
@@ -138,8 +139,8 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-4 border-b shrink-0">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             <DialogTitle>AI Trading Psychology Analysis</DialogTitle>
@@ -149,61 +150,59 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-          {/* Date Range Selection */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Select Date Range</label>
-            
-            {/* Templates */}
-            <div className="flex flex-wrap gap-2">
-              {dateRangeTemplates.map((template) => (
-                <Button
-                  key={template.id}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleTemplateSelect(template)}
-                  className="text-xs"
-                >
-                  {template.label}
-                </Button>
-              ))}
+        <div className="flex-1 overflow-y-auto p-6 min-h-0">
+          <div className="space-y-6">
+            {/* Date Range Selection */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium">Select Date Range</label>
               
-              <Popover open={showCustomDatePicker} onOpenChange={setShowCustomDatePicker}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="text-xs gap-2">
-                    <CalendarIcon className="h-3 w-3" />
-                    Custom Range
+              {/* Templates */}
+              <div className="flex flex-wrap gap-2">
+                {dateRangeTemplates.map((template) => (
+                  <Button
+                    key={template.id}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTemplateSelect(template)}
+                    className="text-xs"
+                  >
+                    {template.label}
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="range"
-                    selected={{ from: dateRange.from, to: dateRange.to }}
-                    onSelect={(range) => {
-                      if (range?.from && range?.to) {
-                        setDateRange({ from: range.from, to: range.to })
-                        setAnalysis(null)
-                        setShowCustomDatePicker(false)
-                      }
-                    }}
-                    numberOfMonths={2}
-                  />
-                </PopoverContent>
-              </Popover>
+                ))}
+                
+                <Popover open={showCustomDatePicker} onOpenChange={setShowCustomDatePicker}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-xs gap-2">
+                      <CalendarIcon className="h-3 w-3" />
+                      Custom Range
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CustomDateRangePicker
+                      selected={{ from: dateRange.from, to: dateRange.to }}
+                      onSelect={(range) => {
+                        if (range?.from && range?.to) {
+                          setDateRange({ from: range.from, to: range.to })
+                          setAnalysis(null)
+                          setShowCustomDatePicker(false)
+                        }
+                      }}
+                      className="w-fit"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Selected Range Display */}
+              <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">{formatDateRange()}</span>
+              </div>
             </div>
 
-            {/* Selected Range Display */}
-            <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50">
-              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{formatDateRange()}</span>
-            </div>
-          </div>
-
-          {/* Analysis Results */}
-          {analysis ? (
-            <div className="flex-1 overflow-hidden">
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-4 pb-4">
+            {/* Analysis Results */}
+            {analysis ? (
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Summary */}
                 <Card>
                   <CardContent className="p-4">
@@ -328,45 +327,45 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                   </Card>
                 )}
               </div>
-            </ScrollArea>
-            </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center min-h-[300px]">
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                  <Sparkles className="h-8 w-8 text-primary" />
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Ready to Analyze</p>
-                  <p className="text-xs text-muted-foreground max-w-sm">
-                    Select a date range and click &ldquo;Generate Analysis&rdquo; to get AI-powered insights into your trading psychology
-                  </p>
+            ) : (
+              <div className="flex-1 flex items-center justify-center min-h-[300px]">
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                    <Sparkles className="h-8 w-8 text-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Ready to Analyze</p>
+                    <p className="text-xs text-muted-foreground max-w-sm">
+                      Select a date range and click &ldquo;Generate Analysis&rdquo; to get AI-powered insights into your trading psychology
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        <DialogFooter className="flex items-center justify-between sm:justify-between">
-          <Button variant="outline" onClick={onClose} disabled={isAnalyzing}>
-            Close
-          </Button>
-          <Button onClick={handleAnalyze} disabled={isAnalyzing}>
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                Generate Analysis
-              </>
-            )}
-          </Button>
+        <DialogFooter className="p-6 pt-4 border-t shrink-0 bg-muted/10">
+          <div className="flex items-center justify-between w-full">
+            <Button variant="outline" onClick={onClose} disabled={isAnalyzing}>
+              Close
+            </Button>
+            <Button onClick={handleAnalyze} disabled={isAnalyzing}>
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate Analysis
+                </>
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
-

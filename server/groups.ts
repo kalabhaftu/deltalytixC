@@ -16,10 +16,13 @@ export async function getGroupsAction(): Promise<GroupWithAccounts[]> {
     const groups = await prisma.group.findMany({
       where: { userId },
       include: {
-        accounts: true,
+        Account: true,
       },
     })
-    return groups
+    return groups.map((group: any) => ({
+      ...group,
+      accounts: group.Account || []
+    }))
   } catch (error) {
     console.error('Error fetching groups:', error)
     throw error
@@ -32,10 +35,10 @@ export async function renameGroupAction(groupId: string, name: string): Promise<
       where: { id: groupId },
       data: { name },
       include: {
-        accounts: true,
+        Account: true,
       },
     })
-    return group
+    return { ...group, accounts: group.Account } as any
   } catch (error) {
     console.error('Error renaming group:', error)
     throw error
@@ -51,23 +54,25 @@ export async function saveGroupAction(name: string): Promise<Group> {
     const existingGroup = await prisma.group.findFirst({
       where: { name, userId },
       include: {
-        accounts: true,
+        Account: true,
       },
     })
     if (existingGroup) {
-      return existingGroup
+      return { ...existingGroup, accounts: existingGroup.Account } as any
     }
     // Create new group
     const group = await prisma.group.create({
       data: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         name,
         userId,
       },
       include: {
-        accounts: true,
+        Account: true,
       },
     })
-    return group
+    return { ...group, accounts: group.Account } as any
   } catch (error) {
     console.error('Error creating group:', error)
     throw error
@@ -80,10 +85,10 @@ export async function updateGroupAction(groupId: string, name: string): Promise<
       where: { id: groupId },
       data: { name },
       include: {
-        accounts: true,
+        Account: true,
       },
     })
-    return group
+    return { ...group, accounts: group.Account } as any
   } catch (error) {
     console.error('Error updating group:', error)
     throw error
