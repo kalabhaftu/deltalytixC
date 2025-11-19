@@ -8,6 +8,8 @@ import { Account, Group } from '@/context/data-provider'
 import { revalidateTag, unstable_cache } from 'next/cache' 
 
 
+import { getAccountsAction } from './accounts'
+
 export async function getUserData(): Promise<{
   userData: User | null;
   accounts: Account[];
@@ -67,7 +69,6 @@ export async function getUserData(): Promise<{
         // Use getAccountsAction for unified account handling (regular + prop firm)
         (async () => {
           try {
-            const { getAccountsAction } = await import('./accounts')
             return await getAccountsAction()
           } catch (error) {
             return []
@@ -94,11 +95,20 @@ export async function getUserData(): Promise<{
             return []
           }
         })(),
-        // Calendar notes - bundled with initial data load
+        // Calendar notes - bundled with initial data load (Limited to recent history)
         (async () => {
           try {
+            // PERFORMANCE: Limit notes to last 2 years to prevent payload bloat
+            const twoYearsAgo = new Date()
+            twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2)
+            
             const notes = await prisma.dailyNote.findMany({
-              where: { userId },
+              where: { 
+                userId,
+                date: {
+                  gte: twoYearsAgo.toISOString().split('T')[0] // Assuming date is stored as YYYY-MM-DD string
+                }
+              },
               select: {
                 date: true,
                 note: true

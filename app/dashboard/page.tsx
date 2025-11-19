@@ -54,74 +54,36 @@ function DashboardContent() {
   }, [searchParams])
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout
-
-    const calculateHeight = () => {
-      // Clear any pending timeout
-      if (timeoutId) {
-        clearTimeout(timeoutId)
+    const updateNavbarHeight = () => {
+      const navbar = document.querySelector('nav[class*="fixed"]') as HTMLElement
+      if (navbar) {
+        const height = navbar.offsetHeight
+        document.documentElement.style.setProperty('--navbar-height', `${height}px`)
       }
-
-      // Debounce the calculation to account for animations
-      timeoutId = setTimeout(() => {
-        // Get navbar height - it's fixed at the top
-        const navbar = document.querySelector('nav[class*="fixed"]') as HTMLElement
-        const navbarHeight = navbar?.offsetHeight || 64 // Updated fallback to match new navbar height
-
-        // Set CSS custom property for navbar height
-        document.documentElement.style.setProperty('--navbar-height', `${navbarHeight}px`)
-      }, 100) // Small delay to account for animation
     }
 
-    // Calculate on mount
-    calculateHeight()
+    // Initial calculation
+    updateNavbarHeight()
 
-    // Recalculate on window resize
-    window.addEventListener('resize', calculateHeight)
-    
-    // Create a ResizeObserver to watch for navbar height changes (when filters appear/disappear)
-    const resizeObserver = new ResizeObserver(calculateHeight)
+    // Use ResizeObserver which is much more performant than MutationObserver for size changes
     const navbar = document.querySelector('nav[class*="fixed"]')
-    
+    let resizeObserver: ResizeObserver | null = null
+
     if (navbar) {
+      resizeObserver = new ResizeObserver(() => {
+        // Wrap in requestAnimationFrame to avoid "ResizeObserver loop limit exceeded"
+        requestAnimationFrame(updateNavbarHeight)
+      })
       resizeObserver.observe(navbar)
     }
 
-    // Create a MutationObserver to watch for DOM changes when ActiveFilterTags appear/disappear
-    const mutationObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        // Check if filter tags were added or removed
-        if (mutation.type === 'childList') {
-          const hasFilterTags = Array.from(mutation.addedNodes).some(node => 
-            node.nodeType === Node.ELEMENT_NODE && 
-            (node as Element).classList?.contains('border-t')
-          ) || Array.from(mutation.removedNodes).some(node => 
-            node.nodeType === Node.ELEMENT_NODE && 
-            (node as Element).classList?.contains('border-t')
-          )
-          
-          if (hasFilterTags) {
-            calculateHeight()
-          }
-        }
-      })
-    })
-
-    // Observe the navbar for DOM changes
-    if (navbar) {
-      mutationObserver.observe(navbar, {
-        childList: true,
-        subtree: true
-      })
-    }
+    // Fallback window resize listener
+    window.addEventListener('resize', updateNavbarHeight)
     
-    // Cleanup
     return () => {
-      window.removeEventListener('resize', calculateHeight)
-      resizeObserver.disconnect()
-      mutationObserver.disconnect()
-      if (timeoutId) {
-        clearTimeout(timeoutId)
+      window.removeEventListener('resize', updateNavbarHeight)
+      if (resizeObserver) {
+        resizeObserver.disconnect()
       }
     }
   }, [])

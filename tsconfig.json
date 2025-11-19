@@ -46,6 +46,7 @@
     "build",
     "coverage",
     "scripts",
+    "tests",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",
