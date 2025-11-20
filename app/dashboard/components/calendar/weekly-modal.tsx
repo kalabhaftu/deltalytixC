@@ -46,6 +46,7 @@ export function WeeklyModal({
   const [isLoadingReview, setIsLoadingReview] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [imageLoadError, setImageLoadError] = useState(false)
 
   // Generate organized path: userId/week-start-date (YYYY-MM-DD)
   const weekStartDate = selectedDate ? format(startOfWeek(selectedDate), 'yyyy-MM-dd') : ''
@@ -230,6 +231,7 @@ export function WeeklyModal({
       setImagePreview(null)
       setUploadedFile(null)
       setFiles([])
+      setImageLoadError(false)
     }
   }, [isOpen, imagePreview, setFiles])
 
@@ -362,7 +364,7 @@ export function WeeklyModal({
               </CardHeader>
               <CardContent className="p-0">
                 <div className="bg-muted/50 relative min-h-[300px] group w-full flex items-center justify-center">
-                  {imagePreview || reviewData?.calendarImage ? (
+                  {(imagePreview || reviewData?.calendarImage) && !imageLoadError ? (
                     <div className="relative w-full h-full flex items-center justify-center p-4">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img 
@@ -371,7 +373,8 @@ export function WeeklyModal({
                         className="w-full h-full object-contain max-h-[500px] rounded-md"
                         onError={(e) => {
                           console.error("Image failed to load:", imagePreview || reviewData?.calendarImage)
-                          toast.error("Failed to load image")
+                          setImageLoadError(true)
+                          toast.error("Failed to load saved image. Please upload a new one.")
                         }}
                       />
                       {imagePreview && (
@@ -381,6 +384,26 @@ export function WeeklyModal({
                           </Badge>
                         </div>
                       )}
+                    </div>
+                  ) : imageLoadError ? (
+                    <div className="flex flex-col items-center justify-center text-muted-foreground py-12 w-full h-full">
+                      <XCircle className="h-12 w-12 text-destructive mb-4" />
+                      <p className="text-sm font-medium mb-2">Failed to load saved image</p>
+                      <p className="text-xs text-center max-w-[300px] mb-4">
+                        The previous image could not be loaded. Please upload a new calendar image.
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setImageLoadError(false)
+                          setReviewData({...reviewData, calendarImage: null})
+                          document.getElementById('weekly-calendar-upload')?.click()
+                        }}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload New Image
+                      </Button>
                     </div>
                   ) : (
                     <label 
