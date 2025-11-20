@@ -144,8 +144,8 @@ export class MediaUploadService {
       // No tradeId subfolder - keep it flat for simplicity
       const filePath = `${options.folder}/${options.userId}/${fileName}`
 
-      // Use the trade-images bucket
-      const bucketName = 'trade-images'
+      // Try to get or create the appropriate bucket
+      const bucketName = await this.ensureBucket()
       
       // Upload file
       const { error: uploadError, data } = await this.supabase.storage
@@ -183,7 +183,7 @@ export class MediaUploadService {
       }
 
       const existingBuckets = buckets?.map((b: any) => b.name) || []
-      const preferredBuckets = ['images', 'trade-images', 'public', 'avatars']
+      const preferredBuckets = ['trade-images', 'images', 'public', 'avatars']
       
       for (const preferred of preferredBuckets) {
         if (existingBuckets.includes(preferred)) {
