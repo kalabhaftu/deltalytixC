@@ -173,7 +173,7 @@ export async function PUT(request: NextRequest) {
     const { updateTradeImage } = await import('@/server/trades')
 
     // Handle image updates
-    const imageFields = ['cardPreviewImage']
+    const imageFields = ['cardPreviewImage', 'imageOne', 'imageTwo', 'imageThree', 'imageFour', 'imageFive', 'imageSix']
 
     for (const field of imageFields) {
       if (updatedTrade[field] !== undefined) {
@@ -195,6 +195,12 @@ export async function PUT(request: NextRequest) {
     // Update the trade with non-image fields
     const { id, ...updateData } = updatedTrade
     delete updateData.cardPreviewImage
+    delete updateData.imageOne
+    delete updateData.imageTwo
+    delete updateData.imageThree
+    delete updateData.imageFour
+    delete updateData.imageFive
+    delete updateData.imageSix
 
     if (Object.keys(updateData).length > 0) {
       await prisma.trade.update({

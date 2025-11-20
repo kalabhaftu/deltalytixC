@@ -45,7 +45,7 @@ export async function deleteTrade(tradeId: string) {
 export async function updateTradeImage(
   tradeIds: string[],
   imageUrl: string | null,
-  fieldName: 'cardPreviewImage'
+  fieldName: 'cardPreviewImage' | 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix'
 ) {
   try {
     const userId = await getUserIdSafe()

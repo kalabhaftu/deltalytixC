@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, MoreVertical, Eye, Pencil, Trash2, FileText, TestTube } from 'lucide-react'
+import { Plus, MoreVertical, Eye, Pencil, Trash2, FileText } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,10 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { AddEditModelModal } from './components/add-edit-model-modal'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -47,10 +44,6 @@ export default function MenuPage() {
   const [selectedModel, setSelectedModel] = useState<TradingModel | null>(null)
   const [deleteModelId, setDeleteModelId] = useState<string | null>(null)
   const [viewModel, setViewModel] = useState<TradingModel | null>(null)
-  
-  // Temporary: TradingView embed test
-  const [showTVTest, setShowTVTest] = useState(false)
-  const [tvUrl, setTvUrl] = useState('https://www.tradingview.com/x/EkNnAJnR/')
 
   // Fetch models
   const fetchModels = async () => {
@@ -145,16 +138,10 @@ export default function MenuPage() {
                 Manage your trading models and strategies
               </p>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={() => setShowTVTest(true)} variant="outline" className="gap-2">
-                <TestTube className="h-4 w-4" />
-                Test TradingView
-              </Button>
-              <Button onClick={handleAddModel} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add Model
-              </Button>
-            </div>
+            <Button onClick={handleAddModel} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Model
+            </Button>
           </div>
         </div>
 
@@ -338,70 +325,6 @@ export default function MenuPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Temporary: TradingView Embed Test */}
-      <Dialog open={showTVTest} onOpenChange={setShowTVTest}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>TradingView Chart Embed Test</DialogTitle>
-            <DialogDescription>
-              Testing if TradingView chart links can be embedded as previews
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="tv-url">TradingView URL</Label>
-              <Input
-                id="tv-url"
-                value={tvUrl}
-                onChange={(e) => setTvUrl(e.target.value)}
-                placeholder="https://www.tradingview.com/x/..."
-                className="mt-1"
-              />
-            </div>
-
-            {/* Method 1: Direct iframe */}
-            <div className="border rounded-lg p-4">
-              <h4 className="font-medium mb-2">Method 1: Direct iframe</h4>
-              <div className="border rounded overflow-hidden" style={{ height: '500px' }}>
-                <iframe
-                  src={tvUrl}
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                  title="TradingView Chart - Method 1"
-                />
-              </div>
-            </div>
-
-            {/* Method 2: Image fallback */}
-            <div className="border rounded-lg p-4">
-              <h4 className="font-medium mb-2">Method 2: As image (snapshot)</h4>
-              <div className="border rounded overflow-hidden">
-                <img 
-                  src={`${tvUrl}snapshot/`}
-                  alt="TradingView Chart Snapshot"
-                  className="w-full"
-                  onError={(e) => {
-                    e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23ddd" width="400" height="300"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ESnapshot not available%3C/text%3E%3C/svg%3E'
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Method 3: Embed widget */}
-            <div className="border rounded-lg p-4">
-              <h4 className="font-medium mb-2">Method 3: With embed parameter</h4>
-              <div className="border rounded overflow-hidden" style={{ height: '500px' }}>
-                <iframe
-                  src={`${tvUrl}?widget=1`}
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                  title="TradingView Chart - Method 3"
-                />
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

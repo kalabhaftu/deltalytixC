@@ -182,7 +182,13 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   const formatted = formatTradeData(trade)
 
   const images = [
-    (trade as any).cardPreviewImage
+    (trade as any).cardPreviewImage,
+    (trade as any).imageOne,
+    (trade as any).imageTwo,
+    (trade as any).imageThree,
+    (trade as any).imageFour,
+    (trade as any).imageFive,
+    (trade as any).imageSix
   ].filter((img): img is string => Boolean(img) && typeof img === 'string')
 
   const formatCurrency = (amount: number) => {

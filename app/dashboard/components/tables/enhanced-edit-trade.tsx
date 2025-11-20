@@ -163,7 +163,7 @@ export default function EnhancedEditTrade({
   // Confirmation dialogs state
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false)
   const [showDeleteImageDialog, setShowDeleteImageDialog] = useState(false)
-  const [imageToDelete, setImageToDelete] = useState<'cardPreviewImage' | null>(null)
+  const [imageToDelete, setImageToDelete] = useState<'cardPreviewImage' | 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix' | null>(null)
   const [pendingClose, setPendingClose] = useState(false)
   
   // Track if form has unsaved changes
@@ -313,7 +313,7 @@ export default function EnhancedEditTrade({
     }
   }, [hasUnsavedChanges, isOpen])
 
-  const handleImageUpload = async (field: 'cardPreviewImage', file: File) => {
+  const handleImageUpload = async (field: 'cardPreviewImage' | 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix', file: File) => {
     try {
       validateImageFile(file)
       
@@ -680,73 +680,86 @@ export default function EnhancedEditTrade({
               <CardHeader>
                 <CardTitle className="text-base flex items-center">
                   <Camera className="w-5 h-5 mr-2" />
-                  Trade Screenshot
+                  Trade Screenshots
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Card Preview Image</Label>
-                  <div className="w-full max-w-md">
-                    <div className="border-2 border-dashed rounded-lg p-4 text-center aspect-video flex items-center justify-center border-border bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        id="card-preview"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleImageUpload('cardPreviewImage', file)
-                        }}
-                      />
-
-                      {watchedValues.cardPreviewImage ? (
-                        <div className="relative w-full h-full group">
-                          <Image
-                            src={watchedValues.cardPreviewImage}
-                            alt="Trade Screenshot"
-                            fill
-                            className="object-cover rounded cursor-pointer"
-                            onClick={() => setFullscreenImage(watchedValues.cardPreviewImage!)}
-                          />
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                removeImage('cardPreviewImage')
-                              }}
-                            >
-                              <X className="w-4 h-4 mr-1" />
-                              Remove
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => setFullscreenImage(watchedValues.cardPreviewImage!)}
-                            >
-                              <Eye className="w-4 h-4 mr-1" />
-                              View
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <label
-                          htmlFor="card-preview"
-                          className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors py-8"
-                        >
-                          <Camera className="w-10 h-10 mb-2" />
-                          <span className="text-sm font-medium">Click to upload screenshot</span>
-                          <span className="text-xs mt-1">JPG, PNG, WebP (max 10MB)</span>
-                        </label>
-                      )}
-                    </div>
-                  </div>
+                <div className="space-y-6">
                   <p className="text-sm text-muted-foreground">
-                    Upload a chart screenshot, trade setup, or market analysis image for this trade.
+                    Upload up to 6 screenshots for this trade (chart screenshots, trade setups, market analysis, etc.)
                   </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Card Preview Image */}
+                    {[
+                      { field: 'cardPreviewImage' as const, label: 'Screenshot 1 (Card Preview)', id: 'card-preview' },
+                      { field: 'imageOne' as const, label: 'Screenshot 2', id: 'image-one' },
+                      { field: 'imageTwo' as const, label: 'Screenshot 3', id: 'image-two' },
+                      { field: 'imageThree' as const, label: 'Screenshot 4', id: 'image-three' },
+                      { field: 'imageFour' as const, label: 'Screenshot 5', id: 'image-four' },
+                      { field: 'imageFive' as const, label: 'Screenshot 6', id: 'image-five' },
+                    ].map(({ field, label, id }) => (
+                      <div key={field} className="space-y-2">
+                        <Label className="text-sm font-medium">{label}</Label>
+                        <div className="border-2 border-dashed rounded-lg p-2 text-center aspect-video flex items-center justify-center border-border bg-muted/30 hover:bg-muted/50 transition-colors">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            id={id}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) handleImageUpload(field, file)
+                            }}
+                          />
+
+                          {watchedValues[field] ? (
+                            <div className="relative w-full h-full group">
+                              <Image
+                                src={watchedValues[field]!}
+                                alt={label}
+                                fill
+                                className="object-cover rounded cursor-pointer"
+                                onClick={() => setFullscreenImage(watchedValues[field]!)}
+                              />
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    removeImage(field)
+                                  }}
+                                >
+                                  <X className="w-3 h-3 mr-1" />
+                                  Remove
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => setFullscreenImage(watchedValues[field]!)}
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  View
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <label
+                              htmlFor={id}
+                              className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors py-6"
+                            >
+                              <Camera className="w-8 h-8 mb-2" />
+                              <span className="text-xs font-medium">Click to upload</span>
+                              <span className="text-xs mt-1">JPG, PNG, WebP (max 10MB)</span>
+                            </label>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>

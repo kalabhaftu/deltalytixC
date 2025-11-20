@@ -255,6 +255,12 @@ model Trade {
   comment          String?
   groupId          String?       @default("")
   cardPreviewImage String?
+  imageOne         String?
+  imageTwo         String?
+  imageThree       String?
+  imageFour        String?
+  imageFive        String?
+  imageSix         String?
   accountId        String?
   phaseAccountId   String?
   symbol           String?
