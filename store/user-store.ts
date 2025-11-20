@@ -47,7 +47,7 @@ export const useUserStore = create<UserStore>()((
       dashboardLayout: null,
       isLoading: false,
       isMobile: false,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: 'America/New_York',
       setTimezone: (timezone: string) => set({ timezone }),
       setUser: (user) => set({ user }),
       setSupabaseUser: (supabaseUser) => set({ supabaseUser }),

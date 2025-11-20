@@ -12,12 +12,14 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload"
 import { saveWeeklyReview, getWeeklyReview } from "@/server/weekly-review"
-import { Loader2, Upload, ImageIcon, TrendingUp, TrendingDown, Activity, CheckCircle2, XCircle } from "lucide-react"
+import { useAuth } from "@/context/auth-provider"
+import { Loader2, Upload, ImageIcon, TrendingUp, TrendingDown, Activity, CheckCircle2, XCircle, X, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import imageCompression from 'browser-image-compression'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
+import { getTradingSession } from '@/lib/time-utils'
 
 interface WeeklyModalProps {
   isOpen: boolean;
@@ -37,14 +39,21 @@ export function WeeklyModal({
   isLoading,
 }: WeeklyModalProps) {
   const dateLocale = enUS
+  const { user } = useAuth()
   const [reviewData, setReviewData] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isLoadingReview, setIsLoadingReview] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
 
-  // Image upload setup
+  // Generate organized path: userId/week-start-date (YYYY-MM-DD)
+  const weekStartDate = selectedDate ? format(startOfWeek(selectedDate), 'yyyy-MM-dd') : ''
+  const uploadPath = user?.id ? `${user.id}/${weekStartDate}` : ''
+
+  // Image upload setup - dedicated bucket for weekly calendars
   const { onUpload, files, setFiles, isSuccess: isUploadSuccess, loading: isUploading } = useSupabaseUpload({
-    bucketName: 'images',
-    path: 'weekly-calendars',
+    bucketName: 'weekly-calendars',
+    path: uploadPath,
     allowedMimeTypes: ['image/*'],
     maxFiles: 1,
     upsert: true
@@ -113,13 +122,8 @@ export function WeeklyModal({
       const pair = trade.instrument || 'Unknown'
       pairStats[pair] = (pairStats[pair] || 0) + netPnL
 
-      // Session Stats (approximate by hour)
-      const hour = new Date(trade.entryDate).getHours()
-      let session = 'Other'
-      if (hour >= 8 && hour < 16) session = 'New York' // 8am-4pm EST approx
-      else if (hour >= 3 && hour < 11) session = 'London' // 3am-11am EST approx
-      else if (hour >= 18 || hour < 2) session = 'Asian' // 6pm-2am EST approx
-      
+      // Session Stats (proper timezone handling)
+      const session = getTradingSession(trade.entryDate)
       sessionStats[session] = (sessionStats[session] || 0) + netPnL
     })
 
@@ -137,38 +141,96 @@ export function WeeklyModal({
 
   // Handle Image Upload
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    try {
+      toast.loading("Compressing image...", { id: 'image-compress' })
       
-      try {
-        // Compress image to WebP
-        const options = {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1920,
-          useWebWorker: true,
-          fileType: 'image/webp'
-        }
-        
-        const compressedFile = await imageCompression(file, options)
-        const newFile = new File([compressedFile], `weekly-calendar-${Date.now()}.webp`, { type: 'image/webp' })
-        
-        // Create a file object with the required properties for the upload hook
-        const fileWithPreview = Object.assign(newFile, {
-          preview: URL.createObjectURL(newFile),
-          errors: []
-        })
-        
-        // Use the hook to set file state
-        setFiles([fileWithPreview as any])
-        
-        toast.info("Image prepared. Click Save to upload.")
-        
-      } catch (error) {
-        console.error("Image compression error:", error)
-        toast.error("Failed to process image")
+      // Compress image to WebP
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        fileType: 'image/webp'
       }
+      
+      const compressedFile = await imageCompression(file, options)
+      const newFile = new File([compressedFile], `weekly-calendar-${Date.now()}.webp`, { type: 'image/webp' })
+      
+      // Create preview URL from the compressed file
+      const preview = URL.createObjectURL(compressedFile)
+      setImagePreview(preview)
+      setUploadedFile(newFile)
+      
+      // Prepare file for upload hook
+      const fileWithPreview = Object.assign(newFile, {
+        preview: preview,
+        errors: []
+      })
+      setFiles([fileWithPreview as any])
+      
+      toast.success("Image prepared. Click Save to upload.", { id: 'image-compress' })
+      
+    } catch (error) {
+      console.error("Image compression error:", error)
+      toast.error("Failed to process image", { id: 'image-compress' })
     }
   }
+
+  // Handle Image Removal
+  const handleRemoveImage = () => {
+    // Clear preview
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
+      setImagePreview(null)
+    }
+    setUploadedFile(null)
+    setFiles([])
+    
+    // Clear the saved image from review data
+    setReviewData({...reviewData, calendarImage: null})
+    toast.info("Image removed")
+  }
+
+  // Handle Image Replacement
+  const handleReplaceImage = () => {
+    // Clear current preview
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
+      setImagePreview(null)
+    }
+    setUploadedFile(null)
+    setFiles([])
+    
+    // Trigger file input
+    const fileInput = document.getElementById('weekly-calendar-upload') as HTMLInputElement
+    if (fileInput) {
+      fileInput.value = ''
+      fileInput.click()
+    }
+  }
+
+  // Cleanup preview URL when modal closes or unmounts
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview)
+      }
+    }
+  }, [imagePreview])
+
+  // Reset preview when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview)
+      }
+      setImagePreview(null)
+      setUploadedFile(null)
+      setFiles([])
+    }
+  }, [isOpen, imagePreview, setFiles])
 
   const handleSave = async () => {
     if (!selectedDate) return
@@ -178,12 +240,12 @@ export function WeeklyModal({
       let imageUrl = reviewData?.calendarImage
 
       // Upload new image if exists
-      if (files.length > 0) {
+      if (uploadedFile && files.length > 0) {
         await onUpload()
-        // Construct public URL (assuming public bucket)
+        // Construct public URL for weekly-calendars bucket with organized path
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-        if (supabaseUrl) {
-          imageUrl = `${supabaseUrl}/storage/v1/object/public/images/weekly-calendars/${files[0].name}`
+        if (supabaseUrl && user?.id) {
+          imageUrl = `${supabaseUrl}/storage/v1/object/public/weekly-calendars/${user.id}/${weekStartDate}/${files[0].name}`
         }
       }
 
@@ -200,7 +262,14 @@ export function WeeklyModal({
       if (result.success) {
         setReviewData(result.data)
         toast.success("Weekly review saved")
-        setFiles([]) // Clear uploaded files
+        
+        // Clear upload state after successful save
+        if (imagePreview) {
+          URL.revokeObjectURL(imagePreview)
+          setImagePreview(null)
+        }
+        setUploadedFile(null)
+        setFiles([])
       } else {
         toast.error("Failed to save review")
       }
@@ -221,6 +290,15 @@ export function WeeklyModal({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl w-full h-[95vh] p-0 flex flex-col overflow-hidden">
+        {/* Hidden file input for replacement */}
+        <input 
+          id="weekly-calendar-upload"
+          type="file" 
+          accept="image/*" 
+          className="hidden" 
+          onChange={handleImageUpload}
+        />
+        
         <DialogHeader className="px-6 py-4 border-b shrink-0">
           <div className="flex items-center justify-between">
             <div>
@@ -243,35 +321,79 @@ export function WeeklyModal({
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center justify-between">
                   <span>Economic Calendar</span>
-                  <div className="relative">
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="absolute inset-0 opacity-0 cursor-pointer" 
-                      onChange={handleImageUpload}
-                    />
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <Upload className="h-4 w-4" />
-                    </Button>
+                  <div className="flex items-center gap-2">
+                    {(reviewData?.calendarImage || imagePreview) && (
+                      <>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={handleRemoveImage}
+                          title="Remove image"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3"
+                          onClick={handleReplaceImage}
+                          title="Replace image"
+                        >
+                          <Upload className="h-4 w-4 mr-1" />
+                          Replace
+                        </Button>
+                      </>
+                    )}
+                    {!reviewData?.calendarImage && !imagePreview && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 px-3"
+                        onClick={() => document.getElementById('weekly-calendar-upload')?.click()}
+                      >
+                        <Upload className="h-4 w-4 mr-1" />
+                        Upload
+                      </Button>
+                    )}
                   </div>
                 </CardTitle>
               </CardHeader>
-              <div className="bg-muted/50 relative min-h-[300px] group w-full flex items-center justify-center">
-                {reviewData?.calendarImage || (files.length > 0 && files[0].preview) ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img 
-                    src={files.length > 0 ? (files[0] as any).preview : reviewData.calendarImage} 
-                    alt="Economic Calendar" 
-                    className="w-full h-full object-contain max-h-[500px]"
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-muted-foreground py-12">
-                    <ImageIcon className="mx-auto h-12 w-12 opacity-20 mb-3" />
-                    <span className="text-sm font-medium">Upload weekly calendar screenshot</span>
-                    <span className="text-xs opacity-70 mt-1">Supports drag & drop or click to upload</span>
-                  </div>
-                )}
-              </div>
+              <CardContent className="p-0">
+                <div className="bg-muted/50 relative min-h-[300px] group w-full flex items-center justify-center">
+                  {imagePreview || reviewData?.calendarImage ? (
+                    <div className="relative w-full h-full flex items-center justify-center p-4">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img 
+                        src={imagePreview || reviewData?.calendarImage} 
+                        alt="Economic Calendar" 
+                        className="w-full h-full object-contain max-h-[500px] rounded-md"
+                        onError={(e) => {
+                          console.error("Image failed to load:", imagePreview || reviewData?.calendarImage)
+                          toast.error("Failed to load image")
+                        }}
+                      />
+                      {imagePreview && (
+                        <div className="absolute top-6 left-6">
+                          <Badge variant="secondary" className="bg-blue-500/90 text-white">
+                            New Upload - Click Save
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <label 
+                      htmlFor="weekly-calendar-upload"
+                      className="flex flex-col items-center justify-center text-muted-foreground py-12 cursor-pointer hover:bg-muted/70 transition-colors w-full h-full"
+                    >
+                      <ImageIcon className="mx-auto h-12 w-12 opacity-20 mb-3" />
+                      <span className="text-sm font-medium">Upload weekly calendar screenshot</span>
+                      <span className="text-xs opacity-70 mt-1">Click to browse or drag & drop</span>
+                      <span className="text-xs opacity-50 mt-2">Supports: JPG, PNG, WebP (Max 1MB)</span>
+                    </label>
+                  )}
+                </div>
+              </CardContent>
             </Card>
 
             {/* Middle Section: Expectation & Outcome - Side by Side */}
