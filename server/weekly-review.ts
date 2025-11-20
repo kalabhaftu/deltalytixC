@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
 import { WeeklyExpectation } from '@prisma/client'
-import { createId } from '@paralleldrive/cuid2'
+import { randomUUID } from 'crypto'
 
 export async function getWeeklyReview(startDate: Date) {
   const userId = await getUserId()
@@ -65,7 +65,7 @@ export async function saveWeeklyReview(data: {
         startDate: monday // Ensure consistency
       },
       create: {
-        id: createId(),
+        id: randomUUID(),
         userId,
         ...data,
         startDate: monday

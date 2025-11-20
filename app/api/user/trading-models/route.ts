@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserFromRequest } from '@/server/auth'
+import { getUserId } from '@/server/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { randomUUID } from 'crypto'
 
 const tradingModelSchema = z.object({
   name: z.string().min(1, 'Model name is required').max(100),
@@ -12,13 +13,13 @@ const tradingModelSchema = z.object({
 // GET - List all trading models for user
 export async function GET(request: NextRequest) {
   try {
-    const user = await getUserFromRequest(request)
-    if (!user) {
+    const userId = await getUserId()
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const models = await prisma.tradingModel.findMany({
-      where: { userId: user.id },
+      where: { userId },
       orderBy: { createdAt: 'desc' },
     })
 
@@ -35,8 +36,8 @@ export async function GET(request: NextRequest) {
 // POST - Create new trading model
 export async function POST(request: NextRequest) {
   try {
-    const user = await getUserFromRequest(request)
-    if (!user) {
+    const userId = await getUserId()
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
     const existing = await prisma.tradingModel.findUnique({
       where: {
         userId_name: {
-          userId: user.id,
+          userId,
           name: validated.name,
         },
       },
@@ -62,7 +63,8 @@ export async function POST(request: NextRequest) {
 
     const model = await prisma.tradingModel.create({
       data: {
-        userId: user.id,
+        id: randomUUID(),
+        userId,
         name: validated.name,
         rules: validated.rules,
         notes: validated.notes,

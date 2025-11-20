@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserFromRequest } from '@/server/auth'
+import { getUserId } from '@/server/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
@@ -15,8 +15,8 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await getUserFromRequest(request)
-    if (!user) {
+    const userId = await getUserId()
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -32,7 +32,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Model not found' }, { status: 404 })
     }
 
-    if (existing.userId !== user.id) {
+    if (existing.userId !== userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -41,7 +41,7 @@ export async function PATCH(
       const duplicate = await prisma.tradingModel.findUnique({
         where: {
           userId_name: {
-            userId: user.id,
+            userId,
             name: validated.name,
           },
         },
@@ -86,8 +86,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await getUserFromRequest(request)
-    if (!user) {
+    const userId = await getUserId()
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -105,7 +105,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Model not found' }, { status: 404 })
     }
 
-    if (existing.userId !== user.id) {
+    if (existing.userId !== userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
