@@ -19,7 +19,8 @@ import {
   Moon,
   Laptop,
   Waves,
-  FlaskConical
+  FlaskConical,
+  MenuSquare
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { motion } from "framer-motion"
@@ -63,6 +64,11 @@ const navigationItems: NavigationItem[] = [
     id: 'backtesting',
     label: 'Backtesting',
     icon: FlaskConical
+  },
+  {
+    id: 'menu',
+    label: 'Menu',
+    icon: MenuSquare
   },
 ]
 

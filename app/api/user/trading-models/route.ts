@@ -1,89 +1,86 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getUserFromRequest } from '@/server/auth'
 import { prisma } from '@/lib/prisma'
-import { getUserIdSafe } from '@/server/auth'
+import { z } from 'zod'
 
-/**
- * GET /api/user/trading-models
- * Retrieve user's custom trading models from database
- */
-export async function GET() {
+const tradingModelSchema = z.object({
+  name: z.string().min(1, 'Model name is required').max(100),
+  rules: z.array(z.string()).default([]),
+  notes: z.string().optional(),
+})
+
+// GET - List all trading models for user
+export async function GET(request: NextRequest) {
   try {
-    const userId = await getUserIdSafe()
-    if (!userId) {
+    const user = await getUserFromRequest(request)
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { customTradingModels: true }
+    const models = await prisma.tradingModel.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
     })
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    // Parse JSON array or return empty array
-    const models = user.customTradingModels 
-      ? JSON.parse(user.customTradingModels)
-      : []
-
-    return NextResponse.json({ models }, { status: 200 })
+    return NextResponse.json({ success: true, models })
   } catch (error) {
     console.error('Error fetching trading models:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch trading models' },
+      { error: 'Failed to fetch models' },
       { status: 500 }
     )
   }
 }
 
-/**
- * POST /api/user/trading-models
- * Save user's custom trading models to database
- */
+// POST - Create new trading model
 export async function POST(request: NextRequest) {
   try {
-    const userId = await getUserIdSafe()
-    if (!userId) {
+    const user = await getUserFromRequest(request)
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
-    const { models } = body
+    const validated = tradingModelSchema.parse(body)
 
-    if (!Array.isArray(models)) {
-      return NextResponse.json(
-        { error: 'Invalid data format. Expected array of models.' },
-        { status: 400 }
-      )
-    }
-
-    // Validate that all models are strings
-    if (!models.every(model => typeof model === 'string')) {
-      return NextResponse.json(
-        { error: 'All models must be strings' },
-        { status: 400 }
-      )
-    }
-
-    // Save to database as JSON
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        customTradingModels: JSON.stringify(models)
-      }
+    // Check if model with same name already exists
+    const existing = await prisma.tradingModel.findUnique({
+      where: {
+        userId_name: {
+          userId: user.id,
+          name: validated.name,
+        },
+      },
     })
 
-    return NextResponse.json({ 
-      success: true, 
-      models 
-    }, { status: 200 })
+    if (existing) {
+      return NextResponse.json(
+        { error: 'A model with this name already exists' },
+        { status: 400 }
+      )
+    }
+
+    const model = await prisma.tradingModel.create({
+      data: {
+        userId: user.id,
+        name: validated.name,
+        rules: validated.rules,
+        notes: validated.notes,
+      },
+    })
+
+    return NextResponse.json({ success: true, model }, { status: 201 })
   } catch (error) {
-    console.error('Error saving trading models:', error)
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: error.errors },
+        { status: 400 }
+      )
+    }
+    console.error('Error creating trading model:', error)
     return NextResponse.json(
-      { error: 'Failed to save trading models' },
+      { error: 'Failed to create model' },
       { status: 500 }
     )
   }
 }
-

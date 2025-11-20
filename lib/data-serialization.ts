@@ -27,25 +27,10 @@ export interface SerializedData<T = any> {
  */
 export class DataSerializer {
   private static readonly STORAGE_KEYS = {
-    TRADING_MODELS: 'customTradingModels',
     USER_PREFERENCES: 'userPreferences',
     DASHBOARD_LAYOUT: 'dashboardLayout',
     TABLE_CONFIG: 'tableConfig',
   } as const
-
-  /**
-   * Serialize trading models data
-   */
-  static serializeTradingModels(models: string[]): SerializedData<string[]> {
-    const data = {
-      models,
-      total: models.length,
-      defaultCount: 4, // ICT 2022, MSNR, TTFM, Price Action
-      customCount: models.length - 4
-    }
-
-    return this.createSerializedData(models)
-  }
 
   /**
    * Generic serialize method
@@ -59,96 +44,6 @@ export class DataSerializer {
    */
   static deserialize<T>(serializedData: string): T | null {
     return this.deserializeData(serializedData)
-  }
-
-  /**
-   * Deserialize trading models data
-   */
-  static deserializeTradingModels(serializedData: string): string[] {
-    try {
-      const parsed = JSON.parse(serializedData)
-      // Handle both old format (parsed.models) and new format (parsed.data)
-      if (Array.isArray(parsed.data)) {
-        return parsed.data
-      } else if (Array.isArray(parsed.models)) {
-        return parsed.models
-      } else if (Array.isArray(parsed)) {
-        return parsed
-      }
-      return []
-    } catch (error) {
-      console.error('Failed to deserialize trading models:', error)
-      return []
-    }
-  }
-
-  /**
-   * Get trading models from localStorage
-   */
-  static getTradingModels(): string[] {
-    if (typeof window === 'undefined') return []
-
-    try {
-      const stored = localStorage.getItem(this.STORAGE_KEYS.TRADING_MODELS)
-      if (!stored) return []
-      
-      const models = this.deserializeTradingModels(stored)
-      
-      // Validate that we got an array
-      if (!Array.isArray(models)) {
-        console.warn('Invalid trading models data, resetting...')
-        localStorage.removeItem(this.STORAGE_KEYS.TRADING_MODELS)
-        return []
-      }
-      
-      return models
-    } catch (error) {
-      console.error('Error loading trading models:', error)
-      // Clear corrupted data
-      localStorage.removeItem(this.STORAGE_KEYS.TRADING_MODELS)
-      return []
-    }
-  }
-
-  /**
-   * Save trading models to localStorage
-   */
-  static saveTradingModels(models: string[]): void {
-    if (typeof window === 'undefined') return
-
-    const serialized = this.serializeTradingModels(models)
-    localStorage.setItem(this.STORAGE_KEYS.TRADING_MODELS, JSON.stringify(serialized))
-  }
-
-  /**
-   * Add a new trading model
-   */
-  static addTradingModel(modelName: string): string[] {
-    const currentModels = this.getTradingModels()
-    
-    console.log('Adding model:', modelName)
-    console.log('Current models before add:', currentModels)
-
-    if (currentModels.includes(modelName)) {
-      throw new Error(`Model "${modelName}" already exists`)
-    }
-
-    const updatedModels = [...currentModels, modelName]
-    console.log('Updated models after add:', updatedModels)
-    
-    this.saveTradingModels(updatedModels)
-    return updatedModels
-  }
-
-  /**
-   * Remove a trading model
-   */
-  static removeTradingModel(modelName: string): string[] {
-    const currentModels = this.getTradingModels()
-    const updatedModels = currentModels.filter(model => model !== modelName)
-
-    this.saveTradingModels(updatedModels)
-    return updatedModels
   }
 
   /**
