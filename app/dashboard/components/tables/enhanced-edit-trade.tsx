@@ -18,6 +18,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -29,7 +37,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { Trade, MarketBias } from '@prisma/client'
-import { Edit, Camera, X, Target, AlertTriangle, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Edit, Camera, X, Target, AlertTriangle, TrendingUp, TrendingDown, Minus, Eye } from 'lucide-react'
 import { useUserStore } from '@/store/user-store'
 import { formatCurrency } from '@/lib/utils'
 import { uploadService } from '@/lib/upload-service'
@@ -391,6 +399,7 @@ export default function EnhancedEditTrade({
         selectedRules: selectedRules.length > 0 ? selectedRules : null,
         tags: selectedTags.length > 0 ? selectedTags.join(',') : null,
         cardPreviewImage: data.cardPreviewImage === '' ? null : data.cardPreviewImage || null,
+        marketBias: data.marketBias || null,
       } as Partial<Trade>
 
       // Call the save function
@@ -582,54 +591,59 @@ export default function EnhancedEditTrade({
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Select Trading Model</Label>
-                    <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    <Select
                       value={watchedValues.modelId || ''}
-                      onChange={(e) => {
-                        const modelId = e.target.value || null
+                      onValueChange={(value) => {
+                        const modelId = value || null
                         setValue('modelId', modelId)
                         const model = tradingModels.find(m => m.id === modelId)
                         setSelectedModel(model || null)
                         setSelectedRules([])
                       }}
                     >
-                      <option value="">No model selected</option>
-                      {tradingModels.map((model) => (
-                        <option key={model.id} value={model.id}>
-                          {model.name}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="No model selected" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {tradingModels.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <p className="text-sm text-muted-foreground">
                       Choose the trading model or strategy used for this trade.
                     </p>
                   </div>
 
                   {selectedModel && selectedModel.rules.length > 0 && (
-                    <div className="space-y-2 pt-2 border-t">
+                    <div className="space-y-3 pt-4 border-t">
                       <Label>Rules Applied (check what you used)</Label>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {selectedModel.rules.map((rule, index) => (
-                          <div key={index} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
+                          <div key={index} className="flex items-center space-x-3">
+                            <Checkbox
                               id={`rule-${index}`}
                               checked={selectedRules.includes(rule)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
+                              onCheckedChange={(checked) => {
+                                if (checked) {
                                   setSelectedRules([...selectedRules, rule])
+                                  setValue('selectedRules', [...selectedRules, rule])
                                 } else {
-                                  setSelectedRules(selectedRules.filter(r => r !== rule))
+                                  const newRules = selectedRules.filter(r => r !== rule)
+                                  setSelectedRules(newRules)
+                                  setValue('selectedRules', newRules)
                                 }
                               }}
-                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2"
                             />
-                            <label
+                            <Label
                               htmlFor={`rule-${index}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              className="text-sm font-medium leading-none cursor-pointer"
                             >
                               {rule}
-                            </label>
+                            </Label>
                           </div>
                         ))}
                       </div>
@@ -666,16 +680,14 @@ export default function EnhancedEditTrade({
               <CardHeader>
                 <CardTitle className="text-base flex items-center">
                   <Camera className="w-5 h-5 mr-2" />
-                  Screenshots (6) + Card Preview
+                  Trade Screenshot
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-
-                {/* Card Preview - Smaller size like backtest */}
-                <div className="space-y-2">
+              <CardContent>
+                <div className="space-y-3">
                   <Label className="text-sm font-medium">Card Preview Image</Label>
-                  <div className="w-full sm:w-64">
-                    <div className="border-2 border-dashed rounded-lg p-3 text-center aspect-video flex items-center justify-center min-h-[120px] border-border bg-muted/30">
+                  <div className="w-full max-w-md">
+                    <div className="border-2 border-dashed rounded-lg p-4 text-center aspect-video flex items-center justify-center border-border bg-muted/30 hover:bg-muted/50 transition-colors">
                       <input
                         type="file"
                         accept="image/*"
@@ -691,20 +703,23 @@ export default function EnhancedEditTrade({
                         <div className="relative w-full h-full group">
                           <Image
                             src={watchedValues.cardPreviewImage}
-                            alt="Card Preview"
+                            alt="Trade Screenshot"
                             fill
                             className="object-cover rounded cursor-pointer"
                             onClick={() => setFullscreenImage(watchedValues.cardPreviewImage!)}
                           />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
                             <Button
                               type="button"
                               variant="destructive"
                               size="sm"
-                              onClick={() => removeImage('cardPreviewImage')}
-                              className="mr-2"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeImage('cardPreviewImage')
+                              }}
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-4 h-4 mr-1" />
+                              Remove
                             </Button>
                             <Button
                               type="button"
@@ -712,30 +727,27 @@ export default function EnhancedEditTrade({
                               size="sm"
                               onClick={() => setFullscreenImage(watchedValues.cardPreviewImage!)}
                             >
+                              <Eye className="w-4 h-4 mr-1" />
                               View
                             </Button>
-                          </div>
-                          <div className="absolute top-2 left-2 bg-foreground text-background px-2 py-1 rounded text-xs font-medium">
-                            Preview
                           </div>
                         </div>
                       ) : (
                         <label
                           htmlFor="card-preview"
-                          className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors"
+                          className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors py-8"
                         >
-                          <Camera className="w-6 h-6 mb-1" />
-                          <span className="text-xs">Upload</span>
+                          <Camera className="w-10 h-10 mb-2" />
+                          <span className="text-sm font-medium">Click to upload screenshot</span>
+                          <span className="text-xs mt-1">JPG, PNG, WebP (max 10MB)</span>
                         </label>
                       )}
                     </div>
                   </div>
+                  <p className="text-sm text-muted-foreground">
+                    Upload a chart screenshot, trade setup, or market analysis image for this trade.
+                  </p>
                 </div>
-
-
-                <p className="text-sm text-muted-foreground mt-2">
-                  Upload chart screenshots, trade setups, or market analysis images (JPG, PNG, max 5MB each).
-                </p>
               </CardContent>
             </Card>
 
