@@ -456,7 +456,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
         propFirmSubscription?.unsubscribe()
       }
     }
-  }, []) // Remove fetchAccounts from dependencies to prevent infinite loops
+  }, [fetchAccounts]) // Add fetchAccounts to dependencies
 
   return {
     accounts,

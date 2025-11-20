@@ -170,7 +170,7 @@ export class DataSerializer {
    */
   static exportAllData(): string {
     const allData = {
-      tradingModels: this.getTradingModels(),
+      // tradingModels: this.getTradingModels(), // Deprecated: Models now stored in database
       userPreferences: this.getUserPreferences(),
       timestamp: new Date().toISOString(),
       version: '1.0.0'
@@ -186,9 +186,9 @@ export class DataSerializer {
     try {
       const parsed = JSON.parse(jsonData)
 
-      if (parsed.tradingModels) {
-        this.saveTradingModels(parsed.tradingModels)
-      }
+      // if (parsed.tradingModels) {
+      //   this.saveTradingModels(parsed.tradingModels) // Deprecated: Models now stored in database
+      // }
 
       if (parsed.userPreferences) {
         this.saveUserPreferences(parsed.userPreferences)

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
 import { WeeklyExpectation } from '@prisma/client'
+import { randomUUID } from 'crypto'
 
 function normalizeToMonday(date: Date) {
   const normalized = new Date(date)
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest) {
         endDate: new Date(endDate)
       },
       create: {
+        id: randomUUID(),
         userId,
         startDate: monday,
         endDate: new Date(endDate),

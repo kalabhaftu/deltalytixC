@@ -22,6 +22,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useTags } from '@/context/tags-provider'
+import { formatTimeInZone } from '@/lib/time-utils'
+import { useUserStore } from '@/store/user-store'
 
 interface TradeCardProps {
   trade: Trade
@@ -34,9 +37,15 @@ interface TradeCardProps {
 export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const { getTagsByIds } = useTags()
+  const timezone = useUserStore((state) => state.timezone)
 
   const isWin = trade.pnl >= 0
   const hasPreviewImage = (trade as any).cardPreviewImage
+  
+  // Parse trade tags
+  const tradeTagIds = (trade as any).tags ? (trade as any).tags.split(',').filter(Boolean) : []
+  const tradeTags = getTagsByIds(tradeTagIds)
 
   // Get status variant based on PnL (matching account card patterns)
   const getStatusVariant = (pnl: number): "default" | "secondary" | "destructive" | "outline" => {
@@ -273,7 +282,7 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground mb-1">Date</p>
             <p className="font-semibold text-foreground text-sm truncate">
-              {new Date(trade.entryDate).toLocaleDateString()}
+              {formatTimeInZone(trade.entryDate, 'MMM dd, yyyy', timezone)}
             </p>
           </div>
           <div className="min-w-0">
@@ -301,6 +310,30 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
             <p className="font-semibold text-foreground text-sm truncate">{formatDuration(duration)}</p>
           </div>
         </div>
+
+        {/* Tags */}
+        {tradeTags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-2 border-t">
+            {tradeTags.slice(0, 3).map((tag) => (
+              <Badge 
+                key={tag.id} 
+                variant="secondary" 
+                className="text-[10px] px-1.5 py-0.5 h-5"
+                style={{ backgroundColor: tag.color, color: 'white', borderColor: tag.color }}
+              >
+                {tag.name}
+              </Badge>
+            ))}
+            {tradeTags.length > 3 && (
+              <Badge 
+                variant="outline" 
+                className="text-[10px] px-1.5 py-0.5 h-5"
+              >
+                +{tradeTags.length - 3}
+              </Badge>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   )

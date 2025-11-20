@@ -273,6 +273,16 @@ model Trade {
   marketBias       MarketBias?
   modelId          String?
   selectedRules    Json?
+  newsDay          Boolean?       @default(false)
+  selectedNews     String?
+  newsTraded       Boolean?       @default(false)
+  biasTimeframe      String?
+  narrativeTimeframe String?
+  driverTimeframe    String?
+  entryTimeframe     String?
+  structureTimeframe String?
+  orderType          String?
+  chartLinks         String?
   Account          Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   TradingModel     TradingModel? @relation(fields: [modelId], references: [id])
   PhaseAccount     PhaseAccount? @relation(fields: [phaseAccountId], references: [id], onDelete: Cascade)
@@ -363,7 +373,7 @@ model WeeklyReview {
   isCorrect     Boolean?
   notes         String?
   createdAt     DateTime           @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime           @updatedAt
   User          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, startDate])

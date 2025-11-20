@@ -6,6 +6,8 @@ import { TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { cn, formatQuantity, formatPrice } from "@/lib/utils"
 import { TrendingUp, TrendingDown } from "lucide-react"
+import { formatTimeInZone } from '@/lib/time-utils'
+import { useUserStore } from '@/store/user-store'
 
 interface VirtualizedTradeTableProps {
   trades: Trade[]
@@ -23,6 +25,7 @@ const TradeRow = memo(({ trade, isSelected, onTradeClick, onTradeSelect }: {
   onTradeClick?: (trade: Trade) => void
   onTradeSelect?: (tradeId: string) => void
 }) => {
+  const timezone = useUserStore((state) => state.timezone)
   const pnlColor = trade.pnl > 0 ? 'text-green-600 dark:text-green-400' : 
                    trade.pnl < 0 ? 'text-red-600 dark:text-red-400' : 
                    'text-muted-foreground'
@@ -101,7 +104,7 @@ const TradeRow = memo(({ trade, isSelected, onTradeClick, onTradeSelect }: {
 
       {/* Date */}
       <div className="flex-shrink-0 w-32 text-sm text-muted-foreground">
-        {new Date(trade.entryDate).toLocaleDateString()}
+        {formatTimeInZone(trade.entryDate, 'MMM dd, yyyy', timezone)}
       </div>
     </div>
   )

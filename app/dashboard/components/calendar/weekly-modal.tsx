@@ -147,7 +147,7 @@ export function WeeklyModal({
     if (!file) return
     
     try {
-      toast.loading("Compressing image...", { id: 'image-compress' })
+      const loadingToast = toast.loading("Compressing image...")
       
       // Compress image to WebP
       const options = {
@@ -172,11 +172,11 @@ export function WeeklyModal({
       })
       setFiles([fileWithPreview as any])
       
-      toast.success("Image prepared. Click Save to upload.", { id: 'image-compress' })
+      toast.dismiss(loadingToast)
+      toast.success("Image prepared. Click Save to upload.")
       
     } catch (error) {
-      console.error("Image compression error:", error)
-      toast.error("Failed to process image", { id: 'image-compress' })
+      toast.error("Failed to process image")
     }
   }
 
@@ -273,12 +273,14 @@ export function WeeklyModal({
         }
         setUploadedFile(null)
         setFiles([])
+        
+        // Close modal after successful save
+        onOpenChange(false)
       } else {
         toast.error("Failed to save review")
       }
     } catch (error) {
-      console.error("Save error:", error)
-      toast.error("An error occurred")
+      toast.error("An error occurred while saving")
     } finally {
       setIsSaving(false)
     }
@@ -372,7 +374,6 @@ export function WeeklyModal({
                         alt="Economic Calendar" 
                         className="w-full h-full object-contain max-h-[500px] rounded-md"
                         onError={(e) => {
-                          console.error("Image failed to load:", imagePreview || reviewData?.calendarImage)
                           setImageLoadError(true)
                           toast.error("Failed to load saved image. Please upload a new one.")
                         }}

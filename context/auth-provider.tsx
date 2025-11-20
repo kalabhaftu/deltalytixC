@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { Session } from '@supabase/supabase-js'
 import { signOut } from '@/server/auth'
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Force clear all auth state and cache
-  const forceClearAuth = () => {
+  const forceClearAuth = useCallback(() => {
     resetUser()
     setSession(null)
     setSupabaseUser(null)
@@ -112,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })
     sessionStorage.clear()
-  }
+  }, [resetUser, setSupabaseUser])
 
   useEffect(() => {
     const supabase = createClient()
@@ -191,7 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [router])
+  }, [router, forceClearAuth, setSupabaseUser, setUser])
 
   return (
     <AuthContext.Provider

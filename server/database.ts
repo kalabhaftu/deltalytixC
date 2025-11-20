@@ -154,7 +154,7 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
 
         // Add only new trades
         const result = await prisma.trade.createMany({
-          data: newTrades,
+          data: newTrades as any,
           skipDuplicates: true
         })
 
@@ -174,7 +174,7 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
       logger.debug(`Large dataset detected (${cleanedData.length} trades), using batch processing`, {}, 'SaveTrades')
       
       const result = await prisma.trade.createMany({
-        data: cleanedData,
+        data: cleanedData as any,
         skipDuplicates: true
       })
 
@@ -345,7 +345,7 @@ export async function updateTradesAction(tradesIds: string[], update: Partial<Tr
 
   const result = await prisma.trade.updateMany({
     where: { id: { in: tradesIds }, userId },
-    data: update
+    data: update as any
   })
 
   revalidateTag(`trades-${userId}`)

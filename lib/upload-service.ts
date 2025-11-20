@@ -140,9 +140,11 @@ export class MediaUploadService {
       // This preserves the original name while ensuring uniqueness
       const fileName = `${nameWithoutExt}_${timestamp}_${randomId}.${fileExtension}`
 
-      // Create file path - structure: trades/{userId}/{fileName}
-      // No tradeId subfolder - keep it flat for simplicity
-      const filePath = `${options.folder}/${options.userId}/${fileName}`
+      // Create file path - structure: trades/{userId}/{tradeId}/{fileName}
+      let filePath = `${options.folder}/${options.userId}/${fileName}`
+      if (options.tradeId) {
+        filePath = `${options.folder}/${options.userId}/${options.tradeId}/${fileName}`
+      }
 
       // Try to get or create the appropriate bucket
       const bucketName = await this.ensureBucket()
@@ -156,7 +158,14 @@ export class MediaUploadService {
         })
 
       if (uploadError) {
-        return { success: false, error: uploadError.message }
+        // Provide helpful error messages for common issues
+        let errorMessage = uploadError.message
+        
+        if (errorMessage.includes('row-level security') || errorMessage.includes('RLS')) {
+          errorMessage = 'Storage permissions not configured. Please run the setup-supabase-storage-rls.sql script in your Supabase SQL Editor.'
+        }
+        
+        return { success: false, error: errorMessage }
       }
 
       // Get public URL
@@ -175,35 +184,8 @@ export class MediaUploadService {
   }
 
   private async ensureBucket(): Promise<string> {
-    try {
-      const { data: buckets, error } = await this.supabase.storage.listBuckets()
-      
-      if (error) {
-        return 'images'
-      }
-
-      const existingBuckets = buckets?.map((b: any) => b.name) || []
-      const preferredBuckets = ['trade-images', 'images', 'public', 'avatars']
-      
-      for (const preferred of preferredBuckets) {
-        if (existingBuckets.includes(preferred)) {
-          return preferred
-        }
-      }
-
-      if (!existingBuckets.includes('images')) {
-         const { error: createError } = await this.supabase.storage.createBucket('images')
-        
-        if (!createError) {
-          return 'images'
-        }
-      }
-
-      return existingBuckets[0] || 'images'
-      
-    } catch (error) {
-      return 'images'
-    }
+    // Return the known bucket name directly to avoid permission issues with listBuckets
+    return 'trade-images'
   }
 
   /* WebP Compression - Disabled

@@ -28,7 +28,6 @@ export async function getWeeklyReview(startDate: Date) {
     
     return review
   } catch (error) {
-    console.error('Error fetching weekly review:', error)
     return null
   }
 }
@@ -74,7 +73,6 @@ export async function saveWeeklyReview(data: {
     
     return { success: true, data: review }
   } catch (error) {
-    console.error('Error saving weekly review:', error)
     return { success: false, error: 'Failed to save review' }
   }
 }

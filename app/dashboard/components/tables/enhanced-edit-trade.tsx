@@ -1,48 +1,51 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { Trade } from '@prisma/client'
+import { toast } from 'sonner'
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter 
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { toast } from 'sonner'
-import { Trade, MarketBias } from '@prisma/client'
-import { Edit, Camera, X, Target, AlertTriangle, TrendingUp, TrendingDown, Minus, Eye } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { 
+  Camera, 
+  X, 
+  Target, 
+  TrendingUp, 
+  TrendingDown, 
+  Minus,
+  Newspaper,
+  CalendarOff,
+  Tag as TagIcon,
+  Settings,
+  Loader2,
+  Plus,
+  BarChart3,
+  ExternalLink
+} from 'lucide-react'
 import { useUserStore } from '@/store/user-store'
-import { formatCurrency } from '@/lib/utils'
 import { uploadService } from '@/lib/upload-service'
+import { useTags } from '@/context/tags-provider'
+import { MAJOR_NEWS_EVENTS } from '@/lib/major-news-events'
 import { TagSelector } from '@/app/dashboard/components/tags/tag-selector'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+
+// Types
+type MarketBias = 'BULLISH' | 'BEARISH' | 'UNDECIDED'
 
 interface TradingModel {
   id: string
@@ -51,18 +54,6 @@ interface TradingModel {
   notes?: string | null
 }
 
-// Schema for limited editing (only notes, screenshots, links, model + rules, bias)
-const editTradeSchema = z.object({
-  comment: z.string().optional(),
-  cardPreviewImage: z.string().optional(),
-  modelId: z.string().nullable().optional(),
-  selectedRules: z.array(z.string()).optional(),
-  links: z.array(z.string().url()).optional(),
-  marketBias: z.enum(['BULLISH', 'BEARISH', 'UNDECIDED']).nullable().optional(),
-})
-
-type EditTradeFormData = z.infer<typeof editTradeSchema>
-
 interface EnhancedEditTradeProps {
   isOpen: boolean
   onClose: () => void
@@ -70,81 +61,45 @@ interface EnhancedEditTradeProps {
   onSave: (updatedTrade: Partial<Trade>) => Promise<void>
 }
 
-// File validation helpers
-const validateImageFile = (file: File): void => {
-  const maxSize = 10 * 1024 * 1024 // 10MB
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/svg+xml']
-  
-  if (file.size > maxSize) {
-    throw new Error('Image must be smaller than 10MB')
-  }
-  
-  if (!allowedTypes.includes(file.type)) {
-    throw new Error('Only JPG, PNG, WebP, GIF, BMP, and SVG images are allowed')
-  }
-}
+// Timeframe options
+const TIMEFRAME_OPTIONS = [
+  { value: '1m', label: '1 Minute' },
+  { value: '5m', label: '5 Minutes' },
+  { value: '15m', label: '15 Minutes' },
+  { value: '30m', label: '30 Minutes' },
+  { value: '1h', label: '1 Hour' },
+  { value: '4h', label: '4 Hours' },
+  { value: 'd', label: 'Daily' },
+  { value: 'w', label: 'Weekly' },
+  { value: 'm', label: 'Monthly' },
+]
 
-const compressImageForCard = (file: File): Promise<File> => {
-  return new Promise((resolve) => {
-    try {
-      resolve(file)
-      // TODO: Implement WebP compression (currently disabled - see upload-service.ts)
-    } catch (error) {
-      resolve(file)
-    }
-  })
-}
+// Form Schema
+const editTradeSchema = z.object({
+  comment: z.string().optional(),
+  cardPreviewImage: z.string().optional(),
+  imageOne: z.string().optional(),
+  imageTwo: z.string().optional(),
+  imageThree: z.string().optional(),
+  imageFour: z.string().optional(),
+  imageFive: z.string().optional(),
+  imageSix: z.string().optional(),
+  modelId: z.string().nullable().optional(),
+  selectedRules: z.array(z.string()).optional(),
+  marketBias: z.enum(['BULLISH', 'BEARISH', 'UNDECIDED']).nullable().optional(),
+  newsDay: z.boolean().optional(),
+  selectedNews: z.array(z.string()).optional(),
+  newsTraded: z.boolean().optional(),
+  biasTimeframe: z.string().nullable().optional(),
+  narrativeTimeframe: z.string().nullable().optional(),
+  driverTimeframe: z.string().nullable().optional(),
+  entryTimeframe: z.string().nullable().optional(),
+  structureTimeframe: z.string().nullable().optional(),
+  orderType: z.string().nullable().optional(),
+  chartLinks: z.array(z.string()).optional(),
+})
 
-function generateShortId(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
-
-const DRAFT_KEY_PREFIX = 'trade-edit-draft-'
-
-function saveDraftToLocalStorage(tradeId: string, data: EditTradeFormData) {
-  try {
-    const key = `${DRAFT_KEY_PREFIX}${tradeId}`
-    localStorage.setItem(key, JSON.stringify({
-      ...data,
-      timestamp: Date.now()
-    }))
-  } catch (error) {
-    // Silent fail
-  }
-}
-
-function loadDraftFromLocalStorage(tradeId: string): EditTradeFormData | null {
-  try {
-    const key = `${DRAFT_KEY_PREFIX}${tradeId}`
-    const saved = localStorage.getItem(key)
-    if (!saved) return null
-    
-    const parsed = JSON.parse(saved)
-    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000)
-    if (parsed.timestamp && parsed.timestamp < sevenDaysAgo) {
-      localStorage.removeItem(key)
-      return null
-    }
-    
-    return parsed
-  } catch (error) {
-    return null
-  }
-}
-
-function clearDraftFromLocalStorage(tradeId: string) {
-  try {
-    const key = `${DRAFT_KEY_PREFIX}${tradeId}`
-    localStorage.removeItem(key)
-  } catch (error) {
-    // Silent fail
-  }
-}
+type EditTradeFormData = z.infer<typeof editTradeSchema>
 
 export default function EnhancedEditTrade({
   isOpen,
@@ -152,44 +107,34 @@ export default function EnhancedEditTrade({
   trade,
   onSave
 }: EnhancedEditTradeProps) {
+  // State
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null)
-  const [additionalLinks, setAdditionalLinks] = useState<string[]>([])
   const [tradingModels, setTradingModels] = useState<TradingModel[]>([])
   const [selectedModel, setSelectedModel] = useState<TradingModel | null>(null)
   const [selectedRules, setSelectedRules] = useState<string[]>([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
-  
-  // Confirmation dialogs state
-  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false)
-  const [showDeleteImageDialog, setShowDeleteImageDialog] = useState(false)
-  const [imageToDelete, setImageToDelete] = useState<'cardPreviewImage' | 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix' | null>(null)
-  const [pendingClose, setPendingClose] = useState(false)
-  
-  // Track if form has unsaved changes
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [initialFormState, setInitialFormState] = useState<EditTradeFormData | null>(null)
-  
-  // Track if draft was loaded from localStorage
-  const [draftLoaded, setDraftLoaded] = useState(false)
-  
-  const [tradeId] = useState(() => {
-    if (trade?.id?.includes('undefined')) {
-      return generateShortId()
-    }
-    return trade?.id?.slice(0, 6) || generateShortId()
-  })
+  const [isNewsDay, setIsNewsDay] = useState(false)
+  const [selectedNewsEvents, setSelectedNewsEvents] = useState<string[]>([])
+  const [newsTraded, setNewsTraded] = useState(false)
+  const [marketBias, setMarketBias] = useState<MarketBias | null>(null)
+  const [activeTab, setActiveTab] = useState('details')
+  const [uploadingField, setUploadingField] = useState<string | null>(null)
+  const [newsSearchQuery, setNewsSearchQuery] = useState('')
+  const [comment, setComment] = useState('')
+  const [biasTimeframe, setBiasTimeframe] = useState<string | null>(null)
+  const [narrativeTimeframe, setNarrativeTimeframe] = useState<string | null>(null)
+  const [driverTimeframe, setDriverTimeframe] = useState<string | null>(null)
+  const [entryTimeframe, setEntryTimeframe] = useState<string | null>(null)
+  const [structureTimeframe, setStructureTimeframe] = useState<string | null>(null)
+  const [orderType, setOrderType] = useState<string | null>(null)
+  const [chartLinks, setChartLinks] = useState<string[]>(['', '', '', ''])
+
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
+  const { tags } = useTags()
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    reset,
-    formState: { errors }
-  } = useForm<EditTradeFormData>({
+  // Form
+  const { control, handleSubmit, setValue, watch, reset } = useForm<EditTradeFormData>({
     resolver: zodResolver(editTradeSchema),
     defaultValues: {
       comment: '',
@@ -203,6 +148,16 @@ export default function EnhancedEditTrade({
       modelId: null,
       selectedRules: [],
       marketBias: null,
+      newsDay: false,
+      selectedNews: [],
+      newsTraded: false,
+      biasTimeframe: null,
+      narrativeTimeframe: null,
+      driverTimeframe: null,
+      entryTimeframe: null,
+      structureTimeframe: null,
+      orderType: null,
+      chartLinks: [],
     }
   })
 
@@ -218,147 +173,122 @@ export default function EnhancedEditTrade({
           setTradingModels(data.models || [])
         }
       } catch (error) {
-        console.error('Failed to fetch trading models:', error)
+        console.error('[EditTradeV2] Error fetching models:', error)
       }
     }
     fetchModels()
   }, [])
 
-  // Initialize form with trade data and load draft if available
+  // Initialize form when trade changes
   useEffect(() => {
     if (trade && isOpen) {
-      // Initialize tags
-      const tradeTags = (trade as any)?.tags
-      setSelectedTags(tradeTags ? tradeTags.split(',').filter(Boolean) : [])
-      
-      const defaultFormState: EditTradeFormData = {
-        comment: trade.comment || '',
-        cardPreviewImage: (trade as any)?.cardPreviewImage || '',
-        imageOne: (trade as any)?.imageOne || '',
-        imageTwo: (trade as any)?.imageTwo || '',
-        imageThree: (trade as any)?.imageThree || '',
-        imageFour: (trade as any)?.imageFour || '',
-        imageFive: (trade as any)?.imageFive || '',
-        imageSix: (trade as any)?.imageSix || '',
-        modelId: (trade as any)?.modelId || null,
-        selectedRules: (trade as any)?.selectedRules || [],
-        marketBias: (trade as any)?.marketBias || null,
-      }
-      
-      // Set model and rules state
-      if ((trade as any)?.modelId) {
-        const model = tradingModels.find(m => m.id === (trade as any).modelId)
-        setSelectedModel(model || null)
-        setSelectedRules((trade as any)?.selectedRules || [])
-      }
-      
-      // Try to load draft from localStorage
-      const draft = loadDraftFromLocalStorage(trade.id)
-      
-      if (draft) {
-        // Show toast to inform user about draft
-        toast.info('Draft found', {
-          description: 'Your unsaved changes have been restored.',
-          duration: 3000,
-        })
-        
-        // Load draft instead of default
-        reset(draft)
-        setDraftLoaded(true)
-        setHasUnsavedChanges(true)
-      } else {
-        // No draft, use default
-        reset(defaultFormState)
-        setDraftLoaded(false)
-        setHasUnsavedChanges(false)
-      }
-      
-      // Store initial state for comparison
-      setInitialFormState(draft || defaultFormState)
-      
-      // CRITICAL FIX: Reset fullscreen image state when dialog opens
-      setFullscreenImage(null)
-    }
-    
-    // Cleanup when dialog closes
-    if (!isOpen) {
-      setFullscreenImage(null)
-      setHasUnsavedChanges(false)
-      setDraftLoaded(false)
-      setInitialFormState(null)
-    }
-  }, [trade, isOpen, reset])
-  
-  // Auto-save draft to localStorage when form changes
-  useEffect(() => {
-    if (!trade || !isOpen) return
-    
-    const subscription = watch((formData) => {
-      // Check if form has changes compared to initial state
-      if (initialFormState) {
-        const hasChanges = JSON.stringify(formData) !== JSON.stringify(initialFormState)
-        setHasUnsavedChanges(hasChanges)
-        
-        // Auto-save draft if there are changes
-        if (hasChanges) {
-          saveDraftToLocalStorage(trade.id, formData as EditTradeFormData)
-        }
-      }
-    })
-    
-    return () => subscription.unsubscribe()
-  }, [watch, trade, isOpen, initialFormState])
-  
-  // Handle browser/tab close with unsaved changes
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges && isOpen) {
-        e.preventDefault()
-        e.returnValue = '' // Required for Chrome
-      }
-    }
-    
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload)
-    }
-  }, [hasUnsavedChanges, isOpen])
+      // Tags
+      const tagIds = (trade as any).tags ? (trade as any).tags.split(',').filter(Boolean) : []
+      setSelectedTags(tagIds)
 
-  const handleImageUpload = async (field: 'cardPreviewImage' | 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix', file: File) => {
-    try {
-      validateImageFile(file)
+      // News
+      const newsIds = (trade as any).selectedNews ? (trade as any).selectedNews.split(',').filter(Boolean) : []
+      setSelectedNewsEvents(newsIds)
+      setIsNewsDay((trade as any).newsDay || false)
+      setNewsTraded((trade as any).newsTraded || false)
+
+      // Market Bias
+      setMarketBias((trade as any).marketBias || null)
+
+      // Timeframes
+      setBiasTimeframe((trade as any).biasTimeframe || null)
+      setNarrativeTimeframe((trade as any).narrativeTimeframe || null)
+      setDriverTimeframe((trade as any).driverTimeframe || null)
+      setEntryTimeframe((trade as any).entryTimeframe || null)
+      setStructureTimeframe((trade as any).structureTimeframe || null)
       
+      // Order Type
+      setOrderType((trade as any).orderType || null)
+
+      // Chart Links
+      const links = (trade as any).chartLinks ? (trade as any).chartLinks.split(',').filter(Boolean) : []
+      setChartLinks(links.length > 0 ? links : ['', '', '', ''])
+
+      // Model
+      const modelId = (trade as any).modelId
+      if (modelId) {
+        const model = tradingModels.find(m => m.id === modelId)
+        setSelectedModel(model || null)
+        setSelectedRules((trade as any).selectedRules || [])
+      }
+
+      // Form values
+      reset({
+        comment: trade.comment || '',
+        cardPreviewImage: (trade as any).cardPreviewImage || '',
+        imageOne: (trade as any).imageOne || '',
+        imageTwo: (trade as any).imageTwo || '',
+        imageThree: (trade as any).imageThree || '',
+        imageFour: (trade as any).imageFour || '',
+        imageFive: (trade as any).imageFive || '',
+        imageSix: (trade as any).imageSix || '',
+        modelId: modelId || null,
+        selectedRules: (trade as any).selectedRules || [],
+        marketBias: (trade as any).marketBias || null,
+        newsDay: (trade as any).newsDay || false,
+        selectedNews: newsIds,
+        newsTraded: (trade as any).newsTraded || false,
+        biasTimeframe: (trade as any).biasTimeframe || null,
+        narrativeTimeframe: (trade as any).narrativeTimeframe || null,
+        driverTimeframe: (trade as any).driverTimeframe || null,
+        entryTimeframe: (trade as any).entryTimeframe || null,
+        structureTimeframe: (trade as any).structureTimeframe || null,
+        orderType: (trade as any).orderType || null,
+        chartLinks: links,
+      })
+      setComment(trade.comment || '')
+    }
+  }, [trade, isOpen, tradingModels, reset])
+
+  // Filter news events based on search query
+  const filteredNewsEvents = React.useMemo(() => {
+    if (!newsSearchQuery.trim()) return MAJOR_NEWS_EVENTS
+
+    const query = newsSearchQuery.toLowerCase()
+    return MAJOR_NEWS_EVENTS.filter(event => 
+      event.name.toLowerCase().includes(query) ||
+      event.country.toLowerCase().includes(query) ||
+      event.category.toLowerCase().includes(query) ||
+      (event.description && event.description.toLowerCase().includes(query))
+    )
+  }, [newsSearchQuery])
+
+  // Handle image upload
+  const handleImageUpload = async (
+    field: 'cardPreviewImage' | 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix',
+    file: File
+  ) => {
+    try {
       const currentUser = user || supabaseUser
       if (!currentUser?.id) {
-        toast.error('Upload failed', { description: 'User not authenticated' })
+        toast.error('User not authenticated')
         return
       }
 
-      toast.loading('Uploading image...', { id: `upload-${field}` })
-      
+      setUploadingField(field)
+
       let fileToUpload = file
       
-      // Compress ONLY the card preview image to WebP
+      // Compress only preview image
       if (field === 'cardPreviewImage') {
         try {
           const imageCompression = (await import('browser-image-compression')).default
-          
           fileToUpload = await imageCompression(file, {
             maxWidthOrHeight: 1920,
             useWebWorker: true,
             fileType: 'image/webp',
             initialQuality: 0.95,
           })
-          
-          console.log(`Card preview compressed: ${(file.size / 1024).toFixed(2)}KB → ${(fileToUpload.size / 1024).toFixed(2)}KB`)
-        } catch (compressError) {
-          console.warn('Compression failed, using original:', compressError)
-          fileToUpload = file
+        } catch (err) {
+          console.warn('Compression failed:', err)
         }
       }
-      // For imageOne through imageSix: keep original quality (no compression)
-      
+
       const result = await uploadService.uploadImage(fileToUpload, {
         userId: currentUser.id,
         folder: 'trades',
@@ -369,327 +299,341 @@ export default function EnhancedEditTrade({
         throw new Error(result.error || 'Upload failed')
       }
       
-      // Store the storage URL
       setValue(field, result.url)
-      
-      toast.success('Image uploaded', {
-        id: `upload-${field}`,
-        description: field === 'cardPreviewImage'
-          ? 'Card preview uploaded and compressed to WebP.'
-          : 'Screenshot uploaded successfully (original quality).',
-      })
-      
+      toast.success('Image uploaded successfully')
     } catch (error) {
-      toast.error('Upload failed', {
-        id: `upload-${field}`,
-        description: error instanceof Error ? error.message : 'Failed to upload image',
-      })
+      toast.error(error instanceof Error ? error.message : 'Failed to upload image')
+    } finally {
+      setUploadingField(null)
     }
   }
 
-  const removeImage = (field: 'cardPreviewImage' | 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix') => {
-    // Show confirmation dialog before deleting
-    setImageToDelete(field)
-    setShowDeleteImageDialog(true)
-  }
-  
-  const confirmDeleteImage = () => {
-    if (imageToDelete) {
-      setValue(imageToDelete, '', { shouldDirty: true }) // Set to empty string to mark for deletion
-      toast.success('Image removed', {
-        description: 'The image will be deleted when you save changes.'
-      })
-    }
-    setShowDeleteImageDialog(false)
-    setImageToDelete(null)
-  }
-
-  const addLink = () => {
-    setAdditionalLinks(prev => [...prev, ''])
-  }
-
-  const updateLink = (index: number, value: string) => {
-    setAdditionalLinks(prev => {
-      const updated = [...prev]
-      updated[index] = value
-      return updated
-    })
-  }
-
-  const removeLink = (index: number) => {
-    setAdditionalLinks(prev => prev.filter((_, i) => i !== index))
-  }
-
+  // Handle form submit
   const onSubmit = async (data: EditTradeFormData) => {
     if (!trade) return
 
     setIsSubmitting(true)
     try {
-      // Prepare the update data - explicitly handle null values for deleted images
       const updateData = {
-        comment: data.comment || null,
+        comment: comment || null,
         modelId: data.modelId || null,
         selectedRules: selectedRules.length > 0 ? selectedRules : null,
         tags: selectedTags.length > 0 ? selectedTags.join(',') : null,
-        cardPreviewImage: data.cardPreviewImage === '' ? null : data.cardPreviewImage || null,
-        imageOne: data.imageOne === '' ? null : data.imageOne || null,
-        imageTwo: data.imageTwo === '' ? null : data.imageTwo || null,
-        imageThree: data.imageThree === '' ? null : data.imageThree || null,
-        imageFour: data.imageFour === '' ? null : data.imageFour || null,
-        imageFive: data.imageFive === '' ? null : data.imageFive || null,
-        imageSix: data.imageSix === '' ? null : data.imageSix || null,
-        marketBias: data.marketBias || null,
-      } as Partial<Trade>
+        cardPreviewImage: data.cardPreviewImage || null,
+        imageOne: data.imageOne || null,
+        imageTwo: data.imageTwo || null,
+        imageThree: data.imageThree || null,
+        imageFour: data.imageFour || null,
+        imageFive: data.imageFive || null,
+        imageSix: data.imageSix || null,
+        marketBias: marketBias,
+        newsDay: isNewsDay,
+        selectedNews: selectedNewsEvents.length > 0 ? selectedNewsEvents.join(',') : null,
+        newsTraded: newsTraded,
+        biasTimeframe: biasTimeframe,
+        narrativeTimeframe: narrativeTimeframe,
+        driverTimeframe: driverTimeframe,
+        entryTimeframe: entryTimeframe,
+        structureTimeframe: structureTimeframe,
+        orderType: orderType,
+        chartLinks: chartLinks.filter(link => link.trim()).join(',') || null,
+      } as any
 
-      // Call the save function
       await onSave(updateData)
-      
-      // Clear draft from localStorage after successful save
-      clearDraftFromLocalStorage(trade.id)
-      setHasUnsavedChanges(false)
-      
-      toast.success('Trade updated', {
-        description: 'Trade has been successfully updated.',
-      })
-
+      toast.success('Trade updated successfully')
       onClose()
     } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'Failed to update trade',
-      })
+      toast.error(error instanceof Error ? error.message : 'Failed to update trade')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const handleClose = () => {
-    // Check if there are unsaved changes
-    if (hasUnsavedChanges) {
-      // Show confirmation dialog
-      setPendingClose(true)
-      setShowUnsavedChangesDialog(true)
-    } else {
-      // No unsaved changes, close directly
-      performClose()
-    }
-  }
-  
-  const performClose = () => {
-    reset()
-    setHasUnsavedChanges(false)
-    setShowUnsavedChangesDialog(false)
-    setPendingClose(false)
-    onClose()
-  }
-  
-  const discardChanges = () => {
-    // Clear draft from localStorage
-    if (trade) {
-      clearDraftFromLocalStorage(trade.id)
-    }
-    performClose()
-  }
-
   if (!trade) return null
 
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="w-[95vw] max-w-6xl h-[90vh] max-h-[90vh] flex flex-col z-[10000] p-0">
-          <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 shrink-0">
-            <DialogTitle className="flex items-center text-base sm:text-lg">
-              <Edit className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
+        {/* Header */}
+        <DialogHeader className="px-6 py-4 border-b shrink-0">
+          <DialogTitle>
               Edit Trade - {trade.instrument} {trade.side}
             </DialogTitle>
             <DialogDescription>
-              Add notes and screenshots to enhance your trade analysis.
-              Trade execution details cannot be modified.
+            Enhance your trade with notes, screenshots, strategy, and market context
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-6">
-              {/* Trade Summary (Read-only) */}
-              <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Trade Summary (Read-only)</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-sm">
-              <div>
-                <Label className="text-sm text-muted-foreground">Date</Label>
-                <p className="font-medium">{new Date(trade.entryDate).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-muted-foreground">P&L</Label>
-                <p className={`font-bold ${trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(trade.pnl)}
-                </p>
-              </div>
-              <div>
-                <Label className="text-sm text-muted-foreground">Entry → Close</Label>
-                <p className="font-medium">{String(trade.entryPrice)} → {String(trade.closePrice)}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-muted-foreground">Quantity</Label>
-                <p className="font-medium">{Number(trade.quantity).toFixed(2)} lots</p>
-              </div>
-              {/* Close Reason (if available) */}
-              {(trade as any).closeReason && (
-                <div className="col-span-2">
-                  <Label className="text-sm text-muted-foreground">Close Reason</Label>
-                  <p className="font-medium capitalize">
-                    {(trade as any).closeReason.replace(/[_-]/g, ' ')}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        {/* Tabs Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="mx-6 mt-4 shrink-0">
+            <TabsTrigger value="details">Notes & Images</TabsTrigger>
+            <TabsTrigger value="strategy">Strategy & Context</TabsTrigger>
+            <TabsTrigger value="news">News Events</TabsTrigger>
+            <TabsTrigger value="timeframes">Timeframes</TabsTrigger>
+          </TabsList>
 
-              {/* Trade Notes */}
-              <Card>
+          <div className="flex-1 overflow-y-auto px-6">
+            <div className="py-4">
+              {/* Tab 1: Notes & Images */}
+              <TabsContent value="details" className="mt-0 space-y-4">
+            {/* Trade Notes */}
+            <Card>
               <CardHeader>
                 <CardTitle className="text-base">Trade Notes</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  <Label htmlFor="comment">Analysis & Reflections</Label>
+                    <Controller
+                      name="comment"
+                      control={control}
+                      render={({ field }) => (
                   <Textarea
-                    {...register('comment')}
-                    placeholder="Add your trade analysis and reflections..."
-                    className="min-h-[200px] resize-none"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Document your analysis, market conditions, and lessons learned from this trade using the rich text editor.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                          {...field}
+                          placeholder="Add your analysis, market conditions, and lessons learned..."
+                          className="min-h-[150px] resize-none"
+                        />
+                      )}
+                    />
+                  </CardContent>
+                </Card>
 
-            {/* Market Bias */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Market Bias</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Label>What was your market sentiment? (Optional)</Label>
-                  <RadioGroup
-                    value={watchedValues.marketBias || ''}
-                    onValueChange={(value) => setValue('marketBias', value as MarketBias | null)}
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="flex items-center space-x-2 border p-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer">
-                        <RadioGroupItem value="BULLISH" id="bias-bullish" />
-                        <Label htmlFor="bias-bullish" className="flex items-center gap-2 cursor-pointer w-full">
-                          <TrendingUp className="h-4 w-4 text-green-500" />
-                          Bullish
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2 border p-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer">
-                        <RadioGroupItem value="BEARISH" id="bias-bearish" />
-                        <Label htmlFor="bias-bearish" className="flex items-center gap-2 cursor-pointer w-full">
-                          <TrendingDown className="h-4 w-4 text-red-500" />
-                          Bearish
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2 border p-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer">
-                        <RadioGroupItem value="UNDECIDED" id="bias-undecided" />
-                        <Label htmlFor="bias-undecided" className="flex items-center gap-2 cursor-pointer w-full">
-                          <Minus className="h-4 w-4 text-muted-foreground" />
-                          Undecided
-                        </Label>
-                      </div>
+                {/* Card Preview Image */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center">
+                      <Camera className="w-4 h-4 mr-2" />
+                      Card Preview Image
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {watchedValues.cardPreviewImage ? (
+                        <div className="relative aspect-video rounded-lg overflow-hidden border">
+                          <Image
+                            src={watchedValues.cardPreviewImage}
+                            alt="Preview"
+                            fill
+                            className="object-cover"
+                            unoptimized
+                            loading="eager"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={() => setValue('cardPreviewImage', '')}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center aspect-video border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
+                          <Camera className="h-8 w-8 text-muted-foreground mb-2" />
+                          <span className="text-sm text-muted-foreground">Click to upload</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) handleImageUpload('cardPreviewImage', file)
+                            }}
+                            disabled={uploadingField === 'cardPreviewImage'}
+                          />
+                        </label>
+                      )}
+                      {uploadingField === 'cardPreviewImage' && (
+                        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Uploading...
+                        </div>
+                      )}
                     </div>
-                  </RadioGroup>
-                  {watchedValues.marketBias && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setValue('marketBias', null)}
-                      className="text-xs"
-                    >
-                      Clear Selection
-                    </Button>
-                  )}
-                  <p className="text-sm text-muted-foreground">
-                    Record your overall market sentiment at the time of this trade.
-                  </p>
+                  </CardContent>
+                </Card>
+
+                {/* Additional Screenshots */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Additional Screenshots (6 max)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {(['imageOne', 'imageTwo', 'imageThree', 'imageFour', 'imageFive', 'imageSix'] as const).map((field, idx) => (
+                        <div key={field} className="space-y-2">
+                          <Label className="text-xs">Screenshot {idx + 1}</Label>
+                          {watchedValues[field] ? (
+                            <div className="relative aspect-video rounded overflow-hidden border">
+                              <Image
+                                src={watchedValues[field]!}
+                                alt={`Screenshot ${idx + 1}`}
+                                fill
+                                className="object-cover"
+                                unoptimized
+                                loading="eager"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="absolute top-1 right-1"
+                                onClick={() => setValue(field, '')}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <label className="flex flex-col items-center justify-center aspect-video border-2 border-dashed rounded cursor-pointer hover:bg-muted/50">
+                              <Camera className="h-6 w-6 text-muted-foreground" />
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) handleImageUpload(field, file)
+                                }}
+                                disabled={uploadingField === field}
+                              />
+                            </label>
+                          )}
+                          {uploadingField === field && (
+                            <div className="text-xs text-center text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin mx-auto" />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Tab 2: Strategy & Context */}
+              <TabsContent value="strategy" className="mt-0 space-y-4">
+                {/* Market Bias */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Market Bias</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <Label>What was your market sentiment?</Label>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[
+                          { value: 'BULLISH', icon: TrendingUp, label: 'Bullish', color: 'text-green-600' },
+                          { value: 'BEARISH', icon: TrendingDown, label: 'Bearish', color: 'text-red-600' },
+                          { value: 'UNDECIDED', icon: Minus, label: 'Undecided', color: 'text-muted-foreground' }
+                        ].map(({ value, icon: Icon, label, color }) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setMarketBias(value as MarketBias)}
+                            className={`flex items-center gap-2 p-3 border rounded-md transition-colors ${
+                              marketBias === value ? 'bg-accent border-primary' : 'hover:bg-muted/50'
+                            }`}
+                          >
+                            <Icon className={`h-4 w-4 ${color}`} />
+                            <span className="text-sm font-medium">{label}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {marketBias && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setMarketBias(null)}
+                        >
+                          Clear Selection
+                        </Button>
+                      )}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Trading Model & Rules */}
+                {/* Order Type */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Order Type</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <Label htmlFor="order-type">Execution Type</Label>
+                      <select
+                        id="order-type"
+                        value={orderType || ''}
+                        onChange={(e) => setOrderType(e.target.value || null)}
+                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        <option value="">Not specified</option>
+                        <option value="market">Market Order</option>
+                        <option value="limit">Limit Order</option>
+                      </select>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Trading Model */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center">
-                  <Target className="w-5 h-5 mr-2" />
-                  Trading Model & Rules
+                      <Target className="w-4 h-4 mr-2" />
+                      Trading Model
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Select Trading Model</Label>
-                    <Select
-                      value={watchedValues.modelId || undefined}
-                      onValueChange={(value) => {
-                        const modelId = value === 'none' ? null : value
+                      <div>
+                        <Label>Select Model</Label>
+                    <select
+                      value={watchedValues.modelId || ''}
+                      onChange={(e) => {
+                        const modelId = e.target.value || null
                         setValue('modelId', modelId)
                         const model = tradingModels.find(m => m.id === modelId)
                         setSelectedModel(model || null)
                         setSelectedRules([])
                       }}
+                          className="w-full mt-2 p-2 border rounded-md bg-background"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="No model selected" />
-                      </SelectTrigger>
-                      <SelectContent className="z-[10050]">
-                        <SelectItem value="none">None</SelectItem>
-                        {tradingModels.map((model) => (
-                          <SelectItem key={model.id} value={model.id}>
-                            {model.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-sm text-muted-foreground">
-                      Choose the trading model or strategy used for this trade.
+                      <option value="">No model selected</option>
+                      {tradingModels.map((model) => (
+                        <option key={model.id} value={model.id}>
+                          {model.name}
+                        </option>
+                      ))}
+                    </select>
+                        {tradingModels.length === 0 && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            No models found. Create one in Menu → Trading Models
                     </p>
+                        )}
                   </div>
 
                   {selectedModel && selectedModel.rules.length > 0 && (
-                    <div className="space-y-3 pt-4 border-t">
-                      <Label>Rules Applied (check what you used)</Label>
-                      <div className="space-y-3">
-                        {selectedModel.rules.map((rule, index) => (
-                          <div key={index} className="flex items-center space-x-3">
-                            <Checkbox
-                              id={`rule-${index}`}
+                        <div className="space-y-2 pt-3 border-t">
+                          <Label>Rules Applied</Label>
+                      <div className="space-y-2">
+                            {selectedModel.rules.map((rule, idx) => (
+                              <label key={idx} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
                               checked={selectedRules.includes(rule)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
+                              onChange={(e) => {
+                                if (e.target.checked) {
                                   setSelectedRules([...selectedRules, rule])
-                                  setValue('selectedRules', [...selectedRules, rule])
                                 } else {
-                                  const newRules = selectedRules.filter(r => r !== rule)
-                                  setSelectedRules(newRules)
-                                  setValue('selectedRules', newRules)
+                                  setSelectedRules(selectedRules.filter(r => r !== rule))
                                 }
                               }}
-                            />
-                            <Label
-                              htmlFor={`rule-${index}`}
-                              className="text-sm font-medium leading-none cursor-pointer"
-                            >
-                              {rule}
-                            </Label>
+                                  className="h-4 w-4"
+                                />
+                                <span className="text-sm">{rule}</span>
+                            </label>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Select which rules from this model applied to your trade.
-                      </p>
                     </div>
                   )}
                 </div>
@@ -699,268 +643,313 @@ export default function EnhancedEditTrade({
             {/* Tags */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Trade Tags</CardTitle>
+                    <CardTitle className="text-base flex items-center">
+                      <TagIcon className="w-4 h-4 mr-2" />
+                      Trade Tags
+                    </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  <Label>Categorize this trade</Label>
                   <TagSelector
                     selectedTagIds={selectedTags}
                     onChange={setSelectedTags}
                   />
-                  <p className="text-sm text-muted-foreground">
-                    Add tags to categorize and filter your trades.
+                    {tags.length === 0 && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        No tags available. Create one in Menu → Tags
                   </p>
-                </div>
+                    )}
               </CardContent>
             </Card>
+              </TabsContent>
 
-            {/* Screenshots */}
+              {/* Tab 3: News Events */}
+              <TabsContent value="news" className="mt-0 space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center">
-                  <Camera className="w-5 h-5 mr-2" />
-                  Trade Screenshots
+                      <Newspaper className="w-4 h-4 mr-2" />
+                      News Events
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <p className="text-sm text-muted-foreground">
-                    Upload up to 6 screenshots for this trade (chart screenshots, trade setups, market analysis, etc.)
-                  </p>
-                  
-                  {/* Card Preview - Main Image */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Card Preview Image (Main)</Label>
-                    <div className="border-2 border-dashed rounded-lg p-4 text-center aspect-video flex items-center justify-center border-border bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        id="card-preview"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleImageUpload('cardPreviewImage', file)
-                        }}
-                      />
-
-                      {watchedValues.cardPreviewImage ? (
-                        <div className="relative w-full h-full group">
-                          <Image
-                            src={watchedValues.cardPreviewImage}
-                            alt="Card Preview"
-                            fill
-                            className="object-cover rounded cursor-pointer"
-                            onClick={() => setFullscreenImage(watchedValues.cardPreviewImage!)}
-                          />
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                removeImage('cardPreviewImage')
-                              }}
-                            >
-                              <X className="w-4 h-4 mr-1" />
-                              Remove
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => setFullscreenImage(watchedValues.cardPreviewImage!)}
-                            >
-                              <Eye className="w-4 h-4 mr-1" />
-                              View
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <label
-                          htmlFor="card-preview"
-                          className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors py-8"
-                        >
-                          <Camera className="w-10 h-10 mb-2" />
-                          <span className="text-sm font-medium">Click to upload screenshot</span>
-                          <span className="text-xs mt-1">JPG, PNG, WebP (max 10MB)</span>
-                        </label>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      This image will be used as the main preview card for this trade.
-                    </p>
-                  </div>
-
-                  {/* Additional Screenshots */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Additional Screenshots (Optional)</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {[
-                        { field: 'imageOne' as const, label: 'Screenshot 2', id: 'image-one' },
-                        { field: 'imageTwo' as const, label: 'Screenshot 3', id: 'image-two' },
-                        { field: 'imageThree' as const, label: 'Screenshot 4', id: 'image-three' },
-                        { field: 'imageFour' as const, label: 'Screenshot 5', id: 'image-four' },
-                        { field: 'imageFive' as const, label: 'Screenshot 6', id: 'image-five' },
-                      ].map(({ field, label, id }) => (
-                      <div key={field} className="space-y-2">
-                        <Label className="text-sm font-medium">{label}</Label>
-                        <div className="border-2 border-dashed rounded-lg p-2 text-center aspect-video flex items-center justify-center border-border bg-muted/30 hover:bg-muted/50 transition-colors">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            id={id}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) handleImageUpload(field, file)
-                            }}
-                          />
-
-                          {watchedValues[field] ? (
-                            <div className="relative w-full h-full group">
-                              <Image
-                                src={watchedValues[field]!}
-                                alt={label}
-                                fill
-                                className="object-cover rounded cursor-pointer"
-                                onClick={() => setFullscreenImage(watchedValues[field]!)}
-                              />
-                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
-                                <Button
-                                  type="button"
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    removeImage(field)
-                                  }}
-                                >
-                                  <X className="w-3 h-3 mr-1" />
-                                  Remove
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={() => setFullscreenImage(watchedValues[field]!)}
-                                >
-                                  <Eye className="w-3 h-3 mr-1" />
-                                  View
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <label
-                              htmlFor={id}
-                              className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors py-6"
-                            >
-                              <Camera className="w-8 h-8 mb-2" />
-                              <span className="text-xs font-medium">Click to upload</span>
-                              <span className="text-xs mt-1">JPG, PNG, WebP (max 10MB)</span>
-                            </label>
-                          )}
-                        </div>
+                  <CardContent className="space-y-4">
+                    {/* News Day Toggle */}
+                    <div className="flex items-center justify-between p-3 border rounded-md">
+                      <div className="flex items-center gap-2">
+                        <CalendarOff className="h-4 w-4" />
+                        <Label htmlFor="news-day">Was this a news day?</Label>
                       </div>
-                      ))}
+                      <input
+                        id="news-day"
+                        type="checkbox"
+                        checked={isNewsDay}
+                        onChange={(e) => {
+                          setIsNewsDay(e.target.checked)
+                          if (!e.target.checked) {
+                            setSelectedNewsEvents([])
+                            setNewsTraded(false)
+                          }
+                        }}
+                        className="h-4 w-4"
+                      />
                     </div>
-                  </div>
+
+                    {isNewsDay && (
+                      <>
+                        <div className="space-y-2">
+                          <Label>Select News Events</Label>
+                          <Input
+                            type="text"
+                            placeholder="Search news events by name, country, or category..."
+                            value={newsSearchQuery}
+                            onChange={(e) => setNewsSearchQuery(e.target.value)}
+                            className="mb-2"
+                          />
+                          {newsSearchQuery && (
+                            <p className="text-xs text-muted-foreground">
+                              Found {filteredNewsEvents.length} event{filteredNewsEvents.length !== 1 ? 's' : ''}
+                            </p>
+                          )}
+                          <div className="border rounded-md p-3 space-y-3">
+                              {['employment', 'inflation', 'interest-rate', 'gdp', 'pmi', 'retail', 'bank-holiday', 'other'].map(category => {
+                                const events = filteredNewsEvents.filter(e => e.category === category)
+                                if (events.length === 0) return null
+                                
+                                return (
+                                  <div key={category} className="space-y-2">
+                                    <h4 className="text-xs font-semibold text-muted-foreground uppercase">
+                                      {category.replace('-', ' ')}
+                                    </h4>
+                                    {events.map(event => (
+                                      <label
+                                        key={event.id}
+                                        className="flex items-start gap-2 p-2 rounded hover:bg-muted/50 cursor-pointer"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedNewsEvents.includes(event.id)}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setSelectedNewsEvents([...selectedNewsEvents, event.id])
+                                            } else {
+                                              setSelectedNewsEvents(selectedNewsEvents.filter(id => id !== event.id))
+                                            }
+                                          }}
+                                          className="h-4 w-4 mt-0.5"
+                                        />
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-sm font-medium">{event.name}</span>
+                                            <Badge variant="outline" className="text-[10px] px-1">
+                                              {event.country}
+                                            </Badge>
+                                          </div>
+                                          <p className="text-xs text-muted-foreground">{event.description}</p>
+                                        </div>
+                                      </label>
+                                    ))}
+                          </div>
+                                )
+                              })}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {selectedNewsEvents.length} event(s) selected
+                          </p>
                 </div>
+
+                        {selectedNewsEvents.length > 0 && (
+                          <div className="flex items-start gap-2 p-3 border rounded-md bg-muted/30">
+                            <input
+                              id="news-traded"
+                              type="checkbox"
+                              checked={newsTraded}
+                              onChange={(e) => setNewsTraded(e.target.checked)}
+                              className="h-4 w-4 mt-0.5"
+                            />
+                            <Label htmlFor="news-traded" className="cursor-pointer">
+                              <span className="font-medium">Traded during news release</span>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Check if you entered or were in a trade while the news was releasing
+                              </p>
+                            </Label>
+                          </div>
+                        )}
+                      </>
+                    )}
               </CardContent>
-              </Card>
-            </div>
+            </Card>
+              </TabsContent>
 
-            {/* Form Actions - Fixed at bottom */}
-            <div className="border-t px-4 sm:px-6 py-4 shrink-0 bg-background">
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={handleClose}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+              {/* Tab 4: Timeframes */}
+              <TabsContent value="timeframes" className="mt-0 space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Multi-Timeframe Analysis</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Select the timeframes you used for each aspect of your trade analysis
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Bias Timeframe */}
+                    <div className="space-y-2">
+                      <Label htmlFor="bias-timeframe">Bias</Label>
+                      <select
+                        id="bias-timeframe"
+                        value={biasTimeframe || ''}
+                        onChange={(e) => setBiasTimeframe(e.target.value || null)}
+                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        <option value="">None selected</option>
+                        {TIMEFRAME_OPTIONS.map(tf => (
+                          <option key={tf.value} value={tf.value}>{tf.label}</option>
+                        ))}
+                      </select>
+                    </div>
 
-      {/* Image Viewer - Same as View Dialog */}
-      {fullscreenImage && (
-        <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
-          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 gap-0 z-[10002]">
-            <DialogHeader className="px-4 pt-4 pb-2">
-              <DialogTitle>Image Viewer</DialogTitle>
-              <DialogDescription>
-                Click and drag to pan • Scroll to zoom • Double-click to reset
-              </DialogDescription>
-            </DialogHeader>
-            <div className="relative w-full h-[85vh] px-2 pb-2">
-              <Image
-                src={fullscreenImage}
-                alt="Fullscreen view"
-                fill
-                className="object-contain"
-                sizes="95vw"
-              />
+                    {/* Narrative Timeframe */}
+                    <div className="space-y-2">
+                      <Label htmlFor="narrative-timeframe">Narrative</Label>
+                      <select
+                        id="narrative-timeframe"
+                        value={narrativeTimeframe || ''}
+                        onChange={(e) => setNarrativeTimeframe(e.target.value || null)}
+                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        <option value="">None selected</option>
+                        {TIMEFRAME_OPTIONS.map(tf => (
+                          <option key={tf.value} value={tf.value}>{tf.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Driver Timeframe */}
+                    <div className="space-y-2">
+                      <Label htmlFor="driver-timeframe">Driver</Label>
+                      <select
+                        id="driver-timeframe"
+                        value={driverTimeframe || ''}
+                        onChange={(e) => setDriverTimeframe(e.target.value || null)}
+                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        <option value="">None selected</option>
+                        {TIMEFRAME_OPTIONS.map(tf => (
+                          <option key={tf.value} value={tf.value}>{tf.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Entry Timeframe */}
+                    <div className="space-y-2">
+                      <Label htmlFor="entry-timeframe">Entry</Label>
+                      <select
+                        id="entry-timeframe"
+                        value={entryTimeframe || ''}
+                        onChange={(e) => setEntryTimeframe(e.target.value || null)}
+                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        <option value="">None selected</option>
+                        {TIMEFRAME_OPTIONS.map(tf => (
+                          <option key={tf.value} value={tf.value}>{tf.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Structure Timeframe */}
+                    <div className="space-y-2">
+                      <Label htmlFor="structure-timeframe">Structure</Label>
+                      <select
+                        id="structure-timeframe"
+                        value={structureTimeframe || ''}
+                        onChange={(e) => setStructureTimeframe(e.target.value || null)}
+                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      >
+                        <option value="">None selected</option>
+                        {TIMEFRAME_OPTIONS.map(tf => (
+                          <option key={tf.value} value={tf.value}>{tf.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Chart Links */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center">
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      TradingView Chart Links
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Add links to your TradingView chart analysis (up to 8)
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {chartLinks.map((link, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <Input
+                            type="text"
+                            placeholder="https://www.tradingview.com/x/"
+                            value={link}
+                            onChange={(e) => {
+                              const newLinks = [...chartLinks]
+                              newLinks[index] = e.target.value
+                              setChartLinks(newLinks)
+                            }}
+                            className="text-sm"
+                          />
+                        </div>
+                        {index >= 4 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              const newLinks = chartLinks.filter((_, i) => i !== index)
+                              setChartLinks(newLinks)
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    {chartLinks.length < 8 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setChartLinks([...chartLinks, ''])}
+                        className="w-full"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Chart Link ({chartLinks.length}/8)
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </div>
+          </div>
+        </Tabs>
+
+        {/* Footer */}
+        <DialogFooter className="px-6 py-4 border-t shrink-0">
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+                Cancel
+              </Button>
+          <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Changes'
+            )}
+              </Button>
+        </DialogFooter>
           </DialogContent>
         </Dialog>
-      )}
-      
-      {/* Unsaved Changes Confirmation Dialog */}
-      <AlertDialog open={showUnsavedChangesDialog} onOpenChange={setShowUnsavedChangesDialog}>
-        <AlertDialogContent className="z-[10002]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
-              Unsaved Changes
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              You have unsaved changes that will be lost if you close this dialog. 
-              Your progress has been auto-saved as a draft and will be restored when you reopen this trade.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setShowUnsavedChangesDialog(false)
-              setPendingClose(false)
-            }}>
-              Keep Editing
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={discardChanges} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Discard Changes
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      {/* Delete Image Confirmation Dialog */}
-      <AlertDialog open={showDeleteImageDialog} onOpenChange={setShowDeleteImageDialog}>
-        <AlertDialogContent className="z-[10002]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
-              Delete Image?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this image? This action will be applied when you save the trade.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setShowDeleteImageDialog(false)
-              setImageToDelete(null)
-            }}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteImage} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete Image
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
   )
 }
+

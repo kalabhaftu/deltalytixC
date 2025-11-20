@@ -28,7 +28,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { DataTableColumnHeader } from './column-header'
 import { ColumnConfigDialog } from '@/components/ui/column-config-dialog'
 import EnhancedEditTrade from './enhanced-edit-trade'
-import TradeDetailView from './trade-detail-view'
+import { TradeDetailView } from './trade-detail-view'
 import TradeChartModal from './trade-chart-modal'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { TradeTableMobileCard } from './trade-table-mobile-card'

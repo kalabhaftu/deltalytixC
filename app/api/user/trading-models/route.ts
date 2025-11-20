@@ -23,7 +23,19 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     })
 
-    return NextResponse.json({ success: true, models })
+    // Parse rules from JSON to array
+    const formattedModels = models.map(model => ({
+      ...model,
+      rules: typeof model.rules === 'string' 
+        ? JSON.parse(model.rules) 
+        : Array.isArray(model.rules) 
+          ? model.rules 
+          : [],
+    }))
+
+    console.log('[API] Fetched trading models:', formattedModels.length, 'models')
+
+    return NextResponse.json({ success: true, models: formattedModels })
   } catch (error) {
     console.error('Error fetching trading models:', error)
     return NextResponse.json(

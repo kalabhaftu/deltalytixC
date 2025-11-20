@@ -2,17 +2,20 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { TradeCard } from './trade-card'
-import { Search, Filter, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, X, Sparkles } from 'lucide-react'
+import { Search, Filter, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, X, Sparkles, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
 import { AIAnalysisDialog } from '@/app/dashboard/components/journal/ai-analysis-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
@@ -34,14 +37,17 @@ import { Trade } from '@prisma/client'
 import { groupTradesByExecution } from '@/lib/utils'
 import Fuse from 'fuse.js'
 import { getAssetSearchTerms, getCanonicalAssetName } from '@/lib/asset-aliases'
+import { useTags } from '@/context/tags-provider'
 
 const ITEMS_PER_PAGE = 21 // Show 21 cards per page (3 columns × 7 rows = perfect grid)
 
 export function JournalClient() {
   const router = useRouter()
   const { formattedTrades, refreshTrades, updateTrades, isLoading } = useData()
+  const { tags } = useTags()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterBy, setFilterBy] = useState<'all' | 'wins' | 'losses' | 'buys' | 'sells'>('all')
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null)
@@ -140,9 +146,16 @@ export function JournalClient() {
         (filterBy === 'buys' && trade.side?.toUpperCase() === 'BUY') ||
         (filterBy === 'sells' && trade.side?.toUpperCase() === 'SELL')
 
+      // Tag filter
+      if (selectedTagIds.length > 0) {
+        const tradeTagIds = (trade as any).tags ? (trade as any).tags.split(',').filter(Boolean) : []
+        const hasSelectedTag = selectedTagIds.some(tagId => tradeTagIds.includes(tagId))
+        if (!hasSelectedTag) return false
+      }
+
       return matchesFilter
     })
-  }, [groupedTrades, searchTerm, filterBy])
+  }, [groupedTrades, searchTerm, filterBy, selectedTagIds])
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredTrades.length / ITEMS_PER_PAGE)
@@ -155,7 +168,7 @@ export function JournalClient() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, filterBy])
+  }, [searchTerm, filterBy, selectedTagIds])
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
@@ -206,7 +219,13 @@ export function JournalClient() {
       await updateTrades([selectedTrade.id], updatedTrade)
       toast.success('Trade updated successfully')
       setIsEditDialogOpen(false)
-      setSelectedTrade(null)
+      
+      // Update selectedTrade with the new data so TradeDetailView shows latest
+      setSelectedTrade({
+        ...selectedTrade,
+        ...updatedTrade
+      } as Trade)
+      
       await refreshTrades()
     } catch (error) {
       toast.error('Failed to update trade')
@@ -293,7 +312,95 @@ export function JournalClient() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-2 whitespace-nowrap">
+              <Tag className="h-4 w-4 flex-shrink-0" />
+              <span className="truncate">
+                {selectedTagIds.length === 0 ? 'Tags' : `${selectedTagIds.length} Selected`}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="flex items-center justify-between">
+              <span>Filter by Tags</span>
+              {selectedTagIds.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSelectedTagIds([])
+                  }}
+                >
+                  Clear
+                </Button>
+              )}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {tags.length === 0 ? (
+              <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                No tags created yet
+              </div>
+            ) : (
+              tags.map((tag) => (
+                <DropdownMenuItem
+                  key={tag.id}
+                  onClick={() => {
+                    setSelectedTagIds(prev => 
+                      prev.includes(tag.id) 
+                        ? prev.filter(id => id !== tag.id)
+                        : [...prev, tag.id]
+                    )
+                  }}
+                  className="cursor-pointer"
+                >
+                  <div className="flex items-center gap-2 w-full">
+                    <input
+                      type="checkbox"
+                      checked={selectedTagIds.includes(tag.id)}
+                      onChange={() => {}}
+                      className="h-4 w-4 cursor-pointer"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <Badge
+                      variant="secondary"
+                      className="text-xs"
+                      style={{ backgroundColor: tag.color, color: 'white', borderColor: tag.color }}
+                    >
+                      {tag.name}
+                    </Badge>
+                  </div>
+                </DropdownMenuItem>
+              ))
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      {/* Active tag filters display */}
+      {selectedTagIds.length > 0 && (
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-sm text-muted-foreground">Filtering by:</span>
+          {selectedTagIds.map(tagId => {
+            const tag = tags.find(t => t.id === tagId)
+            return tag ? (
+              <Badge
+                key={tag.id}
+                variant="secondary"
+                className="gap-1 cursor-pointer"
+                style={{ backgroundColor: tag.color, color: 'white', borderColor: tag.color }}
+                onClick={() => setSelectedTagIds(prev => prev.filter(id => id !== tagId))}
+              >
+                {tag.name}
+                <X className="h-3 w-3" />
+              </Badge>
+            ) : null
+          })}
+        </div>
+      )}
 
       {isLoading && filteredTrades.length === 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

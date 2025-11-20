@@ -1,501 +1,424 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Trade } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { VisuallyHidden } from '@/components/ui/visually-hidden'
 import { Badge } from '@/components/ui/badge'
-import { Eye, Calendar, Clock, TrendingUp, TrendingDown, DollarSign, Hash, User, Download, X, Target, CheckCircle, Minus } from 'lucide-react'
-import { cn, formatCurrency, formatNumber, formatQuantity, formatTradeData } from '@/lib/utils'
+import { Separator } from '@/components/ui/separator'
+import { 
+  TrendingUp, TrendingDown, DollarSign, Clock, Calendar, 
+  Target, Minus, X, Download, ExternalLink, 
+  BarChart3, Newspaper, AlertCircle, Zap, ShoppingCart, Tag as TagIcon
+} from 'lucide-react'
+import { cn, formatCurrency } from '@/lib/utils'
 import Image from 'next/image'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { toast } from 'sonner'
+import { useTags } from '@/context/tags-provider'
+import { getNewsById } from '@/lib/major-news-events'
+import { getTradingSession, formatTimeInZone, DEFAULT_TIMEZONE } from '@/lib/time-utils'
+import { useUserStore } from '@/store/user-store'
 
-interface TradingModel {
-  id: string
-  name: string
-  rules: string[]
-  notes?: string | null
-}
-
-interface TradeDetailViewProps {
+interface TradeDetailViewV2Props {
   isOpen: boolean
   onClose: () => void
   trade: Trade | null
 }
 
-// Helper function to extract mime type from base64 data URL
-function getMimeTypeFromBase64(base64: string): string {
-  const match = base64.match(/^data:(image\/[a-zA-Z+]+);base64,/)
-  return match ? match[1] : 'image/png'
-}
-
-// Helper function to extract extension from mime type
-function getExtensionFromMimeType(mimeType: string): string {
-  const map: Record<string, string> = {
-    'image/jpeg': 'jpg',
-    'image/jpg': 'jpg',
-    'image/png': 'png',
-    'image/webp': 'webp',
-    'image/gif': 'gif',
-    'image/bmp': 'bmp',
-    'image/svg+xml': 'svg',
-  }
-  return map[mimeType] || 'png'
-}
-
-// Helper function to download image with original quality and filename
-async function downloadImage(imageData: string, trade: Trade, imageIndex: number) {
+// Helper to download image
+async function downloadImage(imageUrl: string, trade: Trade, imageIndex: number) {
   try {
-    let blob: Blob
-    let extension = 'png'
-    let filename = ''
-    
-    // Check if it's a storage URL or base64
-    if (imageData.startsWith('http')) {
-      // Storage URL - fetch the image
-      const response = await fetch(imageData)
+    const response = await fetch(imageUrl)
       if (!response.ok) throw new Error('Failed to fetch image')
       
-      blob = await response.blob()
-      
-      // Extract extension from URL or blob type
-      const urlMatch = imageData.match(/\.([a-z]+)(?:\?|$)/i)
-      if (urlMatch) {
-        extension = urlMatch[1]
-      } else {
-        extension = getExtensionFromMimeType(blob.type)
-      }
-      
-      // Determine if it's migrated (generated name) or new upload (original name)
-      // Migrated images have pattern: imageBase64Fifth_1763210693765_b381uwhsc.png
-      // New uploads should preserve their original names
-      const urlParts = imageData.split('/')
-      const storageFilename = urlParts[urlParts.length - 1].split('?')[0] // Remove query params
-      
-      // Check if it's a migrated image (has timestamp pattern and random ID)
-      const isMigratedPattern = /^image.*_\d{13}_[a-z0-9]+\./i.test(storageFilename)
-      
-      if (isMigratedPattern) {
-        // Migrated image - use descriptive format: INSTRUMENT_SIDE_DATE_1.ext
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
         const date = new Date(trade.entryDate).toISOString().split('T')[0]
-        filename = `${trade.instrument}_${trade.side}_${date}_${imageIndex}.${extension}`
-      } else {
-        // New upload - extract original filename
-        // Format is: originalname_timestamp_randomid.ext
-        // We want to extract the original name before the timestamp
-        
-        // Remove extension first
-        const nameWithoutExt = storageFilename.substring(0, storageFilename.lastIndexOf('.'))
-        
-        // Try to extract original name (everything before _timestamp_randomid pattern)
-        const timestampMatch = nameWithoutExt.match(/^(.+)_\d{13}_[a-z0-9]+$/i)
-        
-        if (timestampMatch && timestampMatch[1]) {
-          // Found original name - reconstruct with extension
-          filename = `${timestampMatch[1]}.${extension}`
-        } else {
-          // Fallback - couldn't parse, use full filename
-          filename = storageFilename
-        }
-      }
-    } else {
-      // Base64 - convert to blob (legacy, shouldn't happen after migration)
-      const mimeType = getMimeTypeFromBase64(imageData)
-      extension = getExtensionFromMimeType(mimeType)
-      
-      const base64Content = imageData.split(',')[1]
-      const byteCharacters = atob(base64Content)
-      const byteNumbers = new Array(byteCharacters.length)
-      
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i)
-      }
-      
-      const byteArray = new Uint8Array(byteNumbers)
-      blob = new Blob([byteArray], { type: mimeType })
-      
-      // Base64 images use descriptive format
-      const date = new Date(trade.entryDate).toISOString().split('T')[0]
-      filename = `${trade.instrument}_${trade.side}_${date}_${imageIndex}.${extension}`
-    }
-    
-    // Create object URL and download
-    const objectUrl = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = objectUrl
-    link.download = filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    
-    // Clean up object URL
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 100)
-    
-    toast.success(`Downloaded ${filename}`)
+    a.download = `${trade.instrument}_${trade.side}_${date}_${imageIndex}.png`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    toast.success('Image downloaded')
   } catch (error) {
     toast.error('Failed to download image')
   }
 }
 
-export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps) {
-  const [selectedImage, setSelectedImage] = React.useState<string | null>(null)
-  const [selectedImageIndex, setSelectedImageIndex] = React.useState<number>(0)
-  const [tradeModel, setTradeModel] = useState<TradingModel | null>(null)
-  
-  // Fetch model data if trade has a modelId
-  useEffect(() => {
-    const fetchModel = async () => {
-      if (trade && (trade as any).modelId) {
-        try {
-          const response = await fetch('/api/user/trading-models')
-          if (response.ok) {
-            const data = await response.json()
-            const model = data.models.find((m: TradingModel) => m.id === (trade as any).modelId)
-            setTradeModel(model || null)
-          }
-        } catch (error) {
-          console.error('Failed to fetch model:', error)
-        }
-      } else {
-        setTradeModel(null)
-      }
-    }
-    
-    if (isOpen) {
-      fetchModel()
-    }
-  }, [trade, isOpen])
+export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewV2Props) {
+  const { tags } = useTags()
+  const timezone = useUserStore((state) => state.timezone)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
 
   if (!trade) return null
 
-  // Use unified trade data formatter
-  const formatted = formatTradeData(trade)
+  // Parse trade data
+  const tradeData = trade as any
+  const netPnL = trade.pnl - (trade.commission || 0)
+  const isWin = netPnL > 0
+  const isLoss = netPnL < 0
 
-  const images = [
-    (trade as any).cardPreviewImage,
-    (trade as any).imageOne,
-    (trade as any).imageTwo,
-    (trade as any).imageThree,
-    (trade as any).imageFour,
-    (trade as any).imageFive,
-    (trade as any).imageSix
-  ].filter((img): img is string => Boolean(img) && typeof img === 'string')
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
-  const formatDuration = (timeInPosition: number) => {
-    const hours = Math.floor(timeInPosition / 3600)
-    const minutes = Math.floor((timeInPosition % 3600) / 60)
-    const seconds = Math.floor(timeInPosition % 60)
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${seconds}s`
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds}s`
-    } else {
-      return `${seconds}s`
+  // Format timeframe for display
+  const formatTimeframe = (tf: string) => {
+    const map: Record<string, string> = {
+      '1m': '1min', '5m': '5min', '15m': '15min', '30m': '30min',
+      '1h': '1H', '4h': '4H', 'd': 'D', 'w': 'W', 'm': 'M',
     }
+    return map[tf] || tf
   }
+
+  // Get all images
+  const images = [
+    tradeData.cardPreviewImage,
+    tradeData.imageOne,
+    tradeData.imageTwo,
+    tradeData.imageThree,
+    tradeData.imageFour,
+    tradeData.imageFive,
+    tradeData.imageSix,
+  ].filter(Boolean)
+
+  // Parse chart links
+  const chartLinks = tradeData.chartLinks 
+    ? tradeData.chartLinks.split(',').filter((l: string) => l.trim()) 
+    : []
+
+  // Parse news events
+  const newsEventIds = tradeData.selectedNews 
+    ? tradeData.selectedNews.split(',').filter(Boolean) 
+    : []
+  const newsEvents = newsEventIds.map((id: string) => getNewsById(id)).filter(Boolean)
+
+  // Parse tags
+  const tradeTags = tradeData.tags 
+    ? tradeData.tags.split(',').filter(Boolean).map((id: string) => tags.find(t => t.id === id)).filter(Boolean)
+    : []
+
+  // Get session
+  const session = trade.entryTime ? getTradingSession(trade.entryTime) : null
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="w-[95vw] max-w-6xl h-[90vh] max-h-[90vh] overflow-y-auto p-4 sm:p-6 z-[10000]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
-              Trade Details - {trade.instrument} {trade.side?.toUpperCase()}
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 py-4 border-b shrink-0">
+            <DialogTitle className="flex items-center gap-3">
+              <span className="text-2xl font-bold">{trade.instrument}</span>
+              <Badge variant={trade.side === 'BUY' ? 'default' : 'destructive'} className="text-sm">
+                {trade.side}
+              </Badge>
+              <Badge variant={isWin ? 'default' : isLoss ? 'destructive' : 'secondary'} className="text-sm">
+                {formatCurrency(netPnL)}
+              </Badge>
             </DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm">
-              Comprehensive view of trade execution, analysis, and supporting materials.
+            <DialogDescription>
+              Comprehensive view of trade execution, analysis, and supporting materials
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            {/* Left Column - Trade Data */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Trade Execution Summary */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-6 space-y-6">
+              {/* Execution Summary */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5" />
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5" />
                     Execution Summary
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 text-sm">
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <Label className="text-sm text-muted-foreground">Instrument</Label>
-                    <p className="font-medium text-lg">{formatted.instrument}</p>
+                      <Label className="text-muted-foreground text-xs">Entry Price</Label>
+                      <p className="text-lg font-semibold">{trade.entryPrice}</p>
                   </div>
                   <div>
-                    <Label className="text-sm text-muted-foreground">Side</Label>
-                    <Badge variant={trade.side?.toLowerCase() === 'buy' ? 'default' : 'secondary'}>
-                      {formatted.side}
-                    </Badge>
+                      <Label className="text-muted-foreground text-xs">Exit Price</Label>
+                      <p className="text-lg font-semibold">{trade.closePrice}</p>
                   </div>
                   <div>
-                    <Label className="text-sm text-muted-foreground">Quantity</Label>
-                    <p className="font-medium">
-                      {formatted.quantityWithUnit}
-                    </p>
+                      <Label className="text-muted-foreground text-xs">Quantity</Label>
+                      <p className="text-lg font-semibold">{trade.quantity} lots</p>
                   </div>
                   <div>
-                    <Label className="text-sm text-muted-foreground">Entry Price</Label>
-                    <p className="font-medium">{formatted.entryPrice}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Exit Price</Label>
-                    <p className="font-medium">{formatted.closePrice}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">P&L</Label>
-                    <p className={cn(
-                      "font-bold text-lg",
-                      trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'
-                    )}>
-                      {formatCurrency(trade.pnl)}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Timing & Account Info */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    Timing & Account Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Entry Date</Label>
-                    <p className="font-medium">{formatDate(trade.entryDate)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Exit Date</Label>
-                    <p className="font-medium">{formatDate(trade.closeDate)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Time in Position</Label>
-                    <p className="font-medium">{formatDuration(trade.timeInPosition || 0)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Account Number</Label>
-                    <div className="group relative">
-                      <p className="font-medium cursor-help">
-                        {trade.accountNumber.length > 12 
-                          ? `${trade.accountNumber.slice(0, 8)}...${trade.accountNumber.slice(-4)}`
-                          : trade.accountNumber
-                        }
+                      <Label className="text-muted-foreground text-xs">P&L</Label>
+                      <p className={cn("text-lg font-semibold", isWin ? "text-green-600" : isLoss ? "text-red-600" : "")}>
+                        {formatCurrency(netPnL)}
                       </p>
-                      {trade.accountNumber.length > 12 && (
-                        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50">
-                          <div className="bg-black text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-                            {trade.accountNumber}
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Commission</Label>
-                    <p className="font-medium">{formatCurrency(trade.commission || 0)}</p>
                   </div>
-                  {trade.closeReason && (
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Close Reason</Label>
-                      <Badge variant="outline" className="capitalize">
-                        {trade.closeReason.replace(/[_-]/g, ' ')}
-                      </Badge>
-                    </div>
-                  )}
-                  {(trade as any).marketBias && (
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Market Bias</Label>
-                      <Badge 
-                        variant="outline" 
-                        className={cn(
-                          "capitalize",
-                          (trade as any).marketBias === 'BULLISH' && "border-green-500 text-green-600",
-                          (trade as any).marketBias === 'BEARISH' && "border-red-500 text-red-600",
-                          (trade as any).marketBias === 'UNDECIDED' && "border-muted-foreground text-muted-foreground"
-                        )}
-                      >
-                        {(trade as any).marketBias === 'BULLISH' && <TrendingUp className="h-3 w-3 mr-1" />}
-                        {(trade as any).marketBias === 'BEARISH' && <TrendingDown className="h-3 w-3 mr-1" />}
-                        {(trade as any).marketBias === 'UNDECIDED' && <Minus className="h-3 w-3 mr-1" />}
-                        {(trade as any).marketBias.toLowerCase()}
-                      </Badge>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 
-              {/* Trade Analysis */}
-              {trade.comment && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Trade Analysis</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="prose prose-sm max-w-none whitespace-pre-wrap">
-                      {trade.comment}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-            </div>
-
-            {/* Right Column - Images */}
-            <div className="space-y-6">
-              {images.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Screenshots ({images.length})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {images.map((image, index) => {
-                        const isPreview = index === images.length - 1 && (trade as any).cardPreviewImage
-                        return (
-                          <div key={index} className="relative group">
-                            <div
-                              className="aspect-video relative rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-foreground transition-colors"
-                              onClick={() => {
-                                setSelectedImage(image)
-                                setSelectedImageIndex(index + 1)
-                              }}
-                            >
-                              <Image
-                                src={image}
-                                alt={isPreview ? 'Card Preview' : `Trade screenshot ${index + 1}`}
-                                fill
-                                className="object-cover"
-                              />
-                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <Eye className="w-8 h-8 text-white" />
-                              </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1 text-center">
-                              {isPreview ? 'Card Preview' : `Screenshot ${index + 1}`}
-                            </p>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Trade Metrics */}
+              {/* Timing & Context Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Timing Details */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <DollarSign className="w-5 h-5" />
-                    Key Metrics
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Clock className="h-4 w-4" />
+                      Timing & Session
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Risk/Reward</span>
-                    <span className="font-medium">
-                      {trade.pnl >= 0 ? '+' : '-'} {formatCurrency(Math.abs(trade.pnl))}
-                    </span>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between">
+                      <Label className="text-muted-foreground">Entry</Label>
+                      <span className="font-medium">{formatTimeInZone(trade.entryDate, 'MMM dd, yyyy HH:mm', timezone)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Price Movement</span>
-                    <span className="font-medium">
-                      {formatNumber((parseFloat(String(trade.closePrice)) - parseFloat(String(trade.entryPrice))) / parseFloat(String(trade.entryPrice)) * 100, 2)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Net Profit</span>
-                    <span className={cn(
-                      "font-medium",
-                      (trade.pnl - (trade.commission || 0)) >= 0 ? 'text-green-600' : 'text-red-600'
-                    )}>
-                      {formatCurrency(trade.pnl - (trade.commission || 0))}
-                    </span>
-                  </div>
+                    <div className="flex justify-between">
+                      <Label className="text-muted-foreground">Exit</Label>
+                      <span className="font-medium">{formatTimeInZone(trade.closeDate, 'MMM dd, yyyy HH:mm', timezone)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <Label className="text-muted-foreground">Duration</Label>
+                      <span className="font-medium">{Math.floor(trade.timeInPosition / 60)}m {Math.floor(trade.timeInPosition % 60)}s</span>
+                    </div>
+                    {session && (
+                      <>
+                        <Separator />
+                        <div className="flex justify-between items-center">
+                          <Label className="text-muted-foreground">Session</Label>
+                          <Badge variant="secondary">{session}</Badge>
+                        </div>
+                      </>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Trading Model & Rules */}
-              {(tradeModel || (trade as any).tags) && (
+                {/* Strategy & Context */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Target className="w-5 h-5" />
-                      Strategy & Tags
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Target className="h-4 w-4" />
+                      Strategy & Context
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {tradeModel && (
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Trading Model</Label>
-                        <Badge variant="default" className="mt-1">
-                          {tradeModel.name}
+                  <CardContent className="space-y-3">
+                    {tradeData.marketBias && (
+                      <div className="flex justify-between items-center">
+                        <Label className="text-muted-foreground">Market Bias</Label>
+                        <Badge variant="outline" className={cn(
+                          "capitalize",
+                          tradeData.marketBias === 'BULLISH' && "border-green-500 text-green-600",
+                          tradeData.marketBias === 'BEARISH' && "border-red-500 text-red-600",
+                        )}>
+                          {tradeData.marketBias === 'BULLISH' && <TrendingUp className="h-3 w-3 mr-1" />}
+                          {tradeData.marketBias === 'BEARISH' && <TrendingDown className="h-3 w-3 mr-1" />}
+                          {tradeData.marketBias === 'UNDECIDED' && <Minus className="h-3 w-3 mr-1" />}
+                          {tradeData.marketBias.toLowerCase()}
                         </Badge>
-                        
-                        {(trade as any).selectedRules && Array.isArray((trade as any).selectedRules) && (trade as any).selectedRules.length > 0 && (
-                          <div className="mt-3">
-                            <Label className="text-sm text-muted-foreground">Rules Applied</Label>
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {((trade as any).selectedRules as string[]).map((rule, index) => (
-                                <Badge key={index} variant="outline" className="flex items-center gap-1">
-                                  <CheckCircle className="w-3 h-3" />
-                                  {rule}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     )}
                     
-                    {(trade as any).tags && (
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Tags</Label>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {(trade as any).tags.split(',').filter(Boolean).map((tag: string, index: number) => (
-                            <Badge key={index} variant="secondary">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
+                    {tradeData.orderType && (
+                      <div className="flex justify-between items-center">
+                        <Label className="text-muted-foreground">Order Type</Label>
+                        <Badge variant="outline">
+                          {tradeData.orderType === 'market' && <Zap className="h-3 w-3 mr-1" />}
+                          {tradeData.orderType === 'limit' && <ShoppingCart className="h-3 w-3 mr-1" />}
+                          {tradeData.orderType === 'market' ? 'Market Order' : 'Limit Order'}
+                        </Badge>
                       </div>
                     )}
+
+                    {trade.closeReason && (
+                      <div className="flex justify-between items-center">
+                        <Label className="text-muted-foreground">Close Reason</Label>
+                        <Badge variant="secondary" className="capitalize">{trade.closeReason}</Badge>
+                      </div>
+                    )}
+
+                    {tradeTags.length > 0 && (
+                      <>
+                        <Separator />
+                        <div>
+                          <Label className="text-muted-foreground text-xs mb-2 block">Tags</Label>
+                          <div className="flex flex-wrap gap-1">
+                            {tradeTags.map((tag: any) => (
+                              <Badge key={tag.id} style={{ backgroundColor: tag.color + '20', borderColor: tag.color, color: tag.color }} variant="outline" className="text-xs">
+                                <TagIcon className="h-3 w-3 mr-1" />
+                                {tag.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Timeframes - Only show if at least one is set */}
+              {(tradeData.biasTimeframe || tradeData.narrativeTimeframe || tradeData.driverTimeframe || tradeData.entryTimeframe || tradeData.structureTimeframe) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Clock className="h-4 w-4" />
+                      Multi-Timeframe Analysis
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                      {tradeData.entryTimeframe && (
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-muted-foreground text-xs">Entry</Label>
+                          <Badge variant="default" className="w-fit">{formatTimeframe(tradeData.entryTimeframe)}</Badge>
+                        </div>
+                      )}
+                      {tradeData.biasTimeframe && (
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-muted-foreground text-xs">Bias</Label>
+                          <Badge variant="secondary" className="w-fit">{formatTimeframe(tradeData.biasTimeframe)}</Badge>
+                        </div>
+                      )}
+                      {tradeData.narrativeTimeframe && (
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-muted-foreground text-xs">Narrative</Label>
+                          <Badge variant="secondary" className="w-fit">{formatTimeframe(tradeData.narrativeTimeframe)}</Badge>
+                        </div>
+                      )}
+                      {tradeData.driverTimeframe && (
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-muted-foreground text-xs">Driver</Label>
+                          <Badge variant="secondary" className="w-fit">{formatTimeframe(tradeData.driverTimeframe)}</Badge>
+                        </div>
+                      )}
+                      {tradeData.structureTimeframe && (
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-muted-foreground text-xs">Structure</Label>
+                          <Badge variant="secondary" className="w-fit">{formatTimeframe(tradeData.structureTimeframe)}</Badge>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Chart Links */}
+              {chartLinks.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <BarChart3 className="h-4 w-4" />
+                      TradingView Chart Analysis ({chartLinks.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {chartLinks.map((link: string, index: number) => (
+                        <a
+                          key={index}
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md border border-blue-500/50 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition-colors"
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                          Chart {index + 1}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* News Events */}
+              {tradeData.newsDay && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Newspaper className="h-4 w-4" />
+                      News Events
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {newsEvents.length > 0 ? (
+                      <>
+                        {newsEvents.map((event: any) => (
+                          <div key={event.id} className="flex items-start gap-2 p-3 rounded-md border bg-muted/30">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">{event.name}</span>
+                                <Badge variant="outline" className="text-[10px] px-1">{event.country}</Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">{event.description}</p>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {tradeData.newsTraded && (
+                          <div className="flex items-center gap-2 p-2 rounded border border-amber-500/50 bg-amber-500/10">
+                            <AlertCircle className="h-4 w-4 text-amber-600" />
+                            <span className="text-sm font-medium text-amber-600">Traded during news release</span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">News day but no specific events selected</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Trade Notes */}
+              {trade.comment && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Trade Analysis</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm whitespace-pre-wrap">{trade.comment}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Screenshots */}
+              {images.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Screenshots ({images.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {images.map((img, index) => (
+                        <div key={index} className="group relative aspect-video rounded-md overflow-hidden border bg-muted cursor-pointer" onClick={() => {
+                          setSelectedImage(img)
+                          setSelectedImageIndex(index + 1)
+                        }}>
+                          <Image
+                            src={img}
+                            alt={`Screenshot ${index + 1}`}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform"
+                            unoptimized
+                            loading="eager"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
+                            <Button variant="secondary" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                              View Full Size
+                            </Button>
+                          </div>
+                          <Badge className="absolute top-2 right-2 text-xs">
+                            {index === 0 ? 'Preview' : `#${index}`}
+                            </Badge>
+                        </div>
+                      ))}
+                      </div>
                   </CardContent>
                 </Card>
               )}
             </div>
           </div>
 
-          <div className="flex justify-end pt-4">
+          <div className="flex justify-end gap-2 px-6 py-4 border-t shrink-0">
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
@@ -505,53 +428,37 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
 
       {/* Image Viewer Modal */}
       {selectedImage && (
-        <Dialog open={!!selectedImage} onOpenChange={() => {
-          setSelectedImage(null)
-          setSelectedImageIndex(0)
-        }}>
-          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 gap-0 z-[10002]">
+        <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 gap-0">
             <DialogHeader className="px-4 pt-4 pb-2">
-              <DialogTitle>Image Viewer - {trade.instrument} {trade.side?.toUpperCase()}</DialogTitle>
-              <DialogDescription className="flex items-center justify-between">
-                <span>Click and drag to pan • Scroll to zoom • Double-click to reset</span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={async (e) => {
-                    e.stopPropagation()
-                    await downloadImage(selectedImage, trade, selectedImageIndex)
-                  }}
-                  className="gap-1.5 shrink-0"
-                  title="Download image with original quality"
-                >
-                  <Download className="w-4 h-4" />
-                  <span className="text-xs">Download</span>
-                </Button>
-              </DialogDescription>
+              <DialogTitle>Screenshot {selectedImageIndex}</DialogTitle>
+              <VisuallyHidden>
+                <DialogDescription>Full size image viewer</DialogDescription>
+              </VisuallyHidden>
             </DialogHeader>
-            <div className="relative w-full h-[85vh] px-2 pb-2">
-              <TransformWrapper
-                initialScale={1}
-                minScale={0.1}
-                maxScale={5}
-                centerOnInit
-                limitToBounds={false}
-                smooth
-                doubleClick={{ mode: "reset" }}
-              >
-                <TransformComponent
-                  wrapperClass="!w-full !h-full"
-                  contentClass="!w-full !h-full flex items-center justify-center"
-                >
+            <div className="relative flex-1 bg-black">
+              <TransformWrapper>
+                <TransformComponent wrapperClass="!w-full !h-[calc(95vh-8rem)]" contentClass="!w-full !h-full flex items-center justify-center">
                   <Image
                     src={selectedImage}
-                    alt="Full screen view"
+                    alt={`Screenshot ${selectedImageIndex}`}
+                    width={1920}
+                    height={1080}
                     className="max-w-full max-h-full object-contain"
-                    fill
-                    sizes="95vw"
+                    unoptimized
+                    loading="eager"
                   />
                 </TransformComponent>
               </TransformWrapper>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="absolute bottom-4 right-4"
+                onClick={() => downloadImage(selectedImage, trade, selectedImageIndex)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -559,6 +466,4 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
     </>
   )
 }
-
-export default TradeDetailView
 

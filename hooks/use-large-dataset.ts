@@ -142,7 +142,7 @@ export const useLargeDataset = <T>(
         return newSet
       })
     }
-  }, [state.loading, state.hasMore, state.currentPage, activeRequests.size, finalConfig.maxConcurrentRequests, loadPage])
+  }, [state.loading, state.hasMore, state.currentPage, activeRequests.size, finalConfig.maxConcurrentRequests, finalConfig.pageSize, loadPage])
 
   const preloadPages = useCallback(async (startPage: number, filters?: any) => {
     if (activeRequests.size >= finalConfig.maxConcurrentRequests) {
@@ -171,7 +171,7 @@ export const useLargeDataset = <T>(
         })
       }
     }
-  }, [activeRequests.size, finalConfig.maxConcurrentRequests, finalConfig.preloadPages, cache, loadPage])
+  }, [activeRequests, finalConfig.maxConcurrentRequests, finalConfig.preloadPages, cache, loadPage])
 
   const refresh = useCallback(async (filters?: any) => {
     setCache(new Map())
@@ -291,7 +291,7 @@ export const useSharedTrades = () => {
       setError(error instanceof Error ? error.message : 'Failed to load more trades')
       setLoading(false)
     }
-  }, [loading, allTrades.length, fetchTrades, pageSize])
+  }, [loading, fetchTrades, pageSize])
 
   const clearTrades = useCallback(() => {
     setAllTrades([])

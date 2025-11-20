@@ -87,7 +87,7 @@ export function useDashboardStats(settings: AccountFilterSettings = DEFAULT_FILT
 
   useEffect(() => {
     fetchStats()
-  }, [settings.viewingSpecificPhase, settings.selectedMasterAccountId, settings.selectedPhaseId, settings.selectedPhaseNumber]) // ✅ NEW: Refetch when phase selection changes
+  }, [settings.viewingSpecificPhase, settings.selectedMasterAccountId, settings.selectedPhaseId, settings.selectedPhaseNumber, fetchStats]) // ✅ NEW: Refetch when phase selection changes
 
   return {
     stats,

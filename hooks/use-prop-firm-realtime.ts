@@ -206,7 +206,7 @@ export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePro
         timeoutRef.current = null
       }
     }
-  }, [accountId, enabled, toast, account, drawdown, isFetching])
+  }, [accountId, enabled, account, drawdown, isFetching])
 
   const startPolling = useCallback(() => {
     if (!enabled || !accountId || intervalRef.current) return

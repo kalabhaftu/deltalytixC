@@ -1374,7 +1374,7 @@ export const DataProvider: React.FC<{
 
   // Return the promise for any waiting calls
   return activeLoadPromiseRef.current
-  }, []); // Empty deps - load once on mount, prevent re-creation
+  }, [dashboardLayout, isLoading, setAccounts, setDashboardLayout, setGroups, setIsLoading, setSupabaseUser, setTrades, setUser]); // Empty deps - load once on mount, prevent re-creation
 
   // Load data on mount only - ONCE
   useEffect(() => {
@@ -1433,7 +1433,7 @@ export const DataProvider: React.FC<{
     return () => {
       mounted = false;
     };
-  }, [supabaseUser]); // ONLY depend on supabaseUser, run once when it's set
+  }, [supabaseUser, loadData, setIsLoading]); // ONLY depend on supabaseUser, run once when it's set
 
   const refreshTrades = useCallback(async () => {
     if (!user?.id) return
@@ -1650,7 +1650,7 @@ export const DataProvider: React.FC<{
       // Error updating account
       throw error
     }
-  }, [user?.id, accounts, setAccounts])
+  }, [user?.id, setAccounts])
 
 
   // Add createGroup function
@@ -1667,7 +1667,7 @@ export const DataProvider: React.FC<{
       }
       throw error
     }
-  }, [user?.id, accounts, groups, setGroups])
+  }, [user?.id, groups, setGroups])
 
   const renameGroup = useCallback(async (groupId: string, name: string) => {
     if (!user?.id) return
@@ -1681,7 +1681,7 @@ export const DataProvider: React.FC<{
       }
       throw error
     }
-  }, [user?.id])
+  }, [user?.id, groups, setGroups])
 
   // Add deleteGroup function
   const deleteGroup = useCallback(async (groupId: string) => {
@@ -1703,7 +1703,7 @@ export const DataProvider: React.FC<{
       }
       throw error
     }
-  }, [accounts, setAccounts])
+  }, [accounts, groups, setAccounts, setGroups])
 
   // Add moveAccountToGroup function
   const moveAccountToGroup = useCallback(async (accountId: string, targetGroupId: string | null) => {
@@ -1800,7 +1800,6 @@ export const DataProvider: React.FC<{
     try {
 
       // Update local state
-      const accounts = useUserStore(state => state.accounts)
       setAccounts(accounts.map((account: Account) => ({
         ...account,
         payouts: account.payouts?.filter(p => p.id !== payoutId) || []

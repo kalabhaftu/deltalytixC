@@ -82,7 +82,18 @@ export async function GET(request: Request) {
             name: true
           }
         },
-        marketBias: true
+        marketBias: true,
+        newsDay: true,
+        selectedNews: true,
+        newsTraded: true,
+        biasTimeframe: true,
+        narrativeTimeframe: true,
+        driverTimeframe: true,
+        entryTimeframe: true,
+        structureTimeframe: true,
+        orderType: true,
+        entryTime: true,
+        exitTime: true
       }
     })
 
@@ -284,6 +295,137 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   
   const biasAlignment = tradesWithBias > 0 ? (tradesAlignedWithBias / tradesWithBias) * 100 : 0
 
+  // News Trading Analysis
+  const newsTradesStats = {
+    totalNewsDays: trades.filter(t => t.newsDay).length,
+    tradedDuringNews: trades.filter(t => t.newsDay && t.newsTraded).length,
+    tradedBeforeAfterNews: trades.filter(t => t.newsDay && !t.newsTraded).length,
+    noNewsTraded: trades.filter(t => !t.newsDay).length,
+  }
+  
+  const newsDayPnL = trades.filter(t => t.newsDay).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
+  const noNewsDayPnL = trades.filter(t => !t.newsDay).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
+  
+  const tradedDuringNewsPnL = trades.filter(t => t.newsDay && t.newsTraded).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
+  const tradedBeforeAfterNewsPnL = trades.filter(t => t.newsDay && !t.newsTraded).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
+  
+  const newsDayWins = trades.filter(t => t.newsDay && (t.pnl - (t.commission || 0)) > 0).length
+  const newsDayLosses = trades.filter(t => t.newsDay && (t.pnl - (t.commission || 0)) < 0).length
+  const newsDayWinRate = newsTradesStats.totalNewsDays > 0 ? (newsDayWins / newsTradesStats.totalNewsDays) * 100 : 0
+  
+  const noNewsDayWins = trades.filter(t => !t.newsDay && (t.pnl - (t.commission || 0)) > 0).length
+  const noNewsDayLosses = trades.filter(t => !t.newsDay && (t.pnl - (t.commission || 0)) < 0).length
+  const noNewsDayWinRate = newsTradesStats.noNewsTraded > 0 ? (noNewsDayWins / newsTradesStats.noNewsTraded) * 100 : 0
+  
+  // Extract specific news events that were traded
+  const newsEventsTrade: Record<string, { trades: number, pnl: number, wins: number, tradedDuring: number }> = {}
+  trades.forEach(t => {
+    if (t.newsDay && t.selectedNews) {
+      const newsIds = t.selectedNews.split(',').filter(Boolean)
+      const netPnL = t.pnl - (t.commission || 0)
+      newsIds.forEach((newsId: string) => {
+        if (!newsEventsTrade[newsId]) {
+          newsEventsTrade[newsId] = { trades: 0, pnl: 0, wins: 0, tradedDuring: 0 }
+        }
+        newsEventsTrade[newsId].trades++
+        newsEventsTrade[newsId].pnl += netPnL
+        if (netPnL > 0) newsEventsTrade[newsId].wins++
+        if (t.newsTraded) newsEventsTrade[newsId].tradedDuring++
+      })
+    }
+  })
+
+  // Timeframe Analysis
+  const timeframeStats: Record<string, { trades: number, pnl: number, wins: number }> = {
+    '1m': { trades: 0, pnl: 0, wins: 0 },
+    '5m': { trades: 0, pnl: 0, wins: 0 },
+    '15m': { trades: 0, pnl: 0, wins: 0 },
+    '30m': { trades: 0, pnl: 0, wins: 0 },
+    '1h': { trades: 0, pnl: 0, wins: 0 },
+    '4h': { trades: 0, pnl: 0, wins: 0 },
+    'd': { trades: 0, pnl: 0, wins: 0 },
+    'w': { trades: 0, pnl: 0, wins: 0 },
+    'm': { trades: 0, pnl: 0, wins: 0 },
+  }
+
+  const timeframeLabelMap: Record<string, string> = {
+    '1m': '1 Minute',
+    '5m': '5 Minutes',
+    '15m': '15 Minutes',
+    '30m': '30 Minutes',
+    '1h': '1 Hour',
+    '4h': '4 Hours',
+    'd': 'Daily',
+    'w': 'Weekly',
+    'm': 'Monthly',
+  }
+
+  // Count usage by timeframe type (entry is most important)
+  trades.forEach(t => {
+    const netPnL = t.pnl - (t.commission || 0)
+    const isWin = netPnL > 0
+
+    // Count entry timeframe (primary indicator)
+    if ((t as any).entryTimeframe && timeframeStats[(t as any).entryTimeframe]) {
+      timeframeStats[(t as any).entryTimeframe].trades++
+      timeframeStats[(t as any).entryTimeframe].pnl += netPnL
+      if (isWin) timeframeStats[(t as any).entryTimeframe].wins++
+    }
+  })
+
+  // Filter out unused timeframes
+  const usedTimeframes = Object.entries(timeframeStats)
+    .filter(([_, data]) => data.trades > 0)
+    .sort((a, b) => b[1].pnl - a[1].pnl) // Sort by P&L
+
+  // Order Type Analysis
+  const orderTypeStats: Record<string, { trades: number, pnl: number, wins: number }> = {
+    'market': { trades: 0, pnl: 0, wins: 0 },
+    'limit': { trades: 0, pnl: 0, wins: 0 },
+  }
+
+  trades.forEach(t => {
+    if ((t as any).orderType) {
+      const netPnL = t.pnl - (t.commission || 0)
+      const isWin = netPnL > 0
+      const orderType = (t as any).orderType
+
+      if (orderTypeStats[orderType]) {
+        orderTypeStats[orderType].trades++
+        orderTypeStats[orderType].pnl += netPnL
+        if (isWin) orderTypeStats[orderType].wins++
+      }
+    }
+  })
+
+  const usedOrderTypes = Object.entries(orderTypeStats)
+    .filter(([_, data]) => data.trades > 0)
+    .sort((a, b) => b[1].pnl - a[1].pnl)
+
+  // Session Analysis
+  const { getTradingSession } = await import('@/lib/time-utils')
+  const sessionStats: Record<string, { trades: number, pnl: number, wins: number }> = {}
+
+  trades.forEach(t => {
+    if ((t as any).entryTime) {
+      const session = getTradingSession((t as any).entryTime)
+      const netPnL = t.pnl - (t.commission || 0)
+      const isWin = netPnL > 0
+
+      if (!sessionStats[session]) {
+        sessionStats[session] = { trades: 0, pnl: 0, wins: 0 }
+      }
+
+      sessionStats[session].trades++
+      sessionStats[session].pnl += netPnL
+      if (isWin) sessionStats[session].wins++
+    }
+  })
+
+  const usedSessions = Object.entries(sessionStats)
+    .filter(([_, data]) => data.trades > 0)
+    .sort((a, b) => b[1].pnl - a[1].pnl)
+
   // Call AI API (XAI/Grok)
   try {
     const apiKey = process.env.XAI_API_KEY
@@ -305,8 +447,11 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
     4. **Account Status = Reality Check**: If they have FAILED or BREACHED accounts, don't sugarcoat it. Dig into the trades/notes leading up to the failure. Was it tilt? Was it breaking rules? Call it out by name.
     5. **Spot the Tilt**: Rapid losses + frustrated notes = revenge trading. Say it loud and clear.
     6. **Market Bias Alignment**: They're recording their market sentiment (BULLISH/BEARISH/UNDECIDED). Check if they're trading WITH their bias or AGAINST it. If they say "bullish" but take short trades and lose, call that out. If they're profitable when aligned with their bias, tell them to stick to it.
-    7. **Use the Dashboard Metrics**: You have P&L by instrument, by strategy, by weekday, and by hour. USE THIS DATA. If they lose money on Fridays, tell them to take Fridays off. If they make money on NQ but lose on ES, tell them to stop trading ES. If they're profitable 9-11 AM but lose money after 2 PM, call it out.
-    8. **Give Actionable Advice**: Not generic advice like "be disciplined." SPECIFIC advice based on their data: "Stop trading after 2 PM—your worst 3 hours are 14:00, 15:00, and 16:00" or "Focus on NQ—you're up $2,500 on it but down $800 on ES"
+    7. **News Trading Awareness**: They're tracking high-impact news events (NFP, FOMC, CPI, etc.) and whether they traded DURING or BEFORE/AFTER the release. Check their performance: Are they getting wrecked by news volatility? Are they better off avoiding news? If they're profitable on non-news days but losing on news days, tell them to STOP trading news. If specific events (like NFP or FOMC) are consistently hurting them, call it out by name.
+    8. **Timeframe Analysis**: They're tracking 5 timeframes for each trade: Bias, Narrative, Driver, Entry, and Structure. The Entry timeframe is PRIMARY. Check which entry timeframes are working best. If they're profitable on 15m entries but losing on 1m scalps, tell them to stop the 1m noise. If their best P&L is on 4H entries, tell them to focus there and stop chasing lower timeframes.
+    9. **Order Type & Session Performance**: They're tracking if they use Market Orders (instant execution) or Limit Orders (wait for price). Check which works better for them. Also check which trading sessions (Asian, London, New York, Overlaps) are most profitable. If they're losing during Asian session but winning during New York, tell them to focus on NY hours only.
+    10. **Use the Dashboard Metrics**: You have P&L by instrument, strategy, weekday, hour, news events, entry timeframe, order type, AND trading session. USE ALL THIS DATA. If they lose money on Fridays, tell them to take Fridays off. If they make money on NQ but lose on ES, tell them to stop trading ES. If they're profitable 9-11 AM but lose money after 2 PM, call it out. If limit orders work better than market orders, tell them. If London session is their sweet spot but Asian session bleeds money, call it out.
+    11. **Give Actionable Advice**: Not generic advice like "be disciplined." SPECIFIC advice based on their data: "Stop trading after 2 PM—your worst 3 hours are 14:00, 15:00, and 16:00" or "Focus on NQ—you're up $2,500 on it but down $800 on ES" or "Avoid NFP days—you've lost $1,200 across 5 NFP releases" or "Stick to 15m entries—you're up $3,200 on those but down $900 on 1m scalps" or "Use limit orders—you're up $1,800 with limits vs down $600 with market orders" or "Trade London/NY overlap only—that's where you make money"
     
     THE DATA:
 
@@ -378,6 +523,50 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
       }).join('\n') || 'No bias data recorded'}
     ${tradesWithBias > 0 && biasAlignment < 50 ? 
       `[WARNING] Only ${biasAlignment.toFixed(1)}% of trades align with stated bias. They're trading AGAINST their market sentiment—potential counter-trend losses!` : ''}
+
+    **News Trading Analysis** (High-Impact Events):
+    - News Day Trades: ${newsTradesStats.totalNewsDays} trades ($${newsDayPnL.toFixed(2)} P&L, ${newsDayWinRate.toFixed(1)}% WR)
+    - Traded DURING News Release: ${newsTradesStats.tradedDuringNews} trades ($${tradedDuringNewsPnL.toFixed(2)} P&L)
+    - Traded BEFORE/AFTER News: ${newsTradesStats.tradedBeforeAfterNews} trades ($${tradedBeforeAfterNewsPnL.toFixed(2)} P&L)
+    - Non-News Day Trades: ${newsTradesStats.noNewsTraded} trades ($${noNewsDayPnL.toFixed(2)} P&L, ${noNewsDayWinRate.toFixed(1)}% WR)
+    ${Object.entries(newsEventsTrade).length > 0 ? `
+    **Specific News Events Traded**:
+    ${Object.entries(newsEventsTrade).map(([eventId, data]) => {
+      const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
+      return `- ${eventId}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR, ${data.tradedDuring} during release`
+    }).join('\n')}` : ''}
+    ${newsTradesStats.tradedDuringNews > 0 && tradedDuringNewsPnL < 0 ? 
+      `[WARNING] Negative P&L when trading DURING news releases. News volatility might be hurting performance—consider waiting for clarity!` : ''}
+    ${newsTradesStats.totalNewsDays > 0 && noNewsDayWinRate > newsDayWinRate + 10 ? 
+      `[INSIGHT] Win rate is ${(noNewsDayWinRate - newsDayWinRate).toFixed(1)}% higher on non-news days. Consider avoiding high-impact news!` : ''}
+
+    ${usedTimeframes.length > 0 ? `**Entry Timeframe Performance** (Multi-Timeframe Analysis):
+    ${usedTimeframes.map(([tf, data]) => {
+      const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
+      return `- ${timeframeLabelMap[tf]}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR`
+    }).join('\n')}
+    ${usedTimeframes.length > 1 && usedTimeframes[0][1].pnl > 0 && usedTimeframes[usedTimeframes.length - 1][1].pnl < 0 ? 
+      `[INSIGHT] Best timeframe: ${timeframeLabelMap[usedTimeframes[0][0]]} (+$${usedTimeframes[0][1].pnl.toFixed(2)}). Worst: ${timeframeLabelMap[usedTimeframes[usedTimeframes.length - 1][0]]} ($${usedTimeframes[usedTimeframes.length - 1][1].pnl.toFixed(2)}). Stick to what works!` : ''}
+    ` : ''}
+
+    ${usedOrderTypes.length > 0 ? `**Order Type Performance**:
+    ${usedOrderTypes.map(([type, data]) => {
+      const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
+      const label = type === 'market' ? 'Market Orders' : 'Limit Orders'
+      return `- ${label}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR`
+    }).join('\n')}
+    ${usedOrderTypes.length === 2 && usedOrderTypes[0][1].pnl > 0 && usedOrderTypes[1][1].pnl < 0 ? 
+      `[INSIGHT] ${usedOrderTypes[0][0] === 'market' ? 'Market orders' : 'Limit orders'} are working better (+$${usedOrderTypes[0][1].pnl.toFixed(2)}) vs ${usedOrderTypes[1][0] === 'market' ? 'market' : 'limit'} ($${usedOrderTypes[1][1].pnl.toFixed(2)}).` : ''}
+    ` : ''}
+
+    ${usedSessions.length > 0 ? `**Trading Session Performance**:
+    ${usedSessions.map(([session, data]) => {
+      const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
+      return `- ${session}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR`
+    }).join('\n')}
+    ${usedSessions.length > 1 && usedSessions[0][1].pnl > 0 && usedSessions[usedSessions.length - 1][1].pnl < 0 ? 
+      `[INSIGHT] Best session: ${usedSessions[0][0]} (+$${usedSessions[0][1].pnl.toFixed(2)}). Worst: ${usedSessions[usedSessions.length - 1][0]} ($${usedSessions[usedSessions.length - 1][1].pnl.toFixed(2)}). Focus on your best times!` : ''}
+    ` : ''}
 
     **Daily Journal Entries** (READ EVERY WORD - The vibe is in here):
     ${journalSummary.map(j => `- ${new Date(j.date).toLocaleDateString()}: [${j.emotion || 'No emotion'}] "${j.note}" (${j.account})`).join('\n') || 'No journal entries'}
