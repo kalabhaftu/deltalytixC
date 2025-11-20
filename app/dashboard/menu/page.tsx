@@ -183,7 +183,7 @@ export default function MenuPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <CardTitle className="text-lg truncate">{model.name}</CardTitle>
-                      <CardDescription className="mt-1">
+                      <div className="text-sm text-muted-foreground mt-1">
                         {model.rules.length > 0 ? (
                           <>
                             <Badge variant="secondary" className="mr-1">
@@ -193,7 +193,7 @@ export default function MenuPage() {
                         ) : (
                           <span className="text-xs">No rules</span>
                         )}
-                      </CardDescription>
+                      </div>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
