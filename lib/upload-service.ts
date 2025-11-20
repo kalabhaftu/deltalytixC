@@ -140,14 +140,12 @@ export class MediaUploadService {
       // This preserves the original name while ensuring uniqueness
       const fileName = `${nameWithoutExt}_${timestamp}_${randomId}.${fileExtension}`
 
-      // Create file path
-      let filePath = `${options.folder}/${options.userId}/${fileName}`
-      if (options.tradeId) {
-        filePath = `${options.folder}/${options.userId}/${options.tradeId}/${fileName}`
-      }
+      // Create file path - structure: trades/{userId}/{fileName}
+      // No tradeId subfolder - keep it flat for simplicity
+      const filePath = `${options.folder}/${options.userId}/${fileName}`
 
-      // Try to get or create the appropriate bucket
-      const bucketName = await this.ensureBucket()
+      // Use the trade-images bucket
+      const bucketName = 'trade-images'
       
       // Upload file
       const { error: uploadError, data } = await this.supabase.storage

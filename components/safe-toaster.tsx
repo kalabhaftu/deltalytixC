@@ -28,7 +28,7 @@ export function SafeToaster() {
       expand={false}
       richColors
       closeButton
-      theme="light"
+      theme={theme as 'light' | 'dark' | 'system'}
       duration={3000}
       toastOptions={{
         classNames: {
