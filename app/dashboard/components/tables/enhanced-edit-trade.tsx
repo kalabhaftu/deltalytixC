@@ -194,6 +194,12 @@ export default function EnhancedEditTrade({
     defaultValues: {
       comment: '',
       cardPreviewImage: '',
+      imageOne: '',
+      imageTwo: '',
+      imageThree: '',
+      imageFour: '',
+      imageFive: '',
+      imageSix: '',
       modelId: null,
       selectedRules: [],
       marketBias: null,
@@ -228,6 +234,12 @@ export default function EnhancedEditTrade({
       const defaultFormState: EditTradeFormData = {
         comment: trade.comment || '',
         cardPreviewImage: (trade as any)?.cardPreviewImage || '',
+        imageOne: (trade as any)?.imageOne || '',
+        imageTwo: (trade as any)?.imageTwo || '',
+        imageThree: (trade as any)?.imageThree || '',
+        imageFour: (trade as any)?.imageFour || '',
+        imageFive: (trade as any)?.imageFive || '',
+        imageSix: (trade as any)?.imageSix || '',
         modelId: (trade as any)?.modelId || null,
         selectedRules: (trade as any)?.selectedRules || [],
         marketBias: (trade as any)?.marketBias || null,
@@ -323,10 +335,31 @@ export default function EnhancedEditTrade({
         return
       }
 
-      // Upload directly to Supabase storage (no base64)
       toast.loading('Uploading image...', { id: `upload-${field}` })
       
-      const result = await uploadService.uploadImage(file, {
+      let fileToUpload = file
+      
+      // Compress ONLY the card preview image to WebP
+      if (field === 'cardPreviewImage') {
+        try {
+          const imageCompression = (await import('browser-image-compression')).default
+          
+          fileToUpload = await imageCompression(file, {
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+            fileType: 'image/webp',
+            initialQuality: 0.95,
+          })
+          
+          console.log(`Card preview compressed: ${(file.size / 1024).toFixed(2)}KB → ${(fileToUpload.size / 1024).toFixed(2)}KB`)
+        } catch (compressError) {
+          console.warn('Compression failed, using original:', compressError)
+          fileToUpload = file
+        }
+      }
+      // For imageOne through imageSix: keep original quality (no compression)
+      
+      const result = await uploadService.uploadImage(fileToUpload, {
         userId: currentUser.id,
         folder: 'trades',
         tradeId: trade?.id,
@@ -336,14 +369,14 @@ export default function EnhancedEditTrade({
         throw new Error(result.error || 'Upload failed')
       }
       
-      // Store the storage URL instead of base64
+      // Store the storage URL
       setValue(field, result.url)
       
       toast.success('Image uploaded', {
         id: `upload-${field}`,
         description: field === 'cardPreviewImage'
-          ? 'Card preview uploaded successfully.'
-          : 'Analysis image uploaded successfully.',
+          ? 'Card preview uploaded and compressed to WebP.'
+          : 'Screenshot uploaded successfully (original quality).',
       })
       
     } catch (error) {
@@ -354,7 +387,7 @@ export default function EnhancedEditTrade({
     }
   }
 
-  const removeImage = (field: 'cardPreviewImage') => {
+  const removeImage = (field: 'cardPreviewImage' | 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix') => {
     // Show confirmation dialog before deleting
     setImageToDelete(field)
     setShowDeleteImageDialog(true)
@@ -399,6 +432,12 @@ export default function EnhancedEditTrade({
         selectedRules: selectedRules.length > 0 ? selectedRules : null,
         tags: selectedTags.length > 0 ? selectedTags.join(',') : null,
         cardPreviewImage: data.cardPreviewImage === '' ? null : data.cardPreviewImage || null,
+        imageOne: data.imageOne === '' ? null : data.imageOne || null,
+        imageTwo: data.imageTwo === '' ? null : data.imageTwo || null,
+        imageThree: data.imageThree === '' ? null : data.imageThree || null,
+        imageFour: data.imageFour === '' ? null : data.imageFour || null,
+        imageFive: data.imageFive === '' ? null : data.imageFive || null,
+        imageSix: data.imageSix === '' ? null : data.imageSix || null,
         marketBias: data.marketBias || null,
       } as Partial<Trade>
 
@@ -605,7 +644,7 @@ export default function EnhancedEditTrade({
                       <SelectTrigger>
                         <SelectValue placeholder="No model selected" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="z-[10050]">
                         <SelectItem value="none">None</SelectItem>
                         {tradingModels.map((model) => (
                           <SelectItem key={model.id} value={model.id}>
