@@ -40,7 +40,6 @@ export default function DatabaseDocs() {
   theme         String   @default("system")
   firstName     String?
   lastName      String?
-  customTradingModels Json @default("[]")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
@@ -89,7 +88,8 @@ export default function DatabaseDocs() {
   side           String    // "long" or "short"
   stopLoss       Decimal?  @db.Decimal(20, 10)
   takeProfit     Decimal?  @db.Decimal(20, 10)
-  tradingModel   TradingModel?
+  modelId        String?   // References TradingModel
+  selectedRules  Json?     // Array of selected rules for this trade
   tags           String?   // Comma-separated tag IDs
   note           String?   @db.Text
   screenshots    String?   @db.Text  // JSON array of URLs

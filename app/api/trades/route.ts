@@ -195,15 +195,6 @@ export async function PUT(request: NextRequest) {
     // Update the trade with non-image fields
     const { id, ...updateData } = updatedTrade
     delete updateData.cardPreviewImage
-    delete updateData.tradingModel // Handle tradingModel separately
-
-    // Update trading model if provided
-    if (updatedTrade.tradingModel !== undefined) {
-      await prisma.trade.update({
-        where: { id, userId },
-        data: { tradingModel: updatedTrade.tradingModel }
-      })
-    }
 
     if (Object.keys(updateData).length > 0) {
       await prisma.trade.update({

@@ -76,7 +76,12 @@ export async function GET(request: Request) {
         entryPrice: true,
         closePrice: true,
         comment: true, // Trade notes
-        tradingModel: true,
+        modelId: true,
+        TradingModel: {
+          select: {
+            name: true
+          }
+        },
         marketBias: true
       }
     })
@@ -177,7 +182,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   // P&L by strategy (trading model)
   const pnlByStrategy: Record<string, { trades: number, pnl: number, wins: number }> = {}
   trades.forEach(t => {
-    const strategy = t.tradingModel || 'No Strategy'
+    const strategy = (t as any).TradingModel?.name || 'No Strategy'
     const netPnL = t.pnl - (t.commission || 0)
     if (!pnlByStrategy[strategy]) {
       pnlByStrategy[strategy] = { trades: 0, pnl: 0, wins: 0 }

@@ -230,7 +230,8 @@ export async function POST(request: NextRequest) {
             closeReason: trade.closeReason || null,
             stopLoss: trade.stopLoss || null,
             takeProfit: trade.takeProfit || null,
-            tradingModel: trade.tradingModel || null,
+            modelId: trade.modelId || null,
+            selectedRules: trade.selectedRules || null,
             createdAt: trade.createdAt ? new Date(trade.createdAt) : new Date()
           }
         })

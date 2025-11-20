@@ -58,8 +58,7 @@ export async function getUserData(): Promise<{
                 firstName: true,
                 lastName: true,
                 accountFilterSettings: true,
-                backtestInputMode: true,
-                customTradingModels: true
+                backtestInputMode: true
               }
             })
           } catch (error) {
