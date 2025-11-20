@@ -592,9 +592,9 @@ export default function EnhancedEditTrade({
                   <div className="space-y-2">
                     <Label>Select Trading Model</Label>
                     <Select
-                      value={watchedValues.modelId || ''}
+                      value={watchedValues.modelId || undefined}
                       onValueChange={(value) => {
-                        const modelId = value || null
+                        const modelId = value === 'none' ? null : value
                         setValue('modelId', modelId)
                         const model = tradingModels.find(m => m.id === modelId)
                         setSelectedModel(model || null)
@@ -605,7 +605,7 @@ export default function EnhancedEditTrade({
                         <SelectValue placeholder="No model selected" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {tradingModels.map((model) => (
                           <SelectItem key={model.id} value={model.id}>
                             {model.name}
