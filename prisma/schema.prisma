@@ -321,9 +321,37 @@ model User {
   LiveAccountTransaction LiveAccountTransaction[]
   MasterAccount          MasterAccount[]
   TradeTag               TradeTag[]
+  WeeklyReview           WeeklyReview[]
 
   @@index([auth_user_id])
   @@index([email])
+  @@schema("public")
+}
+
+model WeeklyReview {
+  id              String            @id @default(uuid())
+  userId          String
+  startDate       DateTime          @db.Date // Monday of the week
+  endDate         DateTime          @db.Date // Sunday of the week
+  calendarImage   String?           // URL to the uploaded image
+  expectation     WeeklyExpectation?
+  actualOutcome   WeeklyExpectation?
+  isCorrect       Boolean?
+  notes           String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  User            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, startDate])
+  @@index([userId])
+  @@schema("public")
+}
+
+enum WeeklyExpectation {
+  BULLISH_EXPANSION
+  BEARISH_EXPANSION
+  CONSOLIDATION
+
   @@schema("public")
 }
 
