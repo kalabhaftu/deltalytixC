@@ -106,7 +106,7 @@ export async function getUserData(): Promise<{
               where: { 
                 userId,
                 date: {
-                  gte: twoYearsAgo.toISOString().split('T')[0] // Assuming date is stored as YYYY-MM-DD string
+                  gte: twoYearsAgo
                 }
               },
               select: {
