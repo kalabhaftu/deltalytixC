@@ -456,8 +456,8 @@ export default function EnhancedEditTrade({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="w-[95vw] max-w-6xl h-[90vh] max-h-[90vh] overflow-y-auto z-[10000] p-4 sm:p-6">
-          <DialogHeader>
+        <DialogContent className="w-[95vw] max-w-6xl h-[90vh] max-h-[90vh] flex flex-col z-[10000] p-0">
+          <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 shrink-0">
             <DialogTitle className="flex items-center text-base sm:text-lg">
               <Edit className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
               Edit Trade - {trade.instrument} {trade.side}
@@ -468,8 +468,10 @@ export default function EnhancedEditTrade({
             </DialogDescription>
           </DialogHeader>
 
-          {/* Trade Summary (Read-only) */}
-          <Card>
+          <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-6">
+              {/* Trade Summary (Read-only) */}
+              <Card>
             <CardHeader>
               <CardTitle className="text-base">Trade Summary (Read-only)</CardTitle>
             </CardHeader>
@@ -504,9 +506,8 @@ export default function EnhancedEditTrade({
             </CardContent>
           </Card>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Trade Notes */}
-            <Card>
+              {/* Trade Notes */}
+              <Card>
               <CardHeader>
                 <CardTitle className="text-base">Trade Notes</CardTitle>
               </CardHeader>
@@ -689,16 +690,81 @@ export default function EnhancedEditTrade({
                     Upload up to 6 screenshots for this trade (chart screenshots, trade setups, market analysis, etc.)
                   </p>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Card Preview Image */}
-                    {[
-                      { field: 'cardPreviewImage' as const, label: 'Screenshot 1 (Card Preview)', id: 'card-preview' },
-                      { field: 'imageOne' as const, label: 'Screenshot 2', id: 'image-one' },
-                      { field: 'imageTwo' as const, label: 'Screenshot 3', id: 'image-two' },
-                      { field: 'imageThree' as const, label: 'Screenshot 4', id: 'image-three' },
-                      { field: 'imageFour' as const, label: 'Screenshot 5', id: 'image-four' },
-                      { field: 'imageFive' as const, label: 'Screenshot 6', id: 'image-five' },
-                    ].map(({ field, label, id }) => (
+                  {/* Card Preview - Main Image */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Card Preview Image (Main)</Label>
+                    <div className="border-2 border-dashed rounded-lg p-4 text-center aspect-video flex items-center justify-center border-border bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        id="card-preview"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) handleImageUpload('cardPreviewImage', file)
+                        }}
+                      />
+
+                      {watchedValues.cardPreviewImage ? (
+                        <div className="relative w-full h-full group">
+                          <Image
+                            src={watchedValues.cardPreviewImage}
+                            alt="Card Preview"
+                            fill
+                            className="object-cover rounded cursor-pointer"
+                            onClick={() => setFullscreenImage(watchedValues.cardPreviewImage!)}
+                          />
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeImage('cardPreviewImage')
+                              }}
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Remove
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setFullscreenImage(watchedValues.cardPreviewImage!)}
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <label
+                          htmlFor="card-preview"
+                          className="cursor-pointer flex flex-col items-center text-muted-foreground hover:text-foreground transition-colors py-8"
+                        >
+                          <Camera className="w-10 h-10 mb-2" />
+                          <span className="text-sm font-medium">Click to upload screenshot</span>
+                          <span className="text-xs mt-1">JPG, PNG, WebP (max 10MB)</span>
+                        </label>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      This image will be used as the main preview card for this trade.
+                    </p>
+                  </div>
+
+                  {/* Additional Screenshots */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Additional Screenshots (Optional)</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {[
+                        { field: 'imageOne' as const, label: 'Screenshot 2', id: 'image-one' },
+                        { field: 'imageTwo' as const, label: 'Screenshot 3', id: 'image-two' },
+                        { field: 'imageThree' as const, label: 'Screenshot 4', id: 'image-three' },
+                        { field: 'imageFour' as const, label: 'Screenshot 5', id: 'image-four' },
+                        { field: 'imageFive' as const, label: 'Screenshot 6', id: 'image-five' },
+                      ].map(({ field, label, id }) => (
                       <div key={field} className="space-y-2">
                         <Label className="text-sm font-medium">{label}</Label>
                         <div className="border-2 border-dashed rounded-lg p-2 text-center aspect-video flex items-center justify-center border-border bg-muted/30 hover:bg-muted/50 transition-colors">
@@ -758,22 +824,24 @@ export default function EnhancedEditTrade({
                           )}
                         </div>
                       </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
               </CardContent>
-            </Card>
+              </Card>
+            </div>
 
-
-
-            {/* Form Actions */}
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={handleClose}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : 'Save Changes'}
-              </Button>
+            {/* Form Actions - Fixed at bottom */}
+            <div className="border-t px-4 sm:px-6 py-4 shrink-0 bg-background">
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={handleClose}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
             </div>
           </form>
         </DialogContent>
