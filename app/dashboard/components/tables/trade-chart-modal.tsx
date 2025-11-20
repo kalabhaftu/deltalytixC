@@ -11,6 +11,8 @@ import {
 import { TradingViewAdvancedChart } from '@/components/tradingview/tradingview-advanced-chart'
 import { TradingViewErrorBoundary } from '@/components/tradingview/tradingview-error-boundary'
 import { ExtendedTrade } from './trade-table-review'
+import { formatTimeInZone, DEFAULT_TIMEZONE } from '@/lib/time-utils'
+import { useUserStore } from '@/store/user-store'
 
 interface TradeChartModalProps {
   isOpen: boolean
@@ -19,6 +21,8 @@ interface TradeChartModalProps {
 }
 
 export function TradeChartModal({ isOpen, onClose, trade }: TradeChartModalProps) {
+  const timezone = useUserStore(state => state.timezone)
+  
   // Add a key to force remount when trade changes
   const modalKey = React.useMemo(() => {
     return trade ? `${trade.id}_${trade.entryDate}_${trade.closeDate}` : 'empty'
@@ -123,7 +127,7 @@ export function TradeChartModal({ isOpen, onClose, trade }: TradeChartModalProps
             {side.toUpperCase()} Position: {symbol}
           </DialogTitle>
           <DialogDescription>
-            Professional TradingView Position Visualization • Entry: {entryTime.toLocaleString()} • Exit: {exitTime.toLocaleString()} • 
+            Professional TradingView Position Visualization • Entry: {formatTimeInZone(entryTime, 'MMM d, yyyy HH:mm', timezone)} • Exit: {formatTimeInZone(exitTime, 'MMM d, yyyy HH:mm', timezone)} • 
             P&L: {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
           </DialogDescription>
         </DialogHeader>
