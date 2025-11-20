@@ -183,7 +183,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-base md:text-lg">
-            {isWeekly ? "Weekly Equity Chart" : "Daily Equity Chart"}
+            {isWeekly ? "" : "Daily Equity Chart"}
           </CardTitle>
           <CardDescription className="text-xs md:text-sm">
             Final Balance: {formatCurrency(equityChartData[equityChartData.length - 1]?.balance || 0)}
@@ -258,7 +258,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-base md:text-lg">
-            {isWeekly ? "Weekly Performance" : "Daily Performance"}
+            {isWeekly ? "" : "Daily Performance"}
           </CardTitle>
           <CardDescription className="text-xs md:text-sm">
             {isWeekly ? "Weekly" : "Daily"} P&L: {formatCurrency(totalPnL)}
