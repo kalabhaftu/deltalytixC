@@ -76,7 +76,8 @@ export async function GET(request: Request) {
         entryPrice: true,
         closePrice: true,
         comment: true, // Trade notes
-        tradingModel: true
+        tradingModel: true,
+        marketBias: true
       }
     })
 
@@ -247,6 +248,37 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
     }
   })
 
+  // Market Bias Analysis
+  const biasPerformance: Record<string, { trades: number, pnl: number, wins: number, alignedWithSide: number }> = {
+    BULLISH: { trades: 0, pnl: 0, wins: 0, alignedWithSide: 0 },
+    BEARISH: { trades: 0, pnl: 0, wins: 0, alignedWithSide: 0 },
+    UNDECIDED: { trades: 0, pnl: 0, wins: 0, alignedWithSide: 0 },
+  }
+  
+  let tradesWithBias = 0
+  let tradesAlignedWithBias = 0
+  
+  trades.forEach(t => {
+    if (t.marketBias) {
+      tradesWithBias++
+      const netPnL = t.pnl - (t.commission || 0)
+      biasPerformance[t.marketBias].trades++
+      biasPerformance[t.marketBias].pnl += netPnL
+      if (netPnL > 0) biasPerformance[t.marketBias].wins++
+      
+      // Check if trade direction aligns with bias
+      const isLong = t.side?.toUpperCase() === 'BUY' || t.side?.toLowerCase() === 'long'
+      const isShort = t.side?.toUpperCase() === 'SELL' || t.side?.toLowerCase() === 'short'
+      
+      if ((t.marketBias === 'BULLISH' && isLong) || (t.marketBias === 'BEARISH' && isShort)) {
+        biasPerformance[t.marketBias].alignedWithSide++
+        tradesAlignedWithBias++
+      }
+    }
+  })
+  
+  const biasAlignment = tradesWithBias > 0 ? (tradesAlignedWithBias / tradesWithBias) * 100 : 0
+
   // Call AI API (XAI/Grok)
   try {
     const apiKey = process.env.XAI_API_KEY
@@ -267,8 +299,9 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
     3. **Talk Like a Human**: No corporate BS. Be direct, be real. If they're self-sabotaging, tell them straight. If they're crushing it, hype them up.
     4. **Account Status = Reality Check**: If they have FAILED or BREACHED accounts, don't sugarcoat it. Dig into the trades/notes leading up to the failure. Was it tilt? Was it breaking rules? Call it out by name.
     5. **Spot the Tilt**: Rapid losses + frustrated notes = revenge trading. Say it loud and clear.
-    6. **Use the Dashboard Metrics**: You have P&L by instrument, by strategy, by weekday, and by hour. USE THIS DATA. If they lose money on Fridays, tell them to take Fridays off. If they make money on NQ but lose on ES, tell them to stop trading ES. If they're profitable 9-11 AM but lose money after 2 PM, call it out.
-    7. **Give Actionable Advice**: Not generic advice like "be disciplined." SPECIFIC advice based on their data: "Stop trading after 2 PM—your worst 3 hours are 14:00, 15:00, and 16:00" or "Focus on NQ—you're up $2,500 on it but down $800 on ES"
+    6. **Market Bias Alignment**: They're recording their market sentiment (BULLISH/BEARISH/UNDECIDED). Check if they're trading WITH their bias or AGAINST it. If they say "bullish" but take short trades and lose, call that out. If they're profitable when aligned with their bias, tell them to stick to it.
+    7. **Use the Dashboard Metrics**: You have P&L by instrument, by strategy, by weekday, and by hour. USE THIS DATA. If they lose money on Fridays, tell them to take Fridays off. If they make money on NQ but lose on ES, tell them to stop trading ES. If they're profitable 9-11 AM but lose money after 2 PM, call it out.
+    8. **Give Actionable Advice**: Not generic advice like "be disciplined." SPECIFIC advice based on their data: "Stop trading after 2 PM—your worst 3 hours are 14:00, 15:00, and 16:00" or "Focus on NQ—you're up $2,500 on it but down $800 on ES"
     
     📊 THE DATA:
 
@@ -328,6 +361,19 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
       `- ${emotion}: ${perf.trades} trades, $${perf.totalPnL.toFixed(2)} P&L${perf.trades > 0 ? ` (avg: $${(perf.totalPnL / perf.trades).toFixed(2)})` : ''}`
     ).join('\n') || 'No emotion-performance correlation data'}
 
+    **🎯 Market Bias Analysis** (CRITICAL: Are they following their bias?):
+    - Trades with recorded bias: ${tradesWithBias} out of ${tradeStats.totalTrades} trades
+    - Trades aligned with bias: ${tradesAlignedWithBias} (${biasAlignment.toFixed(1)}%)
+    ${Object.entries(biasPerformance)
+      .filter(([_, data]) => data.trades > 0)
+      .map(([bias, data]) => {
+        const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
+        const alignmentRate = data.trades > 0 ? ((data.alignedWithSide / data.trades) * 100).toFixed(1) : 0
+        return `- ${bias} Bias: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR, ${alignmentRate}% aligned with bias`
+      }).join('\n') || 'No bias data recorded'}
+    ${tradesWithBias > 0 && biasAlignment < 50 ? 
+      `⚠️ WARNING: Only ${biasAlignment.toFixed(1)}% of trades align with stated bias. They're trading AGAINST their market sentiment—potential counter-trend losses!` : ''}
+
     **📝 Daily Journal Entries** (READ EVERY WORD - The vibe is in here):
     ${journalSummary.map(j => `- ${new Date(j.date).toLocaleDateString()}: [${j.emotion || 'No emotion'}] "${j.note}" (${j.account})`).join('\n') || 'No journal entries'}
 
@@ -346,7 +392,8 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
         "At least 3-5 insights based on the dashboard metrics above. Examples: 'Your win rate is solid at 58% but your avg loss ($250) is 2x your avg win ($120)—fix your risk/reward.'",
         "'You make money on NQ ($2,500) but lose on ES (-$800)—stick to what works or cut ES entirely.'",
         "'Fridays are killing you: -$1,200 across 15 trades. Just don't trade Fridays.'",
-        "'Your best hours are 9-11 AM ($1,800 profit). After 2 PM you're down $900. Stop trading in the afternoon.'"
+        "'Your best hours are 9-11 AM ($1,800 profit). After 2 PM you're down $900. Stop trading in the afternoon.'",
+        "'You're trading against your bias—60% of your bearish bias trades were longs and you lost money. Trust your bias or don't record it.'"
       ],
       "strengths": [
         "At least 2-3. Examples: 'You're journaling consistently—that's rare and shows you're serious.'",

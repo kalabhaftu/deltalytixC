@@ -28,68 +28,29 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
-import { Trade } from '@prisma/client'
-import { Edit, Camera, X, Target, ChevronDown, AlertTriangle } from 'lucide-react'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+import { Trade, MarketBias } from '@prisma/client'
+import { Edit, Camera, X, Target, AlertTriangle, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { useUserStore } from '@/store/user-store'
 import { formatCurrency } from '@/lib/utils'
-import { DataSerializer } from '@/lib/data-serialization'
 import { uploadService } from '@/lib/upload-service'
 import { TagSelector } from '@/app/dashboard/components/tags/tag-selector'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
-// Utility function to format trading model names consistently
-const formatModelName = (model: string): string => {
-  // Handle special cases for default models
-  if (model.includes('ict') || model.includes('ICT')) {
-    return 'ICT 2022'
-  }
-  if (model.includes('msnr') || model === 'MSNR') {
-    return 'MSNR'
-  }
-  if (model.includes('ttfm') || model === 'TTFM') {
-    return 'TTFM'
-  }
-  if (model.includes('price') || model.includes('PRICE')) {
-    return 'Price Action'
-  }
-  
-  // For custom models, use proper title case
-  return model.split(/[-_\s]+/)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ')
+interface TradingModel {
+  id: string
+  name: string
+  rules: string[]
+  notes?: string | null
 }
 
-// Utility function to get trading models with proper enum mapping
-const getTradingModels = () => {
-  const defaultModels = ['ict-2022', 'msnr', 'ttfm', 'price-action']
-  const customModels = DataSerializer.getTradingModels()
-  return [...defaultModels, ...customModels]
-}
-
-// Map string values to TradingModel enum values for database updates
-const mapModelToEnum = (model: string) => {
-  const enumMap: Record<string, 'ICT_2022' | 'MSNR' | 'TTFM' | 'PRICE_ACTION'> = {
-    'ict-2022': 'ICT_2022',
-    'msnr': 'MSNR',
-    'ttfm': 'TTFM',
-    'price-action': 'PRICE_ACTION'
-  }
-
-  // For custom models that aren't in the default enum, store as null
-  // (or you could extend this to handle custom enums)
-  return enumMap[model] || null
-}
-
-// Schema for limited editing (only notes, screenshots, links)
+// Schema for limited editing (only notes, screenshots, links, model + rules, bias)
 const editTradeSchema = z.object({
   comment: z.string().optional(),
   cardPreviewImage: z.string().optional(),
-  tradingModel: z.string().nullable().optional(),
+  modelId: z.string().nullable().optional(),
+  selectedRules: z.array(z.string()).optional(),
   links: z.array(z.string().url()).optional(),
+  marketBias: z.enum(['BULLISH', 'BEARISH', 'UNDECIDED']).nullable().optional(),
 })
 
 type EditTradeFormData = z.infer<typeof editTradeSchema>
@@ -186,7 +147,9 @@ export default function EnhancedEditTrade({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null)
   const [additionalLinks, setAdditionalLinks] = useState<string[]>([])
-  const [isTradingModelOpen, setIsTradingModelOpen] = useState(false)
+  const [tradingModels, setTradingModels] = useState<TradingModel[]>([])
+  const [selectedModel, setSelectedModel] = useState<TradingModel | null>(null)
+  const [selectedRules, setSelectedRules] = useState<string[]>([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   
   // Confirmation dialogs state
@@ -223,11 +186,29 @@ export default function EnhancedEditTrade({
     defaultValues: {
       comment: '',
       cardPreviewImage: '',
-      tradingModel: '',
+      modelId: null,
+      selectedRules: [],
+      marketBias: null,
     }
   })
 
   const watchedValues = watch()
+
+  // Fetch trading models
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const response = await fetch('/api/user/trading-models')
+        if (response.ok) {
+          const data = await response.json()
+          setTradingModels(data.models || [])
+        }
+      } catch (error) {
+        console.error('Failed to fetch trading models:', error)
+      }
+    }
+    fetchModels()
+  }, [])
 
   // Initialize form with trade data and load draft if available
   useEffect(() => {
@@ -239,7 +220,16 @@ export default function EnhancedEditTrade({
       const defaultFormState: EditTradeFormData = {
         comment: trade.comment || '',
         cardPreviewImage: (trade as any)?.cardPreviewImage || '',
-        tradingModel: (trade as any)?.tradingModel || '',
+        modelId: (trade as any)?.modelId || null,
+        selectedRules: (trade as any)?.selectedRules || [],
+        marketBias: (trade as any)?.marketBias || null,
+      }
+      
+      // Set model and rules state
+      if ((trade as any)?.modelId) {
+        const model = tradingModels.find(m => m.id === (trade as any).modelId)
+        setSelectedModel(model || null)
+        setSelectedRules((trade as any)?.selectedRules || [])
       }
       
       // Try to load draft from localStorage
@@ -397,7 +387,8 @@ export default function EnhancedEditTrade({
       // Prepare the update data - explicitly handle null values for deleted images
       const updateData = {
         comment: data.comment || null,
-        tradingModel: data.tradingModel ? mapModelToEnum(data.tradingModel) : null,
+        modelId: data.modelId || null,
+        selectedRules: selectedRules.length > 0 ? selectedRules : null,
         tags: selectedTags.length > 0 ? selectedTags.join(',') : null,
         cardPreviewImage: data.cardPreviewImage === '' ? null : data.cardPreviewImage || null,
       } as Partial<Trade>
@@ -525,48 +516,128 @@ export default function EnhancedEditTrade({
               </CardContent>
             </Card>
 
-            {/* Trading Model */}
+            {/* Market Bias */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Market Bias</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Label>What was your market sentiment? (Optional)</Label>
+                  <RadioGroup
+                    value={watchedValues.marketBias || ''}
+                    onValueChange={(value) => setValue('marketBias', value as MarketBias | null)}
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center space-x-2 border p-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer">
+                        <RadioGroupItem value="BULLISH" id="bias-bullish" />
+                        <Label htmlFor="bias-bullish" className="flex items-center gap-2 cursor-pointer w-full">
+                          <TrendingUp className="h-4 w-4 text-green-500" />
+                          Bullish
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2 border p-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer">
+                        <RadioGroupItem value="BEARISH" id="bias-bearish" />
+                        <Label htmlFor="bias-bearish" className="flex items-center gap-2 cursor-pointer w-full">
+                          <TrendingDown className="h-4 w-4 text-red-500" />
+                          Bearish
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2 border p-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer">
+                        <RadioGroupItem value="UNDECIDED" id="bias-undecided" />
+                        <Label htmlFor="bias-undecided" className="flex items-center gap-2 cursor-pointer w-full">
+                          <Minus className="h-4 w-4 text-muted-foreground" />
+                          Undecided
+                        </Label>
+                      </div>
+                    </div>
+                  </RadioGroup>
+                  {watchedValues.marketBias && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setValue('marketBias', null)}
+                      className="text-xs"
+                    >
+                      Clear Selection
+                    </Button>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    Record your overall market sentiment at the time of this trade.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Trading Model & Rules */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center">
                   <Target className="w-5 h-5 mr-2" />
-                  Trading Model
+                  Trading Model & Rules
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  <Label>Select Trading Model</Label>
-                  <Collapsible open={isTradingModelOpen} onOpenChange={setIsTradingModelOpen}>
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-between"
-                      >
-                        {watchedValues.tradingModel ? formatModelName(watchedValues.tradingModel) : "Select a trading model..."}
-                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isTradingModelOpen ? 'rotate-180' : ''}`} />
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-2 mt-2">
-                      <div className="grid grid-cols-1 gap-2">
-                        {getTradingModels().map((model) => (
-                          <Button
-                            key={model}
-                            variant={watchedValues.tradingModel === model ? "default" : "outline"}
-                            className="justify-start"
-                            onClick={() => {
-                              setValue('tradingModel', model === '' ? undefined : model)
-                              setIsTradingModelOpen(false)
-                            }}
-                          >
-                            {formatModelName(model)}
-                          </Button>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Select Trading Model</Label>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      value={watchedValues.modelId || ''}
+                      onChange={(e) => {
+                        const modelId = e.target.value || null
+                        setValue('modelId', modelId)
+                        const model = tradingModels.find(m => m.id === modelId)
+                        setSelectedModel(model || null)
+                        setSelectedRules([])
+                      }}
+                    >
+                      <option value="">No model selected</option>
+                      {tradingModels.map((model) => (
+                        <option key={model.id} value={model.id}>
+                          {model.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-sm text-muted-foreground">
+                      Choose the trading model or strategy used for this trade.
+                    </p>
+                  </div>
+
+                  {selectedModel && selectedModel.rules.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t">
+                      <Label>Rules Applied (check what you used)</Label>
+                      <div className="space-y-2">
+                        {selectedModel.rules.map((rule, index) => (
+                          <div key={index} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`rule-${index}`}
+                              checked={selectedRules.includes(rule)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedRules([...selectedRules, rule])
+                                } else {
+                                  setSelectedRules(selectedRules.filter(r => r !== rule))
+                                }
+                              }}
+                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                            />
+                            <label
+                              htmlFor={`rule-${index}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                              {rule}
+                            </label>
+                          </div>
                         ))}
                       </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                  <p className="text-sm text-muted-foreground">
-                    Choose the trading model or strategy used for this trade.
-                  </p>
+                      <p className="text-sm text-muted-foreground">
+                        Select which rules from this model applied to your trade.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

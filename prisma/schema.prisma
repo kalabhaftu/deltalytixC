@@ -263,9 +263,12 @@ model Trade {
   closeReason      String?
   stopLoss         String?
   takeProfit       String?
-  tradingModel     TradingModel?
   tags             String?
+  marketBias       MarketBias?
+  modelId          String?
+  selectedRules    Json?
   Account          Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  TradingModel     TradingModel? @relation(fields: [modelId], references: [id])
   PhaseAccount     PhaseAccount? @relation(fields: [phaseAccountId], references: [id], onDelete: Cascade)
 
   @@index([accountId, exitTime])
@@ -275,6 +278,7 @@ model Trade {
   @@index([entryId])
   @@index([exitTime])
   @@index([groupId])
+  @@index([modelId])
   @@index([phaseAccountId, exitTime])
   @@index([phaseAccountId])
   @@index([symbol])
@@ -300,6 +304,21 @@ model TradeTag {
   @@schema("public")
 }
 
+model TradingModel {
+  id        String   @id
+  userId    String
+  name      String
+  rules     Json     @default("[]")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  Trade     Trade[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@schema("public")
+}
+
 model User {
   id                     String                   @id
   email                  String                   @unique
@@ -312,7 +331,6 @@ model User {
   lastName               String?
   accountFilterSettings  String?
   backtestInputMode      String                   @default("manual")
-  customTradingModels    String?
   Account                Account[]
   BacktestTrade          BacktestTrade[]
   DailyNote              DailyNote[]
@@ -329,29 +347,21 @@ model User {
 }
 
 model WeeklyReview {
-  id              String            @id @default(uuid())
-  userId          String
-  startDate       DateTime          @db.Date // Monday of the week
-  endDate         DateTime          @db.Date // Sunday of the week
-  calendarImage   String?           // URL to the uploaded image
-  expectation     WeeklyExpectation?
-  actualOutcome   WeeklyExpectation?
-  isCorrect       Boolean?
-  notes           String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  User            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String             @id
+  userId        String
+  startDate     DateTime           @db.Date
+  endDate       DateTime           @db.Date
+  calendarImage String?
+  expectation   WeeklyExpectation?
+  actualOutcome WeeklyExpectation?
+  isCorrect     Boolean?
+  notes         String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime
+  User          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, startDate])
   @@index([userId])
-  @@schema("public")
-}
-
-enum WeeklyExpectation {
-  BULLISH_EXPANSION
-  BEARISH_EXPANSION
-  CONSOLIDATION
-
   @@schema("public")
 }
 
@@ -397,6 +407,14 @@ enum BreachType {
   @@schema("public")
 }
 
+enum MarketBias {
+  BULLISH
+  BEARISH
+  UNDECIDED
+
+  @@schema("public")
+}
+
 enum MasterAccountStatus {
   active
   funded
@@ -415,18 +433,17 @@ enum PhaseAccountStatus {
   @@schema("public")
 }
 
-enum TradingModel {
-  ICT_2022
-  MSNR
-  TTFM
-  PRICE_ACTION
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
 
   @@schema("public")
 }
 
-enum TransactionType {
-  DEPOSIT
-  WITHDRAWAL
+enum WeeklyExpectation {
+  BULLISH_EXPANSION
+  BEARISH_EXPANSION
+  CONSOLIDATION
 
   @@schema("public")
 }

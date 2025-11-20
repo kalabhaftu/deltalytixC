@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Trade } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,11 +14,18 @@ import {
 } from '@/components/ui/dialog'
 import { VisuallyHidden } from '@/components/ui/visually-hidden'
 import { Badge } from '@/components/ui/badge'
-import { Eye, Calendar, Clock, TrendingUp, TrendingDown, DollarSign, Hash, User, Download, X } from 'lucide-react'
+import { Eye, Calendar, Clock, TrendingUp, TrendingDown, DollarSign, Hash, User, Download, X, Target, CheckCircle, Minus } from 'lucide-react'
 import { cn, formatCurrency, formatNumber, formatQuantity, formatTradeData } from '@/lib/utils'
 import Image from 'next/image'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { toast } from 'sonner'
+
+interface TradingModel {
+  id: string
+  name: string
+  rules: string[]
+  notes?: string | null
+}
 
 interface TradeDetailViewProps {
   isOpen: boolean
@@ -143,6 +150,31 @@ async function downloadImage(imageData: string, trade: Trade, imageIndex: number
 export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps) {
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null)
   const [selectedImageIndex, setSelectedImageIndex] = React.useState<number>(0)
+  const [tradeModel, setTradeModel] = useState<TradingModel | null>(null)
+  
+  // Fetch model data if trade has a modelId
+  useEffect(() => {
+    const fetchModel = async () => {
+      if (trade && (trade as any).modelId) {
+        try {
+          const response = await fetch('/api/user/trading-models')
+          if (response.ok) {
+            const data = await response.json()
+            const model = data.models.find((m: TradingModel) => m.id === (trade as any).modelId)
+            setTradeModel(model || null)
+          }
+        } catch (error) {
+          console.error('Failed to fetch model:', error)
+        }
+      } else {
+        setTradeModel(null)
+      }
+    }
+    
+    if (isOpen) {
+      fetchModel()
+    }
+  }, [trade, isOpen])
 
   if (!trade) return null
 
@@ -294,6 +326,25 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                       </Badge>
                     </div>
                   )}
+                  {(trade as any).marketBias && (
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Market Bias</Label>
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "capitalize",
+                          (trade as any).marketBias === 'BULLISH' && "border-green-500 text-green-600",
+                          (trade as any).marketBias === 'BEARISH' && "border-red-500 text-red-600",
+                          (trade as any).marketBias === 'UNDECIDED' && "border-muted-foreground text-muted-foreground"
+                        )}
+                      >
+                        {(trade as any).marketBias === 'BULLISH' && <TrendingUp className="h-3 w-3 mr-1" />}
+                        {(trade as any).marketBias === 'BEARISH' && <TrendingDown className="h-3 w-3 mr-1" />}
+                        {(trade as any).marketBias === 'UNDECIDED' && <Minus className="h-3 w-3 mr-1" />}
+                        {(trade as any).marketBias.toLowerCase()}
+                      </Badge>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -386,6 +437,55 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Trading Model & Rules */}
+              {(tradeModel || (trade as any).tags) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Target className="w-5 h-5" />
+                      Strategy & Tags
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {tradeModel && (
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Trading Model</Label>
+                        <Badge variant="default" className="mt-1">
+                          {tradeModel.name}
+                        </Badge>
+                        
+                        {(trade as any).selectedRules && Array.isArray((trade as any).selectedRules) && (trade as any).selectedRules.length > 0 && (
+                          <div className="mt-3">
+                            <Label className="text-sm text-muted-foreground">Rules Applied</Label>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {((trade as any).selectedRules as string[]).map((rule, index) => (
+                                <Badge key={index} variant="outline" className="flex items-center gap-1">
+                                  <CheckCircle className="w-3 h-3" />
+                                  {rule}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {(trade as any).tags && (
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Tags</Label>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {(trade as any).tags.split(',').filter(Boolean).map((tag: string, index: number) => (
+                            <Badge key={index} variant="secondary">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
 
