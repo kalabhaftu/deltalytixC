@@ -95,7 +95,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ note: savedNote })
   } catch (error) {
-    console.error('Error saving daily note:', error)
     if (error instanceof Error && error.message.includes('not authenticated')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -140,7 +139,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting daily note:', error)
     if (error instanceof Error && error.message.includes('not authenticated')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

@@ -111,7 +111,7 @@ export function DailyJournalModal({
         }
       }
     } catch (error) {
-      console.error('Failed to fetch journal:', error)
+      // Error fetching journal
     } finally {
       setIsLoading(false)
     }
@@ -148,7 +148,6 @@ export function DailyJournalModal({
       setHasChanges(false)
       onClose()
     } catch (error) {
-      console.error('Failed to save journal:', error)
       toast.error('Failed to save journal entry')
     } finally {
       setIsSaving(false)

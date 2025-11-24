@@ -29,7 +29,7 @@ export class TradingViewErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('TradingView Widget Error:', error, errorInfo)
+    // Error caught by boundary
   }
 
   handleRetry = () => {

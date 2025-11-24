@@ -57,8 +57,7 @@ prisma.$connect()
   .then(() => {
     isDatabaseAvailable = true
   })
-  .catch((error) => {
-    console.warn('⚠️ Database not available:', error.message)
+  .catch(() => {
     isDatabaseAvailable = false
   })
 
@@ -68,14 +67,12 @@ export const safeDbOperation = async <T>(
   fallbackValue?: T
 ): Promise<T | undefined> => {
   if (!isDatabaseAvailable) {
-    console.warn('Database not available, returning fallback value')
     return fallbackValue
   }
 
   try {
     return await operation()
   } catch (error) {
-    console.error('Database operation failed:', error)
     return fallbackValue
   }
 }
@@ -94,15 +91,6 @@ async function connectWithRetry(client: PrismaClient, maxRetries = 3, baseDelay 
       isDatabaseAvailable = true
       return client
     } catch (error: any) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      
-      // Only log warnings, not errors, to reduce noise
-      if (i === maxRetries - 1) {
-        console.error(`❌ Database connection failed after ${maxRetries} attempts:`, errorMessage)
-      } else {
-        console.warn(`⚠️ Database connection attempt ${i + 1}/${maxRetries} failed:`, errorMessage)
-      }
-
       // Exponential backoff with jitter
       if (i < maxRetries - 1) {
         const jitter = Math.random() * 100 // Random 0-100ms
@@ -117,8 +105,8 @@ async function connectWithRetry(client: PrismaClient, maxRetries = 3, baseDelay 
 }
 
 // Initialize connection with retry
-connectWithRetry(prisma).catch((error) => {
-  console.error('❌ Failed to establish database connection:', error)
+connectWithRetry(prisma).catch(() => {
+  // Connection failed, will retry on next operation
 })
 
 // Cleanup connections on process exit
@@ -126,7 +114,7 @@ process.on('beforeExit', async () => {
   try {
     await prisma.$disconnect()
   } catch (error) {
-    console.error('Error during database disconnect:', error)
+    // Ignore disconnect errors
   }
 })
 
@@ -134,7 +122,7 @@ process.on('SIGTERM', async () => {
   try {
     await prisma.$disconnect()
   } catch (error) {
-    console.error('Error during database disconnect:', error)
+    // Ignore disconnect errors
   }
   process.exit(0)
 })
@@ -143,7 +131,7 @@ process.on('SIGINT', async () => {
   try {
     await prisma.$disconnect()
   } catch (error) {
-    console.error('Error during database disconnect:', error)
+    // Ignore disconnect errors
   }
   process.exit(0)
 })

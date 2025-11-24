@@ -33,7 +33,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error creating payout:', error)
     return NextResponse.json(
       { 
         success: false, 

@@ -86,7 +86,6 @@ export async function GET(request: NextRequest) {
       } catch (error) {
         const errorMsg = `Phase ${phase.id} (${phase.MasterAccount.accountName}): ${error instanceof Error ? error.message : 'Unknown error'}`
         errors.push(errorMsg)
-        console.error('[BACKGROUND_EVAL]', errorMsg)
       }
     }
 
@@ -106,7 +105,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result)
 
   } catch (error) {
-    console.error('[BACKGROUND_EVAL] Fatal error:', error)
     return NextResponse.json(
       {
         success: false,
@@ -177,7 +175,6 @@ export async function POST(request: NextRequest) {
     return cronResponse
 
   } catch (error) {
-    console.error('[BACKGROUND_EVAL] Manual trigger error:', error)
     return NextResponse.json(
       {
         success: false,

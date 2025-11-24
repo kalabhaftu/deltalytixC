@@ -48,7 +48,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ journals })
   } catch (error) {
-    console.error('Failed to fetch journals:', error)
     return NextResponse.json(
       { error: 'Failed to fetch journal entries' },
       { status: 500 }

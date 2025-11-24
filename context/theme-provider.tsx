@@ -94,12 +94,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggleTheme = () => {
     setThemeState(prevTheme => {
-      if (prevTheme === 'system') {
-        return effectiveTheme === 'light' ? 'dark' : (effectiveTheme === 'dark' ? 'midnight-ocean' : 'light')
-      }
+      // FIXED: Include system theme in toggle cycle
+      // Cycle: Light → Dark → Midnight Ocean → System → Light
       if (prevTheme === 'light') return 'dark'
       if (prevTheme === 'dark') return 'midnight-ocean'
-      return 'light'
+      if (prevTheme === 'midnight-ocean') return 'system'
+      return 'light' // From system back to light
     })
   }
 

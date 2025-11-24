@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from "@/context/auth-provider"
 import { toast } from "sonner"
@@ -141,9 +141,11 @@ export default function AccountDetailPage() {
     }
   }, [realtimeError, router])
 
-  // ✅ Fetch complete data when component mounts and account loads
+  // ✅ FIXED: Fetch complete data only once when account loads (prevent re-fetch loop)
+  const hasFetchedDataRef = useRef(false)
   useEffect(() => {
-    if (realtimeAccount && accountId) {
+    if (realtimeAccount && accountId && !hasFetchedDataRef.current) {
+      hasFetchedDataRef.current = true
       fetchCompleteData()
     }
   }, [realtimeAccount, accountId, fetchCompleteData])

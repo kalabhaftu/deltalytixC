@@ -85,7 +85,6 @@ export function useDeploymentCheck({
       }
     } catch (error) {
       // Silently fail - don't want to spam users with errors
-      console.warn('Failed to check for new deployment:', error)
     }
   }, [buildId, onNewDeployment, autoRefresh, autoRefreshDelay])
 

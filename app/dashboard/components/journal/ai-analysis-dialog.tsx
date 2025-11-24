@@ -126,7 +126,6 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
       setAnalysis(data.analysis)
       toast.success('Analysis complete!')
     } catch (error) {
-      console.error('Failed to generate analysis:', error)
       toast.error('Failed to generate AI analysis')
     } finally {
       setIsAnalyzing(false)

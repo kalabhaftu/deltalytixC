@@ -99,8 +99,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
   } catch (error) {
-    console.error('Error evaluating phase:', error)
-    
     return NextResponse.json(
       { 
         success: false, 
@@ -172,8 +170,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
   } catch (error) {
-    console.error('Error getting evaluation status:', error)
-    
     return NextResponse.json(
       { 
         success: false, 

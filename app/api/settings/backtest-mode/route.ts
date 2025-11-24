@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
       mode: user?.backtestInputMode || 'manual' 
     }, { status: 200 })
   } catch (error) {
-    console.error('Error fetching backtest mode:', error)
     return NextResponse.json({ mode: 'manual' }, { status: 200 })
   }
 }
@@ -47,7 +46,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, mode }, { status: 200 })
   } catch (error) {
-    console.error('Error updating backtest mode:', error)
     return NextResponse.json(
       { error: 'Failed to update preference' },
       { status: 500 }

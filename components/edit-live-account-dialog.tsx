@@ -103,7 +103,6 @@ export function EditLiveAccountDialog({
       onSuccess?.()
 
     } catch (error) {
-      console.error('Error updating account:', error)
       toast('Update Failed', {
         description: error instanceof Error ? error.message : 'Failed to update account',
       })

@@ -13,7 +13,6 @@ export async function GET() {
       data: propFirmTemplates
     })
   } catch (error) {
-    console.error('Error fetching prop firm templates:', error)
     return NextResponse.json(
       { 
         success: false, 

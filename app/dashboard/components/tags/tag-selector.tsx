@@ -45,7 +45,6 @@ export function TagSelector({ selectedTagIds, onChange, className }: TagSelector
       const data = await response.json()
       setTags(data.tags || [])
     } catch (error) {
-      console.error('Failed to fetch tags:', error)
       toast.error('Failed to load tags')
     } finally {
       setIsLoading(false)

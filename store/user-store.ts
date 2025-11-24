@@ -73,7 +73,6 @@ export const useUserStore = create<UserStore>()((
           // Update database
           await saveGroupAction(group.id)
         } catch (error) {
-          console.error('Error adding group:', error)
           throw error
         }
       },
@@ -88,7 +87,6 @@ export const useUserStore = create<UserStore>()((
           // Update database
           await updateGroupAction(groupId, data.name || '')
         } catch (error) {
-          console.error('Error updating group:', error)
           throw error
         }
       },
@@ -101,7 +99,6 @@ export const useUserStore = create<UserStore>()((
           // Update database
           await deleteGroupAction(groupId)
         } catch (error) {
-          console.error('Error removing group:', error)
           throw error
         }
       },

@@ -38,10 +38,16 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit
     const stream = searchParams.get('stream') === 'true'
     const test = searchParams.get('test') === '1'
+    
+    // PROFESSIONAL PAGINATION: Support cursor-based pagination for large datasets
+    const cursor = searchParams.get('cursor')
+    const useCursorPagination = !!cursor
 
-    // For streaming responses, use a smaller page size to avoid memory issues
-    // For large requests (like loading all trades), cap at 5000 to prevent memory issues
-    const actualLimit = stream ? Math.min(limit, 50) : Math.min(limit, 5000)
+    // For cursor pagination: unlimited (let database handle efficiently)
+    // For offset pagination: cap at reasonable limit but allow larger datasets
+    const actualLimit = useCursorPagination 
+      ? limit  // No artificial limit with cursor
+      : stream ? Math.min(limit, 50) : Math.min(limit, 10000) // Increased from 5000 to 10000
 
 
     // If test is requested, return a simple test response
@@ -60,7 +66,6 @@ export async function GET(request: NextRequest) {
         })
         tradeCount = countResult
       } catch (error) {
-        console.error('API: Database connection test failed:', error)
         dbStatus = 'disconnected'
       }
 
@@ -71,19 +76,36 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Regular paginated response (removed streaming for simplicity)
-    const trades = await getTradesPaginated(offset, actualLimit)
+    // PROFESSIONAL PAGINATION: Support both offset and cursor pagination
+    let trades: any[]
+    let nextCursor: string | null = null
+    
+    if (useCursorPagination) {
+      // Cursor-based pagination (more efficient for large datasets)
+      const result = await getTradesWithCursor(cursor, actualLimit)
+      trades = result.trades
+      nextCursor = result.nextCursor
+    } else {
+      // Traditional offset pagination (for compatibility)
+      trades = await getTradesPaginated(offset, actualLimit)
+    }
 
-    // Get total count for better UX
-    const totalCount = await getTotalTradeCount()
+    // Get total count for better UX (only for offset pagination)
+    const totalCount = useCursorPagination ? null : await getTotalTradeCount()
 
-    const responseData = {
+    const responseData = useCursorPagination ? {
+      success: true,
+      data: trades,
+      count: trades.length,
+      cursor: nextCursor,
+      hasMore: nextCursor !== null
+    } : {
       success: true,
       data: trades,
       count: trades.length,
       page,
       limit: actualLimit,
-      hasMore: trades.length === actualLimit && offset + trades.length < totalCount,
+      hasMore: trades.length === actualLimit && offset + trades.length < totalCount!,
       total: totalCount
     }
 
@@ -91,7 +113,6 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.json(responseData)
     return response
   } catch (error) {
-    console.error('API: Failed to fetch trades:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
 
     // Handle authentication errors with 401 status
@@ -117,7 +138,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Helper function for paginated trades
+// Helper function for paginated trades (offset-based)
 async function getTradesPaginated(offset: number, limit: number) {
   const userId = await getUserIdSafe()
 
@@ -129,8 +150,6 @@ async function getTradesPaginated(offset: number, limit: number) {
     where: { userId },
     include: {
       Account: true
-      // phase: true, // Phase field not available
-      // propFirmPhase: true, // PropFirmPhase field not available
     },
     orderBy: {
       entryTime: 'desc'
@@ -140,6 +159,43 @@ async function getTradesPaginated(offset: number, limit: number) {
   })
 
   return trades
+}
+
+// PROFESSIONAL PAGINATION: Cursor-based pagination for large datasets
+async function getTradesWithCursor(cursor: string | null, limit: number) {
+  const userId = await getUserIdSafe()
+
+  if (!userId) {
+    throw new Error('User not authenticated')
+  }
+
+  // Build query with cursor
+  const trades = await prisma.trade.findMany({
+    where: { userId },
+    include: {
+      Account: true
+    },
+    orderBy: {
+      entryTime: 'desc'
+    },
+    take: limit + 1, // Fetch one extra to determine if there's more
+    ...(cursor && {
+      cursor: {
+        id: cursor
+      },
+      skip: 1 // Skip the cursor itself
+    })
+  })
+
+  // Determine if there are more results
+  const hasMore = trades.length > limit
+  const results = hasMore ? trades.slice(0, -1) : trades
+  const nextCursor = hasMore ? trades[trades.length - 2].id : null
+
+  return {
+    trades: results,
+    nextCursor
+  }
 }
 
 
@@ -211,7 +267,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Failed to update trade:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to update trade' },
       { status: 500 }
@@ -234,7 +289,6 @@ export async function DELETE(request: NextRequest) {
     const result = await deleteTrade(tradeId)
     return NextResponse.json(result)
   } catch (error) {
-    console.error('Failed to delete trade:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to delete trade' },
       { status: 500 }
@@ -288,7 +342,6 @@ export async function POST(request: NextRequest) {
         )
     }
   } catch (error) {
-    console.error('API: Progressive data error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to process progressive request' },
       { status: 500 }

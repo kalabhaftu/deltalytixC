@@ -193,8 +193,6 @@ export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePro
       
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       setError(errorMessage)
-      
-      console.error('Prop firm realtime fetch error:', error)
     } finally {
       setIsFetching(false)
       if (showLoadingState) {

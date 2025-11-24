@@ -43,7 +43,6 @@ export async function POST(req: NextRequest) {
 
     return result.toTextStreamResponse();
   } catch (error) {
-    console.error("Error in mappings route:", error);
     return new Response(JSON.stringify({ error: "Failed to generate mappings" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

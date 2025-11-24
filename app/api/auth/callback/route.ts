@@ -50,7 +50,6 @@ export async function GET(request: Request) {
           // Note: Dashboard layout moved to DashboardTemplate model
           // Template is now auto-created on first dashboard visit
         } catch (dbError) {
-          console.error('Failed to ensure user in database:', dbError)
           // Continue with redirect - user authentication succeeded
         }
 

@@ -199,7 +199,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Export error:', error)
     return NextResponse.json(
       { error: 'Failed to export data' },
       { status: 500 }

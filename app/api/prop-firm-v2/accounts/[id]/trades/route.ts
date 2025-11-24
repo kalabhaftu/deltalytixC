@@ -124,8 +124,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       evaluationResult = await PhaseEvaluationEngine.evaluatePhase(masterAccountId, currentPhase.id)
       
       if (evaluationResult.isFailed) {
-        console.log(`[TRADES_API] Phase failed after trade added - updating status`)
-        
         await prisma.$transaction(async (tx) => {
           await tx.phaseAccount.update({
             where: { id: currentPhase.id },
@@ -142,7 +140,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         revalidateTag(`accounts-${userId}`)
       }
     } catch (evalError) {
-      console.error('[TRADES_API] Error evaluating phase:', evalError)
       // Don't fail the trade creation if evaluation fails
     }
 
@@ -167,8 +164,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
   } catch (error) {
-    console.error('Error adding trade:', error)
-    
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { 
@@ -292,7 +287,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
   } catch (error) {
-    console.error('Error fetching trades:', error)
     return NextResponse.json(
       { 
         success: false, 

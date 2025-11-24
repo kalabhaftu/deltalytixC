@@ -40,7 +40,6 @@ export async function PUT(
 
     return NextResponse.json({ journal })
   } catch (error) {
-    console.error('Failed to update journal:', error)
     return NextResponse.json(
       { error: 'Failed to update journal entry' },
       { status: 500 }
@@ -80,7 +79,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Failed to delete journal:', error)
     return NextResponse.json(
       { error: 'Failed to delete journal entry' },
       { status: 500 }

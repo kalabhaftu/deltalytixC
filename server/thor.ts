@@ -30,7 +30,6 @@ export async function generateThorToken() {
     revalidatePath('/dashboard')
     return { token }
   } catch (error) {
-    console.error('Failed to generate Thor token:', error)
     return { error: 'Failed to generate token' }
   }
 }
@@ -55,7 +54,6 @@ export async function getThorToken() {
 
     return { token: userData?.thorToken }
   } catch (error) {
-    console.error('Failed to get Thor token:', error)
     return { error: 'Failed to get token' }
   }
 } 

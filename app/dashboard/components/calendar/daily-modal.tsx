@@ -106,7 +106,7 @@ export function CalendarModal({
         setHasLoadedJournal(true)
       }
     } catch (error) {
-      console.error('Failed to fetch journal:', error)
+      // Error fetching journal
     } finally {
       setIsLoadingJournal(false)
     }
@@ -168,7 +168,6 @@ export function CalendarModal({
 
       setIsEditMode(false)
     } catch (error) {
-      console.error('Failed to save journal:', error)
       toast.error('Failed to save journal')
     } finally {
       setIsSaving(false)

@@ -24,7 +24,6 @@ export async function DELETE(request: NextRequest) {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
     
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('[Account Deletion] Missing Supabase environment variables')
       return NextResponse.json(
         { error: 'Server configuration error. Please contact support.' },
         { status: 500 }
@@ -106,7 +105,6 @@ export async function DELETE(request: NextRequest) {
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
     
     if (authError) {
-      console.error(`[Account Deletion] Failed to delete from Supabase Auth:`, authError)
       // If we can't delete from auth, we should probably restore the user data
       // But for now, we'll log the error and continue
       // In a production environment, you might want to implement a rollback mechanism
@@ -120,8 +118,6 @@ export async function DELETE(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('[Account Deletion] Error:', error)
-    
     // Return appropriate error response
     if (error instanceof Error) {
       if (error.message.includes('Authentication')) {

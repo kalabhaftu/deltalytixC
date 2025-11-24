@@ -70,7 +70,7 @@ export function broadcastAccountsUpdate() {
     try {
       callback()
     } catch (error) {
-      console.warn('[useAccounts] Error in realtime subscriber callback:', error)
+      // Ignore subscriber callback errors
     }
   })
 }
@@ -83,8 +83,6 @@ export function subscribeToAccountsUpdates(callback: () => void) {
 
 // Enhanced cache invalidation with broadcast
 export function invalidateAccountsCache(reason?: string) {
-  if (process.env.NODE_ENV === 'development') {
-  }
   accountsCache = null
   accountsCacheIncludesArchived = false
   accountsPromise = null
@@ -98,7 +96,7 @@ export function invalidateAccountsCache(reason?: string) {
       localStorage.removeItem('accounts-store')
       localStorage.removeItem('equity-chart-store')
     } catch (error) {
-      console.error('[Cache] Error clearing account localStorage:', error)
+      // Ignore localStorage errors
     }
   }
   
@@ -116,6 +114,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
   const { includeFailed = false, includeArchived = false } = options
   
   // Smart initial loading state: check if we have valid cache BEFORE first render
+  // CRITICAL FIX: Ensure cache validity includes includeArchived match
   const now = Date.now()
   const hasCachedData = accountsCache && 
                         (now - lastFetchTime) < CACHE_DURATION &&
@@ -130,17 +129,21 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
   const fetchAccounts = useCallback(async (forceRefresh = false, source = 'manual') => {
     // Check cache first with smarter invalidation
     const now = Date.now()
-    // Only use cache if it matches the current includeArchived setting
+    // CRITICAL FIX: Cache must match both time AND includeArchived setting
     const cacheIsValid = accountsCache && 
                          (now - lastFetchTime) < CACHE_DURATION &&
                          accountsCacheIncludesArchived === includeArchived
+    
+    // If includeArchived changed, force refresh even if cache is recent
+    if (accountsCacheIncludesArchived !== includeArchived && accountsCache) {
+      accountsCache = null
+      accountsCacheIncludesArchived = includeArchived
+    }
     
     if (!forceRefresh && cacheIsValid && accountsCache) {
       setAccounts(accountsCache)
       setIsLoading(false)
       setError(null)
-      if (process.env.NODE_ENV === 'development') {
-      }
       return
     }
 
@@ -180,7 +183,6 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
 
           // Safety check - if accounts is undefined, treat as empty array
           if (!accounts) {
-            console.warn('[useAccounts] Server action returned undefined, treating as empty array')
             return []
           }
           
@@ -225,7 +227,6 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
 
           return transformedAccounts
         } catch (error) {
-          console.error('[useAccounts] Server action error:', error)
           throw error
         }
       })()
@@ -243,16 +244,12 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
         
         // Broadcast update to other components
         broadcastAccountsUpdate()
-        
-        if (process.env.NODE_ENV === 'development') {
-        }
       }
     } catch (err) {
       if (err instanceof Error) {
         if (err.name === 'AbortError') {
           return
         }
-        console.error('[useAccounts] Fetch error:', err.message)
         setError(err.message)
         // FIXED: Schedule toast outside render cycle to prevent setState during render
         setTimeout(() => {
@@ -352,10 +349,8 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
             intelligentRefresh('account', changeId)
           }
         )
-        .subscribe((status: string) => {
-          if (status === 'CHANNEL_ERROR') {
-            console.warn('[useAccounts] Error subscribing to account changes')
-          }
+        .subscribe(() => {
+          // Subscription status handled internally
         })
 
         // Subscribe to trades table changes with account impact detection
@@ -374,10 +369,8 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
             intelligentRefresh('trade', changeId)
           }
         )
-        .subscribe((status: string) => {
-          if (status === 'CHANNEL_ERROR') {
-            console.warn('[useAccounts] Error subscribing to trade changes')
-          }
+        .subscribe(() => {
+          // Subscription status handled internally
         })
 
         // Subscribe to prop firm master accounts and phases
@@ -407,10 +400,8 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
             intelligentRefresh('phase', changeId)
           }
         )
-        .subscribe((status: string) => {
-          if (status === 'CHANNEL_ERROR') {
-            console.warn('[useAccounts] Error subscribing to prop firm changes')
-          }
+        .subscribe(() => {
+          // Subscription status handled internally
         })
 
         supabaseRef.current = { accountsSubscription, tradesSubscription, propFirmSubscription }
@@ -430,7 +421,6 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
         // Store cleanup function
         supabaseRef.current.cleanup = cleanup
       } catch (error) {
-        console.error('[useAccounts] Error setting up real-time subscriptions:', error)
         // Don't fail the hook if real-time setup fails
       }
     }

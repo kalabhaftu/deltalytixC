@@ -13,12 +13,9 @@ export function createClient() {
     supabaseUrl === 'https://placeholder.supabase.co' ||
     supabaseKey === 'placeholder-key'
 
-  // If we have placeholder values, return a mock client with a warning
+  // If we have placeholder values, return a mock client
   // This prevents build failures while still allowing the app to compile
   if (hasPlaceholderValues) {
-    console.warn('⚠️ Supabase environment variables are using placeholder values. Some features may not work properly.')
-    console.warn('Please configure your actual Supabase credentials in .env.local')
-
     // Return a mock client for development/build
     return {
         auth: {

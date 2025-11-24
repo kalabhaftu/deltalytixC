@@ -55,7 +55,6 @@ export default function MenuPage() {
       setModels(data.models || [])
     } catch (error) {
       toast.error('Failed to load trading models')
-      console.error(error)
     } finally {
       setIsLoading(false)
     }

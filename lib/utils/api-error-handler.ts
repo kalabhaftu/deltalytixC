@@ -41,7 +41,6 @@ export function isDeploymentMismatchError(error: unknown): boolean {
  * Handles common API errors and returns appropriate NextResponse
  */
 export function handleApiError(error: unknown, context?: string): NextResponse<ApiErrorResponse> {
-  console.error(`API Error${context ? ` (${context})` : ''}:`, error)
 
   // Deployment mismatch errors
   if (isDeploymentMismatchError(error)) {

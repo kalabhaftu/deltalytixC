@@ -66,7 +66,6 @@ export function TagManager({ isOpen, onClose, onRefresh }: TagManagerProps) {
       const data = await response.json()
       setTags(data.tags || [])
     } catch (error) {
-      console.error('Failed to fetch tags:', error)
       toast.error('Failed to load tags')
     } finally {
       setIsLoading(false)
@@ -102,7 +101,6 @@ export function TagManager({ isOpen, onClose, onRefresh }: TagManagerProps) {
       toast.success('Tag created successfully')
       onRefresh?.()
     } catch (error: any) {
-      console.error('Failed to create tag:', error)
       toast.error(error.message || 'Failed to create tag')
     } finally {
       setIsCreating(false)
@@ -143,7 +141,6 @@ export function TagManager({ isOpen, onClose, onRefresh }: TagManagerProps) {
       toast.success('Tag updated successfully')
       onRefresh?.()
     } catch (error: any) {
-      console.error('Failed to update tag:', error)
       toast.error(error.message || 'Failed to update tag')
     }
   }
@@ -170,7 +167,6 @@ export function TagManager({ isOpen, onClose, onRefresh }: TagManagerProps) {
       toast.success('Tag deleted successfully')
       onRefresh?.()
     } catch (error) {
-      console.error('Failed to delete tag:', error)
       toast.error('Failed to delete tag')
     }
   }

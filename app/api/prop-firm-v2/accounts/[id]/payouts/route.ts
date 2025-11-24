@@ -109,7 +109,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
   } catch (error) {
-    console.error('Error fetching payouts:', error)
     return NextResponse.json(
       { 
         success: false, 

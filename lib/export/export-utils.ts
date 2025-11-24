@@ -89,7 +89,7 @@ export class PDFExporter {
       try {
         this.pdf.addImage(logoUrl, 'PNG', this.margins.left, this.currentY, 30, 15)
       } catch (error) {
-        console.warn('Failed to add logo to PDF:', error)
+        // Failed to add logo, continue without it
       }
     }
     
@@ -264,7 +264,6 @@ export class PDFExporter {
       this.pdf.addImage(imgData, 'PNG', this.margins.left, this.currentY, chartWidth, chartHeight)
       this.currentY += chartHeight + 15
     } catch (error) {
-      console.error('Failed to add chart to PDF:', error)
       // Add placeholder text
       this.pdf.setFontSize(10)
       this.pdf.text("Chart rendering failed - placeholder", this.margins.left, this.currentY + 10)

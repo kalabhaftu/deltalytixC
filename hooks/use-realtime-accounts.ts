@@ -30,7 +30,7 @@ export function useRealtimeAccounts(options: RealtimeAccountsOptions = {}): Real
       try {
         subscription?.unsubscribe()
       } catch (error) {
-        console.warn('[useRealtimeAccounts] Error unsubscribing:', error)
+        // Ignore unsubscribe errors
       }
     })
     subscriptionsRef.current = []
@@ -102,7 +102,6 @@ export function useRealtimeAccounts(options: RealtimeAccountsOptions = {}): Real
             setConnectionStatus('connected')
             reconnectAttempts.current = 0
           } else if (status === 'CHANNEL_ERROR') {
-            console.warn('[useRealtimeAccounts] Account subscription error')
             setConnectionStatus('error')
             setIsConnected(false)
           }
@@ -127,7 +126,7 @@ export function useRealtimeAccounts(options: RealtimeAccountsOptions = {}): Real
         .subscribe((status: string) => {
           if (status === 'SUBSCRIBED') {
           } else if (status === 'CHANNEL_ERROR') {
-            console.warn('[useRealtimeAccounts] Trade subscription error')
+            // Subscription error handled
           }
         })
 
@@ -161,7 +160,7 @@ export function useRealtimeAccounts(options: RealtimeAccountsOptions = {}): Real
         .subscribe((status: string) => {
           if (status === 'SUBSCRIBED') {
           } else if (status === 'CHANNEL_ERROR') {
-            console.warn('[useRealtimeAccounts] Prop firm subscription error')
+            // Subscription error handled
           }
         })
 
@@ -169,7 +168,6 @@ export function useRealtimeAccounts(options: RealtimeAccountsOptions = {}): Real
       subscriptionsRef.current = [accountsSubscription, tradesSubscription, propFirmSubscription]
 
     } catch (error) {
-      console.error('[useRealtimeAccounts] Setup error:', error)
       setConnectionStatus('error')
       setIsConnected(false)
       

@@ -58,7 +58,6 @@ export async function PUT(
 
     return NextResponse.json({ tag: updatedTag })
   } catch (error) {
-    console.error('Failed to update tag:', error)
     return NextResponse.json(
       { error: 'Failed to update tag' },
       { status: 500 }
@@ -116,7 +115,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Failed to delete tag:', error)
     return NextResponse.json(
       { error: 'Failed to delete tag' },
       { status: 500 }

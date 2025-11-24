@@ -22,13 +22,11 @@ export function checkCacheVersion(): boolean {
     const storedVersion = localStorage.getItem(CACHE_VERSION_KEY)
     
     if (storedVersion !== CURRENT_CACHE_VERSION) {
-      console.log(`[Cache] Version mismatch: ${storedVersion} -> ${CURRENT_CACHE_VERSION}. Clearing caches...`)
       return false
     }
     
     return true
   } catch (error) {
-    console.error('[Cache] Error checking version:', error)
     return true
   }
 }
@@ -39,7 +37,7 @@ export function updateCacheVersion(): void {
   try {
     localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION)
     } catch (error) {
-    console.error('[Cache] Error updating version:', error)
+    // Ignore version update errors
   }
 }
 
@@ -84,7 +82,7 @@ function getAllCacheKeys(excludeKeys: string[] = []): string[] {
       }
     }
   } catch (error) {
-    console.error('[Cache] Error getting cache keys:', error)
+    // Ignore errors getting cache keys
   }
   
   return keys
@@ -115,11 +113,10 @@ export function clearLocalStorageCache(keysToKeep: string[] = ['theme', 'consent
       if (isCacheKey) {
         localStorage.removeItem(key)
         clearedCount++
-        console.log(`[Cache] Removed localStorage key: ${key}`)
       }
     }
   } catch (error) {
-    console.error('[Cache] Error clearing localStorage:', error)
+    // Ignore localStorage clearing errors
   }
   
   return clearedCount
@@ -134,10 +131,8 @@ export function clearSessionStorage(): number {
   try {
     const length = sessionStorage.length
     sessionStorage.clear()
-    console.log(`[Cache] Cleared ${length} sessionStorage items`)
     return length
   } catch (error) {
-    console.error('[Cache] Error clearing sessionStorage:', error)
     return 0
   }
 }
@@ -156,11 +151,10 @@ export async function clearServiceWorkerCaches(): Promise<number> {
       cacheNames.map(async (cacheName) => {
         await caches.delete(cacheName)
         clearedCount++
-        console.log(`[Cache] Deleted Service Worker cache: ${cacheName}`)
       })
     )
   } catch (error) {
-    console.error('[Cache] Error clearing Service Worker caches:', error)
+    // Ignore Service Worker cache errors
   }
   
   return clearedCount
@@ -181,11 +175,10 @@ export async function clearIndexedDB(): Promise<number> {
       if (db.name) {
         window.indexedDB.deleteDatabase(db.name)
         clearedCount++
-        console.log(`[Cache] Deleted IndexedDB: ${db.name}`)
       }
     }
   } catch (error) {
-    console.error('[Cache] Error clearing IndexedDB:', error)
+    // Ignore IndexedDB clearing errors
   }
   
   return clearedCount
@@ -203,10 +196,9 @@ export function clearNextJSCache(): void {
     if ('__NEXT_DATA__' in window) {
       // @ts-ignore
       delete window.__NEXT_DATA__
-      console.log('[Cache] Cleared Next.js client cache')
     }
   } catch (error) {
-    console.error('[Cache] Error clearing Next.js cache:', error)
+    // Ignore Next.js cache clearing errors
   }
 }
 
@@ -231,8 +223,6 @@ export async function clearAllCaches(options: {
     clearIndexedDB: shouldClearIndexedDB = false // Conservative by default
   } = options
   
-  console.log('[Cache] Starting comprehensive cache clear...')
-  
   const keysToKeep: string[] = []
   if (keepTheme) keysToKeep.push('theme')
   if (keepConsent) keysToKeep.push('consent-banner-dismissed')
@@ -256,8 +246,6 @@ export async function clearAllCaches(options: {
     indexedDB: indexedDBCleared
   }
   
-  console.log('[Cache] Cache clear complete:', results)
-  
   return results
 }
 
@@ -270,7 +258,6 @@ export async function autoCleanStaleCache(): Promise<boolean> {
   const versionValid = checkCacheVersion()
   
   if (!versionValid) {
-    console.log('[Cache] Stale cache detected. Auto-clearing...')
     await clearAllCaches({
       keepTheme: true,
       keepConsent: true,
@@ -300,7 +287,6 @@ export function clearAccountCaches(): number {
     for (const key of accountKeys) {
       localStorage.removeItem(key)
       clearedCount++
-      console.log(`[Cache] Cleared account cache: ${key}`)
     }
     
     // Also clear dashboard layouts (they contain account-specific data)
@@ -309,11 +295,10 @@ export function clearAccountCaches(): number {
       if (key.startsWith('dashboard-layout-')) {
         localStorage.removeItem(key)
         clearedCount++
-        console.log(`[Cache] Cleared dashboard layout: ${key}`)
       }
     }
   } catch (error) {
-    console.error('[Cache] Error clearing account caches:', error)
+    // Ignore account cache clearing errors
   }
   
   return clearedCount
@@ -354,7 +339,7 @@ export function getCacheStats(): {
     
     sessionStorageKeys = sessionStorage.length
   } catch (error) {
-    console.error('[Cache] Error getting cache stats:', error)
+    // Ignore cache stats errors
   }
   
   return {

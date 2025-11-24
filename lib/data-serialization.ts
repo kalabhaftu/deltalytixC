@@ -73,12 +73,11 @@ export class DataSerializer {
 
       // Validate checksum
       if (parsed.metadata.checksum !== this.generateChecksum(parsed.data)) {
-        console.warn('Data checksum mismatch - data may be corrupted')
+        // Data checksum mismatch - data may be corrupted
       }
 
       return parsed.data
     } catch (error) {
-      console.error('Failed to deserialize data:', error)
       return null
     }
   }
@@ -196,7 +195,6 @@ export class DataSerializer {
 
       return true
     } catch (error) {
-      console.error('Failed to import data:', error)
       return false
     }
   }

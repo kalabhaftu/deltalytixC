@@ -30,7 +30,6 @@ export function useLiveAccountTransactions() {
 
         setTransactions(result.data || [])
       } catch (error) {
-        console.error('Error fetching transactions:', error)
         setError(error instanceof Error ? error.message : 'Failed to fetch transactions')
       } finally {
         setIsLoading(false)

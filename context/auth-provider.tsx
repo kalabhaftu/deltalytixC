@@ -83,7 +83,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return false
       }
     } catch (error) {
-      console.error('Auth check failed:', error)
       // Clear user state on error
       resetUser()
       setSession(null)
@@ -147,7 +146,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null)
         }
       } catch (error) {
-        console.error('Error checking session:', error)
         setSession(null)
         setSupabaseUser(null)
         setUser(null)
@@ -182,7 +180,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           router.refresh()
         } catch (refreshError) {
-          console.warn('Router refresh failed, continuing without refresh:', refreshError)
           // Don't throw - let the app continue working
         }
       }

@@ -1211,7 +1211,7 @@ export const DataProvider: React.FC<{
       return activeLoadPromiseRef.current
     }
     
-    // Create the load promise
+    // Create the load promise with proper error handling
     activeLoadPromiseRef.current = (async () => {
       try {
         setIsLoading(true);
@@ -1363,18 +1363,21 @@ export const DataProvider: React.FC<{
         return;
       }
 
-      // Reset flag on error to allow retry
+      // CRITICAL FIX: Reset flag on error to allow retry
       hasLoadedDataRef.current = false;
     } finally {
       setIsLoading(false);
-      // Clear the active load promise to allow new loads
-      activeLoadPromiseRef.current = null;
+      // CRITICAL FIX: Always clear the active load promise to prevent stuck state
+      // Use setTimeout to ensure this happens even if there's an error in finally block
+      setTimeout(() => {
+        activeLoadPromiseRef.current = null;
+      }, 0);
     }
   })();
 
   // Return the promise for any waiting calls
   return activeLoadPromiseRef.current
-  }, [dashboardLayout, isLoading, setAccounts, setDashboardLayout, setGroups, setIsLoading, setSupabaseUser, setTrades, setUser]); // Empty deps - load once on mount, prevent re-creation
+  }, [dashboardLayout, isLoading, setAccounts, setDashboardLayout, setGroups, setIsLoading, setSupabaseUser, setTrades, setUser]);
 
   // Load data on mount only - ONCE
   useEffect(() => {
@@ -1840,19 +1843,23 @@ export const DataProvider: React.FC<{
 
   const groupTrades = useCallback(async (tradeIds: string[]) => {
     if (!user?.id) return
-    setTrades(trades.map(trade => ({
-      ...trade,
-      groupId: tradeIds[0]
-    })))
+    // CRITICAL FIX: Only update trades that are in the tradeIds array
+    setTrades(trades.map(trade => 
+      tradeIds.includes(trade.id) 
+        ? { ...trade, groupId: tradeIds[0] }
+        : trade
+    ))
     await groupTradesAction(tradeIds)
   }, [user?.id, trades, setTrades])
 
   const ungroupTrades = useCallback(async (tradeIds: string[]) => {
     if (!user?.id) return
-    setTrades(trades.map(trade => ({
-      ...trade,
-      groupId: null
-    })))
+    // CRITICAL FIX: Only update trades that are in the tradeIds array
+    setTrades(trades.map(trade => 
+      tradeIds.includes(trade.id)
+        ? { ...trade, groupId: null }
+        : trade
+    ))
     await ungroupTradesAction(tradeIds)
   }, [user?.id, trades, setTrades])
 

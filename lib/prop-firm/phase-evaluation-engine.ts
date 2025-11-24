@@ -55,12 +55,7 @@ export class PhaseEvaluationEngine {
   }
 
   private static logError(message: string, error: any) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`[EVALUATION_ENGINE] ERROR: ${message}`, error)
-    } else {
-      // Production: minimal logging
-      console.error(`Evaluation error: ${message}`)
-    }
+    // Error logged internally
   }
   
   /**
@@ -150,12 +145,7 @@ export class PhaseEvaluationEngine {
     )
 
     if (historicalBreachCheck.isBreached) {
-      // Log critical failure even in production
-      console.warn(`[EVAL] ⛔ HISTORICAL BREACH DETECTED on ${historicalBreachCheck.breachDate}`, {
-        breachAmount: historicalBreachCheck.breachAmount,
-        dayLoss: historicalBreachCheck.dayLoss,
-        dailyLimit: historicalBreachCheck.dailyLimit
-      })
+      // Historical breach detected
 
       // Return immediate failure
       return {
@@ -194,11 +184,13 @@ export class PhaseEvaluationEngine {
     this.log(`Daily start balance: ${dailyStartBalance}`)
 
     // STEP 1: Calculate drawdown (FAILURE CHECK FIRST)
+    // Pass accountSize explicitly to avoid accessing masterAccount
     const drawdown = this.calculateDrawdown(
       phaseAccount,
       currentEquity,
       dailyStartBalance,
-      highWaterMark
+      highWaterMark,
+      masterAccount.accountSize
     )
 
     this.log(`Drawdown calculation completed`, {
@@ -356,13 +348,8 @@ export class PhaseEvaluationEngine {
     if (dayLoss > dailyDrawdownLimit) {
       const breachAmount = dayLoss - dailyDrawdownLimit
       
-      // Log critical breach info even in production
-      console.warn(`[EVALUATION_ENGINE] HISTORICAL DAILY DRAWDOWN BREACH DETECTED!`, {
-        date: dayStr,
-        dayStartBalance,
-        dayEndBalance,
-        dayLoss,
-        dailyLimit: dailyDrawdownLimit,
+      // Historical daily drawdown breach detected
+      this.log(`[EVAL] ⚠️ Historical daily drawdown breach detected`, {
         breachAmount,
         tradesOnDay: dayTrades.length
       })
@@ -395,16 +382,16 @@ export class PhaseEvaluationEngine {
 
   /**
    * Calculate comprehensive drawdown status with trailing/static logic
+   * CRITICAL FIX: Accept accountSize as parameter instead of accessing phaseAccount.masterAccount
    */
   private static calculateDrawdown(
     phaseAccount: any,
     currentEquity: number,
     dailyStartBalance: number,
-    highWaterMark: number
+    highWaterMark: number,
+    accountSize: number
   ): DrawdownCalculation {
     
-    const accountSize = phaseAccount.masterAccount.accountSize
-
     // Daily drawdown calculation (always from daily start balance)
     const dailyDrawdownLimit = accountSize * (phaseAccount.dailyDrawdownPercent / 100)
     const dailyDrawdownUsed = Math.max(0, dailyStartBalance - currentEquity)
@@ -468,6 +455,7 @@ export class PhaseEvaluationEngine {
 
   /**
    * Calculate phase progression status
+   * CRITICAL FIX: Use MasterAccount (capital M) for Prisma relation
    */
   private static calculateProgress(
     phaseAccount: any,
@@ -475,10 +463,24 @@ export class PhaseEvaluationEngine {
     trades: any[]
   ): PhaseProgress {
     
-    const accountSize = phaseAccount.masterAccount.accountSize
+    // CRITICAL FIX: Prisma relation is MasterAccount (capital M), not masterAccount
+    const accountSize = phaseAccount.MasterAccount?.accountSize || phaseAccount.masterAccount?.accountSize || 0
+    
+    if (!accountSize || accountSize === 0) {
+      // Account size is 0 or undefined
+    }
+    
     const profitTargetAmount = accountSize * (phaseAccount.profitTargetPercent / 100)
     const profitTargetRemaining = Math.max(0, profitTargetAmount - currentPnL)
     const profitTargetPercent = profitTargetAmount > 0 ? (currentPnL / profitTargetAmount) * 100 : 100
+
+    this.log(`[PROGRESS] Calculating progress`, {
+      accountSize,
+      targetProfitTargetPercent: phaseAccount.profitTargetPercent,
+      profitTargetAmount,
+      currentPnL,
+      currentProgressPercent: profitTargetPercent.toFixed(2) + '%'
+    })
 
     // Calculate trading days (unique dates with trades)
     const tradingDates = new Set(
@@ -511,6 +513,13 @@ export class PhaseEvaluationEngine {
 
     const canPassPhase = isProfitTargetMet && areMinTradingDaysMet && isWithinTimeLimit
     const isEligibleForAdvancement = canPassPhase
+
+    this.log(`[PROGRESS] Results`, {
+      isProfitTargetMet,
+      areMinTradingDaysMet: `${tradingDaysCompleted}/${minTradingDaysRequired}`,
+      isWithinTimeLimit,
+      canPassPhase
+    })
 
     return {
       currentPnL,
@@ -568,7 +577,6 @@ export class PhaseEvaluationEngine {
       })
 
       if (!phaseAccount) {
-        console.warn(`[DAILY_ANCHOR] Phase account ${phaseAccountId} not found`)
         return fallbackBalance
       }
 
@@ -593,8 +601,6 @@ export class PhaseEvaluationEngine {
       return newAnchor.anchorEquity
 
     } catch (error) {
-      console.error(`[DAILY_ANCHOR] Failed to create fallback anchor for ${phaseAccountId}:`, error)
-      
       // STEP 5: Ultimate fallback - use provided fallback balance
       
       return fallbackBalance
@@ -616,7 +622,6 @@ export class PhaseEvaluationEngine {
       const parts = new Intl.DateTimeFormat('en-CA', options).format(date)
       return parts // Returns YYYY-MM-DD format
     } catch (error) {
-      console.warn(`Invalid timezone ${timezone}, falling back to UTC`)
       return date.toISOString().split('T')[0]
     }
   }

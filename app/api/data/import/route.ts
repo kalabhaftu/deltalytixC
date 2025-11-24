@@ -73,15 +73,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Import in correct order (respecting foreign key constraints)
-    console.log('Starting import process...')
 
     // 1. Import Groups
-    console.log('Step 1/12: Importing groups...')
     const groupsFile = zip.file('groups.csv')
     if (groupsFile) {
       const groupsCsv = await groupsFile.async('string')
       const groups = parseCSV(groupsCsv)
-      console.log(`  Found ${groups.length} groups to import`)
       
       for (const group of groups) {
         const newGroup = await prisma.group.create({
@@ -96,16 +93,13 @@ export async function POST(request: NextRequest) {
         idMap.groups.set(group.id, newGroup.id)
         results.groups++
       }
-      console.log(`  ✓ Imported ${results.groups} groups`)
     }
 
     // 2. Import Accounts
-    console.log('Step 2/12: Importing accounts...')
     const accountsFile = zip.file('accounts.csv')
     if (accountsFile) {
       const accountsCsv = await accountsFile.async('string')
       const accounts = parseCSV(accountsCsv)
-      console.log(`  Found ${accounts.length} accounts to import`)
       
       for (const account of accounts) {
         const newAccount = await prisma.account.create({
@@ -123,16 +117,13 @@ export async function POST(request: NextRequest) {
         idMap.accounts.set(account.id, newAccount.id)
         results.accounts++
       }
-      console.log(`  ✓ Imported ${results.accounts} accounts`)
     }
 
     // 3. Import Master Accounts
-    console.log('Step 3/12: Importing master accounts...')
     const masterAccountsFile = zip.file('master_accounts.csv')
     if (masterAccountsFile) {
       const masterAccountsCsv = await masterAccountsFile.async('string')
       const masterAccounts = parseCSV(masterAccountsCsv)
-      console.log(`  Found ${masterAccounts.length} master accounts to import`)
       
       for (const ma of masterAccounts) {
         const newMA = await prisma.masterAccount.create({
@@ -151,16 +142,13 @@ export async function POST(request: NextRequest) {
         idMap.masterAccounts.set(ma.id, newMA.id)
         results.masterAccounts++
       }
-      console.log(`  ✓ Imported ${results.masterAccounts} master accounts`)
     }
 
     // 4. Import Phase Accounts
-    console.log('Step 4/12: Importing phase accounts...')
     const phaseAccountsFile = zip.file('phase_accounts.csv')
     if (phaseAccountsFile) {
       const phaseAccountsCsv = await phaseAccountsFile.async('string')
       const phaseAccounts = parseCSV(phaseAccountsCsv)
-      console.log(`  Found ${phaseAccounts.length} phase accounts to import`)
       
       for (const pa of phaseAccounts) {
         const newPA = await prisma.phaseAccount.create({
@@ -186,23 +174,16 @@ export async function POST(request: NextRequest) {
         idMap.phaseAccounts.set(pa.id, newPA.id)
         results.phaseAccounts++
       }
-      console.log(`  ✓ Imported ${results.phaseAccounts} phase accounts`)
     }
 
     // 5. Import Trades
-    console.log('Step 5/12: Importing trades...')
     const tradesFile = zip.file('trades.csv')
     if (tradesFile) {
       const tradesCsv = await tradesFile.async('string')
       const trades = parseCSV(tradesCsv)
-      console.log(`  Found ${trades.length} trades to import`)
       
       for (let i = 0; i < trades.length; i++) {
         const trade = trades[i]
-        // Log progress every 100 trades
-        if (i > 0 && i % 100 === 0) {
-          console.log(`  Progress: ${i}/${trades.length} trades imported...`)
-        }
         const newTrade = await prisma.trade.create({
           data: {
             id: crypto.randomUUID(),
@@ -238,16 +219,13 @@ export async function POST(request: NextRequest) {
         idMap.trades.set(trade.id, newTrade.id)
         results.trades++
       }
-      console.log(`  ✓ Imported ${results.trades} trades`)
     }
 
     // 6. Import Daily Anchors
-    console.log('Step 6/12: Importing daily anchors...')
     const dailyAnchorsFile = zip.file('daily_anchors.csv')
     if (dailyAnchorsFile) {
       const dailyAnchorsCsv = await dailyAnchorsFile.async('string')
       const dailyAnchors = parseCSV(dailyAnchorsCsv)
-      console.log(`  Found ${dailyAnchors.length} daily anchors to import`)
       
       for (const da of dailyAnchors) {
         await prisma.dailyAnchor.create({
@@ -261,16 +239,13 @@ export async function POST(request: NextRequest) {
         })
         results.dailyAnchors++
       }
-      console.log(`  ✓ Imported ${results.dailyAnchors} daily anchors`)
     }
 
     // 7. Import Breach Records
-    console.log('Step 7/12: Importing breach records...')
     const breachRecordsFile = zip.file('breach_records.csv')
     if (breachRecordsFile) {
       const breachRecordsCsv = await breachRecordsFile.async('string')
       const breachRecords = parseCSV(breachRecordsCsv)
-      console.log(`  Found ${breachRecords.length} breach records to import`)
       
       for (const br of breachRecords) {
         await prisma.breachRecord.create({
@@ -290,16 +265,13 @@ export async function POST(request: NextRequest) {
         })
         results.breachRecords++
       }
-      console.log(`  ✓ Imported ${results.breachRecords} breach records`)
     }
 
     // 8. Import Payouts
-    console.log('Step 8/12: Importing payouts...')
     const payoutsFile = zip.file('payouts.csv')
     if (payoutsFile) {
       const payoutsCsv = await payoutsFile.async('string')
       const payouts = parseCSV(payoutsCsv)
-      console.log(`  Found ${payouts.length} payouts to import`)
       
       for (const payout of payouts) {
         await prisma.payout.create({
@@ -321,23 +293,16 @@ export async function POST(request: NextRequest) {
         })
         results.payouts++
       }
-      console.log(`  ✓ Imported ${results.payouts} payouts`)
     }
 
     // 9. Import Backtest Trades
-    console.log('Step 9/12: Importing backtest trades...')
     const backtestTradesFile = zip.file('backtest_trades.csv')
     if (backtestTradesFile) {
       const backtestTradesCsv = await backtestTradesFile.async('string')
       const backtestTrades = parseCSV(backtestTradesCsv)
-      console.log(`  Found ${backtestTrades.length} backtest trades to import`)
       
       for (let i = 0; i < backtestTrades.length; i++) {
         const bt = backtestTrades[i]
-        // Log progress every 100 backtest trades
-        if (i > 0 && i % 100 === 0) {
-          console.log(`  Progress: ${i}/${backtestTrades.length} backtest trades imported...`)
-        }
         // Parse tags array if it's a string
         let tags = []
         if (bt.tags) {
@@ -381,16 +346,13 @@ export async function POST(request: NextRequest) {
         })
         results.backtestTrades++
       }
-      console.log(`  ✓ Imported ${results.backtestTrades} backtest trades`)
     }
 
     // 10. Import Daily Notes
-    console.log('Step 10/12: Importing daily notes...')
     const dailyNotesFile = zip.file('daily_notes.csv')
     if (dailyNotesFile) {
       const dailyNotesCsv = await dailyNotesFile.async('string')
       const dailyNotes = parseCSV(dailyNotesCsv)
-      console.log(`  Found ${dailyNotes.length} daily notes to import`)
       
       for (const note of dailyNotes) {
         await prisma.dailyNote.upsert({
@@ -416,16 +378,13 @@ export async function POST(request: NextRequest) {
         })
         results.dailyNotes++
       }
-      console.log(`  ✓ Imported ${results.dailyNotes} daily notes`)
     }
 
     // 11. Import Dashboard Templates
-    console.log('Step 11/12: Importing dashboard templates...')
     const templatesFile = zip.file('dashboard_templates.csv')
     if (templatesFile) {
       const templatesCsv = await templatesFile.async('string')
       const templates = parseCSV(templatesCsv)
-      console.log(`  Found ${templates.length} dashboard templates to import`)
       
       for (const template of templates) {
         // Parse layout JSON if it's a string
@@ -455,20 +414,14 @@ export async function POST(request: NextRequest) {
         } catch (templateError: any) {
           // Handle unique constraint error - template with same name already exists
           if (templateError.code === 'P2002' && templateError.meta?.target?.includes('name')) {
-            console.log(`  ⚠️ Skipping duplicate template: ${template.name}`)
             // Don't increment counter for duplicates
           } else {
-            console.error(`  ❌ Error importing template ${template.name}:`, templateError)
             // Re-throw if it's not a duplicate constraint error
             throw templateError
           }
         }
       }
-      console.log(`  ✓ Imported ${results.dashboardTemplates} dashboard templates`)
     }
-
-    console.log('✅ Import completed successfully!')
-    console.log('Results:', results)
 
     return NextResponse.json({
       success: true,
@@ -477,7 +430,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Import error:', error)
     return NextResponse.json(
       { error: `Failed to import data: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }

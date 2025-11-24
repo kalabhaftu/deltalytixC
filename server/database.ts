@@ -304,12 +304,9 @@ export async function getTradesAction(userId: string | null = null, options?: {
         exitDate: trade.closeDate ? new Date(trade.closeDate).toISOString() : null
       })) as any
     } catch (error) {
-      console.error('[getTradesAction] Database error:', error)
-      
       if (error instanceof Error) {
         // Handle table doesn't exist error
         if (error.message.includes('does not exist')) {
-          console.warn('[getTradesAction] Trade table does not exist')
           return []
         }
         // Handle database connection errors
@@ -317,12 +314,10 @@ export async function getTradesAction(userId: string | null = null, options?: {
             error.message.includes('P1001') ||
             error.message.includes('connection') ||
             error.message.includes('timeout')) {
-          console.error('[getTradesAction] Database connection error')
           return []
         }
       }
       // Unexpected error occurred
-      console.error('[getTradesAction] Unexpected error, returning empty array')
       return []
     }
 
@@ -352,7 +347,6 @@ export async function updateTradesAction(tradesIds: string[], update: Partial<Tr
 
   return result.count
   } catch (error) {
-    console.error('[updateTrades] Database error:', error)
     return 0
   }
 }
@@ -365,14 +359,6 @@ export async function updateTradeCommentAction(tradeId: string, comment: string 
     })
     revalidatePath('/')
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      console.error("[updateTradeComment] Known database error:", {
-        code: error.code,
-        message: error.message
-      })
-    } else {
-      console.error("[updateTradeComment] Unknown error:", error)
-    }
     throw error
   }
 }
@@ -380,12 +366,10 @@ export async function updateTradeCommentAction(tradeId: string, comment: string 
 // Dashboard layout functions removed - DashboardLayout table doesn't exist in schema
 // These functions are deprecated and should not be used
 export async function loadDashboardLayoutAction(): Promise<Layouts | null> {
-  console.warn('[loadDashboardLayout] This function is deprecated - DashboardLayout table not in schema')
   return null
 }
 
 export async function saveDashboardLayoutAction(layouts: any): Promise<void> {
-  console.warn('[saveDashboardLayout] This function is deprecated - DashboardLayout table not in schema')
   return
 }
 
@@ -413,7 +397,6 @@ export async function groupTradesAction(tradeIds: string[]): Promise<boolean> {
     revalidatePath('/')
     return true
   } catch (error) {
-    console.error('[groupTrades] Database error:', error)
     return false
   }
 }
@@ -439,7 +422,6 @@ export async function ungroupTradesAction(tradeIds: string[]): Promise<boolean> 
     revalidatePath('/')
     return true
   } catch (error) {
-    console.error('[ungroupTrades] Database error:', error)
     return false
   }
 }

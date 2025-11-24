@@ -63,7 +63,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
   } catch (error) {
-    console.error('Error fetching account trades:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch trades' },
       { status: 500 }

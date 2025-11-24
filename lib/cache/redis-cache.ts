@@ -41,7 +41,6 @@ export async function getFromCache<T>(key: string): Promise<T | null> {
     const data = await kv.get<T>(key)
     return data
   } catch (error) {
-    console.warn('Redis cache get failed:', error)
     return null
   }
 }
@@ -62,7 +61,6 @@ export async function setInCache<T>(
     await kv.set(key, value, { ex: ttl })
     return true
   } catch (error) {
-    console.warn('Redis cache set failed:', error)
     return false
   }
 }
@@ -79,7 +77,6 @@ export async function deleteFromCache(key: string): Promise<boolean> {
     await kv.del(key)
     return true
   } catch (error) {
-    console.warn('Redis cache delete failed:', error)
     return false
   }
 }
@@ -101,7 +98,6 @@ export async function deleteCachePattern(pattern: string): Promise<number> {
     await kv.del(...keys)
     return keys.length
   } catch (error) {
-    console.warn('Redis cache pattern delete failed:', error)
     return 0
   }
 }

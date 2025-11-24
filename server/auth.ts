@@ -134,7 +134,7 @@ export async function signInWithEmail(email: string, next: string | null = null)
     })
     dbUserExists = !!existingUser
   } catch (dbError) {
-    console.warn('[signInWithEmail] Prisma DB unavailable:', dbError instanceof Error ? dbError.message : String(dbError))
+    // Database unavailable, continue with Supabase auth
   }
 
   // User is existing if they exist in Prisma database
@@ -150,13 +150,6 @@ export async function signInWithEmail(email: string, next: string | null = null)
     })
 
     if (error) {
-      console.error('[signInWithEmail] Magic link error:', error)
-      console.error('[signInWithEmail] Error details:', {
-        message: error.message,
-        status: error.status,
-        code: error.code
-      })
-
       // Handle Supabase's built-in rate limiting
       if (error.status === 429 && (error.message.includes('rate limit') || error.code === 'over_email_send_rate_limit')) {
         return {
@@ -191,13 +184,6 @@ export async function signInWithEmail(email: string, next: string | null = null)
     })
 
     if (error) {
-      console.error('[signInWithEmail] Signup OTP error:', error)
-      console.error('[signInWithEmail] Error details:', {
-        message: error.message,
-        status: error.status,
-        code: error.code
-      })
-
       // Handle Supabase's built-in rate limiting
       if (error.status === 429 && (error.message.includes('rate limit') || error.code === 'over_email_send_rate_limit')) {
         return {
@@ -221,9 +207,12 @@ export async function signInWithEmail(email: string, next: string | null = null)
   }
 }
 
-// Generate a temporary password for signUp (user won't use this)
+// Generate a cryptographically secure temporary password for signUp (user won't use this)
 function generateTemporaryPassword(): string {
-  return Math.random().toString(36).slice(-12) + 'A1!'
+  // Use crypto.randomUUID() for secure random generation (built-in Node.js 15+)
+  // Format: Remove hyphens and add complexity requirement
+  const uuid = crypto.randomUUID().replace(/-/g, '')
+  return uuid.substring(0, 16) + 'A1!' // 16 chars + complexity
 }
 
 interface SupabaseUser {
@@ -251,7 +240,6 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
         where: { auth_user_id: user.id },
       });
     } catch (dbError) {
-      console.error('[ensureUserInDatabase] Database query failed:', dbError)
       // Return false to allow graceful degradation
       return false
     }
@@ -272,7 +260,6 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
           // User updated successfully
           return updatedUser;
         } catch (updateError) {
-          console.error('[ensureUserInDatabase] ERROR: Failed to update user email:', updateError);
           throw new Error('Failed to update user email address.');
         }
       }
@@ -317,7 +304,6 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
         await signOut();
         throw new Error('Database integrity error: Duplicate user records found');
       }
-      console.error('[ensureUserInDatabase] ERROR: Failed to create user:', createError);
       await signOut();
       throw new Error('Failed to create user account');
     }
@@ -329,8 +315,6 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
     )) {
       throw error;
     }
-
-    console.error('[ensureUserInDatabase] ERROR: Unexpected error in main catch block:', error);
 
     // Handle database connection errors gracefully - DON'T sign out user
     if (error instanceof Error && (
@@ -390,13 +374,6 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
     })
 
     if (error) {
-      console.error('[verifyOtp] Supabase OTP verification error:', error)
-      console.error('[verifyOtp] Error details:', {
-        message: error.message,
-        status: error.status,
-        code: error.code
-      })
-      
       // Handle rate limiting specifically
       if (error.status === 429 || error.message?.includes('rate limit') || error.message?.includes('too many requests')) {
         throw new Error('Too many verification attempts. Please wait a moment before trying again.')
@@ -412,9 +389,6 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
           error.message.includes('Email not confirmed') ||
           error.message.includes('User not found')) {
         throw new Error(error.message)
-      } else {
-        // For other errors, log but don't throw - might be a temporary issue
-        console.warn('[verifyOtp] Non-critical error, continuing with authentication:', error.message)
       }
     }
 
@@ -440,7 +414,6 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
         }
 
       } catch (dbError) {
-        console.warn('[verifyOtp] Database sync failed, but authentication succeeded:', dbError)
         // Don't throw - authentication succeeded, database sync is secondary
         // The app will work with just Supabase auth, database sync can happen later
       }
@@ -453,7 +426,6 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
     }
 
   } catch (error) {
-    console.error('[verifyOtp] Unexpected error:', error)
     throw error
   }
 }
@@ -534,8 +506,6 @@ export async function getUserId(): Promise<string> {
 export async function getUserEmail(): Promise<string> {
   const headersList = await headers()
   const userEmail = headersList.get('x-user-email')
-  if (process.env.NODE_ENV === 'development') {
-  }
   return userEmail || ""
 }
 

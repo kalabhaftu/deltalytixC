@@ -173,7 +173,7 @@ export default function EnhancedEditTrade({
           setTradingModels(data.models || [])
         }
       } catch (error) {
-        console.error('[EditTradeV2] Error fetching models:', error)
+        // Error fetching models
       }
     }
     fetchModels()
@@ -285,7 +285,7 @@ export default function EnhancedEditTrade({
             initialQuality: 0.95,
           })
         } catch (err) {
-          console.warn('Compression failed:', err)
+          // Compression failed, continue without compression
         }
       }
 

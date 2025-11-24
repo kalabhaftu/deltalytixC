@@ -78,14 +78,12 @@ export const useLargeDataset = <T>(
           const decompressed = DataSerializer.deserializeData(result) as { data: any[] }
           data = decompressed.data
         } catch (decompressError) {
-          console.error('Failed to decompress data:', decompressError)
           // Fallback to raw data if decompression fails
         }
       }
 
       // Ensure data is an array
       if (!Array.isArray(data)) {
-        console.warn('Data is not an array:', data)
         data = []
       }
 
@@ -162,7 +160,7 @@ export const useLargeDataset = <T>(
       try {
         await loadPage(page, filters)
       } catch (error) {
-        console.warn(`Failed to preload page ${page}:`, error)
+        // Ignore preload errors
       } finally {
         setActiveRequests(prev => {
           const newSet = new Set(prev)
@@ -238,7 +236,6 @@ export const useSharedTrades = () => {
 
       throw new Error('Invalid response format')
     } catch (error) {
-      console.error('Error fetching trades:', error)
       throw error
     }
   }, [])
@@ -263,7 +260,6 @@ export const useSharedTrades = () => {
 
       setLoading(false)
     } catch (error) {
-      console.error('loadAllTrades: Error loading trades:', error)
       setError(error instanceof Error ? error.message : 'Failed to load trades')
       setLoading(false)
     }
@@ -287,7 +283,6 @@ export const useSharedTrades = () => {
 
       setLoading(false)
     } catch (error) {
-      console.error('loadMoreTrades: Error loading more trades:', error)
       setError(error instanceof Error ? error.message : 'Failed to load more trades')
       setLoading(false)
     }

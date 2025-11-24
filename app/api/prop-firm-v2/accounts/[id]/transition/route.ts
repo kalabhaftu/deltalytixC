@@ -125,7 +125,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
   } catch (error) {
-    console.error('Error transitioning phase:', error)
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

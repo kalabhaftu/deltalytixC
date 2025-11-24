@@ -40,7 +40,6 @@ export function useDashboardTemplates() {
       setTemplates(allTemplates)
       setActiveTemplate(active)
     } catch (error) {
-      console.error('Failed to load templates:', error)
       setTimeout(() => toast.error('Failed to load templates'), 0)
       hasLoadedRef.current = false // Allow retry on error
     } finally {

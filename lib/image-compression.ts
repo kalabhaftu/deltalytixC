@@ -67,7 +67,6 @@ export class ImageCompressor {
         processingTime,
       }
     } catch (error) {
-      console.error('Image compression failed:', error)
       throw new Error(`Compression failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }

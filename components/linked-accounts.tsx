@@ -71,7 +71,6 @@ export function LinkedAccounts() {
       const identitiesArray = (userIdentities?.identities || []) as UserIdentity[]
       setIdentities(identitiesArray)
     } catch (error) {
-      console.error('Failed to load identities:', error)
       setIdentities([])
     } finally {
       setLoading(false)
@@ -84,7 +83,6 @@ export function LinkedAccounts() {
       await linkDiscordAccount()
       // Note: The redirect will happen automatically, so we don't need to handle success here
     } catch (error) {
-      console.error('Failed to link Discord:', error)
       toast.error("Failed to link account")
       setLinking(false)
     }
@@ -96,7 +94,6 @@ export function LinkedAccounts() {
       await linkGoogleAccount()
       // Note: The redirect will happen automatically, so we don't need to handle success here
     } catch (error) {
-      console.error('Failed to link Google:', error)
       toast.error("Failed to link account")
       setLinking(false)
     }
@@ -108,7 +105,6 @@ export function LinkedAccounts() {
       toast.success("Account unlinked successfully")
       await loadIdentities() // Reload the list
     } catch (error) {
-      console.error('Failed to unlink identity:', error)
       toast.error(error instanceof Error ? error.message : "Failed to unlink account")
     }
   }

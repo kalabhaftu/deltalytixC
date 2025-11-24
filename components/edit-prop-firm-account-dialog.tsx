@@ -106,7 +106,7 @@ export function EditPropFirmAccountDialog({
         localStorage.setItem(draftKey, JSON.stringify(formValues))
         setHasUnsavedChanges(true)
       } catch (error) {
-        console.error('Failed to save draft:', error)
+        // Ignore localStorage errors
       }
     }
   }, [formValues, isDirty, draftKey, open])
@@ -122,7 +122,7 @@ export function EditPropFirmAccountDialog({
         try {
           localStorage.removeItem(draftKey)
         } catch (error) {
-          console.error('Failed to remove draft:', error)
+          // Ignore localStorage errors
         }
       }
       reset()
@@ -137,7 +137,7 @@ export function EditPropFirmAccountDialog({
       try {
         localStorage.removeItem(draftKey)
       } catch (error) {
-        console.error('Failed to remove draft:', error)
+        // Ignore localStorage errors
       }
     }
     reset()
@@ -186,7 +186,7 @@ export function EditPropFirmAccountDialog({
         try {
           localStorage.removeItem(draftKey)
         } catch (error) {
-          console.error('Failed to remove draft:', error)
+          // Ignore localStorage errors
         }
       }
 
@@ -197,7 +197,6 @@ export function EditPropFirmAccountDialog({
       onSuccess?.()
 
     } catch (error) {
-      console.error('Error updating prop firm account:', error)
       toast.error('Update Failed', {
         description: error instanceof Error ? error.message : 'Failed to update account',
       })

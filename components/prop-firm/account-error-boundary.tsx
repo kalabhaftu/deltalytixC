@@ -28,7 +28,7 @@ export class PropFirmErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('PropFirm Error Boundary caught an error:', error, errorInfo)
+    // Error caught by boundary
   }
 
   handleReset = () => {

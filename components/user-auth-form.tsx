@@ -111,7 +111,6 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
     const onSubmitOtp = React.useCallback(async (values: z.infer<typeof otpFormSchema>) => {
         // Prevent multiple simultaneous verification attempts
         if (isVerifying || isLoading) {
-            console.log('OTP verification already in progress, skipping...')
             return
         }
 
@@ -164,8 +163,6 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
             router.refresh()
             router.push(nextUrl || '/dashboard')
         } catch (error) {
-            console.error('OTP verification error:', error)
-            
             // Increment failed attempts
             setFailedAttempts(prev => prev + 1)
             
@@ -304,7 +301,6 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                 setCountdown(15)
             }
         } catch (error) {
-            console.error(error)
             setAuthMethod(null)
         } finally {
             setIsLoading(false)
@@ -320,7 +316,6 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         try {
             await signInWithDiscord(nextUrl)
         } catch (error) {
-            console.error(error)
             setAuthMethod(null)
             setIsLoading(false)
         }
@@ -334,7 +329,6 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         try {
             await signInWithGoogle(nextUrl)
         } catch (error) {
-            console.error(error)
             setAuthMethod(null)
             setIsLoading(false)
         }

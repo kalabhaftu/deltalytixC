@@ -79,7 +79,6 @@ export async function validatePhaseId(
     }
 
   } catch (error) {
-    console.error('[PHASE_ID_VALIDATION] Validation failed:', error)
     
     return {
       isValid: false,

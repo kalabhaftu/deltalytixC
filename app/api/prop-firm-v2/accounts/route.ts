@@ -185,8 +185,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('Error creating master account:', error)
-    
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { 
@@ -258,7 +256,6 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching master accounts:', error)
     return NextResponse.json(
       { 
         success: false, 

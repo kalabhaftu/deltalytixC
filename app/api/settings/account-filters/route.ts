@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
           ...savedSettings
         }
       } catch (error) {
-        console.error('[API /account-filters] Parse error:', error)
+        // Parse error, use defaults
       }
     }
 
@@ -43,8 +43,6 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching account filter settings:', error)
-    
     // Return defaults on error to prevent UI blocking
     return NextResponse.json({
       success: true,
@@ -90,7 +88,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error processing account filter settings:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to save settings' },
       { status: 500 }

@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ backtests }, { status: 200 })
   } catch (error) {
-    console.error('Error fetching backtests:', error)
     return NextResponse.json(
       { error: 'Failed to fetch backtests' },
       { status: 500 }
@@ -107,7 +106,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ backtest }, { status: 201 })
   } catch (error) {
-    console.error('Error creating backtest:', error)
     return NextResponse.json(
       { error: 'Failed to create backtest' },
       { status: 500 }
@@ -170,7 +168,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ backtest }, { status: 200 })
   } catch (error) {
-    console.error('Error updating backtest:', error)
     return NextResponse.json(
       { error: 'Failed to update backtest' },
       { status: 500 }
@@ -208,7 +205,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (error) {
-    console.error('Error deleting backtest:', error)
     return NextResponse.json(
       { error: 'Failed to delete backtest' },
       { status: 500 }

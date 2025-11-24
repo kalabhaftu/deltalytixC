@@ -275,7 +275,7 @@
             "timeLimitDays": null
           },
           "phase2": {
-            "profitTargetPercent": 4,
+            "profitTargetPercent": 5,
             "maxDrawdownPercent": 8,
             "maxDrawdownType": "static",
             "dailyDrawdownPercent": 4,

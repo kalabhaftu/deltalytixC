@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         try {
           accountFilterSettings = JSON.parse(user.accountFilterSettings)
         } catch (error) {
-          console.warn('Failed to parse user account filter settings:', error)
+          // Parse error, use defaults
         }
       }
 
@@ -287,7 +287,6 @@ export async function GET(request: NextRequest) {
     return await Promise.race([operationPromise(), timeoutPromise])
 
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error)
     
     if (error instanceof Error && error.message === 'Request timeout') {
       return NextResponse.json(

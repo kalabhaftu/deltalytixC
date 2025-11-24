@@ -104,7 +104,6 @@ export async function GET(request: NextRequest) {
       } catch (error) {
         const errorMsg = `Phase ${phase.id}: ${error instanceof Error ? error.message : 'Unknown error'}`
         errors.push(errorMsg)
-        console.error('[DAILY_ANCHORS]', errorMsg)
       }
     }
 
@@ -119,7 +118,6 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('[DAILY_ANCHORS] Fatal error:', error)
     return NextResponse.json(
       {
         success: false,
@@ -178,7 +176,6 @@ export async function POST(request: NextRequest) {
     return cronResponse
 
   } catch (error) {
-    console.error('[DAILY_ANCHORS] Manual trigger error:', error)
     return NextResponse.json(
       {
         success: false,

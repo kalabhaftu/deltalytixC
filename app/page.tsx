@@ -74,7 +74,6 @@ export default function RootPage() {
     try {
       await signOut()
     } catch (error) {
-      console.error('Logout error:', error)
       // The signOut function handles the redirect, so we don't need to do anything else
     }
   }
@@ -259,6 +258,10 @@ export default function RootPage() {
                   <CommandItem onSelect={() => handleThemeChange("dark")}>
                     <Moon className="mr-2 h-4 w-4" />
                     <span>Dark mode</span>
+                  </CommandItem>
+                  <CommandItem onSelect={() => handleThemeChange("midnight-ocean")}>
+                    <Waves className="mr-2 h-4 w-4" />
+                    <span>Midnight Ocean</span>
                   </CommandItem>
                   <CommandItem onSelect={() => handleThemeChange("system")}>
                     <Laptop className="mr-2 h-4 w-4" />

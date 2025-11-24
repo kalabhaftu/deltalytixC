@@ -858,47 +858,8 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
       }
     })
 
-    // STEP 1: DUPLICATE DETECTION (OUTSIDE TRANSACTION - faster)
-    const tradesWithIds = cleanedData.filter(t => t.entryId)
-    const tradesWithoutIds = cleanedData.filter(t => !t.entryId)
-    
-    let newTrades = [...tradesWithoutIds] // Assume trades without IDs are new
-    
-    if (tradesWithIds.length > 0) {
-      // Only query for trades that have IDs (much faster)
-      const entryIds = tradesWithIds.filter(t => t.entryId).map(t => t.entryId!)
-      
-      const existingTrades = await prisma.trade.findMany({
-        where: {
-          userId,
-          entryId: { in: entryIds }
-        },
-        select: {
-          entryId: true
-        }
-      })
-
-      const existingEntryIds = new Set(existingTrades.map(t => t.entryId).filter(Boolean))
-
-      // Filter out duplicates
-      newTrades.push(...tradesWithIds.filter(trade => {
-        if (trade.entryId && existingEntryIds.has(trade.entryId)) return false
-        return true
-      }))
-    }
-
-    if (newTrades.length === 0) {
-      return {
-        success: true,
-        linkedCount: 0,
-        totalTrades: cleanedData.length,
-        message: `All ${cleanedData.length} trades already exist - no new trades to import`,
-        isDuplicate: true
-      }
-    }
-
-    // STEP 2: PRE-TRANSACTION VALIDATION (OUTSIDE TRANSACTION - FASTER)
-    // Determine if this is a prop firm or regular account BEFORE transaction
+    // STEP 1: PRE-TRANSACTION VALIDATION (OUTSIDE TRANSACTION - FASTER)
+    // Determine if this is a prop firm or regular account BEFORE duplicate check
     const phaseAccount = await prisma.phaseAccount.findUnique({
       where: { id: accountId },
       include: { 
@@ -960,6 +921,52 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
       isPropFirm = false
       regularAccountId = accountId
       accountName = regularAccount.name || accountId
+    }
+
+    // STEP 2: DUPLICATE DETECTION (SCOPED TO SPECIFIC ACCOUNT)
+    // Check for duplicates WITHIN the specific account being imported to
+    const tradesWithIds = cleanedData.filter(t => t.entryId)
+    const tradesWithoutIds = cleanedData.filter(t => !t.entryId)
+    
+    let newTrades = [...tradesWithoutIds] // Assume trades without IDs are new
+    
+    if (tradesWithIds.length > 0) {
+      // Only query for trades that have IDs (much faster)
+      const entryIds = tradesWithIds.filter(t => t.entryId).map(t => t.entryId!)
+      
+      // CRITICAL FIX: Check duplicates WITHIN the specific account, not across all accounts
+      const existingTrades = await prisma.trade.findMany({
+        where: {
+          userId,
+          entryId: { in: entryIds },
+          // Scope to the specific account being imported to
+          ...(isPropFirm 
+            ? { phaseAccountId: phaseAccountId! }
+            : { accountId: regularAccountId! }
+          )
+        },
+        select: {
+          entryId: true
+        }
+      })
+
+      const existingEntryIds = new Set(existingTrades.map(t => t.entryId).filter(Boolean))
+
+      // Filter out duplicates
+      newTrades.push(...tradesWithIds.filter(trade => {
+        if (trade.entryId && existingEntryIds.has(trade.entryId)) return false
+        return true
+      }))
+    }
+
+    if (newTrades.length === 0) {
+      return {
+        success: true,
+        linkedCount: 0,
+        totalTrades: cleanedData.length,
+        message: `All ${cleanedData.length} trades already exist in this account - no new trades to import`,
+        isDuplicate: true
+      }
     }
 
     // STEP 3: BATCH PROCESSING FOR LARGE DATASETS
@@ -1164,8 +1171,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
             })
           ])
           
-          console.log(`[AUTO-EVALUATION] Account marked as FAILED: ${evaluation.drawdown.breachType}`)
-          
           // Invalidate cache immediately so UI updates
           await invalidateUserCaches(userId)
           
@@ -1279,7 +1284,6 @@ export async function checkPhaseProgression(accountId: string) {
     }
 
   } catch (error) {
-    console.error('Error checking phase progression:', error)
     throw error
   }
 }
@@ -1360,7 +1364,6 @@ export async function progressAccountPhase(masterAccountId: string, currentPhase
     }
 
   } catch (error) {
-    console.error('Error progressing account phase:', error)
     throw error
   }
 }
@@ -1448,7 +1451,6 @@ export async function getAccountHistory(accountId: string) {
     }
 
   } catch (error) {
-    console.error('Error getting account history:', error)
     throw error
   }
 }
@@ -1491,7 +1493,6 @@ export async function checkAccountBreaches(accountId: string) {
       account: { id: accountId, name: regularAccount.name, startingBalance: regularAccount.startingBalance }
     }
   } catch (error) {
-    console.error('Error checking account breaches:', error)
     throw error
   }
 }
@@ -1538,7 +1539,6 @@ export async function failAccount(accountId: string, currentPhase: any, breachDe
       account: { id: accountId, name: 'Unknown' }
     }
   } catch (error) {
-    console.error('Error failing account:', error)
     throw error
   }
 }

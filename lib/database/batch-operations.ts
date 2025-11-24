@@ -27,7 +27,6 @@ export async function batchCreateTrades(
     
     count = result.count
   } catch (error) {
-    console.error('Batch create trades failed:', error)
     errors.push(error)
   }
 
@@ -56,7 +55,6 @@ export async function batchUpdateTrades(
     
     count = updates.length
   } catch (error) {
-    console.error('Batch update trades failed:', error)
     errors.push(error)
   }
 
@@ -86,7 +84,6 @@ export async function batchDeleteTrades(
     
     count = result.count
   } catch (error) {
-    console.error('Batch delete trades failed:', error)
     errors.push(error)
   }
 
@@ -113,7 +110,6 @@ export async function fetchAccountsInParallel(
     
     return accounts
   } catch (error) {
-    console.error('Parallel account fetch failed:', error)
     return []
   }
 }
@@ -165,7 +161,6 @@ export async function fetchTradesWithRelations(
     
     return trades as any
   } catch (error) {
-    console.error('Fetch trades with relations failed:', error)
     return []
   }
 }
@@ -197,7 +192,6 @@ export async function batchUpsertTrades(
     // Count creates vs updates (this is approximate)
     created = results.length
   } catch (error) {
-    console.error('Batch upsert trades failed:', error)
     errors.push(error)
   }
 
@@ -266,7 +260,6 @@ export async function fetchDashboardStats(
       winRate: stats._count.id > 0 ? (winCount / stats._count.id) * 100 : 0,
     }
   } catch (error) {
-    console.error('Fetch dashboard stats failed:', error)
     return null
   }
 }

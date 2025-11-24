@@ -33,11 +33,8 @@ export async function GET(request: NextRequest) {
           : [],
     }))
 
-    console.log('[API] Fetched trading models:', formattedModels.length, 'models')
-
     return NextResponse.json({ success: true, models: formattedModels })
   } catch (error) {
-    console.error('Error fetching trading models:', error)
     return NextResponse.json(
       { error: 'Failed to fetch models' },
       { status: 500 }
@@ -91,7 +88,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    console.error('Error creating trading model:', error)
     return NextResponse.json(
       { error: 'Failed to create model' },
       { status: 500 }

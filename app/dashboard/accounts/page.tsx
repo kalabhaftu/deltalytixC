@@ -37,8 +37,8 @@ import {
   Archive,
   ArchiveRestore
 } from "lucide-react"
-import { EnhancedCreateLiveAccountDialog } from "../components/accounts/enhanced-create-live-account-dialog"
-import { EnhancedCreateAccountDialog as CreatePropFirmAccountDialog } from "../components/prop-firm/enhanced-create-account-dialog"
+import { CreateLiveAccountDialog } from "../components/accounts/create-live-account-dialog"
+import { CreatePropFirmDialog } from "../components/prop-firm/create-prop-firm-dialog"
 import { EditLiveAccountDialog } from "@/components/edit-live-account-dialog"
 import { EditPropFirmAccountDialog } from "@/components/edit-prop-firm-account-dialog"
 import { Separator } from "@/components/ui/separator"
@@ -622,7 +622,7 @@ export default function AccountsPage() {
         </AlertDialog>
 
         {/* Create Account Dialogs */}
-        <EnhancedCreateLiveAccountDialog
+        <CreateLiveAccountDialog
           open={createLiveDialogOpen}
           onOpenChange={setCreateLiveDialogOpen}
           onSuccess={() => {
@@ -630,7 +630,7 @@ export default function AccountsPage() {
           }}
         />
 
-        <CreatePropFirmAccountDialog
+        <CreatePropFirmDialog
           open={createPropFirmDialogOpen}
           onOpenChange={setCreatePropFirmDialogOpen}
           onSuccess={() => {

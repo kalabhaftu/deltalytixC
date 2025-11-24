@@ -17,7 +17,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ tags })
   } catch (error) {
-    console.error('Failed to fetch tags:', error)
     return NextResponse.json(
       { error: 'Failed to fetch tags' },
       { status: 500 }
@@ -72,7 +71,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ tag })
   } catch (error) {
-    console.error('Failed to create tag:', error)
     return NextResponse.json(
       { error: 'Failed to create tag' },
       { status: 500 }

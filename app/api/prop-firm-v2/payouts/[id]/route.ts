@@ -29,7 +29,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
   } catch (error) {
-    console.error('Error deleting payout:', error)
     return NextResponse.json(
       { 
         success: false, 

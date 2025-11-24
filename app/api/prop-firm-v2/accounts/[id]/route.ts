@@ -421,7 +421,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
     
   } catch (error) {
-    console.error('Error fetching master account:', error)
     return NextResponse.json(
       { 
         success: false, 
@@ -481,8 +480,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     })
     
   } catch (error) {
-    console.error('Error updating master account:', error)
-    
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { 
@@ -592,7 +589,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
     
   } catch (error) {
-    console.error('Error deleting master account:', error)
     return NextResponse.json(
       { 
         success: false, 

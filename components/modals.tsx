@@ -48,7 +48,6 @@ export default function Modals() {
   useEffect(() => {
     if (!isLoading) {
       if (!trades) {
-        console.warn('No trades available. Please add some trades to see the dashboard content.');
         setIsTradesDialogOpen(true)
       }
     }

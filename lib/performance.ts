@@ -23,7 +23,7 @@ class PerformanceMonitor {
     const longTaskObserver = new PerformanceObserver((list) => {
       list.getEntries().forEach((entry) => {
         if (entry.duration > 50) { // Tasks longer than 50ms
-          console.warn(`Long task detected: ${entry.duration}ms`);
+          // Long task detected
         }
       });
     });
@@ -47,7 +47,7 @@ class PerformanceMonitor {
       });
 
       if (clsValue > 0.1) { // CLS threshold
-        console.warn(`High Cumulative Layout Shift: ${clsValue}`);
+        // High Cumulative Layout Shift detected
       }
     });
 

@@ -100,10 +100,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Log unexpected errors only in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[Auth Check] Unexpected error:', error)
-    }
+    // Handle unexpected errors
 
     return NextResponse.json(
       { error: 'Auth check failed' },

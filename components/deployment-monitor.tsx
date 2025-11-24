@@ -47,7 +47,7 @@ export function DeploymentMonitor({
     autoRefresh,
     autoRefreshDelay,
     onNewDeployment: () => {
-      console.info('New deployment detected')
+      // Deployment detected
     },
   })
 

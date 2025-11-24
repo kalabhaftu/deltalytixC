@@ -85,12 +85,10 @@ export default async function RootLayout({
                 Node.prototype.removeChild = function(child) {
                   try {
                     if (child.parentNode !== this) {
-                      console.warn('DOM Warning: Attempted to remove a child from a different parent');
                       return child;
                     }
                     return originalRemoveChild.call(this, child);
                   } catch (error) {
-                    console.warn('DOM Warning: Error removing child node', error);
                     return child;
                   }
                 };

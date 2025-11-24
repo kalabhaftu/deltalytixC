@@ -68,6 +68,6 @@ export async function ensureDefaultTemplate() {
       }
     }
   } catch (error) {
-    console.error('Failed to ensure default template:', error)
+    // Template creation failed, continue without it
   }
 }

@@ -62,7 +62,6 @@ export default async function middleware(req: NextRequest) {
 
       if (!supabaseUrl || !supabaseKey) {
         // Configuration error - redirect to login (don't allow through)
-        console.error('Missing Supabase environment variables')
         const authUrl = new URL('/', req.url)
         authUrl.searchParams.set('error', 'config')
         return NextResponse.redirect(authUrl)
@@ -110,7 +109,6 @@ export default async function middleware(req: NextRequest) {
 
     } catch (middlewareError) {
       // If middleware auth check fails, redirect to login (don't allow through)
-      console.error('Middleware auth error:', middlewareError)
       const authUrl = new URL('/', req.url)
       authUrl.searchParams.set('error', 'auth')
       return NextResponse.redirect(authUrl)

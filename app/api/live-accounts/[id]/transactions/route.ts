@@ -116,7 +116,6 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error('Error creating transaction:', error)
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -167,7 +166,6 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('Error fetching transactions:', error)
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

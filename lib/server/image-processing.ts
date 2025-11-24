@@ -133,7 +133,6 @@ export class ServerImageProcessor {
         compressionRatio,
       }
     } catch (error) {
-      console.error('Image processing failed:', error)
       throw new Error(`Failed to process image: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
@@ -309,7 +308,7 @@ export class ServerImageProcessor {
       
       result.avif = `/uploads/compressed/${baseName}.avif`
     } catch (error) {
-      console.warn('AVIF conversion failed, skipping:', error)
+      // AVIF conversion failed, skipping
     }
 
     return result

@@ -36,7 +36,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ review }, { status: 200 })
   } catch (error) {
-    console.error('Weekly review GET error:', error)
     return NextResponse.json({ error: 'Failed to fetch weekly review' }, { status: 500 })
   }
 }
@@ -102,7 +101,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ review }, { status: 200 })
   } catch (error) {
-    console.error('Weekly review POST error:', error)
     return NextResponse.json({ error: 'Failed to save weekly review' }, { status: 500 })
   }
 }

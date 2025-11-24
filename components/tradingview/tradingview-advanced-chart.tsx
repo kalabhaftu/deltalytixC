@@ -44,7 +44,6 @@ export function TradingViewAdvancedChart({
   // Initialize the TradingView Chart using iframe approach
   const initializeChart = useCallback(() => {
     if (!containerRef.current) {
-      console.error('Container not available')
       setError('Chart container not available')
       setIsLoading(false)
       return
@@ -101,7 +100,6 @@ export function TradingViewAdvancedChart({
 
       // Add error handling
       iframe.onerror = () => {
-        console.error('Failed to load TradingView iframe')
         setError('Failed to load chart')
         setIsLoading(false)
       }
@@ -119,7 +117,6 @@ export function TradingViewAdvancedChart({
       // as the onload/onerror events handle the widget lifecycle
 
       } catch (error) {
-      console.error('Error initializing TradingView widget:', error)
       setError('Failed to initialize chart')
       setIsLoading(false)
     }
@@ -143,7 +140,7 @@ export function TradingViewAdvancedChart({
             container.innerHTML = ''
           }
         } catch (e) {
-          console.warn('Error removing widget:', e)
+          // Ignore cleanup errors
         }
       }
     }

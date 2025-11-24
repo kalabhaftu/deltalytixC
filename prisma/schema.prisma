@@ -64,6 +64,7 @@ model BacktestTrade {
   rewardPoints     Float             @default(0)
   User             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, pair, dateExecuted, entryPrice, direction])
   @@index([userId, model])
   @@schema("public")
 }
@@ -179,6 +180,7 @@ model MasterAccount {
   Payout         Payout[]
   PhaseAccount   PhaseAccount[]
 
+  @@unique([userId, accountName])
   @@index([userId, isActive])
   @@schema("public")
 }
@@ -228,6 +230,7 @@ model PhaseAccount {
   MasterAccount          MasterAccount      @relation(fields: [masterAccountId], references: [id], onDelete: Cascade)
   Trade                  Trade[]
 
+  @@unique([masterAccountId, phaseNumber])
   @@index([masterAccountId])
   @@index([masterAccountId, phaseNumber])
   @@index([masterAccountId, status])

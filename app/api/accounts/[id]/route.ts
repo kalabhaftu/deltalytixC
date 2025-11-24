@@ -100,7 +100,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
   } catch (error) {
-    console.error('Error fetching account:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch account' },
       { status: 500 }
@@ -182,7 +181,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     })
 
   } catch (error) {
-    console.error('Error updating account:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to update account' },
       { status: 500 }
@@ -229,7 +227,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
   } catch (error) {
-    console.error('Error deleting account:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to delete account' },
       { status: 500 }

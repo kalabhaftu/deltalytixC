@@ -72,7 +72,6 @@ export async function PATCH(
         { status: 400 }
       )
     }
-    console.error('Error updating trading model:', error)
     return NextResponse.json(
       { error: 'Failed to update model' },
       { status: 500 }
@@ -124,7 +123,6 @@ export async function DELETE(
         : 'Model deleted successfully',
     })
   } catch (error) {
-    console.error('Error deleting trading model:', error)
     return NextResponse.json(
       { error: 'Failed to delete model' },
       { status: 500 }

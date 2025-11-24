@@ -24,7 +24,6 @@ export async function getGroupsAction(): Promise<GroupWithAccounts[]> {
       accounts: group.Account || []
     }))
   } catch (error) {
-    console.error('Error fetching groups:', error)
     throw error
   }
 }
@@ -40,7 +39,6 @@ export async function renameGroupAction(groupId: string, name: string): Promise<
     })
     return { ...group, accounts: group.Account } as any
   } catch (error) {
-    console.error('Error renaming group:', error)
     throw error
   }
 }
@@ -74,7 +72,6 @@ export async function saveGroupAction(name: string): Promise<Group> {
     })
     return { ...group, accounts: group.Account } as any
   } catch (error) {
-    console.error('Error creating group:', error)
     throw error
   }
 }
@@ -90,7 +87,6 @@ export async function updateGroupAction(groupId: string, name: string): Promise<
     })
     return { ...group, accounts: group.Account } as any
   } catch (error) {
-    console.error('Error updating group:', error)
     throw error
   }
 }
@@ -101,7 +97,6 @@ export async function deleteGroupAction(groupId: string): Promise<void> {
       where: { id: groupId },
     })
   } catch (error) {
-    console.error('Error deleting group:', error)
     throw error
   }
 }
@@ -113,7 +108,6 @@ export async function moveAccountToGroupAction(accountId: string, targetGroupId:
       data: { groupId: targetGroupId },
     })
   } catch (error) {
-    console.error('Error moving account to group:', error)
     throw error
   }
 } 

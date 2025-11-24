@@ -92,7 +92,6 @@ export async function POST(request: NextRequest) {
     )
 
   } catch (error) {
-    console.error('Error validating trade:', error)
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -50,8 +50,6 @@ export function handleServerActionError(error: unknown, options?: {
   } = options || {}
 
   if (isServerActionMismatchError(error)) {
-    console.warn('Server Action mismatch detected:', error, context ? `Context: ${context}` : '')
-    
     if (showToast) {
       if (autoRefresh) {
         toast.info('App updated. Refreshing page...', {
@@ -83,8 +81,6 @@ export function handleServerActionError(error: unknown, options?: {
   }
 
   if (isDeploymentError(error)) {
-    console.warn('Deployment-related error detected:', error, context ? `Context: ${context}` : '')
-    
     if (showToast) {
       toast.error('Failed to load resource', {
         description: 'The app was recently updated. Please refresh the page.',

@@ -31,7 +31,6 @@ export async function deleteTrade(tradeId: string) {
       message: 'Trade deleted successfully'
     }
   } catch (error) {
-    console.error('Error deleting trade:', error)
     return {
       success: false,
       error: 'Failed to delete trade'
@@ -72,7 +71,6 @@ export async function updateTradeImage(
       message: 'Trade image updated successfully'
     }
   } catch (error) {
-    console.error('Error updating trade image:', error)
     throw error
   }
 }

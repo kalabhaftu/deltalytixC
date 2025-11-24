@@ -34,25 +34,17 @@ export function useAutoCacheCleanup(options: UseAutoCacheCleanupOptions = {}) {
           const wasCleared = await autoCleanStaleCache()
           
           if (wasCleared) {
-            console.log('[AutoCache] Stale cache detected and cleared automatically')
-            
             // Also invalidate in-memory caches
             invalidateAccountsCache('auto-cleanup on version mismatch')
-            
-            // Log cache stats after cleanup
-            const stats = getCacheStats()
-            console.log('[AutoCache] Cache stats after cleanup:', stats)
           }
         } catch (error) {
-          console.error('[AutoCache] Error during auto cleanup:', error)
+          // Ignore cleanup errors
         }
       })()
     }
     
     // Detect user change (login/logout/switch user)
     if (userId && lastUserIdRef.current && userId !== lastUserIdRef.current) {
-      console.log('[AutoCache] User changed, clearing account-specific caches')
-      
       // Clear account-related caches
       clearAccountCaches()
       invalidateAccountsCache('user changed')
@@ -64,7 +56,6 @@ export function useAutoCacheCleanup(options: UseAutoCacheCleanupOptions = {}) {
   // Return manual cleanup function for emergency use
   return {
     manualCleanup: async () => {
-      console.log('[AutoCache] Manual cleanup triggered')
       await autoCleanStaleCache()
       clearAccountCaches()
       invalidateAccountsCache('manual cleanup')
@@ -81,7 +72,6 @@ export function useAccountChangeDetection() {
   return {
     notifyAccountsChanged: () => {
       accountsVersionRef.current++
-      console.log('[AutoCache] Accounts changed, clearing account caches')
       clearAccountCaches()
       invalidateAccountsCache('accounts changed')
     }

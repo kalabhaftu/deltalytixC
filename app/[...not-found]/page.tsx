@@ -1,5 +1,9 @@
 import { notFound } from 'next/navigation'
 
+// Force dynamic rendering to prevent static generation issues
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // This catch-all route handles any unmatched routes
 // It calls notFound() which renders the not-found.tsx page
 export default function CatchAllPage() {
