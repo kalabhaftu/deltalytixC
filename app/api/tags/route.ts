@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
+import { CacheHeaders } from '@/lib/api-cache-headers'
 
 // GET - Fetch all tags for a user
 export async function GET(request: Request) {
@@ -15,7 +16,9 @@ export async function GET(request: Request) {
       orderBy: { name: 'asc' }
     })
 
-    return NextResponse.json({ tags })
+    return NextResponse.json({ tags }, {
+      headers: CacheHeaders.short // Cache for 60 seconds
+    })
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to fetch tags' },

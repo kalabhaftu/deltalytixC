@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Trade } from '@prisma/client'
 import { TrendingUp, TrendingDown, Calendar, Clock, Target, DollarSign, MoreHorizontal, Eye, Edit, Trash2, AlertTriangle } from 'lucide-react'
-import { formatCurrency, formatQuantity, formatTradeData, formatPrice } from '@/lib/utils'
+import { cn, formatCurrency, formatQuantity, formatTradeData, formatPrice } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -43,8 +43,8 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
   const isWin = trade.pnl >= 0
   const hasPreviewImage = (trade as any).cardPreviewImage
   
-  // Parse trade tags
-  const tradeTagIds = (trade as any).tags ? (trade as any).tags.split(',').filter(Boolean) : []
+  // Parse trade tags - tags is now an array
+  const tradeTagIds = Array.isArray((trade as any).tags) ? (trade as any).tags : []
   const tradeTags = getTagsByIds(tradeTagIds)
 
   // Get status variant based on PnL (matching account card patterns)
@@ -153,38 +153,47 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
   const partialCount = (trade as any).partialTrades?.length || 1
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 h-full flex flex-col w-full max-w-full overflow-hidden">
-      <CardHeader className="pb-4">
+    <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 h-full flex flex-col w-full max-w-full overflow-hidden border-l-4 border-l-transparent hover:border-l-primary">
+      <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-4 h-4 bg-muted-foreground rounded-full flex-shrink-0" />
-              <h3 className="font-semibold text-foreground truncate">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className={cn(
+                "w-2 h-2 rounded-full flex-shrink-0",
+                isWin ? "bg-long" : "bg-short"
+              )} />
+              <h3 className="font-semibold text-foreground truncate text-base">
                 {trade.instrument}
               </h3>
               {hasPartials && (
-                <Badge variant="outline" className="text-[10px] h-4 px-1.5 ml-1 shrink-0">
+                <Badge variant="outline" className="text-[10px] h-4 px-1.5 shrink-0">
                   {partialCount}x
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground truncate">
-              {trade.accountNumber ? `Account: ${trade.accountNumber}` : 'No Account'}
+            <p className="text-xs text-muted-foreground truncate">
+              {trade.accountNumber ? `${trade.accountNumber}` : 'No Account'}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Badge variant={getStatusVariant(trade.pnl)} className="text-xs whitespace-nowrap">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <Badge 
+              variant={getStatusVariant(trade.pnl)} 
+              className={cn(
+                "text-xs font-medium px-2",
+                isWin ? "bg-long/10 text-long border-long/20" : "bg-short/10 text-short border-short/20"
+              )}
+            >
               {isWin ? 'WIN' : 'LOSS'}
             </Badge>
             {(trade as any).tradingModel && (
-              <Badge variant="secondary" className="text-xs whitespace-nowrap hidden sm:inline-flex">
+              <Badge variant="secondary" className="text-[10px] whitespace-nowrap hidden sm:inline-flex px-1.5">
                 {(trade as any).tradingModel}
               </Badge>
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -208,32 +217,32 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 flex-1 flex flex-col">
+      <CardContent className="space-y-3 flex-1 flex flex-col pt-0">
         {/* Preview Image */}
-        <div className="relative aspect-video overflow-hidden bg-muted rounded-lg">
+        <div className="relative aspect-video overflow-hidden bg-muted/50 rounded-lg border">
           {hasPreviewImage ? (
             <>
               <Image
                 src={(trade as any).cardPreviewImage}
                 alt={`Trade ${trade.instrument} ${trade.side}`}
                 fill
-                className="object-cover"
+                className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                 onLoad={() => setImageLoaded(true)}
                 onError={() => setImageError(true)}
                 unoptimized
               />
               {!imageLoaded && !imageError && (
-                <div className="absolute inset-0 animate-pulse bg-muted" />
+                <div className="absolute inset-0 bg-muted/50" />
               )}
               {imageError && (
-                <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                  <div className="text-muted-foreground text-sm">Image not available</div>
+                <div className="absolute inset-0 bg-muted/50 flex items-center justify-center">
+                  <div className="text-muted-foreground text-xs">Image not available</div>
                 </div>
               )}
             </>
           ) : (
-            <div className="absolute inset-0 bg-muted flex items-center justify-center">
-              <div className="text-muted-foreground text-sm">No preview image</div>
+            <div className="absolute inset-0 bg-muted/30 flex items-center justify-center">
+              <div className="text-muted-foreground/50 text-xs">No preview</div>
             </div>
           )}
         </div>
@@ -243,8 +252,8 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground mb-1">P&L</p>
             <div className="flex items-center gap-1">
-              {isWin ? <TrendingUp className="h-3 w-3 text-green-600 flex-shrink-0" /> : <TrendingDown className="h-3 w-3 text-red-600 flex-shrink-0" />}
-              <p className={`font-semibold truncate ${isWin ? 'text-green-600' : 'text-red-600'}`}>
+              {isWin ? <TrendingUp className="h-3 w-3 text-long flex-shrink-0" /> : <TrendingDown className="h-3 w-3 text-short flex-shrink-0" />}
+              <p className={`font-semibold truncate ${isWin ? 'text-long' : 'text-short'}`}>
                 {formatCurrency(trade.pnl)}
               </p>
             </div>
@@ -292,7 +301,7 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <AlertTriangle className="h-3 w-3 text-amber-500 flex-shrink-0" />
+                      <AlertTriangle className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="text-xs">Trade has incomplete SL or TP data</p>

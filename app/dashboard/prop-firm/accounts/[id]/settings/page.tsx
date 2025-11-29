@@ -85,7 +85,7 @@ export default function AccountSettingsPage() {
   const fetchAccount = useCallback(async () => {
     try {
       setIsLoading(true)
-      const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}`)
+      const response = await fetch(`/api/prop-firm/accounts/${accountId}`)
       
       if (!response.ok) {
         throw new Error('Failed to fetch account details')

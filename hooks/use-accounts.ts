@@ -1,18 +1,26 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { toast } from 'sonner'
-import { filterActiveAccounts } from '@/lib/utils/account-filters'
-import { getAccountsAction } from '@/server/accounts'
-import { createClient } from '@/lib/supabase'
+'use client'
+
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useUserStore } from '@/store/user-store'
+import { useRouter } from 'next/navigation'
+
+/**
+ * OPTIMIZED: This hook now reads from the user store instead of making its own
+ * server action calls. The data-provider populates the store, and this hook
+ * simply transforms the data for consumers.
+ * 
+ * This eliminates duplicate POST /dashboard requests that were causing performance issues.
+ */
 
 interface UnifiedAccount {
   id: string
   number: string
   name: string
   propfirm: string
-  broker: string | undefined  // Changed from string | null to match Account interface
+  broker: string | undefined
   startingBalance: number
-  currentBalance?: number     // Added missing field
-  currentEquity?: number      // Added missing field
+  currentBalance?: number
+  currentEquity?: number
   status: 'active' | 'failed' | 'funded' | 'passed' | 'pending'
   createdAt: string
   userId: string
@@ -37,6 +45,7 @@ interface UnifiedAccount {
     status: string
     phaseId: string
     masterAccountId?: string
+    evaluationType?: string
   } | null
 }
 
@@ -52,19 +61,9 @@ interface UseAccountsOptions {
   includeArchived?: boolean
 }
 
-// Enhanced global cache system with real-time invalidation
-let accountsCache: UnifiedAccount[] | null = null
-let accountsCacheIncludesArchived: boolean = false // Track what type of data is cached
-let accountsPromise: Promise<UnifiedAccount[]> | null = null
-let lastFetchTime = 0
-const CACHE_DURATION = 30000 // 30 seconds - balanced for performance and freshness
-let isCurrentlyFetching = false
-
-// Real-time cache invalidation tracking
-const cacheInvalidationTags = new Set<string>()
+// Global broadcast system for cache updates
 const realtimeSubscribers = new Set<() => void>()
 
-// Global broadcast system for cache updates
 export function broadcastAccountsUpdate() {
   realtimeSubscribers.forEach(callback => {
     try {
@@ -81,377 +80,111 @@ export function subscribeToAccountsUpdates(callback: () => void) {
   return () => realtimeSubscribers.delete(callback)
 }
 
-// Enhanced cache invalidation with broadcast
-export function invalidateAccountsCache(reason?: string) {
-  accountsCache = null
-  accountsCacheIncludesArchived = false
-  accountsPromise = null
-  lastFetchTime = 0
-  cacheInvalidationTags.clear()
-  
-  // Also clear localStorage account caches
-  if (typeof window !== 'undefined') {
-    try {
-      // Clear Zustand stores that cache account data
-      localStorage.removeItem('accounts-store')
-      localStorage.removeItem('equity-chart-store')
-    } catch (error) {
-      // Ignore localStorage errors
-    }
-  }
-  
-  // Notify all subscribers about the cache invalidation
+// Legacy compatibility functions - now just trigger broadcasts
+export function invalidateAccountsCache(_reason?: string) {
   broadcastAccountsUpdate()
 }
 
-// Function to clear cache when accounts are deleted (legacy compatibility)
 export function clearAccountsCache() {
-  invalidateAccountsCache('legacy clearAccountsCache called')
+  broadcastAccountsUpdate()
 }
 
-
+/**
+ * Optimized useAccounts hook that reads from the user store.
+ * No longer makes its own server action calls - data comes from the centralized data-provider.
+ */
 export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult {
   const { includeFailed = false, includeArchived = false } = options
+  const router = useRouter()
   
-  // Smart initial loading state: check if we have valid cache BEFORE first render
-  // CRITICAL FIX: Ensure cache validity includes includeArchived match
-  const now = Date.now()
-  const hasCachedData = accountsCache && 
-                        (now - lastFetchTime) < CACHE_DURATION &&
-                        accountsCacheIncludesArchived === includeArchived
+  // Read from store - this is populated by data-provider
+  const storeAccounts = useUserStore(state => state.accounts)
+  const isLoading = useUserStore(state => state.isLoading)
+  const user = useUserStore(state => state.user)
   
-  const [accounts, setAccounts] = useState<UnifiedAccount[]>(hasCachedData && accountsCache ? accountsCache : [])
-  const [isLoading, setIsLoading] = useState(!hasCachedData) // Only show loading if no valid cache
-  const [error, setError] = useState<string | null>(null)
-  const abortControllerRef = useRef<AbortController | null>(null)
-  const supabaseRef = useRef<any>(null)
-
-  const fetchAccounts = useCallback(async (forceRefresh = false, source = 'manual') => {
-    // Check cache first with smarter invalidation
-    const now = Date.now()
-    // CRITICAL FIX: Cache must match both time AND includeArchived setting
-    const cacheIsValid = accountsCache && 
-                         (now - lastFetchTime) < CACHE_DURATION &&
-                         accountsCacheIncludesArchived === includeArchived
-    
-    // If includeArchived changed, force refresh even if cache is recent
-    if (accountsCacheIncludesArchived !== includeArchived && accountsCache) {
-      accountsCache = null
-      accountsCacheIncludesArchived = includeArchived
-    }
-    
-    if (!forceRefresh && cacheIsValid && accountsCache) {
-      setAccounts(accountsCache)
-      setIsLoading(false)
-      setError(null)
-      return
+  // Transform accounts to the UnifiedAccount format
+  const accounts = useMemo(() => {
+    if (!storeAccounts || !Array.isArray(storeAccounts)) {
+      return []
     }
 
-    // Prevent multiple simultaneous requests
-    if (isCurrentlyFetching && !forceRefresh) {
-      // If there's already a request in progress, wait for it
-      if (accountsPromise) {
-        try {
-          const cachedAccounts = await accountsPromise
-          setAccounts(cachedAccounts)
-          setIsLoading(false)
-          setError(null)
-          return
-        } catch (err) {
-          // If the promise failed, continue with new request
+    return storeAccounts
+      .filter((account: any) => {
+        // Filter out archived accounts unless requested
+        if (!includeArchived && account.isArchived) return false
+        // Filter out failed accounts unless requested
+        if (!includeFailed && account.status === 'failed') return false
+        return true
+      })
+      .map((account: any): UnifiedAccount => {
+        const phaseDetails = account.currentPhaseDetails || account.phaseDetails
+        const currentPhase = phaseDetails?.phaseNumber || account.currentPhase || null
+        const phaseAccountNumber = phaseDetails?.phaseId || null
+
+        return {
+          id: account.id,
+          number: account.number,
+          name: account.name || account.number,
+          propfirm: account.propfirm || '',
+          broker: account.broker || undefined,
+          startingBalance: account.startingBalance || 0,
+          currentBalance: undefined,
+          currentEquity: undefined,
+          status: account.status || 'active',
+          createdAt: account.createdAt instanceof Date 
+            ? account.createdAt.toISOString() 
+            : (typeof account.createdAt === 'string' ? account.createdAt : new Date().toISOString()),
+          userId: account.userId || user?.id || '',
+          groupId: account.groupId || null,
+          group: account.groupId ? { id: account.groupId, name: 'Group' } : null,
+          accountType: account.propfirm ? 'prop-firm' : 'live',
+          displayName: account.displayName || account.name || account.number,
+          tradeCount: account.tradeCount || 0,
+          owner: null,
+          isOwner: true,
+          currentPhase,
+          phaseAccountNumber,
+          isArchived: account.isArchived || false,
+          currentPhaseDetails: phaseDetails || null
         }
-      }
-    }
+      })
+  }, [storeAccounts, includeFailed, includeArchived, user?.id])
 
-    // Cancel any existing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-
-    // Create new abort controller
-    abortControllerRef.current = new AbortController()
-    isCurrentlyFetching = true
-
+  // Refetch: Clear caches, broadcast update, and trigger router refresh
+  // This ensures the data-provider reloads fresh data from the server
+  const refetch = useCallback(async () => {
+    // Clear localStorage caches to force fresh data fetch
     try {
-      setIsLoading(true)
-      setError(null)
-
-      // Create the promise and store it globally
-      accountsPromise = (async (): Promise<UnifiedAccount[]> => {
-        try {
-          const accounts = await getAccountsAction({ includeArchived })
-
-          // Safety check - if accounts is undefined, treat as empty array
-          if (!accounts) {
-            return []
-          }
-          
-          // Transform accounts to match the expected interface
-          // No async operations needed - phase data already included from server
-          const transformedAccounts: UnifiedAccount[] = accounts.map((account: any) => {
-            // Use phase data that's already loaded from server (currentPhaseDetails)
-            const phaseDetails = account.currentPhaseDetails || account.phaseDetails
-            const currentPhase = phaseDetails?.phaseNumber || account.currentPhase || null
-            const phaseAccountNumber = phaseDetails?.phaseId || null
-
-            // NOTE: currentBalance and currentEquity are set to undefined here
-            // They should be calculated by components that have access to trades data
-            // The accounts page calculates these values in accountsWithRealEquity useMemo
-
-            return {
-              id: account.id,
-              number: account.number,
-              name: account.name || account.number, // Ensure name is never null
-              propfirm: account.propfirm,
-              broker: account.broker || undefined, // Convert null to undefined
-              startingBalance: account.startingBalance,
-              currentBalance: undefined, // To be calculated by components with trade data
-              currentEquity: undefined,  // To be calculated by components with trade data
-              status: account.status || 'active',
-              createdAt: account.createdAt instanceof Date ? account.createdAt.toISOString() : account.createdAt,
-              userId: account.userId,
-              groupId: account.groupId,
-              group: account.groupId ? { id: account.groupId, name: 'Group' } : null,
-              accountType: account.propfirm ? 'prop-firm' : 'live',
-              displayName: account.name || account.number,
-              tradeCount: account.tradeCount || 0, // Use actual trade count from server
-              owner: null,
-              isOwner: true,
-              currentPhase,
-              phaseAccountNumber,
-              isArchived: account.isArchived || false,
-              // Include phase details for components that need them
-              currentPhaseDetails: phaseDetails
-            }
-          })
-
-          return transformedAccounts
-        } catch (error) {
-          throw error
-        }
-      })()
-
-      const fetchedAccounts = await accountsPromise
-
-      if (fetchedAccounts) {
-        // Update cache and notify subscribers
-        accountsCache = fetchedAccounts
-        accountsCacheIncludesArchived = includeArchived // Track what type of data is cached
-        lastFetchTime = now
-
-        setAccounts(fetchedAccounts)
-        setError(null)
-        
-        // Broadcast update to other components
-        broadcastAccountsUpdate()
-      }
-    } catch (err) {
-      if (err instanceof Error) {
-        if (err.name === 'AbortError') {
-          return
-        }
-        setError(err.message)
-        // FIXED: Schedule toast outside render cycle to prevent setState during render
-        setTimeout(() => {
-          toast.error('Error', {
-            description: 'Failed to fetch accounts. Please try again.',
-          })
-        }, 0)
-      } else {
-        setError('An unexpected error occurred')
-      }
-    } finally {
-      setIsLoading(false)
-      accountsPromise = null
-      isCurrentlyFetching = false
+      localStorage.removeItem('bundled-data-cache')
+      localStorage.removeItem('bundled-data-timestamp')
+      localStorage.removeItem('account-filter-settings-cache')
+    } catch (e) {
+      // Ignore storage errors
     }
-  }, [includeArchived])
+    
+    // Broadcast update to force re-renders
+    broadcastAccountsUpdate()
+    
+    // Trigger Next.js router refresh to reload server data
+    router.refresh()
+  }, [router])
 
-  const refetch = useCallback(() => fetchAccounts(true), [fetchAccounts])
-
+  // Subscribe to broadcasts for reactivity
+  const [, forceUpdate] = useState(0)
+  
   useEffect(() => {
-    // Force refetch when includeArchived changes
-    fetchAccounts(true, 'includeArchived-changed')
-  }, [includeArchived, fetchAccounts])
-
-  useEffect(() => {
-    fetchAccounts(false, 'initial')
-
-    // Subscribe to global account updates
-    const unsubscribeFromBroadcast = subscribeToAccountsUpdates(() => {
-      // Only update if we have cached data to avoid unnecessary fetching
-      if (accountsCache && !isCurrentlyFetching) {
-        setAccounts(accountsCache)
-      }
+    const unsubscribe = subscribeToAccountsUpdates(() => {
+      forceUpdate(n => n + 1)
     })
-
-    // Set up intelligent real-time subscriptions with enhanced debouncing and error handling
-    const setupRealtimeSubscriptions = async () => {
-      try {
-        const supabase = createClient()
-        
-        // Check if supabase client supports real-time (not in mock mode)
-        if (!(supabase as any).channel || typeof (supabase as any).channel !== 'function') {
-          return
-        }
-
-        // Enhanced intelligent refresh system with better debouncing
-        let refreshTimeout: NodeJS.Timeout | null = null
-        let lastChangeTime = 0
-        const MIN_REFRESH_INTERVAL = 2000 // Reduced to 2 seconds for better responsiveness
-        const MAX_REFRESH_INTERVAL = 15000 // Reduced to 15 seconds for fresher data
-        let pendingChanges = new Set<string>()
-
-        const intelligentRefresh = (changeType: string, changeId?: string) => {
-          const now = Date.now()
-          const timeSinceLastChange = now - lastChangeTime
-
-          // Track pending changes for smarter batching
-          if (changeId) {
-            pendingChanges.add(`${changeType}:${changeId}`)
-          }
-
-          // Don't refresh too frequently, but batch meaningful changes
-          if (timeSinceLastChange < MIN_REFRESH_INTERVAL) {
-            const remainingTime = MIN_REFRESH_INTERVAL - timeSinceLastChange
-            if (refreshTimeout) {
-              clearTimeout(refreshTimeout)
-            }
-            refreshTimeout = setTimeout(() => {
-              lastChangeTime = Date.now()
-              pendingChanges.clear()
-              invalidateAccountsCache('batched realtime changes')
-              fetchAccounts(true)
-            }, remainingTime)
-            return
-          }
-
-          // Update last change time and refresh immediately for significant changes
-          lastChangeTime = now
-          pendingChanges.clear()
-          invalidateAccountsCache('immediate realtime change')
-          fetchAccounts(true)
-        }
-
-        // Subscribe to accounts table changes with better filtering
-        const accountsSubscription = (supabase as any)
-          .channel('accounts-realtime-changes')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'Account'
-            },
-          (payload: any) => {
-            const changeId = payload.new?.id || payload.old?.id
-            // Refresh for all account changes - balance, status, etc.
-            intelligentRefresh('account', changeId)
-          }
-        )
-        .subscribe(() => {
-          // Subscription status handled internally
-        })
-
-        // Subscribe to trades table changes with account impact detection
-        const tradesSubscription = (supabase as any)
-          .channel('trades-realtime-changes')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'Trade'
-            },
-          (payload: any) => {
-            const changeId = payload.new?.id || payload.old?.id
-            // Trades affect account equity and trade counts
-            intelligentRefresh('trade', changeId)
-          }
-        )
-        .subscribe(() => {
-          // Subscription status handled internally
-        })
-
-        // Subscribe to prop firm master accounts and phases
-        const propFirmSubscription = (supabase as any)
-          .channel('propfirm-realtime-changes')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'MasterAccount'
-            },
-          (payload: any) => {
-            const changeId = payload.new?.id || payload.old?.id
-            intelligentRefresh('prop-firm', changeId)
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'PhaseAccount'
-          },
-          (payload: any) => {
-            const changeId = payload.new?.id || payload.old?.id
-            intelligentRefresh('phase', changeId)
-          }
-        )
-        .subscribe(() => {
-          // Subscription status handled internally
-        })
-
-        supabaseRef.current = { accountsSubscription, tradesSubscription, propFirmSubscription }
-
-        // Enhanced cleanup function
-        const cleanup = () => {
-          if (refreshTimeout) {
-            clearTimeout(refreshTimeout)
-            refreshTimeout = null
-          }
-          pendingChanges.clear()
-          accountsSubscription?.unsubscribe()
-          tradesSubscription?.unsubscribe()
-          propFirmSubscription?.unsubscribe()
-        }
-
-        // Store cleanup function
-        supabaseRef.current.cleanup = cleanup
-      } catch (error) {
-        // Don't fail the hook if real-time setup fails
-      }
-    }
-
-    setupRealtimeSubscriptions()
-
     return () => {
-      // Cleanup: abort any pending request
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-      }
-
-      // Unsubscribe from broadcast updates
-      unsubscribeFromBroadcast()
-
-      // Cleanup: unsubscribe from real-time channels with proper cleanup
-      if (supabaseRef.current?.cleanup) {
-        supabaseRef.current.cleanup()
-      } else if (supabaseRef.current) {
-        const { accountsSubscription, tradesSubscription, propFirmSubscription } = supabaseRef.current
-        accountsSubscription?.unsubscribe()
-        tradesSubscription?.unsubscribe()
-        propFirmSubscription?.unsubscribe()
-      }
+      unsubscribe()
     }
-  }, [fetchAccounts]) // Add fetchAccounts to dependencies
+  }, [])
 
   return {
     accounts,
     isLoading,
-    error,
+    error: null,
     refetch
   }
 }

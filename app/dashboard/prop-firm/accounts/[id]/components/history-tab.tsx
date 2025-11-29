@@ -35,9 +35,10 @@ interface HistoryTabProps {
   accountSize: number
   phases: PhaseHistoryData[]
   breaches?: any[]
+  evaluationType?: string
 }
 
-export function HistoryTab({ accountName, propFirmName, accountSize, phases, breaches = [] }: HistoryTabProps) {
+export function HistoryTab({ accountName, propFirmName, accountSize, phases, breaches = [], evaluationType = 'Two Step' }: HistoryTabProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
   }
@@ -50,22 +51,38 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
     })
   }
 
+  /**
+   * Helper function to determine if a phase number represents the funded stage
+   * based on the evaluation type.
+   */
+  const isFundedPhase = (phaseNumber: number): boolean => {
+    switch (evaluationType) {
+      case 'Two Step':
+        return phaseNumber >= 3
+      case 'One Step':
+        return phaseNumber >= 2
+      case 'Instant':
+        return phaseNumber >= 1
+      default:
+        return phaseNumber >= 3 // Default to Two Step behavior
+    }
+  }
+
   const getPhaseIcon = (status: string, phaseNumber: number) => {
-    if (phaseNumber >= 3 && status === 'active') return <Trophy className="h-5 w-5 text-primary" />
+    if (isFundedPhase(phaseNumber) && status === 'active') return <Trophy className="h-5 w-5 text-primary" />
     
     switch (status) {
       case 'active': return <Clock className="h-5 w-5 text-primary" />
       case 'archived':
-      case 'passed': return <CheckCircle2 className="h-5 w-5 text-green-600" />
+      case 'passed': return <CheckCircle2 className="h-5 w-5 text-long" />
       case 'failed': return <XCircle className="h-5 w-5 text-destructive" />
       default: return <Clock className="h-5 w-5 text-muted-foreground" />
     }
   }
 
   const getPhaseName = (phaseNumber: number) => {
-    if (phaseNumber >= 3) return 'Funded Account'
-    if (phaseNumber === 2) return 'Phase 2'
-    return 'Phase 1'
+    if (isFundedPhase(phaseNumber)) return 'Funded Account'
+    return `Phase ${phaseNumber}`
   }
 
   const completedPhases = phases.filter(p => p.status === 'archived' || p.status === 'passed')
@@ -133,8 +150,8 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
                 <p className="text-3xl font-bold mt-1">{completedPhases.length}</p>
                 <p className="text-xs text-muted-foreground mt-1">Phase{completedPhases.length !== 1 ? 's' : ''} passed</p>
               </div>
-              <div className="p-3 bg-green-500/10 rounded-lg">
-                <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <div className="p-3 bg-long/10 rounded-lg">
+                <CheckCircle2 className="h-8 w-8 text-long" />
               </div>
             </div>
           </CardContent>
@@ -190,7 +207,7 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
             </div>
             <div className="flex items-center justify-between py-2 border-b">
               <span className="text-sm text-muted-foreground">Total P&L</span>
-              <span className={cn("text-base font-semibold", totalPnL >= 0 ? "text-green-600" : "text-destructive")}>
+              <span className={cn("text-base font-semibold", totalPnL >= 0 ? "text-long" : "text-short")}>
                 {formatCurrency(totalPnL)}
               </span>
             </div>
@@ -216,9 +233,9 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
           <CardContent className="space-y-3">
             {/* Best Phase */}
             {bestPhase && bestPhase.totalPnL > 0 && (
-              <div className="flex items-start gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
-                <div className="p-1.5 bg-green-500/10 rounded">
-                  <Trophy className="h-4 w-4 text-green-600" />
+              <div className="flex items-start gap-3 p-3 bg-long/5 border border-long/20 rounded-lg">
+                <div className="p-1.5 bg-long/10 rounded">
+                  <Trophy className="h-4 w-4 text-long" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">Best Phase Performance</p>
@@ -287,7 +304,7 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
                     <div className={cn(
                       "flex items-center justify-center w-9 h-9 rounded-full border-2 bg-background",
                       phase.status === 'active' && "border-primary",
-                      (phase.status === 'archived' || phase.status === 'passed') && "border-green-600",
+                      (phase.status === 'archived' || phase.status === 'passed') && "border-long",
                       phase.status === 'failed' && "border-destructive",
                       phase.status === 'pending' && "border-muted"
                     )}>
@@ -309,7 +326,7 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
                             <h3 className="font-semibold text-base">
                               {getPhaseName(phase.phaseNumber)}
                             </h3>
-                            {phase.phaseNumber >= 3 && (
+                            {isFundedPhase(phase.phaseNumber) && (
                               <Badge variant="outline" className="bg-primary/10 border-primary/30">
                                 <Trophy className="h-3 w-3 mr-1" />
                                 Funded
@@ -354,7 +371,7 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
                               <p className="text-xs text-muted-foreground mb-1">Total P&L</p>
                               <p className={cn(
                                 "text-lg font-semibold",
-                                phase.totalPnL >= 0 ? "text-green-600" : "text-destructive"
+                                phase.totalPnL >= 0 ? "text-long" : "text-short"
                               )}>
                                 {formatCurrency(phase.totalPnL)}
                               </p>
@@ -368,7 +385,7 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
                               <div className="flex items-center gap-1">
                                 <p className="text-lg font-semibold">{Math.min(phase.profitProgress, 100).toFixed(0)}%</p>
                                 {phase.profitProgress >= 100 && (
-                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                  <CheckCircle2 className="h-4 w-4 text-long" />
                                 )}
                               </div>
                             </div>
@@ -378,13 +395,13 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
                           {(phase.bestTrade || phase.worstTrade) && phase.totalTrades > 0 && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 pt-4 border-t">
                               {phase.bestTrade && (
-                                <div className="flex items-center gap-2 p-2 bg-green-500/5 rounded-lg border border-green-500/20">
-                                  <div className="p-1.5 bg-green-500/10 rounded">
-                                    <ArrowUpRight className="h-3.5 w-3.5 text-green-600" />
+                                <div className="flex items-center gap-2 p-2 bg-long/5 rounded-lg border border-long/20">
+                                  <div className="p-1.5 bg-long/10 rounded">
+                                    <ArrowUpRight className="h-3.5 w-3.5 text-long" />
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-xs text-muted-foreground">Best Trade</p>
-                                    <p className="text-sm font-semibold text-green-600">
+                                    <p className="text-sm font-semibold text-long">
                                       {phase.bestTrade.symbol} • {formatCurrency(phase.bestTrade.pnl)}
                                     </p>
                                   </div>

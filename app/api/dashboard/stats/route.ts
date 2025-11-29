@@ -3,16 +3,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
-import { getActiveAccountsWhereClause } from '@/lib/utils/account-filters'
 import { calculateAccountBalances } from '@/lib/utils/balance-calculator'
 import { CacheHeaders } from '@/lib/api-cache-headers'
+import { API_TIMEOUT_LONG } from '@/lib/constants'
 
 // GET /api/dashboard/stats - Fast dashboard statistics for charts
 export async function GET(request: NextRequest) {
   try {
-    // Add timeout for the entire operation
+    // Add timeout for the entire operation using centralized constant
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 8000) // 8 second timeout
+      setTimeout(() => reject(new Error('Request timeout')), API_TIMEOUT_LONG)
     })
 
     const operationPromise = async () => {
@@ -42,9 +42,10 @@ export async function GET(request: NextRequest) {
       }
 
       // Get user's account filter settings if they exist
+      // Note: getUserId() returns Supabase auth_user_id, not our internal user.id
       const user = await prisma.user.findUnique({
-        where: { id: currentUserId },
-        select: { accountFilterSettings: true }
+        where: { auth_user_id: currentUserId },
+        select: { id: true, accountFilterSettings: true }
       })
 
       let accountFilterSettings: any = null
@@ -56,24 +57,69 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Use internal user.id for database queries (not auth_user_id)
+      // If user not found in database, return empty stats instead of using incorrect ID
+      if (!user?.id) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            totalTrades: 0,
+            totalAccounts: 0,
+            totalEquity: 0,
+            accountsWithEquity: [],
+            dailyPnL: [],
+            weekdayPerformance: {},
+            hourPerformance: {},
+            sessionPerformance: {},
+            instrumentPerformance: {}
+          }
+        }, {
+          headers: CacheHeaders.short
+        })
+      }
+      const internalUserId = user.id
+
       // Build account where clause based on user's filter settings
+      // NOTE: The Account model does NOT have a status field - it's only on MasterAccount/PhaseAccount
+      // Regular accounts are always "live" trading accounts
       let accountWhereClause: any = { 
-        userId: currentUserId,
+        userId: internalUserId,
         isArchived: false // ALWAYS exclude archived accounts from calculations
       }
       
-      // Apply filter settings if they exist, otherwise default to active accounts only
+      // For regular Account table, we can only filter by:
+      // - userId (always applied)
+      // - isArchived (always exclude archived)
+      // Status filtering must be done separately for prop firm accounts via MasterAccount
+
+      // Get filtered regular accounts (live trading accounts)
+      const filteredAccounts = await prisma.account.findMany({
+        where: accountWhereClause,
+        select: {
+          id: true,
+          number: true,
+          startingBalance: true
+        }
+      })
+      
+      // Also get prop firm phase accounts based on filter settings
+      let propFirmPhaseNumbers: string[] = []
+      
+      // Build master account where clause for prop firm filtering
+      const masterAccountWhere: any = { 
+        userId: internalUserId,
+        isArchived: false
+      }
+      
+      // Apply status filtering to MasterAccount (which DOES have a status field)
+      // NOTE: MasterAccountStatus only has: active, funded, failed
+      // The 'passed' status exists only on PhaseAccount, not MasterAccount
       if (!accountFilterSettings || accountFilterSettings.showMode === 'active-only') {
-        // Default: exclude failed and passed accounts, include null status (legacy accounts)
-        accountWhereClause.OR = [
-          { status: { in: ['active', 'funded'] } },
-          { status: null } // Include accounts with null status (legacy accounts)
-        ]
-      } else if (accountFilterSettings.showMode === 'all-accounts') {
-        // Show all accounts - no additional filtering
+        // Default: only include active and funded prop firm accounts
+        masterAccountWhere.status = { in: ['active', 'funded'] }
       } else if (accountFilterSettings.showMode === 'custom') {
         // Apply custom filtering logic
-        const statusFilters = []
+        const statusFilters: ('active' | 'funded' | 'failed')[] = []
         
         if (accountFilterSettings.includeStatuses?.includes('active')) {
           statusFilters.push('active')
@@ -81,37 +127,56 @@ export async function GET(request: NextRequest) {
         if (accountFilterSettings.includeStatuses?.includes('funded') || accountFilterSettings.showFundedAccounts) {
           statusFilters.push('funded')
         }
+        // NOTE: 'passed' is NOT a valid MasterAccount status - it only exists on PhaseAccount
+        // For "passed accounts", we should include 'funded' status since passing leads to funded
         if (accountFilterSettings.showPassedAccounts) {
-          statusFilters.push('passed')
+          // Include funded accounts when user wants to see "passed" accounts
+          // since MasterAccount transitions to 'funded' when phases are passed
+          if (!statusFilters.includes('funded')) {
+            statusFilters.push('funded')
+          }
         }
         if (accountFilterSettings.showFailedAccounts) {
           statusFilters.push('failed')
         }
         
         if (statusFilters.length > 0) {
-          accountWhereClause.status = {
-            in: statusFilters
-          }
+          masterAccountWhere.status = { in: statusFilters }
         }
       }
-
-      // Get filtered accounts to extract their numbers for trade filtering
-      const filteredAccounts = await prisma.account.findMany({
-        where: accountWhereClause,
-        select: {
-          id: true,
-          number: true,
-          startingBalance: true,
-          // status: true, // status field doesn't exist
-          // propfirm: true // propfirm field doesn't exist
+      // else 'all-accounts' - no status filter
+      
+      // Get prop firm accounts with their phases
+      const propFirmAccounts = await prisma.masterAccount.findMany({
+        where: masterAccountWhere,
+        include: {
+          PhaseAccount: {
+            where: { 
+              // Only include activated phases - exclude pending and pending_approval
+              // Cast to any to avoid TypeScript enum issues with Prisma client
+              status: { notIn: ['pending', 'pending_approval'] as any }
+            },
+            select: { phaseId: true, status: true }
+          }
         }
       })
+      
+      // Extract phase IDs (which are used as account numbers in trades)
+      propFirmPhaseNumbers = propFirmAccounts
+        .flatMap((ma: { PhaseAccount: Array<{ phaseId: string | null; status: string }> }) => ma.PhaseAccount
+          .filter((p): p is typeof p & { phaseId: string } => p.phaseId !== null && p.phaseId.trim() !== '')
+          .map((p) => p.phaseId)
+        )
 
-      const filteredAccountNumbers = filteredAccounts.map(acc => acc.number)
+      // Combine regular account numbers with prop firm phase IDs
+      const filteredAccountNumbers = [
+        ...filteredAccounts.map(acc => acc.number),
+        ...propFirmPhaseNumbers
+      ]
 
       // Build trade where clause that only includes trades from filtered accounts
       const tradeWhereClause: any = {
-        userId: currentUserId,
+        userId: internalUserId,
         accountNumber: {
           in: filteredAccountNumbers
         }
@@ -176,7 +241,7 @@ export async function GET(request: NextRequest) {
 
       // Fetch all transactions for balance calculation
       const allTransactions = await prisma.liveAccountTransaction.findMany({
-        where: { userId: currentUserId },
+        where: { userId: internalUserId },
         select: {
           accountId: true,
           amount: true

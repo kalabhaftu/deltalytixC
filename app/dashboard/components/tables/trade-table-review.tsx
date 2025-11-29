@@ -625,9 +625,6 @@ export function TradeTableReview() {
               </Tooltip>
             </TooltipProvider>
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Fully responsive table inspired by modern trading journals—supports grouping, bulk actions, and inline tooling.
-          </p>
           </div>
           
         <div className="flex flex-wrap items-center gap-2">

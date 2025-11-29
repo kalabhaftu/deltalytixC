@@ -182,8 +182,8 @@ export default function EnhancedEditTrade({
   // Initialize form when trade changes
   useEffect(() => {
     if (trade && isOpen) {
-      // Tags
-      const tagIds = (trade as any).tags ? (trade as any).tags.split(',').filter(Boolean) : []
+      // Tags - now stored as array
+      const tagIds = Array.isArray((trade as any).tags) ? (trade as any).tags : []
       setSelectedTags(tagIds)
 
       // News
@@ -318,7 +318,7 @@ export default function EnhancedEditTrade({
         comment: comment || null,
         modelId: data.modelId || null,
         selectedRules: selectedRules.length > 0 ? selectedRules : null,
-        tags: selectedTags.length > 0 ? selectedTags.join(',') : null,
+        tags: selectedTags.length > 0 ? selectedTags : [],
         cardPreviewImage: data.cardPreviewImage || null,
         imageOne: data.imageOne || null,
         imageTwo: data.imageTwo || null,

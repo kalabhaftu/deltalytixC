@@ -90,21 +90,21 @@ export async function DELETE(
       return NextResponse.json({ error: 'Tag not found' }, { status: 404 })
     }
 
-    // Remove tag from all trades
+    // Remove tag from all trades that have this tag
     const trades = await prisma.trade.findMany({
       where: {
         userId,
         tags: {
-          contains: id
+          has: id
         }
       }
     })
 
     for (const trade of trades) {
-      const tagIds = trade.tags?.split(',').filter((tagId) => tagId !== id) || []
+      const updatedTags = (trade.tags || []).filter((tagId) => tagId !== id)
       await prisma.trade.update({
         where: { id: trade.id },
-        data: { tags: tagIds.length > 0 ? tagIds.join(',') : null }
+        data: { tags: updatedTags }
       })
     }
 
@@ -121,4 +121,3 @@ export async function DELETE(
     )
   }
 }
-

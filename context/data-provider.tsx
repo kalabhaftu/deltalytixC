@@ -75,6 +75,7 @@ import { calculateStatistics, formatCalendarData } from '@/lib/utils';
 import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { handleServerActionError } from '@/lib/utils/server-action-error-handler';
+import { useDatabaseRealtime } from '@/lib/realtime/database-realtime';
 
 // Types from trades-data.tsx
 type StatisticsProps = {
@@ -1088,15 +1089,19 @@ export const DataProvider: React.FC<{
   const selectionInitializedRef = React.useRef(false)
   const lastSyncedSelectionRef = React.useRef<string>('')
 
+  // Initialize account filter from saved settings only (NO AUTO-SELECTION)
+  // User must explicitly select accounts
   useEffect(() => {
     if (!accounts || accounts.length === 0) {
       return
     }
 
+    // ONLY load from saved settings - no auto-selection
     const savedSelection = accountFilterSettings?.selectedPhaseAccountIds || []
     const savedSignature = JSON.stringify(normalizeSelection(savedSelection))
 
     if (!selectionInitializedRef.current) {
+      // Check DB settings first
       if (savedSelection.length > 0) {
         setAccountNumbers(savedSelection)
         selectionInitializedRef.current = true
@@ -1110,6 +1115,7 @@ export const DataProvider: React.FC<{
         return
       }
 
+      // Check localStorage cache as fallback
       let cachedSelection: string[] | null = null
       try {
         const cached = localStorage.getItem('account-filter-settings-cache')
@@ -1128,63 +1134,15 @@ export const DataProvider: React.FC<{
         return
       }
 
-      // Try to auto-select active accounts first
-      const activeAccountNumbers = accounts
-        .filter(acc => !acc.status || acc.status === 'active' || acc.status === 'funded')
-        .map(acc => acc.number)
-
-      if (activeAccountNumbers.length > 0) {
-        // We have active accounts - select them by default
-        setAccountNumbers(activeAccountNumbers)
-        selectionInitializedRef.current = true
-        lastSyncedSelectionRef.current = JSON.stringify(normalizeSelection(activeAccountNumbers))
-
-        fetch('/api/settings/account-filters', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...accountFilterSettings,
-            selectedPhaseAccountIds: activeAccountNumbers,
-            updatedAt: new Date().toISOString()
-          })
-        }).catch(() => {})
-      } else {
-        // No active accounts found (all failed/archived)
-        // Less strict: select the most recently active account (by trade activity)
-        const accountsWithTrades = accounts.filter(acc => 
-          (acc as any).tradeCount > 0 || (acc as any)._count?.Trade > 0
-        )
-        
-        if (accountsWithTrades.length > 0) {
-          // Select the most recent one (first in list, as they're ordered by createdAt desc)
-          const fallbackAccountNumber = [accountsWithTrades[0].number]
-          setAccountNumbers(fallbackAccountNumber)
-          selectionInitializedRef.current = true
-          lastSyncedSelectionRef.current = JSON.stringify(normalizeSelection(fallbackAccountNumber))
-          
-          fetch('/api/settings/account-filters', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ...accountFilterSettings,
-              selectedPhaseAccountIds: fallbackAccountNumber,
-              updatedAt: new Date().toISOString()
-            })
-          }).catch(() => {})
-        } else {
-          // No accounts with trades - just select the first account as last resort
-          if (accounts.length > 0) {
-            const fallbackAccountNumber = [accounts[0].number]
-            setAccountNumbers(fallbackAccountNumber)
-            selectionInitializedRef.current = true
-            lastSyncedSelectionRef.current = JSON.stringify(normalizeSelection(fallbackAccountNumber))
-          }
-        }
-      }
-
+      // NO SAVED SELECTION - leave accountNumbers empty
+      // This will show "All Accounts" in the navbar and show all data
+      // User must explicitly select accounts via the filter dialog
+      selectionInitializedRef.current = true
+      lastSyncedSelectionRef.current = ''
       return
     }
 
+    // Sync updates from server settings (e.g., another tab saved settings)
     if (
       savedSelection.length > 0 &&
       savedSignature !== lastSyncedSelectionRef.current &&
@@ -1256,41 +1214,6 @@ export const DataProvider: React.FC<{
         }
       }
 
-      // Step 2: Fetch user data (fast - just user info, accounts, groups)
-      const data = await getUserData()
-
-      if (!data) {
-        try {
-          await signOut();
-        } catch (error) {
-        }
-        setIsLoading(false)
-        hasLoadedDataRef.current = false
-        return;
-      }
-
-      setUser(data.userData);
-      setGroups(data.groups);
-      setIsFirstConnection(data.userData?.isFirstConnection || false)
-      
-      // Store bundled data in localStorage for hooks to use
-      if (data.calendarNotes) {
-        localStorage.setItem('calendar-notes-cache', JSON.stringify(data.calendarNotes))
-      }
-      
-      // Store account filter settings from bundled data
-      if (data.userData?.accountFilterSettings) {
-        try {
-          const settings = JSON.parse(data.userData.accountFilterSettings)
-          localStorage.setItem('account-filter-settings-cache', JSON.stringify(settings))
-        } catch (error) {
-          // Ignore parsing errors
-        }
-      }
-      
-      // PERFORMANCE FIX: Parallelize independent operations
-      let allTrades: PrismaTrade[] = []
-      
       // Get account filter settings for DB-level filtering
       let selectedAccounts: string[] = []
       try {
@@ -1302,33 +1225,63 @@ export const DataProvider: React.FC<{
       } catch (error) {
         // Ignore - will fetch all trades
       }
+
+      // PERFORMANCE OPTIMIZATION: Use bundled API endpoint for single-request data fetch
+      const params = new URLSearchParams()
+      if (selectedAccounts.length > 0) {
+        params.append('selectedAccounts', selectedAccounts.join(','))
+      }
+      params.append('tradesLimit', '5000')
       
-      try {
-        // PERFORMANCE FIX: Pass userId to skip redundant auth check
-        // PERFORMANCE FIX: Only call ensureUserInDatabase if user might not exist in DB
-        // (This check already happened during login, no need to repeat on every load)
-        const trades = await getTradesAction(user.id, { 
-          limit: 5000,
-          filters: {
-            accountNumbers: selectedAccounts.length > 0 ? selectedAccounts : undefined
+      const bundledResponse = await fetch(`/api/bundled-data?${params.toString()}`)
+      
+      if (!bundledResponse.ok) {
+        throw new Error('Failed to fetch bundled data')
+      }
+      
+      const bundledData = await bundledResponse.json()
+      
+      if (!bundledData.success || !bundledData.data.isAuthenticated) {
+        try {
+          await signOut();
+        } catch (error) {
+        }
+        setIsLoading(false)
+        hasLoadedDataRef.current = false
+        return;
+      }
+
+      const { user: userData, accounts: rawAccounts, groups, trades: allTrades, calendarNotes } = bundledData.data
+
+      setUser(userData);
+      setGroups(groups);
+      setIsFirstConnection(userData?.isFirstConnection || false)
+      
+      // Store bundled data in localStorage for hooks to use
+      if (calendarNotes) {
+        localStorage.setItem('calendar-notes-cache', JSON.stringify(calendarNotes))
+      }
+      
+      // Store account filter settings from bundled data
+      // But don't overwrite if there are pending local changes (user just saved new settings)
+      if (userData?.accountFilterSettings) {
+        try {
+          const hasPendingChanges = localStorage.getItem('account-filter-settings-pending')
+          if (!hasPendingChanges) {
+            const settings = JSON.parse(userData.accountFilterSettings)
+            localStorage.setItem('account-filter-settings-cache', JSON.stringify(settings))
           }
-        })
-        allTrades = Array.isArray(trades) ? trades : []
-      } catch (error) {
-        // Handle Server Action errors (deployment mismatches)
-        if (handleServerActionError(error, { context: 'Data Provider - Initial Load' })) {
-          allTrades = [] // Return empty data on deployment error (will refresh)
-        } else {
-          throw error // Re-throw other errors
+        } catch (error) {
+          // Ignore parsing errors
         }
       }
       
-      setTrades(allTrades)
+      setTrades(allTrades || [])
 
       // Calculate balanceToDate for each account using the trades we just loaded
-      const accountsWithBalance = (data.accounts || []).map(account => ({
+      const accountsWithBalance = (rawAccounts || []).map((account: any) => ({
         ...account,
-        balanceToDate: calcBalance(account, allTrades, [], {
+        balanceToDate: calcBalance(account, allTrades || [], [], {
           excludeFailedAccounts: false,
           includePayouts: true
         })
@@ -1438,6 +1391,66 @@ export const DataProvider: React.FC<{
     };
   }, [supabaseUser, loadData, setIsLoading]); // ONLY depend on supabaseUser, run once when it's set
 
+  // ============================================
+  // REALTIME SUBSCRIPTIONS (Server-push, no polling)
+  // ============================================
+  // Supabase postgres_changes - server pushes updates when DB changes
+  // This replaces the old 30-second polling mechanism
+  const lastRealtimeRefreshRef = React.useRef<number>(0)
+  const realtimeRefreshTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+  
+  // Debounced refresh to prevent too many calls
+  const debouncedRefresh = useCallback(() => {
+    const now = Date.now()
+    const timeSinceLastRefresh = now - lastRealtimeRefreshRef.current
+    
+    // Minimum 2 seconds between refreshes
+    if (timeSinceLastRefresh < 2000) {
+      // Schedule a refresh after the cooldown
+      if (realtimeRefreshTimeoutRef.current) {
+        clearTimeout(realtimeRefreshTimeoutRef.current)
+      }
+      realtimeRefreshTimeoutRef.current = setTimeout(() => {
+        lastRealtimeRefreshRef.current = Date.now()
+        loadData()
+      }, 2000 - timeSinceLastRefresh)
+      return
+    }
+    
+    lastRealtimeRefreshRef.current = now
+    loadData()
+  }, [loadData])
+  
+  // Subscribe to database changes via Supabase Realtime
+  useDatabaseRealtime({
+    userId: user?.id,
+    enabled: !!user?.id && !isLoading,
+    onTradeChange: (change) => {
+      console.log('[DataProvider] Trade changed via Realtime:', change.event)
+      debouncedRefresh()
+    },
+    onAccountChange: (change) => {
+      console.log('[DataProvider] Account changed via Realtime:', change.event)
+      debouncedRefresh()
+    },
+    onStatusChange: (status) => {
+      if (status === 'connected') {
+        console.log('[DataProvider] Realtime connected - data will update automatically')
+      } else if (status === 'error') {
+        console.warn('[DataProvider] Realtime connection error - data may be stale')
+      }
+    }
+  })
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (realtimeRefreshTimeoutRef.current) {
+        clearTimeout(realtimeRefreshTimeoutRef.current)
+      }
+    }
+  }, [])
+
   const refreshTrades = useCallback(async () => {
     if (!user?.id) return
     
@@ -1445,16 +1458,23 @@ export const DataProvider: React.FC<{
     setIsLoading(true)
     
     try {
-      // CRITICAL: Clear ALL localStorage caches to force fresh fetch
+      // Clear data caches to force fresh fetch
+      // NOTE: We preserve account-filter-settings-cache as it contains user's explicit selection
       try {
         localStorage.removeItem('bundled-data-cache')
         localStorage.removeItem('bundled-data-timestamp')
-        localStorage.removeItem('account-filter-settings-cache')
         localStorage.removeItem('calendar-notes-cache')
         localStorage.removeItem('last-refresh-timestamp')
       } catch (e) {
         // Ignore storage errors
       }
+      
+      // CRITICAL: Reset the loaded flag to allow re-fetching
+      hasLoadedDataRef.current = false
+      activeLoadPromiseRef.current = null
+      
+      // DO NOT reset selection refs - preserve user's explicit account selection
+      // selectionInitializedRef and lastSyncedSelectionRef should persist
       
       // Force cache invalidation
       await revalidateCache([`trades-${user.id}`, `user-data-${user.id}-${locale}`])
@@ -1613,9 +1633,9 @@ export const DataProvider: React.FC<{
     return calculateStatistics(formattedTrades, accounts);
   }, [formattedTrades, accounts]);
 
-  // Calendar data now uses ALL trades (not filtered) for better performance
-  // Filtering is visual-only and doesn't affect calendar
-  const calendarData = useMemo(() => formatCalendarData(trades, accounts), [trades, accounts]);
+  // Calendar data uses formattedTrades (filtered by account selection)
+  // This ensures calendar respects the navbar filter settings
+  const calendarData = useMemo(() => formatCalendarData(formattedTrades, accounts), [formattedTrades, accounts]);
 
   const isPlusUser = () => {
     return true; // All users now have full access

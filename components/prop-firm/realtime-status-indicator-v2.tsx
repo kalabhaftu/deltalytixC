@@ -97,7 +97,7 @@ export function RealtimeStatusIndicatorV2({
     try {
       if (showRefreshing) setIsRefreshing(true)
       
-      const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}`)
+      const response = await fetch(`/api/prop-firm/accounts/${accountId}`)
       if (!response.ok) {
         throw new Error('Failed to fetch account status')
       }
@@ -194,10 +194,10 @@ export function RealtimeStatusIndicatorV2({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-foreground'
-      case 'passed': return 'bg-green-500'
+      case 'passed': return 'bg-long'
       case 'funded': return 'bg-foreground'
-      case 'failed': return 'bg-red-500'
-      default: return 'bg-gray-500'
+      case 'failed': return 'bg-short'
+      default: return 'bg-muted-foreground'
     }
   }
 
@@ -258,7 +258,7 @@ export function RealtimeStatusIndicatorV2({
             <div className="text-right">
               <p className={cn(
                 'text-sm font-bold',
-                currentProfit >= 0 ? 'text-green-600' : 'text-red-600'
+                currentProfit >= 0 ? 'text-long' : 'text-short'
               )}>
                 {formatCurrency(currentProfit)}
               </p>
@@ -324,7 +324,7 @@ export function RealtimeStatusIndicatorV2({
             </div>
             <p className={cn(
               'text-lg font-bold',
-              currentProfit >= 0 ? 'text-green-600' : 'text-red-600'
+              currentProfit >= 0 ? 'text-long' : 'text-short'
             )}>
               {formatCurrency(currentProfit)} ({formatPercent(profitPercent)})
             </p>
@@ -359,8 +359,7 @@ export function RealtimeStatusIndicatorV2({
                 <span className="text-xs text-muted-foreground">Daily Drawdown</span>
                 <span className={cn(
                   'text-xs font-medium',
-                  dailyDrawdownPercent > 80 ? 'text-red-600' : 
-                  dailyDrawdownPercent > 60 ? 'text-yellow-600' : 'text-green-600'
+                  dailyDrawdownPercent > 60 ? 'text-destructive' : 'text-muted-foreground'
                 )}>
                   {formatPercent(dailyDrawdownPercent)} used
                 </span>
@@ -369,8 +368,7 @@ export function RealtimeStatusIndicatorV2({
                 value={dailyDrawdownPercent} 
                 className={cn(
                   'h-1',
-                  dailyDrawdownPercent > 80 ? '[&>div]:bg-red-500' :
-                  dailyDrawdownPercent > 60 ? '[&>div]:bg-yellow-500' : '[&>div]:bg-green-500'
+                  dailyDrawdownPercent > 60 ? '[&>div]:bg-destructive' : ''
                 )}
               />
             </div>
@@ -381,8 +379,7 @@ export function RealtimeStatusIndicatorV2({
                 <span className="text-xs text-muted-foreground">Max Drawdown</span>
                 <span className={cn(
                   'text-xs font-medium',
-                  maxDrawdownPercent > 80 ? 'text-red-600' : 
-                  maxDrawdownPercent > 60 ? 'text-yellow-600' : 'text-green-600'
+                  maxDrawdownPercent > 60 ? 'text-destructive' : 'text-muted-foreground'
                 )}>
                   {formatPercent(maxDrawdownPercent)} used
                 </span>
@@ -391,17 +388,16 @@ export function RealtimeStatusIndicatorV2({
                 value={maxDrawdownPercent} 
                 className={cn(
                   'h-1',
-                  maxDrawdownPercent > 80 ? '[&>div]:bg-red-500' :
-                  maxDrawdownPercent > 60 ? '[&>div]:bg-yellow-500' : '[&>div]:bg-green-500'
+                  maxDrawdownPercent > 60 ? '[&>div]:bg-destructive' : ''
                 )}
               />
             </div>
 
             {/* Breach Warning */}
             {accountStatus.drawdown.isBreached && (
-              <div className="flex items-center space-x-2 p-2 bg-red-50 border border-red-200 rounded-md">
-                <AlertTriangle className="h-4 w-4 text-red-600" />
-                <span className="text-sm font-medium text-red-800">
+              <div className="flex items-center space-x-2 p-2 bg-destructive/10 border border-destructive/20 rounded-md">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <span className="text-sm font-medium text-destructive">
                   {accountStatus.drawdown.breachType?.replace('_', ' ').toUpperCase()} BREACH
                 </span>
               </div>
@@ -430,9 +426,9 @@ export function RealtimeStatusIndicatorV2({
 
         {/* Ready to Advance */}
         {accountStatus.progress?.readyToAdvance && (
-          <div className="flex items-center space-x-2 p-2 bg-green-50 border border-green-200 rounded-md">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <span className="text-sm font-medium text-green-800">
+          <div className="flex items-center space-x-2 p-2 bg-long/10 border border-long/20 rounded-md">
+            <CheckCircle className="h-4 w-4 text-long" />
+            <span className="text-sm font-medium text-long">
               Ready to advance to next phase!
             </span>
           </div>

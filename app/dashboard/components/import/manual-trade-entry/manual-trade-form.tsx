@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -17,22 +16,62 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Calculator, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
+import { 
+  Calculator, 
+  TrendingUp, 
+  TrendingDown, 
+  AlertCircle, 
+  ArrowLeft, 
+  ArrowRight,
+  CheckCircle2,
+  Loader2,
+  Wallet,
+  BarChart3,
+  Clock,
+  Shield,
+  DollarSign,
+  Brain,
+  FileCheck
+} from 'lucide-react'
 import { Trade } from '@prisma/client'
 import { generateTradeHash } from '@/lib/utils'
 import { calculatePnL, calculateDuration } from '@/lib/utils/trade-calculations'
 import { useUserStore } from '@/store/user-store'
-import { useTradesStore } from '@/store/trades-store'
 import { useAccounts } from '@/hooks/use-accounts'
+import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 
 // Common instruments for quick selection
 const COMMON_INSTRUMENTS = [
-  'ES', 'NQ', 'YM', 'RTY', // Futures
-  'EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', // Forex majors
-  'XAUUSD', 'XAGUSD', // Metals
-  'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', // Stocks
-  'BTC/USD', 'ETH/USD', // Crypto
-] as const
+  { value: 'ES', label: 'ES - E-mini S&P 500' },
+  { value: 'NQ', label: 'NQ - E-mini Nasdaq 100' },
+  { value: 'YM', label: 'YM - E-mini Dow' },
+  { value: 'RTY', label: 'RTY - E-mini Russell' },
+  { value: 'EURUSD', label: 'EURUSD - Euro/US Dollar' },
+  { value: 'GBPUSD', label: 'GBPUSD - British Pound/US Dollar' },
+  { value: 'USDJPY', label: 'USDJPY - US Dollar/Japanese Yen' },
+  { value: 'AUDUSD', label: 'AUDUSD - Australian Dollar/US Dollar' },
+  { value: 'XAUUSD', label: 'XAUUSD - Gold/US Dollar' },
+  { value: 'XAGUSD', label: 'XAGUSD - Silver/US Dollar' },
+  { value: 'US30', label: 'US30 - Dow Jones 30' },
+  { value: 'US100', label: 'US100 - Nasdaq 100' },
+  { value: 'US500', label: 'US500 - S&P 500' },
+  { value: 'BTC/USD', label: 'BTC/USD - Bitcoin' },
+  { value: 'ETH/USD', label: 'ETH/USD - Ethereum' },
+]
 
 // Trading sessions
 const TRADING_SESSIONS = [
@@ -40,14 +79,14 @@ const TRADING_SESSIONS = [
   { value: 'london', label: 'London Session' }, 
   { value: 'new-york', label: 'New York Session' },
   { value: 'overlap', label: 'Session Overlap' },
-] as const
+]
 
 // Market bias options
 const MARKET_BIAS = [
   { value: 'bullish', label: 'Bullish' },
   { value: 'bearish', label: 'Bearish' },
   { value: 'neutral', label: 'Neutral' },
-] as const
+]
 
 // Trade types
 const TRADE_TYPES = [
@@ -55,7 +94,7 @@ const TRADE_TYPES = [
   { value: 'intraday', label: 'Intraday' },
   { value: 'swing', label: 'Swing' },
   { value: 'position', label: 'Position' },
-] as const
+]
 
 // Emotional states
 const EMOTIONAL_STATES = [
@@ -66,14 +105,13 @@ const EMOTIONAL_STATES = [
   { value: 'frustrated', label: 'Frustrated' },
   { value: 'overconfident', label: 'Overconfident' },
   { value: 'anxious', label: 'Anxious' },
-] as const
+]
 
 // Form schema
 const tradeFormSchema = z.object({
-  // Basic execution details
   instrument: z.string().min(1, 'Instrument is required'),
   accountNumber: z.string().min(1, 'Account is required'),
-  quantity: z.number().min(1, 'Quantity must be at least 1'),
+  quantity: z.number().min(0.01, 'Quantity must be greater than 0'),
   side: z.enum(['LONG', 'SHORT']),
   entryPrice: z.string().min(1, 'Entry price is required'),
   closePrice: z.string().min(1, 'Close price is required'),
@@ -83,19 +121,12 @@ const tradeFormSchema = z.object({
   closeTime: z.string().min(1, 'Close time is required'),
   pnl: z.number(),
   commission: z.number().default(0),
-  
-  // Risk management (required)
-  stopLoss: z.string().min(1, 'Stop Loss is required'),
-  takeProfit: z.string().min(1, 'Take Profit is required'),
-  
-  // Analysis fields (optional)
+  stopLoss: z.string().optional(),
+  takeProfit: z.string().optional(),
   session: z.string().optional(),
   bias: z.string().optional(),
   tradeType: z.string().optional(),
   emotionalState: z.string().optional(),
-  riskPercent: z.number().optional(),
-  
-  // Notes
   comment: z.string().optional(),
 })
 
@@ -105,9 +136,17 @@ interface ManualTradeFormProps {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7
+type Step = 1 | 2 | 3 | 4 | 5
 
-const TOTAL_STEPS = 7
+const TOTAL_STEPS = 5
+
+const stepInfo = [
+  { step: 1, title: 'Account & Instrument', icon: Wallet },
+  { step: 2, title: 'Execution', icon: BarChart3 },
+  { step: 3, title: 'Timing', icon: Clock },
+  { step: 4, title: 'Risk & Cost', icon: Shield },
+  { step: 5, title: 'Review', icon: FileCheck },
+]
 
 export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
   const [currentStep, setCurrentStep] = useState<Step>(1)
@@ -115,10 +154,11 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
   const [phaseValidationError, setPhaseValidationError] = useState<string | null>(null)
   const [calculatedPnL, setCalculatedPnL] = useState<number | null>(null)
   const [calculatedDuration, setCalculatedDuration] = useState<string>('')
+  const [instrumentOpen, setInstrumentOpen] = useState(false)
+  const [instrumentSearch, setInstrumentSearch] = useState('')
   
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
-  const trades = useTradesStore(state => state.trades)
 
   const {
     register,
@@ -138,12 +178,9 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
       quantity: 1,
       commission: 0,
       pnl: 0,
-      stopLoss: '',
-      takeProfit: '',
     }
   })
 
-  // Watch specific form values for calculations (not all values to prevent infinite loops)
   const entryPrice = watch('entryPrice')
   const closePrice = watch('closePrice')
   const quantity = watch('quantity')
@@ -153,8 +190,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
   const entryTime = watch('entryTime')
   const closeDate = watch('closeDate')
   const closeTime = watch('closeTime')
-  
-  // Watch all values for the review step display
+  const instrument = watch('instrument')
   const watchedValues = watch()
 
   useEffect(() => {
@@ -178,47 +214,40 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
     }
   }, [entryDate, entryTime, closeDate, closeTime])
 
-  // Get unified accounts for dropdown - same as CSV import
   const { accounts: allAccounts, isLoading: isLoadingAccounts } = useAccounts()
   
-  // For manual trade entry, only show active phases (where user can add trades)
-  // Use same logic as account-selection component
-  const unifiedAccounts = React.useMemo(() => {
+  const unifiedAccounts = useMemo(() => {
     return allAccounts.filter(acc => {
-      // Show all live accounts
       if (acc.accountType === 'live') return true
-      
-      // For prop-firm accounts: only show active phases (NOT passed or failed)
       if (acc.accountType === 'prop-firm') {
-        // Check phase status - must be active (not passed, not failed)
         const phaseStatus = (acc as any).currentPhase?.status || acc.status
         return phaseStatus === 'active'
       }
-      
       return false
     })
   }, [allAccounts])
 
-  const existingAccounts = unifiedAccounts.map(account => account.number)
+  // Filter instruments based on search
+  const filteredInstruments = useMemo(() => {
+    if (!instrumentSearch) return COMMON_INSTRUMENTS
+    const search = instrumentSearch.toLowerCase()
+    return COMMON_INSTRUMENTS.filter(
+      i => i.value.toLowerCase().includes(search) || i.label.toLowerCase().includes(search)
+    )
+  }, [instrumentSearch])
 
-  // Step validation
   const validateStep = (step: Step): boolean => {
     const values = watch()
-    
     switch (step) {
-      case 1: // Account & Instrument
+      case 1:
         return !!(values.accountNumber && values.instrument)
-      case 2: // Trade Execution
+      case 2:
         return !!(values.side && values.quantity && values.entryPrice && values.closePrice)
-      case 3: // Timing
+      case 3:
         return !!(values.entryDate && values.entryTime && values.closeDate && values.closeTime)
-      case 4: // Risk Management
-        return !!(values.stopLoss && values.takeProfit)
-      case 5: // Financial Details
-        return true // Commission is optional, defaults to 0
-      case 6: // Analysis (all optional)
-        return true
-      case 7: // Review
+      case 4:
+        return true // Optional fields
+      case 5:
         return true
       default:
         return false
@@ -239,25 +268,10 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
     }
   }
 
-  const getStepTitle = (step: Step): string => {
-    switch (step) {
-      case 1: return 'Select Account & Instrument'
-      case 2: return 'Trade Execution Details'
-      case 3: return 'Entry & Exit Timing'
-      case 4: return 'Risk Management'
-      case 5: return 'Financial Details'
-      case 6: return 'Trade Analysis'
-      case 7: return 'Review & Confirm'
-      default: return ''
-    }
-  }
-
   const onSubmit = async (data: TradeFormData) => {
     const currentUser = user || supabaseUser
     if (!currentUser?.id) {
-      toast.error('Authentication Error', {
-        description: 'Please sign in to add trades.',
-      })
+      toast.error('Authentication Error', { description: 'Please sign in to add trades.' })
       return
     }
 
@@ -265,44 +279,34 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
     setPhaseValidationError(null)
     
     try {
-      // Check if this is a prop firm account and validate phase ID
+      // Validate prop firm account phase
       if (data.accountNumber) {
         try {
-          const phaseCheckResponse = await fetch(`/api/prop-firm-v2/accounts/validate-trade`, {
+          const phaseCheckResponse = await fetch(`/api/prop-firm/accounts/validate-trade`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              accountNumber: data.accountNumber
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accountNumber: data.accountNumber })
           })
           
           const phaseResult = await phaseCheckResponse.json()
           
-          if (!phaseCheckResponse.ok) {
-            if (phaseCheckResponse.status === 403) {
-              setPhaseValidationError(phaseResult.error || 'Please set the ID for the current phase before adding trades.')
-              toast.error("Phase ID Required", {
-                description: phaseResult.error || "Please set the ID for the current phase before adding trades.",
-              })
-              return
-            }
+          if (!phaseCheckResponse.ok && phaseCheckResponse.status === 403) {
+            setPhaseValidationError(phaseResult.error || 'Please set the ID for the current phase before adding trades.')
+            toast.error("Phase ID Required", { description: phaseResult.error })
+            return
           }
         } catch (error) {
-          // If it's not a prop firm account or validation API doesn't exist, continue normally
+          // Not a prop firm account, continue
         }
       }
-      // Combine date and time for entry/close timestamps
+
       const entryDateTime = `${data.entryDate} ${data.entryTime}`
       const closeDateTime = `${data.closeDate} ${data.closeTime}`
       
-      // Calculate time in position (in hours)
-      const entryDate = new Date(`${data.entryDate}T${data.entryTime}`)
-      const closeDate = new Date(`${data.closeDate}T${data.closeTime}`)
-      const timeInPosition = (closeDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60)
+      const entryDateObj = new Date(`${data.entryDate}T${data.entryTime}`)
+      const closeDateObj = new Date(`${data.closeDate}T${data.closeTime}`)
+      const timeInPosition = (closeDateObj.getTime() - entryDateObj.getTime()) / (1000 * 60 * 60)
 
-      // Create trade object
       const tradeData: any = {
         accountNumber: data.accountNumber,
         instrument: data.instrument,
@@ -315,438 +319,369 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
         pnl: data.pnl,
         commission: data.commission,
         timeInPosition,
-        stopLoss: data.stopLoss,
-        takeProfit: data.takeProfit,
+        stopLoss: data.stopLoss || null,
+        takeProfit: data.takeProfit || null,
         comment: data.comment || null,
         userId: currentUser.id,
         entryId: null,
         groupId: null,
       }
 
-      // Generate unique ID for the trade
       const tradeId = generateTradeHash({ ...tradeData, userId: currentUser.id })
-      const completeTrade: any = {
-        ...tradeData,
-        id: tradeId,
-        createdAt: new Date(),
-      }
+      const completeTrade: any = { ...tradeData, id: tradeId, createdAt: new Date() }
 
-      // Find account by number to get accountId
       const targetAccount = unifiedAccounts.find(acc => acc.number === data.accountNumber)
       
       if (!targetAccount) {
-        toast.error('Account Not Found', {
-          description: 'Could not find the selected account. Please try again.',
-        })
+        toast.error('Account Not Found', { description: 'Could not find the selected account.' })
         return
       }
 
-      // Atomic save and link operation
       const { saveAndLinkTrades } = await import("@/server/accounts")
       const result = await saveAndLinkTrades(targetAccount.id, [completeTrade])
 
-      // Handle duplicate trades case
       if (result.isDuplicate) {
         toast.info("Trade Already Exists", {
-          description: 'message' in result ? result.message : "This trade already exists in the account",
-          duration: 5000,
+          description: 'message' in result ? result.message : "This trade already exists",
         })
         return
       }
 
       toast.success('Trade Added', {
-        description: `Trade successfully saved and linked to ${'accountName' in result ? result.accountName : 'the account'}`,
+        description: `Trade saved to ${'accountName' in result ? result.accountName : 'account'}`,
       })
 
-      // Invalidate accounts cache to trigger refresh
       const { invalidateAccountsCache } = await import("@/hooks/use-accounts")
       invalidateAccountsCache('trade saved')
-
-      // Close the dialog
       setIsOpen(false)
 
     } catch (error) {
-      
-      // Provide more specific error messages based on error type
-      let errorMessage = 'An error occurred while saving the trade. Please try again.'
-      let errorTitle = 'Save Failed'
-      
+      let errorMessage = 'An error occurred while saving the trade.'
       if (error instanceof Error) {
-        if (error.message.includes('phase transition')) {
-          errorTitle = "Phase Transition Required"
-          errorMessage = error.message
-        } else if (error.message.includes('account')) {
-          errorTitle = "Account Error"
-          errorMessage = error.message
-        } else if (error.message.includes('authentication')) {
-          errorTitle = "Authentication Error"
-          errorMessage = "Please log in again and try saving your trade."
-        } else {
-          errorMessage = error.message
-        }
+        errorMessage = error.message
       }
-      
-      toast.error(errorTitle, {
-        description: errorMessage,
-        duration: 8000,
-      })
+      toast.error('Save Failed', { description: errorMessage })
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  // Render step content
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
         return (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Select Account & Instrument</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4 pt-0">
-              <div className="space-y-2">
-                <Label htmlFor="accountNumber">Account *</Label>
-                {isLoadingAccounts ? (
-                  <div className="p-3 bg-muted rounded-md text-sm text-muted-foreground">
-                    Loading accounts...
-                  </div>
-                ) : (
-                  <Controller
-                    name="accountNumber"
-                    control={control}
-                    render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value} disabled={existingAccounts.length === 0}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={existingAccounts.length === 0 ? "No active accounts found" : "Select account"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {existingAccounts.map(account => (
-                            <SelectItem key={account} value={account}>
-                              {account}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                )}
-                {errors.accountNumber && (
-                  <p className="text-sm text-red-500">{errors.accountNumber.message}</p>
-                )}
-                {!isLoadingAccounts && existingAccounts.length === 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    No active accounts found. Please create a live account or ensure your prop firm account is in an active phase.
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="instrument">Instrument *</Label>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label>Account *</Label>
+              {isLoadingAccounts ? (
+                <div className="h-10 bg-muted rounded-md animate-pulse" />
+              ) : (
                 <Controller
-                  name="instrument"
+                  name="accountNumber"
                   control={control}
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select or type instrument" />
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder={unifiedAccounts.length === 0 ? "No active accounts" : "Select account"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {COMMON_INSTRUMENTS.map(instrument => (
-                          <SelectItem key={instrument} value={instrument}>
-                            {instrument}
+                        {unifiedAccounts.map(account => (
+                          <SelectItem key={account.id} value={account.number}>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{account.displayName}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {account.number}
+                              </Badge>
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   )}
                 />
-                <Input
-                  placeholder="Or type custom instrument"
-                  {...register('instrument')}
-                  className="mt-2"
-                />
-                {errors.instrument && (
-                  <p className="text-sm text-red-500">{errors.instrument.message}</p>
+              )}
+              {errors.accountNumber && (
+                <p className="text-sm text-destructive">{errors.accountNumber.message}</p>
+              )}
+              {!isLoadingAccounts && unifiedAccounts.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No active accounts found. Create an account first.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Instrument *</Label>
+              <Controller
+                name="instrument"
+                control={control}
+                render={({ field }) => (
+                  <Popover open={instrumentOpen} onOpenChange={setInstrumentOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={instrumentOpen}
+                        className="w-full justify-between h-11 font-normal"
+                      >
+                        {field.value || "Select or type instrument"}
+                        <BarChart3 className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput 
+                          placeholder="Search or type custom..." 
+                          value={instrumentSearch}
+                          onValueChange={(value) => {
+                            setInstrumentSearch(value)
+                            // Allow custom instruments
+                            if (value && !COMMON_INSTRUMENTS.find(i => i.value === value)) {
+                              field.onChange(value.toUpperCase())
+                            }
+                          }}
+                        />
+                        <CommandList>
+                          <CommandEmpty>
+                            {instrumentSearch ? (
+                              <button
+                                className="w-full px-4 py-2 text-left hover:bg-muted"
+                                onClick={() => {
+                                  field.onChange(instrumentSearch.toUpperCase())
+                                  setInstrumentOpen(false)
+                                }}
+                              >
+                                Use "{instrumentSearch.toUpperCase()}" as custom instrument
+                              </button>
+                            ) : (
+                              "Type to search or add custom"
+                            )}
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {filteredInstruments.map((instr) => (
+                              <CommandItem
+                                key={instr.value}
+                                value={instr.value}
+                                onSelect={() => {
+                                  field.onChange(instr.value)
+                                  setInstrumentOpen(false)
+                                  setInstrumentSearch('')
+                                }}
+                              >
+                                <CheckCircle2
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === instr.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {instr.label}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 )}
-              </div>
-            </CardContent>
-          </Card>
+              />
+              {instrument && (
+                <p className="text-sm text-muted-foreground">Selected: {instrument}</p>
+              )}
+              {errors.instrument && (
+                <p className="text-sm text-destructive">{errors.instrument.message}</p>
+              )}
+            </div>
+          </div>
         )
 
       case 2:
         return (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Trade Execution Details</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-0">
-              <div className="space-y-2">
-                <Label htmlFor="side">Direction *</Label>
-                <Controller
-                  name="side"
-                  control={control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select direction" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="LONG">
-                          <div className="flex items-center">
-                            <TrendingUp className="w-4 h-4 mr-2 text-green-500" />
-                            Long
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="SHORT">
-                          <div className="flex items-center">
-                            <TrendingDown className="w-4 h-4 mr-2 text-red-500" />
-                            Short
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {errors.side && (
-                  <p className="text-sm text-red-500">{errors.side.message}</p>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label>Direction *</Label>
+              <Controller
+                name="side"
+                control={control}
+                render={({ field }) => (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant={field.value === 'LONG' ? 'default' : 'outline'}
+                      className={cn(
+                        "h-12",
+                        field.value === 'LONG' && "bg-long hover:bg-long/90"
+                      )}
+                      onClick={() => field.onChange('LONG')}
+                    >
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Long
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={field.value === 'SHORT' ? 'default' : 'outline'}
+                      className={cn(
+                        "h-12",
+                        field.value === 'SHORT' && "bg-short hover:bg-short/90"
+                      )}
+                      onClick={() => field.onChange('SHORT')}
+                    >
+                      <TrendingDown className="h-4 w-4 mr-2" />
+                      Short
+                    </Button>
+                  </div>
                 )}
-              </div>
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity *</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  step="1"
-                  {...register('quantity', { valueAsNumber: true })}
-                />
-                {errors.quantity && (
-                  <p className="text-sm text-red-500">{errors.quantity.message}</p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label>Quantity *</Label>
+              <Input
+                type="number"
+                min="0.01"
+                step="0.01"
+                className="h-11"
+                {...register('quantity', { valueAsNumber: true })}
+              />
+              {errors.quantity && (
+                <p className="text-sm text-destructive">{errors.quantity.message}</p>
+              )}
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="entryPrice">Entry Price *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  {...register('entryPrice')}
-                />
-                {errors.entryPrice && (
-                  <p className="text-sm text-red-500">{errors.entryPrice.message}</p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label>Entry Price *</Label>
+              <Input
+                type="number"
+                step="any"
+                className="h-11"
+                placeholder="0.00"
+                {...register('entryPrice')}
+              />
+              {errors.entryPrice && (
+                <p className="text-sm text-destructive">{errors.entryPrice.message}</p>
+              )}
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="closePrice">Close Price *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  {...register('closePrice')}
-                />
-                {errors.closePrice && (
-                  <p className="text-sm text-red-500">{errors.closePrice.message}</p>
-                )}
+            <div className="space-y-2">
+              <Label>Exit Price *</Label>
+              <Input
+                type="number"
+                step="any"
+                className="h-11"
+                placeholder="0.00"
+                {...register('closePrice')}
+              />
+              {errors.closePrice && (
+                <p className="text-sm text-destructive">{errors.closePrice.message}</p>
+              )}
+            </div>
+
+            {calculatedPnL !== null && (
+              <div className="col-span-2 p-4 rounded-lg border bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Estimated P&L</span>
+                  <span className={cn(
+                    "text-xl font-bold",
+                    calculatedPnL >= 0 ? "text-long" : "text-short"
+                  )}>
+                    {calculatedPnL >= 0 ? '+' : ''}${calculatedPnL.toFixed(2)}
+                  </span>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            )}
+          </div>
         )
 
       case 3:
         return (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Entry & Exit Timing</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-0">
-              <div className="space-y-2">
-                <Label htmlFor="entryDate">Entry Date *</Label>
-                <Input
-                  type="date"
-                  {...register('entryDate')}
-                />
-                {errors.entryDate && (
-                  <p className="text-sm text-red-500">{errors.entryDate.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="entryTime">Entry Time *</Label>
-                <Input
-                  type="time"
-                  {...register('entryTime')}
-                />
-                {errors.entryTime && (
-                  <p className="text-sm text-red-500">{errors.entryTime.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="closeDate">Close Date *</Label>
-                <Input
-                  type="date"
-                  {...register('closeDate')}
-                />
-                {errors.closeDate && (
-                  <p className="text-sm text-red-500">{errors.closeDate.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="closeTime">Close Time *</Label>
-                <Input
-                  type="time"
-                  {...register('closeTime')}
-                />
-                {errors.closeTime && (
-                  <p className="text-sm text-red-500">{errors.closeTime.message}</p>
-                )}
-              </div>
-
-              {calculatedDuration && (
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Trade Duration</Label>
-                  <div className="p-3 bg-muted rounded-md text-sm font-medium">
-                    {calculatedDuration}
-                  </div>
-                </div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label>Entry Date *</Label>
+              <Input type="date" className="h-11" {...register('entryDate')} />
+              {errors.entryDate && (
+                <p className="text-sm text-destructive">{errors.entryDate.message}</p>
               )}
-            </CardContent>
-          </Card>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Entry Time *</Label>
+              <Input type="time" className="h-11" {...register('entryTime')} />
+              {errors.entryTime && (
+                <p className="text-sm text-destructive">{errors.entryTime.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Exit Date *</Label>
+              <Input type="date" className="h-11" {...register('closeDate')} />
+              {errors.closeDate && (
+                <p className="text-sm text-destructive">{errors.closeDate.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Exit Time *</Label>
+              <Input type="time" className="h-11" {...register('closeTime')} />
+              {errors.closeTime && (
+                <p className="text-sm text-destructive">{errors.closeTime.message}</p>
+              )}
+            </div>
+
+            {calculatedDuration && (
+              <div className="col-span-2 p-4 rounded-lg border bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Duration</span>
+                  <span className="text-lg font-medium">{calculatedDuration}</span>
+                </div>
+              </div>
+            )}
+          </div>
         )
 
       case 4:
         return (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Risk Management</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-0">
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="stopLoss">Stop Loss *</Label>
+                <Label>Stop Loss</Label>
                 <Input
                   type="number"
-                  step="0.01"
-                  placeholder="Enter stop loss price"
+                  step="any"
+                  className="h-11"
+                  placeholder="Optional"
                   {...register('stopLoss')}
                 />
-                {errors.stopLoss && (
-                  <p className="text-sm text-red-500">{errors.stopLoss.message}</p>
-                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="takeProfit">Take Profit *</Label>
+                <Label>Take Profit</Label>
                 <Input
                   type="number"
-                  step="0.01"
-                  placeholder="Enter take profit price"
+                  step="any"
+                  className="h-11"
+                  placeholder="Optional"
                   {...register('takeProfit')}
                 />
-                {errors.takeProfit && (
-                  <p className="text-sm text-red-500">{errors.takeProfit.message}</p>
-                )}
               </div>
-            </CardContent>
-          </Card>
-        )
 
-      case 5:
-        return (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center">
-                <Calculator className="w-4 h-4 mr-2" />
-                Financial Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-0">
               <div className="space-y-2">
-                <Label htmlFor="commission">Commission (Optional)</Label>
+                <Label>Commission</Label>
                 <Input
                   type="number"
                   step="0.01"
+                  className="h-11"
                   placeholder="0.00"
                   {...register('commission', { valueAsNumber: true })}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>P&L (Auto-calculated)</Label>
-                <div className={`p-3 rounded-md text-sm font-medium ${
-                  calculatedPnL !== null 
-                    ? calculatedPnL >= 0 
-                      ? 'bg-green-50 text-green-700 border border-green-200' 
-                      : 'bg-red-50 text-red-700 border border-red-200'
-                    : 'bg-muted'
-                }`}>
-                  {calculatedPnL !== null ? `$${calculatedPnL.toFixed(2)}` : 'Calculating...'}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )
-
-      case 6:
-        return (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Trade Analysis (Optional)</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-0">
-              <div className="space-y-2">
-                <Label htmlFor="session">Trading Session</Label>
-                <Controller
-                  name="session"
-                  control={control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select session" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TRADING_SESSIONS.map(session => (
-                          <SelectItem key={session.value} value={session.value}>
-                            {session.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bias">Market Bias</Label>
-                <Controller
-                  name="bias"
-                  control={control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select bias" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MARKET_BIAS.map(bias => (
-                          <SelectItem key={bias.value} value={bias.value}>
-                            {bias.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="tradeType">Trade Type</Label>
+                <Label>Trade Type</Label>
                 <Controller
                   name="tradeType"
                   control={control}
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-11">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -760,133 +695,96 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
                   )}
                 />
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="emotionalState">Emotional State</Label>
-                <Controller
-                  name="emotionalState"
-                  control={control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select emotion" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EMOTIONAL_STATES.map(emotion => (
-                          <SelectItem key={emotion.value} value={emotion.value}>
-                            {emotion.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="comment">Trade Notes</Label>
-                <Textarea
-                  placeholder="Analysis, confluence factors, market conditions, lessons learned..."
-                  className="min-h-[80px]"
-                  {...register('comment')}
-                />
-              </div>
-            </CardContent>
-          </Card>
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea
+                placeholder="Trade analysis, lessons learned..."
+                className="min-h-[100px] resize-none"
+                {...register('comment')}
+              />
+            </div>
+          </div>
         )
 
-      case 7:
+      case 5:
         return (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Review & Confirm</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {phaseValidationError && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <AlertCircle className="h-4 w-4 text-red-400" />
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-red-700">{phaseValidationError}</p>
-                    </div>
-                  </div>
+          <div className="space-y-6">
+            {phaseValidationError && (
+              <div className="p-4 rounded-lg border border-destructive/50 bg-destructive/10">
+                <div className="flex items-center gap-2 text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <p className="text-sm">{phaseValidationError}</p>
                 </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Account</p>
-                  <p className="font-medium">{watchedValues.accountNumber}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Instrument</p>
-                  <p className="font-medium">{watchedValues.instrument}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Direction</p>
-                  <p className="font-medium">{watchedValues.side}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Quantity</p>
-                  <p className="font-medium">{watchedValues.quantity}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Entry Price</p>
-                  <p className="font-medium">${watchedValues.entryPrice}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Close Price</p>
-                  <p className="font-medium">${watchedValues.closePrice}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Entry Date & Time</p>
-                  <p className="font-medium">{watchedValues.entryDate} {watchedValues.entryTime}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Close Date & Time</p>
-                  <p className="font-medium">{watchedValues.closeDate} {watchedValues.closeTime}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Stop Loss</p>
-                  <p className="font-medium">${watchedValues.stopLoss}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Take Profit</p>
-                  <p className="font-medium">${watchedValues.takeProfit}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Commission</p>
-                  <p className="font-medium">${watchedValues.commission || 0}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">P&L</p>
-                  <p className={`font-medium ${calculatedPnL !== null && calculatedPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    ${calculatedPnL?.toFixed(2) || '0.00'}
-                  </p>
-                </div>
-                {calculatedDuration && (
-                  <div>
-                    <p className="text-muted-foreground">Duration</p>
-                    <p className="font-medium">{calculatedDuration}</p>
-                  </div>
-                )}
-                {watchedValues.session && (
-                  <div>
-                    <p className="text-muted-foreground">Session</p>
-                    <p className="font-medium">{watchedValues.session}</p>
-                  </div>
-                )}
-                {watchedValues.comment && (
-                  <div className="md:col-span-2">
-                    <p className="text-muted-foreground">Notes</p>
-                    <p className="font-medium">{watchedValues.comment}</p>
-                  </div>
-                )}
               </div>
-            </CardContent>
-          </Card>
+            )}
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-lg border bg-muted/30">
+                <p className="text-xs text-muted-foreground mb-1">Account</p>
+                <p className="font-medium truncate">{watchedValues.accountNumber}</p>
+              </div>
+              <div className="p-4 rounded-lg border bg-muted/30">
+                <p className="text-xs text-muted-foreground mb-1">Instrument</p>
+                <p className="font-medium">{watchedValues.instrument}</p>
+              </div>
+              <div className="p-4 rounded-lg border bg-muted/30">
+                <p className="text-xs text-muted-foreground mb-1">Direction</p>
+                <Badge variant={watchedValues.side === 'LONG' ? 'default' : 'secondary'}>
+                  {watchedValues.side}
+                </Badge>
+              </div>
+              <div className="p-4 rounded-lg border bg-muted/30">
+                <p className="text-xs text-muted-foreground mb-1">Quantity</p>
+                <p className="font-medium">{watchedValues.quantity}</p>
+              </div>
+              <div className="p-4 rounded-lg border bg-muted/30">
+                <p className="text-xs text-muted-foreground mb-1">Entry</p>
+                <p className="font-medium">${watchedValues.entryPrice}</p>
+              </div>
+              <div className="p-4 rounded-lg border bg-muted/30">
+                <p className="text-xs text-muted-foreground mb-1">Exit</p>
+                <p className="font-medium">${watchedValues.closePrice}</p>
+              </div>
+              <div className="p-4 rounded-lg border bg-muted/30">
+                <p className="text-xs text-muted-foreground mb-1">Entry Time</p>
+                <p className="font-medium text-sm">{watchedValues.entryDate} {watchedValues.entryTime}</p>
+              </div>
+              <div className="p-4 rounded-lg border bg-muted/30">
+                <p className="text-xs text-muted-foreground mb-1">Exit Time</p>
+                <p className="font-medium text-sm">{watchedValues.closeDate} {watchedValues.closeTime}</p>
+              </div>
+              <div className="p-4 rounded-lg border bg-muted/30">
+                <p className="text-xs text-muted-foreground mb-1">Commission</p>
+                <p className="font-medium">${watchedValues.commission || 0}</p>
+              </div>
+            </div>
+
+            <div className="p-6 rounded-lg border-2 border-primary/20 bg-primary/5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Final P&L</p>
+                  {calculatedDuration && (
+                    <p className="text-xs text-muted-foreground">Duration: {calculatedDuration}</p>
+                  )}
+                </div>
+                <p className={cn(
+                  "text-3xl font-bold",
+                  calculatedPnL !== null && calculatedPnL >= 0 ? "text-long" : "text-short"
+                )}>
+                  {calculatedPnL !== null ? (calculatedPnL >= 0 ? '+' : '') + '$' + calculatedPnL.toFixed(2) : '$0.00'}
+                </p>
+              </div>
+            </div>
+
+            {watchedValues.comment && (
+              <div className="p-4 rounded-lg border bg-muted/30">
+                <p className="text-xs text-muted-foreground mb-1">Notes</p>
+                <p className="text-sm">{watchedValues.comment}</p>
+              </div>
+            )}
+          </div>
         )
 
       default:
@@ -895,80 +793,115 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="text-center mb-3 px-4 sm:px-6 pt-1">
-        <h3 className="text-sm sm:text-base font-semibold">Add Single Trade</h3>
-        <p className="text-xs text-muted-foreground truncate">
-          Step {currentStep} of {TOTAL_STEPS}: {getStepTitle(currentStep)}
-        </p>
-      </div>
-
-      {/* Progress Indicator */}
-      <div className="px-4 sm:px-6 mb-4">
-        <div className="flex items-center justify-center space-x-1 sm:space-x-2">
-          {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((step) => (
-            <div
-              key={step}
-              className={`h-2 flex-1 rounded-full transition-colors ${
-                step === currentStep
-                  ? 'bg-primary'
-                  : step < currentStep
-                  ? 'bg-primary/50'
-                  : 'bg-muted'
-              }`}
-            />
-          ))}
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="flex-none border-b p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold">Add Single Trade</h2>
+            <p className="text-sm text-muted-foreground">
+              Step {currentStep} of {TOTAL_STEPS}: {stepInfo[currentStep - 1].title}
+            </p>
+          </div>
+        </div>
+        
+        {/* Progress steps */}
+        <div className="flex items-center gap-1">
+          {stepInfo.map((s, idx) => {
+            const StepIcon = s.icon
+            return (
+              <React.Fragment key={s.step}>
+                <div
+                  className={cn(
+                    "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-all",
+                    currentStep === s.step 
+                      ? "bg-primary text-primary-foreground font-medium" 
+                      : currentStep > s.step
+                        ? "bg-primary/20 text-primary"
+                        : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {currentStep > s.step ? (
+                    <CheckCircle2 className="h-3 w-3" />
+                  ) : (
+                    <StepIcon className="h-3 w-3" />
+                  )}
+                  <span className="hidden sm:inline">{s.title}</span>
+                </div>
+                {idx < stepInfo.length - 1 && (
+                  <div className={cn(
+                    "h-px w-4 transition-colors",
+                    currentStep > s.step ? "bg-primary" : "bg-border"
+                  )} />
+                )}
+              </React.Fragment>
+            )
+          })}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4">
-        <form id="manual-trade-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        <form id="manual-trade-form" onSubmit={handleSubmit(onSubmit)}>
           {renderStepContent()}
         </form>
       </div>
       
-      {/* Form Actions - Navigation Buttons */}
-      <div className="flex flex-col sm:flex-row justify-between gap-3 bg-background border-t px-4 sm:px-6 py-3 mt-auto">
-        <div className="flex gap-2 sm:gap-3">
+      {/* Footer */}
+      <div className="flex-none border-t p-4">
+        <div className="flex justify-between items-center">
           <Button
             type="button"
             variant="outline"
             onClick={() => setIsOpen(false)}
-            className="flex-1 sm:flex-none"
           >
             Cancel
           </Button>
-          {currentStep > 1 && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleBack}
-              className="flex-1 sm:flex-none"
-            >
-              Back
-            </Button>
-          )}
-        </div>
-        <div className="w-full sm:w-auto">
-          {currentStep < TOTAL_STEPS ? (
-            <Button
-              type="button"
-              onClick={handleNext}
-              disabled={!canProceedToNext}
-              className="w-full sm:w-auto"
-            >
-              Next
-            </Button>
-          ) : (
-            <Button
-              type="submit"
-              form="manual-trade-form"
-              disabled={isSubmitting || !canProceedToNext}
-              className="w-full sm:w-auto"
-            >
-              {isSubmitting ? 'Adding Trade...' : 'Add Trade'}
-            </Button>
-          )}
+          
+          <div className="flex items-center gap-3">
+            {currentStep > 1 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleBack}
+                className="gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+            )}
+            
+            {currentStep < TOTAL_STEPS ? (
+              <Button
+                type="button"
+                onClick={handleNext}
+                disabled={!canProceedToNext}
+                className="gap-2"
+              >
+                Next
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                form="manual-trade-form"
+                disabled={isSubmitting}
+                className="gap-2 min-w-[120px]"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Add Trade
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

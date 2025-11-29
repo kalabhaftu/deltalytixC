@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Building2 } from "lucide-react"
+import { useRegisterDialog } from "@/app/dashboard/components/auto-refresh-provider"
 
 const editAccountSchema = z.object({
   accountName: z.string().min(1, 'Account name is required').max(100, 'Name too long'),
@@ -62,6 +63,9 @@ export function EditPropFirmAccountDialog({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false)
   const [pendingClose, setPendingClose] = useState(false)
+  
+  // Register dialog to pause auto-refresh while open
+  useRegisterDialog(open)
 
   const {
     register,
@@ -160,7 +164,7 @@ export function EditPropFirmAccountDialog({
 
       // For prop firm accounts, use master account ID
       const masterAccountId = account.currentPhaseDetails?.masterAccountId || account.id
-      const endpoint = `/api/prop-firm-v2/accounts/${masterAccountId}`
+      const endpoint = `/api/prop-firm/accounts/${masterAccountId}`
 
       const response = await fetch(endpoint, {
         method: 'PATCH',
@@ -221,7 +225,16 @@ export function EditPropFirmAccountDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form 
+            onSubmit={handleSubmit(onSubmit)} 
+            onKeyDown={(e) => {
+              // Prevent Enter key from submitting the form when in input fields
+              if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
+                e.preventDefault()
+              }
+            }}
+            className="space-y-4"
+          >
             <div className="space-y-2">
               <Label htmlFor="accountName">Account Name *</Label>
               <Input

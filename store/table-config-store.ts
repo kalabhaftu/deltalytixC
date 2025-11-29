@@ -40,28 +40,26 @@ interface TableConfigState {
 }
 
 // Default configuration for trade table
+// Must match actual columns in trade-table-review.tsx
 const defaultTradeTableConfig: TableConfig = {
   id: 'trade-table',
   columns: [
     { id: 'select', title: 'Select', visible: true, size: 40, order: 0 },
     { id: 'expand', title: 'Expand', visible: true, size: 40, order: 1 },
     { id: 'accounts', title: 'Accounts', visible: true, size: 120, order: 2 },
-    { id: 'entryDate', title: 'Entry Date', visible: true, size: 120, order: 3 },
+    { id: 'tradeDate', title: 'Trade Date', visible: true, size: 120, order: 3 },
     { id: 'instrument', title: 'Instrument', visible: true, size: 120, order: 4 },
     { id: 'direction', title: 'Direction', visible: true, size: 100, order: 5 },
     { id: 'entryPrice', title: 'Entry Price', visible: true, size: 100, order: 6 },
-    { id: 'closePrice', title: 'Exit Price', visible: true, size: 100, order: 7 },
-    { id: 'timeInPosition', title: 'Position Time', visible: true, size: 120, order: 8 },
-    { id: 'entryTime', title: 'Entry Time', visible: true, size: 100, order: 9 },
-    { id: 'closeDate', title: 'Exit Time', visible: true, size: 100, order: 10 },
-    { id: 'pnl', title: 'PnL', visible: true, size: 100, order: 11 },
-    { id: 'commission', title: 'Commission', visible: true, size: 100, order: 12 },
-    { id: 'quantity', title: 'Quantity', visible: true, size: 100, order: 13 },
-    { id: 'image', title: 'Image', visible: true, size: 80, order: 14 },
-    { id: 'tags', title: 'Tags', visible: true, size: 200, order: 15 },
+    { id: 'closePrice', title: 'Close Price', visible: true, size: 100, order: 7 },
+    { id: 'timeInPosition', title: 'Time in Position', visible: true, size: 120, order: 8 },
+    { id: 'pnl', title: 'PnL', visible: true, size: 100, order: 9 },
+    { id: 'commission', title: 'Commission', visible: true, size: 100, order: 10 },
+    { id: 'quantity', title: 'Quantity', visible: true, size: 100, order: 11 },
+    { id: 'actions', title: 'Actions', visible: true, size: 80, order: 12 },
   ],
   columnVisibility: {},
-  sorting: [{ id: 'closeDate', desc: true }],
+  sorting: [{ id: 'tradeDate', desc: true }],
   columnFilters: [],
   pageSize: 10,
   pageIndex: 0,
@@ -75,65 +73,27 @@ export const useTableConfigStore = create<TableConfigState>()(
         'trade-table': defaultTradeTableConfig,
       },
 
-      // Migration function to handle old column references
+      // Migration function to handle old column references and sync with current table structure
       migrateOldColumns: () => {
         const state = get()
         const tradeTable = state.tables['trade-table']
         
         if (tradeTable) {
-          // Check if old columns exist and migrate them
-          const hasOldTicks = tradeTable.columns.some(col => col.id === 'ticks')
-          const hasOldPoints = tradeTable.columns.some(col => col.id === 'points')
+          // List of columns that no longer exist in the table
+          const removedColumns = ['ticks', 'points', 'ticksAndPoints', 'entryDate', 'entryTime', 'closeDate', 'image', 'tags']
+          // List of valid column IDs from the current table
+          const validColumnIds = ['select', 'expand', 'accounts', 'tradeDate', 'instrument', 'direction', 'entryPrice', 'closePrice', 'timeInPosition', 'pnl', 'commission', 'quantity', 'actions']
           
-          if (hasOldTicks || hasOldPoints) {
-            // Remove old columns and add the new combined column
-            const updatedColumns = tradeTable.columns
-              .filter(col => col.id !== 'ticks' && col.id !== 'points')
-              .map(col => {
-                // Adjust order for columns that came after the old columns
-                if (col.order >= 14) {
-                  return { ...col, order: col.order - 1 }
-                }
-                return col
-              })
-            
-            // Add the new combined column
-            updatedColumns.push({ 
-              id: 'ticksAndPoints', 
-              title: 'Ticks/Points', 
-              visible: true, 
-              size: 100, 
-              order: 14 
-            })
-            
-            // Sort by order
-            updatedColumns.sort((a, b) => a.order - b.order)
-            
-            // Update column visibility to remove old columns
-            const updatedVisibility = { ...tradeTable.columnVisibility }
-            delete updatedVisibility['ticks']
-            delete updatedVisibility['points']
-            
-            // Update sorting to remove old columns
-            const updatedSorting = tradeTable.sorting.filter(sort => 
-              sort.id !== 'ticks' && sort.id !== 'points'
-            )
-            
-            // Update column filters to remove old columns
-            const updatedFilters = tradeTable.columnFilters.filter(filter => 
-              filter.id !== 'ticks' && filter.id !== 'points'
-            )
-            
+          // Check if any old columns exist
+          const hasOldColumns = tradeTable.columns.some(col => removedColumns.includes(col.id))
+          const hasMissingColumns = !validColumnIds.every(id => tradeTable.columns.some(col => col.id === id))
+          
+          if (hasOldColumns || hasMissingColumns) {
+            // Reset to default config to ensure consistency
             set({
               tables: {
                 ...state.tables,
-                'trade-table': {
-                  ...tradeTable,
-                  columns: updatedColumns,
-                  columnVisibility: updatedVisibility,
-                  sorting: updatedSorting,
-                  columnFilters: updatedFilters,
-                },
+                'trade-table': defaultTradeTableConfig,
               },
             })
           }
@@ -284,6 +244,12 @@ export const useTableConfigStore = create<TableConfigState>()(
     {
       name: 'table-config-store',
       storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        // Run migration after hydration to sync columns with current table structure
+        if (state) {
+          state.migrateOldColumns()
+        }
+      },
     }
   )
 ) 

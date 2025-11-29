@@ -8,6 +8,7 @@ import { startOfDay } from 'date-fns'
 import { prisma } from '@/lib/prisma'
 import { unstable_cache } from 'next/cache'
 import { logger } from '@/lib/logger'
+import { convertDecimal } from '@/lib/utils/decimal'
 
 type TradeError = 
   | 'DUPLICATE_TRADES'
@@ -97,88 +98,16 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
         }
       }
 
-      // OPTIMIZED DUPLICATE DETECTION: Use efficient batching strategy
-      logger.debug(`Checking for duplicate trades for user ${userId}`, { count: cleanedData.length }, 'SaveTrades')
-      
-      // For small datasets (< 100 trades), use optimized batch approach
-      if (cleanedData.length < 100) {
-        // Get all potentially matching trades in one query using date range
-        const dateRange = {
-          min: new Date(Math.min(...cleanedData.map(t => new Date(t.entryDate).getTime()))),
-          max: new Date(Math.max(...cleanedData.map(t => new Date(t.closeDate || t.entryDate).getTime())))
-        }
-        
-        const existingTrades = await prisma.trade.findMany({
-          where: { 
-            userId,
-            accountNumber: { in: [...new Set(cleanedData.map(t => t.accountNumber))] },
-            entryDate: { gte: dateRange.min.toISOString(), lte: dateRange.max.toISOString() }
-          },
-          select: {
-            entryId: true,
-            accountNumber: true,
-            entryDate: true,
-            instrument: true,
-            quantity: true,
-            entryPrice: true,
-            closePrice: true
-          }
-        })
-
-        // Create set of existing signatures for fast lookup
-        const existingSignatures = new Set(
-          existingTrades.map(trade => 
-            `${trade.entryId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
-          )
-        )
-
-        // Filter out duplicate trades
-        const newTrades = cleanedData.filter(trade => {
-          const signature = `${trade.entryId || ''}-${trade.accountNumber}-${trade.entryDate}-${trade.instrument}-${trade.quantity}-${trade.entryPrice}-${trade.closePrice}`
-          return !existingSignatures.has(signature)
-        })
-
-        logger.debug(`Found ${cleanedData.length - newTrades.length} duplicate trades, ${newTrades.length} new trades to add`, { 
-          total: cleanedData.length, 
-          duplicates: cleanedData.length - newTrades.length, 
-          new: newTrades.length 
-        }, 'SaveTrades')
-
-        if (newTrades.length === 0) {
-          return {
-            error: 'DUPLICATE_TRADES',
-            numberOfTradesAdded: 0,
-            details: `All ${cleanedData.length} trades already exist`
-          }
-        }
-
-        // Add only new trades
-        const result = await prisma.trade.createMany({
-          data: newTrades as any,
-          skipDuplicates: true
-        })
-
-        revalidatePath('/')
-        return {
-          error: false,
-          numberOfTradesAdded: result.count,
-          details: {
-            totalProcessed: cleanedData.length,
-            duplicatesSkipped: cleanedData.length - newTrades.length,
-            newTradesAdded: result.count
-          }
-        }
-      }
-
-      // For larger datasets, use batch processing with skipDuplicates
-      logger.debug(`Large dataset detected (${cleanedData.length} trades), using batch processing`, {}, 'SaveTrades')
+      // Database-level deduplication: Let PostgreSQL handle duplicate detection via unique constraint
+      // This is much more efficient than JavaScript-based filtering
+      logger.debug(`Inserting ${cleanedData.length} trades with database-level deduplication`, { userId }, 'SaveTrades')
       
       const result = await prisma.trade.createMany({
         data: cleanedData as any,
-        skipDuplicates: true
+        skipDuplicates: true // Database constraint handles duplicate rejection efficiently
       })
 
-      logger.debug(`Batch processing completed: ${result.count} trades added`, { 
+      logger.debug(`Batch insert completed: ${result.count} trades added`, { 
         total: cleanedData.length, 
         added: result.count,
         skipped: cleanedData.length - result.count
@@ -189,11 +118,7 @@ export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
       return {
         error: false,
         numberOfTradesAdded: result.count,
-        details: {
-          totalProcessed: cleanedData.length,
-          duplicatesSkipped: cleanedData.length - result.count,
-          newTradesAdded: result.count
-        }
+        details: `Processed ${cleanedData.length} entries. ${result.count} new trades added.`
       }
     } catch(error) {
       logger.error('Database error in saveTrades', error, 'saveTrades')
@@ -286,14 +211,7 @@ export async function getTradesAction(userId: string | null = null, options?: {
 
       const trades = await prisma.trade.findMany(query)
 
-      // Helper to convert Decimal to string
-      const convertDecimal = (value: any) => {
-        if (value && typeof value === 'object' && 'toString' in value) {
-          return value.toString()
-        }
-        return value
-      }
-
+      // Use shared decimal conversion utility
       return trades.map(trade => ({
         ...trade,
         entryPrice: convertDecimal(trade.entryPrice),

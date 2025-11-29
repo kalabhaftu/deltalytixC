@@ -18,6 +18,7 @@ model Account {
   userId                 String
   groupId                String?
   createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
   isArchived             Boolean                  @default(false)
   Group                  Group?                   @relation(fields: [groupId], references: [id])
   User                   User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -28,7 +29,6 @@ model Account {
   @@unique([number, userId])
   @@index([groupId])
   @@index([userId])
-  @@index([userId, number])
   @@schema("public")
 }
 
@@ -72,7 +72,7 @@ model BacktestTrade {
 model BreachRecord {
   id                String       @id
   phaseAccountId    String
-  breachType        String
+  breachType        BreachType
   breachAmount      Float
   breachTime        DateTime     @default(now())
   currentEquity     Float
@@ -81,6 +81,7 @@ model BreachRecord {
   highWaterMark     Float?
   tradeId           String?
   notes             String?
+  updatedAt         DateTime     @updatedAt
   PhaseAccount      PhaseAccount @relation(fields: [phaseAccountId], references: [id], onDelete: Cascade)
 
   @@index([phaseAccountId])
@@ -113,6 +114,7 @@ model DailyNote {
   User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, accountId, date])
+  @@index([accountId])
   @@schema("public")
 }
 
@@ -172,7 +174,6 @@ model MasterAccount {
   accountSize    Float
   evaluationType String
   currentPhase   Int
-  isActive       Boolean             @default(true)
   createdAt      DateTime            @default(now())
   status         MasterAccountStatus @default(active)
   isArchived     Boolean             @default(false)
@@ -181,7 +182,7 @@ model MasterAccount {
   PhaseAccount   PhaseAccount[]
 
   @@unique([userId, accountName])
-  @@index([userId, isActive])
+  @@index([userId, status])
   @@schema("public")
 }
 
@@ -190,15 +191,14 @@ model Payout {
   masterAccountId String
   phaseAccountId  String
   amount          Float
-  status          String        @default("pending")
+  status          PayoutStatus  @default(pending)
   requestDate     DateTime      @default(now())
   approvedDate    DateTime?
   paidDate        DateTime?
   rejectedDate    DateTime?
   notes           String?
   rejectionReason String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime      @updatedAt
   MasterAccount   MasterAccount @relation(fields: [masterAccountId], references: [id], onDelete: Cascade)
   PhaseAccount    PhaseAccount  @relation(fields: [phaseAccountId], references: [id], onDelete: Cascade)
 
@@ -216,12 +216,13 @@ model PhaseAccount {
   profitTargetPercent    Float
   dailyDrawdownPercent   Float
   maxDrawdownPercent     Float
-  maxDrawdownType        String             @default("static")
+  maxDrawdownType        DrawdownType       @default(static)
   minTradingDays         Int                @default(0)
   timeLimitDays          Int?
   consistencyRulePercent Float              @default(0)
   profitSplitPercent     Float?
   payoutCycleDays        Int?
+  minProfitForPayout     Float?             // Min profit (in $) required to request payout (funded phases only)
   startDate              DateTime           @default(now())
   endDate                DateTime?
   BreachRecord           BreachRecord[]
@@ -240,45 +241,45 @@ model PhaseAccount {
 }
 
 model Trade {
-  id               String        @id
-  accountNumber    String
-  quantity         Float         @default(0)
-  entryId          String?       @default("")
-  instrument       String
-  entryPrice       String
-  closePrice       String
-  entryDate        String
-  closeDate        String
-  pnl              Float
-  timeInPosition   Float         @default(0)
-  userId           String
-  side             String?       @default("")
-  commission       Float         @default(0)
-  createdAt        DateTime      @default(now())
-  comment          String?
-  groupId          String?       @default("")
-  cardPreviewImage String?
-  imageOne         String?
-  imageTwo         String?
-  imageThree       String?
-  imageFour        String?
-  imageFive        String?
-  imageSix         String?
-  accountId        String?
-  phaseAccountId   String?
-  symbol           String?
-  entryTime        DateTime?
-  exitTime         DateTime?
-  closeReason      String?
-  stopLoss         String?
-  takeProfit       String?
-  tags             String?
-  marketBias       MarketBias?
-  modelId          String?
-  selectedRules    Json?
-  newsDay          Boolean?       @default(false)
-  selectedNews     String?
-  newsTraded       Boolean?       @default(false)
+  id                 String        @id
+  accountNumber      String
+  quantity           Float         @default(0)
+  entryId            String?
+  instrument         String
+  entryPrice         String
+  closePrice         String
+  entryDate          String
+  closeDate          String
+  pnl                Float
+  timeInPosition     Float         @default(0)
+  userId             String
+  side               String?
+  commission         Float         @default(0)
+  createdAt          DateTime      @default(now())
+  comment            String?
+  groupId            String?
+  cardPreviewImage   String?
+  imageOne           String?
+  imageTwo           String?
+  imageThree         String?
+  imageFour          String?
+  imageFive          String?
+  imageSix           String?
+  accountId          String?
+  phaseAccountId     String?
+  symbol             String?
+  entryTime          DateTime?
+  exitTime           DateTime?
+  closeReason        String?
+  stopLoss           String?
+  takeProfit         String?
+  tags               String[]
+  marketBias         MarketBias?
+  modelId            String?
+  selectedRules      Json?
+  newsDay            Boolean?      @default(false)
+  selectedNews       String?
+  newsTraded         Boolean?      @default(false)
   biasTimeframe      String?
   narrativeTimeframe String?
   driverTimeframe    String?
@@ -286,10 +287,11 @@ model Trade {
   structureTimeframe String?
   orderType          String?
   chartLinks         String?
-  Account          Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  TradingModel     TradingModel? @relation(fields: [modelId], references: [id])
-  PhaseAccount     PhaseAccount? @relation(fields: [phaseAccountId], references: [id], onDelete: Cascade)
+  Account            Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  TradingModel       TradingModel? @relation(fields: [modelId], references: [id])
+  PhaseAccount       PhaseAccount? @relation(fields: [phaseAccountId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, accountNumber, symbol, entryDate, entryPrice, side, quantity], name: "unique_trade_identification")
   @@index([accountId, exitTime])
   @@index([accountId])
   @@index([accountId, phaseAccountId])
@@ -331,6 +333,7 @@ model TradingModel {
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   Trade     Trade[]
 
   @@unique([userId, name])
@@ -357,11 +360,31 @@ model User {
   Group                  Group[]
   LiveAccountTransaction LiveAccountTransaction[]
   MasterAccount          MasterAccount[]
+  Notification           Notification[]
   TradeTag               TradeTag[]
+  TradingModel           TradingModel[]
   WeeklyReview           WeeklyReview[]
 
   @@index([auth_user_id])
   @@index([email])
+  @@schema("public")
+}
+
+model Notification {
+  id             String           @id @default(uuid())
+  userId         String
+  type           NotificationType
+  title          String
+  message        String
+  data           Json?
+  isRead         Boolean          @default(false)
+  actionRequired Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  User           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, actionRequired])
   @@schema("public")
 }
 
@@ -426,6 +449,13 @@ enum BreachType {
   @@schema("public")
 }
 
+enum DrawdownType {
+  static
+  trailing
+
+  @@schema("public")
+}
+
 enum MarketBias {
   BULLISH
   BEARISH
@@ -442,12 +472,34 @@ enum MasterAccountStatus {
   @@schema("public")
 }
 
+enum PayoutStatus {
+  pending
+  approved
+  paid
+  rejected
+
+  @@schema("public")
+}
+
+enum NotificationType {
+  FUNDED_PENDING_APPROVAL
+  FUNDED_APPROVED
+  FUNDED_DECLINED
+  PHASE_TRANSITION_PENDING  // Waiting for user to enter next phase ID
+  PAYOUT_APPROVED
+  PAYOUT_REJECTED
+  SYSTEM
+
+  @@schema("public")
+}
+
 enum PhaseAccountStatus {
   active
   passed
   failed
   archived
   pending
+  pending_approval
 
   @@schema("public")
 }

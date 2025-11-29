@@ -10,10 +10,6 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required'),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
   
-  // Authentication
-  AUTH_SECRET: z.string().min(32, 'AUTH_SECRET must be at least 32 characters').optional(),
-  AUTH_TRUST_HOST: z.string().optional(),
-  
   // AI Services (Optional - only required if using AI features)
   XAI_API_KEY: z.string().optional(),
   XAI_BASE_URL: z.string().url().optional(),

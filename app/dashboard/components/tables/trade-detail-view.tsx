@@ -96,9 +96,9 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewV2Pro
     : []
   const newsEvents = newsEventIds.map((id: string) => getNewsById(id)).filter(Boolean)
 
-  // Parse tags
-  const tradeTags = tradeData.tags 
-    ? tradeData.tags.split(',').filter(Boolean).map((id: string) => tags.find(t => t.id === id)).filter(Boolean)
+  // Parse tags - tags is now an array
+  const tradeTags = Array.isArray(tradeData.tags)
+    ? tradeData.tags.filter(Boolean).map((id: string) => tags.find(t => t.id === id)).filter(Boolean)
     : []
 
   // Get session

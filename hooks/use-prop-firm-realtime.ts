@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
-import { PropFirmAccount } from '@/types/prop-firm'
+import { fetchWithError, handleFetchError } from '@/lib/utils/fetch-with-error'
+import { API_TIMEOUT, POLL_INTERVAL } from '@/lib/constants'
+import { useRealtimeSubscription, type TableName } from '@/lib/realtime/realtime-manager'
 
 interface PropFirmAccountLocal {
   id: string
@@ -25,8 +27,7 @@ interface PropFirmAccountLocal {
     startDate: string
     endDate: string | null
   } | null
-  isActive: boolean
-  status: string
+  status: 'active' | 'funded' | 'failed'
   phases: Array<{
     id: string
     phaseNumber: number
@@ -65,7 +66,7 @@ interface DrawdownData {
 
 interface UsePropFirmRealtimeOptions {
   accountId?: string
-  pollInterval?: number // in milliseconds, default 30 seconds
+  pollInterval?: number // in milliseconds, default from constants
   enabled?: boolean
 }
 
@@ -77,10 +78,11 @@ interface UsePropFirmRealtimeResult {
   lastUpdated: Date | null
   refetch: () => Promise<void>
   isPolling: boolean
+  isVisible: boolean
 }
 
 export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePropFirmRealtimeResult {
-  const { accountId, pollInterval = 30000, enabled = true } = options
+  const { accountId, pollInterval = POLL_INTERVAL, enabled = true } = options
   
   const [account, setAccount] = useState<PropFirmAccountLocal | null>(null)
   const [drawdown, setDrawdown] = useState<DrawdownData | null>(null)
@@ -89,174 +91,155 @@ export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePro
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [isPolling, setIsPolling] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
+  const [isVisible, setIsVisible] = useState(true)
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
-  const abortControllerRef = useRef<AbortController | null>(null)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const previousAccountRef = useRef<PropFirmAccountLocal | null>(null)
+  const previousDrawdownRef = useRef<DrawdownData | null>(null)
+  const isFetchingRef = useRef(false)
+  const hasFetchedRef = useRef(false)
+
+  // Track tab visibility for smart polling
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    const handleVisibilityChange = () => {
+      setIsVisible(document.visibilityState === 'visible')
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
 
   const fetchAccountData = useCallback(async (showLoadingState = true) => {
-    if (!accountId || !enabled || isFetching) return
+    // Use ref to prevent duplicate calls - this avoids dependency issues
+    if (!accountId || !enabled || isFetchingRef.current) return
 
     try {
+      isFetchingRef.current = true
       setIsFetching(true)
       if (showLoadingState) {
         setIsLoading(true)
       }
       setError(null)
 
-      // Cancel any existing request
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
+      const result = await fetchWithError<{ success: boolean; data: any }>(
+        `/api/prop-firm/accounts/${accountId}`,
+        { timeout: API_TIMEOUT }
+      )
+
+      if (!result.ok || !result.data?.success) {
+        throw new Error(result.error?.message || 'Failed to fetch account data')
       }
 
-      // Create new abort controller with timeout
-      abortControllerRef.current = new AbortController()
-      
-      // Set timeout for request
-      timeoutRef.current = setTimeout(() => {
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort()
+      const { account: accountData, drawdown: drawdownData } = result.data.data
+
+      if (!accountData || !drawdownData) {
+        throw new Error('Invalid response format: missing account or drawdown data')
+      }
+
+      // Check for status changes and show notifications
+      if (previousAccountRef.current && previousAccountRef.current.status !== accountData.status) {
+        if (accountData.status === 'failed') {
+          toast.error("Account Failed", {
+            description: `Account ${accountData.accountName || accountData.number} has been marked as failed.`,
+          })
+        } else if (accountData.status === 'funded') {
+          toast.success("Account Funded!", {
+            description: `Congratulations! Account ${accountData.accountName || accountData.number} has been funded.`,
+          })
         }
-      }, 10000) // 10 second timeout
-
-      const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}`, {
-        signal: abortControllerRef.current.signal,
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      })
-
-      // Clear timeout on successful response
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-        timeoutRef.current = null
       }
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch account data: ${response.status}`)
+      // Check for breach alerts
+      if (drawdownData?.isBreached && (!previousDrawdownRef.current?.isBreached)) {
+        toast.error("Drawdown Breach Alert!", {
+          description: `Account ${accountData.accountName || accountData.number} has breached ${drawdownData.breachType?.replace('_', ' ')} limits.`,
+        })
       }
 
-      const responseData = await response.json()
+      // Update refs for next comparison
+      previousAccountRef.current = accountData
+      previousDrawdownRef.current = drawdownData
 
-      // Handle wrapped response format (from API)
-      if (responseData.success && responseData.data) {
-        const data = responseData.data
+      setAccount(accountData)
+      setDrawdown(drawdownData)
+      setLastUpdated(new Date())
 
-        // Check if the expected format is available
-        if (data.account && data.drawdown) {
-          const accountData = data.account
-          const drawdownData = data.drawdown
-
-          // Check for status changes and show notifications
-          if (account && account.status !== accountData.status) {
-            if (accountData.status === 'failed') {
-              toast.error("Account Failed", {
-                description: `Account ${accountData.accountName || accountData.number} has been marked as failed due to rule violations.`,
-              })
-            } else if (accountData.status === 'funded') {
-              toast.success("Account Funded! 🎉", {
-                description: `Congratulations! Account ${accountData.accountName || accountData.number} has been funded.`,
-              })
-            }
-          }
-
-          // Check for breach alerts
-          if (drawdownData?.isBreached && (!drawdown || !drawdown.isBreached)) {
-            toast.error("Drawdown Breach Alert!", {
-              description: `Account ${accountData.accountName || accountData.number} has breached ${drawdownData.breachType?.replace('_', ' ')} limits.`,
-            })
-          }
-
-          setAccount(accountData)
-          setDrawdown(drawdownData)
-          setLastUpdated(new Date())
-        } else {
-          throw new Error(data.error || 'Invalid response format: missing account or drawdown data')
-        }
-      } else if (responseData.account && responseData.drawdown) {
-        // Handle direct response format (fallback)
-        const accountData = responseData.account
-        const drawdownData = responseData.drawdown
-
-        setAccount(accountData)
-        setDrawdown(drawdownData)
-        setLastUpdated(new Date())
-      } else {
-        throw new Error(responseData.error || 'Failed to fetch account data - invalid response format')
-      }
-
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        // Request was cancelled, ignore
-        return
-      }
-      
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      setError(errorMessage)
+    } catch (err) {
+      setError(handleFetchError(err))
     } finally {
+      isFetchingRef.current = false
       setIsFetching(false)
       if (showLoadingState) {
         setIsLoading(false)
       }
-      // Clear timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-        timeoutRef.current = null
-      }
     }
-  }, [accountId, enabled, account, drawdown, isFetching])
-
-  const startPolling = useCallback(() => {
-    if (!enabled || !accountId || intervalRef.current) return
-
-    setIsPolling(true)
-    
-    // Initial fetch
-    fetchAccountData(true)
-    
-    // Set up polling interval
-    intervalRef.current = setInterval(() => {
-      fetchAccountData(false) // Don't show loading for background polls
-    }, pollInterval)
-
-  }, [enabled, accountId, pollInterval, fetchAccountData])
-
-  const stopPolling = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
-    }
-    
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-    }
-    
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-    
-    setIsPolling(false)
-    setIsFetching(false)
-  }, [])
+  }, [accountId, enabled])
 
   const refetch = useCallback(async () => {
     await fetchAccountData(true)
   }, [fetchAccountData])
 
-  // PERFORMANCE FIX: Disable auto-polling that was causing performance issues
-  // Fetch once on mount, then cleanup on unmount
+  // Use shared RealtimeManager for subscriptions
+  useRealtimeSubscription(
+    ['MasterAccount', 'PhaseAccount', 'Trade', 'BreachRecord', 'Payout'] as TableName[],
+    (event) => {
+      // Refetch on relevant changes
+      if (enabled && accountId) {
+        fetchAccountData(false)
+      }
+    },
+    enabled && !!accountId
+  )
+
+  // Track previous accountId to detect changes and reset hasFetchedRef
+  const prevAccountIdRef = useRef<string | undefined>(undefined)
+
+  // Initial fetch - only once per accountId
+  // The reset logic must happen BEFORE the fetch check, not in a separate effect
   useEffect(() => {
-    if (enabled && accountId) {
-      // Only fetch once on mount, no polling
-      fetchAccountData(true)
+    if (!enabled || !accountId) return
+    
+    // Reset hasFetchedRef when accountId changes (must happen before the fetch check)
+    if (prevAccountIdRef.current !== accountId) {
+      hasFetchedRef.current = false
+      prevAccountIdRef.current = accountId
+    }
+    
+    // Only fetch once per accountId
+    if (hasFetchedRef.current) return
+    hasFetchedRef.current = true
+    
+    fetchAccountData(true)
+  }, [enabled, accountId, fetchAccountData])
+
+  // Visibility-aware polling - separate effect to avoid infinite loops
+  useEffect(() => {
+    if (!enabled || !accountId) return
+
+    // Set up visibility-aware polling
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
     }
 
-    // Cleanup on unmount
-    return () => {
-      stopPolling()
+    if (isVisible) {
+      setIsPolling(true)
+      intervalRef.current = setInterval(() => {
+        fetchAccountData(false)
+      }, pollInterval)
+    } else {
+      setIsPolling(false)
     }
-  }, [enabled, accountId, fetchAccountData, stopPolling])
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+      setIsPolling(false)
+    }
+  }, [enabled, accountId, isVisible, pollInterval, fetchAccountData])
 
   return {
     account,
@@ -265,6 +248,7 @@ export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePro
     error,
     lastUpdated,
     refetch,
-    isPolling
+    isPolling,
+    isVisible
   }
 }

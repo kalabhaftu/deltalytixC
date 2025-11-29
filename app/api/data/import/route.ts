@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
             accountSize: parseFloat(ma.accountSize),
             evaluationType: ma.evaluationType,
             currentPhase: parseInt(ma.currentPhase),
-            isActive: ma.isActive === 'true' || ma.isActive === true,
+            status: ma.status || 'active',
             createdAt: ma.createdAt ? new Date(ma.createdAt) : new Date()
           }
         })
@@ -286,9 +286,7 @@ export async function POST(request: NextRequest) {
             paidDate: payout.paidDate ? new Date(payout.paidDate) : null,
             rejectedDate: payout.rejectedDate ? new Date(payout.rejectedDate) : null,
             notes: payout.notes || null,
-            rejectionReason: payout.rejectionReason || null,
-            createdAt: payout.createdAt ? new Date(payout.createdAt) : new Date(),
-            updatedAt: payout.updatedAt ? new Date(payout.updatedAt) : new Date()
+            rejectionReason: payout.rejectionReason || null
           }
         })
         results.payouts++

@@ -43,7 +43,7 @@ export async function validatePhaseId(
         phaseId: normalizedPhaseId,
         MasterAccount: {
           userId,
-          isActive: true, // Only check active master accounts
+          status: { not: 'failed' }, // Only check non-failed master accounts
           ...(excludeAccountId ? { NOT: { id: excludeAccountId } } : {})
         },
         status: {

@@ -350,7 +350,7 @@ export async function deleteTrade(tradeId: string) {
 │   │   ├── trades/              # Trade CRUD endpoints
 │   │   ├── auth/                # Auth endpoints
 │   │   ├── journal/             # Journal + AI analysis
-│   │   ├── prop-firm-v2/        # Prop firm APIs
+│   │   ├── prop-firm/        # Prop firm APIs
 │   │   └── cron/                # Background jobs
 │   ├── docs/                    # Documentation pages
 │   ├── globals.css              # Tailwind + theme CSS

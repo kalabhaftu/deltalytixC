@@ -28,7 +28,9 @@
             "maxDrawdownPercent": 10,
             "maxDrawdownType": "static",
             "dailyDrawdownPercent": 5,
-            "profitSplitPercent": 80
+            "profitSplitPercent": 80,
+            "minProfitForPayout": 100,
+            "payoutCycleDays": 14
           }
         }
       }
@@ -62,7 +64,9 @@
             "maxDrawdownPercent": 10,
             "maxDrawdownType": "static",
             "dailyDrawdownPercent": 5,
-            "profitSplitPercent": 80
+            "profitSplitPercent": 80,
+            "minProfitForPayout": 100,
+            "payoutCycleDays": 14
           }
         }
       }
@@ -96,7 +100,9 @@
             "maxDrawdownPercent": 10,
             "maxDrawdownType": "static",
             "dailyDrawdownPercent": 5,
-            "profitSplitPercent": 80
+            "profitSplitPercent": 80,
+            "minProfitForPayout": 50,
+            "payoutCycleDays": 14
           }
         }
       },
@@ -116,7 +122,9 @@
             "maxDrawdownPercent": 6,
             "maxDrawdownType": "trailing",
             "dailyDrawdownPercent": 3,
-            "profitSplitPercent": 90
+            "profitSplitPercent": 90,
+            "minProfitForPayout": 50,
+            "payoutCycleDays": 14
           }
         }
       }
@@ -150,7 +158,9 @@
             "maxDrawdownPercent": 6,
             "maxDrawdownType": "trailing",
             "dailyDrawdownPercent": 5,
-            "profitSplitPercent": 75
+            "profitSplitPercent": 75,
+            "minProfitForPayout": 100,
+            "payoutCycleDays": 14
           }
         }
       }
@@ -184,7 +194,9 @@
             "maxDrawdownPercent": 8,
             "maxDrawdownType": "static",
             "dailyDrawdownPercent": 5,
-            "profitSplitPercent": 80
+            "profitSplitPercent": 80,
+            "minProfitForPayout": 100,
+            "payoutCycleDays": 14
           }
         }
       }
@@ -218,7 +230,9 @@
             "maxDrawdownPercent": 10,
             "maxDrawdownType": "static",
             "dailyDrawdownPercent": 5,
-            "profitSplitPercent": 80
+            "profitSplitPercent": 80,
+            "minProfitForPayout": 100,
+            "payoutCycleDays": 14
           }
         }
       }
@@ -252,7 +266,9 @@
             "maxDrawdownPercent": 10,
             "maxDrawdownType": "static",
             "dailyDrawdownPercent": 5,
-            "profitSplitPercent": 80
+            "profitSplitPercent": 80,
+            "minProfitForPayout": 100,
+            "payoutCycleDays": 14
           }
         }
       }
@@ -286,7 +302,9 @@
             "maxDrawdownPercent": 8,
             "maxDrawdownType": "static",
             "dailyDrawdownPercent": 4,
-            "profitSplitPercent": 80
+            "profitSplitPercent": 80,
+            "minProfitForPayout": 100,
+            "payoutCycleDays": 14
           }
         }
       },
@@ -306,7 +324,9 @@
             "maxDrawdownPercent": 6,
             "maxDrawdownType": "trailing",
             "dailyDrawdownPercent": 4,
-            "profitSplitPercent": 80
+            "profitSplitPercent": 80,
+            "minProfitForPayout": 100,
+            "payoutCycleDays": 14
           }
         }
       }
@@ -340,7 +360,9 @@
             "maxDrawdownPercent": 10,
             "maxDrawdownType": "static",
             "dailyDrawdownPercent": 5,
-            "profitSplitPercent": 80
+            "profitSplitPercent": 80,
+            "minProfitForPayout": 100,
+            "payoutCycleDays": 14
           }
         }
       }

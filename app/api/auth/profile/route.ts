@@ -5,10 +5,19 @@ import { getUserId } from '@/server/auth'
 // GET /api/auth/profile - Get user profile information
 export async function GET() {
   try {
-    const userId = await getUserId()
+    // Get user ID using the proper auth function
+    let userId: string
+    try {
+      userId = await getUserId()
+    } catch (authError) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
     
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { auth_user_id: userId },
       select: {
         id: true,
         email: true,
@@ -40,7 +49,17 @@ export async function GET() {
 // PATCH /api/auth/profile - Update user profile information
 export async function PATCH(request: NextRequest) {
   try {
-    const userId = await getUserId()
+    // Get user ID using the proper auth function
+    let userId: string
+    try {
+      userId = await getUserId()
+    } catch (authError) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
 
     const { firstName, lastName } = body
@@ -62,7 +81,7 @@ export async function PATCH(request: NextRequest) {
 
     // Update user profile in database
     const updatedUser = await prisma.user.update({
-      where: { id: userId },
+      where: { auth_user_id: userId },
       data: {
         firstName: firstName?.trim() || null,
         lastName: lastName?.trim() || null,

@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react'
 import { Link2, FileSpreadsheet, Database } from "lucide-react"
 import {
   Command,
-  CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
@@ -24,27 +23,33 @@ interface ImportTypeSelectionProps {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-
-
 const categoryIcons: Record<PlatformConfig['category'], React.ReactNode> = {
   'Direct Account Sync': <Link2 className="h-4 w-4" />,
   'Intelligent Import': <FileSpreadsheet className="h-4 w-4" />,
   'Platform CSV Import': <Database className="h-4 w-4" />
 }
 
-// Function to check if it's weekend
 function isWeekend() {
   const day = new Date().getDay()
-  return day === 0 || day === 6 // 0 is Sunday, 6 is Saturday
+  return day === 0 || day === 6
 }
 
 export default function ImportTypeSelection({ selectedType, setSelectedType, setIsOpen }: ImportTypeSelectionProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [hoveredCategory, setHoveredCategory] = useState<PlatformConfig['category'] | null>(null)
-  // Set default selection to Manual Trade Entry
-  useEffect(() => {
-    setSelectedType('manual-trade-entry')
-  }, [setSelectedType])
+  
+  // Don't auto-select anything - let user choose
+  const selectedPlatform = platforms.find(p => p.type === selectedType)
+  
+  // If a custom component platform is selected (like manual trade entry), render it full screen
+  if (selectedType && selectedPlatform?.customComponent) {
+    const CustomComponent = selectedPlatform.customComponent
+    return (
+      <div className="h-full">
+        <CustomComponent setIsOpen={setIsOpen} />
+      </div>
+    )
+  }
 
   const getTranslatedCategory = (category: PlatformConfig['category']) => {
     switch (category) {
@@ -66,11 +71,11 @@ export default function ImportTypeSelection({ selectedType, setSelectedType, set
   )
 
   const categories = Array.from(new Set(filteredPlatforms.map(platform => platform.category)))
-  const selectedPlatform = platforms.find(p => p.type === selectedType)
 
   return (
     <div className="flex flex-col h-full">
       <div className="grid md:grid-cols-2 gap-6 h-full min-h-0 p-2">
+        {/* Platform List */}
         <div className="h-full min-h-0">
           <Command className="border rounded-lg h-full">
             <div className="flex flex-col h-full">
@@ -117,20 +122,18 @@ export default function ImportTypeSelection({ selectedType, setSelectedType, set
           </Command>
         </div>
 
+        {/* Right Panel - Tutorial/Info */}
         <div className="h-full min-h-0 overflow-y-auto">
-          {/* <ScrollArea className="h-full"> */}
-            {selectedType !== '' && selectedPlatform && (
-              selectedPlatform.customComponent ? (
-                <div className="h-full pr-4">
-                  {selectedPlatform.customComponent && <selectedPlatform.customComponent setIsOpen={setIsOpen} />}
-                </div>
-              ) : (
-                <div className="pr-4">
-                  <PlatformTutorial selectedPlatform={selectedPlatform} setIsOpen={setIsOpen} />
-                </div>
-              )
-            )}
-          {/* </ScrollArea> */}
+          {selectedType !== '' && selectedPlatform && !selectedPlatform.customComponent && (
+            <div className="pr-4">
+              <PlatformTutorial selectedPlatform={selectedPlatform} setIsOpen={setIsOpen} />
+            </div>
+          )}
+          {!selectedType && (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              <p>Select an import method to get started</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

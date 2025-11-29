@@ -1,152 +1,127 @@
 'use client'
 
-import React, { Component, ErrorInfo, ReactNode } from 'react'
+import React, { Component, ErrorInfo, ReactNode, ReactElement } from 'react'
+import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { logger } from '@/lib/logger'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
-interface Props {
+/**
+ * Props for ErrorBoundary component
+ */
+interface ErrorBoundaryProps {
   children: ReactNode
+  /** Custom fallback component */
   fallback?: ReactNode
+  /** Called when an error is caught */
   onError?: (error: Error, errorInfo: ErrorInfo) => void
-  showDetails?: boolean
-  context?: string
+  /** Called when retry is clicked */
+  onRetry?: () => void
+  /** Custom error message */
+  errorMessage?: string
+  /** Whether to show retry button */
+  showRetry?: boolean
+  /** Class name for the error container */
+  className?: string
 }
 
-interface State {
+/**
+ * State for ErrorBoundary component
+ */
+interface ErrorBoundaryState {
   hasError: boolean
   error: Error | null
   errorInfo: ErrorInfo | null
 }
 
-class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false,
-    error: null,
-    errorInfo: null
-  }
-
-  public static getDerivedStateFromError(error: Error): State {
-    return {
-      hasError: true,
-      error,
-      errorInfo: null
-    }
-  }
-
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    const { onError, context } = this.props
-    
-    // Log error to our logger
-    logger.error('Component Error Boundary triggered', {
-      error: error.message,
-      stack: error.stack,
-      errorInfo,
-      context
-    }, context || 'ErrorBoundary')
-
-    // Call custom error handler if provided
-    if (onError) {
-      onError(error, errorInfo)
-    }
-
-    this.setState({
-      error,
-      errorInfo
-    })
-  }
-
-  private handleRetry = () => {
-    this.setState({
+/**
+ * Error Boundary Component
+ * Catches JavaScript errors in child components and displays a fallback UI
+ * 
+ * @example
+ * ```tsx
+ * <ErrorBoundary onRetry={() => refetch()}>
+ *   <DashboardComponent />
+ * </ErrorBoundary>
+ * ```
+ */
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props)
+    this.state = {
       hasError: false,
       error: null,
       errorInfo: null
-    })
+    }
   }
 
-  private handleGoHome = () => {
-    window.location.href = '/'
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+    return { hasError: true, error }
   }
 
-  private handleReload = () => {
-    window.location.reload()
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    this.setState({ errorInfo })
+    
+    // Call optional error handler
+    this.props.onError?.(error, errorInfo)
+    
+    // Log error for debugging
+    console.error('ErrorBoundary caught an error:', error, errorInfo)
   }
 
-  public render() {
-    const { hasError, error, errorInfo } = this.state
-    const { fallback, showDetails = false, context, children } = this.props
+  handleRetry = (): void => {
+    this.setState({ hasError: false, error: null, errorInfo: null })
+    this.props.onRetry?.()
+  }
+
+  render(): ReactNode {
+    const { hasError, error } = this.state
+    const { 
+      children, 
+      fallback, 
+      errorMessage,
+      showRetry = true,
+      className = ''
+    } = this.props
 
     if (hasError) {
+      // Use custom fallback if provided
       if (fallback) {
         return fallback
       }
 
+      // Default error UI
       return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-          <Card className="w-full max-w-lg">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
-                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
-              </div>
-              <CardTitle className="text-xl font-semibold">
-                Something went wrong
-              </CardTitle>
-              <CardDescription>
-                {context ? `An error occurred in ${context}` : 'An unexpected error has occurred'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {showDetails && error && (
-                <div className="rounded-md bg-muted p-4">
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                    Error Details:
-                  </h4>
-                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
-                    {error.message}
-                  </pre>
-                  {process.env.NODE_ENV === 'development' && (
-                    <details className="mt-2">
-                      <summary className="text-xs text-muted-foreground cursor-pointer">
-                        Stack Trace
-                      </summary>
-                      <pre className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap break-words">
-                        {error.stack}
-                      </pre>
-                    </details>
-                  )}
-                </div>
-              )}
-              
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button 
-                  onClick={this.handleRetry}
-                  className="flex-1"
-                  variant="default"
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Try Again
-                </Button>
-                <Button 
-                  onClick={this.handleGoHome}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  <Home className="mr-2 h-4 w-4" />
-                  Go Home
-                </Button>
-              </div>
-              
+        <Card className={`border-destructive/50 ${className}`}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Something went wrong
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              {errorMessage || 'An unexpected error occurred. Please try again.'}
+            </p>
+            {process.env.NODE_ENV === 'development' && error && (
+              <pre className="mt-4 p-3 bg-muted rounded-md text-xs overflow-auto max-h-32">
+                {error.message}
+              </pre>
+            )}
+          </CardContent>
+          {showRetry && (
+            <CardFooter>
               <Button 
-                onClick={this.handleReload}
-                variant="ghost"
-                className="w-full text-sm"
+                variant="outline" 
+                size="sm" 
+                onClick={this.handleRetry}
+                className="gap-2"
               >
-                Reload Page
+                <RefreshCw className="h-4 w-4" />
+                Try Again
               </Button>
-            </CardContent>
-          </Card>
-        </div>
+            </CardFooter>
+          )}
+        </Card>
       )
     }
 
@@ -154,75 +129,151 @@ class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-// Functional wrapper for easier use with React hooks
-interface ErrorBoundaryWrapperProps extends Omit<Props, 'onError'> {
-  onError?: (error: Error, errorInfo: ErrorInfo) => void
+/**
+ * Functional wrapper for ErrorBoundary with hooks support
+ */
+interface ErrorBoundaryWrapperProps extends Omit<ErrorBoundaryProps, 'onRetry'> {
+  /** Reset key - changes to this will reset the error boundary */
+  resetKey?: string | number
+  /** Context description for error messages */
+  context?: string
+  /** Show error details (useful for development) */
+  showDetails?: boolean
 }
 
 export function ErrorBoundaryWrapper({ 
   children, 
-  onError,
+  resetKey,
+  context,
+  showDetails,
+  errorMessage,
   ...props 
-}: ErrorBoundaryWrapperProps) {
-  const handleError = React.useCallback((error: Error, errorInfo: ErrorInfo) => {
-    // You could send this to an error tracking service like Sentry
-    if (onError) {
-      onError(error, errorInfo)
-    }
-  }, [onError])
+}: ErrorBoundaryWrapperProps): ReactElement {
+  const [key, setKey] = React.useState(0)
+  
+  // Reset on resetKey change
+  React.useEffect(() => {
+    setKey(prev => prev + 1)
+  }, [resetKey])
+
+  // Build error message with context if provided
+  const finalErrorMessage = errorMessage || (context ? `Error in ${context}` : undefined)
 
   return (
-    <ErrorBoundary onError={handleError} {...props}>
+    <ErrorBoundary 
+      key={key} 
+      onRetry={() => setKey(prev => prev + 1)}
+      errorMessage={finalErrorMessage}
+      {...props}
+    >
       {children}
     </ErrorBoundary>
   )
 }
 
-// Specialized error boundaries for different contexts
-export function DashboardErrorBoundary({ children }: { children: ReactNode }) {
+/**
+ * Simple inline error display for data fetching
+ */
+interface DataErrorProps {
+  error: string | null
+  onRetry?: () => void
+  className?: string
+}
+
+export function DataError({ error, onRetry, className = '' }: DataErrorProps): ReactElement | null {
+  if (!error) return null
+
   return (
-    <ErrorBoundaryWrapper 
-      context="Dashboard"
-      showDetails={process.env.NODE_ENV === 'development'}
-    >
-      {children}
-    </ErrorBoundaryWrapper>
+    <div className={`flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg ${className}`}>
+      <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+      <p className="text-sm text-destructive flex-1">{error}</p>
+      {onRetry && (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onRetry}
+          className="shrink-0"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
   )
 }
 
+/**
+ * Loading state with optional error handling
+ */
+interface LoadingOrErrorProps {
+  isLoading: boolean
+  error: string | null
+  onRetry?: () => void
+  loadingComponent?: ReactNode
+  children: ReactNode
+}
+
+export function LoadingOrError({ 
+  isLoading, 
+  error, 
+  onRetry,
+  loadingComponent,
+  children 
+}: LoadingOrErrorProps): ReactElement {
+  if (isLoading) {
+    return (
+      <>
+        {loadingComponent || (
+          <div className="flex items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          </div>
+        )}
+      </>
+    )
+  }
+
+  if (error) {
+    return <DataError error={error} onRetry={onRetry} />
+  }
+
+  return <>{children}</>
+}
+
+/**
+ * Widget-specific error boundary with compact styling
+ */
 export function WidgetErrorBoundary({ 
   children, 
-  widgetType 
+  widgetId,
+  widgetType
 }: { 
   children: ReactNode
+  widgetId?: string
   widgetType?: string
-}) {
+}): ReactElement {
   return (
-    <ErrorBoundaryWrapper 
-      context={`Widget${widgetType ? ` (${widgetType})` : ''}`}
-      fallback={
-        <Card className="h-full">
-          <CardContent className="flex h-full items-center justify-center p-6">
-            <div className="text-center space-y-2">
-              <AlertTriangle className="mx-auto h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                Widget failed to load
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      }
+    <ErrorBoundaryWrapper
+      errorMessage={`${widgetType || widgetId || 'Widget'} encountered an error`}
     >
       {children}
     </ErrorBoundaryWrapper>
   )
 }
 
-export function ImportErrorBoundary({ children }: { children: ReactNode }) {
+/**
+ * Dashboard-level error boundary
+ */
+export function DashboardErrorBoundary({ 
+  children,
+  context,
+  showDetails = false
+}: { 
+  children: ReactNode
+  context?: string
+  showDetails?: boolean
+}): ReactElement {
   return (
-    <ErrorBoundaryWrapper 
-      context="Import"
-      showDetails={true}
+    <ErrorBoundaryWrapper
+      errorMessage={context ? `Error in ${context}` : 'Dashboard error'}
     >
       {children}
     </ErrorBoundaryWrapper>

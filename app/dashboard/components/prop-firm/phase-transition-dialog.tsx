@@ -43,6 +43,7 @@ interface PhaseTransitionDialogProps {
   nextPhaseNumber: number
   propFirmName: string
   accountName: string
+  evaluationType: string
   onSuccess?: () => void
 }
 
@@ -54,16 +55,32 @@ export function PhaseTransitionDialog({
   nextPhaseNumber,
   propFirmName,
   accountName,
+  evaluationType,
   onSuccess
 }: PhaseTransitionDialogProps) {
   const [nextPhaseId, setNextPhaseId] = useState('')
   const [isTransitioning, setIsTransitioning] = useState(false)
   const router = useRouter()
 
+  /**
+   * Helper function to determine if a phase number represents the funded stage
+   * based on the evaluation type.
+   */
+  const isFundedPhase = (phaseNumber: number): boolean => {
+    switch (evaluationType) {
+      case 'Two Step':
+        return phaseNumber >= 3
+      case 'One Step':
+        return phaseNumber >= 2
+      case 'Instant':
+        return phaseNumber >= 1
+      default:
+        return phaseNumber >= 3 // Default to Two Step behavior
+    }
+  }
+
   const getPhaseDisplayName = (phaseNumber: number) => {
-    if (phaseNumber === 1) return 'Phase 1'
-    if (phaseNumber === 2) return 'Phase 2'
-    if (phaseNumber >= 3) return 'Funded'
+    if (isFundedPhase(phaseNumber)) return 'Funded'
     return `Phase ${phaseNumber}`
   }
 
@@ -78,7 +95,7 @@ export function PhaseTransitionDialog({
     try {
       setIsTransitioning(true)
 
-      const response = await fetch(`/api/prop-firm-v2/accounts/${masterAccountId}/transition`, {
+      const response = await fetch(`/api/prop-firm/accounts/${masterAccountId}/transition`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,21 +139,21 @@ export function PhaseTransitionDialog({
   }
 
   const getTransitionIcon = () => {
-    if (nextPhaseNumber >= 3) {
+    if (isFundedPhase(nextPhaseNumber)) {
       return <Trophy className="h-10 w-10" />
     }
     return <Sparkles className="h-10 w-10" />
   }
 
   const getTransitionTitle = () => {
-    if (nextPhaseNumber >= 3) {
+    if (isFundedPhase(nextPhaseNumber)) {
       return "Ready for Funded Account!"
     }
     return `Ready for ${getPhaseDisplayName(nextPhaseNumber)}!`
   }
 
   const getTransitionMessage = () => {
-    if (nextPhaseNumber >= 3) {
+    if (isFundedPhase(nextPhaseNumber)) {
       return "Congratulations! You've completed the evaluation and are ready for your funded account."
     }
     return `Great job! You've passed ${getPhaseDisplayName(currentPhase.phaseNumber)} and are ready to advance.`
@@ -187,7 +204,7 @@ export function PhaseTransitionDialog({
                   <span className="text-sm text-muted-foreground">Profit Target</span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{formatPercent(currentPhase.profitTargetPercent)}</span>
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-long" />
                   </div>
                 </div>
               )}
@@ -196,7 +213,7 @@ export function PhaseTransitionDialog({
                 <span className="text-sm text-muted-foreground">Current P&L</span>
                 <span className={cn(
                   "font-semibold",
-                  currentPhase.currentPnL >= 0 ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500"
+                  currentPhase.currentPnL >= 0 ? "text-long" : "text-short"
                 )}>
                   {currentPhase.currentPnL >= 0 ? '+' : ''}${currentPhase.currentPnL.toLocaleString()}
                 </span>
@@ -207,8 +224,8 @@ export function PhaseTransitionDialog({
           {/* Phase Transition Flow */}
           <div className="relative flex items-center justify-center gap-4 py-2">
             <div className="text-center">
-              <div className="relative w-14 h-14 bg-green-500/10 rounded-xl flex items-center justify-center mb-2 transition-all hover:scale-105">
-                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-500" />
+              <div className="relative w-14 h-14 bg-long/10 rounded-xl flex items-center justify-center mb-2 transition-all hover:scale-105">
+                <CheckCircle className="h-6 w-6 text-long" />
               </div>
               <span className="text-sm font-medium">{getPhaseDisplayName(currentPhase.phaseNumber)}</span>
               <div className="text-xs text-muted-foreground">Completed</div>

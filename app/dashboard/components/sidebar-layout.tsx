@@ -99,7 +99,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       {/* Main Content */}
       <motion.main
         className={cn(
-          "flex-1 transition-all duration-300 ease-in-out relative",
+          "flex-1 transition-all duration-300 ease-in-out relative w-full",
           isMobile ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-64"
         )}
         style={{
@@ -108,9 +108,11 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.3 }}
       >
-        {children}
+        <div className="w-full max-w-full overflow-x-hidden">
+          {children}
+        </div>
       </motion.main>
     </div>
   )

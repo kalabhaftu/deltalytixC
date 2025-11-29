@@ -47,17 +47,27 @@ export async function DELETE(request: NextRequest) {
       // Get user's email for business invitations
       const user = await tx.user.findUnique({ 
         where: { auth_user_id: userId },
-        select: { email: true }
+        select: { id: true, email: true }
       })
+      
+      // If user doesn't exist in our database, skip database deletion
+      if (!user) {
+        // User only exists in Supabase auth, not in our database
+        // This can happen if database sync failed during signup
+        return
+      }
+      
+      // Use the internal user.id for queries on related tables
+      const internalUserId = user.id
 
       // Get user's trade IDs and account IDs for related deletions
       const userTradeIds = await tx.trade.findMany({
-        where: { userId },
+        where: { userId: internalUserId },
         select: { id: true }
       })
       
       const userAccounts = await tx.account.findMany({
-        where: { userId },
+        where: { userId: internalUserId },
         select: { id: true }
       })
 
@@ -69,7 +79,7 @@ export async function DELETE(request: NextRequest) {
           where: {
             PhaseAccount: {
               MasterAccount: {
-                userId
+                userId: internalUserId
               }
             }
           }
@@ -77,23 +87,23 @@ export async function DELETE(request: NextRequest) {
       }
 
       await tx.dashboardTemplate.deleteMany({
-        where: { userId }
+        where: { userId: internalUserId }
       })
 
       await tx.trade.deleteMany({
-        where: { userId }
+        where: { userId: internalUserId }
       })
       
       await tx.account.deleteMany({
-        where: { userId }
+        where: { userId: internalUserId }
       })
       
       await tx.group.deleteMany({
-        where: { userId }
+        where: { userId: internalUserId }
       })
 
       await tx.user.delete({
-        where: { auth_user_id: userId }
+        where: { id: internalUserId }
       })
 
     }, {

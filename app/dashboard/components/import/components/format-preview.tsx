@@ -1,7 +1,7 @@
 "use client";
 
 import { Trade } from "@prisma/client";
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -12,9 +12,9 @@ import {
 } from "@/components/ui/table";
 import { format, isValid } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils"; // Assuming you have a utility for className merging
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ArrowDownToLine, ChevronDown } from "lucide-react";
+import { Play, RotateCcw, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { parsePositionTime } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -28,12 +28,14 @@ import { experimental_useObject as useObject } from '@ai-sdk/react'
 import { tradeSchema } from '@/app/api/ai/format-trades/schema'
 import { z } from 'zod'
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface FormatPreviewProps {
   trades: string[][];
@@ -41,7 +43,6 @@ interface FormatPreviewProps {
   setProcessedTrades: (trades: Trade[]) => void;
   setIsLoading: (isLoading: boolean) => void;
   isLoading: boolean;
-  isSaving?: boolean; // Optional: used to disable actions during save
   headers: string[];
   mappings: { [key: string]: string };
 }
@@ -53,7 +54,6 @@ function transformHeaders(headers: string[], mappings: { [key: string]: string }
   });
 }
 
-
 export function FormatPreview({
   trades: initialTrades,
   processedTrades,
@@ -64,6 +64,7 @@ export function FormatPreview({
   mappings,
 }: FormatPreviewProps) {
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const hasStartedRef = useRef(false);
 
   // Transform headers using mappings
   const transformedHeaders = useMemo(() => transformHeaders(headers, mappings), [headers, mappings]);
@@ -76,16 +77,10 @@ export function FormatPreview({
 
   const [error, setError] = useState<string | null>(null);
   const [currentBatch, setCurrentBatch] = useState(0);
-  const batchSize = 10;
+  
+  // Optimized batch size - process more trades at once
+  const batchSize = 25;
   const totalBatches = Math.ceil(validTrades.length / batchSize);
-
-  const handleLoadMore = () => {
-    setCurrentBatch(prev => Math.min(prev + 1, totalBatches - 1));
-    submit({
-      headers: transformedHeaders,
-      rows: batchToProcess
-    });
-  };
 
   const batchToProcess = useMemo(() => {
     const startIndex = currentBatch * batchSize;
@@ -102,12 +97,12 @@ export function FormatPreview({
     }
   });
 
-  // Update parent loading state when processing state changes
+  // Update parent loading state
   useEffect(() => {
     setIsLoading(isProcessing);
   }, [isProcessing, setIsLoading]);
 
-
+  // Process trades when object updates
   useEffect(() => {
     if (object) {
       const newTrades = object.filter((trade): trade is NonNullable<typeof trade> => trade !== undefined) as any[];
@@ -121,322 +116,134 @@ export function FormatPreview({
       if (uniqueTrades.length > 0) {
         setProcessedTrades([...processedTrades, ...uniqueTrades]);
       }
-      setTimeout(() => {
-        scrollToBottom()
-      }, 100)
+      // Auto-scroll after processing
+      setTimeout(scrollToBottom, 100);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [object])
+  }, [object, processedTrades, setProcessedTrades]);
+
+  // Auto-process next batch when current batch completes
+  useEffect(() => {
+    if (!isProcessing && hasStartedRef.current && currentBatch < totalBatches - 1 && processedTrades.length > 0) {
+      // Check if current batch was processed
+      const expectedProcessed = (currentBatch + 1) * batchSize;
+      if (processedTrades.length >= Math.min(expectedProcessed, validTrades.length) * 0.8) {
+        // Calculate next batch values BEFORE the timeout to avoid stale closure
+        const nextBatch = currentBatch + 1;
+        const nextBatchStart = nextBatch * batchSize;
+        const nextBatchEnd = (nextBatch + 1) * batchSize;
+        const nextBatchRows = validTrades.slice(nextBatchStart, nextBatchEnd);
+        
+        // Auto-advance to next batch
+        const timer = setTimeout(() => {
+          setCurrentBatch(nextBatch);
+          submit({
+            headers: transformedHeaders,
+            rows: nextBatchRows
+          });
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isProcessing, currentBatch, totalBatches, processedTrades.length, validTrades.length, batchSize, submit, transformedHeaders, validTrades]);
+
+  const handleStartProcessing = useCallback(() => {
+    hasStartedRef.current = true;
+    setCurrentBatch(0);
+    submit({
+      headers: transformedHeaders,
+      rows: batchToProcess
+    });
+  }, [submit, transformedHeaders, batchToProcess]);
+
+  const handleReset = useCallback(() => {
+    hasStartedRef.current = false;
+    setCurrentBatch(0);
+    setProcessedTrades([]);
+    setError(null);
+  }, [setProcessedTrades]);
+
+  const progressPercent = useMemo(() => {
+    if (validTrades.length === 0) return 0;
+    return Math.round((processedTrades.length / validTrades.length) * 100);
+  }, [processedTrades.length, validTrades.length]);
 
   const columns = useMemo<ColumnDef<Partial<Trade>>[]>(() => [
     {
       accessorKey: "entryDate",
-      header: ({ column }) => (
-        <div className="font-medium">Entry Date</div>
-      ),
+      header: "Entry Date",
       cell: ({ row }) => {
         const entryDate = row.original.entryDate ? new Date(row.original.entryDate) : null;
-        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'entryDate')];
-        return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                {entryDate && isValid(entryDate) ? format(entryDate, "yyyy-MM-dd HH:mm") : "Invalid Date"}
-              </TooltipTrigger>
-              {originalData && (
-                <TooltipContent>
-                  <p>Original: {originalData}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        );
+        return entryDate && isValid(entryDate) ? format(entryDate, "yyyy-MM-dd HH:mm") : "-";
       },
-      size: 180,
+      size: 150,
     },
     {
       accessorKey: "instrument",
-      header: ({ column }) => (
-        <div className="font-medium">Instrument</div>
+      header: "Instrument",
+      cell: ({ row }) => (
+        <span className="font-medium">{row.original.instrument || "-"}</span>
       ),
-      cell: ({ row }) => {
-        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'instrument')];
-        return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                {row.original.instrument}
-              </TooltipTrigger>
-              {originalData && (
-                <TooltipContent>
-                  <p>Original: {originalData}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        );
-      },
-      size: 120,
+      size: 100,
     },
     {
       accessorKey: "side",
-      header: ({ column }) => (
-        <div className="font-medium">Side</div>
+      header: "Side",
+      cell: ({ row }) => (
+        <Badge variant={row.original.side === 'long' ? 'default' : 'secondary'} className="capitalize">
+          {row.original.side || "-"}
+        </Badge>
       ),
-      cell: ({ row }) => {
-        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'side')];
-        return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <span className="capitalize">{row.original.side}</span>
-              </TooltipTrigger>
-              {originalData && (
-                <TooltipContent>
-                  <p>Original: {originalData}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        );
-      },
-      size: 100,
+      size: 80,
     },
     {
       accessorKey: "quantity",
-      header: ({ column }) => (
-        <div className="font-medium">Quantity</div>
-      ),
-      cell: ({ row }) => {
-        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'quantity')];
-        return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                {Number(row.original.quantity).toFixed(2)}
-              </TooltipTrigger>
-              {originalData && (
-                <TooltipContent>
-                  <p>Original: {originalData}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        );
-      },
-      size: 100,
+      header: "Qty",
+      cell: ({ row }) => Number(row.original.quantity || 0).toFixed(2),
+      size: 70,
     },
     {
       accessorKey: "entryPrice",
-      header: ({ column }) => (
-        <div className="font-medium">Entry Price</div>
-      ),
-      cell: ({ row }) => {
-        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'entryPrice')];
-        const priceValue = row.original.entryPrice ? String(row.original.entryPrice) : '0';
-        return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                ${priceValue}
-              </TooltipTrigger>
-              {originalData && (
-                <TooltipContent>
-                  <p>Original: {originalData}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        );
-      },
-      size: 120,
+      header: "Entry",
+      cell: ({ row }) => `$${row.original.entryPrice || '0'}`,
+      size: 90,
     },
     {
       accessorKey: "closePrice",
-      header: ({ column }) => (
-        <div className="font-medium">Close Price</div>
-      ),
-      cell: ({ row }) => {
-        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'closePrice')];
-        const priceValue = row.original.closePrice ? String(row.original.closePrice) : '0';
-        return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                ${priceValue}
-              </TooltipTrigger>
-              {originalData && (
-                <TooltipContent>
-                  <p>Original: {originalData}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        );
-      },
-      size: 120,
+      header: "Exit",
+      cell: ({ row }) => `$${row.original.closePrice || '0'}`,
+      size: 90,
     },
     {
       accessorKey: "pnl",
-      header: ({ column }) => (
-        <div className="font-medium">P&L</div>
-      ),
+      header: "P&L",
       cell: ({ row }) => {
         const pnl = row.original.pnl ?? 0;
-        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'pnl')];
         return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <span className={pnl >= 0 ? "text-green-600" : "text-red-600"}>
-                  ${pnl.toFixed(2)}
-                </span>
-              </TooltipTrigger>
-              {originalData && (
-                <TooltipContent>
-                  <p>Original: {originalData}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+          <span className={pnl >= 0 ? "text-long font-medium" : "text-short font-medium"}>
+            {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
+          </span>
         );
       },
-      size: 120,
+      size: 90,
     },
     {
       accessorKey: "commission",
-      header: ({ column }) => (
-        <div className="font-medium">Commission</div>
-      ),
-      cell: ({ row }) => {
-        const commission = row.original.commission ?? 0;
-        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'commission')];
-        return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                ${commission.toFixed(2)}
-              </TooltipTrigger>
-              {originalData && (
-                <TooltipContent>
-                  <p>Original: {originalData}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        );
-      },
-      size: 120,
+      header: "Comm",
+      cell: ({ row }) => `$${(row.original.commission ?? 0).toFixed(2)}`,
+      size: 70,
     },
     {
       accessorKey: "timeInPosition",
-      header: ({ column }) => (
-        <div className="font-medium">Time in Position</div>
-      ),
-      cell: ({ row }) => {
-        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'timeInPosition')];
-        return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                {parsePositionTime(row.original.timeInPosition || 0)}
-              </TooltipTrigger>
-              {originalData && (
-                <TooltipContent>
-                  <p>Original: {originalData}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        );
-      },
-      size: 120,
+      header: "Duration",
+      cell: ({ row }) => parsePositionTime(row.original.timeInPosition || 0),
+      size: 90,
     },
-    {
-      accessorKey: "stopLoss",
-      header: ({ column }) => (
-        <div className="font-medium">Stop Loss</div>
-      ),
-      cell: ({ row }) => {
-        const stopLoss = (row.original as any).stopLoss;
-        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'stopLoss')];
-        return stopLoss ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                ${stopLoss}
-              </TooltipTrigger>
-              {originalData && (
-                <TooltipContent>
-                  <p>Original: {originalData}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        ) : <span className="text-muted-foreground">-</span>;
-      },
-      size: 120,
-    },
-    {
-      accessorKey: "takeProfit",
-      header: ({ column }) => (
-        <div className="font-medium">Take Profit</div>
-      ),
-      cell: ({ row }) => {
-        const takeProfit = (row.original as any).takeProfit;
-        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'takeProfit')];
-        return takeProfit ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                ${takeProfit}
-              </TooltipTrigger>
-              {originalData && (
-                <TooltipContent>
-                  <p>Original: {originalData}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        ) : <span className="text-muted-foreground">-</span>;
-      },
-      size: 120,
-    },
-    {
-      accessorKey: "closeReason",
-      header: ({ column }) => (
-        <div className="font-medium">Close Reason</div>
-      ),
-      cell: ({ row }) => {
-        const closeReason = (row.original as any).closeReason;
-        const originalData = validTrades[row.index]?.[headers.findIndex(h => mappings[h] === 'closeReason')];
-        return closeReason ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <span className="capitalize">{closeReason}</span>
-              </TooltipTrigger>
-              {originalData && (
-                <TooltipContent>
-                  <p>Original: {originalData}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        ) : <span className="text-muted-foreground">-</span>;
-      },
-      size: 140,
-    },
-  ], [validTrades, headers, mappings]);
+  ], []);
 
   const table = useReactTable({
     data: processedTrades,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    defaultColumn: {
-      size: 400,
-      minSize: 100,
-    },
   });
 
   const scrollToBottom = () => {
@@ -451,57 +258,87 @@ export function FormatPreview({
     }
   };
 
-
-
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-red-500">{error}</div>
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <AlertCircle className="h-12 w-12 text-destructive" />
+        <div className="text-center">
+          <h3 className="font-semibold text-lg">Processing Error</h3>
+          <p className="text-sm text-muted-foreground mt-1">{error}</p>
+        </div>
+        <Button onClick={handleReset} variant="outline" className="gap-2">
+          <RotateCcw className="h-4 w-4" />
+          Try Again
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-4 h-full">
-      <div className="flex items-center">
-        <p className="text-sm text-muted-foreground">
-          {processedTrades.filter(trade => trade.entryDate).length} of {validTrades.length} trades formatted
-        </p>
-        <Button
-          variant="outline"
-          className="ml-2 hover:bg-muted hover:cursor-pointer"
-          onClick={handleLoadMore}
-          disabled={isProcessing}
-        >
-          {isProcessing ? "Processing..." : "Start formatting"}
-        </Button>
-        <Badge variant="destructive" className="ml-2 hover:bg-muted hover:cursor-pointer"
-          onClick={() => {
-            setCurrentBatch(0)
-            setProcessedTrades([])
-          }}
-        >
-          Reset
-        </Badge>
+      {/* Status bar */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {isProcessing ? (
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            ) : processedTrades.length === validTrades.length && validTrades.length > 0 ? (
+              <CheckCircle2 className="h-4 w-4 text-long" />
+            ) : null}
+            <span className="text-sm font-medium">
+              {processedTrades.length} / {validTrades.length} trades
+            </span>
+          </div>
+          {validTrades.length > 0 && (
+            <div className="flex items-center gap-2 w-32">
+              <Progress value={progressPercent} className="h-2" />
+              <span className="text-xs text-muted-foreground">{progressPercent}%</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {!hasStartedRef.current || processedTrades.length === 0 ? (
+            <Button
+              onClick={handleStartProcessing}
+              disabled={isProcessing || validTrades.length === 0}
+              className="gap-2"
+            >
+              {isProcessing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              {isProcessing ? "Processing..." : "Format Trades"}
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={handleReset}
+              disabled={isProcessing}
+              className="gap-2"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Reset
+            </Button>
+          )}
+        </div>
       </div>
-      <div className="flex-1 min-h-0 overflow-hidden">
+
+      {/* Table */}
+      <div className="flex-1 min-h-0 overflow-hidden border rounded-lg">
         <div className="flex flex-col h-full">
           <Table>
-            <TableHeader className="sticky top-0 z-10 bg-background shadow-sm">
+            <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
+                <TableRow key={headerGroup.id} className="hover:bg-transparent">
                   {headerGroup.headers.map((header) => (
                     <TableHead
                       key={header.id}
-                      className="whitespace-nowrap px-4 py-3 text-left text-sm"
+                      className="whitespace-nowrap px-3 py-2 text-xs font-semibold"
                       style={{ width: header.getSize() }}
                     >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                      {flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -511,50 +348,44 @@ export function FormatPreview({
           <ScrollArea className="flex-1" ref={tableContainerRef}>
             <Table>
               <TableBody>
-                {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow
+                <AnimatePresence mode="popLayout">
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row, index) => (
+                      <motion.tr
                         key={row.id}
-                        data-state={row.getIsSelected() && "selected"}
-                        className={cn(
-                          "border-b transition-colors hover:bg-muted",
-                          row.getIsExpanded()
-                            ? "bg-muted"
-                            : row.getCanExpand()
-                              ? ""
-                              : "bg-muted/50"
-                        )}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.15, delay: Math.min(index * 0.02, 0.5) }}
+                        className="border-b hover:bg-muted/50 transition-colors"
                       >
                         {row.getVisibleCells().map((cell) => (
                           <TableCell
                             key={cell.id}
-                            className="whitespace-nowrap px-4 py-2.5 text-sm"
+                            className="whitespace-nowrap px-3 py-2 text-sm"
                             style={{ width: cell.column.getSize() }}
                           >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </TableCell>
                         ))}
-                      </TableRow>
+                      </motion.tr>
                     ))
-                ) : isProcessing || (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
-                      No results.
-                    </TableCell>
-                  </TableRow>
-                )}
+                  ) : !isProcessing ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="h-32 text-center">
+                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                          <Play className="h-8 w-8" />
+                          <p>Click "Format Trades" to begin processing</p>
+                          <p className="text-xs">{validTrades.length} trades waiting</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </AnimatePresence>
                 {isProcessing && (
                   <TableRow>
-                    {columns.map((column, index) => (
-                      <TableCell
-                        key={`loading-${index}`}
-                        className="whitespace-nowrap px-4 py-2.5 text-sm"
-                        style={{ width: column.size }}
-                      >
-                        <Skeleton className="h-6 w-full" />
+                    {columns.map((_, index) => (
+                      <TableCell key={`loading-${index}`} className="px-3 py-2">
+                        <Skeleton className="h-5 w-full" />
                       </TableCell>
                     ))}
                   </TableRow>
@@ -564,6 +395,35 @@ export function FormatPreview({
           </ScrollArea>
         </div>
       </div>
+
+      {/* Stats summary */}
+      {processedTrades.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid grid-cols-3 gap-4 p-3 rounded-lg bg-muted/50 border"
+        >
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground">Total P&L</p>
+            <p className={cn(
+              "text-lg font-bold",
+              processedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0) >= 0 ? "text-long" : "text-short"
+            )}>
+              ${processedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0).toFixed(2)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground">Win Rate</p>
+            <p className="text-lg font-bold">
+              {((processedTrades.filter(t => (t.pnl || 0) > 0).length / processedTrades.length) * 100).toFixed(0)}%
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground">Trades</p>
+            <p className="text-lg font-bold">{processedTrades.length}</p>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

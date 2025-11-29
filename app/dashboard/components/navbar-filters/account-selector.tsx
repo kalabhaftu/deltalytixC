@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { useState, useMemo, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { Search, ChevronDown, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -22,26 +21,51 @@ interface AccountSelectorProps {
 }
 
 export function AccountSelector({ onSave }: AccountSelectorProps) {
-  const router = useRouter()
-  const { accountNumbers, setAccountNumbers } = useData()
+  const { accountNumbers, setAccountNumbers, refreshTrades } = useData()
   const { accounts, isLoading } = useAccounts()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set())
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set())
   const [isSaving, setIsSaving] = useState(false)
 
-  // Initialize selected accounts from context on mount
+  // Track previous accountNumbers to detect external changes
+  const prevAccountNumbersRef = React.useRef<string[]>([])
+  
+  // Sync selectedAccounts when accountNumbers context changes (including external updates)
   useEffect(() => {
-    if (accountNumbers && accountNumbers.length > 0 && accounts) {
-      // Find all accounts that match the saved account numbers BY PHASE ID ONLY
+    if (!accounts || accounts.length === 0) return
+    
+    // Check if accountNumbers actually changed from external source (bidirectional check)
+    const prevNumbers = prevAccountNumbersRef.current
+    const currentNumbers = accountNumbers || []
+    const hasChanged = prevNumbers.length !== currentNumbers.length || 
+      !prevNumbers.every(n => currentNumbers.includes(n)) ||
+      !currentNumbers.every(n => prevNumbers.includes(n))
+    
+    if (hasChanged && currentNumbers.length > 0) {
+      // Find all accounts that match the saved account numbers BY number field
       const matchingAccountIds = accounts
-        .filter(acc => accountNumbers.includes(acc.number))
+        .filter(acc => currentNumbers.includes(acc.number))
         .map(acc => acc.id)
       
       if (matchingAccountIds.length > 0) {
         setSelectedAccounts(new Set(matchingAccountIds))
+        
+        // Auto-expand parent groups for selected accounts
+        const matchingAccounts = accounts.filter(acc => currentNumbers.includes(acc.number))
+        const accountNames = new Set(matchingAccounts.map(acc => acc.name || acc.number))
+        setExpandedAccounts(prev => new Set([...prev, ...accountNames]))
+      } else if (currentNumbers.length > 0) {
+        // accountNumbers has values but no matching accounts found - clear selection
+        // This can happen when account data is stale
+        setSelectedAccounts(new Set())
       }
+    } else if (hasChanged && currentNumbers.length === 0) {
+      // accountNumbers was cleared - clear selection
+      setSelectedAccounts(new Set())
     }
+    
+    prevAccountNumbersRef.current = currentNumbers
   }, [accountNumbers, accounts])
 
   // Server now returns clean data without master account duplicates
@@ -158,68 +182,8 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
     }
   }, [accounts, accountNumbers, selectedAccounts.size])
 
-  // Auto-select all active accounts ONLY for new users (no saved selections)
-  useEffect(() => {
-    // Only auto-select if:
-    // 1. Has active accounts
-    // 2. No local selections
-    // 3. No saved selections in context
-    // 4. Not already initialized (to prevent race conditions)
-    if (
-      activeAccounts.length > 0 && 
-      selectedAccounts.size === 0 && 
-      accountNumbers.length === 0 &&
-      accounts && accounts.length > 0
-    ) {
-      // Wait a bit to ensure settings have loaded
-      const timer = setTimeout(() => {
-        // Double-check no selections loaded in the meantime
-        if (accountNumbers.length === 0 && selectedAccounts.size === 0) {
-          // Select ALL active accounts (better UX for new users)
-          const activeIds = activeAccounts.map(acc => acc.id)
-          setSelectedAccounts(new Set(activeIds))
-          
-          // Auto-expand all parent groups for active accounts
-          const accountNames = new Set(activeAccounts.map(acc => acc.name || acc.number))
-          setExpandedAccounts(accountNames)
-          
-          // Get all active account numbers (phaseIds) for filtering
-          const activeAccountNumbers = activeAccounts.map(acc => acc.number)
-
-          // CRITICAL: Preserve existing settings when auto-selecting
-          fetch('/api/settings/account-filters', {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-          })
-            .then(response => response.json())
-            .then(data => {
-              const currentSettings = data.data || {}
-              
-              // Only save if still no selections (prevent overwriting user actions)
-              if (accountNumbers.length === 0) {
-                return fetch('/api/settings/account-filters', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    ...currentSettings,
-                    showMode: 'active-only', // Ensure active-only mode for new users
-                    selectedAccounts: activeIds,
-                    selectedPhaseAccountIds: activeAccountNumbers,
-                    updatedAt: new Date().toISOString()
-                  })
-                })
-              }
-            })
-            .then(() => {
-              setAccountNumbers(activeAccountNumbers)
-            })
-            .catch(() => {})
-        }
-      }, 500) // 500ms delay to let settings load first
-
-      return () => clearTimeout(timer)
-    }
-  }, [activeAccounts, selectedAccounts.size, accountNumbers, setAccountNumbers, accounts])
+  // NO AUTO-SELECT: Users must explicitly select accounts
+  // This ensures preferences are intentional and saved to DB
 
   const handleToggleAccount = (accountId: string, checked: boolean) => {
     const newSelected = new Set(selectedAccounts)
@@ -282,11 +246,35 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
       })
 
       if (response.ok) {
-        // Set accountNumbers to the account numbers (phaseIds) for proper trade filtering
+        const newSettings = {
+          ...currentSettings,
+          selectedAccounts: Array.from(selectedAccounts),
+          selectedPhaseAccountIds: accountNumbersToSave,
+          updatedAt: new Date().toISOString()
+        }
+        
+        // Update localStorage cache immediately for fast access on reload
+        try {
+          localStorage.setItem('account-filter-settings-cache', JSON.stringify(newSettings))
+          // Also mark that we have pending local changes (prevents server overwrite)
+          localStorage.setItem('account-filter-settings-pending', 'true')
+        } catch (e) {
+          // Ignore storage errors
+        }
+        
+        // Set accountNumbers immediately for instant filtering
         setAccountNumbers(accountNumbersToSave)
         
-        // CRITICAL: Force router refresh to update UI immediately
-        router.refresh()
+        // Trigger data refresh to fetch trades for the new selection
+        // This runs in background while UI updates optimistically
+        refreshTrades().then(() => {
+          // Clear pending flag after refresh completes
+          try {
+            localStorage.removeItem('account-filter-settings-pending')
+          } catch (e) {}
+        }).catch(() => {
+          // Ignore errors - optimistic update already applied
+        })
         
         toast.success(`${selectedAccounts.size} account(s) selected`)
         onSave?.()
@@ -354,19 +342,35 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         currentSettings = data.data || {}
       }
       
+      const newSettings = {
+        ...currentSettings,
+        selectedAccounts: [],
+        selectedPhaseAccountIds: [],
+        updatedAt: new Date().toISOString()
+      }
+      
       const response = await fetch('/api/settings/account-filters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...currentSettings, // Preserve existing settings
-          selectedAccounts: [],
-          selectedPhaseAccountIds: [],
-          updatedAt: new Date().toISOString()
-        })
+        body: JSON.stringify(newSettings)
       })
 
       if (response.ok) {
+        // Update localStorage cache with pending flag
+        try {
+          localStorage.setItem('account-filter-settings-cache', JSON.stringify(newSettings))
+          localStorage.setItem('account-filter-settings-pending', 'true')
+        } catch (e) {}
+        
         setAccountNumbers([])
+        
+        // Refresh data in background
+        refreshTrades().then(() => {
+          try {
+            localStorage.removeItem('account-filter-settings-pending')
+          } catch (e) {}
+        }).catch(() => {})
+        
         toast.success("Selection cleared")
         onSave?.()
       }
@@ -519,7 +523,28 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
                                 {phase.status === 'archived' ? 'failed' : phase.status}
                               </Badge>
                               <Badge variant="outline" className="text-[10px] h-4 px-1.5 min-w-[2.5rem] justify-center">
-                                Phase {phase.currentPhase || phase.phaseDetails?.phaseNumber || 'N/A'}
+                                {(() => {
+                                  const phaseNum = phase.currentPhase || phase.phaseDetails?.phaseNumber
+                                  if (!phaseNum) return 'N/A'
+                                  const evalType = phase.phaseDetails?.evaluationType
+                                  // Determine funded phase based on evaluation type
+                                  // Note: PhaseAccountStatus does NOT have 'funded' - it only exists on MasterAccount
+                                  // Use consistent logic with isFundedPhase helper
+                                  const isFunded = (() => {
+                                    switch (evalType) {
+                                      case 'Two Step':
+                                        return phaseNum >= 3
+                                      case 'One Step':
+                                        return phaseNum >= 2
+                                      case 'Instant':
+                                        return phaseNum >= 1
+                                      default:
+                                        // Default to Two Step behavior
+                                        return phaseNum >= 3
+                                    }
+                                  })()
+                                  return isFunded ? 'Funded' : `Phase ${phaseNum}`
+                                })()}
                               </Badge>
                               {phase.tradeCount > 0 && (
                                 <span className="text-muted-foreground text-xs">• {phase.tradeCount} trades</span>

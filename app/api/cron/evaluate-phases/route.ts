@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       where: {
         status: 'active',
         MasterAccount: {
-          isActive: true
+          status: 'active'
         }
       },
       include: {
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             accountName: true,
-            isActive: true
+            status: true
           }
         }
       }
@@ -56,13 +56,13 @@ export async function GET(request: NextRequest) {
             }),
             prisma.masterAccount.update({
               where: { id: phase.masterAccountId },
-              data: { isActive: false }
+              data: { status: 'failed' }
             }),
             prisma.breachRecord.create({
               data: {
                 id: crypto.randomUUID(),
                 phaseAccountId: phase.id,
-                breachType: evaluation.drawdown.breachType || 'unknown',
+                breachType: evaluation.drawdown.breachType || 'max_drawdown',
                 breachAmount: evaluation.drawdown.breachAmount || 0,
                 breachTime: new Date(),
                 currentEquity: evaluation.drawdown.currentEquity,
@@ -144,13 +144,13 @@ export async function POST(request: NextRequest) {
           }),
           prisma.masterAccount.update({
             where: { id: masterAccountId },
-            data: { isActive: false }
+            data: { status: 'failed' }
           }),
           prisma.breachRecord.create({
             data: {
               id: crypto.randomUUID(),
               phaseAccountId,
-              breachType: evaluation.drawdown.breachType || 'unknown',
+              breachType: evaluation.drawdown.breachType || 'max_drawdown',
               breachAmount: evaluation.drawdown.breachAmount || 0,
               breachTime: new Date(),
               currentEquity: evaluation.drawdown.currentEquity,
@@ -186,4 +186,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

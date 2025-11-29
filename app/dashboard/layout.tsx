@@ -7,6 +7,7 @@ import { ReactElement, Suspense } from "react";
 import Navbar from "./components/navbar";
 import { AutoRefreshProvider } from "./components/auto-refresh-provider";
 import { SidebarLayout } from "./components/sidebar-layout";
+import { MobileBottomNav } from "@/components/ui/mobile-nav";
 
 export default function RootLayout({ children }: { children: ReactElement }) {
 
@@ -15,17 +16,22 @@ export default function RootLayout({ children }: { children: ReactElement }) {
       <DataProvider>
         <TagsProvider>
           <TemplateProvider>
-            <AutoRefreshProvider refreshInterval={30000}>
+            {/* Data syncs via Supabase Realtime - no polling needed */}
+            <AutoRefreshProvider>
                 <div className="min-h-screen flex flex-col">
                       <Navbar />
                       <div className="flex flex-1">
                         <Suspense fallback={<div className="flex flex-1" />}>
                           <SidebarLayout>
-                            {children}
+                            {/* Add bottom padding on mobile for nav */}
+                            <div className="pb-20 md:pb-0">
+                              {children}
+                            </div>
                           </SidebarLayout>
                         </Suspense>
                       </div>
                       <Modals />
+                      <MobileBottomNav />
                 </div>
             </AutoRefreshProvider>
           </TemplateProvider>

@@ -66,7 +66,7 @@ export default function AccountPayoutsPage() {
   // Fetch account details
   const fetchAccount = async () => {
     try {
-      const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}`)
+      const response = await fetch(`/api/prop-firm/accounts/${accountId}`)
       
       if (!response.ok) {
         throw new Error('Failed to fetch account details')
@@ -89,7 +89,7 @@ export default function AccountPayoutsPage() {
   const fetchPayouts = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}/payouts`)
+      const response = await fetch(`/api/prop-firm/accounts/${accountId}/payouts`)
       
       if (!response.ok) {
         throw new Error('Failed to fetch payouts')
@@ -149,7 +149,7 @@ export default function AccountPayoutsPage() {
     try {
       setDeletingPayoutId(payoutId)
 
-      const response = await fetch(`/api/prop-firm-v2/payouts/${payoutId}`, {
+      const response = await fetch(`/api/prop-firm/payouts/${payoutId}`, {
         method: 'DELETE'
       })
 

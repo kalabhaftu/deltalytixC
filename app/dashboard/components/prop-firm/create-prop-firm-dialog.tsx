@@ -35,6 +35,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, Building2, AlertCircle, CheckCircle2, Edit2, Check, X } from "lucide-react"
 import { toast } from "sonner"
 import { clearAccountsCache } from "@/hooks/use-accounts"
+import { useRegisterDialog } from "@/app/dashboard/components/auto-refresh-provider"
 
 // Schema for form validation
 const propFirmSchema = z.object({
@@ -66,6 +67,7 @@ const propFirmSchema = z.object({
   fundedMaxDrawdownType: z.enum(['static', 'trailing']),
   fundedProfitSplitPercent: z.number().min(0).max(100),
   fundedPayoutCycleDays: z.number().min(1).max(365),
+  fundedMinProfitForPayout: z.number().min(0).default(100), // Min profit (in $) to request payout
 })
 
 type PropFirmFormData = z.infer<typeof propFirmSchema>
@@ -82,6 +84,9 @@ export function CreatePropFirmDialog({ open, onOpenChange, onSuccess }: PropFirm
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const [isEditingRules, setIsEditingRules] = useState(false)
   
+  // Register dialog to pause auto-refresh while open
+  useRegisterDialog(open)
+  
   const {
     register,
     control,
@@ -90,6 +95,7 @@ export function CreatePropFirmDialog({ open, onOpenChange, onSuccess }: PropFirm
     watch,
     setValue,
     reset,
+    setError,
   } = useForm<PropFirmFormData>({
     resolver: zodResolver(propFirmSchema),
     defaultValues: {
@@ -115,6 +121,7 @@ export function CreatePropFirmDialog({ open, onOpenChange, onSuccess }: PropFirm
       fundedMaxDrawdownType: 'static',
       fundedProfitSplitPercent: 80,
       fundedPayoutCycleDays: 14,
+      fundedMinProfitForPayout: 100,
     }
   })
 
@@ -166,6 +173,8 @@ export function CreatePropFirmDialog({ open, onOpenChange, onSuccess }: PropFirm
       setValue('fundedMaxDrawdownPercent', funded.maxDrawdownPercent)
       setValue('fundedMaxDrawdownType', funded.maxDrawdownType)
       setValue('fundedProfitSplitPercent', funded.profitSplitPercent)
+      setValue('fundedPayoutCycleDays', funded.payoutCycleDays || 14)
+      setValue('fundedMinProfitForPayout', funded.minProfitForPayout || 100)
     }
   }, [watchedFirm, watchedEvalType, templates, setValue])
 
@@ -173,7 +182,7 @@ export function CreatePropFirmDialog({ open, onOpenChange, onSuccess }: PropFirm
     try {
       setIsSubmitting(true)
 
-      const response = await fetch('/api/prop-firm-v2/accounts', {
+      const response = await fetch('/api/prop-firm/accounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -182,6 +191,13 @@ export function CreatePropFirmDialog({ open, onOpenChange, onSuccess }: PropFirm
       const result = await response.json()
 
       if (!response.ok) {
+        // Handle field-specific errors
+        if (result.field === 'accountName') {
+          setError('accountName', { 
+            type: 'manual', 
+            message: result.error || 'Account name already exists' 
+          })
+        }
         throw new Error(result.error || 'Failed to create account')
       }
 
@@ -253,7 +269,17 @@ export function CreatePropFirmDialog({ open, onOpenChange, onSuccess }: PropFirm
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form 
+            onSubmit={handleSubmit(onSubmit)} 
+            onKeyDown={(e) => {
+              // Prevent Enter key from submitting the form when in input fields
+              // This avoids accidental form submission while editing numbers
+              if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
+                e.preventDefault()
+              }
+            }}
+            className="space-y-6"
+          >
             {/* Basic Info */}
             <Card>
               <CardHeader>
@@ -558,7 +584,7 @@ export function CreatePropFirmDialog({ open, onOpenChange, onSuccess }: PropFirm
                 {/* Funded Rules */}
                 <div className="pt-3 border-t">
                   <Label className="text-sm font-medium mb-2 block">Funded Account</Label>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-4 gap-4">
                     <div>
                       <Label className="text-xs text-muted-foreground">Profit Split (%)</Label>
                       {isEditingRules ? (
@@ -582,6 +608,20 @@ export function CreatePropFirmDialog({ open, onOpenChange, onSuccess }: PropFirm
                         />
                       ) : (
                         <p className="font-semibold mt-1">{watch('fundedPayoutCycleDays')} days</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Min Payout ($)</Label>
+                      {isEditingRules ? (
+                        <Input
+                          type="number"
+                          step="1"
+                          {...register('fundedMinProfitForPayout', { valueAsNumber: true })}
+                          className="h-9 mt-1"
+                          placeholder="100"
+                        />
+                      ) : (
+                        <p className="font-semibold mt-1">${watch('fundedMinProfitForPayout')}</p>
                       )}
                     </div>
                     <div>

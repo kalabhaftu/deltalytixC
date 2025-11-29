@@ -46,18 +46,39 @@ export default function PayoutDetailPage() {
   const fetchPayout = useCallback(async () => {
     try {
       setIsLoading(true)
-      const response = await fetch(`/api/prop-firm/payouts/${payoutId}`)
+      // Fetch payout from account's payout history
+      // First, we need to get all accounts and find the payout
+      const accountsResponse = await fetch('/api/prop-firm/accounts')
+      if (!accountsResponse.ok) {
+        throw new Error('Failed to fetch accounts')
+      }
+      const accountsData = await accountsResponse.json()
+      if (!accountsData.success) {
+        throw new Error('Failed to fetch accounts')
+      }
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch payout details')
+      // Find the payout in all accounts' payout history
+      let foundPayout = null
+      
+      for (const account of accountsData.data) {
+        const payoutsResponse = await fetch(`/api/prop-firm/accounts/${account.id}/payouts`)
+        if (payoutsResponse.ok) {
+          const payoutsData = await payoutsResponse.json()
+          if (payoutsData.success && payoutsData.data.history) {
+            const payout = payoutsData.data.history.find((p: any) => p.id === payoutId)
+            if (payout) {
+              foundPayout = { ...payout, accountId: account.id, accountNumber: account.number }
+              break
+            }
+          }
+        }
+      }
+      
+      if (!foundPayout) {
+        throw new Error('Payout not found')
       }
 
-      const data = await response.json()
-      if (data.success) {
-        setPayout(data.data)
-      } else {
-        throw new Error(data.error || 'Failed to fetch payout details')
-      }
+      setPayout(foundPayout)
     } catch (error) {
       toast.error('Failed to fetch payout details', {
         description: 'An error occurred while fetching payout details'

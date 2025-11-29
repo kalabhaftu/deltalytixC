@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import { useUserStore } from '@/store/user-store'
 import { createClient } from '@/lib/supabase'
 import { useData } from '@/context/data-provider'
+import { STORAGE_BUCKETS } from '@/lib/constants/storage'
 import {
   Carousel,
   CarouselContent,
@@ -67,9 +68,9 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
   const userId = supabaseUser?.id || user?.id
 
   // Create separate upload instances for first and second images
-  // Use 'images' as default bucket, will fallback gracefully if not available
+  // Use GENERAL bucket for these uploads
   const firstImageUploadProps = useSupabaseUpload({
-    bucketName: 'images',
+    bucketName: STORAGE_BUCKETS.GENERAL,
     path: userId + '/' + generatedId,
     allowedMimeTypes: ACCEPTED_IMAGE_TYPES,
     maxFileSize: MAX_FILE_SIZE,
@@ -77,7 +78,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
   })
 
   const secondImageUploadProps = useSupabaseUpload({
-    bucketName: 'images',
+    bucketName: STORAGE_BUCKETS.GENERAL,
     path: userId + '/' + generatedId,
     allowedMimeTypes: ACCEPTED_IMAGE_TYPES,
     maxFileSize: MAX_FILE_SIZE,
@@ -100,7 +101,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
         // Extract the path from the full URL
         const path = imageUrl.split('T')[1]
         if (path) {
-          await supabase.storage.from('trade-images').remove([path])
+          await supabase.storage.from(STORAGE_BUCKETS.TRADES).remove([path])
         }
       }
     } catch (error) {
@@ -129,7 +130,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
       }
       
       if (imagesToRemove.length > 0) {
-        await supabase.storage.from('trade-images').remove(imagesToRemove)
+        await supabase.storage.from(STORAGE_BUCKETS.TRADES).remove(imagesToRemove)
       }
     } catch (error) {
     }
@@ -146,7 +147,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
   useEffect(() => {
     if (firstImageUploadProps.isSuccess && firstImageUploadProps.files.length > 0) {
       const file = firstImageUploadProps.files[0]
-      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/trade-images/${userId}/${generatedId}/${file.name}`
+      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKETS.TRADES}/${userId}/${generatedId}/${file.name}`
       handleUpdateImage(imageUrl, false)
       setUploadDialogOpen(false)
       
@@ -170,7 +171,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
   useEffect(() => {
     if (secondImageUploadProps.isSuccess && secondImageUploadProps.files.length > 0) {
       const file = secondImageUploadProps.files[0]
-      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/trade-images/${userId}/${generatedId}/${file.name}`
+      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKETS.TRADES}/${userId}/${generatedId}/${file.name}`
       handleUpdateImage(imageUrl, true)
       setUploadDialogOpen(false)
       

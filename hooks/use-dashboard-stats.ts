@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { AccountFilterSettings, DEFAULT_FILTER_SETTINGS } from '@/types/account-filter-settings'
+import { fetchWithError, handleFetchError } from '@/lib/utils/fetch-with-error'
+import { API_TIMEOUT, CACHE_DURATION_SHORT } from '@/lib/constants'
 
 interface DashboardStats {
   totalAccounts: number
@@ -7,6 +9,12 @@ interface DashboardStats {
   totalEquity: number
   totalPnL: number
   winRate: number
+  profitFactor?: number
+  grossProfits?: number
+  grossLosses?: number
+  winningTrades?: number
+  losingTrades?: number
+  breakEvenTrades?: number
   chartData: Array<{ date: string; pnl: number }>
   isAuthenticated: boolean
   lastUpdated: string
@@ -23,17 +31,31 @@ export function useDashboardStats(settings: AccountFilterSettings = DEFAULT_FILT
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Cache management
+  const lastFetchRef = useRef<number>(0)
+  const lastSettingsRef = useRef<string>('')
 
-  const fetchStats = useCallback(async () => {
+  const fetchStats = useCallback(async (force = false) => {
+    // Build settings key for cache comparison
+    const settingsKey = JSON.stringify({
+      viewingSpecificPhase: settings.viewingSpecificPhase,
+      selectedMasterAccountId: settings.selectedMasterAccountId,
+      selectedPhaseId: settings.selectedPhaseId,
+      selectedPhaseNumber: settings.selectedPhaseNumber
+    })
+    
+    // Skip if recently fetched with same settings (unless forced)
+    const now = Date.now()
+    if (!force && stats && now - lastFetchRef.current < CACHE_DURATION_SHORT && lastSettingsRef.current === settingsKey) {
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
 
-      // Add timeout to the fetch request
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
-
-      // ✅ NEW: Build URL with phase filter params
+      // Build URL with phase filter params
       const params = new URLSearchParams()
       if (settings.viewingSpecificPhase && settings.selectedMasterAccountId) {
         params.append('masterAccountId', settings.selectedMasterAccountId)
@@ -47,43 +69,24 @@ export function useDashboardStats(settings: AccountFilterSettings = DEFAULT_FILT
 
       const url = `/api/dashboard/stats${params.toString() ? `?${params.toString()}` : ''}`
 
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          'Cache-Control': 'no-cache',
-        }
+      // Use centralized fetch wrapper with error handling
+      const result = await fetchWithError<{ success: boolean; data: DashboardStats }>(url, {
+        timeout: API_TIMEOUT
       })
 
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        if (response.status === 408) {
-          throw new Error('Request timeout - please try again')
-        }
-        throw new Error('Failed to fetch dashboard statistics')
+      if (result.ok && result.data?.success) {
+        setStats(result.data.data)
+        lastFetchRef.current = now
+        lastSettingsRef.current = settingsKey
+      } else if (result.error) {
+        setError(handleFetchError(result.error))
       }
-
-      const data = await response.json()
-      
-      if (data.success) {
-        setStats(data.data)
-      } else {
-        throw new Error(data.error || 'Failed to load dashboard data')
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          setError('Request timeout - please try again')
-        } else {
-          setError(error.message)
-        }
-      } else {
-        setError('An unexpected error occurred')
-      }
+    } catch (err) {
+      setError(handleFetchError(err))
     } finally {
       setLoading(false)
     }
-  }, [settings])
+  }, [settings, stats])
 
   useEffect(() => {
     fetchStats()

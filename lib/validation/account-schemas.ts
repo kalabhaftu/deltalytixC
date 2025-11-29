@@ -37,7 +37,7 @@ export const masterAccountInputSchema = z.object({
   accountSize: z.number().positive(),
   evaluationType: z.string().min(1, 'Evaluation type is required'),
   currentPhase: z.number().int().positive().default(1),
-  isActive: z.boolean().default(true),
+  status: z.enum(['active', 'funded', 'failed']).default('active'),
   isArchived: z.boolean().default(false),
 })
 

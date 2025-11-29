@@ -24,6 +24,7 @@ import ImportButton from './import/import-button'
 import { AccountSelector } from './navbar-filters/account-selector'
 import { DateRangeSelector } from './navbar-filters/date-range-selector'
 import { GeneralFilters } from './navbar-filters/general-filters'
+import { NotificationCenter } from '@/components/notifications/notification-center'
 
 import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts'
 import { motion } from 'framer-motion'
@@ -44,6 +45,35 @@ import { WidgetType, WidgetSize } from '../types/dashboard'
 import { defaultLayouts, defaultLayoutsWithKPI } from '@/context/data-provider'
 import { WIDGET_REGISTRY } from '../config/widget-registry-lazy'
 import { toast } from 'sonner'
+
+/**
+ * Helper function to determine if a phase number represents the funded stage
+ * based on the evaluation type.
+ */
+function isFundedPhase(evaluationType: string | undefined, phaseNumber: number | undefined): boolean {
+  if (!phaseNumber) return false
+  switch (evaluationType) {
+    case 'Two Step':
+      return phaseNumber >= 3
+    case 'One Step':
+      return phaseNumber >= 2
+    case 'Instant':
+      return phaseNumber >= 1
+    default:
+      return phaseNumber >= 3 // Default to Two Step behavior
+  }
+}
+
+/**
+ * Get display name for a phase (returns "Funded" for funded phases)
+ */
+function getPhaseDisplayName(evaluationType: string | undefined, phaseNumber: number | undefined): string {
+  if (!phaseNumber) return ''
+  if (isFundedPhase(evaluationType, phaseNumber)) {
+    return 'Funded'
+  }
+  return `Phase ${phaseNumber}`
+}
 
 // Helper function to convert widget size to grid dimensions
 const sizeToGrid = (size: WidgetSize, isSmallScreen = false): { w: number, h: number } => {
@@ -144,7 +174,9 @@ export default function Navbar() {
       if (account) {
         // Show account name with phase info for prop firm accounts
         const accountName = account.name || account.number
-        const phaseInfo = (account as any).currentPhase ? ` - Phase ${(account as any).currentPhase}` : ''
+        const phaseNum = (account as any).currentPhase || (account as any).currentPhaseDetails?.phaseNumber
+        const evalType = (account as any).currentPhaseDetails?.evaluationType
+        const phaseInfo = phaseNum ? ` - ${getPhaseDisplayName(evalType, phaseNum)}` : ''
         return `${accountName}${phaseInfo}`
       }
       return `1 Account`
@@ -413,6 +445,9 @@ export default function Navbar() {
 
               {/* Import Trades Button (moved here) - Always visible */}
               <ImportButton />
+
+              {/* Notification Center - Always visible */}
+              <NotificationCenter />
 
               {/* Theme Switcher - Hidden on small mobile */}
               <Popover>

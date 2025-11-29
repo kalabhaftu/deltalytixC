@@ -157,7 +157,7 @@ function MobileCalendarPnl({ calendarData }: { calendarData: CalendarData }) {
           ))}
         </div>
         <div className="grid grid-cols-7 auto-rows-fr gap-[1px] h-fit min-h-[400px] max-h-[600px]">
-          {calendarDayStrings.map((dateString) => { // Iterate over date strings
+          {calendarDayStrings.map((dateString) => { // Iterate over date strings - dateString is already unique
             const dayData = calendarData[dateString] // Direct lookup using the string key
 
             // Parse the date string *in the target timezone* to get a Date object

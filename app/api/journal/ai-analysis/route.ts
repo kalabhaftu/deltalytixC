@@ -5,10 +5,22 @@ import { getUserId } from '@/server/auth'
 // GET - Generate AI analysis of journals and trades
 export async function GET(request: Request) {
   try {
-    const userId = await getUserId()
-    if (!userId) {
+    const authUserId = await getUserId()
+    if (!authUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // getUserId() returns Supabase auth_user_id, but all data tables use internal user.id
+    const user = await prisma.user.findUnique({
+      where: { auth_user_id: authUserId },
+      select: { id: true }
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    const internalUserId = user.id
 
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
@@ -24,7 +36,7 @@ export async function GET(request: Request) {
 
     // Fetch journals in date range
     const journalsWhere: any = {
-      userId,
+      userId: internalUserId,
       date: {
         gte: new Date(startDate),
         lte: new Date(endDate)
@@ -50,7 +62,7 @@ export async function GET(request: Request) {
 
     // Fetch trades in date range
     const tradesWhere: any = {
-      userId,
+      userId: internalUserId,
       entryDate: {
         gte: startDate,
         lte: endDate
@@ -100,7 +112,7 @@ export async function GET(request: Request) {
     // Fetch funded/active accounts status (MasterAccounts for prop firms)
     const propFirmAccounts = await prisma.masterAccount.findMany({
       where: {
-        userId,
+        userId: internalUserId,
         isArchived: false
       },
       select: {
@@ -112,8 +124,38 @@ export async function GET(request: Request) {
       }
     })
 
+    // Fetch user's tags for context
+    const userTags = await prisma.tradeTag.findMany({
+      where: { userId: internalUserId },
+      select: { id: true, name: true }
+    })
+
+    // Fetch user's trading models for context
+    const tradingModels = await prisma.tradingModel.findMany({
+      where: { userId: internalUserId },
+      select: { id: true, name: true }
+    })
+
+    // Fetch weekly reviews for context
+    const weeklyReviews = await prisma.weeklyReview.findMany({
+      where: {
+        userId: internalUserId,
+        startDate: {
+          gte: new Date(startDate),
+          lte: new Date(endDate)
+        }
+      },
+      select: {
+        startDate: true,
+        expectation: true,
+        actualOutcome: true,
+        isCorrect: true,
+        notes: true
+      }
+    })
+
     // Generate AI analysis
-    const analysis = await generateAnalysis(journals, trades, propFirmAccounts)
+    const analysis = await generateAnalysis(journals, trades, propFirmAccounts, userTags, tradingModels, weeklyReviews)
 
     return NextResponse.json({ analysis })
   } catch (error) {
@@ -125,7 +167,7 @@ export async function GET(request: Request) {
   }
 }
 
-async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts: any[] = []) {
+async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts: any[] = [], userTags: any[] = [], tradingModels: any[] = [], weeklyReviews: any[] = []) {
   // Prepare data for AI
   const journalSummary = journals.map(j => ({
     date: j.date,
@@ -437,30 +479,49 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
       return generateRuleBasedAnalysis(journalSummary, tradeStats, emotionCounts, emotionPerformance)
     }
 
-    const prompt = `You are a legendary trading psychology coach with 20+ years of experience. Think Jordan Belfort meets Mark Douglas meets a best friend who keeps it 100.
-    Your mission: Analyze this trader's data like their career depends on it—because it does.
+    const prompt = `You are an elite trading psychology mentor and performance coach with 20+ years of experience helping traders reach peak performance. You combine the wisdom of Mark Douglas with the warmth of a supportive best friend who genuinely wants to see them succeed.
+    Your mission: Provide a thoughtful, data-driven analysis that helps this trader grow.
     
-    CORE DIRECTIVES:
-    1. **Read Between the Lines**: Their journal is full of raw, unfiltered feelings. "Fuck this market", "nailed it", "revenge mode"—these aren't just words, they're RED FLAGS or GREEN LIGHTS. Call them out.
-    2. **Connect Emotions to Money**: Show them the BRUTAL truth. "You say you're 'confident' but your P&L says you're overtrading. That's not confidence, that's ego."
-    3. **Talk Like a Human**: No corporate BS. Be direct, be real. If they're self-sabotaging, tell them straight. If they're crushing it, hype them up.
-    4. **Account Status = Reality Check**: If they have FAILED or BREACHED accounts, don't sugarcoat it. Dig into the trades/notes leading up to the failure. Was it tilt? Was it breaking rules? Call it out by name.
-    5. **Spot the Tilt**: Rapid losses + frustrated notes = revenge trading. Say it loud and clear.
-    6. **Market Bias Alignment**: They're recording their market sentiment (BULLISH/BEARISH/UNDECIDED). Check if they're trading WITH their bias or AGAINST it. If they say "bullish" but take short trades and lose, call that out. If they're profitable when aligned with their bias, tell them to stick to it.
-    7. **News Trading Awareness**: They're tracking high-impact news events (NFP, FOMC, CPI, etc.) and whether they traded DURING or BEFORE/AFTER the release. Check their performance: Are they getting wrecked by news volatility? Are they better off avoiding news? If they're profitable on non-news days but losing on news days, tell them to STOP trading news. If specific events (like NFP or FOMC) are consistently hurting them, call it out by name.
-    8. **Timeframe Analysis**: They're tracking 5 timeframes for each trade: Bias, Narrative, Driver, Entry, and Structure. The Entry timeframe is PRIMARY. Check which entry timeframes are working best. If they're profitable on 15m entries but losing on 1m scalps, tell them to stop the 1m noise. If their best P&L is on 4H entries, tell them to focus there and stop chasing lower timeframes.
-    9. **Order Type & Session Performance**: They're tracking if they use Market Orders (instant execution) or Limit Orders (wait for price). Check which works better for them. Also check which trading sessions (Asian, London, New York, Overlaps) are most profitable. If they're losing during Asian session but winning during New York, tell them to focus on NY hours only.
-    10. **Use the Dashboard Metrics**: You have P&L by instrument, strategy, weekday, hour, news events, entry timeframe, order type, AND trading session. USE ALL THIS DATA. If they lose money on Fridays, tell them to take Fridays off. If they make money on NQ but lose on ES, tell them to stop trading ES. If they're profitable 9-11 AM but lose money after 2 PM, call it out. If limit orders work better than market orders, tell them. If London session is their sweet spot but Asian session bleeds money, call it out.
-    11. **Give Actionable Advice**: Not generic advice like "be disciplined." SPECIFIC advice based on their data: "Stop trading after 2 PM—your worst 3 hours are 14:00, 15:00, and 16:00" or "Focus on NQ—you're up $2,500 on it but down $800 on ES" or "Avoid NFP days—you've lost $1,200 across 5 NFP releases" or "Stick to 15m entries—you're up $3,200 on those but down $900 on 1m scalps" or "Use limit orders—you're up $1,800 with limits vs down $600 with market orders" or "Trade London/NY overlap only—that's where you make money"
+    COMMUNICATION STYLE:
+    * Be warm, encouraging, and supportive while still being honest
+    * Use natural conversational language (avoid bullet points with dashes)
+    * When pointing out issues, frame them as opportunities for growth
+    * Celebrate wins and progress genuinely
+    * Use "you" and speak directly to them like a trusted mentor
+    * NEVER use dashes or hyphens in your responses (use commas or periods instead)
+    * Format lists with numbers (1, 2, 3) or phrases like "First... Second... Third..."
+    
+    ANALYSIS GUIDELINES:
+    1. Read Between the Lines: Their journal reveals their emotional state. Words like "frustrated", "confident", or "anxious" are clues to their mental game. Notice patterns and gently point them out.
+    2. Connect Emotions to Performance: Show them how their emotional states correlate with their P&L. If they trade poorly when stressed, help them see that pattern clearly.
+    3. Account Status Matters: If they have failed or breached accounts, address it with empathy while helping them understand what went wrong. Focus on lessons learned, not blame.
+    4. Spot Tilt Patterns: If you see rapid losses paired with frustrated notes, gently call out potential revenge trading. Help them recognize the pattern.
+    5. Market Bias Alignment: Check if their trades align with their stated market bias. Point out discrepancies constructively.
+    6. News Trading Insights: Analyze their performance around news events. If news days hurt them, suggest adjustments.
+    7. Timeframe Analysis: Identify which entry timeframes work best for them. Guide them toward their strengths.
+    8. Session and Order Type Performance: Help them understand which sessions and order types suit their style.
+    9. Instrument Performance: Point out which instruments they trade well and which might need work.
+    10. Give Specific, Actionable Advice: Every recommendation should be backed by their data. Be precise with numbers and examples.
     
     THE DATA:
 
     **Time Period**: ${journals.length > 0 ? `${new Date(journals[0].date).toLocaleDateString()} to ${new Date(journals[journals.length - 1].date).toLocaleDateString()}` : 'No data'}
 
-    **FUNDED ACCOUNT STATUS (Critical Context)**:
+    **FUNDED ACCOUNT STATUS (Important Context)**:
     ${accountStatusSummary}
     ${propFirmAccounts.filter(acc => acc.status === 'failed').length > 0 ? 
-      `[ALERT] Failed accounts detected. Analyze what went wrong based on the trades and journal entries below.` : ''}
+      `Note: There are some failed accounts in this period. Please address this sensitively and help identify lessons learned.` : ''}
+
+    **USER'S TRADING SETUP**:
+    Tags they use: ${userTags.length > 0 ? userTags.map(t => t.name).join(', ') : 'No custom tags'}
+    Trading models/strategies: ${tradingModels.length > 0 ? tradingModels.map(m => m.name).join(', ') : 'No custom trading models'}
+
+    **WEEKLY REVIEW INSIGHTS** (Their own market analysis):
+    ${weeklyReviews.length > 0 
+      ? weeklyReviews.map(r => 
+          `Week of ${new Date(r.startDate).toLocaleDateString()}: Expected ${r.expectation || 'not set'}, Actual ${r.actualOutcome || 'not set'}, ${r.isCorrect === true ? 'Correct prediction' : r.isCorrect === false ? 'Incorrect prediction' : 'Not evaluated'}${r.notes ? `. Notes: "${r.notes.slice(0, 100)}..."` : ''}`
+        ).join('\n')
+      : 'No weekly reviews recorded for this period'}
 
     **Trading Performance (Dashboard Metrics)**:
     - Total Trades: ${tradeStats.totalTrades} (W: ${tradeStats.winningTrades}, L: ${tradeStats.losingTrades}, BE: ${tradeStats.breakEvenTrades})
@@ -576,45 +637,47 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
 
     YOUR ANALYSIS (JSON FORMAT):
     {
-      "summary": "3-5 sentences. Be REAL. Start with their account status if relevant (e.g., 'Look, you failed 2 accounts this month...'). Then hit them with the truth about their trading psychology. Are they on the right track or are they spiraling? Use 'you'.",
+      "summary": "3 to 5 sentences. Start with acknowledgment of their effort and overall performance. Address their account status if relevant with empathy. Then provide honest assessment of their trading psychology and current trajectory. Use 'you' throughout and write in a warm, supportive tone.",
       "emotionalPatterns": [
-        "At least 3-5 patterns. Examples: 'You trade like garbage when you're anxious—$250 avg loss vs $120 avg win when calm.'",
-        "'Your notes say confident but your trades scream overconfident—3 failed trades after big wins.'",
-        "'You're revenge trading after losses. Journal on 11/18: angry + $500 loss = classic tilt.'"
+        "At least 3 to 5 patterns. Write in complete sentences without dashes. Example: 'I noticed that when you're feeling anxious, your average loss tends to be around $250 compared to $120 when you're calm. This is actually great awareness to have!'",
+        "'Looking at your notes, there seems to be a pattern of overconfidence after wins, which led to some larger losses.'",
+        "'Your journal entries show some signs of revenge trading after losses, particularly on days when you noted feeling frustrated.'"
       ],
       "performanceInsights": [
-        "At least 3-5 insights based on the dashboard metrics above. Examples: 'Your win rate is solid at 58% but your avg loss ($250) is 2x your avg win ($120)—fix your risk/reward.'",
-        "'You make money on NQ ($2,500) but lose on ES (-$800)—stick to what works or cut ES entirely.'",
-        "'Fridays are killing you: -$1,200 across 15 trades. Just don't trade Fridays.'",
-        "'Your best hours are 9-11 AM ($1,800 profit). After 2 PM you're down $900. Stop trading in the afternoon.'",
-        "'You're trading against your bias—60% of your bearish bias trades were longs and you lost money. Trust your bias or don't record it.'"
+        "At least 3 to 5 insights based on the metrics. Write conversationally without dashes. Example: 'Your win rate of 58% is solid! However, I noticed your average loss ($250) is about twice your average win ($120), which is something we can work on.'",
+        "'You're doing really well on NQ with $2,500 in profits, while ES has been challenging at $800 in losses. Consider focusing on your strength!'",
+        "'Fridays seem to be your toughest day with $1,200 in losses across 15 trades. Maybe worth taking Fridays as review days instead?'",
+        "'Your sweet spot is clearly 9 to 11 AM where you've made $1,800. The afternoon after 2 PM has been costing you about $900.'"
       ],
       "strengths": [
-        "At least 2-3. Examples: 'You're journaling consistently—that's rare and shows you're serious.'",
-        "'When you follow your plan, you win. 12 out of 15 rule-following trades were green.'"
+        "At least 2 to 3 genuine strengths. Example: 'You're journaling consistently, which shows real commitment to improvement. Most traders skip this crucial step!'",
+        "'When you stick to your plan, you win. I counted 12 out of 15 plan following trades were profitable.'"
       ],
       "weaknesses": [
-        "At least 2-3. BE BRUTALLY HONEST. Examples: 'You overtrade when stressed. 8 trades on 11/14 = all red.'",
-        "'You're breaking your own rules. You know this. Your notes prove it.'"
+        "At least 2 to 3 areas for improvement, framed constructively. Example: 'There's a pattern of increased trading when stressed. On high stress days, you averaged 8 trades and most were red.'",
+        "'Some of your notes mention breaking your own rules. The good news is you're aware of it, which is the first step!'"
       ],
       "recommendations": [
-        "At least 4-5 SPECIFIC, actionable steps based on their data. Examples: 'Stop trading after 2 PM. Your data shows you lose money after 14:00.'",
-        "'Only trade NQ. Drop ES—you've lost $800 on it while making $2,500 on NQ.'",
-        "'Take Fridays off. You're down $1,200 on Fridays vs +$900 on Tuesdays.'",
-        "'Set a hard rule: No more than 3 trades per session when anxious—your journal shows 8-trade days are always red.'",
-        "'Review your journal every morning. If you logged \"stressed\" yesterday, reduce size by 50% today.'",
-        "'Use ICT_2022 strategy more—it has a 65% WR vs 48% on PRICE_ACTION.'"
+        "At least 4 to 5 SPECIFIC, actionable steps based on their data. Write warmly without dashes. Example: 'Consider setting a hard stop at 2 PM. Your data clearly shows better results in the morning hours.'",
+        "'Focus on NQ where you're thriving! You could consider reducing ES size or taking a break from it.'",
+        "'What if you made Fridays your analysis and review day instead of trading? Your data shows this could save you over $1,200.'",
+        "'On days when you journal stressed or anxious, try limiting yourself to 3 trades maximum. This could really protect your capital.'",
+        "'Try starting each day by reading your previous day's journal. If you noted stress, consider trading at 50% size.'",
+        "'Your ICT_2022 strategy has a 65% win rate vs 48% on other approaches. Leaning into this could boost your results!'"
       ]
     }
 
-    TONE:
-    - Professional but RAW. Think "tough love mentor," not "corporate coach."
-    - Use "you" and "your" throughout. Make it personal.
-    - Call out BS. Praise discipline. Be real.
-    - NO EMOJIS in the JSON values (remove them if the AI adds any).
-    - If they have failed accounts, address it directly and analyze why based on their data.
+    TONE AND FORMATTING RULES:
+    * Be warm, encouraging, and supportive like a trusted mentor
+    * Use "you" and "your" throughout to make it personal
+    * Celebrate wins and progress genuinely
+    * Frame challenges as growth opportunities
+    * CRITICAL: Do NOT use dashes or hyphens in your response (use commas, periods, or "to" instead)
+    * Write in complete, flowing sentences
+    * NO EMOJIS in the JSON values
+    * If they have failed accounts, address it with empathy while providing actionable insights
     
-    Now GO. Give them the analysis they NEED, not the one they want.`;
+    Now provide an analysis that will genuinely help this trader grow and succeed.`;
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
@@ -627,10 +690,11 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
         messages: [
           {
             role: 'system',
-            content: `You are a world-class trading psychology mentor who speaks candidly and directly. 
-            You analyze patterns in informal language, emotional states, and trading behavior. 
-            You provide tough love when needed and genuine praise when earned. 
-            You understand that traders are HUMAN—not robots—and you speak their language. 
+            content: `You are an elite trading psychology mentor who combines deep expertise with genuine warmth and support. 
+            You analyze trading patterns, emotional states, and performance data to provide helpful, actionable insights. 
+            You celebrate progress and frame challenges as opportunities for growth.
+            You speak conversationally and supportively, never using dashes or hyphens in your responses.
+            You understand traders are human beings on a journey to improvement.
             Output ONLY valid JSON. No markdown, no code blocks, just pure JSON.`
           },
           {
@@ -638,7 +702,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
             content: prompt
           }
         ],
-        temperature: 0.8,
+        temperature: 0.7,
         max_tokens: 3000
       })
     })

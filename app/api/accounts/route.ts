@@ -30,15 +30,30 @@ export async function PATCH(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Get user ID using the proper auth function
-    let currentUserId: string
+    let authUserId: string
     try {
-      currentUserId = await getUserId()
+      authUserId = await getUserId()
     } catch (authError) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
       )
     }
+
+    // getUserId() returns Supabase auth_user_id, but Account.userId uses internal user.id
+    const user = await prisma.user.findUnique({
+      where: { auth_user_id: authUserId },
+      select: { id: true }
+    })
+
+    if (!user) {
+      return NextResponse.json({
+        success: true,
+        data: [] // No user means no accounts
+      })
+    }
+
+    const internalUserId = user.id
 
     // Cache the accounts query for better performance
     const { unstable_cache } = await import('next/cache')
@@ -83,14 +98,14 @@ export async function GET(request: NextRequest) {
           status: 'active'
         }))
       },
-      [`api-accounts-${currentUserId}`],
+      [`api-accounts-${internalUserId}`],
       {
-        tags: [`api-accounts-${currentUserId}`, `accounts-${currentUserId}`],
+        tags: [`api-accounts-${internalUserId}`, `accounts-${internalUserId}`],
         revalidate: 30 // Cache for 30 seconds
       }
     )
 
-    const transformedAccounts = await getCachedAccounts(currentUserId)
+    const transformedAccounts = await getCachedAccounts(internalUserId)
 
     return NextResponse.json({
       success: true,
@@ -113,33 +128,30 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Get user ID using the proper auth function
-    let userId: string
+    let authUserId: string
     try {
-      userId = await getUserId()
+      authUserId = await getUserId()
     } catch (authError) {
-      // In development, create a fallback user ID if not authenticated
-      if (process.env.NODE_ENV === 'development') {
-        // Check if we have any existing users in the database
-        const existingUsers = await prisma.user.findMany({ take: 1 })
-        if (existingUsers.length > 0) {
-          userId = existingUsers[0].id
-        } else {
-          // Create a development user if none exists
-          const devUser = await prisma.user.create({
-            data: {
-              id: `dev_${Date.now()}`,
-              email: 'dev@example.com',
-              auth_user_id: 'dev-user-' + Date.now(),
-              isFirstConnection: true
-            }
-          })
-          userId = devUser.id
-        }
-      } else {
-        throw authError
-      }
+      return NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      )
     }
 
+    // getUserId() returns Supabase auth_user_id, but Account.userId uses internal user.id
+    const user = await prisma.user.findUnique({
+      where: { auth_user_id: authUserId },
+      select: { id: true }
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
+    const internalUserId = user.id
     const body = await request.json()
 
     const { name, number, startingBalance, broker } = body
@@ -156,7 +168,7 @@ export async function POST(request: NextRequest) {
     const existingAccount = await prisma.account.findFirst({
       where: {
         number,
-        userId,
+        userId: internalUserId,
       }
     })
 
@@ -175,13 +187,13 @@ export async function POST(request: NextRequest) {
         name,
         startingBalance: parseFloat(startingBalance),
         broker,
-        userId
+        userId: internalUserId
       }
     })
 
-    // Revalidate cache tags to ensure fresh data
-    revalidateTag(`accounts-${userId}`)
-    revalidateTag(`user-data-${userId}`)
+    // Revalidate cache tags to ensure fresh data (using internal user ID for consistency)
+    revalidateTag(`accounts-${internalUserId}`)
+    revalidateTag(`user-data-${internalUserId}`)
 
     return NextResponse.json({
       success: true,

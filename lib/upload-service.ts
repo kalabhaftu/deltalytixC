@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase'
+import { STORAGE_BUCKETS } from '@/lib/constants/storage'
 
 export interface UploadResult {
   success: boolean
@@ -185,7 +186,7 @@ export class MediaUploadService {
 
   private async ensureBucket(): Promise<string> {
     // Return the known bucket name directly to avoid permission issues with listBuckets
-    return 'trade-images'
+    return STORAGE_BUCKETS.TRADES
   }
 
   /* WebP Compression - Disabled

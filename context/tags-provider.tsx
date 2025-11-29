@@ -1,6 +1,7 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
+import { CACHE_DURATION_MEDIUM } from '@/lib/constants'
 
 export interface TradeTag {
   id: string
@@ -14,41 +15,90 @@ interface TagsContextType {
   error: string | null
   getTagById: (tagId: string) => TradeTag | undefined
   getTagsByIds: (tagIds: string[]) => TradeTag[]
-  refetchTags: () => Promise<void>
+  refetchTags: (force?: boolean) => Promise<TradeTag[]>
 }
 
 const TagsContext = createContext<TagsContextType | undefined>(undefined)
 
-export function TagsProvider({ children }: { children: React.ReactNode }) {
-  const [tags, setTags] = useState<TradeTag[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+// Cache for tags to prevent redundant fetches
+let tagsCache: TradeTag[] | null = null
+let lastFetchTime = 0
+let fetchPromise: Promise<TradeTag[]> | null = null
 
-  const fetchTags = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const response = await fetch('/api/tags')
-      if (response.ok) {
-        const data = await response.json()
-        setTags(data.tags || [])
-      } else if (response.status === 401 || response.status === 403) {
-        // User not authenticated - silently fail, auth will handle redirect
-        setTags([])
-      } else {
-        setError('Failed to fetch tags')
+export function TagsProvider({ children }: { children: React.ReactNode }) {
+  const [tags, setTags] = useState<TradeTag[]>(() => tagsCache || [])
+  const [isLoading, setIsLoading] = useState(!tagsCache)
+  const [error, setError] = useState<string | null>(null)
+  const mountedRef = useRef(true)
+
+  const fetchTags = useCallback(async (force = false) => {
+    // Check cache first
+    const now = Date.now()
+    if (!force && tagsCache && (now - lastFetchTime) < CACHE_DURATION_MEDIUM) {
+      setTags(tagsCache)
+      setIsLoading(false)
+      return tagsCache
+    }
+
+    // Deduplicate in-flight requests
+    if (fetchPromise && !force) {
+      const cached = await fetchPromise
+      if (mountedRef.current) {
+        setTags(cached)
+        setIsLoading(false)
       }
-    } catch (err) {
-      // Silently fail on network errors during auth
-      setTags([])
-    } finally {
+      return cached
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    fetchPromise = (async () => {
+      try {
+        const response = await fetch('/api/tags', {
+          headers: { 'Cache-Control': 'no-cache' }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          const fetchedTags = data.tags || []
+          
+          // Update cache
+          tagsCache = fetchedTags
+          lastFetchTime = Date.now()
+          
+          return fetchedTags
+        } else if (response.status === 401 || response.status === 403) {
+          return []
+        } else {
+          throw new Error('Failed to fetch tags')
+        }
+      } catch (err) {
+        if (mountedRef.current) {
+          setError('Failed to fetch tags')
+        }
+        return tagsCache || []
+      } finally {
+        fetchPromise = null
+      }
+    })()
+
+    const result = await fetchPromise
+    if (mountedRef.current) {
+      setTags(result)
       setIsLoading(false)
     }
-  }
+    return result
+  }, [])
 
   useEffect(() => {
+    mountedRef.current = true
     fetchTags()
-  }, [])
+    
+    return () => {
+      mountedRef.current = false
+    }
+  }, [fetchTags])
 
   const getTagById = (tagId: string): TradeTag | undefined => {
     return tags.find(tag => tag.id === tagId)

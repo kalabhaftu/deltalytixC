@@ -218,7 +218,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
       // Check if this is a prop firm account and validate phase ID
       if (data.accountNumber) {
         try {
-          const phaseCheckResponse = await fetch(`/api/prop-firm-v2/accounts/validate-trade`, {
+          const phaseCheckResponse = await fetch(`/api/prop-firm/accounts/validate-trade`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

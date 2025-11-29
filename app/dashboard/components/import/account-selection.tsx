@@ -30,6 +30,42 @@ interface UnifiedAccount {
     status: string
     phaseId: string | null
   }
+  currentPhaseDetails?: {
+    phaseNumber: number
+    status: string
+    phaseId: string
+    masterAccountId?: string
+    evaluationType?: string
+  } | null
+}
+
+/**
+ * Helper function to determine if a phase number represents the funded stage
+ * based on the evaluation type.
+ */
+function isFundedPhase(evaluationType: string | undefined, phaseNumber: number | undefined): boolean {
+  if (!phaseNumber) return false
+  switch (evaluationType) {
+    case 'Two Step':
+      return phaseNumber >= 3
+    case 'One Step':
+      return phaseNumber >= 2
+    case 'Instant':
+      return phaseNumber >= 1
+    default:
+      return phaseNumber >= 3 // Default to Two Step behavior
+  }
+}
+
+/**
+ * Helper function to get phase label
+ */
+function getPhaseLabel(evaluationType: string | undefined, phaseNumber: number | undefined): string {
+  if (!phaseNumber) return 'PHASE 1'
+  if (isFundedPhase(evaluationType, phaseNumber)) {
+    return 'FUNDED'
+  }
+  return `PHASE ${phaseNumber}`
 }
 
 interface AccountSelectionProps {
@@ -217,6 +253,7 @@ export default function AccountSelection({
                           const phaseNumber = typeof phaseInfo === 'number' ? phaseInfo : phaseInfo?.phaseNumber || 1;
                           const phaseStatus = typeof phaseInfo === 'object' ? phaseInfo?.status : 'active';
                           const phaseId = typeof phaseInfo === 'object' ? phaseInfo?.phaseId : null;
+                          const evaluationType = account.currentPhaseDetails?.evaluationType;
 
                           return (
                             <Badge
@@ -230,9 +267,7 @@ export default function AccountSelection({
                               {phaseStatus === 'active' && <Target className="h-3 w-3 mr-1" />}
                               {phaseStatus === 'passed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
                               {phaseStatus === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                              {phaseNumber >= 3 ? 'FUNDED' :
-                               phaseNumber === 2 ? 'PHASE 2' :
-                               'PHASE 1'}
+                              {getPhaseLabel(evaluationType, phaseNumber)}
                               {phaseId && (
                                 <span className="text-xs font-mono text-muted-foreground ml-1">
                                   #{phaseId}

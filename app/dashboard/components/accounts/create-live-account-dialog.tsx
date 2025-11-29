@@ -35,6 +35,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Loader2, User, AlertCircle, CheckCircle2, Building2, DollarSign } from "lucide-react"
 import { toast } from "sonner"
 import { clearAccountsCache } from "@/hooks/use-accounts"
+import { useRegisterDialog } from "@/app/dashboard/components/auto-refresh-provider"
 
 // Popular brokers
 const POPULAR_BROKERS = [
@@ -82,6 +83,9 @@ interface LiveAccountDialogProps {
 export function CreateLiveAccountDialog({ open, onOpenChange, onSuccess }: LiveAccountDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  
+  // Register dialog to pause auto-refresh while open
+  useRegisterDialog(open)
 
   const {
     register,
@@ -192,7 +196,16 @@ export function CreateLiveAccountDialog({ open, onOpenChange, onSuccess }: LiveA
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form 
+            onSubmit={handleSubmit(onSubmit)} 
+            onKeyDown={(e) => {
+              // Prevent Enter key from submitting the form when in input fields
+              if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
+                e.preventDefault()
+              }
+            }}
+            className="space-y-6"
+          >
             <Card>
               <CardHeader>
                 <CardTitle>Account Information</CardTitle>

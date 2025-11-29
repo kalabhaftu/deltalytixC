@@ -5,6 +5,34 @@ import { Trade } from '@prisma/client'
 import { Account } from '@/context/data-provider'
 import { unstable_cache, revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
+import { convertDecimal } from '@/lib/utils/decimal'
+
+/**
+ * Helper function to determine if a phase number represents the funded stage
+ * based on the evaluation type.
+ */
+function isFundedPhase(evaluationType: string, phaseNumber: number): boolean {
+  switch (evaluationType) {
+    case 'Two Step':
+      return phaseNumber >= 3
+    case 'One Step':
+      return phaseNumber >= 2
+    case 'Instant':
+      return phaseNumber >= 1
+    default:
+      return phaseNumber >= 3 // Default to Two Step behavior
+  }
+}
+
+/**
+ * Helper function to get display name for a phase
+ */
+function getPhaseDisplayName(evaluationType: string, phaseNumber: number): string {
+  if (isFundedPhase(evaluationType, phaseNumber)) {
+    return 'Funded'
+  }
+  return `Phase ${phaseNumber}`
+}
 
 type GroupedTrades = Record<string, Record<string, Trade[]>>
 
@@ -24,14 +52,7 @@ export async function fetchGroupedTradesAction(userId: string): Promise<FetchTra
     ]
   })
 
-  // Helper to convert Decimal to string
-  const convertDecimal = (value: any) => {
-    if (value && typeof value === 'object' && 'toString' in value) {
-      return value.toString()
-    }
-    return value
-  }
-
+  // Use shared decimal conversion utility
   const serializedTrades = trades.map(trade => ({
     ...trade,
     entryPrice: convertDecimal(trade.entryPrice),
@@ -383,6 +404,9 @@ export async function getAccountsAction(options?: { includeArchived?: boolean })
           if (phase.status === 'pending') return
           
           
+          // Determine if this phase is the funded phase based on evaluation type
+          const phaseName = getPhaseDisplayName(masterAccount.evaluationType, phase.phaseNumber)
+          
           transformedMasterAccounts.push({
             id: phase.id, // Use phase ID instead of composite key
             number: phase.phaseId,
@@ -391,7 +415,7 @@ export async function getAccountsAction(options?: { includeArchived?: boolean })
             broker: undefined,
             startingBalance: phase.accountSize || masterAccount.accountSize,
             accountType: 'prop-firm' as const,
-            displayName: `${masterAccount.accountName} (Phase ${phase.phaseNumber})`,
+            displayName: `${masterAccount.accountName} (${phaseName})`,
             tradeCount: tradeCountMap.get(phase.phaseId) || 0,
             owner: { id: userId, email: '' },
             isOwner: true,
@@ -408,7 +432,8 @@ export async function getAccountsAction(options?: { includeArchived?: boolean })
               status: phase.status,
               phaseId: phase.phaseId,
               masterAccountId: masterAccount.id, // This is the key for deduplication
-              masterAccountName: masterAccount.accountName
+              masterAccountName: masterAccount.accountName,
+              evaluationType: masterAccount.evaluationType // Add evaluationType for UI components
             }
           })
         })
@@ -473,8 +498,10 @@ export async function savePayoutAction(payout: {
     }
 
     // CRITICAL BUSINESS RULE: Only funded accounts can request payouts
-    if (phaseAccount.phaseNumber !== 3) {
-      throw new Error('Payouts can only be requested for Funded accounts (Phase 3). This account is in Phase ' + phaseAccount.phaseNumber)
+    // Check if this is the funded phase based on evaluation type
+    if (!isFundedPhase(masterAccount.evaluationType, phaseAccount.phaseNumber)) {
+      const currentPhaseName = getPhaseDisplayName(masterAccount.evaluationType, phaseAccount.phaseNumber)
+      throw new Error(`Payouts can only be requested for Funded accounts. This account is currently in ${currentPhaseName}.`)
     }
 
     if (phaseAccount.status !== 'active') {
@@ -969,51 +996,44 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
       }
     }
 
-    // STEP 3: BATCH PROCESSING FOR LARGE DATASETS
-    // For very large imports (>500 trades), batch them to avoid timeout
-    const BATCH_SIZE = 500
+    // STEP 3: OPTIMIZED BATCH PROCESSING
+    // Use larger batch sizes and avoid transaction overhead for simple inserts
+    const BATCH_SIZE = 1000 // Increased from 500 for better throughput
     const totalBatches = Math.ceil(newTrades.length / BATCH_SIZE)
     let totalCreated = 0
 
-    // Process trades in batches
+    // Pre-process all trades once (avoid doing this per batch)
+    const allTradesToCreate = newTrades.map(trade => {
+      const cleanTrade: any = {}
+      
+      // Only include non-null fields
+      for (const key of Object.keys(trade)) {
+        const value = (trade as any)[key]
+        if (value !== null && value !== undefined) {
+          cleanTrade[key] = value
+        }
+      }
+      
+      // Add linking fields
+      cleanTrade.phaseAccountId = isPropFirm ? phaseAccountId : null
+      cleanTrade.accountId = isPropFirm ? null : regularAccountId
+      
+      return cleanTrade
+    })
+
+    // Process trades in batches without transaction wrapper (createMany is already atomic)
     for (let i = 0; i < totalBatches; i++) {
       const start = i * BATCH_SIZE
-      const end = Math.min(start + BATCH_SIZE, newTrades.length)
-      const batch = newTrades.slice(start, end)
+      const end = Math.min(start + BATCH_SIZE, allTradesToCreate.length)
+      const batch = allTradesToCreate.slice(start, end)
 
-      // OPTIMIZED TRANSACTION: Minimal queries, fast execution
-      const batchResult = await prisma.$transaction(async (tx) => {
-        // Prepare trades with linking info (remove null/undefined fields to reduce payload)
-        const tradesToCreate = batch.map(trade => {
-          const cleanTrade: any = {}
-          
-          // Only include non-null fields
-          Object.keys(trade).forEach((key: string) => {
-            const tradeKey = key as keyof typeof trade
-            if (trade[tradeKey] !== null && trade[tradeKey] !== undefined) {
-              (cleanTrade as any)[key] = trade[tradeKey]
-            }
-          })
-          
-          // Add linking fields
-          cleanTrade.phaseAccountId = isPropFirm ? phaseAccountId : null
-          cleanTrade.accountId = isPropFirm ? null : regularAccountId
-          
-          return cleanTrade
-        })
-
-        // Create trades in batch
-        const createResult = await tx.trade.createMany({
-          data: tradesToCreate
-        })
-
-        return createResult.count
-      }, {
-        maxWait: 10000,
-        timeout: 120000 // 2 minutes per batch (much more generous)
+      // Direct createMany - faster than wrapping in transaction
+      const createResult = await prisma.trade.createMany({
+        data: batch,
+        skipDuplicates: true // Extra safety for duplicates
       })
 
-      totalCreated += batchResult
+      totalCreated += createResult.count
     }
 
     // Build result
@@ -1065,19 +1085,83 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
           
           if (nextPhase) {
             // Check if next phase has a phaseId (account number)
-            // If not, this requires MANUAL transition (user must provide Phase 2 account ID)
+            // If not, this requires MANUAL transition (user must provide next phase account ID)
             if (!nextPhase.phaseId || nextPhase.phaseId.trim() === '') {
-              // DON'T mark as passed yet - leave as 'active' so transition API can process it
-              // The transition API will mark it as 'passed' when user provides Phase 2 account ID
+              // Determine if the next phase is the FUNDED phase
+              const isTransitioningToFunded = isFundedPhase(masterAccountData.evaluationType, nextPhaseNumber)
               
-              ;(result as any).evaluation = {
-                status: 'ready_for_transition',
-                reason: 'profit_target_achieved',
-                message: `Phase ${currentPhaseNumber} profit target achieved! Ready to advance to Phase ${nextPhaseNumber}.`,
+              // Determine the display name for the next phase
+              const nextPhaseName = isTransitioningToFunded ? 'Funded' : `Phase ${nextPhaseNumber}`
+              
+              // Set phase to pending_approval and create appropriate notification
+              await prisma.$transaction([
+                prisma.phaseAccount.update({
+                  where: { id: result.phaseAccountId },
+                  data: { status: 'pending_approval', endDate: new Date() }
+                }),
+                // Create different notification based on whether transitioning to funded or another eval phase
+                prisma.notification.create({
+                  data: isTransitioningToFunded ? {
+                    // FUNDED transition: Needs approval first, then ID
+                    userId: userId,
+                    type: 'FUNDED_PENDING_APPROVAL',
+                    title: 'Congratulations! Evaluation Complete!',
+                    message: `Your ${masterAccountData.accountName} has passed all evaluation phases! Please confirm once your prop firm approves your funded account.`,
+                    data: {
+                      masterAccountId: result.masterAccountId,
+                      phaseAccountId: result.phaseAccountId,
+                      accountName: masterAccountData.accountName,
+                      propFirmName: masterAccountData.propFirmName,
+                      currentPhaseNumber: currentPhaseNumber,
+                      nextPhaseNumber: nextPhaseNumber,
+                      evaluationType: masterAccountData.evaluationType
+                    },
+                    actionRequired: true
+                  } : {
+                    // NON-FUNDED transition: Just needs ID
+                    userId: userId,
+                    type: 'PHASE_TRANSITION_PENDING',
+                    title: `Phase ${currentPhaseNumber} Complete!`,
+                    message: `Your ${masterAccountData.accountName} has met the profit target! Enter your ${nextPhaseName} account ID to continue.`,
+                    data: {
+                      masterAccountId: result.masterAccountId,
+                      phaseAccountId: result.phaseAccountId,
+                      accountName: masterAccountData.accountName,
+                      propFirmName: masterAccountData.propFirmName,
+                      currentPhaseNumber: currentPhaseNumber,
+                      nextPhaseNumber: nextPhaseNumber,
+                      evaluationType: masterAccountData.evaluationType
+                    },
+                    actionRequired: true
+                  }
+                })
+              ])
+              
+              // Return different status based on whether transitioning to funded or another eval phase
+              ;(result as any).evaluation = isTransitioningToFunded ? {
+                // FUNDED: Use pending_approval - notification handles approval flow
+                status: 'pending_approval',
+                reason: 'awaiting_firm_approval',
+                message: `Congratulations! Your evaluation is complete. Please confirm your firm's approval via notifications.`,
                 requiresManualTransition: true,
                 nextPhase: nextPhaseNumber,
                 currentPnL: evaluation.progress?.currentPnL || 0,
-                profitTargetPercent: evaluation.progress?.profitTargetPercent || 0
+                profitTargetPercent: evaluation.progress?.profitTargetPercent || 0,
+                currentPhaseNumber: currentPhaseNumber,
+                evaluationType: masterAccountData.evaluationType,
+                propFirmName: masterAccountData.propFirmName
+              } : {
+                // NON-FUNDED: Use ready_for_transition - direct ID dialog
+                status: 'ready_for_transition',
+                reason: 'profit_target_achieved',
+                message: `Phase ${currentPhaseNumber} profit target achieved! Ready to advance to ${nextPhaseName}.`,
+                requiresManualTransition: true,
+                nextPhase: nextPhaseNumber,
+                currentPnL: evaluation.progress?.currentPnL || 0,
+                profitTargetPercent: evaluation.progress?.profitTargetPercent || 0,
+                currentPhaseNumber: currentPhaseNumber,
+                evaluationType: masterAccountData.evaluationType,
+                propFirmName: masterAccountData.propFirmName
               }
             } else {
               // Next phase has an account ID - safe to auto-advance
@@ -1102,33 +1186,54 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
                 })
               ])
               
+              // Determine the display name for the next phase
+              const autoNextPhaseName = isFundedPhase(masterAccountData.evaluationType, nextPhaseNumber)
+                ? 'Funded'
+                : `Phase ${nextPhaseNumber}`
+              
               ;(result as any).evaluation = {
                 status: 'passed',
                 reason: 'profit_target_achieved',
-                message: `Phase ${currentPhaseNumber} passed! Advanced to Phase ${nextPhaseNumber}`,
-                nextPhase: nextPhaseNumber
+                message: `Phase ${currentPhaseNumber} passed! Advanced to ${autoNextPhaseName}`,
+                nextPhase: nextPhaseNumber,
+                currentPhaseNumber: currentPhaseNumber,
+                evaluationType: masterAccountData.evaluationType,
+                propFirmName: masterAccountData.propFirmName
               }
             }
           } else {
-            // This was the final phase - account is now fully funded
+            // This was the final evaluation phase - waiting for firm approval
+            // Use pending_approval status until user confirms firm's decision
             await prisma.$transaction([
               prisma.phaseAccount.update({
                 where: { id: result.phaseAccountId },
-                data: { status: 'passed', endDate: new Date() }
+                data: { status: 'pending_approval', endDate: new Date() }
               }),
-              prisma.masterAccount.update({
-                where: { id: result.masterAccountId },
-                data: { 
-                  isActive: true,
-                  status: 'funded'
+              // Create notification for user to take action
+              prisma.notification.create({
+                data: {
+                  userId: userId,
+                  type: 'FUNDED_PENDING_APPROVAL',
+                  title: 'Congratulations! Awaiting Firm Approval',
+                  message: `Your ${masterAccountData.accountName} account has met the profit target! Please update when the firm confirms your funded status.`,
+                  data: {
+                    masterAccountId: result.masterAccountId,
+                    phaseAccountId: result.phaseAccountId,
+                    accountName: masterAccountData.accountName,
+                    propFirmName: masterAccountData.propFirmName
+                  },
+                  actionRequired: true
                 }
               })
             ])
             
             result.evaluation = {
-              status: 'funded',
-              reason: 'all_phases_completed',
-              message: `Congratulations! Your account is now fully funded!`
+              status: 'pending_approval',
+              reason: 'awaiting_firm_approval',
+              message: `Congratulations! Your account met the profit target. Waiting for firm approval...`,
+              currentPhaseNumber: currentPhaseNumber,
+              evaluationType: masterAccountData.evaluationType,
+              propFirmName: masterAccountData.propFirmName
             }
           }
           
@@ -1151,7 +1256,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
             prisma.masterAccount.update({
               where: { id: result.masterAccountId },
               data: { 
-                isActive: false,
                 status: 'failed'
               }
             }),
@@ -1159,7 +1263,7 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
               data: {
                 id: crypto.randomUUID(),
                 phaseAccountId: result.phaseAccountId,
-                breachType: evaluation.drawdown.breachType || 'unknown',
+                breachType: evaluation.drawdown.breachType || 'max_drawdown',
                 breachAmount: evaluation.drawdown.breachAmount || 0,
                 breachTime: evaluation.drawdown.breachTime || new Date(),
                 currentEquity: evaluation.drawdown.currentEquity,
@@ -1520,7 +1624,6 @@ export async function failAccount(accountId: string, currentPhase: any, breachDe
         prisma.masterAccount.update({
           where: { id: accountId },
           data: {
-            isActive: false,
             status: 'failed'
           }
         })

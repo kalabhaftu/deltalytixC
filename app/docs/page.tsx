@@ -1,345 +1,277 @@
 import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { ArrowRight, Upload, BarChart3, Building2, BookOpen, Zap, Shield, TrendingUp, Database, Lock, Activity, FileCode, Workflow, GitBranch, Rocket, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, Upload, BarChart3, Building2, BookOpen, Zap, Shield, TrendingUp, Database, Lock, Activity, FileCode, Workflow, GitBranch, Rocket, CheckCircle2, ChevronRight, Sparkles, Code, Server, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
 export default function DocsHome() {
   return (
-    <div className="space-y-12 pb-16">
+    <div className="space-y-16 pb-20">
       {/* Hero Section */}
-      <div className="space-y-6 pt-4">
-        <Badge variant="outline" className="mb-2 text-primary border-primary/20">v2.0</Badge>
-        <h1 className="text-5xl font-bold tracking-tight">Deltalytix Documentation</h1>
-        <p className="text-xl text-muted-foreground max-w-3xl leading-relaxed">
-          A comprehensive trading analytics platform for professional traders. Track performance, 
-          analyze patterns, and optimize your trading strategy with advanced metrics and real-time insights.
-        </p>
-        <div className="flex gap-4 mt-8">
-          <Button asChild size="lg" className="h-11 px-8 font-semibold shadow-lg hover:shadow-primary/20 transition-all">
-            <Link href="/docs/getting-started">
-              Get Started
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="lg" className="h-11 px-6 hover:bg-accent transition-all">
-            <Link href="/docs/features/importing">
-              View Features
-            </Link>
-          </Button>
-          <Button asChild variant="ghost" size="lg" className="h-11 px-6">
-            <Link href="/docs/for-developers/architecture">
-              Developer Docs
-            </Link>
-          </Button>
+      <section className="relative overflow-hidden pt-8">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
+        <div className="relative space-y-6">
+          <div className="flex items-center gap-3">
+            <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
+              <Sparkles className="h-3 w-3 mr-1" />
+              v2.0 Release
+            </Badge>
+          </div>
+          
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
+            Deltalytix
+            <span className="text-primary"> Documentation</span>
+          </h1>
+          
+          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl leading-relaxed">
+            A comprehensive trading analytics platform designed for professional traders. 
+            Track performance, analyze patterns, and optimize your strategy with advanced metrics 
+            and real-time insights.
+          </p>
+          
+          <div className="flex flex-wrap gap-4 pt-4">
+            <Button asChild size="lg" className="h-12 px-8 font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
+              <Link href="/docs/getting-started">
+                Get Started
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="h-12 px-6">
+              <Link href="/docs/features/importing">
+                Explore Features
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="lg" className="h-12 px-6">
+              <Link href="/docs/for-developers/architecture">
+                <Code className="mr-2 h-4 w-4" />
+                Developer Docs
+              </Link>
+            </Button>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Main Feature Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Link href="/docs/features/importing" className="group">
-          <Card className="h-full hover:border-primary/50 hover:shadow-md transition-all duration-200">
-            <CardHeader className="space-y-4">
-              <div className="p-3 bg-primary/10 rounded-lg w-fit group-hover:bg-primary/20 transition-colors">
-                <Upload className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle className="group-hover:text-primary transition-colors">Trade Import</CardTitle>
-              <CardDescription className="leading-relaxed">
-                Import trades from CSV files with intelligent AI-powered field mapping. 
-                Supports major brokers (Exness, Match Trader, MT4/MT5) and custom formats.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="text-sm text-muted-foreground space-y-3">
-                <li className="flex items-start gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-1 shrink-0" />
-                  <span>Automatic column detection and mapping</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-1 shrink-0" />
-                  <span>Batch import up to 10,000 trades</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-1 shrink-0" />
-                  <span>Manual entry with validation</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-        </Link>
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Core Features</h2>
+          <Link href="/docs/features/importing" className="text-sm text-primary hover:underline flex items-center gap-1">
+            View all <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
+        
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <Link href="/docs/features/importing" className="group">
+            <Card className="h-full border-2 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
+              <CardHeader className="space-y-4">
+                <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl w-fit group-hover:scale-110 transition-transform duration-300">
+                  <Upload className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl group-hover:text-primary transition-colors">Trade Import</CardTitle>
+                  <CardDescription className="mt-2 leading-relaxed">
+                    Import trades from CSV files with intelligent AI-powered field mapping. 
+                    Supports major brokers and custom formats.
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <ul className="space-y-2.5">
+                  {[
+                    'Automatic column detection and mapping',
+                    'Batch import up to 10,000 trades',
+                    'Manual entry with validation'
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </Link>
 
-        <Link href="/docs/features/dashboard" className="group">
-          <Card className="h-full hover:border-primary/50 hover:shadow-md transition-all duration-200">
-            <CardHeader className="space-y-4">
-              <div className="p-3 bg-primary/10 rounded-lg w-fit group-hover:bg-primary/20 transition-colors">
-                <BarChart3 className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle className="group-hover:text-primary transition-colors">Dashboard Analytics</CardTitle>
-              <CardDescription className="leading-relaxed">
-                Fully customizable drag-and-drop dashboard with 20+ widgets. 
-                Track KPIs, visualize performance, and identify patterns in real-time.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="text-sm text-muted-foreground space-y-3">
-                <li className="flex items-start gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-1 shrink-0" />
-                  <span>Win rate, profit factor, drawdown tracking</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-1 shrink-0" />
-                  <span>Advanced filtering by date, instrument, account</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-1 shrink-0" />
-                  <span>Equity curve and P&L charts</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-        </Link>
+          <Link href="/docs/features/dashboard" className="group">
+            <Card className="h-full border-2 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
+              <CardHeader className="space-y-4">
+                <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl w-fit group-hover:scale-110 transition-transform duration-300">
+                  <BarChart3 className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl group-hover:text-primary transition-colors">Dashboard Analytics</CardTitle>
+                  <CardDescription className="mt-2 leading-relaxed">
+                    Fully customizable drag-and-drop dashboard with 20+ widgets. 
+                    Track KPIs and visualize performance in real-time.
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <ul className="space-y-2.5">
+                  {[
+                    'Win rate, profit factor, drawdown tracking',
+                    'Advanced filtering by date, instrument, account',
+                    'Equity curve and P&L charts'
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </Link>
 
-        <Link href="/docs/features/prop-firm" className="group">
-          <Card className="h-full hover:border-primary/50 hover:shadow-md transition-all duration-200">
-            <CardHeader className="space-y-4">
-              <div className="p-3 bg-primary/10 rounded-lg w-fit group-hover:bg-primary/20 transition-colors">
-                <Building2 className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle className="group-hover:text-primary transition-colors">Prop Firm Tracking</CardTitle>
-              <CardDescription className="leading-relaxed">
-                Comprehensive prop firm evaluation monitoring with automated breach detection 
-                and phase progression tracking.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="text-sm text-muted-foreground space-y-3">
-                <li className="flex items-start gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-1 shrink-0" />
-                  <span>Real-time daily/max drawdown monitoring</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-1 shrink-0" />
-                  <span>Automated profit target & consistency checks</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-1 shrink-0" />
-                  <span>Multi-phase evaluation support</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
+          <Link href="/docs/features/prop-firm" className="group">
+            <Card className="h-full border-2 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
+              <CardHeader className="space-y-4">
+                <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl w-fit group-hover:scale-110 transition-transform duration-300">
+                  <Building2 className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl group-hover:text-primary transition-colors">Prop Firm Tracking</CardTitle>
+                  <CardDescription className="mt-2 leading-relaxed">
+                    Comprehensive prop firm evaluation monitoring with automated breach 
+                    detection and phase progression tracking.
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <ul className="space-y-2.5">
+                  {[
+                    'Real-time daily/max drawdown monitoring',
+                    'Automated profit target & consistency checks',
+                    'Multi-phase evaluation support'
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      </section>
 
       {/* Technical Features */}
-      <div className="border-t pt-12 space-y-8">
-        <div className="space-y-3">
-          <h2 className="text-3xl font-bold">Core Capabilities</h2>
-          <p className="text-muted-foreground text-lg">
-            Built with performance, security, and scalability in mind.
+      <section className="space-y-8">
+        <div className="text-center space-y-4">
+          <Badge variant="outline" className="mb-2">Built for Performance</Badge>
+          <h2 className="text-3xl md:text-4xl font-bold">Core Capabilities</h2>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Modern architecture designed for speed, security, and scalability.
           </p>
         </div>
         
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="flex gap-4 p-6 border rounded-lg hover:border-primary/50 transition-colors">
-            <div className="p-3 bg-primary/10 rounded-lg h-fit shrink-0">
-              <Zap className="h-6 w-6 text-primary" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[
+            {
+              icon: Zap,
+              title: 'High Performance',
+              description: 'Built on Next.js 15 with React Server Components. Optimized queries handle 100,000+ trades with sub-second response times.'
+            },
+            {
+              icon: Shield,
+              title: 'Enterprise Security',
+              description: 'Supabase authentication with Row Level Security. Rate limiting on all sensitive endpoints. Zod validation on all inputs.'
+            },
+            {
+              icon: TrendingUp,
+              title: 'Precision Analytics',
+              description: 'Decimal(20,10) precision for accurate calculations. Win rate excludes break-even trades for realistic metrics.'
+            },
+            {
+              icon: BookOpen,
+              title: 'AI-Powered Journaling',
+              description: 'Document trades with screenshots and emotions. AI analysis identifies patterns and correlates with P&L.'
+            },
+            {
+              icon: Activity,
+              title: 'Real-Time Monitoring',
+              description: 'Live P&L tracking with instant updates. Automated breach alerts for prop firm accounts.'
+            },
+            {
+              icon: Workflow,
+              title: 'Advanced Filtering',
+              description: 'Filter by date, instruments, accounts, P&L range, time in position, weekday, and hour. Save custom presets.'
+            }
+          ].map((feature, i) => (
+            <div key={i} className="group p-6 rounded-xl border bg-card hover:border-primary/50 hover:bg-accent/50 transition-all duration-300">
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                  <feature.icon className="h-5 w-5 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-lg">High Performance</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Built on Next.js 15 with React Server Components for blazing-fast load times. 
-                Optimized queries handle 100,000+ trades with sub-second response times. 
-                ISR caching ensures minimal database load.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-4 p-6 border rounded-lg hover:border-primary/50 transition-colors">
-            <div className="p-3 bg-primary/10 rounded-lg h-fit shrink-0">
-              <Shield className="h-6 w-6 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-lg">Enterprise Security</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Supabase authentication with Row Level Security (RLS) policies. 
-                Rate limiting on all sensitive endpoints (10 req/min for auth, 100/min for data). 
-                All inputs validated with Zod schemas.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-4 p-6 border rounded-lg hover:border-primary/50 transition-colors">
-            <div className="p-3 bg-primary/10 rounded-lg h-fit shrink-0">
-              <TrendingUp className="h-6 w-6 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-lg">Precision Analytics</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Decimal(20,10) precision for price data ensures accurate calculations. 
-                Win rate excludes break-even trades for realistic metrics. 
-                Advanced position sizing and risk/reward analysis built-in.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-4 p-6 border rounded-lg hover:border-primary/50 transition-colors">
-            <div className="p-3 bg-primary/10 rounded-lg h-fit shrink-0">
-              <BookOpen className="h-6 w-6 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-lg">AI-Powered Journaling</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Document trades with screenshots, emotions, and detailed notes. 
-                AI analysis identifies patterns in your psychology and correlates emotions with P&L. 
-                Get personalized recommendations to improve discipline.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-4 p-6 border rounded-lg hover:border-primary/50 transition-colors">
-            <div className="p-3 bg-primary/10 rounded-lg h-fit shrink-0">
-              <Activity className="h-6 w-6 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-lg">Real-Time Monitoring</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Live P&L tracking with instant updates. 
-                Automated breach alerts for prop firm accounts sent via email/notification. 
-                WebSocket integration for real-time data sync across devices.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-4 p-6 border rounded-lg hover:border-primary/50 transition-colors">
-            <div className="p-3 bg-primary/10 rounded-lg h-fit shrink-0">
-              <Workflow className="h-6 w-6 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-lg">Advanced Filtering</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Filter by date range, instruments, accounts, P&L range, time in position, 
-                weekday, and hour of day. Combine multiple filters for granular analysis. 
-                Save custom filter presets for quick access.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
-      </div>
+      </section>
 
       {/* Technology Stack */}
-      <div className="border-t pt-12 space-y-8">
-        <div className="space-y-3">
-          <h2 className="text-3xl font-bold">Technology Stack</h2>
-          <p className="text-muted-foreground text-lg">
+      <section className="space-y-8">
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold">Technology Stack</h2>
+          <p className="text-muted-foreground">
             Modern, production-ready technologies powering Deltalytix.
           </p>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          <div className="p-5 border rounded-lg hover:border-primary/50 transition-colors space-y-2">
-            <div className="flex items-center gap-2 mb-2">
-              <FileCode className="h-4 w-4 text-primary" />
-              <p className="font-semibold">Frontend</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[
+            { icon: FileCode, title: 'Frontend', primary: 'Next.js 15, React 19', secondary: 'TypeScript 5.7, Tailwind CSS' },
+            { icon: Database, title: 'Database', primary: 'PostgreSQL 16', secondary: 'Prisma ORM 6.2' },
+            { icon: Lock, title: 'Authentication', primary: 'Supabase Auth', secondary: 'OAuth, Magic Links' },
+            { icon: BarChart3, title: 'Charts', primary: 'Recharts', secondary: 'Lightweight Charts' },
+            { icon: GitBranch, title: 'State', primary: 'Zustand', secondary: 'React Query (TanStack)' },
+            { icon: Activity, title: 'Monitoring', primary: 'Sentry', secondary: 'Error tracking' },
+            { icon: Server, title: 'Testing', primary: 'Vitest, Playwright', secondary: 'E2E, Unit, Integration' },
+            { icon: Globe, title: 'Deployment', primary: 'Vercel', secondary: 'Edge Functions, CDN' }
+          ].map((tech, i) => (
+            <div key={i} className="p-4 rounded-xl border bg-card hover:border-primary/50 transition-colors space-y-3">
+              <div className="flex items-center gap-2">
+                <tech.icon className="h-4 w-4 text-primary" />
+                <span className="font-semibold text-sm">{tech.title}</span>
+              </div>
+              <div>
+                <p className="text-sm text-foreground">{tech.primary}</p>
+                <p className="text-xs text-muted-foreground">{tech.secondary}</p>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">Next.js 15.2, React 19</p>
-            <p className="text-xs text-muted-foreground">TypeScript 5.7, Tailwind CSS</p>
-          </div>
-
-          <div className="p-5 border rounded-lg hover:border-primary/50 transition-colors space-y-2">
-            <div className="flex items-center gap-2 mb-2">
-              <Database className="h-4 w-4 text-primary" />
-              <p className="font-semibold">Database</p>
-            </div>
-            <p className="text-sm text-muted-foreground">PostgreSQL 16</p>
-            <p className="text-xs text-muted-foreground">Prisma ORM 6.2</p>
-          </div>
-
-          <div className="p-5 border rounded-lg hover:border-primary/50 transition-colors space-y-2">
-            <div className="flex items-center gap-2 mb-2">
-              <Lock className="h-4 w-4 text-primary" />
-              <p className="font-semibold">Authentication</p>
-            </div>
-            <p className="text-sm text-muted-foreground">Supabase Auth</p>
-            <p className="text-xs text-muted-foreground">OAuth, Magic Links</p>
-          </div>
-
-          <div className="p-5 border rounded-lg hover:border-primary/50 transition-colors space-y-2">
-            <div className="flex items-center gap-2 mb-2">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              <p className="font-semibold">Charts</p>
-            </div>
-            <p className="text-sm text-muted-foreground">Recharts</p>
-            <p className="text-xs text-muted-foreground">Lightweight Charts</p>
-          </div>
-
-          <div className="p-5 border rounded-lg hover:border-primary/50 transition-colors space-y-2">
-            <div className="flex items-center gap-2 mb-2">
-              <GitBranch className="h-4 w-4 text-primary" />
-              <p className="font-semibold">State Management</p>
-            </div>
-            <p className="text-sm text-muted-foreground">Zustand</p>
-            <p className="text-xs text-muted-foreground">React Query (TanStack)</p>
-          </div>
-
-          <div className="p-5 border rounded-lg hover:border-primary/50 transition-colors space-y-2">
-            <div className="flex items-center gap-2 mb-2">
-              <Activity className="h-4 w-4 text-primary" />
-              <p className="font-semibold">Monitoring</p>
-            </div>
-            <p className="text-sm text-muted-foreground">Sentry</p>
-            <p className="text-xs text-muted-foreground">Error tracking, Performance</p>
-          </div>
-
-          <div className="p-5 border rounded-lg hover:border-primary/50 transition-colors space-y-2">
-            <div className="flex items-center gap-2 mb-2">
-              <FileCode className="h-4 w-4 text-primary" />
-              <p className="font-semibold">Testing</p>
-            </div>
-            <p className="text-sm text-muted-foreground">Vitest, Playwright</p>
-            <p className="text-xs text-muted-foreground">E2E, Unit, Integration</p>
-          </div>
-
-          <div className="p-5 border rounded-lg hover:border-primary/50 transition-colors space-y-2">
-            <div className="flex items-center gap-2 mb-2">
-              <Zap className="h-4 w-4 text-primary" />
-              <p className="font-semibold">Deployment</p>
-            </div>
-            <p className="text-sm text-muted-foreground">Vercel</p>
-            <p className="text-xs text-muted-foreground">Edge Functions, CDN</p>
-          </div>
+          ))}
         </div>
-      </div>
+      </section>
 
       {/* Quick Links */}
-      <div className="border-t pt-12 space-y-6">
+      <section className="space-y-6">
         <h2 className="text-2xl font-bold">Quick Links</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Link href="/docs/getting-started" className="group flex items-center gap-3 p-4 border rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-all">
-            <Rocket className="h-5 w-5 text-primary" />
-            <div>
-              <p className="font-medium group-hover:text-primary transition-colors">Quick Start Guide</p>
-              <p className="text-xs text-muted-foreground">Get up and running in 5 minutes</p>
-            </div>
-          </Link>
-
-          <Link href="/docs/for-developers/architecture" className="group flex items-center gap-3 p-4 border rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-all">
-            <GitBranch className="h-5 w-5 text-primary" />
-            <div>
-              <p className="font-medium group-hover:text-primary transition-colors">Architecture Overview</p>
-              <p className="text-xs text-muted-foreground">System design and data flow</p>
-            </div>
-          </Link>
-
-          <Link href="/docs/for-developers/database" className="group flex items-center gap-3 p-4 border rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-all">
-            <Database className="h-5 w-5 text-primary" />
-            <div>
-              <p className="font-medium group-hover:text-primary transition-colors">Database Schema</p>
-              <p className="text-xs text-muted-foreground">Complete data model reference</p>
-            </div>
-          </Link>
+          {[
+            { href: '/docs/getting-started', icon: Rocket, title: 'Quick Start Guide', description: 'Get up and running in 5 minutes' },
+            { href: '/docs/for-developers/architecture', icon: GitBranch, title: 'Architecture Overview', description: 'System design and data flow' },
+            { href: '/docs/for-developers/database', icon: Database, title: 'Database Schema', description: 'Complete data model reference' }
+          ].map((link, i) => (
+            <Link key={i} href={link.href} className="group flex items-center gap-4 p-5 rounded-xl border bg-card hover:border-primary/50 hover:bg-accent/50 transition-all">
+              <div className="p-2.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                <link.icon className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold group-hover:text-primary transition-colors">{link.title}</p>
+                <p className="text-sm text-muted-foreground">{link.description}</p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary ml-auto transition-colors" />
+            </Link>
+          ))}
         </div>
-      </div>
+      </section>
     </div>
   )
 }

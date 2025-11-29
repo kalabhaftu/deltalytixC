@@ -70,7 +70,7 @@ export default function AccountTradesPage() {
   // Fetch account details
   const fetchAccount = async () => {
     try {
-      const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}`)
+      const response = await fetch(`/api/prop-firm/accounts/${accountId}`)
       
       if (!response.ok) {
         throw new Error('Failed to fetch account details')
@@ -94,7 +94,7 @@ export default function AccountTradesPage() {
     try {
       setIsLoading(true)
       // ✅ FIXED: Add phase filter to API call
-      const response = await fetch(`/api/prop-firm-v2/accounts/${accountId}/trades?phase=${filter}`)
+      const response = await fetch(`/api/prop-firm/accounts/${accountId}/trades?phase=${filter}`)
       
       if (!response.ok) {
         throw new Error('Failed to fetch trades')

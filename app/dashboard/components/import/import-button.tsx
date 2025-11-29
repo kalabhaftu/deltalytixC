@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useCallback, useMemo } from 'react'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
@@ -14,19 +14,26 @@ import HeaderSelection from './header-selection'
 import AccountSelection from './account-selection'
 import { useData } from '@/context/data-provider'
 import ColumnMapping from './column-mapping'
-import { ImportDialogHeader } from './components/import-dialog-header'
-import { ImportDialogFooter } from './components/import-dialog-footer'
-import { ImportLoading } from './components/import-loading'
-import { platforms } from './config/platforms'
-import { PartyPopper } from 'lucide-react'
 import { FormatPreview } from './components/format-preview'
+import { platforms } from './config/platforms'
+import { 
+  Trophy, 
+  CheckCircle2, 
+  Upload, 
+  FileSpreadsheet, 
+  MapPin, 
+  Wallet,
+  Eye,
+  ArrowRight,
+  ArrowLeft,
+  Loader2
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUserStore } from '@/store/user-store'
-import { useTradesStore } from '@/store/trades-store'
-import { motion } from 'framer-motion'
-
+import { motion, AnimatePresence } from 'framer-motion'
 import { generateTradeHash } from '@/lib/utils'
 import { PhaseTransitionDialog } from '@/app/dashboard/components/prop-firm/phase-transition-dialog'
+import { Progress } from '@/components/ui/progress'
 
 type ColumnConfig = {
   [key: string]: {
@@ -64,6 +71,16 @@ export type Step =
   | 'process-file'
   | 'process-trades'
 
+// Step icons mapping
+const stepIcons: Record<string, React.ReactNode> = {
+  'select-import-type': <FileSpreadsheet className="h-3.5 w-3.5" />,
+  'upload-file': <Upload className="h-3.5 w-3.5" />,
+  'select-headers': <MapPin className="h-3.5 w-3.5" />,
+  'map-columns': <MapPin className="h-3.5 w-3.5" />,
+  'select-account': <Wallet className="h-3.5 w-3.5" />,
+  'preview-trades': <Eye className="h-3.5 w-3.5" />,
+}
+
 export default function ImportButton() {
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [step, setStep] = useState<Step>('select-import-type')
@@ -80,8 +97,8 @@ export default function ImportButton() {
   const [isSaving, setIsSaving] = useState<boolean>(false)
   const [processedTrades, setProcessedTrades] = useState<Trade[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [saveProgress, setSaveProgress] = useState<number>(0)
   const uploadIconRef = useRef<UploadIconHandle>(null)
-  const [text, setText] = useState<string>('')
   
   // Phase transition state
   const [showPhaseTransitionDialog, setShowPhaseTransitionDialog] = useState(false)
@@ -96,16 +113,36 @@ export default function ImportButton() {
     nextPhaseNumber: number
     propFirmName: string
     accountName: string
+    evaluationType: string
   } | null>(null)
 
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
-  const trades = useTradesStore(state => state.trades)
-  const { refreshTrades, updateTrades } = useData()
+  const { refreshTrades } = useData()
 
+  // Get current platform config
+  const platform = useMemo(() => 
+    platforms.find(p => p.type === importType) || platforms.find(p => p.platformName === 'csv-ai'),
+    [importType]
+  )
 
-  const handleSave = async () => {
-    // Use either the user from our database or the Supabase user as fallback
+  // Get current step info
+  const currentStep = useMemo(() => 
+    platform?.steps.find(s => s.id === step),
+    [platform, step]
+  )
+
+  const currentStepIndex = useMemo(() =>
+    platform?.steps.findIndex(s => s.id === step) ?? 0,
+    [platform, step]
+  )
+
+  const totalSteps = platform?.steps.length ?? 1
+
+  // Check if this is manual trade entry (has custom component)
+  const isManualEntry = importType === 'manual-trade-entry' && platform?.customComponent
+
+  const handleSave = useCallback(async () => {
     const currentUser = user || supabaseUser
     if (!currentUser?.id) {
       toast.error("Authentication Error", {
@@ -114,50 +151,49 @@ export default function ImportButton() {
       return
     }
 
-    // Require account selection for linking
     if (!selectedAccountId) {
-      toast.error("Account Selection Required", {
-        description: "Please select an account to link trades to before importing.",
+      toast.error("Account Required", {
+        description: "Please select an account to link trades to.",
       })
       return
     }
 
     setIsSaving(true)
     setIsLoading(true)
+    setSaveProgress(10)
     
     try {
-      // Show processing indicator
-      toast.info("Processing Trades", {
-        description: "Saving and linking trades to account...",
-        duration: 3000,
-      })
-
-      // Atomic save and link operation
+      setSaveProgress(30)
+      
+      // Execute save operation
       const result = await saveAndLinkTrades(selectedAccountId, processedTrades)
+      
+      setSaveProgress(70)
 
-      // Invalidate accounts cache to trigger refresh
+      // Invalidate accounts cache
       const { invalidateAccountsCache } = await import("@/hooks/use-accounts")
       invalidateAccountsCache('trades imported')
 
-      // Close dialog immediately for better UX
-      setIsOpen(false)
+      setSaveProgress(90)
 
-      // Reset the import process
+      // Close dialog
+      setIsOpen(false)
       resetImportState()
       
-      // Update the trades and wait for completion
+      // Refresh data
       await refreshTrades()
       
-      // Handle duplicate trades case
+      setSaveProgress(100)
+
+      // Handle results
       if (result.isDuplicate) {
         toast.info("No New Trades", {
-          description: 'message' in result ? result.message : `All ${result.totalTrades} trades already exist in this account`,
+          description: 'message' in result ? result.message : `All ${result.totalTrades} trades already exist`,
           duration: 5000,
         })
         return
       }
 
-      // Show success message with evaluation result
       if ('evaluation' in result && result.evaluation) {
         const evalData = result.evaluation as any
         
@@ -166,17 +202,19 @@ export default function ImportButton() {
             description: evalData.message || 'Account failed due to rule violation',
             duration: 10000,
           })
+        } else if (evalData.status === 'pending_approval') {
+          toast.success("Evaluation Complete!", {
+            description: "Your account has passed. Check notifications to confirm approval.",
+            duration: 10000,
+            icon: <Trophy className="h-4 w-4 text-primary" />
+          })
         } else if ((evalData.status === 'passed' || evalData.status === 'ready_for_transition') && result.isPropFirm && result.masterAccountId && result.phaseAccountId) {
-          
-          
-          // Phase passed - open transition dialog
           toast.success("Profit Target Reached!", {
             description: evalData.message || 'Ready to advance to next phase',
             duration: 10000,
-            icon: <PartyPopper className="h-4 w-4" />
+            icon: <CheckCircle2 className="h-4 w-4 text-long" />
           })
           
-          // Prepare data for phase transition dialog
           const dialogData = {
             masterAccountId: result.masterAccountId,
             currentPhase: {
@@ -187,35 +225,27 @@ export default function ImportButton() {
             },
             nextPhaseNumber: (evalData.currentPhaseNumber || 1) + 1,
             propFirmName: evalData.propFirmName || 'Prop Firm',
-            accountName: 'accountName' in result ? result.accountName : 'Account'
+            accountName: 'accountName' in result ? result.accountName : 'Account',
+            evaluationType: evalData.evaluationType || 'Two Step'
           }
           
-          
           setPhaseTransitionData(dialogData)
-          
-          // Close import dialog and open phase transition dialog
-          setIsOpen(false)
-          resetImportState()
-          setTimeout(() => {
-            setShowPhaseTransitionDialog(true)
-          }, 300)
+          setTimeout(() => setShowPhaseTransitionDialog(true), 300)
         } else {
           toast.success("Import Successful", {
-            description: `Successfully imported ${result.linkedCount} trades to ${'accountName' in result ? result.accountName : 'account'}`,
+            description: `Imported ${result.linkedCount} trades`,
             duration: 5000,
           })
         }
       } else {
         toast.success("Import Successful", {
-          description: `Successfully imported and linked ${result.linkedCount} trades to ${'accountName' in result ? result.accountName : 'account'}`,
+          description: `Imported ${result.linkedCount} trades`,
           duration: 5000,
         })
       }
 
     } catch (error) {
-      
-      // Provide more specific error messages based on error type
-      let errorMessage = "An error occurred while importing trades. No trades were saved."
+      let errorMessage = "An error occurred while importing trades."
       let errorTitle = "Import Failed"
       
       if (error instanceof Error) {
@@ -225,25 +255,20 @@ export default function ImportButton() {
         } else if (error.message.includes('account')) {
           errorTitle = "Account Error"
           errorMessage = error.message
-        } else if (error.message.includes('authentication')) {
-          errorTitle = "Authentication Error"
-          errorMessage = "Please log in again and try importing your trades."
         } else {
           errorMessage = error.message
         }
       }
       
-      toast.error(errorTitle, {
-        description: errorMessage,
-        duration: 8000,
-      })
+      toast.error(errorTitle, { description: errorMessage, duration: 8000 })
     } finally {
       setIsSaving(false)
       setIsLoading(false)
+      setSaveProgress(0)
     }
-  }
+  }, [user, supabaseUser, selectedAccountId, processedTrades, refreshTrades])
 
-  const resetImportState = () => {
+  const resetImportState = useCallback(() => {
     setImportType('')
     setStep('select-import-type')
     setRawCsvData([])
@@ -255,72 +280,105 @@ export default function ImportButton() {
     setSelectedAccountId('')
     setProcessedTrades([])
     setError(null)
-  }
+    setSaveProgress(0)
+  }, [])
 
-  const handleNextStep = () => {
-    const platform = platforms.find(p => p.type === importType) || platforms.find(p => p.platformName === 'csv-ai')
+  const handleNextStep = useCallback(() => {
     if (!platform) return
 
-    const currentStepIndex = platform.steps.findIndex(s => s.id === step)
-    if (currentStepIndex === -1) return
+    const currentIdx = platform.steps.findIndex(s => s.id === step)
+    if (currentIdx === -1) return
 
     // Handle PDF upload step
     if (step === 'upload-file' && importType === 'pdf') {
       if (files.length === 0) {
-         setError("Please select files to upload")
+        setError("Please select files to upload")
         return
       }
       setStep('process-file')
       return
     }
 
-    // Handle standard flow
-    const nextStep = platform.steps[currentStepIndex + 1]
+    const nextStep = platform.steps[currentIdx + 1]
     if (!nextStep) {
       handleSave()
       return
     }
 
     setStep(nextStep.id)
-  }
+  }, [platform, step, importType, files, handleSave])
 
-  const handleBackStep = () => {
-    const platform = platforms.find(p => p.type === importType) || platforms.find(p => p.platformName === 'csv-ai')
+  const handleBackStep = useCallback(() => {
     if (!platform) return
 
-    const currentStepIndex = platform.steps.findIndex(s => s.id === step)
-    if (currentStepIndex <= 0) return
+    const currentIdx = platform.steps.findIndex(s => s.id === step)
+    if (currentIdx <= 0) return
 
-    const prevStep = platform.steps[currentStepIndex - 1]
-    if (!prevStep) return
+    const prevStep = platform.steps[currentIdx - 1]
+    if (prevStep) setStep(prevStep.id)
+  }, [platform, step])
 
-    setStep(prevStep.id)
-  }
+  const isNextDisabled = useMemo(() => {
+    if (isLoading) return true
+    if (!platform) return true
 
-  const renderStep = () => {
-    const platform = platforms.find(p => p.type === importType) || platforms.find(p => p.platformName === 'csv-ai')
+    const currentStepConfig = platform.steps.find(s => s.id === step)
+    if (!currentStepConfig) return true
+
+    // File upload requires files
+    if (currentStepConfig.component === FileUpload && csvData.length === 0) return true
+    
+    // Account selection requires selection
+    if (currentStepConfig.component === AccountSelection && !selectedAccountId) return true
+
+    // FormatPreview requires processed trades
+    if (currentStepConfig.component === FormatPreview && processedTrades.length === 0) return true
+
+    return false
+  }, [isLoading, platform, step, csvData.length, selectedAccountId, processedTrades.length])
+
+  const renderStep = useCallback(() => {
     if (!platform) return null
 
-    const currentStep = platform.steps.find(s => s.id === step)
-    if (!currentStep) return null
+    const currentStepConfig = platform.steps.find(s => s.id === step)
+    if (!currentStepConfig) return null
 
-    const Component = currentStep.component
+    const Component = currentStepConfig.component
 
-    // Show loading animation when processing trades (EXCEPT for FormatPreview which handles its own loading)
-    if (isLoading && Component !== FormatPreview) {
-      return <ImportLoading />
+    // Show saving state
+    if (isSaving) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-6 p-8">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          >
+            <Loader2 className="h-12 w-12 text-primary" />
+          </motion.div>
+          <div className="text-center space-y-2">
+            <h3 className="text-lg font-semibold">Saving Trades</h3>
+            <p className="text-sm text-muted-foreground">
+              Processing {processedTrades.length} trades...
+            </p>
+          </div>
+          <div className="w-full max-w-xs">
+            <Progress value={saveProgress} className="h-2" />
+            <p className="text-xs text-center text-muted-foreground mt-2">
+              {saveProgress}% complete
+            </p>
+          </div>
+        </div>
+      )
     }
 
-    // Handle special cases for components that need specific props
+    // Handle each step type
     if (Component === ImportTypeSelection) {
       return (
-        <div className="flex flex-col gap-4 h-full">
-          <Component
-            selectedType={importType}
-            setSelectedType={setImportType}
-            setIsOpen={setIsOpen}
-          />
-        </div>
+        <Component
+          selectedType={importType}
+          setSelectedType={setImportType}
+          setIsOpen={setIsOpen}
+        />
       )
     }
 
@@ -336,8 +394,6 @@ export default function ImportButton() {
         />
       )
     }
-
-
 
     if (Component === HeaderSelection) {
       return (
@@ -388,7 +444,7 @@ export default function ImportButton() {
       )
     }
     
-    // Handle processor components - only if the current step component is the processor
+    // Handle processor components
     if (platform.processorComponent && Component === platform.processorComponent) {
       return (
         <platform.processorComponent
@@ -400,34 +456,13 @@ export default function ImportButton() {
       )
     }
 
-    // Handle custom components
+    // Handle custom components (like ManualTradeForm) - render fullscreen
     if (platform.customComponent) {
       return <platform.customComponent setIsOpen={setIsOpen} />
     }
 
     return null
-  }
-
-  const isNextDisabled = () => {
-    if (isLoading) return true
-    
-    const platform = platforms.find(p => p.type === importType) || platforms.find(p => p.platformName === 'csv-ai')
-    if (!platform) return true
-
-    const currentStep = platform.steps.find(s => s.id === step)
-    if (!currentStep) return true
-
-    // File upload step
-    if (currentStep.component === FileUpload && csvData.length === 0) return true
-    
-    // Account selection for platforms - require account ID for linking
-    if (currentStep.component === AccountSelection && !selectedAccountId) return true
-
-    // FormatPreview step - require processed trades before saving
-    if (currentStep.component === FormatPreview && processedTrades.length === 0) return true
-
-    return false
-  }
+  }, [platform, step, isSaving, saveProgress, processedTrades.length, importType, rawCsvData, csvData, headers, mappings, error, accountNumber, selectedAccountId, isLoading, newAccountNumber])
 
   return (
     <div>
@@ -444,6 +479,7 @@ export default function ImportButton() {
           nextPhaseNumber={phaseTransitionData.nextPhaseNumber}
           propFirmName={phaseTransitionData.propFirmName}
           accountName={phaseTransitionData.accountName}
+          evaluationType={phaseTransitionData.evaluationType}
           onSuccess={() => {
             refreshTrades()
             setShowPhaseTransitionDialog(false)
@@ -452,44 +488,147 @@ export default function ImportButton() {
         />
       )}
       
-      <motion.div
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-      >
+      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
         <Button
           onClick={() => setIsOpen(true)}
           variant="outline"
-          className={cn(
-            "justify-start text-left font-medium w-full transition-all duration-200 hover:bg-muted/50 border-border/50 backdrop-blur-sm",
-          )}
+          className="justify-start text-left font-medium w-full transition-all duration-200 hover:bg-muted/50 border-border/50"
           id="import-data"
           onMouseEnter={() => uploadIconRef.current?.startAnimation()}
           onMouseLeave={() => uploadIconRef.current?.stopAnimation()}
         >
-          <UploadIcon ref={uploadIconRef} className="h-4 w-4 mr-2 transition-transform duration-200" />
-           <span className='hidden md:block'>Import Trades</span>
+          <UploadIcon ref={uploadIconRef} className="h-4 w-4 mr-2" />
+          <span className='hidden md:block'>Import Trades</span>
         </Button>
       </motion.div>
       
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="flex flex-col w-[95vw] max-w-[85vw] h-[90vh] sm:h-[85vh] p-0 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl overflow-hidden">
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open)
+        if (!open) resetImportState()
+      }}>
+        <DialogContent className="flex flex-col w-[95vw] max-w-5xl h-[85vh] p-0 bg-background border border-border shadow-2xl overflow-hidden gap-0">
           <VisuallyHidden>
-            <DialogTitle>Import Data</DialogTitle>
+            <DialogTitle>Import Trades</DialogTitle>
           </VisuallyHidden>
-          <ImportDialogHeader step={step} importType={importType} />
           
-          <div className="flex-1 overflow-hidden">
-            {renderStep()}
+          {/* Header - only show for non-manual entry or show simplified for manual */}
+          {!isManualEntry && (
+            <div className="flex-none border-b p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h2 className="text-lg font-semibold">
+                    {currentStep?.title || 'Import Trades'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {currentStep?.description || 'Import your trading data'}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Progress steps */}
+              {platform && totalSteps > 1 && (
+                <div className="flex items-center gap-1">
+                  {platform.steps.map((s, idx) => (
+                    <React.Fragment key={s.id}>
+                      <div
+                        className={cn(
+                          "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-all",
+                          currentStepIndex === idx 
+                            ? "bg-primary text-primary-foreground font-medium" 
+                            : currentStepIndex > idx
+                              ? "bg-primary/20 text-primary"
+                              : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {currentStepIndex > idx ? (
+                          <CheckCircle2 className="h-3 w-3" />
+                        ) : (
+                          stepIcons[s.id] || <span className="text-xs">{idx + 1}</span>
+                        )}
+                        <span className="hidden sm:inline">{s.title}</span>
+                      </div>
+                      {idx < platform.steps.length - 1 && (
+                        <div className={cn(
+                          "h-px w-4 transition-colors",
+                          currentStepIndex > idx ? "bg-primary" : "bg-border"
+                        )} />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Content */}
+          <div className={cn(
+            "flex-1 overflow-hidden",
+            !isManualEntry && "p-4"
+          )}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                className="h-full"
+              >
+                {renderStep()}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
-          <ImportDialogFooter
-            step={step}
-            importType={importType}
-            onBack={handleBackStep}
-            onNext={handleNextStep}
-            isSaving={isSaving}
-            isNextDisabled={isNextDisabled()}
-          />
+          {/* Footer - only show for non-manual entry */}
+          {!isManualEntry && (
+            <div className="flex-none p-4 border-t">
+              <div className="flex justify-between items-center">
+                <div className="text-xs text-muted-foreground">
+                  {processedTrades.length > 0 && (
+                    <span>{processedTrades.length} trades ready</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  {currentStepIndex > 0 && (
+                    <Button
+                      variant="outline"
+                      onClick={handleBackStep}
+                      disabled={isSaving}
+                      className="gap-2"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Back
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleNextStep}
+                    disabled={isNextDisabled || isSaving}
+                    className={cn(
+                      "gap-2 min-w-[100px]",
+                      currentStepIndex === 0 && importType === 'rithmic-sync' && "invisible"
+                    )}
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : currentStep?.isLastStep ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Save Trades
+                      </>
+                    ) : (
+                      <>
+                        Next
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

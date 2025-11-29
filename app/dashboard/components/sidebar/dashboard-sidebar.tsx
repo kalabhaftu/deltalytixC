@@ -247,36 +247,10 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
     </div>
   )
 
-  // Mobile sidebar with sheet
+  // Mobile sidebar - hidden since we use bottom nav
+  // Keep the sheet available for additional menu items if needed in the future
   if (isMobile) {
-    return (
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetTrigger asChild>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Button
-              variant="outline"
-              size="icon"
-              className="fixed z-50 md:hidden bg-background/95 backdrop-blur-xl border-border/50 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 h-12 w-12"
-              style={{ top: 'calc(var(--navbar-height, 56px) + 1rem)', left: '1rem' }}
-              aria-label="Open navigation menu"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          </motion.div>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-72 p-0 bg-background/95 backdrop-blur-xl border-border/50">
-          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-          <div className="p-4 border-b border-border/50">
-            <h2 className="font-semibold text-lg">Navigation</h2>
-          </div>
-          <NavigationContent />
-        </SheetContent>
-      </Sheet>
-    )
+    return null
   }
 
   // Desktop sidebar

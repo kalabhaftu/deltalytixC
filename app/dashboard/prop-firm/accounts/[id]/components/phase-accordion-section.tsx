@@ -47,9 +47,9 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
     switch (phase.status) {
       case 'active': return <Clock className="h-5 w-5 text-foreground" />
       case 'archived':
-      case 'passed': return <CheckCircle2 className="h-5 w-5 text-green-500" />
-      case 'failed': return <XCircle className="h-5 w-5 text-red-500" />
-      case 'pending': return <Trophy className="h-5 w-5 text-gray-400" />
+      case 'passed': return <CheckCircle2 className="h-5 w-5 text-long" />
+      case 'failed': return <XCircle className="h-5 w-5 text-short" />
+      case 'pending': return <Trophy className="h-5 w-5 text-muted-foreground" />
       default: return null
     }
   }
@@ -95,7 +95,7 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
       <Card className={cn(
         "transition-all",
         phase.status === 'active' && "border-foreground/20 bg-muted/30",
-        phase.status === 'failed' && "border-red-500/30 bg-red-50/30 dark:bg-red-950/10"
+        phase.status === 'failed' && "border-destructive/30 bg-destructive/5"
       )}>
         <CollapsibleTrigger asChild>
           <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
@@ -145,7 +145,7 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
                   </div>
                   <p className={cn(
                     "text-2xl font-bold",
-                    totalPnL >= 0 ? "text-green-600" : "text-red-600"
+                    totalPnL >= 0 ? "text-long" : "text-short"
                   )}>
                     {formatCurrency(totalPnL)}
                   </p>
@@ -185,7 +185,7 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
                     <div
                       className={cn(
                         "h-2 rounded-full transition-all",
-                        profitProgress >= 100 ? "bg-green-500" : "bg-foreground"
+                        profitProgress >= 100 ? "bg-long" : "bg-foreground"
                       )}
                       style={{ width: `${Math.min(profitProgress, 100)}%` }}
                     />
@@ -224,7 +224,7 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
                         </div>
                         <div className={cn(
                           "font-medium",
-                          (trade.pnl || 0) >= 0 ? "text-green-600" : "text-red-600"
+                          (trade.pnl || 0) >= 0 ? "text-long" : "text-short"
                         )}>
                           {formatCurrency(trade.pnl || 0)}
                         </div>
