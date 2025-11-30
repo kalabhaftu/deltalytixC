@@ -418,7 +418,6 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                             className="object-cover group-hover:scale-105 transition-transform"
                             unoptimized
                             loading={index === 0 ? "eager" : "lazy"}
-                            priority={index === 0}
                           />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
                             <Button variant="secondary" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
