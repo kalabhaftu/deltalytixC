@@ -97,10 +97,6 @@ export async function DELETE(request: NextRequest) {
       await tx.account.deleteMany({
         where: { userId: internalUserId }
       })
-      
-      await tx.group.deleteMany({
-        where: { userId: internalUserId }
-      })
 
       await tx.user.delete({
         where: { id: internalUserId }

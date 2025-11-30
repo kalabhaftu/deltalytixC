@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { Trade } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,7 @@ import { getNewsById } from '@/lib/major-news-events'
 import { getTradingSession, formatTimeInZone, DEFAULT_TIMEZONE } from '@/lib/time-utils'
 import { useUserStore } from '@/store/user-store'
 
-interface TradeDetailViewV2Props {
+interface TradeDetailViewProps {
   isOpen: boolean
   onClose: () => void
   trade: Trade | null
@@ -51,11 +51,12 @@ async function downloadImage(imageUrl: string, trade: Trade, imageIndex: number)
   }
 }
 
-export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewV2Props) {
+export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps) {
   const { tags } = useTags()
   const timezone = useUserStore((state) => state.timezone)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const imageDialogOpenRef = useRef(false)
 
   if (!trade) return null
 
@@ -74,7 +75,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewV2Pro
     return map[tf] || tf
   }
 
-  // Get all images
+  // Get all images - filter out null, undefined, and empty strings
   const images = [
     tradeData.cardPreviewImage,
     tradeData.imageOne,
@@ -83,7 +84,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewV2Pro
     tradeData.imageFour,
     tradeData.imageFive,
     tradeData.imageSix,
-  ].filter(Boolean)
+  ].filter((img) => img && String(img).trim() !== '')
 
   // Parse chart links
   const chartLinks = tradeData.chartLinks 
@@ -106,8 +107,24 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewV2Pro
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0">
+      <Dialog 
+        open={isOpen} 
+        onOpenChange={(open) => {
+          // Only close if image viewer is not open
+          if (!open && !imageDialogOpenRef.current) {
+            onClose()
+          }
+        }}
+      >
+        <DialogContent 
+          className="max-w-6xl h-[90vh] flex flex-col p-0"
+          onInteractOutside={(e) => {
+            // Prevent closing when image viewer is open
+            if (imageDialogOpenRef.current) {
+              e.preventDefault()
+            }
+          }}
+        >
           <DialogHeader className="px-6 py-4 border-b shrink-0">
             <DialogTitle className="flex items-center gap-3">
               <span className="text-2xl font-bold">{trade.instrument}</span>
@@ -390,6 +407,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewV2Pro
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {images.map((img, index) => (
                         <div key={index} className="group relative aspect-video rounded-md overflow-hidden border bg-muted cursor-pointer" onClick={() => {
+                          imageDialogOpenRef.current = true
                           setSelectedImage(img)
                           setSelectedImageIndex(index + 1)
                         }}>
@@ -399,7 +417,8 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewV2Pro
                             fill
                             className="object-cover group-hover:scale-105 transition-transform"
                             unoptimized
-                            loading="eager"
+                            loading={index === 0 ? "eager" : "lazy"}
+                            priority={index === 0}
                           />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
                             <Button variant="secondary" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -426,10 +445,42 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewV2Pro
         </DialogContent>
       </Dialog>
 
-      {/* Image Viewer Modal */}
+      {/* Image Viewer Modal - Separate Dialog to prevent closing parent */}
       {selectedImage && (
-        <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 gap-0">
+        <Dialog 
+          open={!!selectedImage} 
+          onOpenChange={(open) => {
+            // Update ref to track image dialog state
+            imageDialogOpenRef.current = open
+            // Only handle inner dialog state, don't propagate to parent
+            if (!open) {
+              setSelectedImage(null)
+              // Small delay to ensure ref is updated before parent dialog checks it
+              setTimeout(() => {
+                imageDialogOpenRef.current = false
+              }, 0)
+            }
+          }}
+          modal={true}
+        >
+          <DialogContent 
+            className="max-w-[95vw] max-h-[95vh] p-0 gap-0 z-[100]"
+            onInteractOutside={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setSelectedImage(null)
+            }}
+            onEscapeKeyDown={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setSelectedImage(null)
+            }}
+            onPointerDownOutside={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setSelectedImage(null)
+            }}
+          >
             <DialogHeader className="px-4 pt-4 pb-2">
               <DialogTitle>Screenshot {selectedImageIndex}</DialogTitle>
               <VisuallyHidden>

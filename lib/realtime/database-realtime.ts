@@ -13,7 +13,7 @@
  * 
  * Requirements (Supabase Dashboard):
  * 1. Go to Database > Replication
- * 2. Enable realtime for tables: Trade, Account, MasterAccount, PhaseAccount
+ * 2. Enable realtime for tables: Trade, Account, MasterAccount, PhaseAccount, Payout, DailyNote, Notification
  * 3. Ensure RLS policies allow SELECT for authenticated users
  */
 
@@ -21,7 +21,7 @@ import { createClient } from '@/lib/supabase'
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 
 // Tables that need realtime updates
-export const REALTIME_TABLES = ['Trade', 'Account', 'MasterAccount', 'PhaseAccount', 'Payout', 'DailyNote'] as const
+export const REALTIME_TABLES = ['Trade', 'Account', 'MasterAccount', 'PhaseAccount', 'Payout', 'DailyNote', 'Notification'] as const
 export type RealtimeTable = typeof REALTIME_TABLES[number]
 
 export type ChangeEvent = 'INSERT' | 'UPDATE' | 'DELETE'
@@ -99,25 +99,47 @@ class DatabaseRealtimeManager {
         return
       }
       
+      // Disconnect existing channel if any
+      if (this.channel) {
+        try {
+          this.channel.unsubscribe()
+        } catch (e) {
+          // Ignore unsubscribe errors
+        }
+        this.channel = null
+      }
+      
       // Create channel with unique name
       const channelName = `db-changes-${userId}-${Date.now()}`
-      let channel = supabase.channel(channelName)
+      let channel = supabase.channel(channelName, {
+        config: {
+          // Add presence configuration to prevent channel errors
+          presence: {
+            key: userId
+          }
+        }
+      })
       
       // Subscribe to postgres_changes for each table
       // This is the PROPER way - server monitors DB and pushes changes
       for (const table of tables) {
-        channel = channel.on(
-          'postgres_changes',
-          {
-            event: '*', // Listen to INSERT, UPDATE, DELETE
-            schema: 'public',
-            table: table,
-            filter: `userId=eq.${userId}` // Only changes for this user
-          },
-          (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-            this.handleChange(table, payload)
-          }
-        )
+        try {
+          channel = channel.on(
+            'postgres_changes',
+            {
+              event: '*', // Listen to INSERT, UPDATE, DELETE
+              schema: 'public',
+              table: table,
+              filter: `userId=eq.${userId}` // Only changes for this user
+            },
+            (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+              this.handleChange(table, payload)
+            }
+          )
+        } catch (tableError) {
+          // Log but continue with other tables
+          console.warn(`[Realtime] Failed to subscribe to table ${table}:`, tableError instanceof Error ? tableError.message : 'Unknown error')
+        }
       }
       
       this.channel = channel
@@ -128,16 +150,19 @@ class DatabaseRealtimeManager {
           this.isConnected = true
           this.reconnectAttempts = 0
           this.notifyStatus('connected')
-          console.log('[Realtime] Connected to database changes')
         } else if (status === 'CHANNEL_ERROR') {
           this.isConnected = false
           this.notifyStatus('error')
-          console.error('[Realtime] Channel error:', err)
+          // Only log if error details are available, and use console.warn to avoid unhandled error
+          if (err && err.message) {
+            console.warn('[Realtime] Channel error:', err.message)
+          } else {
+            console.warn('[Realtime] Channel error: Connection issue (details unavailable)')
+          }
           this.scheduleReconnect(tables, userId)
         } else if (status === 'TIMED_OUT') {
           this.isConnected = false
           this.notifyStatus('disconnected')
-          console.warn('[Realtime] Connection timed out')
           this.scheduleReconnect(tables, userId)
         } else if (status === 'CLOSED') {
           this.isConnected = false
@@ -146,8 +171,12 @@ class DatabaseRealtimeManager {
       })
       
     } catch (error) {
-      console.error('[Realtime] Failed to connect:', error)
+      // Use console.warn to avoid unhandled error propagation
+      const errorMessage = error instanceof Error ? error.message : 'Unknown connection error'
+      console.warn('[Realtime] Failed to connect:', errorMessage)
       this.notifyStatus('error')
+      // Schedule reconnect attempt
+      this.scheduleReconnect(tables, userId)
     }
   }
   
@@ -162,8 +191,6 @@ class DatabaseRealtimeManager {
       oldRecord: payload.old as Record<string, unknown> | null,
       timestamp: new Date()
     }
-    
-    console.log(`[Realtime] ${change.event} on ${change.table}`)
     
     // Notify all subscribers
     for (const callback of this.callbacks) {
@@ -198,7 +225,6 @@ class DatabaseRealtimeManager {
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000)
     this.reconnectAttempts++
     
-    console.log(`[Realtime] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`)
     
     this.reconnectTimeout = setTimeout(() => {
       this.disconnect()
@@ -261,6 +287,7 @@ export function useDatabaseRealtime(options: {
   enabled?: boolean
   onTradeChange?: (change: DatabaseChange) => void
   onAccountChange?: (change: DatabaseChange) => void
+  onNotificationChange?: (change: DatabaseChange) => void
   onAnyChange?: (change: DatabaseChange) => void
   onStatusChange?: (status: 'connected' | 'disconnected' | 'error') => void
 }) {
@@ -271,6 +298,7 @@ export function useDatabaseRealtime(options: {
     enabled = true,
     onTradeChange,
     onAccountChange,
+    onNotificationChange,
     onAnyChange,
     onStatusChange
   } = options
@@ -278,15 +306,17 @@ export function useDatabaseRealtime(options: {
   // Store ALL callbacks in refs to avoid re-subscriptions
   const onTradeChangeRef = useRef(onTradeChange)
   const onAccountChangeRef = useRef(onAccountChange)
+  const onNotificationChangeRef = useRef(onNotificationChange)
   const onAnyChangeRef = useRef(onAnyChange)
   const onStatusChangeRef = useRef(onStatusChange)
   
   useEffect(() => {
     onTradeChangeRef.current = onTradeChange
     onAccountChangeRef.current = onAccountChange
+    onNotificationChangeRef.current = onNotificationChange
     onAnyChangeRef.current = onAnyChange
     onStatusChangeRef.current = onStatusChange
-  }, [onTradeChange, onAccountChange, onAnyChange, onStatusChange])
+  }, [onTradeChange, onAccountChange, onNotificationChange, onAnyChange, onStatusChange])
   
   const handleChange = useCallback((change: DatabaseChange) => {
     // Call specific handlers based on table
@@ -295,6 +325,9 @@ export function useDatabaseRealtime(options: {
     }
     if (['Account', 'MasterAccount', 'PhaseAccount'].includes(change.table) && onAccountChangeRef.current) {
       onAccountChangeRef.current(change)
+    }
+    if (change.table === 'Notification' && onNotificationChangeRef.current) {
+      onNotificationChangeRef.current(change)
     }
     
     // Always call generic handler

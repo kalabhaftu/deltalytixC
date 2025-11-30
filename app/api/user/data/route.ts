@@ -102,10 +102,7 @@ export async function DELETE(request: NextRequest) {
         where: { userId: internalUserId }
       })
 
-      // 6. Delete groups
-      await tx.group.deleteMany({
-        where: { userId: internalUserId }
-      })
+      // 6. Groups removed - no longer used
 
       // 7. Delete daily notes
       await tx.dailyNote.deleteMany({

@@ -22,7 +22,41 @@ interface AccountSelectorProps {
 
 export function AccountSelector({ onSave }: AccountSelectorProps) {
   const { accountNumbers, setAccountNumbers, refreshTrades } = useData()
-  const { accounts, isLoading } = useAccounts()
+  // Account filter needs individual trade counts, not aggregated
+  // Fetch accounts independently with forAccountFilter=true to ensure individual counts
+  const [accounts, setAccounts] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  
+  // Fetch accounts independently for account filter (always individual counts)
+  useEffect(() => {
+    const fetchAccountsForFilter = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch(`/api/bundled-data?forAccountFilter=true&tradesLimit=5000&_t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch accounts')
+        }
+        
+        const data = await response.json()
+        if (data.success && data.data?.accounts) {
+          // Include all phases (active, passed, failed) - don't filter by status
+          setAccounts(data.data.accounts)
+        }
+      } catch (error) {
+        console.error('Failed to fetch accounts for filter:', error)
+        setAccounts([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchAccountsForFilter()
+  }, [])
+  
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set())
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set())
@@ -184,6 +218,34 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
 
   // NO AUTO-SELECT: Users must explicitly select accounts
   // This ensures preferences are intentional and saved to DB
+
+  // Count unique master accounts from selected accounts (prop-firm grouped by masterAccountId, live counted individually)
+  const getSelectedMasterAccountCount = useMemo(() => {
+    if (selectedAccounts.size === 0) return 0
+
+    const selectedAccountObjects = Array.from(selectedAccounts)
+      .map(accountId => accounts.find(acc => acc.id === accountId))
+      .filter(Boolean) as any[]
+
+    // Group prop-firm accounts by masterAccountId (or name as fallback)
+    // Count live accounts individually
+    const masterAccountSet = new Set<string>()
+    
+    selectedAccountObjects.forEach(acc => {
+      const accountType = acc.accountType || (acc.propfirm ? 'prop-firm' : 'live')
+      
+      if (accountType === 'prop-firm') {
+        // For prop-firm: group by masterAccountId or name
+        const masterId = acc.currentPhaseDetails?.masterAccountId || acc.name || acc.number
+        masterAccountSet.add(masterId)
+      } else {
+        // For live accounts: count each individually (use id as unique identifier)
+        masterAccountSet.add(acc.id || acc.number)
+      }
+    })
+    
+    return masterAccountSet.size
+  }, [selectedAccounts, accounts])
 
   const handleToggleAccount = (accountId: string, checked: boolean) => {
     const newSelected = new Set(selectedAccounts)
@@ -444,7 +506,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
       {/* Selection Count */}
       {selectedAccounts.size > 0 && (
         <div className="text-xs text-muted-foreground text-center">
-          {selectedAccounts.size} account{selectedAccounts.size !== 1 ? 's' : ''} selected
+          {getSelectedMasterAccountCount} account{getSelectedMasterAccountCount !== 1 ? 's' : ''} selected
         </div>
       )}
 

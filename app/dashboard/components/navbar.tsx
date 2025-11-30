@@ -39,7 +39,6 @@ import { useTheme } from '@/context/theme-provider'
 import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
 import { useUserStore } from '@/store/user-store'
-import { useModalStateStore } from '@/store/modal-state-store'
 import { useDashboardEditStore } from '@/store/dashboard-edit-store'
 import { WidgetType, WidgetSize } from '../types/dashboard'
 import { defaultLayouts, defaultLayoutsWithKPI } from '@/context/data-provider'
@@ -120,7 +119,6 @@ export default function Navbar() {
 
   const {refreshTrades, saveDashboardLayout, accountNumbers, accounts, dateRange, instruments} = useData()
   const { dashboardLayout: layouts, setDashboardLayout: setLayouts, isMobile } = useUserStore(state => state)
-  const { setAccountGroupBoardOpen } = useModalStateStore()
   const { 
     isCustomizing, 
     setIsCustomizing, 
@@ -159,9 +157,62 @@ export default function Navbar() {
     return <Laptop className="h-4 w-4" />;
   }
 
+  // Count unique master accounts (prop-firm grouped by masterAccountId, live counted individually)
+  const getMasterAccountCount = () => {
+    if (!accountNumbers || accountNumbers.length === 0) {
+      return 0
+    }
+
+    const selectedAccounts = accountNumbers
+      .map(num => accounts.find(acc => acc.number === num || acc.id === num))
+      .filter(Boolean) as any[]
+
+    // Group prop-firm accounts by masterAccountId (or name as fallback)
+    // Count live accounts individually
+    const masterAccountSet = new Set<string>()
+    
+    selectedAccounts.forEach(acc => {
+      const accountType = (acc as any).accountType || (acc.propfirm ? 'prop-firm' : 'live')
+      
+      if (accountType === 'prop-firm') {
+        // For prop-firm: group by masterAccountId or name
+        const masterId = (acc as any).currentPhaseDetails?.masterAccountId || acc.name || acc.number
+        masterAccountSet.add(masterId)
+      } else {
+        // For live accounts: count each individually (use id as unique identifier)
+        masterAccountSet.add(acc.id || acc.number)
+      }
+    })
+    
+    return masterAccountSet.size
+  }
+
+  // Count only prop-firm phases (exclude live accounts)
+  const getPropFirmPhaseCount = () => {
+    if (!accountNumbers || accountNumbers.length === 0) {
+      return 0
+    }
+
+    const selectedAccounts = accountNumbers
+      .map(num => accounts.find(acc => acc.number === num || acc.id === num))
+      .filter(Boolean) as any[]
+
+    // Count only prop-firm accounts (phases)
+    return selectedAccounts.filter(acc => {
+      const accountType = (acc as any).accountType || (acc.propfirm ? 'prop-firm' : 'live')
+      return accountType === 'prop-firm'
+    }).length
+  }
+
   // Determine the account button text based on selected accounts
   const getAccountButtonText = () => {
     if (!accountNumbers || accountNumbers.length === 0) {
+      return "All Accounts"
+    }
+
+    const masterCount = getMasterAccountCount()
+    
+    if (masterCount === 0) {
       return "All Accounts"
     }
 
@@ -182,26 +233,8 @@ export default function Navbar() {
       return `1 Account`
     }
 
-    // Multiple accounts selected
-    const selectedAccounts = accountNumbers
-      .map(num => accounts.find(acc => acc.number === num || acc.id === num))
-      .filter(Boolean) as any[]
-    
-    // Group by master account name
-    const byMasterAccount = new Map<string, number>()
-    selectedAccounts.forEach(acc => {
-      const masterName = acc.name || acc.number
-      byMasterAccount.set(masterName, (byMasterAccount.get(masterName) || 0) + 1)
-    })
-    
-    if (byMasterAccount.size === 1) {
-      // All phases from same master account
-      const [masterName, count] = Array.from(byMasterAccount.entries())[0]
-      return count > 1 ? `${masterName} (${count} phases)` : masterName
-    }
-    
-    // Multiple master accounts
-    return `${accountNumbers.length} Accounts`
+    // Multiple accounts selected - show count of master accounts
+    return `${masterCount} Account${masterCount !== 1 ? 's' : ''}`
   }
 
   // Get date range text
@@ -398,7 +431,7 @@ export default function Navbar() {
                   <span className="text-sm">{getAccountButtonText()}</span>
                   {accountNumbers.length > 0 && (
                     <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
-                      {accountNumbers.length}
+                      {getPropFirmPhaseCount()}
                     </Badge>
                   )}
                 </Button>
@@ -500,7 +533,7 @@ export default function Navbar() {
                     
                     {/* Mobile-only quick actions */}
                     <div className="md:hidden">
-                      <DropdownMenuItem onClick={() => setAccountGroupBoardOpen(true)} className="hover:bg-muted/50 transition-colors duration-200">
+                      <DropdownMenuItem onClick={() => setAccountPopoverOpen(true)} className="hover:bg-muted/50 transition-colors duration-200">
                         <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                         </svg>

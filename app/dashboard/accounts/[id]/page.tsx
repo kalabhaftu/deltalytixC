@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils"
 import { EditLiveAccountDialog } from "@/components/edit-live-account-dialog"
 import { TransactionDialog } from "@/app/dashboard/components/accounts/transaction-dialog"
 import { TransactionHistory } from "@/app/dashboard/components/accounts/transaction-history"
+import { useUserStore } from '@/store/user-store'
+import { useDatabaseRealtime } from '@/lib/realtime/database-realtime'
 
 interface LiveAccountData {
   id: string
@@ -50,6 +52,8 @@ export default function LiveAccountDetailPage() {
   const [refreshKey, setRefreshKey] = useState(0)
 
   const accountId = params.id as string
+  const user = useUserStore(state => state.user)
+  const storeAccounts = useUserStore(state => state.accounts)
 
   // Fetch account data with calculated metrics
   const fetchAccountData = useCallback(async () => {
@@ -82,6 +86,50 @@ export default function LiveAccountDetailPage() {
       setIsLoading(false)
     }
   }, [accountId, router])
+
+  // Listen to store updates for this account
+  useEffect(() => {
+    if (!storeAccounts || !accountId) return
+    
+    const storeAccount = storeAccounts.find(acc => acc.id === accountId)
+    if (storeAccount && storeAccount.accountType === 'live') {
+      // Update account data from store
+      setAccount(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          name: storeAccount.name || undefined,
+          broker: storeAccount.broker || undefined,
+          displayName: (storeAccount as any).displayName || storeAccount.name || storeAccount.number,
+          startingBalance: storeAccount.startingBalance,
+          status: storeAccount.status || 'active',
+        }
+      })
+    }
+  }, [storeAccounts, accountId])
+
+  // Subscribe to realtime changes for this account
+  useDatabaseRealtime({
+    userId: user?.id,
+    enabled: !!user?.id && !!accountId,
+    onAccountChange: (change) => {
+      // Check if this change affects the current account
+      const changedAccountId = (change.newRecord?.id || change.oldRecord?.id) as string | undefined
+      if (changedAccountId === accountId) {
+        // Refresh account data immediately
+        fetchAccountData()
+      }
+    },
+    onAnyChange: (change) => {
+      // Also refresh on trade changes that might affect account metrics
+      if (change.table === 'Trade') {
+        const tradeAccountNumber = (change.newRecord?.accountNumber || change.oldRecord?.accountNumber) as string | undefined
+        if (account && tradeAccountNumber === account.number) {
+          fetchAccountData()
+        }
+      }
+    }
+  })
 
   useEffect(() => {
     if (accountId) {
@@ -177,7 +225,10 @@ export default function LiveAccountDetailPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                setRefreshKey(prev => prev + 1)
+                fetchAccountData()
+              }}
               className="w-fit"
             >
               <RefreshCw className="h-4 w-4 sm:mr-2" />
@@ -405,8 +456,8 @@ export default function LiveAccountDetailPage() {
         onOpenChange={setEditDialogOpen}
         account={account}
         onSuccess={() => {
-          // Refresh the page to get updated account data
-          window.location.reload()
+          // Refresh account data automatically via realtime, but also trigger immediate fetch
+          fetchAccountData()
         }}
       />
     </div>

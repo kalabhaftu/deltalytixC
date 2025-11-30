@@ -165,12 +165,26 @@ export function calculateAccountBalances(
     transactionsByAccountId.get(transaction.accountId)!.push(transaction)
   })
 
+  // Group prop firm accounts by masterAccountId to aggregate failed accounts
+  const accountsByMasterId = new Map<string, any[]>()
+  accounts.forEach(account => {
+    if (account.accountType === 'prop-firm' && account.currentPhaseDetails?.masterAccountId) {
+      const masterId = account.currentPhaseDetails.masterAccountId
+      if (!accountsByMasterId.has(masterId)) {
+        accountsByMasterId.set(masterId, [])
+      }
+      accountsByMasterId.get(masterId)!.push(account)
+    }
+  })
+
   // Calculate balance for each account
   accounts.forEach(account => {
     let accountTrades: any[] = []
     
     if (account.accountType === 'prop-firm') {
-      // For prop firm accounts, use phase ID primarily
+      // For prop firm accounts: always use only the current phase's trades for balance
+      // Even for failed accounts, show the balance of the failed phase (what caused the failure)
+      // Trade count is aggregated elsewhere, but balance should reflect the failed phase's state
       accountTrades = tradesByPhaseId.get(account.id) || []
       
       // Fallback to account number for backwards compatibility

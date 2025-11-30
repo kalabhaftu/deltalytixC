@@ -48,7 +48,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/context/data-provider'
 import { useModalStateStore } from '@/store/modal-state-store'
-import EnhancedEditTrade from '@/app/dashboard/components/tables/enhanced-edit-trade'
+import TradeEditDialog from '@/app/dashboard/components/tables/trade-edit-dialog'
 import { TradeDetailView } from '@/app/dashboard/components/tables/trade-detail-view'
 import { Trade } from '@prisma/client'
 import { groupTradesByExecution, formatCurrency } from '@/lib/utils'
@@ -752,7 +752,7 @@ export function JournalClient() {
       </AnimatePresence>
 
       {/* Dialogs */}
-      <EnhancedEditTrade
+      <TradeEditDialog
         isOpen={isEditDialogOpen}
         onClose={() => {
           setIsEditDialogOpen(false)

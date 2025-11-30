@@ -16,12 +16,15 @@ import { FundedApprovalDialog } from '@/components/prop-firm/funded-approval-dia
 import { PhaseTransitionApprovalDialog } from '@/components/prop-firm/phase-transition-approval-dialog'
 import { toast } from 'sonner'
 import { Notification } from '@prisma/client'
+import { useDatabaseRealtime } from '@/lib/realtime/database-realtime'
+import { useUserStore } from '@/store/user-store'
 
 export function NotificationCenter() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  const user = useUserStore(state => state.user)
   
   // Dialog states
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false)
@@ -56,24 +59,32 @@ export function NotificationCenter() {
     }
   }, [isOpen, fetchNotifications])
 
-  // Poll for new notifications every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isOpen) {
-        // Only poll count when popover is closed
-        fetch('/api/notifications?limit=1')
-          .then(res => res.json())
-          .then(result => {
-            if (result.success) {
-              setUnreadCount(result.data.unreadCount)
-            }
-          })
-          .catch(() => {})
+  // Subscribe to realtime notification changes
+  useDatabaseRealtime({
+    userId: user?.id,
+    enabled: !!user?.id,
+    onNotificationChange: (change) => {
+      // Only refresh if the notification belongs to the current user
+      const notificationUserId = (change.newRecord?.userId || change.oldRecord?.userId) as string | undefined
+      if (notificationUserId === user?.id) {
+        // Refresh notifications when they change
+        if (isOpen) {
+          // If popover is open, fetch full list
+          fetchNotifications()
+        } else {
+          // If popover is closed, just update the count
+          fetch('/api/notifications?limit=1')
+            .then(res => res.json())
+            .then(result => {
+              if (result.success) {
+                setUnreadCount(result.data.unreadCount)
+              }
+            })
+            .catch(() => {})
+        }
       }
-    }, 30000)
-
-    return () => clearInterval(interval)
-  }, [isOpen])
+    }
+  })
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {

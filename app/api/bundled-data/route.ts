@@ -8,7 +8,7 @@ import { convertDecimal } from '@/lib/utils/decimal'
  * Bundled Data API - Single endpoint to load all initial data
  * Reduces multiple round trips to a single request
  * 
- * Returns: user, accounts, groups, tags, trades (filtered), calendar notes
+ * Returns: user, accounts, tags, trades (filtered), calendar notes
  */
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
         data: {
           user: null,
           accounts: [],
-          groups: [],
           tags: [],
           trades: [],
           calendarNotes: {},
@@ -37,6 +36,9 @@ export async function GET(request: NextRequest) {
     const selectedAccountsParam = searchParams.get('selectedAccounts')
     const selectedAccounts = selectedAccountsParam ? selectedAccountsParam.split(',').filter(Boolean) : []
     const tradesLimit = parseInt(searchParams.get('tradesLimit') || '5000')
+    const forAccountsPage = searchParams.get('forAccountsPage') === 'true'
+    const forAccountFilter = searchParams.get('forAccountFilter') === 'true'
+    // _t parameter is for cache-busting, ignore it
 
     // CRITICAL: First look up the internal user ID from auth_user_id
     // getUserIdSafe() returns Supabase auth_user_id, but all data tables use internal user.id
@@ -63,7 +65,6 @@ export async function GET(request: NextRequest) {
         data: {
           user: null,
           accounts: [],
-          groups: [],
           tags: [],
           trades: [],
           calendarNotes: {},
@@ -78,7 +79,6 @@ export async function GET(request: NextRequest) {
     // CRITICAL: Fetch ALL data in parallel - single database round trip
     const [
       accounts,
-      groups,
       tags,
       trades,
       calendarNotes,
@@ -95,28 +95,21 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: 'desc' }
       }),
 
-      // 2. Groups
-      prisma.group.findMany({
-        where: { userId: internalUserId },
-        include: {
-          Account: {
-            select: {
-              id: true,
-              number: true,
-              name: true
-            }
-          }
-        }
-      }),
-
-      // 3. Tags
+      // 2. Tags
       prisma.tradeTag.findMany({
         where: { userId: internalUserId },
         orderBy: { name: 'asc' }
       }),
 
-      // 4. Trades - only for selected accounts if specified
+      // 3. Trades - fetch conditionally based on forAccountsPage flag
+      // If forAccountsPage is true, we'll fetch trades after processing accounts
+      // Otherwise, use selectedAccounts filter for dashboard/widgets
       (async () => {
+        // If forAccountsPage, return empty array - we'll fetch trades after processing accounts
+        if (forAccountsPage) {
+          return []
+        }
+        
         const whereClause: any = { userId: internalUserId }
         if (selectedAccounts.length > 0) {
           whereClause.accountNumber = { in: selectedAccounts }
@@ -181,7 +174,7 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    // Get phase display name
+    // Get phase display name - stage only (Phase 1, Phase 2, Funded) - no status
     const getPhaseDisplayName = (evaluationType: string, phaseNumber: number): string => {
       if (isFundedPhase(evaluationType, phaseNumber)) return 'Funded'
       return `Phase ${phaseNumber}`
@@ -220,6 +213,10 @@ export async function GET(request: NextRequest) {
           
           const phaseName = getPhaseDisplayName(masterAccount.evaluationType, phase.phaseNumber)
           
+          // Always use individual phase trade count
+          // Aggregation for failed phases will be calculated on the client side (accounts page)
+          const phaseTradeCount = tradeCountMap.get(phase.phaseId) || 0
+          
           processedPropFirmAccounts.push({
             id: phase.id,
             number: phase.phaseId, // This is the account number used in trades
@@ -229,12 +226,11 @@ export async function GET(request: NextRequest) {
             startingBalance: phase.accountSize || masterAccount.accountSize,
             accountType: 'prop-firm' as const,
             displayName: `${masterAccount.accountName} (${phaseName})`,
-            tradeCount: tradeCountMap.get(phase.phaseId) || 0,
+            tradeCount: phaseTradeCount,
             status: phase.status,
             currentPhase: phase.phaseNumber,
             createdAt: phase.createdAt || masterAccount.createdAt,
             userId: masterAccount.userId,
-            groupId: null,
             isArchived: masterAccount.isArchived || false,
             currentPhaseDetails: {
               phaseNumber: phase.phaseNumber,
@@ -252,6 +248,52 @@ export async function GET(request: NextRequest) {
     // Combine both account types
     const processedAccounts = [...processedLiveAccounts, ...processedPropFirmAccounts]
 
+    // If forAccountsPage is true, fetch trades for all visible accounts
+    let finalTrades = trades
+    if (forAccountsPage && processedAccounts.length > 0) {
+      // Extract account numbers and phase IDs from processed accounts
+      const accountNumbers = processedAccounts
+        .map(acc => acc.number)
+        .filter((num): num is string => Boolean(num) && num.trim() !== '')
+      
+      const phaseIds = processedAccounts
+        .filter(acc => acc.accountType === 'prop-firm')
+        .map(acc => acc.id)
+        .filter((id): id is string => Boolean(id) && id.trim() !== '')
+      
+      // Build OR condition for trades query
+      const orConditions: any[] = []
+      if (accountNumbers.length > 0) {
+        orConditions.push({ accountNumber: { in: accountNumbers } })
+      }
+      if (phaseIds.length > 0) {
+        orConditions.push({ phaseAccountId: { in: phaseIds } })
+      }
+      
+      // Fetch trades matching any of the account numbers or phase IDs
+      if (orConditions.length > 0) {
+        const whereClause: any = {
+          userId: internalUserId,
+          OR: orConditions
+        }
+        
+        const rawTrades = await prisma.trade.findMany({
+          where: whereClause,
+          orderBy: { entryDate: 'desc' },
+          take: tradesLimit
+        })
+        
+        // Convert decimals
+        finalTrades = rawTrades.map(trade => ({
+          ...trade,
+          entryPrice: convertDecimal(trade.entryPrice),
+          closePrice: convertDecimal(trade.closePrice),
+          stopLoss: convertDecimal(trade.stopLoss),
+          takeProfit: convertDecimal(trade.takeProfit),
+        }))
+      }
+    }
+
     const duration = Date.now() - startTime
 
     return NextResponse.json({
@@ -259,9 +301,8 @@ export async function GET(request: NextRequest) {
       data: {
         user: userLookup,
         accounts: processedAccounts, // Includes both live and flattened prop firm accounts
-        groups: groups.map(g => ({ ...g, accounts: g.Account || [] })),
         tags,
-        trades,
+        trades: finalTrades,
         calendarNotes,
         isAuthenticated: true,
         loadTime: duration

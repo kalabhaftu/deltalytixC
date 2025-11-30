@@ -35,25 +35,8 @@ export async function ensureAccountAndAssignGroup(
       })
     }
 
-    // If groupId is provided, verify it exists and belongs to the user
-    if (groupId) {
-      const group = await prisma.group.findFirst({
-        where: {
-          id: groupId,
-          userId: user.id,
-        },
-      })
-
-      if (!group) {
-        return { success: false, error: "Group not found or does not belong to user" }
-      }
-    }
-
-    // Then move the account to the selected group
-    await prisma.account.update({
-      where: { id: account.id },
-      data: { groupId },
-    })
+    // Groups removed - no longer used
+    // Account is created/ensured, no group assignment needed
 
     return { success: true }
   } catch (error) {
@@ -73,7 +56,7 @@ export async function getAccounts() {
       select: {
         id: true,
         number: true,
-        groupId: true,
+        // groupId removed - no longer used
       },
     })
     return accounts

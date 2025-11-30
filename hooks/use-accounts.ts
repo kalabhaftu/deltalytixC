@@ -80,13 +80,16 @@ export function subscribeToAccountsUpdates(callback: () => void) {
   return () => realtimeSubscribers.delete(callback)
 }
 
-// Legacy compatibility functions - now just trigger broadcasts
+// Legacy compatibility functions - kept for API compatibility
+// Note: Zustand handles reactivity automatically, so broadcasts are no longer needed
+// These functions are kept for backward compatibility but don't perform any action
 export function invalidateAccountsCache(_reason?: string) {
-  broadcastAccountsUpdate()
+  // No-op: Zustand automatically triggers re-renders when store updates
 }
 
 export function clearAccountsCache() {
-  broadcastAccountsUpdate()
+  // No-op: Zustand automatically triggers re-renders when store updates
+  // Cache clearing is handled by refreshTrades() which clears localStorage
 }
 
 /**
@@ -150,8 +153,9 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
       })
   }, [storeAccounts, includeFailed, includeArchived, user?.id])
 
-  // Refetch: Clear caches, broadcast update, and trigger router refresh
-  // This ensures the data-provider reloads fresh data from the server
+  // Refetch: Clear caches and trigger router refresh
+  // The DataProvider's realtime subscription will handle the actual data reload
+  // Zustand will automatically trigger re-renders when the store updates
   const refetch = useCallback(async () => {
     // Clear localStorage caches to force fresh data fetch
     try {
@@ -162,24 +166,14 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
       // Ignore storage errors
     }
     
-    // Broadcast update to force re-renders
-    broadcastAccountsUpdate()
-    
     // Trigger Next.js router refresh to reload server data
+    // The DataProvider will reload data, update Zustand store, and components will re-render automatically
     router.refresh()
   }, [router])
 
-  // Subscribe to broadcasts for reactivity
-  const [, forceUpdate] = useState(0)
-  
-  useEffect(() => {
-    const unsubscribe = subscribeToAccountsUpdates(() => {
-      forceUpdate(n => n + 1)
-    })
-    return () => {
-      unsubscribe()
-    }
-  }, [])
+  // Zustand automatically triggers re-renders when store.accounts changes
+  // The useMemo dependency on storeAccounts ensures recalculation when the store updates
+  // No manual subscription needed - Zustand's reactivity handles this
 
   return {
     accounts,

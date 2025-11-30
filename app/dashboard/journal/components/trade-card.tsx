@@ -41,7 +41,7 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
   const timezone = useUserStore((state) => state.timezone)
 
   const isWin = trade.pnl >= 0
-  const hasPreviewImage = (trade as any).cardPreviewImage
+  const hasPreviewImage = !!(trade as any).cardPreviewImage && String((trade as any).cardPreviewImage).trim() !== ''
   
   // Parse trade tags - tags is now an array
   const tradeTagIds = Array.isArray((trade as any).tags) ? (trade as any).tags : []

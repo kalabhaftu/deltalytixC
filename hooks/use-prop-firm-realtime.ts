@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { fetchWithError, handleFetchError } from '@/lib/utils/fetch-with-error'
-import { API_TIMEOUT, POLL_INTERVAL } from '@/lib/constants'
-import { useRealtimeSubscription, type TableName } from '@/lib/realtime/realtime-manager'
+import { API_TIMEOUT } from '@/lib/constants'
+import { useDatabaseRealtime } from '@/lib/realtime/database-realtime'
+import { useUserStore } from '@/store/user-store'
 
 interface PropFirmAccountLocal {
   id: string
@@ -66,7 +67,6 @@ interface DrawdownData {
 
 interface UsePropFirmRealtimeOptions {
   accountId?: string
-  pollInterval?: number // in milliseconds, default from constants
   enabled?: boolean
 }
 
@@ -77,39 +77,25 @@ interface UsePropFirmRealtimeResult {
   error: string | null
   lastUpdated: Date | null
   refetch: () => Promise<void>
-  isPolling: boolean
-  isVisible: boolean
+  isConnected: boolean
 }
 
 export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePropFirmRealtimeResult {
-  const { accountId, pollInterval = POLL_INTERVAL, enabled = true } = options
+  const { accountId, enabled = true } = options
+  const user = useUserStore(state => state.user)
   
   const [account, setAccount] = useState<PropFirmAccountLocal | null>(null)
   const [drawdown, setDrawdown] = useState<DrawdownData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const [isPolling, setIsPolling] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
-  const [isVisible, setIsVisible] = useState(true)
+  const [isConnected, setIsConnected] = useState(false)
   
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const previousAccountRef = useRef<PropFirmAccountLocal | null>(null)
   const previousDrawdownRef = useRef<DrawdownData | null>(null)
   const isFetchingRef = useRef(false)
   const hasFetchedRef = useRef(false)
-
-  // Track tab visibility for smart polling
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-
-    const handleVisibilityChange = () => {
-      setIsVisible(document.visibilityState === 'visible')
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [])
 
   const fetchAccountData = useCallback(async (showLoadingState = true) => {
     // Use ref to prevent duplicate calls - this avoids dependency issues
@@ -181,27 +167,54 @@ export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePro
     await fetchAccountData(true)
   }, [fetchAccountData])
 
-  // Use shared RealtimeManager for subscriptions
-  useRealtimeSubscription(
-    ['MasterAccount', 'PhaseAccount', 'Trade', 'BreachRecord', 'Payout'] as TableName[],
-    (event) => {
-      // Refetch on relevant changes
-      if (enabled && accountId) {
-        fetchAccountData(false)
+  // Subscribe to realtime changes for MasterAccount, PhaseAccount, and Trade
+  useDatabaseRealtime({
+    userId: user?.id,
+    enabled: enabled && !!accountId && !!user?.id,
+    onAccountChange: (change) => {
+      if (!accountId) return
+      
+      // Handle MasterAccount changes
+      if (change.table === 'MasterAccount') {
+        const changedAccountId = (change.newRecord?.id || change.oldRecord?.id) as string | undefined
+        if (changedAccountId === accountId) {
+          fetchAccountData(false)
+        }
+      }
+      // Handle PhaseAccount changes
+      else if (change.table === 'PhaseAccount') {
+        const phaseMasterAccountId = (change.newRecord?.masterAccountId || change.oldRecord?.masterAccountId) as string | undefined
+        if (phaseMasterAccountId === accountId) {
+          fetchAccountData(false)
+        }
+      }
+      // Account table changes don't affect Prop Firm accounts
+    },
+    onTradeChange: (change) => {
+      if (!accountId || !account) return
+      
+      // Check if trade belongs to this account's phases
+      const tradePhaseAccountId = (change.newRecord?.phaseAccountId || change.oldRecord?.phaseAccountId) as string | undefined
+      if (tradePhaseAccountId) {
+        const accountPhaseIds = account.phases.map(p => p.id)
+        if (accountPhaseIds.includes(tradePhaseAccountId)) {
+          fetchAccountData(false)
+        }
       }
     },
-    enabled && !!accountId
-  )
+    onStatusChange: (status) => {
+      setIsConnected(status === 'connected')
+    }
+  })
 
   // Track previous accountId to detect changes and reset hasFetchedRef
   const prevAccountIdRef = useRef<string | undefined>(undefined)
 
   // Initial fetch - only once per accountId
-  // The reset logic must happen BEFORE the fetch check, not in a separate effect
   useEffect(() => {
     if (!enabled || !accountId) return
     
-    // Reset hasFetchedRef when accountId changes (must happen before the fetch check)
+    // Reset hasFetchedRef when accountId changes
     if (prevAccountIdRef.current !== accountId) {
       hasFetchedRef.current = false
       prevAccountIdRef.current = accountId
@@ -214,33 +227,6 @@ export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePro
     fetchAccountData(true)
   }, [enabled, accountId, fetchAccountData])
 
-  // Visibility-aware polling - separate effect to avoid infinite loops
-  useEffect(() => {
-    if (!enabled || !accountId) return
-
-    // Set up visibility-aware polling
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-    }
-
-    if (isVisible) {
-      setIsPolling(true)
-      intervalRef.current = setInterval(() => {
-        fetchAccountData(false)
-      }, pollInterval)
-    } else {
-      setIsPolling(false)
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
-      setIsPolling(false)
-    }
-  }, [enabled, accountId, isVisible, pollInterval, fetchAccountData])
-
   return {
     account,
     drawdown,
@@ -248,7 +234,6 @@ export function usePropFirmRealtime(options: UsePropFirmRealtimeOptions): UsePro
     error,
     lastUpdated,
     refetch,
-    isPolling,
-    isVisible
+    isConnected
   }
 }

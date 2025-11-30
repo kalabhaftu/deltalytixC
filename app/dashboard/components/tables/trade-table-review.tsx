@@ -27,7 +27,7 @@ import { formatInTimeZone } from 'date-fns-tz'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { DataTableColumnHeader } from './column-header'
 import { ColumnConfigDialog } from '@/components/ui/column-config-dialog'
-import EnhancedEditTrade from './enhanced-edit-trade'
+import TradeEditDialog from './trade-edit-dialog'
 import { TradeDetailView } from './trade-detail-view'
 import TradeChartModal from './trade-chart-modal'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -37,7 +37,6 @@ import { useUserStore } from '@/store/user-store'
 import { useTableConfigStore } from '@/store/table-config-store'
 
 export interface ExtendedTrade extends Omit<Trade, 'tags'> {
-  imageUrl?: string | undefined
   tags: string[]
   trades?: ExtendedTrade[]
 }
@@ -806,7 +805,7 @@ export function TradeTableReview() {
         trade={selectedTradeForView as any}
       />
       
-      <EnhancedEditTrade
+      <TradeEditDialog
         isOpen={isEnhancedEditOpen}
         onClose={() => {
           setIsEnhancedEditOpen(false)

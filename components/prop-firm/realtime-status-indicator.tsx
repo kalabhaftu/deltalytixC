@@ -77,7 +77,7 @@ interface RealtimeStatusIndicatorProps {
   showActions?: boolean
 }
 
-export function RealtimeStatusIndicatorV2({
+export function RealtimeStatusIndicator({
   accountId,
   refreshInterval = 30000, // 30 seconds
   className,

@@ -69,7 +69,6 @@ export async function GET(request: NextRequest) {
             startingBalance: true,
             createdAt: true,
             userId: true,
-            groupId: true,
             _count: {
               select: {
                 Trade: true
@@ -88,7 +87,6 @@ export async function GET(request: NextRequest) {
           startingBalance: account.startingBalance,
           createdAt: account.createdAt,
           userId: account.userId,
-          groupId: account.groupId,
           accountType: 'live',
           displayName: account.name || account.number,
           tradeCount: account._count.Trade,

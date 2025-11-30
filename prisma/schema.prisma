@@ -16,18 +16,15 @@ model Account {
   broker                 String?
   startingBalance        Float                    @default(0)
   userId                 String
-  groupId                String?
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   isArchived             Boolean                  @default(false)
-  Group                  Group?                   @relation(fields: [groupId], references: [id])
   User                   User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   DailyNote              DailyNote[]
   LiveAccountTransaction LiveAccountTransaction[]
   Trade                  Trade[]
 
   @@unique([number, userId])
-  @@index([groupId])
   @@index([userId])
   @@schema("public")
 }
@@ -133,20 +130,6 @@ model DashboardTemplate {
   @@index([userId])
   @@index([userId, isActive])
   @@index([userId, isDefault])
-  @@schema("public")
-}
-
-model Group {
-  id        String    @id
-  name      String
-  userId    String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime
-  Account   Account[]
-  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([name, userId])
-  @@index([userId])
   @@schema("public")
 }
 
@@ -357,7 +340,6 @@ model User {
   BacktestTrade          BacktestTrade[]
   DailyNote              DailyNote[]
   DashboardTemplate      DashboardTemplate[]
-  Group                  Group[]
   LiveAccountTransaction LiveAccountTransaction[]
   MasterAccount          MasterAccount[]
   Notification           Notification[]

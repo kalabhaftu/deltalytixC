@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-provider"
 import { toast } from "sonner"
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePropFirmRealtime } from "@/hooks/use-prop-firm-realtime"
+import { useDatabaseRealtime } from "@/lib/realtime/database-realtime"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -219,10 +220,10 @@ export default function AccountDetailPage() {
     drawdown: realtimeDrawdown, 
     isLoading, 
     error: realtimeError, 
-    refetch, 
+    refetch,
+    isConnected: isRealtimeConnected
   } = usePropFirmRealtime({ 
     accountId, 
-    pollInterval: 30000,
     enabled: !!accountId 
   })
 
@@ -268,6 +269,38 @@ export default function AccountDetailPage() {
       fetchCompleteData()
     }
   }, [realtimeAccount, accountId, fetchCompleteData])
+
+  // Subscribe to realtime changes for trades and payouts
+  useDatabaseRealtime({
+    userId: user?.id,
+    enabled: !!accountId && !!user?.id,
+    onTradeChange: (change) => {
+      // Refresh trades when trade changes for this account's phases
+      if (realtimeAccount) {
+        const tradePhaseAccountId = (change.newRecord?.phaseAccountId || change.oldRecord?.phaseAccountId) as string | undefined
+        if (tradePhaseAccountId) {
+          const accountPhaseIds = realtimeAccount.phases.map(p => p.id)
+          if (accountPhaseIds.includes(tradePhaseAccountId)) {
+            fetchCompleteData()
+          }
+        }
+      }
+    },
+    onAccountChange: (change) => {
+      // Refresh payouts when PhaseAccount or MasterAccount changes
+      if (change.table === 'PhaseAccount' || change.table === 'MasterAccount') {
+        const changedId = (change.newRecord?.id || change.oldRecord?.id) as string | undefined
+        if (change.table === 'MasterAccount' && changedId === accountId) {
+          fetchCompleteData()
+        } else if (change.table === 'PhaseAccount') {
+          const phaseMasterAccountId = (change.newRecord?.masterAccountId || change.oldRecord?.masterAccountId) as string | undefined
+          if (phaseMasterAccountId === accountId) {
+            fetchCompleteData()
+          }
+        }
+      }
+    }
+  })
 
   // Sync realtime data
   useEffect(() => {

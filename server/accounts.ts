@@ -25,7 +25,7 @@ function isFundedPhase(evaluationType: string, phaseNumber: number): boolean {
 }
 
 /**
- * Helper function to get display name for a phase
+ * Helper function to get display name for a phase - stage only (Phase 1, Phase 2, Funded)
  */
 function getPhaseDisplayName(evaluationType: string, phaseNumber: number): string {
   if (isFundedPhase(evaluationType, phaseNumber)) {
@@ -237,35 +237,21 @@ export async function setupAccountAction(account: Account) {
     id,
     userId: _,
     payouts,
-    groupId,
     balanceToDate,
-    group,
     ...baseAccountData
   } = account
-
-  // Handle group relation separately if groupId exists
-  const accountDataWithGroup = {
-    ...baseAccountData,
-    ...(groupId && {
-      group: {
-        connect: {
-          id: groupId
-        }
-      }
-    })
-  }
 
   if (existingAccount) {
     return await prisma.account.update({
       where: { id: existingAccount.id },
-      data: accountDataWithGroup
+      data: baseAccountData
     })
   }
 
   return await prisma.account.create({
     data: {
       id: crypto.randomUUID(),
-      ...accountDataWithGroup,
+      ...baseAccountData,
       User: {
         connect: {
           id: userId
@@ -319,7 +305,6 @@ export async function getAccountsAction(options?: { includeArchived?: boolean })
           startingBalance: true,
           createdAt: true,
           userId: true,
-          groupId: true,
           isArchived: true,
         },
         orderBy: {
@@ -398,14 +383,23 @@ export async function getAccountsAction(options?: { includeArchived?: boolean })
     masterAccounts.forEach((masterAccount: any) => {
       
       if (masterAccount.PhaseAccount && masterAccount.PhaseAccount.length > 0) {
+        // Check if this master account has any failed phases
+        const hasFailedPhase = masterAccount.PhaseAccount.some((p: any) => p.status === 'failed')
+        const isMasterAccountFailed = masterAccount.status === 'failed'
+        
+        // Get all phaseIds for this master account (for aggregation when failed)
+        // Only calculate aggregation if there's a failed phase (for accounts page display)
         // Create one entry for each phase (excluding pending phases)
         masterAccount.PhaseAccount.forEach((phase: any) => {
           // Skip pending phases - they don't exist yet until user reaches them
           if (phase.status === 'pending') return
           
-          
           // Determine if this phase is the funded phase based on evaluation type
           const phaseName = getPhaseDisplayName(masterAccount.evaluationType, phase.phaseNumber)
+          
+          // Always use individual phase trade count
+          // Aggregation for failed phases will be calculated on the client side (accounts page)
+          const phaseTradeCount = tradeCountMap.get(phase.phaseId) || 0
           
           transformedMasterAccounts.push({
             id: phase.id, // Use phase ID instead of composite key
@@ -416,15 +410,13 @@ export async function getAccountsAction(options?: { includeArchived?: boolean })
             startingBalance: phase.accountSize || masterAccount.accountSize,
             accountType: 'prop-firm' as const,
             displayName: `${masterAccount.accountName} (${phaseName})`,
-            tradeCount: tradeCountMap.get(phase.phaseId) || 0,
+            tradeCount: phaseTradeCount,
             owner: { id: userId, email: '' },
             isOwner: true,
             status: phase.status,
             currentPhase: phase.phaseNumber,
             createdAt: phase.createdAt || masterAccount.createdAt,
             userId: masterAccount.userId,
-            groupId: null,
-            group: null,
             isArchived: masterAccount.isArchived || false,
             // Add phase details for UI components that need them (named currentPhaseDetails to match useAccounts)
             currentPhaseDetails: {
@@ -880,7 +872,6 @@ export async function saveAndLinkTrades(accountId: string, trades: any[]) {
         commission: cleanTrade.commission || 0,
         entryId: cleanTrade.entryId || null,
         comment: cleanTrade.comment || null,
-        groupId: cleanTrade.groupId || null,
         createdAt: cleanTrade.createdAt || new Date(),
       }
     })

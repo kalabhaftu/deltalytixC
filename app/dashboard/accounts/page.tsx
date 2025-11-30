@@ -7,6 +7,8 @@ import { toast } from "sonner"
 import { useAccounts, clearAccountsCache } from "@/hooks/use-accounts"
 import { useData } from '@/context/data-provider'
 import { useTradesStore } from '@/store/trades-store'
+import { useDatabaseRealtime } from '@/lib/realtime/database-realtime'
+import { useUserStore } from '@/store/user-store'
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -115,10 +117,16 @@ function isAccountFunded(account: Account): boolean {
   return isFundedPhase(evaluationType, phaseNumber)
 }
 
-function getPhaseDisplayName(evaluationType: string | undefined, phaseNumber: number | undefined): string {
-  if (!phaseNumber) return 'Unknown'
-  if (isFundedPhase(evaluationType, phaseNumber)) return 'FUNDED'
-  return `PHASE ${phaseNumber}`
+// Get status display name (Active, Failed, Passed)
+function getStatusDisplayName(status?: string): string {
+  if (!status) return 'Active'
+  switch (status) {
+    case 'failed': return 'Failed'
+    case 'passed': return 'Passed'
+    case 'active': return 'Active'
+    case 'funded': return 'Funded'
+    default: return status.charAt(0).toUpperCase() + status.slice(1)
+  }
 }
 
 function formatCurrency(amount: number): string {
@@ -149,6 +157,8 @@ export default function AccountsPage() {
   const router = useRouter()
   const { user } = useAuth()
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const userStore = useUserStore(state => state.user)
+  const { refreshTrades } = useData()
   
   // State
   const [searchQuery, setSearchQuery] = useState('')
@@ -156,11 +166,35 @@ export default function AccountsPage() {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
   
   const { accounts, isLoading, refetch: refetchAccounts } = useAccounts({ 
-    includeArchived: filterStatus === 'archived' 
+    includeArchived: filterStatus === 'archived',
+    includeFailed: filterStatus === 'failed'
   })
   const { formattedTrades } = useData()
   const allTrades = useTradesStore(state => state.trades)
   const { transactions } = useLiveAccountTransactions()
+  
+  // Subscribe to realtime account changes for instant UI updates
+  // Using "Signal → Fetch" pattern: Realtime signals change, then we fetch fresh data
+  // This ensures data integrity (handles DB triggers, joins, computed fields)
+  useDatabaseRealtime({
+    userId: userStore?.id,
+    enabled: !!userStore?.id,
+    onAccountChange: (change) => {
+      // When Account, MasterAccount, or PhaseAccount changes, refresh accounts
+      if (['Account', 'MasterAccount', 'PhaseAccount'].includes(change.table)) {
+        // Clear caches to force fresh fetch
+        clearAccountsCache()
+        // Add small delay to ensure DB transaction is fully committed and cache invalidation completes
+        // Realtime events fire immediately, but DB commit and cache invalidation need time
+        setTimeout(() => {
+          // Fetch fresh data from server - Zustand will automatically trigger re-renders
+          refreshTrades().catch(() => {
+            // Silently handle errors - realtime subscription will retry on next change
+          })
+        }, 300) // 300ms delay ensures DB commit and cache invalidation complete
+      }
+    }
+  })
   
   // Dialog states
   const [createLiveDialogOpen, setCreateLiveDialogOpen] = useState(false)
@@ -245,6 +279,31 @@ export default function AccountsPage() {
     const totalEquity = accountsWithRealEquity.reduce((sum, account) => sum + account.calculatedEquity, 0)
     const pnl = totalEquity - accountsWithRealEquity.reduce((sum, acc) => sum + (acc.startingBalance || 0), 0)
     
+    // Calculate total trades with aggregation for failed accounts (same logic as AccountCard)
+    const totalTrades = filteredAccounts.reduce((sum, account) => {
+      // For failed prop firm accounts, sum all phases' tradeCounts from the same master account
+      if (account.status === 'failed' && account.accountType === 'prop-firm' && account.currentPhaseDetails?.masterAccountId) {
+        const masterId = account.currentPhaseDetails.masterAccountId
+        const allPhases = accounts.filter(acc => 
+          acc.accountType === 'prop-firm' && 
+          acc.currentPhaseDetails?.masterAccountId === masterId
+        )
+        // Only count this once per master account (use the first failed phase we encounter)
+        const isFirstFailedPhase = filteredAccounts.findIndex(a => 
+          a.status === 'failed' && 
+          a.accountType === 'prop-firm' && 
+          a.currentPhaseDetails?.masterAccountId === masterId
+        ) === filteredAccounts.indexOf(account)
+        
+        if (isFirstFailedPhase) {
+          return sum + allPhases.reduce((phaseSum, phase) => phaseSum + (phase.tradeCount || 0), 0)
+        }
+        return sum // Skip other phases of the same master account
+      }
+      // For non-failed accounts, use individual count
+      return sum + (account.tradeCount || 0)
+    }, 0)
+    
     return {
       total: filteredAccounts.length,
       live: filteredAccounts.filter(a => a.accountType === 'live').length,
@@ -252,39 +311,45 @@ export default function AccountsPage() {
       funded: filteredAccounts.filter(a => a.accountType === 'prop-firm' && isAccountFunded(a)).length,
       totalEquity,
       pnl,
-      totalTrades: filteredAccounts.reduce((sum, a) => sum + (a.tradeCount || 0), 0)
+      totalTrades
     }
-  }, [filteredAccounts, accountsWithRealEquity])
+  }, [filteredAccounts, accountsWithRealEquity, accounts])
 
   // Handlers
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true)
     try {
-      await refetchAccounts()
+      // Clear caches first
+      clearAccountsCache()
+      // Use refreshTrades which reloads all data including accounts from the server
+      // This is the proper way to refresh - it calls loadData() which fetches fresh data
+      await refreshTrades()
       toast.success("Accounts refreshed")
     } catch (error) {
       toast.error("Failed to refresh accounts")
     } finally {
       setIsRefreshing(false)
     }
-  }, [refetchAccounts])
+  }, [refreshTrades])
 
   const handleAccountCreated = useCallback(() => {
     clearAccountsCache()
-    refetchAccounts()
+    // Use refreshTrades to reload all data - Zustand will automatically trigger re-render
+    refreshTrades()
     setCreateLiveDialogOpen(false)
     setCreatePropFirmDialogOpen(false)
     toast.success("Account created successfully")
-  }, [refetchAccounts])
+  }, [refreshTrades])
 
   const handleAccountUpdated = useCallback(() => {
     clearAccountsCache()
-    refetchAccounts()
+    // Use refreshTrades to reload all data - Zustand will automatically trigger re-render
+    refreshTrades()
     setEditLiveDialogOpen(false)
     setEditPropFirmDialogOpen(false)
     setEditingAccount(null)
     toast.success("Account updated successfully")
-  }, [refetchAccounts])
+  }, [refreshTrades])
 
   const handleViewAccount = useCallback((account: Account) => {
     if (account.accountType === 'prop-firm') {
@@ -333,13 +398,14 @@ export default function AccountsPage() {
 
       toast.success(`${accountName} deleted permanently`)
       clearAccountsCache()
-      await refetchAccounts()
+      // Use refreshTrades to reload all data - Zustand will automatically trigger re-render
+      await refreshTrades()
       setDeletingAccount(null)
       setDeleteConfirmText('')
     } catch (error) {
       toast.error("Failed to delete account")
     }
-  }, [deletingAccount, refetchAccounts, deleteConfirmText])
+  }, [deletingAccount, refreshTrades, deleteConfirmText])
 
   const handleArchiveAccount = useCallback(async (account: Account) => {
     const accountName = account.displayName || account.name || account.number
@@ -364,11 +430,12 @@ export default function AccountsPage() {
 
       toast.success(isArchived ? `${accountName} restored` : `${accountName} archived`)
       clearAccountsCache()
-      await refetchAccounts()
+      // Use refreshTrades to reload all data - Zustand will automatically trigger re-render
+      await refreshTrades()
     } catch (error) {
       toast.error("Failed to update account")
     }
-  }, [refetchAccounts])
+  }, [refreshTrades])
 
   // Loading state
   if (isLoading) {
@@ -563,6 +630,7 @@ export default function AccountsPage() {
                     >
                       <AccountCard
                         account={account}
+                        allAccounts={accounts}
                         onView={() => handleViewAccount(account)}
                         onEdit={() => handleEditAccount(account)}
                         onDelete={() => handleDeleteAccount(account)}
@@ -589,18 +657,20 @@ export default function AccountsPage() {
                 </div>
                 <span>Delete Account</span>
               </AlertDialogTitle>
-              <AlertDialogDescription className="space-y-3">
-                <p>
-                  This will permanently delete <strong>{deletingAccount?.displayName || deletingAccount?.name || deletingAccount?.number}</strong> and all associated data including:
-                </p>
-                <ul className="text-sm space-y-1 text-muted-foreground">
-                  <li>• All trades and history</li>
-                  <li>• Performance analytics</li>
-                  <li>• Screenshots and media</li>
-                  {deletingAccount?.accountType === 'prop-firm' && (
-                    <li>• Phase progress and payouts</li>
-                  )}
-                </ul>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  <p>
+                    This will permanently delete <strong>{deletingAccount?.displayName || deletingAccount?.name || deletingAccount?.number}</strong> and all associated data including:
+                  </p>
+                  <ul className="text-sm space-y-1 text-muted-foreground">
+                    <li>• All trades and history</li>
+                    <li>• Performance analytics</li>
+                    <li>• Screenshots and media</li>
+                    {deletingAccount?.accountType === 'prop-firm' && (
+                      <li>• Phase progress and payouts</li>
+                    )}
+                  </ul>
+                </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             
@@ -723,12 +793,14 @@ function StatCard({
 // Account Card Component
 function AccountCard({ 
   account, 
+  allAccounts,
   onView, 
   onEdit, 
   onDelete,
   onArchive
 }: { 
   account: Account & { calculatedEquity?: number }
+  allAccounts: (Account & { calculatedEquity?: number })[]
   onView: () => void
   onEdit: () => void
   onDelete: () => void
@@ -743,6 +815,22 @@ function AccountCard({
   const startingBalance = account.startingBalance || 0
   const pnl = equity - startingBalance
   const pnlPercent = startingBalance > 0 ? (pnl / startingBalance) * 100 : 0
+  
+  // For failed phases, calculate sum of all phases' tradeCounts from the same master account
+  // But keep the account's own tradeCount unchanged (for balance/PnL calculations)
+  const displayTradeCount = useMemo(() => {
+    if (isFailed && isPropFirm && account.currentPhaseDetails?.masterAccountId) {
+      const masterId = account.currentPhaseDetails.masterAccountId
+      const allPhases = allAccounts.filter(acc => 
+        acc.accountType === 'prop-firm' && 
+        acc.currentPhaseDetails?.masterAccountId === masterId
+      )
+      // Sum all phases' tradeCounts
+      return allPhases.reduce((sum, phase) => sum + (phase.tradeCount || 0), 0)
+    }
+    // For non-failed accounts, show individual count
+    return account.tradeCount || 0
+  }, [isFailed, isPropFirm, account.currentPhaseDetails?.masterAccountId, account.tradeCount, allAccounts])
   
   const isAtRisk = isPropFirm && !isFailed && (
     (account.dailyDrawdownRemaining && account.dailyDrawdownRemaining < 500) ||
@@ -795,7 +883,7 @@ function AccountCard({
               </h3>
               <p className="text-xs text-muted-foreground truncate">
                 {isPropFirm 
-                  ? getPhaseDisplayName(account.currentPhaseDetails?.evaluationType, account.currentPhase)
+                  ? getStatusDisplayName(account.status)
                   : account.broker || 'Live Account'
                 }
               </p>
@@ -863,7 +951,7 @@ function AccountCard({
               </div>
             </div>
             <Badge variant="secondary" className="text-xs">
-              {account.tradeCount || 0} trades
+              {displayTradeCount} trades
             </Badge>
           </div>
 

@@ -48,7 +48,6 @@ export async function POST(request: NextRequest) {
 
     // Map old IDs to new IDs for maintaining relationships
     const idMap = {
-      groups: new Map<string, string>(),
       accounts: new Map<string, string>(),
       masterAccounts: new Map<string, string>(),
       phaseAccounts: new Map<string, string>(),
@@ -59,7 +58,6 @@ export async function POST(request: NextRequest) {
     }
 
     const results = {
-      groups: 0,
       accounts: 0,
       trades: 0,
       masterAccounts: 0,
@@ -74,27 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Import in correct order (respecting foreign key constraints)
 
-    // 1. Import Groups
-    const groupsFile = zip.file('groups.csv')
-    if (groupsFile) {
-      const groupsCsv = await groupsFile.async('string')
-      const groups = parseCSV(groupsCsv)
-      
-      for (const group of groups) {
-        const newGroup = await prisma.group.create({
-          data: {
-            id: crypto.randomUUID(),
-            name: group.name,
-            userId: user.id,
-            createdAt: group.createdAt ? new Date(group.createdAt) : new Date(),
-            updatedAt: group.updatedAt ? new Date(group.updatedAt) : new Date()
-          }
-        })
-        idMap.groups.set(group.id, newGroup.id)
-        results.groups++
-      }
-    }
-
+    // 1. Import Accounts (Groups removed - no longer used)
     // 2. Import Accounts
     const accountsFile = zip.file('accounts.csv')
     if (accountsFile) {
@@ -110,7 +88,6 @@ export async function POST(request: NextRequest) {
             broker: account.broker || null,
             startingBalance: parseFloat(account.startingBalance) || 0,
             userId: user.id,
-            groupId: account.groupId ? idMap.groups.get(account.groupId) || null : null,
             createdAt: account.createdAt ? new Date(account.createdAt) : new Date()
           }
         })

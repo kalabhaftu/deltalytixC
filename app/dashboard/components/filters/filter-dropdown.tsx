@@ -25,21 +25,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { AccountGroupBoard } from "./account-group-board"
-import { useModalStateStore } from "@/store/modal-state-store"
-
 export const FilterDropdown = forwardRef<HTMLButtonElement>((props, ref) => {
   const { isMobile } = useData()
   const [open, setOpen] = useState(false)
   const [accountFilterOpen, setAccountFilterOpen] = useState(false)
-  const { accountGroupBoardOpen } = useModalStateStore()
-
-  // Close both dropdowns when account board is open
-  useEffect(() => {
-    if (accountGroupBoardOpen) {
-      setOpen(false)
-    }
-  }, [accountGroupBoardOpen])
 
   return (
     <>

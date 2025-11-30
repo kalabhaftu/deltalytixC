@@ -10,7 +10,6 @@ import React, {
 
 import {
   Trade as PrismaTrade,
-  Group as PrismaGroup,
   Account as PrismaAccount,
   // Payout as PrismaPayout, // Payout model not available
   // DashboardLayout as PrismaDashboardLayout, // DashboardLayout model not available
@@ -52,12 +51,6 @@ import {
   setupAccountAction,
   savePayoutAction,
 } from '@/server/accounts';
-import {
-  saveGroupAction,
-  deleteGroupAction,
-  moveAccountToGroupAction,
-  renameGroupAction
-} from '@/server/groups';
 import { createClient } from '@/lib/supabase';
 import { signOut } from '@/server/auth';
 import { useUserStore } from '@/store/user-store';
@@ -72,7 +65,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { useAccountFilterSettings } from '@/hooks/use-account-filter-settings';
 import { AccountFilterSettings } from '@/types/account-filter-settings';
 import { calculateStatistics, formatCalendarData } from '@/lib/utils';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { handleServerActionError } from '@/lib/utils/server-action-error-handler';
 import { useDatabaseRealtime } from '@/lib/realtime/database-realtime';
@@ -136,16 +129,10 @@ interface HourFilter {
 }
 
 
-export interface Group extends PrismaGroup {
-  accounts: PrismaAccount[]
-}
-
-
 // Update Account type to include payouts and balanceToDate
-export interface Account extends Omit<PrismaAccount, 'payouts' | 'group'> {
+export interface Account extends Omit<PrismaAccount, 'payouts'> {
   payouts?: PrismaPayout[]
   balanceToDate?: number
-  group?: PrismaGroup | null
   status?: string
   accountType?: 'live' | 'prop-firm'
 }
@@ -937,6 +924,7 @@ export const defaultLayoutsWithKPI: PrismaDashboardLayout = {
 // Combined Context Type
 interface DataContextType {
   refreshTrades: () => Promise<void>
+  refreshAllData: () => Promise<void>
   isPlusUser: () => boolean
   isLoading: boolean
   isLoadingAccountFilterSettings: boolean
@@ -983,12 +971,6 @@ interface DataContextType {
   // Accounts
   deleteAccount: (account: Account) => Promise<void>
   saveAccount: (account: Account) => Promise<void>
-
-  // Groups
-  saveGroup: (name: string) => Promise<Group | undefined>
-  renameGroup: (groupId: string, name: string) => Promise<void>
-  deleteGroup: (groupId: string) => Promise<void>
-  moveAccountToGroup: (accountId: string, targetGroupId: string | null) => Promise<void>
 
   // Payouts
   savePayout: (payout: PrismaPayout) => Promise<void>
@@ -1044,6 +1026,7 @@ export const DataProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
   const router = useRouter()
+  const pathname = usePathname()
   const params = useParams();
   const isMobile = useIsMobileDetection();
 
@@ -1052,11 +1035,9 @@ export const DataProvider: React.FC<{
   const setUser = useUserStore(state => state.setUser);
 
   const setAccounts = useUserStore(state => state.setAccounts);
-  const setGroups = useUserStore(state => state.setGroups);
   const setDashboardLayout = useUserStore(state => state.setDashboardLayout);
   const supabaseUser = useUserStore(state => state.supabaseUser);
   const timezone = useUserStore(state => state.timezone);
-  const groups = useUserStore(state => state.groups);
   const accounts = useUserStore(state => state.accounts);
   const setSupabaseUser = useUserStore(state => state.setSupabaseUser);
 
@@ -1214,26 +1195,43 @@ export const DataProvider: React.FC<{
         }
       }
 
-      // Get account filter settings for DB-level filtering
+      // Check if we're on the accounts page - if so, fetch trades for all visible accounts
+      const isAccountsPage = pathname?.startsWith('/dashboard/accounts') || false
+      
+      // Get account filter settings for DB-level filtering (only for dashboard/widgets)
       let selectedAccounts: string[] = []
-      try {
-        const cached = localStorage.getItem('account-filter-settings-cache')
-        if (cached) {
-          const settings = JSON.parse(cached)
-          selectedAccounts = settings.selectedPhaseAccountIds || []
+      if (!isAccountsPage) {
+        // Only apply account filter for dashboard/widgets, not accounts page
+        try {
+          const cached = localStorage.getItem('account-filter-settings-cache')
+          if (cached) {
+            const settings = JSON.parse(cached)
+            selectedAccounts = settings.selectedPhaseAccountIds || []
+          }
+        } catch (error) {
+          // Ignore - will fetch all trades
         }
-      } catch (error) {
-        // Ignore - will fetch all trades
       }
 
       // PERFORMANCE OPTIMIZATION: Use bundled API endpoint for single-request data fetch
       const params = new URLSearchParams()
-      if (selectedAccounts.length > 0) {
+      if (isAccountsPage) {
+        // For accounts page, fetch trades for all visible accounts (not filtered)
+        params.append('forAccountsPage', 'true')
+      } else if (selectedAccounts.length > 0) {
+        // For dashboard/widgets, use account filter
         params.append('selectedAccounts', selectedAccounts.join(','))
       }
       params.append('tradesLimit', '5000')
+      // Add cache-busting timestamp to ensure fresh data after realtime events
+      params.append('_t', Date.now().toString())
       
-      const bundledResponse = await fetch(`/api/bundled-data?${params.toString()}`)
+      const bundledResponse = await fetch(`/api/bundled-data?${params.toString()}`, {
+        cache: 'no-store', // Bypass HTTP cache to ensure fresh data
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
       
       if (!bundledResponse.ok) {
         throw new Error('Failed to fetch bundled data')
@@ -1251,10 +1249,9 @@ export const DataProvider: React.FC<{
         return;
       }
 
-      const { user: userData, accounts: rawAccounts, groups, trades: allTrades, calendarNotes } = bundledData.data
+      const { user: userData, accounts: rawAccounts, trades: allTrades, calendarNotes } = bundledData.data
 
       setUser(userData);
-      setGroups(groups);
       setIsFirstConnection(userData?.isFirstConnection || false)
       
       // Store bundled data in localStorage for hooks to use
@@ -1279,6 +1276,7 @@ export const DataProvider: React.FC<{
       setTrades(allTrades || [])
 
       // Calculate balanceToDate for each account using the trades we just loaded
+      // Using .map() ensures a new array reference, which Zustand's shallow equality will detect
       const accountsWithBalance = (rawAccounts || []).map((account: any) => ({
         ...account,
         balanceToDate: calcBalance(account, allTrades || [], [], {
@@ -1287,6 +1285,8 @@ export const DataProvider: React.FC<{
         })
       }));
       
+      // Zustand automatically triggers re-renders when the store updates
+      // No need for manual broadcast - Zustand's reactivity handles this
       setAccounts(accountsWithBalance);
 
     } catch (error) {
@@ -1330,7 +1330,7 @@ export const DataProvider: React.FC<{
 
   // Return the promise for any waiting calls
   return activeLoadPromiseRef.current
-  }, [dashboardLayout, isLoading, setAccounts, setDashboardLayout, setGroups, setIsLoading, setSupabaseUser, setTrades, setUser]);
+  }, [dashboardLayout, isLoading, setAccounts, setDashboardLayout, setIsLoading, setSupabaseUser, setTrades, setUser, pathname]);
 
   // Load data on mount only - ONCE
   useEffect(() => {
@@ -1400,12 +1400,16 @@ export const DataProvider: React.FC<{
   const realtimeRefreshTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
   
   // Debounced refresh to prevent too many calls
+  // Includes delay to ensure DB transaction commits and cache invalidation completes
   const debouncedRefresh = useCallback(() => {
     const now = Date.now()
     const timeSinceLastRefresh = now - lastRealtimeRefreshRef.current
     
-    // Minimum 2 seconds between refreshes
-    if (timeSinceLastRefresh < 2000) {
+    // 800ms cooldown: 300ms for DB commit + 500ms debounce
+    // This ensures the database transaction is fully committed and cache invalidation completes
+    // before we fetch fresh data
+    const cooldown = 800
+    if (timeSinceLastRefresh < cooldown) {
       // Schedule a refresh after the cooldown
       if (realtimeRefreshTimeoutRef.current) {
         clearTimeout(realtimeRefreshTimeoutRef.current)
@@ -1413,32 +1417,27 @@ export const DataProvider: React.FC<{
       realtimeRefreshTimeoutRef.current = setTimeout(() => {
         lastRealtimeRefreshRef.current = Date.now()
         loadData()
-      }, 2000 - timeSinceLastRefresh)
+      }, cooldown - timeSinceLastRefresh)
       return
     }
     
-    lastRealtimeRefreshRef.current = now
-    loadData()
+    // If enough time has passed, add a small delay to ensure DB commit completes
+    // then fetch fresh data
+    setTimeout(() => {
+      lastRealtimeRefreshRef.current = Date.now()
+      loadData()
+    }, 300) // 300ms delay ensures DB transaction is committed
   }, [loadData])
   
   // Subscribe to database changes via Supabase Realtime
   useDatabaseRealtime({
     userId: user?.id,
     enabled: !!user?.id && !isLoading,
-    onTradeChange: (change) => {
-      console.log('[DataProvider] Trade changed via Realtime:', change.event)
+    onTradeChange: () => {
       debouncedRefresh()
     },
-    onAccountChange: (change) => {
-      console.log('[DataProvider] Account changed via Realtime:', change.event)
+    onAccountChange: () => {
       debouncedRefresh()
-    },
-    onStatusChange: (status) => {
-      if (status === 'connected') {
-        console.log('[DataProvider] Realtime connected - data will update automatically')
-      } else if (status === 'error') {
-        console.warn('[DataProvider] Realtime connection error - data may be stale')
-      }
     }
   })
   
@@ -1479,8 +1478,9 @@ export const DataProvider: React.FC<{
       // Force cache invalidation
       await revalidateCache([`trades-${user.id}`, `user-data-${user.id}-${locale}`])
       
-      // Add a small delay to ensure cache invalidation takes effect
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Add delay to ensure cache invalidation and DB commit complete
+      // This is critical for realtime updates to fetch fresh data
+      await new Promise(resolve => setTimeout(resolve, 200))
       
       // Reload data
       await loadData()
@@ -1517,13 +1517,15 @@ export const DataProvider: React.FC<{
     }
   }, [user?.id, loadData, setIsLoading, locale])
 
+  // Expose refreshAllData as an alias for refreshTrades (it refreshes everything including accounts)
+  const refreshAllData = refreshTrades
+
   // Memoize hidden account numbers to prevent unnecessary re-renders
   const hiddenAccountNumbers = useMemo(() => {
-    const hiddenGroup = groups.find(g => g.name === "Hidden Accounts");
     return accounts
-      .filter(a => a.groupId === hiddenGroup?.id || a.isArchived === true)
+      .filter(a => a.isArchived === true)
       .map(a => a.number);
-  }, [groups, accounts]);
+  }, [accounts]);
 
   const formattedTrades = useMemo(() => {
     // Early return if no trades
@@ -1676,102 +1678,6 @@ export const DataProvider: React.FC<{
   }, [user?.id, setAccounts])
 
 
-  // Add createGroup function
-  const saveGroup = useCallback(async (name: string) => {
-    if (!user?.id) return
-    try {
-      const newGroup = await saveGroupAction(name)
-      setGroups(([...groups, newGroup]))
-      return newGroup
-    } catch (error) {
-      // Error creating group
-      if (handleServerActionError(error, { context: 'Create Group' })) {
-        return // Return early on deployment error (will refresh)
-      }
-      throw error
-    }
-  }, [user?.id, groups, setGroups])
-
-  const renameGroup = useCallback(async (groupId: string, name: string) => {
-    if (!user?.id) return
-    try {
-      setGroups(groups.map(group => group.id === groupId ? { ...group, name } : group))
-      await renameGroupAction(groupId, name)
-    } catch (error) {
-      // Error renaming group
-      if (handleServerActionError(error, { context: 'Rename Group' })) {
-        return // Return early on deployment error (will refresh)
-      }
-      throw error
-    }
-  }, [user?.id, groups, setGroups])
-
-  // Add deleteGroup function
-  const deleteGroup = useCallback(async (groupId: string) => {
-    try {
-      // Remove groupdId from accounts
-      const updatedAccounts = accounts.map((account: Account) => {
-        if (account.groupId === groupId) {
-          return { ...account, groupId: null }
-        }
-        return account
-      })
-      setAccounts(updatedAccounts)
-      setGroups(groups.filter(group => group.id !== groupId))
-      await deleteGroupAction(groupId)
-    } catch (error) {
-      // Error deleting group
-      if (handleServerActionError(error, { context: 'Delete Group' })) {
-        return // Return early on deployment error (will refresh)
-      }
-      throw error
-    }
-  }, [accounts, groups, setAccounts, setGroups])
-
-  // Add moveAccountToGroup function
-  const moveAccountToGroup = useCallback(async (accountId: string, targetGroupId: string | null) => {
-    try {
-      if (!accounts || accounts.length === 0) {
-        // No accounts available to move
-        return;
-      }
-
-      // Update accounts state
-      const updatedAccounts = accounts.map((account: Account) => {
-        if (account.id === accountId) {
-          return { ...account, groupId: targetGroupId }
-        }
-        return account
-      })
-      setAccounts(updatedAccounts)
-
-      // Update groups state
-      const accountToMove = accounts.find(acc => acc.id === accountId)
-      if (accountToMove) {
-        setGroups(groups.map(group => {
-          // If this is the target group, add the account only if it's not already there
-          if (group.id === targetGroupId) {
-            const accountExists = group.accounts.some(acc => acc.id === accountId)
-            return {
-              ...group,
-              accounts: accountExists ? group.accounts : [...group.accounts, accountToMove]
-            }
-          }
-          // For all other groups, remove the account if it exists
-          return { ...group, accounts: group.accounts.filter(acc => acc.id !== accountId) }
-        }))
-      }
-
-      await moveAccountToGroupAction(accountId, targetGroupId)
-    } catch (error) {
-      // Error moving account to group
-      if (handleServerActionError(error, { context: 'Move Account to Group' })) {
-        return // Return early on deployment error (will refresh)
-      }
-      throw error
-    }
-  }, [accounts, setAccounts, setGroups, groups])
-
   // Add savePayout function
   const savePayout = useCallback(async (payout: PrismaPayout) => {
     if (!user?.id) return;
@@ -1905,6 +1811,7 @@ export const DataProvider: React.FC<{
     updateAccountFilterSettings,
     isMobile,
     refreshTrades,
+    refreshAllData,
     changeIsFirstConnection,
     isFirstConnection,
     setIsFirstConnection,
@@ -1953,11 +1860,6 @@ export const DataProvider: React.FC<{
     saveAccount,
 
     // Group functions
-    saveGroup,
-    renameGroup,
-    deleteGroup,
-    moveAccountToGroup,
-
     // Payout functions
     deletePayout,
     savePayout,

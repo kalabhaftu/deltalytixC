@@ -249,21 +249,32 @@ export async function getTradesAction(userId: string | null = null, options?: {
 
 export async function updateTradesAction(tradesIds: string[], update: Partial<Trade>): Promise<number> {
   try {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const userId = user?.id
-  if (!userId) {
-    return 0
-  }
+    // CRITICAL: Convert auth_user_id to internal user.id
+    const authUserId = await getUserIdSafe()
+    if (!authUserId) {
+      return 0
+    }
 
-  const result = await prisma.trade.updateMany({
-    where: { id: { in: tradesIds }, userId },
-    data: update as any
-  })
+    // Look up internal user ID
+    const userLookup = await prisma.user.findUnique({
+      where: { auth_user_id: authUserId },
+      select: { id: true }
+    })
 
-  revalidateTag(`trades-${userId}`)
+    if (!userLookup) {
+      return 0
+    }
 
-  return result.count
+    const internalUserId = userLookup.id
+
+    const result = await prisma.trade.updateMany({
+      where: { id: { in: tradesIds }, userId: internalUserId },
+      data: update as any
+    })
+
+    revalidateTag(`trades-${internalUserId}`)
+
+    return result.count
   } catch (error) {
     return 0
   }

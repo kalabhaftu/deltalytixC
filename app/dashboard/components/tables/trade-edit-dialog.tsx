@@ -54,7 +54,7 @@ interface TradingModel {
   notes?: string | null
 }
 
-interface EnhancedEditTradeProps {
+interface TradeEditDialogProps {
   isOpen: boolean
   onClose: () => void
   trade: Trade | null
@@ -101,12 +101,12 @@ const editTradeSchema = z.object({
 
 type EditTradeFormData = z.infer<typeof editTradeSchema>
 
-export default function EnhancedEditTrade({
+export default function TradeEditDialog({
   isOpen,
   onClose,
   trade,
   onSave
-}: EnhancedEditTradeProps) {
+}: TradeEditDialogProps) {
   // State
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [tradingModels, setTradingModels] = useState<TradingModel[]>([])
@@ -128,6 +128,7 @@ export default function EnhancedEditTrade({
   const [structureTimeframe, setStructureTimeframe] = useState<string | null>(null)
   const [orderType, setOrderType] = useState<string | null>(null)
   const [chartLinks, setChartLinks] = useState<string[]>(['', '', '', ''])
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
 
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
@@ -182,6 +183,8 @@ export default function EnhancedEditTrade({
   // Initialize form when trade changes
   useEffect(() => {
     if (trade && isOpen) {
+      // Reset image errors when dialog opens
+      setImageErrors({})
       // Tags - now stored as array
       const tagIds = Array.isArray((trade as any).tags) ? (trade as any).tags : []
       setSelectedTags(tagIds)
@@ -218,8 +221,7 @@ export default function EnhancedEditTrade({
       }
 
       // Form values
-      reset({
-        comment: trade.comment || '',
+      const imageFields = {
         cardPreviewImage: (trade as any).cardPreviewImage || '',
         imageOne: (trade as any).imageOne || '',
         imageTwo: (trade as any).imageTwo || '',
@@ -227,6 +229,11 @@ export default function EnhancedEditTrade({
         imageFour: (trade as any).imageFour || '',
         imageFive: (trade as any).imageFive || '',
         imageSix: (trade as any).imageSix || '',
+      }
+      
+      reset({
+        comment: trade.comment || '',
+        ...imageFields,
         modelId: modelId || null,
         selectedRules: (trade as any).selectedRules || [],
         marketBias: (trade as any).marketBias || null,
@@ -241,6 +248,7 @@ export default function EnhancedEditTrade({
         orderType: (trade as any).orderType || null,
         chartLinks: links,
       })
+      
       setComment(trade.comment || '')
     }
   }, [trade, isOpen, tradingModels, reset])
@@ -300,6 +308,11 @@ export default function EnhancedEditTrade({
       }
       
       setValue(field, result.url)
+      setImageErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
       toast.success('Image uploaded successfully')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to upload image')
@@ -315,7 +328,7 @@ export default function EnhancedEditTrade({
     setIsSubmitting(true)
     try {
       const updateData = {
-        comment: comment || null,
+        comment: data.comment || null,
         modelId: data.modelId || null,
         selectedRules: selectedRules.length > 0 ? selectedRules : null,
         tags: selectedTags.length > 0 ? selectedTags : [],
@@ -407,25 +420,85 @@ export default function EnhancedEditTrade({
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {watchedValues.cardPreviewImage ? (
-                        <div className="relative aspect-video rounded-lg overflow-hidden border">
-                          <Image
-                            src={watchedValues.cardPreviewImage}
-                            alt="Preview"
-                            fill
-                            className="object-cover"
-                            unoptimized
-                            loading="eager"
-                          />
+                      {(() => {
+                        const formValue = watchedValues.cardPreviewImage
+                        const tradeValue = (trade as any)?.cardPreviewImage
+                        const imageUrl = (formValue && String(formValue).trim() !== '') ? formValue : (tradeValue && String(tradeValue).trim() !== '') ? tradeValue : ''
+                        return imageUrl !== ''
+                      })() ? (
+                        <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
+                          {!imageErrors.cardPreviewImage ? (
+                            <Image
+                              src={(() => {
+                                const formValue = watchedValues.cardPreviewImage
+                                const tradeValue = (trade as any)?.cardPreviewImage
+                                return (formValue && String(formValue).trim() !== '') ? formValue : (tradeValue && String(tradeValue).trim() !== '') ? tradeValue : ''
+                              })()}
+                              alt="Preview"
+                              fill
+                              className="object-cover"
+                              unoptimized
+                              loading="eager"
+                              onError={() => {
+                                setImageErrors(prev => ({ ...prev, cardPreviewImage: true }))
+                              }}
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/50 p-4">
+                              <div className="text-center">
+                                <X className="h-8 w-8 text-destructive mx-auto mb-2" />
+                                <p className="text-sm text-muted-foreground mb-1">Image not found</p>
+                                <p className="text-xs text-muted-foreground/70">The image file may have been deleted</p>
+                              </div>
+                            </div>
+                          )}
                           <Button
                             type="button"
                             variant="destructive"
                             size="sm"
-                            className="absolute top-2 right-2"
-                            onClick={() => setValue('cardPreviewImage', '')}
+                            className="absolute top-2 right-2 z-10"
+                            onClick={() => {
+                              setValue('cardPreviewImage', '')
+                              setImageErrors(prev => {
+                                const newErrors = { ...prev }
+                                delete newErrors.cardPreviewImage
+                                return newErrors
+                              })
+                            }}
                           >
                             <X className="h-4 w-4" />
                           </Button>
+                          {imageErrors.cardPreviewImage && (
+                            <label className="absolute bottom-2 left-2 right-2 z-10">
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                className="w-full"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  const input = document.createElement('input')
+                                  input.type = 'file'
+                                  input.accept = 'image/*'
+                                  input.onchange = (event) => {
+                                    const file = (event.target as HTMLInputElement).files?.[0]
+                                    if (file) {
+                                      handleImageUpload('cardPreviewImage', file)
+                                      setImageErrors(prev => {
+                                        const newErrors = { ...prev }
+                                        delete newErrors.cardPreviewImage
+                                        return newErrors
+                                      })
+                                    }
+                                  }
+                                  input.click()
+                                }}
+                              >
+                                <Camera className="h-4 w-4 mr-2" />
+                                Replace Image
+                              </Button>
+                            </label>
+                          )}
                         </div>
                       ) : (
                         <label className="flex flex-col items-center justify-center aspect-video border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
@@ -460,28 +533,83 @@ export default function EnhancedEditTrade({
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {(['imageOne', 'imageTwo', 'imageThree', 'imageFour', 'imageFive', 'imageSix'] as const).map((field, idx) => (
+                      {(['imageOne', 'imageTwo', 'imageThree', 'imageFour', 'imageFive', 'imageSix'] as const).map((field, idx) => {
+                        const formValue = watchedValues[field]
+                        const tradeValue = (trade as any)?.[field]
+                        const imageUrl = (formValue && String(formValue).trim() !== '') ? formValue : (tradeValue && String(tradeValue).trim() !== '') ? tradeValue : ''
+                        
+                        return (
                         <div key={field} className="space-y-2">
                           <Label className="text-xs">Screenshot {idx + 1}</Label>
-                          {watchedValues[field] ? (
-                            <div className="relative aspect-video rounded overflow-hidden border">
-                              <Image
-                                src={watchedValues[field]!}
-                                alt={`Screenshot ${idx + 1}`}
-                                fill
-                                className="object-cover"
-                                unoptimized
-                                loading="eager"
-                              />
+                          {imageUrl ? (
+                            <div className="relative aspect-video rounded overflow-hidden border bg-muted">
+                              {!imageErrors[field] ? (
+                                <Image
+                                  src={imageUrl}
+                                  alt={`Screenshot ${idx + 1}`}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized
+                                  loading="eager"
+                                  onError={() => {
+                                    setImageErrors(prev => ({ ...prev, [field]: true }))
+                                  }}
+                                />
+                              ) : (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/50 p-2">
+                                  <div className="text-center">
+                                    <X className="h-6 w-6 text-destructive mx-auto mb-1" />
+                                    <p className="text-xs text-muted-foreground">Image not found</p>
+                                  </div>
+                                </div>
+                              )}
                               <Button
                                 type="button"
                                 variant="destructive"
                                 size="sm"
-                                className="absolute top-1 right-1"
-                                onClick={() => setValue(field, '')}
+                                className="absolute top-1 right-1 z-10"
+                                onClick={() => {
+                                  setValue(field, '')
+                                  setImageErrors(prev => {
+                                    const newErrors = { ...prev }
+                                    delete newErrors[field]
+                                    return newErrors
+                                  })
+                                }}
                               >
                                 <X className="h-3 w-3" />
                               </Button>
+                              {imageErrors[field] && (
+                                <label className="absolute bottom-1 left-1 right-1 z-10">
+                                  <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="sm"
+                                    className="w-full h-7 text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      const input = document.createElement('input')
+                                      input.type = 'file'
+                                      input.accept = 'image/*'
+                                      input.onchange = (event) => {
+                                        const file = (event.target as HTMLInputElement).files?.[0]
+                                        if (file) {
+                                          handleImageUpload(field, file)
+                                          setImageErrors(prev => {
+                                            const newErrors = { ...prev }
+                                            delete newErrors[field]
+                                            return newErrors
+                                          })
+                                        }
+                                      }
+                                      input.click()
+                                    }}
+                                  >
+                                    <Camera className="h-3 w-3 mr-1" />
+                                    Replace
+                                  </Button>
+                                </label>
+                              )}
                             </div>
                           ) : (
                             <label className="flex flex-col items-center justify-center aspect-video border-2 border-dashed rounded cursor-pointer hover:bg-muted/50">
@@ -504,7 +632,8 @@ export default function EnhancedEditTrade({
                             </div>
                           )}
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </CardContent>
                 </Card>

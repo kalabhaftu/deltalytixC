@@ -1,14 +1,12 @@
 import { create } from 'zustand'
 import { User } from '@prisma/client'
 import { User as SupabaseUser } from '@supabase/supabase-js'
-import { Group, Account } from '@/context/data-provider'
-import { deleteGroupAction, saveGroupAction, updateGroupAction } from '@/server/groups'
+import { Account } from '@/context/data-provider'
 
 type UserStore = {
   user: User | null
   supabaseUser: SupabaseUser | null
   accounts: Account[]
-  groups: Group[]
   dashboardLayout: {
     id: string
     userId: string
@@ -27,10 +25,6 @@ type UserStore = {
   addAccount: (account: Account) => void
   updateAccount: (accountId: string, data: Partial<Account>) => void
   removeAccount: (accountId: string) => void
-  setGroups: (groups: Group[]) => void
-  addGroup: (group: Group) => void
-  updateGroup: (groupId: string, data: Partial<Group>) => void
-  removeGroup: (groupId: string) => void
   setDashboardLayout: (layout: any) => void
   updateDashboardLayout: (type: 'desktop' | 'mobile', layout: any[]) => void
   setIsLoading: (value: boolean) => void
@@ -43,7 +37,6 @@ export const useUserStore = create<UserStore>()((
       user: null,
       supabaseUser: null,
       accounts: [],
-      groups: [],
       dashboardLayout: null,
       isLoading: false,
       isMobile: false,
@@ -63,45 +56,6 @@ export const useUserStore = create<UserStore>()((
       removeAccount: (accountId) => set((state) => ({ 
         accounts: state.accounts.filter(account => account.id !== accountId) 
       })),
-      setGroups: (groups) => set({ groups }),
-      addGroup: async (group) => {
-        try {
-          // Update local state
-          set((state) => ({ 
-            groups: [...state.groups, group] 
-          }))
-          // Update database
-          await saveGroupAction(group.id)
-        } catch (error) {
-          throw error
-        }
-      },
-      updateGroup: async (groupId, data) => {
-        try {
-          // Update local state
-          set((state) => ({
-            groups: state.groups.map(group => 
-              group.id === groupId ? { ...group, ...data } : group
-            )
-          }))
-          // Update database
-          await updateGroupAction(groupId, data.name || '')
-        } catch (error) {
-          throw error
-        }
-      },
-      removeGroup: async (groupId) => {
-        try {
-          // Update local state
-          set((state) => ({ 
-            groups: state.groups.filter(group => group.id !== groupId) 
-          }))
-          // Update database
-          await deleteGroupAction(groupId)
-        } catch (error) {
-          throw error
-        }
-      },
       setDashboardLayout: (layout) => set({
         dashboardLayout: {
           id: layout.id,
@@ -130,7 +84,6 @@ export const useUserStore = create<UserStore>()((
       resetUser: () => set({ 
         user: null, 
         accounts: [], 
-        groups: [],
         dashboardLayout: null
       }),
     })

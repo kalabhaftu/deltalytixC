@@ -1,10 +1,11 @@
 'use server'
 
 import { User, Trade } from '@prisma/client'
-import { GroupWithAccounts } from './groups'
+// Groups removed - no longer used
+// import { GroupWithAccounts } from './groups'
 import { prisma } from '@/lib/prisma'
 import { createClient, getUserId, getUserIdSafe } from './auth'
-import { Account, Group } from '@/context/data-provider'
+import { Account } from '@/context/data-provider'
 import { revalidateTag, unstable_cache } from 'next/cache' 
 
 
@@ -13,7 +14,7 @@ import { getAccountsAction } from './accounts'
 export async function getUserData(): Promise<{
   userData: User | null;
   accounts: Account[];
-  groups: Group[];
+  groups: never[]; // Groups removed - no longer used
   calendarNotes: Record<string, string>;
 }> {
   try {
@@ -73,27 +74,8 @@ export async function getUserData(): Promise<{
             return []
           }
         })(),
-        // Groups - minimal data with error handling
-        (async () => {
-          try {
-            const groups = await prisma.group.findMany({
-              where: {
-                userId: userId
-              },
-              select: {
-                id: true,
-                name: true,
-                userId: true,
-                createdAt: true,
-                updatedAt: true,
-                Account: true
-              }
-            })
-            return groups.map((g: any) => ({ ...g, accounts: g.Account || [] }))
-          } catch (error) {
-            return []
-          }
-        })(),
+        // Groups removed - no longer used
+        Promise.resolve([]),
         // Calendar notes - bundled with initial data load (Limited to recent history)
         (async () => {
           try {

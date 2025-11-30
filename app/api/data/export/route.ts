@@ -45,15 +45,7 @@ export async function POST(request: NextRequest) {
     }
     zip.file('metadata.json', JSON.stringify(metadata, null, 2))
 
-    // 1. Export Groups
-    const groups = await prisma.group.findMany({
-      where: { userId: user.id }
-    })
-    if (groups.length > 0) {
-      const groupsCsv = convertToCSV(groups)
-      zip.file('groups.csv', groupsCsv)
-    }
-
+    // 1. Export Accounts (Groups removed - no longer used)
     // 2. Export Accounts
     let accountsQuery: any = { userId: user.id }
     if (filters.accountIds && filters.accountIds.length > 0) {

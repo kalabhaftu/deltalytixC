@@ -12,7 +12,7 @@ import { ArrowUpDown, Trash, ChevronLeft, ChevronRight, Edit, Loader2, X, Filter
 import { toast } from "sonner"
 import { deleteTradesByIdsAction } from '@/server/accounts'
 import { useData } from '@/context/data-provider'
-import EnhancedEditTrade from '@/app/dashboard/components/tables/enhanced-edit-trade'
+import TradeEditDialog from '@/app/dashboard/components/tables/trade-edit-dialog'
 import { TradeDetailView } from '@/app/dashboard/components/tables/trade-detail-view'
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -615,7 +615,7 @@ export default function TradeTable() {
       />
       
       {/* Enhanced Edit Trade Dialog */}
-      <EnhancedEditTrade
+      <TradeEditDialog
         isOpen={isEnhancedEditOpen}
         onClose={() => {
           setIsEnhancedEditOpen(false)

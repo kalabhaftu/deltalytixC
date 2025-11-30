@@ -10,8 +10,6 @@ import { signOut } from '@/server/auth'
 
 import { redirect } from 'next/navigation'
 import OnboardingModal from './onboarding-modal'
-import { AccountGroupBoard } from '@/app/dashboard/components/filters/account-group-board'
-import { useModalStateStore } from '@/store/modal-state-store'
 import { useTradesStore } from '@/store/trades-store'
 
 
@@ -22,7 +20,6 @@ export default function Modals() {
   const trades = useTradesStore((state) => state.trades)
   const [isTradesDialogOpen, setIsTradesDialogOpen] = useState(false)
   const [showLoadingToast, setShowLoadingToast] = useState(false)
-  const { accountGroupBoardOpen, setAccountGroupBoardOpen } = useModalStateStore()
 
   // Debounce loading state to prevent flickering
   useEffect(() => {
@@ -60,16 +57,6 @@ export default function Modals() {
     <>
       {showLoadingToast && <LoadingOverlay />}
       <OnboardingModal />
-
-      {/* Account Group Board */}
-      <Dialog open={accountGroupBoardOpen} onOpenChange={setAccountGroupBoardOpen}>
-        <DialogContent className="sm:max-w-[1200px] w-full max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Manage Accounts</DialogTitle>
-          </DialogHeader>
-          <AccountGroupBoard/>
-        </DialogContent>
-      </Dialog>
 
       {!user?.isFirstConnection && (
         <Dialog open={isTradesDialogOpen} onOpenChange={setIsTradesDialogOpen}>

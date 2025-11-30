@@ -60,15 +60,14 @@ export async function GET(request: NextRequest) {
       prisma.account.findMany({
         where: { userId: internalUserId },
         include: {
-          Group: true
+          // Group removed - no longer used
         }
       }),
       prisma.trade.findMany({
         where: { userId: internalUserId }
       }),
-      prisma.group.findMany({
-        where: { userId: internalUserId }
-      }),
+      // Groups removed - no longer used
+      Promise.resolve([]),
       prisma.masterAccount.findMany({
         where: { userId: internalUserId },
         include: {
@@ -127,7 +126,7 @@ export async function GET(request: NextRequest) {
         name: acc.name,
         broker: acc.broker,
         startingBalance: acc.startingBalance,
-        groupName: acc.Group?.name || null,
+        groupName: null, // Groups removed - no longer used
         createdAt: acc.createdAt,
         isArchived: acc.isArchived
       })),
@@ -178,11 +177,7 @@ export async function GET(request: NextRequest) {
         comment: t.comment,
         tags: t.tags || []
       })),
-      groups: groups.map(g => ({
-        id: g.id,
-        name: g.name,
-        createdAt: g.createdAt
-      })),
+      groups: [], // Groups removed - no longer used
       tags: tags.map(t => ({
         id: t.id,
         name: t.name,
