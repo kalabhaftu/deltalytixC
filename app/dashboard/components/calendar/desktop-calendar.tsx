@@ -175,6 +175,20 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
   // Use the calendar view store
   const { viewMode, setViewMode, selectedDate, setSelectedDate, selectedWeekDate, setSelectedWeekDate } = useCalendarViewStore()
 
+  // Clear selectedWeekDate on unmount to prevent modal from opening randomly
+  useEffect(() => {
+    return () => {
+      setSelectedWeekDate(null)
+    }
+  }, [setSelectedWeekDate])
+
+  // Stable callback for WeeklyModal onOpenChange to prevent unnecessary re-renders
+  const handleWeeklyModalOpenChange = React.useCallback((open: boolean) => {
+    if (!open) {
+      setSelectedWeekDate(null)
+    }
+  }, [setSelectedWeekDate])
+
   // Screenshot handler
   const handleScreenshot = React.useCallback(async () => {
     if (!calendarRef.current) return
@@ -552,10 +566,8 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
         isLoading={isLoading}
       />
       <WeeklyModal
-        isOpen={selectedWeekDate !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelectedWeekDate(null)
-        }}
+        isOpen={selectedWeekDate !== null && selectedWeekDate instanceof Date && !isNaN(selectedWeekDate.getTime())}
+        onOpenChange={handleWeeklyModalOpenChange}
         selectedDate={selectedWeekDate}
         calendarData={calendarData}
         isLoading={isLoading}

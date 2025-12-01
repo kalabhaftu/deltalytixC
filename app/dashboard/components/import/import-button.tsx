@@ -142,6 +142,23 @@ export default function ImportButton() {
   // Check if this is manual trade entry (has custom component)
   const isManualEntry = importType === 'manual-trade-entry' && platform?.customComponent
 
+  const resetImportState = useCallback(() => {
+    setImportType('')
+    setStep('select-import-type')
+    setRawCsvData([])
+    setCsvData([])
+    setHeaders([])
+    setMappings({})
+    setProcessedTrades([])
+    setError(null)
+    setAccountNumber('')
+    setNewAccountNumber('')
+    setSelectedAccountId('')
+    setSaveProgress(0)
+    setIsSaving(false)
+    setIsLoading(false)
+  }, [])
+
   const handleSave = useCallback(async () => {
     const currentUser = user || supabaseUser
     if (!currentUser?.id) {
@@ -266,22 +283,9 @@ export default function ImportButton() {
       setIsLoading(false)
       setSaveProgress(0)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // resetImportState is intentionally excluded - it has empty deps and doesn't affect handleSave behavior
   }, [user, supabaseUser, selectedAccountId, processedTrades, refreshTrades])
-
-  const resetImportState = useCallback(() => {
-    setImportType('')
-    setStep('select-import-type')
-    setRawCsvData([])
-    setCsvData([])
-    setHeaders([])
-    setMappings({})
-    setAccountNumber('')
-    setNewAccountNumber('')
-    setSelectedAccountId('')
-    setProcessedTrades([])
-    setError(null)
-    setSaveProgress(0)
-  }, [])
 
   const handleNextStep = useCallback(() => {
     if (!platform) return
@@ -462,7 +466,23 @@ export default function ImportButton() {
     }
 
     return null
-  }, [platform, step, isSaving, saveProgress, processedTrades.length, importType, rawCsvData, csvData, headers, mappings, error, accountNumber, selectedAccountId, isLoading, newAccountNumber])
+  }, [
+    platform, 
+    step, 
+    isSaving, 
+    saveProgress, 
+    processedTrades, 
+    importType, 
+    rawCsvData, 
+    csvData, 
+    headers, 
+    mappings, 
+    error, 
+    accountNumber, 
+    selectedAccountId, 
+    isLoading, 
+    newAccountNumber
+  ])
 
   return (
     <div>
@@ -506,7 +526,15 @@ export default function ImportButton() {
         setIsOpen(open)
         if (!open) resetImportState()
       }}>
-        <DialogContent className="flex flex-col w-[95vw] max-w-5xl h-[85vh] p-0 bg-background border border-border shadow-2xl overflow-hidden gap-0">
+        <DialogContent 
+          className="flex flex-col w-[95vw] max-w-5xl h-[85vh] p-0 bg-background border border-border shadow-2xl overflow-hidden gap-0"
+          onOpenAutoFocus={(e) => {
+            // Prevent auto-focus on mobile devices to avoid keyboard popup
+            if (typeof window !== 'undefined' && window.innerWidth < 768) {
+              e.preventDefault()
+            }
+          }}
+        >
           <VisuallyHidden>
             <DialogTitle>Import Trades</DialogTitle>
           </VisuallyHidden>

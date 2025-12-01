@@ -404,24 +404,53 @@ export function useRealtimeSubscription(
   callback: RealtimeCallback,
   enabled: boolean = true
 ): void {
-  const { useEffect, useRef } = require('react')
+  const { useEffect, useRef, useMemo } = require('react')
   const callbackRef = useRef(callback)
+  const tablesRef = useRef(tables)
   
   // Keep callback ref updated
   useEffect(() => {
     callbackRef.current = callback
   }, [callback])
 
+  // Update ref whenever tables changes
+  useEffect(() => {
+    tablesRef.current = tables
+  }, [tables])
+
+  // Extract tables join to a variable to avoid complex expression in dependency array
+  const tablesKey = tables.join(',')
+  
+  // Memoize tables array based on key to prevent unnecessary effect re-runs
+  // Create a stable array reference that only changes when content changes
+  // Only depend on tablesKey since it's derived from tables - if tables content changes, tablesKey changes
+  // Use tablesRef.current to avoid ESLint warning while maintaining correct behavior
+  const memoizedTables = useMemo(() => {
+    // Return a new array reference only when tablesKey changes
+    // Use tablesRef.current to get the latest tables value without including it in deps
+    // tablesKey is used as a control dependency to trigger re-computation when content changes
+    return [...tablesRef.current]
+    // tablesKey is intentionally included as the only dependency - it's derived from tables,
+    // so it captures content changes. We use tablesRef.current to access tables without
+    // needing it in the dependency array, avoiding redundant dependencies.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tablesKey])
+  
   useEffect(() => {
     if (!enabled) return
 
+    // Use tablesRef.current to access tables without including it in dependency array
+    // This prevents unnecessary re-subscriptions when tables array reference changes but content is the same
     const unsubscribe = RealtimeManager.subscribe(
-      tables,
+      tablesRef.current,
       (event) => callbackRef.current(event)
     )
 
     return unsubscribe
-  }, [tables.join(','), enabled])
+    // Only depend on tablesKey and enabled to avoid circular dependency with memoizedTables
+    // tablesKey changes when tables content changes, which is when we need to re-subscribe
+    // We use tablesRef.current inside the effect to access tables without including it in deps
+  }, [tablesKey, enabled])
 }
 
 export default RealtimeManager

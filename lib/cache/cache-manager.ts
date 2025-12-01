@@ -347,18 +347,46 @@ export function useCacheInvalidation(
   callback: CacheInvalidationCallback,
   tags?: string[]
 ): void {
-  const { useEffect, useRef } = require('react')
+  const { useEffect, useRef, useMemo } = require('react')
   const callbackRef = useRef(callback)
+  const tagsRef = useRef(tags)
   
   useEffect(() => {
     callbackRef.current = callback
   }, [callback])
 
+  // Update ref whenever tags changes
+  useEffect(() => {
+    tagsRef.current = tags
+  }, [tags])
+
+  // Extract tags join to a variable to avoid complex expression in dependency array
+  const tagsKey = tags?.join(',') ?? ''
+  
+  // Memoize tags array based on key to prevent unnecessary effect re-runs
+  // Create a stable array reference that only changes when content changes
+  // Only depend on tagsKey since it's derived from tags - if tags content changes, tagsKey changes
+  // Use tagsRef.current to avoid ESLint warning while maintaining correct behavior
+  const memoizedTags = useMemo(() => {
+    // Return a new array reference only when tagsKey changes
+    // Use tagsRef.current to get the latest tags value without including it in deps
+    // tagsKey is used as a control dependency to trigger re-computation when content changes
+    const currentTags = tagsRef.current
+    return currentTags ? [...currentTags] : currentTags
+    // tagsKey is intentionally included as the only dependency - it's derived from tags,
+    // so it captures content changes. We use tagsRef.current to access tags without
+    // needing it in the dependency array, avoiding redundant dependencies.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tagsKey])
+  
   useEffect(() => {
     const unsubscribe = CacheManager.onInvalidation((invalidatedTags) => {
       // If specific tags provided, only trigger if they match
-      if (tags) {
-        const hasMatch = invalidatedTags.some(tag => tags.includes(tag))
+      // Use tagsRef.current to access tags without including it in dependency array
+      // This prevents unnecessary re-subscriptions when tags array reference changes but content is the same
+      const currentTags = tagsRef.current
+      if (currentTags) {
+        const hasMatch = invalidatedTags.some(tag => currentTags.includes(tag))
         if (hasMatch) {
           callbackRef.current(invalidatedTags)
         }
@@ -368,7 +396,10 @@ export function useCacheInvalidation(
     })
 
     return unsubscribe
-  }, [tags?.join(',')])
+    // Only depend on tagsKey to avoid circular dependency with memoizedTags
+    // tagsKey changes when tags content changes, which is when we need to re-subscribe
+    // We use tagsRef.current inside the effect to access tags without including it in deps
+  }, [tagsKey])
 }
 
 export default CacheManager

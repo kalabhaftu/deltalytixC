@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Bell, Check, CheckCheck, Trash2, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -31,10 +31,19 @@ export function NotificationCenter() {
   const [phaseTransitionDialogOpen, setPhaseTransitionDialogOpen] = useState(false)
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
 
+  // Use ref for isOpen to avoid stale closures in real-time callback
+  const isOpenRef = useRef(isOpen)
+  useEffect(() => {
+    isOpenRef.current = isOpen
+  }, [isOpen])
+
   const fetchNotifications = useCallback(async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/notifications')
+      // Add cache-busting timestamp to prevent stale data
+      const response = await fetch(`/api/notifications?t=${Date.now()}`, {
+        cache: 'no-store' // Prevent browser caching
+      })
       const result = await response.json()
       
       if (result.success) {
@@ -48,11 +57,29 @@ export function NotificationCenter() {
     }
   }, [])
 
-  // Fetch on mount and when popover opens
-  useEffect(() => {
-    fetchNotifications()
-  }, [fetchNotifications])
+  // Explicitly refresh unread count (useful after server-side operations)
+  const refreshUnreadCount = useCallback(async () => {
+    try {
+      // Add cache-busting to prevent stale count
+      const response = await fetch(`/api/notifications?unreadOnly=true&limit=1&t=${Date.now()}`, {
+        cache: 'no-store'
+      })
+      const result = await response.json()
+      if (result.success) {
+        setUnreadCount(result.data.unreadCount)
+      }
+    } catch (error) {
+      // Silent fail - will update on next fetch
+    }
+  }, [])
 
+  // Fetch unread count on mount to show badge immediately
+  // This ensures the badge shows correct count even before user opens the popover
+  useEffect(() => {
+    refreshUnreadCount()
+  }, [refreshUnreadCount])
+
+  // Fetch full notification list when popover opens
   useEffect(() => {
     if (isOpen) {
       fetchNotifications()
@@ -67,20 +94,33 @@ export function NotificationCenter() {
       // Only refresh if the notification belongs to the current user
       const notificationUserId = (change.newRecord?.userId || change.oldRecord?.userId) as string | undefined
       if (notificationUserId === user?.id) {
-        // Refresh notifications when they change
-        if (isOpen) {
-          // If popover is open, fetch full list
-          fetchNotifications()
-        } else {
-          // If popover is closed, just update the count
-          fetch('/api/notifications?limit=1')
-            .then(res => res.json())
-            .then(result => {
-              if (result.success) {
-                setUnreadCount(result.data.unreadCount)
-              }
-            })
-            .catch(() => {})
+        // Handle different event types
+        if (change.event === 'INSERT' && change.newRecord) {
+          // New notification created - optimistically update count
+          const isRead = change.newRecord.isRead as boolean | undefined
+          // Treat undefined as unread (default state for new notifications)
+          if (isRead !== true) {
+            // Optimistically increment count for new unread notifications
+            // Increment if explicitly unread (false) or undefined (default unread state)
+            setUnreadCount(prev => prev + 1)
+          }
+          
+          // Use ref to check current popover state (avoids stale closure)
+          if (isOpenRef.current) {
+            // If popover is open, fetch full list to show the new notification
+            fetchNotifications()
+          }
+        } else if (change.event === 'UPDATE' || change.event === 'DELETE') {
+          // Notification updated or deleted - need to fetch accurate count
+          // Use ref to check current popover state (avoids stale closure)
+          if (isOpenRef.current) {
+            // If popover is open, fetch full list (which includes count)
+            fetchNotifications()
+          } else {
+            // If popover is closed, always refresh count to ensure badge is accurate
+            // This ensures badge updates even when panel is closed
+            refreshUnreadCount()
+          }
         }
       }
     }
@@ -180,7 +220,13 @@ export function NotificationCenter() {
   const handlePhaseTransitionComplete = () => {
     setPhaseTransitionDialogOpen(false)
     setSelectedNotification(null)
+    // Fetch full notifications list
     fetchNotifications()
+    // Also explicitly refresh unread count after a delay to catch any new notifications
+    // created server-side during phase transition
+    setTimeout(() => {
+      refreshUnreadCount()
+    }, 500)
   }
 
   return (

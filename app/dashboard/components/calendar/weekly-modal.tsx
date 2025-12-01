@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useRef } from "react"
 import { format, startOfWeek, endOfWeek, parseISO } from "date-fns"
 import { enUS } from 'date-fns/locale'
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
@@ -87,6 +87,16 @@ export function WeeklyModal({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [imageLoadError, setImageLoadError] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+  
+  // Track the latest save request to prevent race conditions
+  const saveRequestRef = useRef<number>(0)
+  // Track the latest reviewData to avoid stale values in rapid changes
+  const reviewDataRef = useRef<any>(null)
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    reviewDataRef.current = reviewData
+  }, [reviewData])
 
   // Generate organized path: userId/week-start-date (YYYY-MM-DD)
   const weekStartDate = selectedDate ? format(startOfWeek(selectedDate), 'yyyy-MM-dd') : ''
@@ -103,7 +113,8 @@ export function WeeklyModal({
 
   // Load review data when modal opens
   useEffect(() => {
-    if (isOpen && selectedDate) {
+    // Validate selectedDate before opening
+    if (isOpen && selectedDate && selectedDate instanceof Date && !isNaN(selectedDate.getTime())) {
       const loadReview = async () => {
         setIsLoadingReview(true)
         const data = await getWeeklyReview(selectedDate)
@@ -111,8 +122,11 @@ export function WeeklyModal({
         setIsLoadingReview(false)
       }
       loadReview()
+    } else if (isOpen && (!selectedDate || !(selectedDate instanceof Date) || isNaN(selectedDate.getTime()))) {
+      // If modal is open but date is invalid, close it
+      onOpenChange(false)
     }
-  }, [isOpen, selectedDate])
+  }, [isOpen, selectedDate, onOpenChange])
 
   // Aggregate weekly data
   const weeklyData = useMemo(() => {
@@ -658,55 +672,143 @@ export function WeeklyModal({
                   <CardContent>
                     <RadioGroup 
                       value={reviewData?.expectation || ''} 
-                      onValueChange={(val) => setReviewData({...reviewData, expectation: val})}
+                      onValueChange={(val) => {
+                        if (!selectedDate) return
+                        
+                        // Create updated review data object with new expectation
+                        // This ensures we use the latest values, not stale closure values
+                        const updatedReviewData = {
+                          ...(reviewData || {}),
+                          expectation: val as WeeklyExpectation
+                        }
+                        
+                        // Update local state immediately for instant feedback
+                        setReviewData(updatedReviewData)
+                        
+                        // Auto-save expectation immediately for better UX
+                        // Use a request counter to prevent race conditions
+                        const currentRequest = ++saveRequestRef.current
+                        const savedExpectation = val as WeeklyExpectation
+                        const saveExpectation = async () => {
+                          try {
+                            // Read latest state from ref to avoid stale values from rapid changes
+                            // This ensures we always save the most current state, not the state at change time
+                            const latestReviewData = reviewDataRef.current
+                            
+                            const result = await saveWeeklyReview({
+                              startDate: startOfWeek(selectedDate),
+                              endDate: endOfWeek(selectedDate),
+                              expectation: savedExpectation, // Use the saved expectation value
+                              actualOutcome: latestReviewData?.actualOutcome,
+                              isCorrect: latestReviewData?.isCorrect,
+                              notes: latestReviewData?.notes,
+                              calendarImage: latestReviewData?.calendarImage
+                            })
+                            
+                            // Only update state if this is still the latest request
+                            // This prevents older saves from overwriting newer selections
+                            if (result.success && result.data && currentRequest === saveRequestRef.current) {
+                              const savedData = result.data
+                              // Merge server response with current state to preserve concurrent local changes
+                              // Only update the field that was auto-saved (expectation), preserve other local changes
+                              setReviewData((prev: any) => {
+                                if (!prev) {
+                                  // If no previous state, use server response
+                                  return { ...savedData, expectation: savedExpectation }
+                                }
+                                
+                                // Merge: use server data as base, but preserve local changes for non-saved fields
+                                // Check if property exists in prev (not just truthy) to preserve falsy values
+                                return {
+                                  ...savedData,
+                                  expectation: savedExpectation, // Always use the saved value
+                                  // Preserve local changes if they exist in prev (including falsy values)
+                                  actualOutcome: 'actualOutcome' in prev ? prev.actualOutcome : (savedData?.actualOutcome ?? undefined),
+                                  isCorrect: 'isCorrect' in prev ? prev.isCorrect : (savedData?.isCorrect ?? undefined),
+                                  notes: 'notes' in prev ? prev.notes : (savedData?.notes ?? undefined),
+                                  calendarImage: 'calendarImage' in prev ? prev.calendarImage : (savedData?.calendarImage ?? undefined)
+                                }
+                              })
+                            }
+                          } catch (error) {
+                            // Silent fail - will be saved when user clicks save button
+                            console.error('Failed to auto-save expectation:', error)
+                          }
+                        }
+                        saveExpectation()
+                      }}
                       className="space-y-3"
                     >
                       <label className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all",
+                        "relative flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
                         reviewData?.expectation === 'BULLISH_EXPANSION' 
-                          ? "border-long bg-long/5" 
-                          : "border-border hover:border-muted-foreground"
+                          ? "border-long bg-long/10 shadow-md ring-2 ring-long/20" 
+                          : "border-border hover:border-long/50 hover:bg-muted/30"
                       )}>
                         <RadioGroupItem value="BULLISH_EXPANSION" id="bullish" className="sr-only" />
-                        <div className="p-2 rounded-lg bg-long/10">
+                        <div className={cn(
+                          "p-2 rounded-lg transition-all",
+                          reviewData?.expectation === 'BULLISH_EXPANSION' 
+                            ? "bg-long/20" 
+                            : "bg-long/10"
+                        )}>
                           <TrendingUp className="h-4 w-4 text-long" />
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <div className="font-medium">Bullish Expansion</div>
                           <div className="text-xs text-muted-foreground">Expecting upward price movement</div>
                         </div>
+                        {reviewData?.expectation === 'BULLISH_EXPANSION' && (
+                          <CheckCircle2 className="h-5 w-5 text-long" />
+                        )}
                       </label>
                       
                       <label className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all",
+                        "relative flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
                         reviewData?.expectation === 'BEARISH_EXPANSION' 
-                          ? "border-short bg-short/5" 
-                          : "border-border hover:border-muted-foreground"
+                          ? "border-short bg-short/10 shadow-md ring-2 ring-short/20" 
+                          : "border-border hover:border-short/50 hover:bg-muted/30"
                       )}>
                         <RadioGroupItem value="BEARISH_EXPANSION" id="bearish" className="sr-only" />
-                        <div className="p-2 rounded-lg bg-short/10">
+                        <div className={cn(
+                          "p-2 rounded-lg transition-all",
+                          reviewData?.expectation === 'BEARISH_EXPANSION' 
+                            ? "bg-short/20" 
+                            : "bg-short/10"
+                        )}>
                           <TrendingDown className="h-4 w-4 text-short" />
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <div className="font-medium">Bearish Expansion</div>
                           <div className="text-xs text-muted-foreground">Expecting downward price movement</div>
                         </div>
+                        {reviewData?.expectation === 'BEARISH_EXPANSION' && (
+                          <CheckCircle2 className="h-5 w-5 text-short" />
+                        )}
                       </label>
                       
                       <label className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all",
+                        "relative flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
                         reviewData?.expectation === 'CONSOLIDATION' 
-                          ? "border-primary bg-primary/5" 
-                          : "border-border hover:border-muted-foreground"
+                          ? "border-primary bg-primary/10 shadow-md ring-2 ring-primary/20" 
+                          : "border-border hover:border-primary/50 hover:bg-muted/30"
                       )}>
                         <RadioGroupItem value="CONSOLIDATION" id="consolidation" className="sr-only" />
-                        <div className="p-2 rounded-lg bg-primary/10">
+                        <div className={cn(
+                          "p-2 rounded-lg transition-all",
+                          reviewData?.expectation === 'CONSOLIDATION' 
+                            ? "bg-primary/20" 
+                            : "bg-primary/10"
+                        )}>
                           <Activity className="h-4 w-4 text-primary" />
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <div className="font-medium">Consolidation</div>
                           <div className="text-xs text-muted-foreground">Expecting range-bound movement</div>
                         </div>
+                        {reviewData?.expectation === 'CONSOLIDATION' && (
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                        )}
                       </label>
                     </RadioGroup>
                   </CardContent>

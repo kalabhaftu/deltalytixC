@@ -122,6 +122,12 @@ export function PhaseTransitionApprovalDialog({
         method: 'DELETE'
       })
 
+      // Close modal FIRST for immediate UI feedback
+      onOpenChange(false)
+      
+      // Reset state synchronously before onComplete to ensure callback sees clean state
+      resetState()
+      
       toast.success(isTransitioningToFunded ? 'Congratulations!' : 'Phase Transition Complete!', {
         description: `Successfully transitioned to ${nextPhaseName}`,
         duration: 5000
@@ -142,11 +148,13 @@ export function PhaseTransitionApprovalDialog({
       // Refresh data
       await refreshTrades()
       
-      resetState()
+      // Call onComplete callback - state is already reset, so callback sees clean state
       onComplete()
       
-      // Force full page refresh to ensure clean state
-      router.refresh()
+      // Force full page refresh after a small delay to allow modal to close
+      setTimeout(() => {
+        router.refresh()
+      }, 100)
 
     } catch (error) {
       toast.error('Failed to transition phase', {

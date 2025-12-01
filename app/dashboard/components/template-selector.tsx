@@ -108,7 +108,9 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
   }
 
   return (
-    <div className={cn("flex items-center justify-end px-6 py-1", className)}>
+    <div 
+      className={cn("absolute -top-1 right-0 z-40 flex items-center justify-end px-6 py-1", className)}
+    >
       <div className="flex items-center gap-2">
         {showUpdatedText && (
           <span className="text-xs text-muted-foreground animate-in fade-in duration-200">
@@ -119,9 +121,10 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
-              className="h-8 px-2 hover:bg-muted/50 transition-all duration-200"
+              className="h-8 px-3 hover:bg-muted/50 transition-all duration-200 border-border/50 bg-card/50"
+              title="Template options"
             >
               <LayoutTemplate className="h-4 w-4" />
               <span className="sr-only">Template options</span>

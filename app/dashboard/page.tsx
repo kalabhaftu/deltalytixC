@@ -26,10 +26,6 @@ const EditModeControls = NextDynamic(() => import('./components/edit-mode-contro
 // Dynamic imports for heavy dependencies
 import { motion, AnimatePresence } from 'framer-motion'
 
-const TemplateSelector = NextDynamic(() => import('./components/template-selector'), {
-  ssr: false
-})
-
 function DashboardContent() {
   const mainRef = useRef<HTMLElement>(null)
   const searchParams = useSearchParams()
@@ -126,10 +122,7 @@ function DashboardContent() {
 
   return (
     <DashboardErrorBoundary>
-      <div className="flex flex-1 flex-col w-full -mt-10">
-        {/* Template Selector - Below navbar */}
-        <TemplateSelector />
-        
+      <div className="flex flex-1 flex-col w-full">
         {/* Edit Mode Controls */}
         <EditModeControls />
         

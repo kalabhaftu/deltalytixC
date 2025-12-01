@@ -839,7 +839,7 @@ export default function TradeEditDialog({
                             </p>
                           )}
                           <div className="border rounded-md p-3 space-y-3">
-                              {['employment', 'inflation', 'interest-rate', 'gdp', 'pmi', 'retail', 'bank-holiday', 'other'].map(category => {
+                              {['employment', 'inflation', 'interest-rate', 'gdp', 'pmi', 'retail', 'housing', 'trade', 'manufacturing', 'bank-holiday', 'other'].map(category => {
                                 const events = filteredNewsEvents.filter(e => e.category === category)
                                 if (events.length === 0) return null
                                 
