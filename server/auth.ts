@@ -17,33 +17,33 @@ export async function getWebsiteURL() {
   if (isLocalDevelopment()) {
     return 'http://localhost:3000/'
   }
-  
+
   // Priority order for production URLs
-  let url = 
+  let url =
     process?.env?.NEXT_PUBLIC_APP_URL ?? // Your custom app URL (highest priority)
     process?.env?.NEXT_PUBLIC_SITE_URL ?? // Set this to your site URL in production env.
     process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set by Vercel.
     'http://localhost:3000/'
-  
+
   // Remove any path from VERCEL_URL (it might include /dashboard)
   if (url.includes('NEXT_PUBLIC_VERCEL_URL') || url.includes('vercel.app')) {
     url = url.split('/').slice(0, 3).join('/') // Keep only protocol + domain
   }
-  
+
   // Make sure to include `https://` when not localhost.
   url = url.startsWith('http') ? url : `https://${url}`
   // Make sure to include a trailing `/`.
   url = url.endsWith('/') ? url : `${url}/`
-  
+
   return url
 }
 
 export async function createClient() {
   const cookieStore = await cookies()
-  
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  
+
   // Check if we have placeholder or missing values
   const hasPlaceholderValues = !supabaseUrl || !supabaseKey ||
     supabaseUrl.includes('[YOUR_PROJECT_REF]') ||
@@ -57,7 +57,7 @@ export async function createClient() {
   if (hasPlaceholderValues && process.env.NODE_ENV === 'production') {
     throw new Error('Supabase configuration is incomplete. Please check your environment variables.')
   }
-  
+
   // In non-production, use placeholder values that won't break the build
   const finalUrl = hasPlaceholderValues ? 'https://placeholder.supabase.co' : supabaseUrl!
   const finalKey = hasPlaceholderValues ? 'placeholder-key-for-build' : supabaseKey!
@@ -70,7 +70,7 @@ export async function createClient() {
         getAll() {
           return cookieStore.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
@@ -221,7 +221,7 @@ interface SupabaseUser {
 }
 
 export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) {
-  
+
   if (!user) {
     await signOut();
     throw new Error('User data is required for authentication.');
@@ -284,11 +284,11 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
       const newUser = await prisma.user.create({
         data: {
           auth_user_id: user.id,
-          email: user.email || '', 
+          email: user.email || '',
           id: user.id
         },
       });
-      
+
       // Create default dashboard template for new user (non-blocking)
       try {
         const { ensureDefaultTemplate } = await import('./seed-default-template')
@@ -296,7 +296,7 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
       } catch (templateError) {
         // Don't block user creation if template fails
       }
-      
+
       return newUser;
     } catch (createError) {
       if (createError instanceof Error &&
@@ -310,7 +310,7 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
   } catch (error) {
     // Re-throw NEXT_REDIRECT errors immediately (these are normal Next.js redirects)
     if (error instanceof Error && (
-      error.message === 'NEXT_REDIRECT' || 
+      error.message === 'NEXT_REDIRECT' ||
       ('digest' in error && typeof error.digest === 'string' && error.digest.startsWith('NEXT_REDIRECT'))
     )) {
       throw error;
@@ -378,16 +378,16 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
       if (error.status === 429 || error.message?.includes('rate limit') || error.message?.includes('too many requests')) {
         throw new Error('Too many verification attempts. Please wait a moment before trying again.')
       }
-      
+
       // Only throw error for actual authentication failures
-      if (error.status === 403 || 
-          error.message.includes('expired') || 
-          error.message.includes('invalid') ||
-          error.message.includes('Token has expired') ||
-          error.message.includes('Invalid token') ||
-          error.message.includes('Invalid login credentials') ||
-          error.message.includes('Email not confirmed') ||
-          error.message.includes('User not found')) {
+      if (error.status === 403 ||
+        error.message.includes('expired') ||
+        error.message.includes('invalid') ||
+        error.message.includes('Token has expired') ||
+        error.message.includes('Invalid token') ||
+        error.message.includes('Invalid login credentials') ||
+        error.message.includes('Email not confirmed') ||
+        error.message.includes('User not found')) {
         throw new Error(error.message)
       }
     }
@@ -417,7 +417,7 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
         // Don't throw - authentication succeeded, database sync is secondary
         // The app will work with just Supabase auth, database sync can happen later
       }
-      
+
       // Return the successful authentication data
       return data
     } else {
@@ -455,13 +455,13 @@ export async function getUserId(): Promise<string> {
   }
 
   // Fallback to Supabase call (for API routes or edge cases) with timeout
-  
+
   try {
     const supabase = await createClient()
-    
+
     // Add timeout to Supabase call with reasonable timeout for stability
     const authPromise = supabase.auth.getUser()
-    const timeoutPromise = new Promise((_, reject) => 
+    const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Auth timeout")), 10000) // Increased to 10 seconds for stability
     )
 
@@ -571,14 +571,14 @@ export async function unlinkIdentity(identity: any) {
 export async function getUserIdentities() {
   const supabase = await createClient()
   const { data: { user }, error } = await supabase.auth.getUser()
-  
+
   if (error || !user) {
     throw new Error('User not authenticated')
   }
 
   // Get user's identities using the proper method
   const { data: identities, error: identitiesError } = await supabase.auth.getUserIdentities()
-  
+
   if (identitiesError) {
     throw new Error(identitiesError.message)
   }
