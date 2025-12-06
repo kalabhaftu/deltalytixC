@@ -16,34 +16,34 @@ const baseExperimental = {
   },
   // Note: PPR requires Next.js canary. Uncomment when upgrading:
   // ppr: 'incremental',
-  // Optimized Turbopack configuration with additional optimizations
-  turbo: {
+}
+
+const nextConfig = {
+  // Increase body size limit for Server Actions (for image uploads)
+  experimental: baseExperimental,
+
+  // Turbopack configuration (moved from experimental.turbo)
+  turbopack: {
     rules: {
       '*.svg': {
         loaders: ['@svgr/webpack'],
         as: '*.js',
       },
     },
-    // Enable Turbopack optimizations for faster compilation
     resolveAlias: {
-      // Optimize common dependencies
       'react': 'react',
       'react-dom': 'react-dom',
     },
   },
-}
 
-const nextConfig = {
-  // Increase body size limit for Server Actions (for image uploads)
-  experimental: baseExperimental,
   serverExternalPackages: ['@supabase/ssr', '@supabase/supabase-js'],
-  
+
   // Disable ESLint during builds to prevent build failures
   // ESLint can still be run manually with `npm run lint`
   eslint: {
     ignoreDuringBuilds: true,
   },
-  
+
   images: {
     remotePatterns: [
       {

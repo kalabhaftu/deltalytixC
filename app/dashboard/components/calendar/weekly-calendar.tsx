@@ -1,28 +1,32 @@
 'use client'
 
-import React from "react"
+import React, { useMemo } from "react"
 import { format, eachWeekOfInterval, getWeek, getMonth, getYear, addDays, startOfYear, endOfYear } from "date-fns"
 import { enUS } from 'date-fns/locale'
 import { cn } from "@/lib/utils"
 import { Trade } from "@prisma/client"
 import { CalendarData } from "@/app/dashboard/types/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useUserStore } from "@/store/user-store"
+import { WEEKLY_CELL_STYLES, PNL_TEXT_STYLES, METRIC_PILL_STYLES } from "@/app/dashboard/constants/calendar-styles"
+import { TrendingUp, TrendingDown } from "lucide-react"
 
 const formatCurrency = (value: number) => {
-  const formatted = value.toLocaleString('en-US', { 
-    style: 'currency', 
+  const formatted = value.toLocaleString('en-US', {
+    style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   })
   return formatted
+}
+
+const formatCompact = (value: number) => {
+  if (Math.abs(value) >= 1000) {
+    return `$${(value / 1000).toFixed(1)}k`
+  }
+  return `$${value.toFixed(0)}`
 }
 
 interface WeeklyCalendarPnlProps {
@@ -31,19 +35,18 @@ interface WeeklyCalendarPnlProps {
 }
 
 export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendarPnlProps) {
-  const locale = 'en' // Default to English since i18n was removed
   const dateLocale = enUS
 
-  const yearStartDate = startOfYear(new Date(year, 0, 1));
-  const yearEndDate = endOfYear(new Date(year, 0, 1));
+  const yearStartDate = startOfYear(new Date(year, 0, 1))
+  const yearEndDate = endOfYear(new Date(year, 0, 1))
 
-  // This is the definitive list of week-start-sundays for the 'year' grid.
-  const weeksToDisplay = eachWeekOfInterval(
-    { start: yearStartDate, end: yearEndDate },
-    { weekStartsOn: 0 } // Weeks start on Sunday
-  );
+  const weeksToDisplay = useMemo(() =>
+    eachWeekOfInterval(
+      { start: yearStartDate, end: yearEndDate },
+      { weekStartsOn: 0 }
+    ), [yearStartDate, yearEndDate])
 
-  function getWeekPnl(weekStart: Date) {
+  const getWeekPnl = (weekStart: Date) => {
     let total = 0
     for (let d = 0; d < 7; d++) {
       const day = new Date(weekStart)
@@ -54,7 +57,7 @@ export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendar
     return total
   }
 
-  function getWeekTrades(weekStart: Date) {
+  const getWeekTrades = (weekStart: Date) => {
     const tradesByDay: { [key: string]: { trades: Trade[], pnl: number } } = {}
     for (let d = 0; d < 7; d++) {
       const day = new Date(weekStart)
@@ -70,72 +73,65 @@ export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendar
     return tradesByDay
   }
 
-  function getMonthPnl(monthIndex: number) {
+  const getMonthPnl = (monthIndex: number) => {
     let total = 0
-    // Filter weeksToDisplay based on the new month assignment logic
     const currentMonthWeeks = weeksToDisplay.filter(weekStart => {
-      const weekYear = getYear(weekStart);
+      const weekYear = getYear(weekStart)
       if (weekYear === year) {
-        return getMonth(weekStart) === monthIndex;
-      } else { // weekStart is in year-1
-        return monthIndex === 0; // Assign to January of current 'year'
+        return getMonth(weekStart) === monthIndex
+      } else {
+        return monthIndex === 0
       }
-    });
+    })
     currentMonthWeeks.forEach(weekStart => {
       total += getWeekPnl(weekStart)
     })
     return total
   }
 
+  const getMonthWeeks = (monthIndex: number) => {
+    return weeksToDisplay.filter(weekStart => {
+      const weekYear = getYear(weekStart)
+      if (weekYear === year) {
+        return getMonth(weekStart) === monthIndex
+      } else {
+        return monthIndex === 0
+      }
+    })
+  }
+
+  const maxWeeks = Math.max(...Array.from({ length: 12 }, (_, i) => getMonthWeeks(i).length))
+
   return (
-    <div className="flex flex-col gap-3 p-4 h-full">
-      {/* Month Headers and Totals */}
+    <div className="flex flex-col gap-4 p-2 h-full">
+      {/* Month Headers */}
       <div className="grid grid-cols-12 gap-2">
         {Array.from({ length: 12 }, (_, i) => {
           const monthlyPnl = getMonthPnl(i)
+          const isPositive = monthlyPnl >= 0
           return (
-            <div key={i} className="flex flex-col gap-1">
-              <div className="text-center text-xs font-medium text-muted-foreground">
+            <div key={i} className="flex flex-col items-center gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground">
                 {format(new Date(year, i, 1), 'MMM', { locale: dateLocale })}
-              </div>
+              </span>
               <div className={cn(
-                "text-center text-xs font-semibold px-1 py-0.5 rounded transition-colors",
-                monthlyPnl > 0 
-                  ? "text-green-700 dark:text-green-400 bg-green-50/50 dark:bg-green-950/30 midnight-ocean:bg-green-950/30" 
-                  : monthlyPnl < 0 
-                    ? "text-red-600 dark:text-red-400/90 bg-red-50/50 dark:bg-red-950/30 midnight-ocean:bg-red-950/30" 
-                    : "text-muted-foreground bg-muted/20"
+                "text-xs font-bold px-2 py-0.5 rounded-full",
+                monthlyPnl === 0 && "text-muted-foreground bg-muted/50",
+                monthlyPnl !== 0 && isPositive && "text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/50",
+                monthlyPnl !== 0 && !isPositive && "text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-950/50",
               )}>
-                {formatCurrency(monthlyPnl)}
+                {formatCompact(monthlyPnl)}
               </div>
             </div>
           )
         })}
       </div>
-      
+
       {/* Weeks Grid */}
       <div className="grid grid-cols-12 gap-2 flex-1">
         {Array.from({ length: 12 }, (_, monthIndex) => {
-          // Correctly filter weeks for the current month
-          const monthWeeks = weeksToDisplay.filter(weekStart => {
-            const weekYear = getYear(weekStart);
-            if (weekYear === year) {
-              return getMonth(weekStart) === monthIndex;
-            } else { // weekStart is in year-1 (e.g. SunDec31_23 for year=2024 view)
-              return monthIndex === 0; // Assign to January of current 'year'
-            }
-          });
-          
-          // Find the maximum number of weeks in any month based on the new assignment
-          const maxWeeks = Math.max(...Array.from({ length: 12 }, (_, i) => 
-            weeksToDisplay.filter(ws => {
-              const wy = getYear(ws);
-              if (wy === year) return getMonth(ws) === i;
-              return i === 0;
-            }).length
-          ));
-          
-          // Add placeholder weeks if needed
+          const monthWeeks = getMonthWeeks(monthIndex)
+
           const allWeeks: (Date | null)[] = [...monthWeeks]
           while (allWeeks.length < maxWeeks) {
             allWeeks.push(null)
@@ -148,104 +144,121 @@ export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendar
                   return (
                     <div
                       key={weekIndex}
-                      className="flex flex-col items-center justify-center border rounded p-2 min-h-[4rem] flex-1 bg-muted/10 dark:bg-muted/5"
+                      className="flex-1 min-h-[52px] rounded-lg bg-muted/10 border border-dashed border-border/30"
                     />
                   )
                 }
-                
+
                 const pnl = getWeekPnl(weekStart)
                 const trades = getWeekTrades(weekStart)
+                const state = pnl > 0 ? 'profit' : pnl < 0 ? 'loss' : 'flat'
+
                 return (
                   <Popover key={`${weekStart.toISOString()}-${weekIndex}`}>
                     <PopoverTrigger asChild>
                       <div
                         className={cn(
-                          "flex flex-col items-center justify-center border rounded p-2 min-h-[4rem] flex-1 cursor-pointer",
-                          "transition-all duration-200 hover:scale-[1.02] hover:shadow-md",
-                          pnl > 0 
-                            ? "bg-green-50/80 dark:bg-green-950/40 midnight-ocean:bg-green-950/40 text-green-700 dark:text-green-400 border-green-100 dark:border-green-900/50 midnight-ocean:border-green-900/50" 
-                            : pnl < 0 
-                              ? "bg-red-50/60 dark:bg-red-950/30 midnight-ocean:bg-red-950/30 text-red-600 dark:text-red-400/90 border-red-100/80 dark:border-red-900/40 midnight-ocean:border-red-900/40" 
-                              : "bg-muted/20 dark:bg-muted/10 text-muted-foreground border-border"
+                          "flex-1 min-h-[52px] flex flex-col items-center justify-center rounded-lg cursor-pointer p-1.5",
+                          "border transition-all duration-200 hover:scale-[1.02] hover:shadow-md",
+                          state === 'profit' && WEEKLY_CELL_STYLES.profit,
+                          state === 'loss' && WEEKLY_CELL_STYLES.loss,
+                          state === 'flat' && WEEKLY_CELL_STYLES.flat,
                         )}
                       >
-                        <div className="text-[10px] font-medium opacity-80">Week {getWeek(weekStart, { locale: dateLocale })}</div>
-                        <div className="text-xs font-bold">{formatCurrency(pnl)}</div>
+                        <span className="text-[10px] font-medium text-muted-foreground/80">
+                          W{getWeek(weekStart, { locale: dateLocale })}
+                        </span>
+                        <span className={cn(
+                          "text-xs font-bold",
+                          state === 'profit' && PNL_TEXT_STYLES.profit,
+                          state === 'loss' && PNL_TEXT_STYLES.loss,
+                          state === 'flat' && PNL_TEXT_STYLES.neutral,
+                        )}>
+                          {formatCompact(pnl)}
+                        </span>
                       </div>
                     </PopoverTrigger>
-                    <PopoverContent 
-                      className="w-[400px] p-0 z-50" 
+                    <PopoverContent
+                      className="w-[380px] p-0 rounded-xl overflow-hidden"
                       align="start"
                       side="right"
-                      sideOffset={5}
+                      sideOffset={8}
                     >
-                      <div className="p-4">
-                        <div className="flex items-center justify-between mb-4">
-                          <h4 className="font-semibold text-sm">
-                            {format(weekStart, 'MMM d', { locale: dateLocale })} - {format(addDays(weekStart, 6), 'MMM d, yyyy', { locale: dateLocale })}
-                          </h4>
+                      {/* Popover Header */}
+                      <div className="p-4 border-b bg-muted/30">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-semibold text-sm">
+                              {format(weekStart, 'MMM d', { locale: dateLocale })} - {format(addDays(weekStart, 6), 'MMM d, yyyy', { locale: dateLocale })}
+                            </h4>
+                            <p className="text-xs text-muted-foreground">Week {getWeek(weekStart)}</p>
+                          </div>
                           <div className={cn(
-                            "text-sm font-semibold",
-                            pnl > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                            METRIC_PILL_STYLES.base,
+                            "text-xs",
+                            pnl >= 0 ? METRIC_PILL_STYLES.profit : METRIC_PILL_STYLES.loss
                           )}>
+                            {pnl >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                             {formatCurrency(pnl)}
                           </div>
                         </div>
-                        <div className="max-h-[400px] overflow-y-auto pr-2">
-                          {Object.entries(trades).length > 0 ? (
-                            <Accordion type="single" collapsible className="w-full">
-                              {Object.entries(trades).map(([date, { trades: dayTrades, pnl: dayPnl }]) => (
-                                <AccordionItem key={date} value={date}>
-                                  <AccordionTrigger className="px-2 hover:no-underline">
-                                    <div className="flex items-center justify-between w-full pr-4">
-                                      <div className="flex flex-col items-start">
-                                        <h5 className="text-sm font-medium">
-                                          {format(new Date(date), 'EEEE, MMM d, yyyy', { locale: dateLocale })}
-                                        </h5>
-                                        <span className="text-xs text-muted-foreground">
-                                          {dayTrades.length} trades
+                      </div>
+
+                      {/* Popover Content */}
+                      <div className="max-h-[350px] overflow-y-auto">
+                        {Object.entries(trades).length > 0 ? (
+                          <Accordion type="single" collapsible className="w-full">
+                            {Object.entries(trades).map(([date, { trades: dayTrades, pnl: dayPnl }]) => (
+                              <AccordionItem key={date} value={date} className="border-b last:border-0">
+                                <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/20">
+                                  <div className="flex items-center justify-between w-full pr-2">
+                                    <div className="flex flex-col items-start">
+                                      <span className="text-sm font-medium">
+                                        {format(new Date(date), 'EEEE, MMM d', { locale: dateLocale })}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {dayTrades.length} {dayTrades.length === 1 ? 'trade' : 'trades'}
+                                      </span>
+                                    </div>
+                                    <span className={cn(
+                                      "text-sm font-semibold",
+                                      dayPnl >= 0 ? PNL_TEXT_STYLES.profit : PNL_TEXT_STYLES.loss
+                                    )}>
+                                      {formatCurrency(dayPnl)}
+                                    </span>
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="space-y-2 px-4 pb-3">
+                                    {dayTrades.map((trade, index) => (
+                                      <div
+                                        key={index}
+                                        className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30"
+                                      >
+                                        <div className="flex flex-col">
+                                          <span className="text-sm font-medium">{trade.instrument}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            {format(new Date(trade.entryDate), 'HH:mm', { locale: dateLocale })}
+                                          </span>
+                                        </div>
+                                        <span className={cn(
+                                          "text-sm font-semibold",
+                                          trade.pnl >= 0 ? PNL_TEXT_STYLES.profit : PNL_TEXT_STYLES.loss
+                                        )}>
+                                          {formatCurrency(trade.pnl)}
                                         </span>
                                       </div>
-                                      <div className={cn(
-                                        "text-sm font-semibold",
-                                        dayPnl > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                                      )}>
-                                        {formatCurrency(dayPnl)}
-                                      </div>
-                                    </div>
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <div className="space-y-2 pt-2">
-                                      {dayTrades.map((trade, index) => (
-                                        <div 
-                                          key={index}
-                                          className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
-                                        >
-                                          <div className="flex flex-col">
-                                            <span className="text-sm font-medium">{trade.instrument}</span>
-                                            <span className="text-xs text-muted-foreground">
-                                              {format(new Date(trade.entryDate), 'HH:mm', { locale: dateLocale })}
-                                            </span>
-                                          </div>
-                                          <div className={cn(
-                                            "text-sm font-semibold",
-                                            trade.pnl > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                                          )}>
-                                            {formatCurrency(trade.pnl)}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              ))}
-                            </Accordion>
-                          ) : (
-                            <div className="text-sm text-muted-foreground text-center py-4">
-                              No trades this week
-                            </div>
-                          )}
-                        </div>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            ))}
+                          </Accordion>
+                        ) : (
+                          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                            No trades this week
+                          </div>
+                        )}
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -257,4 +270,4 @@ export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendar
       </div>
     </div>
   )
-} 
+}

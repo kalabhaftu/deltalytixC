@@ -1,16 +1,16 @@
 'use client'
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, getDay, endOfWeek, addDays } from "date-fns"
 import { formatInTimeZone } from 'date-fns-tz'
 import { enUS } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CalendarData } from "@/app/dashboard/types/calendar"
 import { useUserStore } from "@/store/user-store"
-import { TODAY_STYLES, WEEKDAYS_WEEKDAYS_ONLY } from "@/app/dashboard/constants/calendar-styles"
+import { TODAY_STYLES, WEEKDAYS_WEEKDAYS_ONLY, PNL_TEXT_STYLES, METRIC_PILL_STYLES } from "@/app/dashboard/constants/calendar-styles"
 
 const WEEKDAYS_MINI = WEEKDAYS_WEEKDAYS_ONLY
 
@@ -30,29 +30,32 @@ function getCalendarDays(monthStart: Date, monthEnd: Date) {
   return [...days, ...additionalDays].slice(0, 42)
 }
 
-const formatCurrency = (value: number, options?: { minimumFractionDigits?: number; maximumFractionDigits?: number }) => {
+const formatCurrency = (value: number) => {
   const formatted = value.toLocaleString('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: options?.minimumFractionDigits ?? 0,
-    maximumFractionDigits: options?.maximumFractionDigits ?? 0
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   })
   return formatted
+}
+
+const formatCompact = (value: number) => {
+  if (Math.abs(value) >= 1000) return `$${(value / 1000).toFixed(1)}k`
+  return `$${value.toFixed(0)}`
 }
 
 interface MiniCalendarProps {
   calendarData: CalendarData;
 }
 
-// Memoized mini calendar to prevent unnecessary re-renders
 function MiniCalendar({ calendarData }: MiniCalendarProps) {
-  const locale = 'en'
   const timezone = useUserStore(state => state.timezone)
   const dateLocale = enUS
   const [currentDate, setCurrentDate] = useState(new Date())
   const [calendarDays, setCalendarDays] = useState<Date[]>([])
 
-  const { monthStart, monthEnd } = React.useMemo(() => ({
+  const { monthStart, monthEnd } = useMemo(() => ({
     monthStart: startOfMonth(currentDate),
     monthEnd: endOfMonth(currentDate)
   }), [currentDate])
@@ -61,193 +64,153 @@ function MiniCalendar({ calendarData }: MiniCalendarProps) {
     setCalendarDays(getCalendarDays(monthStart, monthEnd))
   }, [currentDate, monthStart, monthEnd])
 
-  const handlePrevMonth = React.useCallback(() => {
-    setCurrentDate(subMonths(currentDate, 1))
-  }, [currentDate])
+  const handlePrevMonth = useCallback(() => setCurrentDate(subMonths(currentDate, 1)), [currentDate])
+  const handleNextMonth = useCallback(() => setCurrentDate(addMonths(currentDate, 1)), [currentDate])
 
-  const handleNextMonth = React.useCallback(() => {
-    setCurrentDate(addMonths(currentDate, 1))
-  }, [currentDate])
-
-  const calculateMonthlyTotal = React.useCallback(() => {
+  const monthlyTotal = useMemo(() => {
     return Object.entries(calendarData).reduce((total, [dateString, dayData]) => {
       const date = new Date(dateString)
-      if (isSameMonth(date, currentDate)) {
-        return total + dayData.pnl
-      }
+      if (isSameMonth(date, currentDate)) return total + dayData.pnl
       return total
     }, 0)
   }, [calendarData, currentDate])
 
-  const monthlyTotal = calculateMonthlyTotal()
-
-  const calculateWeeklyTotal = React.useCallback((index: number, calendarDays: Date[], calendarData: CalendarData) => {
-    // Calculate for Mon-Fri only
-    const startOfWeekIndex = index - 4 // 4 days back for Mon-Fri
+  const calculateWeeklyTotal = useCallback((index: number, calendarDays: Date[], calendarData: CalendarData) => {
+    const startOfWeekIndex = index - 4
     const weekDays = calendarDays.slice(startOfWeekIndex, index + 1)
-    
+
     return weekDays.reduce((total, day) => {
-      // Skip weekends when calculating total
       const dayOfWeek = getDay(day)
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        return total
-      }
-      
+      if (dayOfWeek === 0 || dayOfWeek === 6) return total
       const dayData = calendarData[formatInTimeZone(day, timezone, 'yyyy-MM-dd')]
       return total + (dayData ? dayData.pnl : 0)
     }, 0)
   }, [timezone])
 
+  const isPositive = monthlyTotal >= 0
+
   return (
     <Card className="h-[580px] flex flex-col w-full">
-      <CardHeader
-        className="flex flex-row items-center justify-between space-y-0 border-b shrink-0 p-3 sm:p-4 h-[56px]"
-      >
+      {/* Header */}
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b shrink-0 px-4 py-3">
         <div className="flex items-center gap-3">
-          <CardTitle className="text-base sm:text-lg font-semibold truncate capitalize">
-            {formatInTimeZone(currentDate, timezone, 'MMMM yyyy', { locale: dateLocale })}
+          <CardTitle className="text-base font-bold capitalize">
+            {formatInTimeZone(currentDate, timezone, 'MMM yyyy', { locale: dateLocale })}
           </CardTitle>
           <div className={cn(
-            "text-sm sm:text-base font-semibold truncate",
-            monthlyTotal >= 0
-              ? "text-green-600 dark:text-green-400"
-              : "text-red-600 dark:text-red-400"
+            METRIC_PILL_STYLES.base,
+            isPositive ? METRIC_PILL_STYLES.profit : METRIC_PILL_STYLES.loss
           )}>
-            {formatCurrency(monthlyTotal)}
+            {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+            {formatCompact(monthlyTotal)}
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handlePrevMonth}
-            className="h-7 w-7 sm:h-8 sm:w-8"
-            aria-label="Previous month"
-          >
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-8 w-8" aria-label="Previous month">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleNextMonth}
-            className="h-7 w-7 sm:h-8 sm:w-8"
-            aria-label="Next month"
-          >
+          <Button variant="ghost" size="icon" onClick={handleNextMonth} className="h-8 w-8" aria-label="Next month">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 min-h-0 p-1 sm:p-2">
-        <div className="gap-x-2 mb-2 grid grid-cols-6">
+
+      <CardContent className="flex-1 min-h-0 p-3">
+        {/* Weekday Headers */}
+        <div className="grid grid-cols-6 gap-2 mb-2">
           {WEEKDAYS_MINI.map((day) => (
-            <div key={day} className="text-center font-medium text-[9px] sm:text-[11px] text-muted-foreground">
+            <div key={day} className="text-center font-medium text-xs text-muted-foreground py-1">
               {day}
             </div>
           ))}
-          <div className="text-center font-medium text-[9px] sm:text-[11px] text-muted-foreground">
-            Weekly
+          <div className="text-center font-medium text-xs text-muted-foreground py-1">
+            Wk
           </div>
         </div>
-        <div className="gap-2 h-fit min-h-[450px] max-h-[500px] overflow-hidden grid grid-cols-6">
+
+        {/* Calendar Grid - increased gap and cell heights */}
+        <div className="grid grid-cols-6 gap-2 h-[calc(100%-2rem)]">
           {calendarDays.map((date, index) => {
             const dayOfWeek = getDay(date)
-            
-            // Skip weekends in mini calendar
-            if (dayOfWeek === 0 || dayOfWeek === 6) {
-              return null
-            }
-            
-            // Calculate grid column for mini mode
-            // getDay(): Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6
-            // We want: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5
+
+            // Skip weekends
+            if (dayOfWeek === 0 || dayOfWeek === 6) return null
+
             let gridColumn = undefined
-            if (dayOfWeek === 1) gridColumn = 1 // Monday
-            else if (dayOfWeek === 2) gridColumn = 2 // Tuesday  
-            else if (dayOfWeek === 3) gridColumn = 3 // Wednesday
-            else if (dayOfWeek === 4) gridColumn = 4 // Thursday
-            else if (dayOfWeek === 5) gridColumn = 5 // Friday
-            
+            if (dayOfWeek === 1) gridColumn = 1
+            else if (dayOfWeek === 2) gridColumn = 2
+            else if (dayOfWeek === 3) gridColumn = 3
+            else if (dayOfWeek === 4) gridColumn = 4
+            else if (dayOfWeek === 5) gridColumn = 5
+
             const dateString = format(date, 'yyyy-MM-dd')
             const dayData = calendarData[dateString]
-            const isLastDayOfWeek = dayOfWeek === 5 // Friday is last day
+            const isLastDayOfWeek = dayOfWeek === 5
             const isCurrentMonth = isSameMonth(date, currentDate)
+            const isTodayDate = isToday(date)
+            const hasTrades = dayData && dayData.pnl !== 0
+            const isProfit = dayData && dayData.pnl >= 0
 
             return (
               <React.Fragment key={dateString}>
                 <div
                   style={gridColumn ? { gridColumn } : undefined}
                   className={cn(
-                    "h-full flex flex-col rounded-md p-1",
-                    "border",
-                    dayData && dayData.pnl >= 0
-                      ? "bg-green-50/80 dark:bg-green-950/40 midnight-ocean:bg-green-950/40 border-green-100 dark:border-green-900/50 midnight-ocean:border-green-900/50"
-                      : dayData && dayData.pnl < 0
-                        ? "bg-red-50/60 dark:bg-red-950/30 midnight-ocean:bg-red-950/30 border-red-100/80 dark:border-red-900/40 midnight-ocean:border-red-900/40"
-                        : "bg-card border-border",
-                    !isCurrentMonth && "opacity-50",
-                    isToday(date) && TODAY_STYLES.cell,
+                    "flex flex-col rounded-lg p-2 border transition-colors min-h-[60px]",
+                    hasTrades
+                      ? isProfit
+                        ? "bg-emerald-500/10 border-emerald-500/20"
+                        : "bg-red-500/10 border-red-500/20"
+                      : "bg-card border-border/30",
+                    !isCurrentMonth && "opacity-40",
+                    isTodayDate && TODAY_STYLES.cell,
                   )}
                 >
-                  <div className="flex justify-between items-start gap-0.5">
-                    <span className={cn(
-                      "text-[9px] sm:text-[11px] font-medium min-w-[14px] text-center",
-                      isToday(date) && TODAY_STYLES.text,
-                      !isCurrentMonth && "opacity-50"
-                    )}>
-                      {format(date, 'd')}
-                    </span>
-                  </div>
-                  <div className="flex-1 flex flex-col justify-end gap-0.5">
-                    {dayData ? (
-                      <div className={cn(
-                        "text-[9px] sm:text-[11px] font-semibold truncate text-center",
-                        dayData.pnl >= 0
-                          ? "text-green-600 dark:text-green-400"
-                          : "text-red-600 dark:text-red-400",
-                        !isCurrentMonth && "opacity-50"
-                      )}>
-                        {formatCurrency(dayData.pnl)}
-                      </div>
+                  <span className={cn(
+                    "text-xs font-semibold text-center",
+                    isTodayDate && "text-primary",
+                    !isCurrentMonth && "text-muted-foreground"
+                  )}>
+                    {format(date, 'd')}
+                  </span>
+                  <div className="flex-1 flex flex-col items-center justify-center mt-1">
+                    {hasTrades ? (
+                      <>
+                        <div className={cn(
+                          "text-sm font-bold text-center",
+                          isProfit ? PNL_TEXT_STYLES.profit : PNL_TEXT_STYLES.loss,
+                          !isCurrentMonth && "opacity-60"
+                        )}>
+                          {formatCompact(dayData.pnl)}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground text-center">
+                          {dayData.tradeNumber}t
+                        </div>
+                      </>
                     ) : (
-                      <div className={cn(
-                        "text-[9px] sm:text-[11px] font-semibold invisible text-center",
-                        !isCurrentMonth && "opacity-50"
-                      )}>$0</div>
+                      <div className="text-xs text-muted-foreground/50 text-center">-</div>
                     )}
-                    <div className={cn(
-                      "text-[7px] sm:text-[9px] text-muted-foreground truncate text-center",
-                      !isCurrentMonth && "opacity-50"
-                    )}>
-                      {dayData
-                        ? `${dayData.tradeNumber} ${dayData.tradeNumber > 1 ? "trades" : "trade"}`
-                        : "No trades"}
-                    </div>
                   </div>
                 </div>
+
                 {isLastDayOfWeek && (() => {
                   const weeklyTotal = calculateWeeklyTotal(index, calendarDays, calendarData)
-                  const weeklyState = weeklyTotal > 0 ? 'gain' : weeklyTotal < 0 ? 'loss' : 'flat'
+                  const state = weeklyTotal > 0 ? 'profit' : weeklyTotal < 0 ? 'loss' : 'flat'
                   return (
-                    <div
-                      className={cn(
-                        "h-full flex items-center justify-center rounded-md border",
-                        weeklyState === 'gain'
-                          ? "bg-green-50/80 dark:bg-green-950/40 midnight-ocean:bg-green-950/40 border-green-100 dark:border-green-900/50 midnight-ocean:border-green-900/50"
-                          : weeklyState === 'loss'
-                            ? "bg-red-50/60 dark:bg-red-950/30 midnight-ocean:bg-red-950/30 border-red-100/80 dark:border-red-900/40 midnight-ocean:border-red-900/40"
-                            : "bg-muted/30 dark:bg-muted/10 border-dashed border-border/70"
-                      )}
-                    >
-                      <div className={cn(
-                        "text-[9px] sm:text-[11px] font-semibold truncate px-0.5",
-                        weeklyState === 'gain'
-                          ? "text-green-600 dark:text-green-400"
-                          : weeklyState === 'loss'
-                            ? "text-red-600 dark:text-red-400"
-                            : "text-muted-foreground"
+                    <div className={cn(
+                      "flex items-center justify-center rounded-lg border min-h-[60px]",
+                      state === 'profit' && "bg-emerald-500/10 border-emerald-500/20",
+                      state === 'loss' && "bg-red-500/10 border-red-500/20",
+                      state === 'flat' && "bg-muted/10 border-dashed border-border/40",
+                    )}>
+                      <span className={cn(
+                        "text-sm font-bold",
+                        state === 'profit' && PNL_TEXT_STYLES.profit,
+                        state === 'loss' && PNL_TEXT_STYLES.loss,
+                        state === 'flat' && PNL_TEXT_STYLES.neutral,
                       )}>
-                        {formatCurrency(weeklyTotal)}
-                      </div>
+                        {formatCompact(weeklyTotal)}
+                      </span>
                     </div>
                   )
                 })()}
@@ -260,8 +223,6 @@ function MiniCalendar({ calendarData }: MiniCalendarProps) {
   )
 }
 
-// Export memoized version for performance
 export default React.memo(MiniCalendar, (prevProps, nextProps) => {
   return JSON.stringify(prevProps.calendarData) === JSON.stringify(nextProps.calendarData)
 })
-

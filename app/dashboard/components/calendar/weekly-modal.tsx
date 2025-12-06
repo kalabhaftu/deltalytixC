@@ -133,8 +133,8 @@ export function WeeklyModal({
     if (!selectedDate) return { trades: [], tradeNumber: 0, pnl: 0, longNumber: 0, shortNumber: 0, winRate: 0, avgWin: 0, avgLoss: 0, winningTrades: 0, losingTrades: 0 }
 
     const trades: any[] = []
-    const weekStart = startOfWeek(selectedDate)
-    const weekEnd = endOfWeek(selectedDate)
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
+    const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
 
     // Format week boundaries as YYYY-MM-DD strings for consistent comparison
     // This avoids timezone issues when comparing against dateString keys
@@ -244,8 +244,8 @@ export function WeeklyModal({
   const chartData = useMemo(() => {
     if (!selectedDate) return []
 
-    const weekStart = startOfWeek(selectedDate)
-    const weekEnd = endOfWeek(selectedDate)
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
+    const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
 
     // Format week boundaries as YYYY-MM-DD strings for consistent comparison
     const weekStartStr = format(weekStart, 'yyyy-MM-dd')
@@ -387,8 +387,8 @@ export function WeeklyModal({
       }
 
       const result = await saveWeeklyReview({
-        startDate: startOfWeek(selectedDate),
-        endDate: endOfWeek(selectedDate),
+        startDate: startOfWeek(selectedDate, { weekStartsOn: 1 }),
+        endDate: endOfWeek(selectedDate, { weekStartsOn: 1 }),
         calendarImage: imageUrl,
         expectation: reviewData?.expectation,
         actualOutcome: reviewData?.actualOutcome,
@@ -422,8 +422,8 @@ export function WeeklyModal({
 
   if (!selectedDate || !isOpen) return null;
 
-  const weekStart = startOfWeek(selectedDate)
-  const weekEnd = endOfWeek(selectedDate)
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 })
+  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 })
   const dateRange = `${format(weekStart, 'MMM d', { locale: dateLocale })} - ${format(weekEnd, 'MMM d, yyyy', { locale: dateLocale })}`
 
   return (

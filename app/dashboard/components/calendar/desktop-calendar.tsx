@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useState, useEffect, useRef, memo } from "react"
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, getDay, endOfWeek, addDays, isSameDay, getYear } from "date-fns"
+import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "react"
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, getDay, endOfWeek, addDays, getYear } from "date-fns"
 import { formatInTimeZone } from 'date-fns-tz'
 import { enUS } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Calendar, CalendarDays, BookOpen, Camera } from "lucide-react"
+import { ChevronLeft, ChevronRight, Calendar, CalendarDays, BookOpen, Camera, TrendingUp, TrendingDown } from "lucide-react"
 import html2canvas from 'html2canvas'
 import { toast } from "sonner"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
@@ -21,13 +21,16 @@ import WeeklyCalendarPnl from "./weekly-calendar"
 import { CalendarData } from "@/app/dashboard/types/calendar"
 import { useUserStore } from "@/store/user-store"
 import { Account } from "@/context/data-provider"
-import { TODAY_STYLES, WEEKDAYS_FULL } from "@/app/dashboard/constants/calendar-styles"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  TODAY_STYLES,
+  WEEKDAYS_FULL,
+  DAY_CELL_STYLES,
+  WEEKLY_CELL_STYLES,
+  PNL_TEXT_STYLES,
+  METRIC_PILL_STYLES
+} from "@/app/dashboard/constants/calendar-styles"
 
 const WEEKDAYS = WEEKDAYS_FULL
-
-type CalendarView = 'month' | 'week'
-
 
 function getCalendarDays(monthStart: Date, monthEnd: Date) {
   const startDate = startOfWeek(monthStart)
@@ -59,8 +62,7 @@ interface CalendarPnlProps {
   calendarData: CalendarData;
 }
 
-
-
+// Renewal Badge Component
 function RenewalBadge({ renewals }: { renewals: Account[] }) {
   if (renewals.length === 0) return null
 
@@ -70,11 +72,9 @@ function RenewalBadge({ renewals }: { renewals: Account[] }) {
         <Badge
           variant="outline"
           className={cn(
-            "h-4 px-1.5 text-[8px] sm:text-[9px] font-medium cursor-pointer relative z-0 w-auto justify-center items-center gap-1",
-            "bg-muted/50 text-foreground border-border hover:bg-muted dark:bg-muted/30 dark:text-foreground dark:border-border dark:hover:bg-muted/50",
-            "transition-all duration-200 ease-in-out",
-            "hover:scale-110 hover:shadow-md",
-            "active:scale-95"
+            "h-4 px-1.5 text-[8px] font-medium cursor-pointer z-0 justify-center items-center gap-1",
+            "bg-muted/50 text-foreground border-border hover:bg-muted",
+            "transition-all duration-200 hover:scale-110"
           )}
           onClick={(e) => e.stopPropagation()}
         >
@@ -91,16 +91,14 @@ function RenewalBadge({ renewals }: { renewals: Account[] }) {
       >
         <div className="space-y-4">
           <div className="font-semibold text-sm">Daily</div>
-          {renewals.map((account, index) => (
+          {renewals.map((account) => (
             <div key={account.id} className="border-b last:border-b-0 pb-3 last:pb-0">
               <div className="flex justify-between items-start">
                 <div className="space-y-1">
-                  <div className="font-medium text-sm">
-                    {account.number}
-                  </div>
+                  <div className="font-medium text-sm">{account.number}</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold text-sm text-foreground">
+                  <div className="font-semibold text-sm">
                     {account.startingBalance != null && formatCurrency(account.startingBalance, { maximumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -113,84 +111,179 @@ function RenewalBadge({ renewals }: { renewals: Account[] }) {
   )
 }
 
+// Day Cell Component - Optimized for performance
+const DayCell = memo(function DayCell({
+  date,
+  dayData,
+  isCurrentMonth,
+  hasJournal,
+  renewals,
+  winRate,
+  onClick,
+  timezone
+}: {
+  date: Date
+  dayData: CalendarData[string] | undefined
+  isCurrentMonth: boolean
+  hasJournal: boolean
+  renewals: Account[]
+  winRate: string
+  onClick: () => void
+  timezone: string
+}) {
+  const isTodayDate = isToday(date)
+  const hasTrades = dayData && dayData.tradeNumber > 0
+  const isProfit = dayData && dayData.pnl >= 0
+
+  return (
+    <div
+      className={cn(
+        DAY_CELL_STYLES.base,
+        "min-h-[90px] flex flex-col p-2",
+        hasTrades
+          ? isProfit
+            ? DAY_CELL_STYLES.profit
+            : DAY_CELL_STYLES.loss
+          : DAY_CELL_STYLES.empty,
+        !isCurrentMonth && DAY_CELL_STYLES.notCurrentMonth,
+        isTodayDate && TODAY_STYLES.cell,
+      )}
+      onClick={onClick}
+    >
+      {/* Header row */}
+      <div className="flex justify-between items-start">
+        <span className={cn(
+          "text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full",
+          isTodayDate && "bg-primary text-primary-foreground",
+          !isTodayDate && !isCurrentMonth && "text-muted-foreground"
+        )}>
+          {format(date, 'd')}
+        </span>
+        <div className="flex items-center gap-1">
+          {hasJournal && (
+            <BookOpen className="h-3 w-3 text-muted-foreground" />
+          )}
+          {renewals.length > 0 && <RenewalBadge renewals={renewals} />}
+        </div>
+      </div>
+
+      {/* Content */}
+      {hasTrades && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-0.5 mt-1">
+          <div className={cn(
+            "text-lg font-bold leading-tight",
+            isProfit ? PNL_TEXT_STYLES.profit : PNL_TEXT_STYLES.loss
+          )}>
+            {formatCurrency(dayData.pnl)}
+          </div>
+          <div className="text-[10px] text-muted-foreground">
+            {dayData.tradeNumber} {dayData.tradeNumber > 1 ? "trades" : "trade"}
+          </div>
+          <div className={cn(
+            "text-[10px] font-medium",
+            isProfit ? PNL_TEXT_STYLES.profit : PNL_TEXT_STYLES.loss
+          )}>
+            {winRate}%
+          </div>
+        </div>
+      )}
+    </div>
+  )
+})
+
+// Weekly Summary Cell Component
+const WeeklySummaryCell = memo(function WeeklySummaryCell({
+  weeklyStats,
+  onClick
+}: {
+  weeklyStats: { totalPnl: number; tradingDays: number; winRate: string }
+  onClick: () => void
+}) {
+  const state = weeklyStats.totalPnl > 0 ? 'profit' : weeklyStats.totalPnl < 0 ? 'loss' : 'flat'
+
+  return (
+    <div
+      className={cn(
+        WEEKLY_CELL_STYLES.base,
+        "min-h-[90px] flex flex-col items-center justify-center p-2",
+        state === 'profit' && WEEKLY_CELL_STYLES.profit,
+        state === 'loss' && WEEKLY_CELL_STYLES.loss,
+        state === 'flat' && WEEKLY_CELL_STYLES.flat,
+      )}
+      onClick={onClick}
+    >
+      <div className={cn(
+        "text-base font-bold",
+        state === 'profit' && PNL_TEXT_STYLES.profit,
+        state === 'loss' && PNL_TEXT_STYLES.loss,
+        state === 'flat' && PNL_TEXT_STYLES.neutral,
+      )}>
+        {formatCurrency(weeklyStats.totalPnl)}
+      </div>
+      <div className="text-[10px] text-muted-foreground mt-0.5">
+        {weeklyStats.tradingDays} {weeklyStats.tradingDays !== 1 ? "days" : "day"}
+      </div>
+      <div className={cn(
+        "text-[10px] font-medium",
+        state === 'profit' && PNL_TEXT_STYLES.profit,
+        state === 'loss' && PNL_TEXT_STYLES.loss,
+        state === 'flat' && PNL_TEXT_STYLES.neutral,
+      )}>
+        {weeklyStats.winRate}%
+      </div>
+    </div>
+  )
+})
+
 const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps) {
   const accounts = useUserStore(state => state.accounts)
-  const locale = 'en' // Fixed to English since we removed i18n
   const timezone = useUserStore(state => state.timezone)
   const dateLocale = enUS
   const [currentDate, setCurrentDate] = useState(new Date())
   const [isLoading, setIsLoading] = useState(false)
   const [calendarDays, setCalendarDays] = useState<Date[]>([])
-
-  // State to store notes from database
   const [dailyNotes, setDailyNotes] = useState<Record<string, string>>({})
-
-  // Ref for the calendar container to capture screenshot
   const calendarRef = useRef<HTMLDivElement>(null)
 
-  // Use centralized calendar notes hook (data pre-loaded from getUserData)
   const { notes: dailyNotesFromHook, refetchNotes } = useCalendarNotes()
 
-  // DON'T fetch on mount - notes are already bundled with initial data
-  // Only refetch when explicitly needed (e.g., after save)
-
-  // Update local state when hook data changes
   useEffect(() => {
     setDailyNotes(dailyNotesFromHook)
   }, [dailyNotesFromHook])
 
-  // Fetch notes on mount and when notes are saved
   useEffect(() => {
-    // Listen for notes saved event
-    const handleNotesSaved = () => {
-      refetchNotes()
-    }
+    const handleNotesSaved = () => refetchNotes()
     window.addEventListener('notesSaved', handleNotesSaved)
-
-    return () => {
-      window.removeEventListener('notesSaved', handleNotesSaved)
-    }
+    return () => window.removeEventListener('notesSaved', handleNotesSaved)
   }, [refetchNotes])
 
-  // Check if a note exists for a given date
-  const hasNoteForDate = React.useCallback((date: Date) => {
+  const hasNoteForDate = useCallback((date: Date) => {
     const dateKey = date.toISOString().split('T')[0]
     return dailyNotes[dateKey] && dailyNotes[dateKey].trim().length > 0
   }, [dailyNotes])
 
-  // Memoize monthStart and monthEnd calculations
-  const { monthStart, monthEnd } = React.useMemo(() => ({
+  const { monthStart, monthEnd } = useMemo(() => ({
     monthStart: startOfMonth(currentDate),
     monthEnd: endOfMonth(currentDate)
   }), [currentDate])
 
-  // Fetch journal data for the current month
-  const { hasJournalForDate, getJournalForDate } = useJournalData(monthStart, monthEnd)
+  const { hasJournalForDate } = useJournalData(monthStart, monthEnd)
 
-  // Update calendarDays when currentDate changes
   useEffect(() => {
     setCalendarDays(getCalendarDays(monthStart, monthEnd))
   }, [currentDate, monthStart, monthEnd])
 
-  // Use the calendar view store
   const { viewMode, setViewMode, selectedDate, setSelectedDate, selectedWeekDate, setSelectedWeekDate } = useCalendarViewStore()
 
-  // Clear selectedWeekDate on unmount to prevent modal from opening randomly
   useEffect(() => {
-    return () => {
-      setSelectedWeekDate(null)
-    }
+    return () => setSelectedWeekDate(null)
   }, [setSelectedWeekDate])
 
-  // Stable callback for WeeklyModal onOpenChange to prevent unnecessary re-renders
-  const handleWeeklyModalOpenChange = React.useCallback((open: boolean) => {
-    if (!open) {
-      setSelectedWeekDate(null)
-    }
+  const handleWeeklyModalOpenChange = useCallback((open: boolean) => {
+    if (!open) setSelectedWeekDate(null)
   }, [setSelectedWeekDate])
 
-  // Screenshot handler
-  const handleScreenshot = React.useCallback(async () => {
+  const handleScreenshot = useCallback(async () => {
     if (!calendarRef.current) return
 
     try {
@@ -198,19 +291,17 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
 
       const canvas = await html2canvas(calendarRef.current, {
         backgroundColor: null,
-        scale: 2, // Higher quality
+        scale: 2,
         logging: false,
         useCORS: true,
       })
 
-      // Convert canvas to blob
       canvas.toBlob((blob) => {
         if (!blob) {
           toast.error("Failed to capture screenshot")
           return
         }
 
-        // Create download link
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         const fileName = `calendar-${format(currentDate, 'yyyy-MM')}-${viewMode}.png`
@@ -228,16 +319,15 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
     }
   }, [currentDate, viewMode])
 
-
-  const handlePrevMonth = React.useCallback(() => {
+  const handlePrevMonth = useCallback(() => {
     setCurrentDate(subMonths(currentDate, 1))
   }, [currentDate])
 
-  const handleNextMonth = React.useCallback(() => {
+  const handleNextMonth = useCallback(() => {
     setCurrentDate(addMonths(currentDate, 1))
   }, [currentDate])
 
-  const calculateMonthlyTotal = React.useCallback(() => {
+  const monthlyTotal = useMemo(() => {
     return Object.entries(calendarData).reduce((total, [dateString, dayData]) => {
       const date = new Date(dateString)
       if (isSameMonth(date, currentDate)) {
@@ -247,9 +337,7 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
     }, 0)
   }, [calendarData, currentDate])
 
-  const monthlyTotal = calculateMonthlyTotal()
-
-  const calculateYearTotal = React.useCallback(() => {
+  const yearTotal = useMemo(() => {
     return Object.entries(calendarData).reduce((total, [dateString, dayData]) => {
       const date = new Date(dateString)
       if (getYear(date) === getYear(currentDate)) {
@@ -259,27 +347,11 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
     }, 0)
   }, [calendarData, currentDate])
 
-  const yearTotal = calculateYearTotal()
-
-
-  const getRenewalsForDate = React.useCallback((date: Date) => {
-    return [] // Temporary return empty array until nextPaymentDate field is added
+  const getRenewalsForDate = useCallback((_date: Date) => {
+    return [] // Placeholder until nextPaymentDate field is added
   }, [])
 
-  const calculateWeeklyTotal = React.useCallback((index: number, calendarDays: Date[], calendarData: CalendarData) => {
-    // Calculate for full week (Sun-Sat)
-    const startOfWeekIndex = index - 6
-    const weekDays = calendarDays.slice(startOfWeekIndex, index + 1)
-
-    const weekTotal = weekDays.reduce((total, day) => {
-      const dayData = calendarData[formatInTimeZone(day, timezone, 'yyyy-MM-dd')]
-      return total + (dayData ? dayData.pnl : 0)
-    }, 0)
-
-    return weekTotal
-  }, [timezone])
-
-  const calculateWeeklyStats = React.useCallback((index: number, calendarDays: Date[], calendarData: CalendarData) => {
+  const calculateWeeklyStats = useCallback((index: number, calendarDays: Date[], calendarData: CalendarData) => {
     const startOfWeekIndex = index - 6
     const weekDays = calendarDays.slice(startOfWeekIndex, index + 1)
 
@@ -298,7 +370,6 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
       }
     })
 
-    // CRITICAL FIX: Exclude break-even trades from win rate denominator
     const losingTrades = Object.values(calendarData).reduce((sum, dayData) => {
       return sum + dayData.trades.filter(t => (t.pnl - (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).length
     }, 0)
@@ -308,53 +379,60 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
     return { totalPnl, totalTrades, winRate, tradingDays }
   }, [timezone])
 
+  const displayTotal = viewMode === 'daily' ? monthlyTotal : yearTotal
+  const isPositive = displayTotal >= 0
 
   return (
-    <Card ref={calendarRef} className="h-full flex flex-col">
-      <CardHeader
-        className="flex flex-row items-center justify-between space-y-0 border-b shrink-0 p-3 sm:p-4 h-[56px]"
-      >
-        <div className="flex items-center gap-3">
-          <CardTitle className="text-base sm:text-lg font-semibold truncate capitalize">
+    <Card ref={calendarRef} className="h-full flex flex-col overflow-hidden">
+      {/* Header */}
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b shrink-0 px-4 py-3 bg-gradient-to-r from-card to-muted/5">
+        <div className="flex items-center gap-4">
+          <CardTitle className="text-lg font-bold tracking-tight capitalize">
             {viewMode === 'daily'
               ? formatInTimeZone(currentDate, timezone, 'MMMM yyyy', { locale: dateLocale })
               : formatInTimeZone(currentDate, timezone, 'yyyy', { locale: dateLocale })}
           </CardTitle>
+
+          {/* Total Pill */}
           <div className={cn(
-            "text-sm sm:text-base font-semibold truncate",
-            (viewMode === 'daily' ? monthlyTotal : yearTotal) >= 0
-              ? "text-green-600 dark:text-green-400"
-              : "text-red-600 dark:text-red-400"
+            METRIC_PILL_STYLES.base,
+            isPositive ? METRIC_PILL_STYLES.profit : METRIC_PILL_STYLES.loss
           )}>
-            {formatCurrency(viewMode === 'daily' ? monthlyTotal : yearTotal)}
+            {isPositive ? (
+              <TrendingUp className="h-3.5 w-3.5" />
+            ) : (
+              <TrendingDown className="h-3.5 w-3.5" />
+            )}
+            {formatCurrency(displayTotal)}
           </div>
         </div>
-        <div className="flex items-center gap-4">
+
+        <div className="flex items-center gap-3">
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 border rounded-md p-0.5 bg-muted">
+          <div className="flex items-center bg-muted/50 rounded-lg p-0.5">
             <Button
               variant={viewMode === 'daily' ? 'default' : 'ghost'}
               size="sm"
               className={cn(
-                "h-7 px-2 transition-colors",
-                viewMode === 'daily' && "bg-muted text-muted-foreground shadow font-semibold"
+                "h-7 px-3 gap-1.5 rounded-md text-xs font-medium transition-all",
+                viewMode === 'daily' && "shadow-sm"
               )}
               onClick={() => setViewMode('daily')}
             >
-              <Calendar className="h-4 w-4 mr-1" />
-              <span className="text-xs">{"Daily"}</span>
+              <Calendar className="h-3.5 w-3.5" />
+              Daily
             </Button>
             <Button
               variant={viewMode === 'weekly' ? 'default' : 'ghost'}
               size="sm"
               className={cn(
-                "h-7 px-2 transition-colors",
-                viewMode === 'weekly' && "bg-muted text-muted-foreground shadow font-semibold"
+                "h-7 px-3 gap-1.5 rounded-md text-xs font-medium transition-all",
+                viewMode === 'weekly' && "shadow-sm"
               )}
               onClick={() => setViewMode('weekly')}
             >
-              <CalendarDays className="h-4 w-4 mr-1" />
-              <span className="text-xs">{"Weekly"}</span>
+              <CalendarDays className="h-3.5 w-3.5" />
+              Weekly
             </Button>
           </div>
 
@@ -362,19 +440,20 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 rounded-lg"
             onClick={handleScreenshot}
             title="Save screenshot"
           >
-            <Camera className="h-5 w-5" />
+            <Camera className="h-4 w-4" />
           </Button>
 
-          <div className="flex items-center gap-1.5">
+          {/* Navigation */}
+          <div className="flex items-center gap-1">
             <Button
               variant="outline"
               size="icon"
               onClick={() => viewMode === 'daily' ? handlePrevMonth() : setCurrentDate(new Date(getYear(currentDate) - 1, 0, 1))}
-              className="h-7 w-7 sm:h-8 sm:w-8"
+              className="h-8 w-8 rounded-lg"
               aria-label={viewMode === 'daily' ? "Previous month" : "Previous year"}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -383,7 +462,7 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
               variant="outline"
               size="icon"
               onClick={() => viewMode === 'daily' ? handleNextMonth() : setCurrentDate(new Date(getYear(currentDate) + 1, 0, 1))}
-              className="h-7 w-7 sm:h-8 sm:w-8"
+              className="h-8 w-8 rounded-lg"
               aria-label={viewMode === 'daily' ? "Next month" : "Next year"}
             >
               <ChevronRight className="h-4 w-4" />
@@ -391,164 +470,69 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 min-h-0 p-1 sm:p-2">
+
+      {/* Calendar Content */}
+      <CardContent className="flex-1 min-h-0 p-3">
         {viewMode === 'daily' ? (
           <>
-            <div className="gap-x-2 mb-2 grid grid-cols-8">
+            {/* Weekday Headers */}
+            <div className="grid grid-cols-8 gap-2 mb-2">
               {WEEKDAYS.map((day) => (
-                <div key={day} className="text-center font-medium text-[9px] sm:text-[11px] text-muted-foreground">
+                <div key={day} className="text-center font-medium text-[11px] text-muted-foreground py-1">
                   {day}
                 </div>
               ))}
-              <div className="text-center font-medium text-[9px] sm:text-[11px] text-muted-foreground">
+              <div className="text-center font-medium text-[11px] text-muted-foreground py-1">
                 Weekly
               </div>
             </div>
-            <div className="gap-2 h-fit min-h-[500px] max-h-[700px] overflow-hidden grid grid-cols-8">
+
+            {/* Calendar Grid */}
+            <div className="grid grid-cols-8 gap-2 h-[calc(100%-2rem)]">
               {calendarDays.map((date, index) => {
                 const dayOfWeek = getDay(date)
-
                 const dateString = format(date, 'yyyy-MM-dd')
                 const dayData = calendarData[dateString]
-                // Saturday (day 6) is last day of week
                 const isLastDayOfWeek = dayOfWeek === 6
                 const isCurrentMonth = isSameMonth(date, currentDate)
                 const dateRenewals = getRenewalsForDate(date)
-                const hasNote = hasNoteForDate(date)
                 const hasJournal = hasJournalForDate(date)
-                const journalEntry = getJournalForDate(date)
 
-                // Calculate win rate if there's data
                 const winRate = dayData && dayData.tradeNumber > 0
                   ? ((dayData.trades.filter(t => (t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length / dayData.trades.filter(t => Math.abs(t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length) * 100).toFixed(1)
                   : '0.0'
 
                 return (
                   <React.Fragment key={dateString}>
-                    <div
-                      className={cn(
-                        "h-full min-h-[100px] flex flex-col cursor-pointer transition-all duration-200 rounded-md overflow-hidden",
-                        "border",
-                        "hover:border-primary hover:shadow-sm hover:scale-[1.02]",
-                        dayData && dayData.pnl >= 0
-                          ? "bg-green-50/80 dark:bg-green-950/40 midnight-ocean:bg-green-950/40 border-green-100 dark:border-green-900/50 midnight-ocean:border-green-900/50"
-                          : dayData && dayData.pnl < 0
-                            ? "bg-red-50/60 dark:bg-red-950/30 midnight-ocean:bg-red-950/30 border-red-100/80 dark:border-red-900/40 midnight-ocean:border-red-900/40"
-                            : "bg-card border-border",
-                        !isCurrentMonth && "opacity-50",
-                        isToday(date) && TODAY_STYLES.cell,
-                      )}
+                    <DayCell
+                      date={date}
+                      dayData={dayData}
+                      isCurrentMonth={isCurrentMonth}
+                      hasJournal={hasJournal}
+                      renewals={dateRenewals}
+                      winRate={winRate}
                       onClick={() => {
-                        if (dayData) {
-                          setSelectedDate(date)
-                        }
+                        if (dayData) setSelectedDate(date)
                       }}
-                    >
-                      <div className="flex flex-col h-full">
-                        <div className="flex justify-between items-start px-1 pt-1">
-                          <span className={cn(
-                            "text-xs font-medium",
-                            isToday(date) && TODAY_STYLES.text,
-                            !isCurrentMonth && "opacity-50"
-                          )}>
-                            {format(date, 'd')}
-                          </span>
-                          <div className="flex items-center gap-1">
-                            {hasJournal && (
-                              <BookOpen className={cn(
-                                "h-3.5 w-3.5 text-slate-400 dark:text-slate-300",
-                                !isCurrentMonth && "opacity-30"
-                              )} />
-                            )}
-                            {dateRenewals.length > 0 && <RenewalBadge renewals={dateRenewals} />}
-                          </div>
-                        </div>
-                        {dayData ? (
-                          <div className="flex-1 flex flex-col items-center justify-center gap-0.5 px-1">
-                            <div className={cn(
-                              "text-base font-bold leading-tight text-center",
-                              dayData.pnl >= 0
-                                ? "text-green-600 dark:text-green-400 midnight-ocean:text-green-400"
-                                : "text-red-600 dark:text-red-400 midnight-ocean:text-red-400",
-                              !isCurrentMonth && "opacity-50"
-                            )}>
-                              {formatCurrency(dayData.pnl)}
-                            </div>
-                            <div className={cn(
-                              "text-[10px] text-muted-foreground text-center",
-                              !isCurrentMonth && "opacity-50"
-                            )}>
-                              {dayData.tradeNumber} {dayData.tradeNumber > 1 ? "trades" : "trade"}
-                            </div>
-                            <div className={cn(
-                              "text-[10px] font-medium text-center",
-                              dayData.pnl >= 0
-                                ? "text-green-600 dark:text-green-400 midnight-ocean:text-green-400"
-                                : "text-red-600 dark:text-red-400 midnight-ocean:text-red-400",
-                              !isCurrentMonth && "opacity-50"
-                            )}>
-                              {winRate}%
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                    {isLastDayOfWeek && (() => {
-                      const weeklyStats = calculateWeeklyStats(index, calendarDays, calendarData)
-                      const weeklyState = weeklyStats.totalPnl > 0 ? 'gain' : weeklyStats.totalPnl < 0 ? 'loss' : 'flat'
-                      return (
-                        <div
-                          className={cn(
-                            "h-full min-h-[100px] flex flex-col items-center justify-center rounded-md cursor-pointer transition-all duration-200 px-1 py-1",
-                            "border",
-                            "hover:border-primary hover:shadow-sm hover:scale-[1.02]",
-                            weeklyState === 'gain'
-                              ? "bg-green-50/80 dark:bg-green-950/40 midnight-ocean:bg-green-950/40 border-green-100 dark:border-green-900/50 midnight-ocean:border-green-900/50"
-                              : weeklyState === 'loss'
-                                ? "bg-red-50/60 dark:bg-red-950/30 midnight-ocean:bg-red-950/30 border-red-100/80 dark:border-red-900/40 midnight-ocean:border-red-900/40"
-                                : "bg-muted/30 dark:bg-muted/10 border-dashed border-border/70"
-                          )}
-                          onClick={() => {
-                            const weekStartIndex = index - (index % 7)
-                            const weekStart = calendarDays[weekStartIndex]
-                            if (weekStart) {
-                              setSelectedWeekDate(weekStart)
-                            }
-                          }}
-                        >
-                          <div className={cn(
-                            "text-base font-bold text-center leading-tight",
-                            weeklyState === 'gain'
-                              ? "text-green-600 dark:text-green-400"
-                              : weeklyState === 'loss'
-                                ? "text-red-600 dark:text-red-400"
-                                : "text-muted-foreground"
-                          )}>
-                            {formatCurrency(weeklyStats.totalPnl)}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground text-center mt-0.5">
-                            {weeklyStats.tradingDays} {weeklyStats.tradingDays > 1 ? "days" : "day"}
-                          </div>
-                          <div className={cn(
-                            "text-[10px] font-medium text-center",
-                            weeklyState === 'gain'
-                              ? "text-green-600 dark:text-green-400"
-                              : weeklyState === 'loss'
-                                ? "text-red-600 dark:text-red-400"
-                                : "text-muted-foreground"
-                          )}>
-                            {weeklyStats.winRate}%
-                          </div>
-                        </div>
-                      )
-                    })()}
+                      timezone={timezone}
+                    />
+                    {isLastDayOfWeek && (
+                      <WeeklySummaryCell
+                        weeklyStats={calculateWeeklyStats(index, calendarDays, calendarData)}
+                        onClick={() => {
+                          const weekStartIndex = index - (index % 7)
+                          const weekStart = calendarDays[weekStartIndex]
+                          if (weekStart) setSelectedWeekDate(weekStart)
+                        }}
+                      />
+                    )}
                   </React.Fragment>
                 )
               })}
             </div>
           </>
         ) : (
-          <div className="min-h-[500px] max-h-[700px] h-full overflow-hidden">
+          <div className="h-full overflow-hidden">
             <WeeklyCalendarPnl
               calendarData={calendarData}
               year={getYear(currentDate)}
@@ -556,6 +540,8 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
           </div>
         )}
       </CardContent>
+
+      {/* Modals */}
       <CalendarModal
         isOpen={selectedDate !== null && selectedDate !== undefined}
         onOpenChange={(open) => {
@@ -575,7 +561,6 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
     </Card>
   )
 }, (prevProps, nextProps) => {
-  // Custom comparison: only re-render if calendarData actually changed
   return JSON.stringify(prevProps.calendarData) === JSON.stringify(nextProps.calendarData)
 })
 

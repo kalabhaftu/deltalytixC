@@ -1,215 +1,170 @@
 'use client'
 
-import React, { useState } from "react"
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, getDay, addDays } from "date-fns"
+import React, { useState, useMemo } from "react"
+import { format, addMonths, subMonths, getDay, addDays } from "date-fns"
 import { formatInTimeZone, toDate } from 'date-fns-tz'
 import { enUS } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CalendarModal } from "./daily-modal"
 import { CalendarData } from "@/app/dashboard/types/calendar"
 import { Card, CardTitle } from "@/components/ui/card"
 import { useUserStore } from "@/store/user-store"
-import { TODAY_STYLES } from "@/app/dashboard/constants/calendar-styles"
+import { TODAY_STYLES, DAY_CELL_STYLES, PNL_TEXT_STYLES, METRIC_PILL_STYLES } from "@/app/dashboard/constants/calendar-styles"
 
 function formatCurrency(value: number): string {
-  const absValue = Math.abs(value);
-  if (absValue >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  }
-  if (absValue >= 1000) {
-    return `${(value / 1000).toFixed(1)}K`;
-  }
-  return value.toFixed(0);
+  const absValue = Math.abs(value)
+  if (absValue >= 1000000) return `${(value / 1000000).toFixed(1)}M`
+  if (absValue >= 1000) return `${(value / 1000).toFixed(1)}K`
+  return value.toFixed(0)
 }
 
-// Generates an array of 42 YYYY-MM-DD date strings for the calendar grid,
-// ensuring calculations respect the target timezone.
 function getCalendarDayStrings(currentMonthDate: Date, timezone: string): string[] {
-  // 1. Get the start of the month in the target timezone string format (YYYY-MM-01)
-  const monthStartString = formatInTimeZone(currentMonthDate, timezone, 'yyyy-MM-01');
-  // 2. Convert this string to a Date object representing midnight *in the target timezone*.
-  const firstDayOfMonthInTZ = toDate(monthStartString, { timeZone: timezone });
-  // 3. Get the day of the week (0=Sunday, 6=Saturday) for this first day *in the target timezone*.
-  const startDayOfWeek = getDay(firstDayOfMonthInTZ); // getDay uses the locale's start of week, but the Date object is timezone-correct
+  const monthStartString = formatInTimeZone(currentMonthDate, timezone, 'yyyy-MM-01')
+  const firstDayOfMonthInTZ = toDate(monthStartString, { timeZone: timezone })
+  const startDayOfWeek = getDay(firstDayOfMonthInTZ)
+  let currentGridDate = addDays(firstDayOfMonthInTZ, -startDayOfWeek)
 
-  // 4. Calculate the actual start date of the grid (Sunday) by subtracting days from the first day.
-  // `addDays` operates on the underlying timestamp but starts from a timezone-aware Date.
-  let currentGridDate = addDays(firstDayOfMonthInTZ, -startDayOfWeek);
-
-  const dayStrings: string[] = [];
+  const dayStrings: string[] = []
   for (let i = 0; i < 42; i++) {
-    // Format the current grid date *in the target timezone* for the array
-    dayStrings.push(formatInTimeZone(currentGridDate, timezone, 'yyyy-MM-dd'));
-    // Increment the date for the next iteration
-    currentGridDate = addDays(currentGridDate, 1);
+    dayStrings.push(formatInTimeZone(currentGridDate, timezone, 'yyyy-MM-dd'))
+    currentGridDate = addDays(currentGridDate, 1)
   }
-
-  // Ensure we always return exactly 42 days. Should be guaranteed by the loop.
-  return dayStrings;
+  return dayStrings
 }
 
-// Checks if a given YYYY-MM-DD date string matches today's date in the target timezone.
 function isDateStringToday(dateString: string, timezone: string): boolean {
-  const todayString = formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd');
-  return dateString === todayString;
+  return dateString === formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd')
 }
 
-// Removed - now using inline classes for today styling
-
-// Memoized mobile calendar for better performance
 function MobileCalendarPnl({ calendarData }: { calendarData: CalendarData }) {
-  const locale = 'en' // Fixed to English since we removed i18n
   const timezone = useUserStore(state => state.timezone)
   const dateLocale = enUS
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Generate calendar date strings based on the current date and timezone
   const calendarDayStrings = getCalendarDayStrings(currentDate, timezone)
-
-  // Get the current month and year based on the state date *in the target timezone*
-  // Use a reference date (start of the month) in the target timezone for reliable comparison.
-  const currentMonthReferenceDate = toDate(formatInTimeZone(currentDate, timezone, 'yyyy-MM-01'), { timeZone: timezone });
+  const currentMonthReferenceDate = toDate(formatInTimeZone(currentDate, timezone, 'yyyy-MM-01'), { timeZone: timezone })
   const currentMonth = currentMonthReferenceDate.getMonth()
   const currentYear = currentMonthReferenceDate.getFullYear()
 
-  // Define weekday headers (assuming Sunday start)
   const weekdayHeaders = [
-    { key: 'sunday', label: "Sun" },
-    { key: 'monday', label: "Mon" },
-    { key: 'tuesday', label: "Tue" },
-    { key: 'wednesday', label: "Wed" },
-    { key: 'thursday', label: "Thu" },
-    { key: 'friday', label: "Fri" },
-    { key: 'saturday', label: "Sat" }
+    { key: 'sun', label: 'S' },
+    { key: 'mon', label: 'M' },
+    { key: 'tue', label: 'T' },
+    { key: 'wed', label: 'W' },
+    { key: 'thu', label: 'T' },
+    { key: 'fri', label: 'F' },
+    { key: 'sat', label: 'S' },
   ]
 
   const handlePrevMonth = () => setCurrentDate(subMonths(currentDate, 1))
   const handleNextMonth = () => setCurrentDate(addMonths(currentDate, 1))
 
-  const calculateMonthlyTotal = () => {
-    // This calculation correctly uses dateString keys which are already YYYY-MM-DD
+  const monthlyTotal = useMemo(() => {
     return Object.entries(calendarData).reduce((total, [dateString, dayData]) => {
-      // Parse the date string to compare month and year
       try {
-        // Use UTC for parsing the key to avoid local shifts, then compare components
-        const date = toDate(dateString + 'T00:00:00Z') 
+        const date = toDate(dateString + 'T00:00:00Z')
         if (date.getFullYear() === currentYear && date.getMonth() === currentMonth) {
           return total + dayData.pnl
         }
-      } catch (e) {
-      }
+      } catch { }
       return total
     }, 0)
-  }
-  
-  const monthlyTotal = calculateMonthlyTotal()
-  
-  const getMaxPnl = () => {
-    // This calculation correctly uses dateString keys which are already YYYY-MM-DD
-    return Math.max(0, ...Object.entries(calendarData)
-      .filter(([dateString]) => {
-        try {
-          // Use UTC for parsing the key to avoid local shifts, then compare components
-          const date = toDate(dateString + 'T00:00:00Z')
-          return date.getFullYear() === currentYear && date.getMonth() === currentMonth
-        } catch (e) {
-          return false
-        }
-      })
-      .map(([_, data]) => Math.abs(data.pnl)))
-  }
+  }, [calendarData, currentYear, currentMonth])
 
-  const maxPnl = getMaxPnl()
+  const isPositive = monthlyTotal >= 0
 
   return (
     <Card className="h-full flex flex-col">
-      <div className="flex flex-row items-center justify-between space-y-0 border-b shrink-0 p-3 sm:p-4 h-[56px]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-card to-muted/5">
         <div className="flex items-center gap-3">
-          <CardTitle className="text-xl font-semibold truncate capitalize">
-            {formatInTimeZone(currentDate, timezone, 'MMMM yyyy', { locale: dateLocale })}
+          <CardTitle className="text-lg font-bold capitalize">
+            {formatInTimeZone(currentDate, timezone, 'MMM yyyy', { locale: dateLocale })}
           </CardTitle>
-          <span className={cn(
-            "text-sm font-semibold truncate",
-            monthlyTotal >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+          <div className={cn(
+            "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold",
+            isPositive
+              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400"
+              : "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400"
           )}>
+            {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
             ${formatCurrency(monthlyTotal)}
-          </span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Button variant="outline" size="icon" onClick={handlePrevMonth} className="h-7 w-7 sm:h-8 sm:w-8">
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="icon" onClick={handlePrevMonth} className="h-8 w-8 rounded-lg">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={handleNextMonth} className="h-7 w-7 sm:h-8 sm:w-8">
+          <Button variant="outline" size="icon" onClick={handleNextMonth} className="h-8 w-8 rounded-lg">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
-      <div className="flex-1 min-h-0 p-1.5 sm:p-4">
-        <div className="grid grid-cols-7 gap-x-[1px] mb-1">
+
+      {/* Calendar */}
+      <div className="flex-1 p-3">
+        {/* Weekday Headers */}
+        <div className="grid grid-cols-7 gap-1 mb-2">
           {weekdayHeaders.map((day) => (
-            <div key={day.key} className="text-center font-medium text-[9px] sm:text-[11px] text-muted-foreground">
+            <div key={day.key} className="text-center font-medium text-[10px] text-muted-foreground py-1">
               {day.label}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 auto-rows-fr gap-[1px] h-fit min-h-[400px] max-h-[600px]">
-          {calendarDayStrings.map((dateString) => { // Iterate over date strings - dateString is already unique
-            const dayData = calendarData[dateString] // Direct lookup using the string key
 
-            // Parse the date string *in the target timezone* to get a Date object
-            // for reliable month/year checks and display formatting.
-            let dateInTZ: Date;
+        {/* Days Grid */}
+        <div className="grid grid-cols-7 gap-1.5">
+          {calendarDayStrings.map((dateString) => {
+            const dayData = calendarData[dateString]
+
+            let dateInTZ: Date
             try {
-              dateInTZ = toDate(dateString, { timeZone: timezone });
-            } catch (e) {
-              // Render a placeholder or skip if parsing fails
-              return <div key={dateString} className="text-red-500">Error</div>;
+              dateInTZ = toDate(dateString, { timeZone: timezone })
+            } catch {
+              return <div key={dateString} className="min-h-[48px]" />
             }
 
-            // Determine if the date belongs to the currently displayed month
-            const isCurrentMonthDay =
-              dateInTZ.getMonth() === currentMonth &&
-              dateInTZ.getFullYear() === currentYear
+            const isCurrentMonthDay = dateInTZ.getMonth() === currentMonth && dateInTZ.getFullYear() === currentYear
+            const isTodayDate = isDateStringToday(dateString, timezone)
+            const hasTrades = dayData && dayData.pnl !== 0
+            const isProfit = dayData && dayData.pnl > 0
 
             return (
               <div
                 key={dateString}
                 className={cn(
-                  "flex flex-col items-center justify-center p-1 border rounded-md min-h-[48px] sm:min-h-[60px] transition-all cursor-pointer hover:border-foreground/20",
+                  "flex flex-col items-center justify-center p-1.5 rounded-xl min-h-[52px] transition-all duration-200 cursor-pointer",
+                  "border hover:scale-[1.02] hover:shadow-sm",
                   !isCurrentMonthDay && "opacity-30",
-                  isDateStringToday(dateString, timezone) && TODAY_STYLES.cell,
-                  dayData && dayData.pnl !== 0 && !isDateStringToday(dateString, timezone) && (
-                    dayData.pnl > 0 
-                      ? "border-green-500/50 bg-green-500/5 dark:bg-green-500/10" 
-                      : "border-red-500/50 bg-red-500/5 dark:bg-red-500/10"
+                  isTodayDate && TODAY_STYLES.cell,
+                  hasTrades && !isTodayDate && (
+                    isProfit
+                      ? "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200/50 dark:border-emerald-800/30"
+                      : "bg-red-50/80 dark:bg-red-950/40 border-red-200/50 dark:border-red-800/30"
                   ),
-                  !dayData && !isDateStringToday(dateString, timezone) && "border-border/30"
+                  !hasTrades && !isTodayDate && "border-border/30 bg-card/50"
                 )}
                 onClick={() => {
-                  // Click functionality disabled - calendar UI preserved for future use
+                  if (dayData) {
+                    setSelectedDate(dateInTZ)
+                  }
                 }}
               >
                 <span className={cn(
-                  "text-sm font-semibold",
-                  isDateStringToday(dateString, timezone) && TODAY_STYLES.text,
-                  dayData && dayData.pnl !== 0 && !isDateStringToday(dateString, timezone) && (
-                    dayData.pnl > 0 
-                      ? "text-green-600 dark:text-green-400" 
-                      : "text-red-600 dark:text-red-400"
-                  )
+                  "text-xs font-semibold",
+                  isTodayDate && "text-primary",
+                  hasTrades && !isTodayDate && (isProfit ? PNL_TEXT_STYLES.profit : PNL_TEXT_STYLES.loss)
                 )}>
                   {format(dateInTZ, 'd')}
                 </span>
-                {dayData && dayData.pnl !== 0 && (
+                {hasTrades && (
                   <span className={cn(
-                    "text-[10px] font-medium mt-0.5",
-                    dayData.pnl > 0 
-                      ? "text-green-600 dark:text-green-400" 
-                      : "text-red-600 dark:text-red-400"
+                    "text-[9px] font-bold mt-0.5",
+                    isProfit ? PNL_TEXT_STYLES.profit : PNL_TEXT_STYLES.loss
                   )}>
                     ${formatCurrency(dayData.pnl)}
                   </span>
@@ -219,13 +174,11 @@ function MobileCalendarPnl({ calendarData }: { calendarData: CalendarData }) {
           })}
         </div>
       </div>
+
       <CalendarModal
         isOpen={selectedDate !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelectedDate(null)
-        }}
+        onOpenChange={(open) => { if (!open) setSelectedDate(null) }}
         selectedDate={selectedDate}
-        // Look up dayData using the selectedDate formatted back into a YYYY-MM-DD string *in the target timezone*
         dayData={selectedDate ? calendarData[formatInTimeZone(selectedDate, timezone, 'yyyy-MM-dd')] : undefined}
         isLoading={isLoading}
       />
@@ -233,7 +186,6 @@ function MobileCalendarPnl({ calendarData }: { calendarData: CalendarData }) {
   )
 }
 
-// Export memoized version to prevent unnecessary re-renders
 export default React.memo(MobileCalendarPnl, (prevProps, nextProps) => {
   return JSON.stringify(prevProps.calendarData) === JSON.stringify(nextProps.calendarData)
 })
