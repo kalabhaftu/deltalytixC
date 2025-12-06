@@ -62,9 +62,9 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
     return (
       <div className="bg-background p-2 border rounded shadow-sm">
         <p className="font-semibold text-sm">
-          {date.toLocaleDateString("en-US", { 
-            month: "short", 
-            day: "numeric", 
+          {date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
             year: "numeric",
             timeZone: 'UTC'
           })}
@@ -99,11 +99,11 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
     // Calculate cumulative P/L with zero-crossing interpolation for smooth transitions
     let cumulative = 0
     const result: ChartDataPoint[] = []
-    
+
     sortedData.forEach((item, index) => {
       const prevCumulative = cumulative
       cumulative += item.dailyPnL
-      
+
       // If line crosses zero, add interpolated point at zero for smooth transition
       if (index > 0 && prevCumulative !== 0 && cumulative !== 0) {
         if ((prevCumulative > 0 && cumulative < 0) || (prevCumulative < 0 && cumulative > 0)) {
@@ -112,10 +112,10 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
           if (prevDate) {
             const ratio = Math.abs(prevCumulative) / (Math.abs(prevCumulative) + Math.abs(cumulative))
             const interpolatedDate = new Date(
-              new Date(prevDate).getTime() + 
+              new Date(prevDate).getTime() +
               ratio * (new Date(item.date).getTime() - new Date(prevDate).getTime())
             ).toISOString().split('T')[0]
-            
+
             result.push({
               date: interpolatedDate,
               dailyPnL: 0,
@@ -130,7 +130,7 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
 
       const positivePnL = cumulative > 0 ? cumulative : (cumulative === 0 ? 0 : null)
       const negativePnL = cumulative < 0 ? cumulative : (cumulative === 0 ? 0 : null)
-      
+
       result.push({
         ...item,
         cumulativePnL: cumulative,
@@ -138,14 +138,14 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
         negativePnL,
       })
     })
-    
+
     return result
   }, [calendarData])
 
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader 
+      <CardHeader
         className={cn(
           "flex flex-col items-stretch space-y-0 border-b shrink-0",
           size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
@@ -153,7 +153,7 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
       >
         <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-1.5">
-            <CardTitle 
+            <CardTitle
               className={cn(
                 "line-clamp-1",
                 size === 'small-long' ? "text-sm" : "text-base"
@@ -177,7 +177,7 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
           </div>
         </div>
       </CardHeader>
-      <CardContent 
+      <CardContent
         className={cn(
           "flex-1",
           size === 'small' ? "p-1" : "p-2 sm:p-4"
@@ -197,33 +197,33 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
                 <defs>
                   {/* Green gradient for profit area (above zero) */}
                   <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                    <stop 
-                      offset="5%" 
-                      stopColor="hsl(var(--chart-profit))" 
+                    <stop
+                      offset="5%"
+                      stopColor="hsl(var(--chart-profit))"
                       stopOpacity={0.4}
                     />
-                    <stop 
-                      offset="95%" 
-                      stopColor="hsl(var(--chart-profit))" 
+                    <stop
+                      offset="95%"
+                      stopColor="hsl(var(--chart-profit))"
                       stopOpacity={0.05}
                     />
                   </linearGradient>
                   {/* Red gradient for loss area (below zero) */}
                   <linearGradient id="colorLoss" x1="0" y1="0" x2="0" y2="1">
-                    <stop 
-                      offset="5%" 
-                      stopColor="hsl(var(--chart-loss))" 
+                    <stop
+                      offset="5%"
+                      stopColor="hsl(var(--chart-loss))"
                       stopOpacity={0.05}
                     />
-                    <stop 
-                      offset="95%" 
-                      stopColor="hsl(var(--chart-loss))" 
+                    <stop
+                      offset="95%"
+                      stopColor="hsl(var(--chart-loss))"
                       stopOpacity={0.4}
                     />
                   </linearGradient>
                 </defs>
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
+                <CartesianGrid
+                  strokeDasharray="3 3"
                   stroke="hsl(var(--border))"
                   vertical={false}
                 />
@@ -233,7 +233,7 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
                   axisLine={false}
                   height={size === 'small' ? 20 : 24}
                   tickMargin={size === 'small' ? 4 : 8}
-                  tick={{ 
+                  tick={{
                     fontSize: size === 'small' ? 9 : 11,
                     fill: 'currentColor'
                   }}
@@ -252,7 +252,7 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
                   axisLine={false}
                   width={60}
                   tickMargin={4}
-                  tick={{ 
+                  tick={{
                     fontSize: size === 'small' ? 9 : 11,
                     fill: 'currentColor'
                   }}
@@ -264,12 +264,12 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
                   strokeDasharray="3 3"
                   strokeOpacity={0.5}
                 />
-                <Tooltip 
+                <Tooltip
                   content={<CustomTooltip />}
-                  wrapperStyle={{ 
+                  wrapperStyle={{
                     fontSize: size === 'small' ? '10px' : '12px',
                     zIndex: 1000
-                  }} 
+                  }}
                 />
                 {/* Green line and fill for positive values */}
                 <Area

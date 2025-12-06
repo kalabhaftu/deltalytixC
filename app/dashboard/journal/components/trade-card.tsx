@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Trade } from '@prisma/client'
 import { TrendingUp, TrendingDown, Calendar, Clock, Target, DollarSign, MoreHorizontal, Eye, Edit, Trash2, AlertTriangle } from 'lucide-react'
-import { cn, formatCurrency, formatQuantity, formatTradeData, formatPrice } from '@/lib/utils'
+import { cn, formatCurrency, formatQuantity, formatTradeData, formatPrice, BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -40,17 +40,17 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
   const { getTagsByIds } = useTags()
   const timezone = useUserStore((state) => state.timezone)
 
-  const isWin = trade.pnl >= 0
+  const isWin = trade.pnl > BREAK_EVEN_THRESHOLD
   const hasPreviewImage = !!(trade as any).cardPreviewImage && String((trade as any).cardPreviewImage).trim() !== ''
-  
+
   // Parse trade tags - tags is now an array
   const tradeTagIds = Array.isArray((trade as any).tags) ? (trade as any).tags : []
   const tradeTags = getTagsByIds(tradeTagIds)
 
   // Get status variant based on PnL (matching account card patterns)
   const getStatusVariant = (pnl: number): "default" | "secondary" | "destructive" | "outline" => {
-    if (pnl > 0) return 'default' // WIN
-    if (pnl < 0) return 'destructive' // LOSS
+    if (pnl > BREAK_EVEN_THRESHOLD) return 'default' // WIN
+    if (pnl < -BREAK_EVEN_THRESHOLD) return 'destructive' // LOSS
     return 'outline' // BREAK EVEN
   }
 
@@ -59,17 +59,17 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
     // Parse prices from strings
     const entryPrice = parseFloat(String(trade.entryPrice))
     const closePrice = parseFloat(String(trade.closePrice))
-    
+
     // Get stop loss and take profit from database fields
     const stopLossRaw = (trade as any).stopLoss || null
     const takeProfitRaw = (trade as any).takeProfit || null
-    
+
     // Parse and validate stop loss and take profit (skip if 0.00 or null)
     const stopLoss = stopLossRaw && parseFloat(stopLossRaw.toString()) !== 0 ? parseFloat(stopLossRaw.toString()) : null
     const takeProfit = takeProfitRaw && parseFloat(takeProfitRaw.toString()) !== 0 ? parseFloat(takeProfitRaw.toString()) : null
-    
+
     const side = trade.side?.toUpperCase()
-    const isWin = trade.pnl > 0
+    const isWin = trade.pnl > BREAK_EVEN_THRESHOLD
 
     // Check for incomplete data
     const hasIncompleteData = !entryPrice || !closePrice || !stopLoss || !side
@@ -90,7 +90,7 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
     if (side === 'BUY' || side === 'LONG') {
       // Risk = Entry Price - Stop Loss
       potentialRisk = entryPrice - stopLoss
-      
+
       // Reward calculation depends on win/loss:
       // WINS: Use actual close price (what trader actually captured)
       // LOSSES: Use planned TP (shows setup quality, avoid negative RR)
@@ -103,7 +103,7 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
     } else if (side === 'SELL' || side === 'SHORT') {
       // Risk = Stop Loss - Entry Price
       potentialRisk = stopLoss - entryPrice
-      
+
       // Reward calculation depends on win/loss:
       // WINS: Use actual close price (what trader actually captured)
       // LOSSES: Use planned TP (shows setup quality, avoid negative RR)
@@ -124,7 +124,7 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
 
     // R:R = Potential Reward ÷ Potential Risk
     const rrRatio = potentialReward / potentialRisk
-    
+
     // Return calculated R:R, capped at reasonable maximum (99.99)
     return { ratio: Math.min(rrRatio, 99.99), hasIncompleteData: false }
   }
@@ -138,7 +138,7 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
     const hours = Math.floor(timeInPosition / 3600)
     const minutes = Math.floor((timeInPosition % 3600) / 60)
     const seconds = Math.floor(timeInPosition % 60)
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m ${seconds}s`
     } else if (minutes > 0) {
@@ -177,8 +177,8 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
           </div>
 
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            <Badge 
-              variant={getStatusVariant(trade.pnl)} 
+            <Badge
+              variant={getStatusVariant(trade.pnl)}
               className={cn(
                 "text-xs font-medium px-2",
                 isWin ? "bg-long/10 text-long border-long/20" : "bg-short/10 text-short border-short/20"
@@ -324,9 +324,9 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
         {tradeTags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-2 border-t">
             {tradeTags.slice(0, 3).map((tag) => (
-              <Badge 
-                key={tag.id} 
-                variant="secondary" 
+              <Badge
+                key={tag.id}
+                variant="secondary"
                 className="text-[10px] px-1.5 py-0.5 h-5"
                 style={{ backgroundColor: tag.color, color: 'white', borderColor: tag.color }}
               >
@@ -334,8 +334,8 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
               </Badge>
             ))}
             {tradeTags.length > 3 && (
-              <Badge 
-                variant="outline" 
+              <Badge
+                variant="outline"
                 className="text-[10px] px-1.5 py-0.5 h-5"
               >
                 +{tradeTags.length - 3}

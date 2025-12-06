@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
+import { BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 
 // GET - Generate AI analysis of journals and trades
 export async function GET(request: Request) {
@@ -177,10 +178,10 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   }))
 
   // Format prop firm account status for AI
-  const accountStatusSummary = propFirmAccounts.length > 0 
-    ? propFirmAccounts.map(acc => 
-        `- ${acc.accountName} (${acc.propFirmName}): Status=${acc.status}, Phase=${acc.currentPhase}, Size=$${acc.accountSize}`
-      ).join('\n')
+  const accountStatusSummary = propFirmAccounts.length > 0
+    ? propFirmAccounts.map(acc =>
+      `- ${acc.accountName} (${acc.propFirmName}): Status=${acc.status}, Phase=${acc.currentPhase}, Size=$${acc.accountSize}`
+    ).join('\n')
     : 'No funded prop firm accounts found'
 
   // Extract trade notes for analysis
@@ -197,9 +198,9 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
 
   const tradeStats = {
     totalTrades: trades.length,
-    winningTrades: trades.filter(t => (t.pnl - (t.commission || 0)) > 0).length,
-    losingTrades: trades.filter(t => (t.pnl - (t.commission || 0)) < 0).length,
-    breakEvenTrades: trades.filter(t => (t.pnl - (t.commission || 0)) === 0).length,
+    winningTrades: trades.filter(t => (t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length,
+    losingTrades: trades.filter(t => (t.pnl - (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).length,
+    breakEvenTrades: trades.filter(t => Math.abs(t.pnl - (t.commission || 0)) <= BREAK_EVEN_THRESHOLD).length,
     totalPnL: trades.reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0),
     averagePnL: trades.length > 0 ? trades.reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0) / trades.length : 0,
     totalCommission: trades.reduce((sum, t) => sum + (t.commission || 0), 0),
@@ -207,8 +208,8 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   }
 
   // Calculate profit factor
-  const grossProfit = trades.filter(t => (t.pnl - (t.commission || 0)) > 0).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
-  const grossLoss = Math.abs(trades.filter(t => (t.pnl - (t.commission || 0)) < 0).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0))
+  const grossProfit = trades.filter(t => (t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
+  const grossLoss = Math.abs(trades.filter(t => (t.pnl - (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0))
   const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0
 
   // Calculate average win/loss
@@ -224,7 +225,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
     }
     pnlByInstrument[t.instrument].trades++
     pnlByInstrument[t.instrument].pnl += netPnL
-    if (netPnL > 0) pnlByInstrument[t.instrument].wins++
+    if (netPnL > BREAK_EVEN_THRESHOLD) pnlByInstrument[t.instrument].wins++
   })
 
   // Sort instruments by P&L
@@ -242,7 +243,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
     }
     pnlByStrategy[strategy].trades++
     pnlByStrategy[strategy].pnl += netPnL
-    if (netPnL > 0) pnlByStrategy[strategy].wins++
+    if (netPnL > BREAK_EVEN_THRESHOLD) pnlByStrategy[strategy].wins++
   })
 
   // P&L by weekday
@@ -293,11 +294,11 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
     if (j.emotion) {
       const dateStr = new Date(j.date).toISOString().split('T')[0]
       const dayTrades = trades.filter(t => t.entryDate.startsWith(dateStr))
-      
+
       if (!emotionPerformance[j.emotion]) {
         emotionPerformance[j.emotion] = { trades: 0, totalPnL: 0 }
       }
-      
+
       emotionPerformance[j.emotion].trades += dayTrades.length
       emotionPerformance[j.emotion].totalPnL += dayTrades.reduce(
         (sum, t) => sum + t.pnl - (t.commission || 0),
@@ -312,29 +313,29 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
     BEARISH: { trades: 0, pnl: 0, wins: 0, alignedWithSide: 0 },
     UNDECIDED: { trades: 0, pnl: 0, wins: 0, alignedWithSide: 0 },
   }
-  
+
   let tradesWithBias = 0
   let tradesAlignedWithBias = 0
-  
+
   trades.forEach(t => {
     if (t.marketBias) {
       tradesWithBias++
       const netPnL = t.pnl - (t.commission || 0)
       biasPerformance[t.marketBias].trades++
       biasPerformance[t.marketBias].pnl += netPnL
-      if (netPnL > 0) biasPerformance[t.marketBias].wins++
-      
+      if (netPnL > BREAK_EVEN_THRESHOLD) biasPerformance[t.marketBias].wins++
+
       // Check if trade direction aligns with bias
       const isLong = t.side?.toUpperCase() === 'BUY' || t.side?.toLowerCase() === 'long'
       const isShort = t.side?.toUpperCase() === 'SELL' || t.side?.toLowerCase() === 'short'
-      
+
       if ((t.marketBias === 'BULLISH' && isLong) || (t.marketBias === 'BEARISH' && isShort)) {
         biasPerformance[t.marketBias].alignedWithSide++
         tradesAlignedWithBias++
       }
     }
   })
-  
+
   const biasAlignment = tradesWithBias > 0 ? (tradesAlignedWithBias / tradesWithBias) * 100 : 0
 
   // News Trading Analysis
@@ -344,21 +345,21 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
     tradedBeforeAfterNews: trades.filter(t => t.newsDay && !t.newsTraded).length,
     noNewsTraded: trades.filter(t => !t.newsDay).length,
   }
-  
+
   const newsDayPnL = trades.filter(t => t.newsDay).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
   const noNewsDayPnL = trades.filter(t => !t.newsDay).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
-  
+
   const tradedDuringNewsPnL = trades.filter(t => t.newsDay && t.newsTraded).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
   const tradedBeforeAfterNewsPnL = trades.filter(t => t.newsDay && !t.newsTraded).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
-  
-  const newsDayWins = trades.filter(t => t.newsDay && (t.pnl - (t.commission || 0)) > 0).length
-  const newsDayLosses = trades.filter(t => t.newsDay && (t.pnl - (t.commission || 0)) < 0).length
+
+  const newsDayWins = trades.filter(t => t.newsDay && (t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length
+  const newsDayLosses = trades.filter(t => t.newsDay && (t.pnl - (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).length
   const newsDayWinRate = newsTradesStats.totalNewsDays > 0 ? (newsDayWins / newsTradesStats.totalNewsDays) * 100 : 0
-  
-  const noNewsDayWins = trades.filter(t => !t.newsDay && (t.pnl - (t.commission || 0)) > 0).length
-  const noNewsDayLosses = trades.filter(t => !t.newsDay && (t.pnl - (t.commission || 0)) < 0).length
+
+  const noNewsDayWins = trades.filter(t => !t.newsDay && (t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length
+  const noNewsDayLosses = trades.filter(t => !t.newsDay && (t.pnl - (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).length
   const noNewsDayWinRate = newsTradesStats.noNewsTraded > 0 ? (noNewsDayWins / newsTradesStats.noNewsTraded) * 100 : 0
-  
+
   // Extract specific news events that were traded
   const newsEventsTrade: Record<string, { trades: number, pnl: number, wins: number, tradedDuring: number }> = {}
   trades.forEach(t => {
@@ -371,7 +372,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
         }
         newsEventsTrade[newsId].trades++
         newsEventsTrade[newsId].pnl += netPnL
-        if (netPnL > 0) newsEventsTrade[newsId].wins++
+        if (netPnL > BREAK_EVEN_THRESHOLD) newsEventsTrade[newsId].wins++
         if (t.newsTraded) newsEventsTrade[newsId].tradedDuring++
       })
     }
@@ -405,7 +406,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   // Count usage by timeframe type (entry is most important)
   trades.forEach(t => {
     const netPnL = t.pnl - (t.commission || 0)
-    const isWin = netPnL > 0
+    const isWin = netPnL > BREAK_EVEN_THRESHOLD
 
     // Count entry timeframe (primary indicator)
     if ((t as any).entryTimeframe && timeframeStats[(t as any).entryTimeframe]) {
@@ -429,7 +430,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   trades.forEach(t => {
     if ((t as any).orderType) {
       const netPnL = t.pnl - (t.commission || 0)
-      const isWin = netPnL > 0
+      const isWin = netPnL > BREAK_EVEN_THRESHOLD
       const orderType = (t as any).orderType
 
       if (orderTypeStats[orderType]) {
@@ -452,7 +453,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
     if ((t as any).entryTime) {
       const session = getTradingSession((t as any).entryTime)
       const netPnL = t.pnl - (t.commission || 0)
-      const isWin = netPnL > 0
+      const isWin = netPnL > BREAK_EVEN_THRESHOLD
 
       if (!sessionStats[session]) {
         sessionStats[session] = { trades: 0, pnl: 0, wins: 0 }
@@ -509,19 +510,19 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
 
     **FUNDED ACCOUNT STATUS (Important Context)**:
     ${accountStatusSummary}
-    ${propFirmAccounts.filter(acc => acc.status === 'failed').length > 0 ? 
-      `Note: There are some failed accounts in this period. Please address this sensitively and help identify lessons learned.` : ''}
+    ${propFirmAccounts.filter(acc => acc.status === 'failed').length > 0 ?
+        `Note: There are some failed accounts in this period. Please address this sensitively and help identify lessons learned.` : ''}
 
     **USER'S TRADING SETUP**:
     Tags they use: ${userTags.length > 0 ? userTags.map(t => t.name).join(', ') : 'No custom tags'}
     Trading models/strategies: ${tradingModels.length > 0 ? tradingModels.map(m => m.name).join(', ') : 'No custom trading models'}
 
     **WEEKLY REVIEW INSIGHTS** (Their own market analysis):
-    ${weeklyReviews.length > 0 
-      ? weeklyReviews.map(r => 
+    ${weeklyReviews.length > 0
+        ? weeklyReviews.map(r =>
           `Week of ${new Date(r.startDate).toLocaleDateString()}: Expected ${r.expectation || 'not set'}, Actual ${r.actualOutcome || 'not set'}, ${r.isCorrect === true ? 'Correct prediction' : r.isCorrect === false ? 'Incorrect prediction' : 'Not evaluated'}${r.notes ? `. Notes: "${r.notes.slice(0, 100)}..."` : ''}`
         ).join('\n')
-      : 'No weekly reviews recorded for this period'}
+        : 'No weekly reviews recorded for this period'}
 
     **Trading Performance (Dashboard Metrics)**:
     - Total Trades: ${tradeStats.totalTrades} (W: ${tradeStats.winningTrades}, L: ${tradeStats.losingTrades}, BE: ${tradeStats.breakEvenTrades})
@@ -534,56 +535,56 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
     - Total Commission Paid: $${tradeStats.totalCommission.toFixed(2)}
 
     **P&L by Instrument (Top 5)**:
-    ${topInstruments.length > 0 
-      ? topInstruments.map(([inst, data]) => 
+    ${topInstruments.length > 0
+        ? topInstruments.map(([inst, data]) =>
           `- ${inst}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0}% WR`
         ).join('\n')
-      : 'No trades'}
+        : 'No trades'}
 
     **P&L by Strategy/Model**:
-    ${Object.entries(pnlByStrategy).length > 0 
-      ? Object.entries(pnlByStrategy).map(([strat, data]) => 
+    ${Object.entries(pnlByStrategy).length > 0
+        ? Object.entries(pnlByStrategy).map(([strat, data]) =>
           `- ${strat}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0}% WR`
         ).join('\n')
-      : 'No strategy data'}
+        : 'No strategy data'}
 
     **P&L by Weekday** (Identify best/worst days):
     ${Object.entries(pnlByWeekday)
-      .filter(([_, data]) => data.trades > 0)
-      .map(([day, data]) => 
-        `- ${day}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${data.trades > 0 ? `Avg: $${(data.pnl / data.trades).toFixed(2)}` : ''}`
-      ).join('\n') || 'No weekday data'}
+        .filter(([_, data]) => data.trades > 0)
+        .map(([day, data]) =>
+          `- ${day}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${data.trades > 0 ? `Avg: $${(data.pnl / data.trades).toFixed(2)}` : ''}`
+        ).join('\n') || 'No weekday data'}
 
     **Best Trading Hours** (By P&L, min 3 trades):
-    ${bestHours.length > 0 
-      ? bestHours.map(h => `- ${h.hour}:00: ${h.trades} trades, $${h.pnl.toFixed(2)} P&L`).join('\n')
-      : 'Insufficient data'}
+    ${bestHours.length > 0
+        ? bestHours.map(h => `- ${h.hour}:00: ${h.trades} trades, $${h.pnl.toFixed(2)} P&L`).join('\n')
+        : 'Insufficient data'}
 
     **Worst Trading Hours** (By P&L, min 3 trades):
-    ${worstHours.length > 0 
-      ? worstHours.map(h => `- ${h.hour}:00: ${h.trades} trades, $${h.pnl.toFixed(2)} P&L`).join('\n')
-      : 'Insufficient data'}
+    ${worstHours.length > 0
+        ? worstHours.map(h => `- ${h.hour}:00: ${h.trades} trades, $${h.pnl.toFixed(2)} P&L`).join('\n')
+        : 'Insufficient data'}
 
     **Emotional States (Self-Reported)**:
     ${Object.entries(emotionCounts).map(([emotion, count]) => `- ${emotion}: ${count} days`).join('\n') || 'No emotions tracked'}
 
     **Performance by Emotion** (THIS IS KEY DATA):
-    ${Object.entries(emotionPerformance).map(([emotion, perf]) => 
-      `- ${emotion}: ${perf.trades} trades, $${perf.totalPnL.toFixed(2)} P&L${perf.trades > 0 ? ` (avg: $${(perf.totalPnL / perf.trades).toFixed(2)})` : ''}`
-    ).join('\n') || 'No emotion-performance correlation data'}
+    ${Object.entries(emotionPerformance).map(([emotion, perf]) =>
+          `- ${emotion}: ${perf.trades} trades, $${perf.totalPnL.toFixed(2)} P&L${perf.trades > 0 ? ` (avg: $${(perf.totalPnL / perf.trades).toFixed(2)})` : ''}`
+        ).join('\n') || 'No emotion-performance correlation data'}
 
     **Market Bias Analysis** (CRITICAL: Are they following their bias?):
     - Trades with recorded bias: ${tradesWithBias} out of ${tradeStats.totalTrades} trades
     - Trades aligned with bias: ${tradesAlignedWithBias} (${biasAlignment.toFixed(1)}%)
     ${Object.entries(biasPerformance)
-      .filter(([_, data]) => data.trades > 0)
-      .map(([bias, data]) => {
-        const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
-        const alignmentRate = data.trades > 0 ? ((data.alignedWithSide / data.trades) * 100).toFixed(1) : 0
-        return `- ${bias} Bias: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR, ${alignmentRate}% aligned with bias`
-      }).join('\n') || 'No bias data recorded'}
-    ${tradesWithBias > 0 && biasAlignment < 50 ? 
-      `[WARNING] Only ${biasAlignment.toFixed(1)}% of trades align with stated bias. They're trading AGAINST their market sentiment—potential counter-trend losses!` : ''}
+        .filter(([_, data]) => data.trades > 0)
+        .map(([bias, data]) => {
+          const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
+          const alignmentRate = data.trades > 0 ? ((data.alignedWithSide / data.trades) * 100).toFixed(1) : 0
+          return `- ${bias} Bias: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR, ${alignmentRate}% aligned with bias`
+        }).join('\n') || 'No bias data recorded'}
+    ${tradesWithBias > 0 && biasAlignment < 50 ?
+        `[WARNING] Only ${biasAlignment.toFixed(1)}% of trades align with stated bias. They're trading AGAINST their market sentiment—potential counter-trend losses!` : ''}
 
     **News Trading Analysis** (High-Impact Events):
     - News Day Trades: ${newsTradesStats.totalNewsDays} trades ($${newsDayPnL.toFixed(2)} P&L, ${newsDayWinRate.toFixed(1)}% WR)
@@ -593,40 +594,40 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
     ${Object.entries(newsEventsTrade).length > 0 ? `
     **Specific News Events Traded**:
     ${Object.entries(newsEventsTrade).map(([eventId, data]) => {
-      const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
-      return `- ${eventId}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR, ${data.tradedDuring} during release`
-    }).join('\n')}` : ''}
-    ${newsTradesStats.tradedDuringNews > 0 && tradedDuringNewsPnL < 0 ? 
-      `[WARNING] Negative P&L when trading DURING news releases. News volatility might be hurting performance—consider waiting for clarity!` : ''}
-    ${newsTradesStats.totalNewsDays > 0 && noNewsDayWinRate > newsDayWinRate + 10 ? 
-      `[INSIGHT] Win rate is ${(noNewsDayWinRate - newsDayWinRate).toFixed(1)}% higher on non-news days. Consider avoiding high-impact news!` : ''}
+          const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
+          return `- ${eventId}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR, ${data.tradedDuring} during release`
+        }).join('\n')}` : ''}
+    ${newsTradesStats.tradedDuringNews > 0 && tradedDuringNewsPnL < 0 ?
+        `[WARNING] Negative P&L when trading DURING news releases. News volatility might be hurting performance—consider waiting for clarity!` : ''}
+    ${newsTradesStats.totalNewsDays > 0 && noNewsDayWinRate > newsDayWinRate + 10 ?
+        `[INSIGHT] Win rate is ${(noNewsDayWinRate - newsDayWinRate).toFixed(1)}% higher on non-news days. Consider avoiding high-impact news!` : ''}
 
     ${usedTimeframes.length > 0 ? `**Entry Timeframe Performance** (Multi-Timeframe Analysis):
     ${usedTimeframes.map(([tf, data]) => {
-      const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
-      return `- ${timeframeLabelMap[tf]}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR`
-    }).join('\n')}
-    ${usedTimeframes.length > 1 && usedTimeframes[0][1].pnl > 0 && usedTimeframes[usedTimeframes.length - 1][1].pnl < 0 ? 
-      `[INSIGHT] Best timeframe: ${timeframeLabelMap[usedTimeframes[0][0]]} (+$${usedTimeframes[0][1].pnl.toFixed(2)}). Worst: ${timeframeLabelMap[usedTimeframes[usedTimeframes.length - 1][0]]} ($${usedTimeframes[usedTimeframes.length - 1][1].pnl.toFixed(2)}). Stick to what works!` : ''}
+          const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
+          return `- ${timeframeLabelMap[tf]}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR`
+        }).join('\n')}
+    ${usedTimeframes.length > 1 && usedTimeframes[0][1].pnl > 0 && usedTimeframes[usedTimeframes.length - 1][1].pnl < 0 ?
+          `[INSIGHT] Best timeframe: ${timeframeLabelMap[usedTimeframes[0][0]]} (+$${usedTimeframes[0][1].pnl.toFixed(2)}). Worst: ${timeframeLabelMap[usedTimeframes[usedTimeframes.length - 1][0]]} ($${usedTimeframes[usedTimeframes.length - 1][1].pnl.toFixed(2)}). Stick to what works!` : ''}
     ` : ''}
 
     ${usedOrderTypes.length > 0 ? `**Order Type Performance**:
     ${usedOrderTypes.map(([type, data]) => {
-      const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
-      const label = type === 'market' ? 'Market Orders' : 'Limit Orders'
-      return `- ${label}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR`
-    }).join('\n')}
-    ${usedOrderTypes.length === 2 && usedOrderTypes[0][1].pnl > 0 && usedOrderTypes[1][1].pnl < 0 ? 
-      `[INSIGHT] ${usedOrderTypes[0][0] === 'market' ? 'Market orders' : 'Limit orders'} are working better (+$${usedOrderTypes[0][1].pnl.toFixed(2)}) vs ${usedOrderTypes[1][0] === 'market' ? 'market' : 'limit'} ($${usedOrderTypes[1][1].pnl.toFixed(2)}).` : ''}
+            const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
+            const label = type === 'market' ? 'Market Orders' : 'Limit Orders'
+            return `- ${label}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR`
+          }).join('\n')}
+    ${usedOrderTypes.length === 2 && usedOrderTypes[0][1].pnl > 0 && usedOrderTypes[1][1].pnl < 0 ?
+          `[INSIGHT] ${usedOrderTypes[0][0] === 'market' ? 'Market orders' : 'Limit orders'} are working better (+$${usedOrderTypes[0][1].pnl.toFixed(2)}) vs ${usedOrderTypes[1][0] === 'market' ? 'market' : 'limit'} ($${usedOrderTypes[1][1].pnl.toFixed(2)}).` : ''}
     ` : ''}
 
     ${usedSessions.length > 0 ? `**Trading Session Performance**:
     ${usedSessions.map(([session, data]) => {
-      const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
-      return `- ${session}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR`
-    }).join('\n')}
-    ${usedSessions.length > 1 && usedSessions[0][1].pnl > 0 && usedSessions[usedSessions.length - 1][1].pnl < 0 ? 
-      `[INSIGHT] Best session: ${usedSessions[0][0]} (+$${usedSessions[0][1].pnl.toFixed(2)}). Worst: ${usedSessions[usedSessions.length - 1][0]} ($${usedSessions[usedSessions.length - 1][1].pnl.toFixed(2)}). Focus on your best times!` : ''}
+            const winRate = data.trades > 0 ? ((data.wins / data.trades) * 100).toFixed(1) : 0
+            return `- ${session}: ${data.trades} trades, $${data.pnl.toFixed(2)} P&L, ${winRate}% WR`
+          }).join('\n')}
+    ${usedSessions.length > 1 && usedSessions[0][1].pnl > 0 && usedSessions[usedSessions.length - 1][1].pnl < 0 ?
+          `[INSIGHT] Best session: ${usedSessions[0][0]} (+$${usedSessions[0][1].pnl.toFixed(2)}). Worst: ${usedSessions[usedSessions.length - 1][0]} ($${usedSessions[usedSessions.length - 1][1].pnl.toFixed(2)}). Focus on your best times!` : ''}
     ` : ''}
 
     **Daily Journal Entries** (READ EVERY WORD - The vibe is in here):
@@ -759,8 +760,8 @@ function generateRuleBasedAnalysis(
   emotionPerformance: Record<string, { trades: number, totalPnL: number }>,
   tradeNotes: any[] = []
 ) {
-  const winRate = tradeStats.totalTrades > 0 
-    ? (tradeStats.winningTrades / tradeStats.totalTrades) * 100 
+  const winRate = tradeStats.totalTrades > 0
+    ? (tradeStats.winningTrades / tradeStats.totalTrades) * 100
     : 0
 
   // Find best and worst emotions
@@ -776,11 +777,9 @@ function generateRuleBasedAnalysis(
   const bestEmotion = emotionsWithPerf[0]
   const worstEmotion = emotionsWithPerf[emotionsWithPerf.length - 1]
 
-  const summary = `Based on your ${tradeStats.totalTrades} trades${tradeNotes.length > 0 ? ` (${tradeNotes.length} with detailed notes)` : ''} and ${journals.length} journal entries, you have a ${winRate.toFixed(1)}% win rate with a total P&L of $${tradeStats.totalPnL.toFixed(2)}. ${
-    bestEmotion ? `Your best performance occurs when feeling ${bestEmotion.emotion} (avg: $${bestEmotion.avgPnL.toFixed(2)} per trade).` : ''
-  } ${
-    journals.length > 5 || tradeNotes.length > 10 ? 'Your consistent documentation shows good self-awareness and discipline.' : 'More consistent journaling and trade notes could provide deeper insights into your trading patterns.'
-  }`
+  const summary = `Based on your ${tradeStats.totalTrades} trades${tradeNotes.length > 0 ? ` (${tradeNotes.length} with detailed notes)` : ''} and ${journals.length} journal entries, you have a ${winRate.toFixed(1)}% win rate with a total P&L of $${tradeStats.totalPnL.toFixed(2)}. ${bestEmotion ? `Your best performance occurs when feeling ${bestEmotion.emotion} (avg: $${bestEmotion.avgPnL.toFixed(2)} per trade).` : ''
+    } ${journals.length > 5 || tradeNotes.length > 10 ? 'Your consistent documentation shows good self-awareness and discipline.' : 'More consistent journaling and trade notes could provide deeper insights into your trading patterns.'
+    }`
 
   const emotionalPatterns = []
   if (bestEmotion && worstEmotion) {
@@ -800,7 +799,7 @@ function generateRuleBasedAnalysis(
   } else if (winRate < 40) {
     performanceInsights.push(`Win rate of ${winRate.toFixed(1)}% suggests need to refine entry criteria or risk management`)
   }
-  
+
   if (tradeStats.totalPnL > 0) {
     performanceInsights.push(`Net positive P&L of $${tradeStats.totalPnL.toFixed(2)} shows overall profitability`)
   } else {

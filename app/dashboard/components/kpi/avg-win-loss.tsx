@@ -18,12 +18,12 @@ interface AvgWinLossProps {
 
 const AvgWinLoss = React.memo(function AvgWinLoss({ size }: AvgWinLossProps) {
   const { avgWin, avgLoss, riskRewardRatio } = useTradeStatistics()
-  
+
   // Calculate the percentage for the progress bar
   // If avgWin is larger, green takes more space
   const total = avgWin + avgLoss
   const winPercentage = total > 0 ? (avgWin / total) * 100 : 50
-  
+
   const formatCurrency = (amount: number) => {
     if (Math.abs(amount) >= 1000) {
       return new Intl.NumberFormat('en-US', {
@@ -41,7 +41,7 @@ const AvgWinLoss = React.memo(function AvgWinLoss({ size }: AvgWinLossProps) {
       maximumFractionDigits: 0,
     }).format(amount)
   }
-  
+
   return (
     <Card className="w-full h-24">
       <CardContent className="p-5 h-full flex flex-col justify-center">
@@ -62,28 +62,28 @@ const AvgWinLoss = React.memo(function AvgWinLoss({ size }: AvgWinLossProps) {
             </Tooltip>
           </TooltipProvider>
         </div>
-        
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xl font-bold text-foreground">
-                    {riskRewardRatio.toFixed(2)}
-                  </span>
-                </div>
-        
+
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xl font-bold text-foreground">
+            {riskRewardRatio.toFixed(2)}
+          </span>
+        </div>
+
         {/* Horizontal Progress Bar */}
         <div className="flex items-center gap-3">
           <div className="flex-1 relative">
             <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-green-500 rounded-full transition-all duration-500"
                 style={{ width: `${winPercentage}%` }}
               />
-              <div 
+              <div
                 className="h-full bg-red-500 rounded-full transition-all duration-500 -mt-2"
                 style={{ width: `${100 - winPercentage}%`, marginLeft: `${winPercentage}%` }}
               />
             </div>
           </div>
-          
+
           <div className="flex items-center gap-4 text-xs">
             <div className="flex items-center gap-1">
               <span className="text-green-600 font-medium">

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
 import { toast } from "sonner"
-import { UploadIcon, type UploadIconHandle } from '@/components/animated-icons/upload'
+// UploadIcon removed
 import { Trade } from '@prisma/client'
 import { saveAndLinkTrades } from '@/server/accounts'
 import ImportTypeSelection, { ImportType } from './import-type-selection'
@@ -16,12 +16,12 @@ import { useData } from '@/context/data-provider'
 import ColumnMapping from './column-mapping'
 import { FormatPreview } from './components/format-preview'
 import { platforms } from './config/platforms'
-import { 
-  Trophy, 
-  CheckCircle2, 
-  Upload, 
-  FileSpreadsheet, 
-  MapPin, 
+import {
+  Trophy,
+  CheckCircle2,
+  Upload,
+  FileSpreadsheet,
+  MapPin,
   Wallet,
   Eye,
   ArrowRight,
@@ -60,7 +60,7 @@ const columnConfig: ColumnConfig = {
   "symbol": { defaultMapping: ["symbol", "ticker", "instrument"], required: false },
 }
 
-export type Step = 
+export type Step =
   | 'select-import-type'
   | 'upload-file'
   | 'select-headers'
@@ -98,8 +98,8 @@ export default function ImportButton() {
   const [processedTrades, setProcessedTrades] = useState<Trade[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [saveProgress, setSaveProgress] = useState<number>(0)
-  const uploadIconRef = useRef<UploadIconHandle>(null)
-  
+  // uploadIconRef removed
+
   // Phase transition state
   const [showPhaseTransitionDialog, setShowPhaseTransitionDialog] = useState(false)
   const [phaseTransitionData, setPhaseTransitionData] = useState<{
@@ -121,13 +121,13 @@ export default function ImportButton() {
   const { refreshTrades } = useData()
 
   // Get current platform config
-  const platform = useMemo(() => 
+  const platform = useMemo(() =>
     platforms.find(p => p.type === importType) || platforms.find(p => p.platformName === 'csv-ai'),
     [importType]
   )
 
   // Get current step info
-  const currentStep = useMemo(() => 
+  const currentStep = useMemo(() =>
     platform?.steps.find(s => s.id === step),
     [platform, step]
   )
@@ -178,13 +178,13 @@ export default function ImportButton() {
     setIsSaving(true)
     setIsLoading(true)
     setSaveProgress(10)
-    
+
     try {
       setSaveProgress(30)
-      
+
       // Execute save operation
       const result = await saveAndLinkTrades(selectedAccountId, processedTrades)
-      
+
       setSaveProgress(70)
 
       // Invalidate accounts cache
@@ -196,10 +196,10 @@ export default function ImportButton() {
       // Close dialog
       setIsOpen(false)
       resetImportState()
-      
+
       // Refresh data
       await refreshTrades()
-      
+
       setSaveProgress(100)
 
       // Handle results
@@ -213,7 +213,7 @@ export default function ImportButton() {
 
       if ('evaluation' in result && result.evaluation) {
         const evalData = result.evaluation as any
-        
+
         if (evalData.status === 'failed') {
           toast.error("Account Failed", {
             description: evalData.message || 'Account failed due to rule violation',
@@ -231,7 +231,7 @@ export default function ImportButton() {
             duration: 10000,
             icon: <CheckCircle2 className="h-4 w-4 text-long" />
           })
-          
+
           const dialogData = {
             masterAccountId: result.masterAccountId,
             currentPhase: {
@@ -245,7 +245,7 @@ export default function ImportButton() {
             accountName: 'accountName' in result ? result.accountName : 'Account',
             evaluationType: evalData.evaluationType || 'Two Step'
           }
-          
+
           setPhaseTransitionData(dialogData)
           setTimeout(() => setShowPhaseTransitionDialog(true), 300)
         } else {
@@ -264,7 +264,7 @@ export default function ImportButton() {
     } catch (error) {
       let errorMessage = "An error occurred while importing trades."
       let errorTitle = "Import Failed"
-      
+
       if (error instanceof Error) {
         if (error.message.includes('phase transition')) {
           errorTitle = "Phase Transition Required"
@@ -276,7 +276,7 @@ export default function ImportButton() {
           errorMessage = error.message
         }
       }
-      
+
       toast.error(errorTitle, { description: errorMessage, duration: 8000 })
     } finally {
       setIsSaving(false)
@@ -331,7 +331,7 @@ export default function ImportButton() {
 
     // File upload requires files
     if (currentStepConfig.component === FileUpload && csvData.length === 0) return true
-    
+
     // Account selection requires selection
     if (currentStepConfig.component === AccountSelection && !selectedAccountId) return true
 
@@ -447,7 +447,7 @@ export default function ImportButton() {
         />
       )
     }
-    
+
     // Handle processor components
     if (platform.processorComponent && Component === platform.processorComponent) {
       return (
@@ -467,20 +467,20 @@ export default function ImportButton() {
 
     return null
   }, [
-    platform, 
-    step, 
-    isSaving, 
-    saveProgress, 
-    processedTrades, 
-    importType, 
-    rawCsvData, 
-    csvData, 
-    headers, 
-    mappings, 
-    error, 
-    accountNumber, 
-    selectedAccountId, 
-    isLoading, 
+    platform,
+    step,
+    isSaving,
+    saveProgress,
+    processedTrades,
+    importType,
+    rawCsvData,
+    csvData,
+    headers,
+    mappings,
+    error,
+    accountNumber,
+    selectedAccountId,
+    isLoading,
     newAccountNumber
   ])
 
@@ -507,26 +507,26 @@ export default function ImportButton() {
           }}
         />
       )}
-      
+
       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
         <Button
           onClick={() => setIsOpen(true)}
           variant="outline"
           className="justify-start text-left font-medium w-full transition-all duration-200 hover:bg-muted/50 border-border/50"
           id="import-data"
-          onMouseEnter={() => uploadIconRef.current?.startAnimation()}
-          onMouseLeave={() => uploadIconRef.current?.stopAnimation()}
+          onMouseEnter={() => { }}
+          onMouseLeave={() => { }}
         >
-          <UploadIcon ref={uploadIconRef} className="h-4 w-4 mr-2" />
+          <Upload className="h-4 w-4 mr-2" />
           <span className='hidden md:block'>Import Trades</span>
         </Button>
       </motion.div>
-      
+
       <Dialog open={isOpen} onOpenChange={(open) => {
         setIsOpen(open)
         if (!open) resetImportState()
       }}>
-        <DialogContent 
+        <DialogContent
           className="flex flex-col w-[95vw] max-w-5xl h-[85vh] p-0 bg-background border border-border shadow-2xl overflow-hidden gap-0"
           onOpenAutoFocus={(e) => {
             // Prevent auto-focus on mobile devices to avoid keyboard popup
@@ -538,7 +538,7 @@ export default function ImportButton() {
           <VisuallyHidden>
             <DialogTitle>Import Trades</DialogTitle>
           </VisuallyHidden>
-          
+
           {/* Header - only show for non-manual entry or show simplified for manual */}
           {!isManualEntry && (
             <div className="flex-none border-b p-4">
@@ -552,7 +552,7 @@ export default function ImportButton() {
                   </p>
                 </div>
               </div>
-              
+
               {/* Progress steps */}
               {platform && totalSteps > 1 && (
                 <div className="flex items-center gap-1">
@@ -561,8 +561,8 @@ export default function ImportButton() {
                       <div
                         className={cn(
                           "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-all",
-                          currentStepIndex === idx 
-                            ? "bg-primary text-primary-foreground font-medium" 
+                          currentStepIndex === idx
+                            ? "bg-primary text-primary-foreground font-medium"
                             : currentStepIndex > idx
                               ? "bg-primary/20 text-primary"
                               : "bg-muted text-muted-foreground"
@@ -587,7 +587,7 @@ export default function ImportButton() {
               )}
             </div>
           )}
-          
+
           {/* Content */}
           <div className={cn(
             "flex-1 overflow-hidden",

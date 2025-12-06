@@ -10,7 +10,7 @@ import { toast } from "sonner"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { cn, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { CalendarModal } from "./daily-modal"
 import { WeeklyModal } from "./weekly-modal"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -124,7 +124,7 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
 
   // State to store notes from database
   const [dailyNotes, setDailyNotes] = useState<Record<string, string>>({})
-  
+
   // Ref for the calendar container to capture screenshot
   const calendarRef = useRef<HTMLDivElement>(null)
 
@@ -146,7 +146,7 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
       refetchNotes()
     }
     window.addEventListener('notesSaved', handleNotesSaved)
-    
+
     return () => {
       window.removeEventListener('notesSaved', handleNotesSaved)
     }
@@ -195,7 +195,7 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
 
     try {
       toast.info("Capturing screenshot...")
-      
+
       const canvas = await html2canvas(calendarRef.current, {
         backgroundColor: null,
         scale: 2, // Higher quality
@@ -270,41 +270,41 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
     // Calculate for full week (Sun-Sat)
     const startOfWeekIndex = index - 6
     const weekDays = calendarDays.slice(startOfWeekIndex, index + 1)
-    
+
     const weekTotal = weekDays.reduce((total, day) => {
       const dayData = calendarData[formatInTimeZone(day, timezone, 'yyyy-MM-dd')]
       return total + (dayData ? dayData.pnl : 0)
     }, 0)
-    
+
     return weekTotal
   }, [timezone])
-  
+
   const calculateWeeklyStats = React.useCallback((index: number, calendarDays: Date[], calendarData: CalendarData) => {
     const startOfWeekIndex = index - 6
     const weekDays = calendarDays.slice(startOfWeekIndex, index + 1)
-    
+
     let totalTrades = 0
     let winningTrades = 0
     let totalPnl = 0
     let tradingDays = 0
-    
+
     weekDays.forEach(day => {
       const dayData = calendarData[formatInTimeZone(day, timezone, 'yyyy-MM-dd')]
       if (dayData) {
         totalTrades += dayData.tradeNumber
         totalPnl += dayData.pnl
         if (dayData.tradeNumber > 0) tradingDays++
-        winningTrades += dayData.trades.filter(t => (t.pnl - (t.commission || 0)) > 0).length
+        winningTrades += dayData.trades.filter(t => (t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length
       }
     })
-    
+
     // CRITICAL FIX: Exclude break-even trades from win rate denominator
     const losingTrades = Object.values(calendarData).reduce((sum, dayData) => {
-      return sum + dayData.trades.filter(t => (t.pnl - (t.commission || 0)) < 0).length
+      return sum + dayData.trades.filter(t => (t.pnl - (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).length
     }, 0)
     const tradableCount = winningTrades + losingTrades
     const winRate = tradableCount > 0 ? ((winningTrades / tradableCount) * 100).toFixed(1) : '0.0'
-    
+
     return { totalPnl, totalTrades, winRate, tradingDays }
   }, [timezone])
 
@@ -357,7 +357,7 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
               <span className="text-xs">{"Weekly"}</span>
             </Button>
           </div>
-          
+
           {/* Screenshot Button */}
           <Button
             variant="outline"
@@ -368,7 +368,7 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
           >
             <Camera className="h-5 w-5" />
           </Button>
-          
+
           <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
@@ -407,7 +407,7 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
             <div className="gap-2 h-fit min-h-[500px] max-h-[700px] overflow-hidden grid grid-cols-8">
               {calendarDays.map((date, index) => {
                 const dayOfWeek = getDay(date)
-                
+
                 const dateString = format(date, 'yyyy-MM-dd')
                 const dayData = calendarData[dateString]
                 // Saturday (day 6) is last day of week
@@ -417,10 +417,10 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
                 const hasNote = hasNoteForDate(date)
                 const hasJournal = hasJournalForDate(date)
                 const journalEntry = getJournalForDate(date)
-                
+
                 // Calculate win rate if there's data
                 const winRate = dayData && dayData.tradeNumber > 0
-                  ? ((dayData.trades.filter(t => (t.pnl - (t.commission || 0)) > 0).length / dayData.tradeNumber) * 100).toFixed(1)
+                  ? ((dayData.trades.filter(t => (t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length / dayData.trades.filter(t => Math.abs(t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length) * 100).toFixed(1)
                   : '0.0'
 
                 return (

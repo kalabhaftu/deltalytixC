@@ -3,9 +3,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Download, Loader2 } from 'lucide-react'
+import { Download, Loader2, Database } from 'lucide-react'
 import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { CustomDateRangePicker, DateRange } from "@/components/ui/custom-date-range-picker"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,7 +26,7 @@ export function AdvancedExportDialog() {
   const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined })
   const [isAllTime, setIsAllTime] = useState(true)
 
-  // Get unique accounts and instruments - use the same structure as data management card
+  // Get unique accounts
   const accountsList = useMemo(() => {
     if (!allAccounts || accountsLoading) return []
     return allAccounts.map(account => ({
@@ -37,40 +36,39 @@ export function AdvancedExportDialog() {
     }))
   }, [allAccounts, accountsLoading])
 
-  // Get instruments from ALL accounts (including failed) by fetching all trades
+  // Get instruments from TRADES (filtering by selected accounts)
   const instrumentsList = useMemo(() => {
-    // If we have selected accounts, filter trades by those accounts
-    // Otherwise, get all unique instruments from all trades
-    const relevantTrades = selectedAccounts.length > 0 && selectedAccounts.length < accountsList.length
+    // If specific accounts selected, filter trades first
+    const relevantTrades = (!selectAllAccounts && selectedAccounts.length > 0)
       ? formattedTrades.filter(t => {
-          // Match by account number or account ID
-          const tradeAccount = allAccounts?.find(acc => 
-            acc.number === t.accountNumber || acc.id === t.accountId
-          )
-          return tradeAccount && selectedAccounts.includes(tradeAccount.id)
-        })
-      : formattedTrades // Use all trades if no selection or all selected
-    
-    return Array.from(new Set(relevantTrades.map(t => t.instrument).filter(Boolean)))
-  }, [formattedTrades, selectedAccounts, accountsList.length, allAccounts])
+        const tradeAccount = allAccounts?.find(acc =>
+          acc.number === t.accountNumber || acc.id === t.accountId
+        )
+        return tradeAccount && selectedAccounts.includes(tradeAccount.id)
+      })
+      : formattedTrades
 
-  // Initialize selections
+    // Extract unique instruments
+    return Array.from(new Set(relevantTrades.map(t => t.instrument).filter(Boolean))).sort()
+  }, [formattedTrades, selectedAccounts, selectAllAccounts, allAccounts])
+
+  // Initialize selections when lists load
   useEffect(() => {
-    if (selectAllAccounts) {
+    if (accountsList.length > 0 && selectedAccounts.length === 0 && selectAllAccounts) {
       setSelectedAccounts(accountsList.map(a => a.id))
     }
-  }, [selectAllAccounts, accountsList])
+  }, [accountsList, selectAllAccounts, selectedAccounts.length])
 
   useEffect(() => {
-    if (selectAllInstruments) {
+    if (instrumentsList.length > 0 && selectedInstruments.length === 0 && selectAllInstruments) {
       setSelectedInstruments(instrumentsList)
     }
-  }, [selectAllInstruments, instrumentsList])
+  }, [instrumentsList, selectAllInstruments, selectedInstruments.length])
 
   const handleAccountChange = (accountId: string) => {
     setSelectedAccounts(prev => {
-      const newSelection = prev.includes(accountId) 
-        ? prev.filter(a => a !== accountId) 
+      const newSelection = prev.includes(accountId)
+        ? prev.filter(a => a !== accountId)
         : [...prev, accountId]
       setSelectAllAccounts(newSelection.length === accountsList.length)
       return newSelection
@@ -79,8 +77,8 @@ export function AdvancedExportDialog() {
 
   const handleInstrumentChange = (instrument: string) => {
     setSelectedInstruments(prev => {
-      const newSelection = prev.includes(instrument) 
-        ? prev.filter(i => i !== instrument) 
+      const newSelection = prev.includes(instrument)
+        ? prev.filter(i => i !== instrument)
         : [...prev, instrument]
       setSelectAllInstruments(newSelection.length === instrumentsList.length)
       return newSelection
@@ -110,17 +108,17 @@ export function AdvancedExportDialog() {
   const handleExport = async () => {
     try {
       setIsExporting(true)
-      toast.info('Preparing export...', { 
+      toast.info('Preparing system export...', {
         id: 'export',
-        description: 'Please wait while your data is being prepared for export.',
+        description: 'Generating comprehensive backup archive...',
         duration: Infinity
       })
 
       const filters = {
         accountIds: selectAllAccounts ? undefined : selectedAccounts,
         instruments: selectAllInstruments ? undefined : selectedInstruments,
-        dateFrom: !isAllTime && dateRange.from ? dateRange.from.toISOString() : undefined,
-        dateTo: !isAllTime && dateRange.to ? dateRange.to.toISOString() : undefined
+        from: !isAllTime && dateRange.from ? dateRange.from.toISOString() : undefined,
+        to: !isAllTime && dateRange.to ? dateRange.to.toISOString() : undefined
       }
 
       const response = await fetch('/api/data/export', {
@@ -128,11 +126,12 @@ export function AdvancedExportDialog() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ filters })
+        body: JSON.stringify(filters)
       })
 
       if (!response.ok) {
-        throw new Error('Export failed')
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || 'Export failed')
       }
 
       // Download the file
@@ -140,16 +139,23 @@ export function AdvancedExportDialog() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `deltalytix-export-${new Date().toISOString().split('T')[0]}.zip`
+      a.download = `deltalytix-system-backup-${new Date().toISOString().split('T')[0]}.zip`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
 
-      toast.success('Export completed successfully!', { id: 'export' })
+      toast.success('System Backup Complete', {
+        id: 'export',
+        description: 'Your data has been successfully exported.'
+      })
       setIsOpen(false)
     } catch (error) {
-      toast.error('Failed to export data', { id: 'export' })
+      console.error(error)
+      toast.error('Export Failed', {
+        id: 'export',
+        description: 'Could not generate backup. Please try again.'
+      })
     } finally {
       setIsExporting(false)
     }
@@ -158,38 +164,74 @@ export function AdvancedExportDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="default">
-          <Download className="mr-2 h-4 w-4" /> Export Data
+        <Button size="sm" variant="outline">
+          <Database className="mr-2 h-4 w-4" /> System Backup
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Advanced Export</DialogTitle>
+          <DialogTitle>System Data Export</DialogTitle>
           <DialogDescription>
-            Export all your data (trades, accounts, backtests, notes, etc.) to a ZIP file that can be re-imported later.
+            Create a full backup of your trading history, accounts, and images.
+            Select specific filters below or export everything (recommended).
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="flex-1 overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
-            {/* Accounts Selection */}
-            <Card>
+
+            {/* Filter Controls */}
+            <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle className="text-base">Accounts</CardTitle>
+                <CardTitle className="text-base">Date Range</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="selectAllAccounts" 
-                      checked={selectAllAccounts} 
-                      onCheckedChange={handleSelectAllAccounts}
+                    <Checkbox
+                      id="allTime"
+                      checked={isAllTime}
+                      onCheckedChange={(checked) => setIsAllTime(checked as boolean)}
                     />
-                    <label htmlFor="selectAllAccounts" className="text-sm font-medium">
-                      Select All ({accountsList.length})
+                    <label htmlFor="allTime" className="text-sm font-medium cursor-pointer">
+                      Export all history (Full System Backup)
                     </label>
                   </div>
-                  <ScrollArea className="h-[200px] rounded border p-3">
+
+                  {!isAllTime && (
+                    <div className="flex justify-start pt-2">
+                      <CustomDateRangePicker
+                        selected={dateRange}
+                        onSelect={(range) => setDateRange(range || { from: undefined, to: undefined })}
+                        className="w-fit"
+                      />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Accounts Selection */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex justify-between items-center">
+                  <span>Accounts</span>
+                  <span className="text-xs font-normal text-muted-foreground">{selectedAccounts.length} selected</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2 border-b pb-2">
+                    <Checkbox
+                      id="selectAllAccounts"
+                      checked={selectAllAccounts}
+                      onCheckedChange={handleSelectAllAccounts}
+                    />
+                    <label htmlFor="selectAllAccounts" className="text-sm font-medium cursor-pointer">
+                      Select All
+                    </label>
+                  </div>
+                  <ScrollArea className="h-[200px] pr-4">
                     {accountsLoading ? (
                       <div className="flex items-center justify-center py-8">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -201,13 +243,13 @@ export function AdvancedExportDialog() {
                     ) : (
                       accountsList.map(account => (
                         <div key={account.id} className="flex items-center space-x-2 mb-2">
-                          <Checkbox 
-                            id={`account-${account.id}`} 
+                          <Checkbox
+                            id={`account-${account.id}`}
                             checked={selectedAccounts.includes(account.id)}
                             onCheckedChange={() => handleAccountChange(account.id)}
                           />
-                          <label htmlFor={`account-${account.id}`} className="text-sm cursor-pointer">
-                            {account.name}
+                          <label htmlFor={`account-${account.id}`} className="text-sm cursor-pointer truncate">
+                            {account.name} <span className="text-xs text-muted-foreground">({account.number})</span>
                           </label>
                         </div>
                       ))
@@ -219,66 +261,44 @@ export function AdvancedExportDialog() {
 
             {/* Instruments Selection */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Instruments</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex justify-between items-center">
+                  <span>Instruments</span>
+                  <span className="text-xs font-normal text-muted-foreground">{selectedInstruments.length} selected</span>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="selectAllInstruments" 
-                      checked={selectAllInstruments} 
+                  <div className="flex items-center space-x-2 border-b pb-2">
+                    <Checkbox
+                      id="selectAllInstruments"
+                      checked={selectAllInstruments}
                       onCheckedChange={handleSelectAllInstruments}
                     />
-                    <label htmlFor="selectAllInstruments" className="text-sm font-medium">
-                      Select All ({instrumentsList.length})
+                    <label htmlFor="selectAllInstruments" className="text-sm font-medium cursor-pointer">
+                      Select All
                     </label>
                   </div>
-                  <ScrollArea className="h-[200px] rounded border p-3">
-                    {instrumentsList.map(instrument => (
-                      <div key={instrument} className="flex items-center space-x-2 mb-2">
-                        <Checkbox 
-                          id={`instrument-${instrument}`} 
-                          checked={selectedInstruments.includes(instrument)}
-                          onCheckedChange={() => handleInstrumentChange(instrument)}
-                        />
-                        <label htmlFor={`instrument-${instrument}`} className="text-sm">
-                          {instrument}
-                        </label>
+                  <ScrollArea className="h-[200px] pr-4">
+                    {instrumentsList.length === 0 ? (
+                      <div className="text-center py-8 text-sm text-muted-foreground">
+                        No instruments available
                       </div>
-                    ))}
+                    ) : (
+                      instrumentsList.map(instrument => (
+                        <div key={instrument} className="flex items-center space-x-2 mb-2">
+                          <Checkbox
+                            id={`instrument-${instrument}`}
+                            checked={selectedInstruments.includes(instrument)}
+                            onCheckedChange={() => handleInstrumentChange(instrument)}
+                          />
+                          <label htmlFor={`instrument-${instrument}`} className="text-sm cursor-pointer">
+                            {instrument}
+                          </label>
+                        </div>
+                      ))
+                    )}
                   </ScrollArea>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Date Range Selection */}
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle className="text-base">Date Range</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="allTime" 
-                      checked={isAllTime} 
-                      onCheckedChange={(checked) => setIsAllTime(checked as boolean)}
-                    />
-                    <label htmlFor="allTime" className="text-sm font-medium">
-                      Export all time (recommended)
-                    </label>
-                  </div>
-                  
-                  {!isAllTime && (
-                    <div className="flex justify-start">
-                      <CustomDateRangePicker
-                        selected={dateRange}
-                        onSelect={(range) => setDateRange(range || { from: undefined, to: undefined })}
-                        className="w-fit"
-                      />
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -288,28 +308,21 @@ export function AdvancedExportDialog() {
         <div className="p-4 bg-background border-t mt-auto">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              {selectedAccounts.length > 0 && selectedInstruments.length > 0 ? (
-                <>
-                  Ready to export {selectedAccounts.length} account(s) and {selectedInstruments.length} instrument(s)
-                  {isAllTime && " (All Time)"}
-                </>
-              ) : (
-                "Please select at least one account and instrument"
-              )}
+              Click Export to download your backup archive.
             </div>
-            <Button 
-              onClick={handleExport} 
-              disabled={selectedAccounts.length === 0 || selectedInstruments.length === 0 || isExporting}
+            <Button
+              onClick={handleExport}
+              disabled={(selectedAccounts.length === 0 && !selectAllAccounts) || isExporting}
             >
               {isExporting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Exporting...
+                  Generating Archive...
                 </>
               ) : (
                 <>
-                  <Download className="mr-2 h-4 w-4" /> 
-                  Export
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Backup
                 </>
               )}
             </Button>
@@ -319,4 +332,3 @@ export function AdvancedExportDialog() {
     </Dialog>
   )
 }
-

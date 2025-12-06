@@ -25,7 +25,7 @@ export function NotificationCenter() {
   const [isLoading, setIsLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const user = useUserStore(state => state.user)
-  
+
   // Dialog states
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false)
   const [phaseTransitionDialogOpen, setPhaseTransitionDialogOpen] = useState(false)
@@ -45,7 +45,7 @@ export function NotificationCenter() {
         cache: 'no-store' // Prevent browser caching
       })
       const result = await response.json()
-      
+
       if (result.success) {
         setNotifications(result.data.notifications)
         setUnreadCount(result.data.unreadCount)
@@ -104,7 +104,7 @@ export function NotificationCenter() {
             // Increment if explicitly unread (false) or undefined (default unread state)
             setUnreadCount(prev => prev + 1)
           }
-          
+
           // Use ref to check current popover state (avoids stale closure)
           if (isOpenRef.current) {
             // If popover is open, fetch full list to show the new notification
@@ -133,8 +133,8 @@ export function NotificationCenter() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isRead: true })
       })
-      
-      setNotifications(prev => 
+
+      setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
       )
       setUnreadCount(prev => Math.max(0, prev - 1))
@@ -148,7 +148,7 @@ export function NotificationCenter() {
       await fetch('/api/notifications', {
         method: 'PATCH'
       })
-      
+
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
       setUnreadCount(0)
       toast.success('All notifications marked as read')
@@ -162,7 +162,7 @@ export function NotificationCenter() {
       await fetch(`/api/notifications/${notificationId}`, {
         method: 'DELETE'
       })
-      
+
       setNotifications(prev => prev.filter(n => n.id !== notificationId))
       const deleted = notifications.find(n => n.id === notificationId)
       if (deleted && !deleted.isRead) {
@@ -176,12 +176,9 @@ export function NotificationCenter() {
 
   const handleClearAll = async () => {
     try {
-      // Delete all notifications one by one
-      await Promise.all(
-        notifications.map(n => 
-          fetch(`/api/notifications/${n.id}`, { method: 'DELETE' })
-        )
-      )
+      // Use bulk delete endpoint
+      await fetch('/api/notifications', { method: 'DELETE' })
+
       setNotifications([])
       setUnreadCount(0)
       toast.success('All notifications cleared')
@@ -196,7 +193,7 @@ export function NotificationCenter() {
       setSelectedNotification(notification)
       setApprovalDialogOpen(true)
       setIsOpen(false)
-    } 
+    }
     // Handle phase transition actions
     else if (notification.type === 'PHASE_TRANSITION_PENDING' && notification.actionRequired) {
       setSelectedNotification(notification)
@@ -233,16 +230,16 @@ export function NotificationCenter() {
     <>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="relative h-8 w-8"
             aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
           >
             <Bell className="h-4 w-4" />
             {unreadCount > 0 && (
-              <Badge 
-                variant="destructive" 
+              <Badge
+                variant="destructive"
                 className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
               >
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -250,9 +247,9 @@ export function NotificationCenter() {
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent 
-          className="w-80 sm:w-96 p-0" 
-          align="end" 
+        <PopoverContent
+          className="w-80 sm:w-96 p-0"
+          align="end"
           sideOffset={8}
         >
           <div className="flex items-center justify-between p-4 border-b">

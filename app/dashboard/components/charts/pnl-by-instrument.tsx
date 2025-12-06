@@ -5,7 +5,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, Tooltip, ResponsiveCo
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { useData } from "@/context/data-provider"
-import { cn } from "@/lib/utils"
+import { cn, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
 import { Info, TrendingUp, TrendingDown } from 'lucide-react'
 import {
@@ -55,28 +55,28 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
     // CRITICAL FIX: Group trades first to handle partial closes correctly
     const { groupTradesByExecution } = require('@/lib/utils')
     const groupedTrades = groupTradesByExecution(formattedTrades)
-    
+
     // Group trades by instrument
     const instrumentMap: Record<string, { pnl: number; trades: number; wins: number; losses: number }> = {}
-    
+
     groupedTrades.forEach((trade: any) => {
       const instrument = trade.symbol || trade.instrument || 'Unknown'
-      
+
       if (!instrumentMap[instrument]) {
         instrumentMap[instrument] = { pnl: 0, trades: 0, wins: 0, losses: 0 }
       }
-      
+
       const netPnl = (trade.pnl || 0) - (trade.commission || 0)
       instrumentMap[instrument].pnl += netPnl
       instrumentMap[instrument].trades += 1
-      
-      if (netPnl > 0) {
+
+      if (netPnl > BREAK_EVEN_THRESHOLD) {
         instrumentMap[instrument].wins += 1
-      } else if (netPnl < 0) {
+      } else if (netPnl < -BREAK_EVEN_THRESHOLD) {
         instrumentMap[instrument].losses += 1
       }
     })
-    
+
     // Convert to array and calculate win rate
     const data: InstrumentData[] = Object.entries(instrumentMap).map(([instrument, stats]: [string, { pnl: number; trades: number; wins: number; losses: number }]) => ({
       instrument,
@@ -86,7 +86,7 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
       losses: stats.losses,
       winRate: stats.trades > 0 ? (stats.wins / stats.trades) * 100 : 0,
     }))
-    
+
     // Sort by PnL (highest first)
     return data.sort((a: InstrumentData, b: InstrumentData) => b.pnl - a.pnl)
   }, [formattedTrades])
@@ -310,19 +310,19 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
         {/* Summary Stats - Only show when there's data */}
         {chartData.length > 0 && (
           <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t">
-              {bestInstrument && (
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Best Performer</p>
-                  <p className="text-sm font-semibold truncate">{bestInstrument.instrument}</p>
-                  <p className="text-xs text-green-600 font-medium">{formatCurrency(bestInstrument.pnl)}</p>
-                </div>
-              )}
-              {worstInstrument && worstInstrument.pnl < 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Worst Performer</p>
-                  <p className="text-sm font-semibold truncate">{worstInstrument.instrument}</p>
-                  <p className="text-xs text-red-600 font-medium">{formatCurrency(worstInstrument.pnl)}</p>
-                </div>
+            {bestInstrument && (
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Best Performer</p>
+                <p className="text-sm font-semibold truncate">{bestInstrument.instrument}</p>
+                <p className="text-xs text-green-600 font-medium">{formatCurrency(bestInstrument.pnl)}</p>
+              </div>
+            )}
+            {worstInstrument && worstInstrument.pnl < 0 && (
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Worst Performer</p>
+                <p className="text-sm font-semibold truncate">{worstInstrument.instrument}</p>
+                <p className="text-xs text-red-600 font-medium">{formatCurrency(worstInstrument.pnl)}</p>
+              </div>
             )}
           </div>
         )}

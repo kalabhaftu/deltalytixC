@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { useData } from "@/context/data-provider"
-import { cn } from "@/lib/utils"
+import { cn, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
 import { Info, PieChartIcon, BarChart3 } from 'lucide-react'
 import {
@@ -54,40 +54,40 @@ export default function WinRateByStrategy({ size = 'small-long' }: WinRateByStra
 
     // Group trades by strategy
     const strategyMap: Record<string, { wins: number; losses: number; grossWin: number; grossLoss: number; allWins: number[] }> = {}
-    
+
     groupedTrades.forEach((trade: any) => {
       const strategy = trade.tradingModel || 'No Strategy'
-      
+
       if (!strategyMap[strategy]) {
         strategyMap[strategy] = { wins: 0, losses: 0, grossWin: 0, grossLoss: 0, allWins: [] }
       }
-      
+
       const netPnl = (trade.pnl || 0) - (trade.commission || 0)
-      
-      if (netPnl > 0) {
+
+      if (netPnl > BREAK_EVEN_THRESHOLD) {
         strategyMap[strategy].wins += 1
         strategyMap[strategy].grossWin += netPnl
         strategyMap[strategy].allWins.push(netPnl)
-      } else if (netPnl < 0) {
+      } else if (netPnl < -BREAK_EVEN_THRESHOLD) {
         strategyMap[strategy].losses += 1
         strategyMap[strategy].grossLoss += Math.abs(netPnl)
       }
     })
-    
+
     // Convert to array and calculate metrics
     const data: StrategyWinRate[] = Object.entries(strategyMap).map(([strategy, stats]) => {
       const totalTrades = stats.wins + stats.losses
       const winRate = totalTrades > 0 ? (stats.wins / totalTrades) * 100 : 0
       const profitFactor = stats.grossLoss > 0 ? stats.grossWin / stats.grossLoss : stats.grossWin > 0 ? 999 : 0
-      
+
       // Calculate consistency (standard deviation of wins)
       const avgWin = stats.allWins.length > 0 ? stats.allWins.reduce((a, b) => a + b, 0) / stats.allWins.length : 0
-      const variance = stats.allWins.length > 0 
-        ? stats.allWins.reduce((sum, win) => sum + Math.pow(win - avgWin, 2), 0) / stats.allWins.length 
+      const variance = stats.allWins.length > 0
+        ? stats.allWins.reduce((sum, win) => sum + Math.pow(win - avgWin, 2), 0) / stats.allWins.length
         : 0
       const stdDev = Math.sqrt(variance)
       const consistency = avgWin > 0 ? Math.max(0, 100 - (stdDev / avgWin) * 100) : 0
-      
+
       return {
         strategy,
         winRate,
@@ -98,13 +98,13 @@ export default function WinRateByStrategy({ size = 'small-long' }: WinRateByStra
         consistency,
       }
     })
-    
+
     // Sort by win rate (highest first)
     return data.sort((a, b) => b.winRate - a.winRate)
   }, [formattedTrades])
 
-  const avgWinRate = chartData.length > 0 
-    ? chartData.reduce((sum, item) => sum + item.winRate, 0) / chartData.length 
+  const avgWinRate = chartData.length > 0
+    ? chartData.reduce((sum, item) => sum + item.winRate, 0) / chartData.length
     : 0
 
   const bestStrategy = chartData.length > 0 ? chartData[0] : null

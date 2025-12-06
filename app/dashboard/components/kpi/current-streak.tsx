@@ -16,15 +16,15 @@ interface CurrentStreakProps {
 }
 
 const CurrentStreak = React.memo(function CurrentStreak({ size }: CurrentStreakProps) {
-  const { 
-    currentDayStreak, 
-    bestDayStreak, 
+  const {
+    currentDayStreak,
+    bestDayStreak,
     worstDayStreak,
     currentTradeStreak,
     bestTradeStreak,
     worstTradeStreak
   } = useTradeStatistics()
-  
+
   // Determine circle colors based on current streak - use CSS variables for consistency
   const getDayColor = () => currentDayStreak >= 0 ? 'hsl(var(--chart-profit))' : 'hsl(var(--chart-loss))'
   const getTradeColor = () => currentTradeStreak >= 0 ? 'hsl(var(--chart-profit))' : 'hsl(var(--chart-loss))'
@@ -56,9 +56,9 @@ const CurrentStreak = React.memo(function CurrentStreak({ size }: CurrentStreakP
             <span className="text-[10px] font-bold text-foreground tracking-wider">DAYS</span>
             <div className="flex items-center gap-2">
               {/* Days Circle */}
-              <div 
+              <div
                 className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-lg"
-                style={{ 
+                style={{
                   border: `3px solid ${getDayColor()}`,
                   color: getDayColor()
                 }}
@@ -82,9 +82,9 @@ const CurrentStreak = React.memo(function CurrentStreak({ size }: CurrentStreakP
             <span className="text-[10px] font-bold text-foreground tracking-wider">TRADES</span>
             <div className="flex items-center gap-2">
               {/* Trades Circle */}
-              <div 
+              <div
                 className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-lg"
-                style={{ 
+                style={{
                   border: `3px solid ${getTradeColor()}`,
                   color: getTradeColor()
                 }}

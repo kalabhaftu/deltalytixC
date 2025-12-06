@@ -5,7 +5,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, Tooltip, ResponsiveCo
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { useData } from "@/context/data-provider"
-import { cn } from "@/lib/utils"
+import { cn, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
 import { Info } from 'lucide-react'
 import {
@@ -47,27 +47,27 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
 
     // Group trades by strategy (both tradingModel and custom strategy)
     const strategyMap: Record<string, { pnl: number; trades: number; wins: number; losses: number; grossWin: number; grossLoss: number }> = {}
-    
+
     groupedTrades.forEach((trade: any) => {
       const strategy = trade.tradingModel || 'No Strategy'
-      
+
       if (!strategyMap[strategy]) {
         strategyMap[strategy] = { pnl: 0, trades: 0, wins: 0, losses: 0, grossWin: 0, grossLoss: 0 }
       }
-      
+
       const netPnl = (trade.pnl || 0) - (trade.commission || 0)
       strategyMap[strategy].pnl += netPnl
       strategyMap[strategy].trades += 1
-      
-      if (netPnl > 0) {
+
+      if (netPnl > BREAK_EVEN_THRESHOLD) {
         strategyMap[strategy].wins += 1
         strategyMap[strategy].grossWin += netPnl
-      } else if (netPnl < 0) {
+      } else if (netPnl < -BREAK_EVEN_THRESHOLD) {
         strategyMap[strategy].losses += 1
         strategyMap[strategy].grossLoss += Math.abs(netPnl)
       }
     })
-    
+
     // Convert to array and calculate metrics
     const data: StrategyData[] = Object.entries(strategyMap).map(([strategy, stats]) => {
       // CRITICAL FIX: Exclude break-even trades from win rate denominator
@@ -75,7 +75,7 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
       const winRate = tradableCount > 0 ? (stats.wins / tradableCount) * 100 : 0
       const avgPnl = stats.trades > 0 ? stats.pnl / stats.trades : 0
       const profitFactor = stats.grossLoss > 0 ? stats.grossWin / stats.grossLoss : stats.grossWin > 0 ? 999 : 0
-      
+
       return {
         strategy,
         pnl: stats.pnl,
@@ -87,7 +87,7 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
         profitFactor,
       }
     })
-    
+
     // Sort by PnL (highest first)
     return data.sort((a, b) => b.pnl - a.pnl)
   }, [formattedTrades])
@@ -113,7 +113,7 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
-      
+
       return (
         <div className="rounded-lg border bg-card p-3 shadow-lg">
           <div className="grid gap-2">
@@ -156,7 +156,7 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
                 size === 'small-long' ? "text-sm" : "text-base"
               )}
             >
-              P&L by Strategy
+              PnL by Trading Model
             </CardTitle>
             <TooltipProvider delayDuration={100}>
               <UITooltip>
@@ -167,7 +167,7 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
                   )} />
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-[200px]">
-                  <p className="text-xs">Performance breakdown by trading strategy/model. Shows total P&L, win/loss ratio, and profit factor.</p>
+                  <p className="text-xs">Performance breakdown by trading model. Shows total P&L, win/loss ratio, and profit factor.</p>
                 </TooltipContent>
               </UITooltip>
             </TooltipProvider>

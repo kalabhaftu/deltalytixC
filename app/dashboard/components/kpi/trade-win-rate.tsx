@@ -18,14 +18,14 @@ interface TradeWinRateProps {
 
 const TradeWinRate = React.memo(function TradeWinRate({ size }: TradeWinRateProps) {
   const { winRate, nbWin, nbTrades } = useTradeStatistics()
-  
+
   // Memoize color calculation
   const color = React.useMemo(() => {
-    return winRate >= 50 
-      ? 'hsl(var(--chart-profit))' 
+    return winRate >= 50
+      ? 'hsl(var(--chart-profit))'
       : 'hsl(var(--chart-loss))'
   }, [winRate])
-  
+
 
   return (
     <Card className="w-full h-24">
@@ -48,11 +48,11 @@ const TradeWinRate = React.memo(function TradeWinRate({ size }: TradeWinRateProp
               </Tooltip>
             </TooltipProvider>
           </div>
-                  <span className="text-xl font-bold text-foreground">
-                    {winRate.toFixed(1)}%
-                  </span>
+          <span className="text-xl font-bold text-foreground">
+            {winRate.toFixed(1)}%
+          </span>
         </div>
-        
+
         <div className="flex-shrink-0">
           <CircularProgress
             value={winRate}

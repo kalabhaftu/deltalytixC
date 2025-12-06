@@ -40,20 +40,20 @@ interface ChartDataPoint {
 export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
   const { calendarData, formattedTrades } = useData()
 
-const getNiceStep = (value: number) => {
-  if (!isFinite(value) || value <= 0) return 25
-  const exponent = Math.floor(Math.log10(value))
-  const base = Math.pow(10, exponent)
-  const fraction = value / base
+  const getNiceStep = (value: number) => {
+    if (!isFinite(value) || value <= 0) return 25
+    const exponent = Math.floor(Math.log10(value))
+    const base = Math.pow(10, exponent)
+    const fraction = value / base
 
-  if (fraction <= 1) return 1 * base
-  if (fraction <= 2) return 2 * base
-  if (fraction <= 2.5) return 2.5 * base
-  if (fraction <= 5) return 5 * base
-  return 10 * base
-}
+    if (fraction <= 1) return 1 * base
+    if (fraction <= 2) return 2 * base
+    if (fraction <= 2.5) return 2.5 * base
+    if (fraction <= 5) return 5 * base
+    return 10 * base
+  }
 
-const chartData = React.useMemo(() => {
+  const chartData = React.useMemo(() => {
     // CRITICAL FIX: Group trades first to handle partial closes
     const { groupTradesByExecution } = require('@/lib/utils')
     const groupedTrades = groupTradesByExecution(formattedTrades)
@@ -129,13 +129,13 @@ const chartData = React.useMemo(() => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       const date = new Date(data.date + 'T00:00:00Z')
-      
+
       return (
         <div className="bg-card p-3 border rounded-lg shadow-lg">
           <p className="font-semibold text-sm mb-1">
-            {date.toLocaleDateString("en-US", { 
-              month: "short", 
-              day: "numeric", 
+            {date.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
               year: "numeric",
               timeZone: 'UTC'
             })}
@@ -160,7 +160,7 @@ const chartData = React.useMemo(() => {
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader 
+      <CardHeader
         className={cn(
           "flex flex-col items-stretch space-y-0 border-b shrink-0",
           size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
@@ -168,7 +168,7 @@ const chartData = React.useMemo(() => {
       >
         <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-1.5">
-            <CardTitle 
+            <CardTitle
               className={cn(
                 "line-clamp-1",
                 size === 'small-long' ? "text-sm" : "text-base"
@@ -192,7 +192,7 @@ const chartData = React.useMemo(() => {
           </div>
         </div>
       </CardHeader>
-      <CardContent 
+      <CardContent
         className={cn(
           "flex-1 pb-6",
           size === 'small' ? "p-1 pb-6" : "p-2 sm:p-4 pb-6"
@@ -204,13 +204,13 @@ const chartData = React.useMemo(() => {
             margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
             barCategoryGap="30%"
           >
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              stroke="hsl(var(--border))" 
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="hsl(var(--border))"
               vertical={false}
             />
-            <XAxis 
-              dataKey="date" 
+            <XAxis
+              dataKey="date"
               tickFormatter={(value) => {
                 const date = new Date(value + 'T00:00:00Z')
                 return date.toLocaleDateString("en-US", {
@@ -224,7 +224,7 @@ const chartData = React.useMemo(() => {
               tickLine={false}
               axisLine={false}
             />
-            <YAxis 
+            <YAxis
               tickFormatter={formatCurrencyValue}
               stroke="hsl(var(--muted-foreground))"
               fontSize={size === 'small' ? 9 : 11}
@@ -237,8 +237,8 @@ const chartData = React.useMemo(() => {
             <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" opacity={0.5} />
             <Bar dataKey="pnl" radius={[3, 3, 0, 0]}>
               {chartData.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
+                <Cell
+                  key={`cell-${index}`}
                   fill={entry.pnl >= 0 ? 'hsl(var(--chart-profit))' : 'hsl(var(--chart-loss))'}
                 />
               ))}

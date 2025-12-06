@@ -22,31 +22,31 @@ interface AccountBalancePnlProps {
 const AccountBalancePnl = React.memo(function AccountBalancePnl({ size }: AccountBalancePnlProps) {
   const { accountNumbers, formattedTrades } = useData()
   const { accounts } = useAccounts()
-  
+
   // Filter accounts based on selection
   const filteredAccounts = React.useMemo(() => {
     if (!accounts || !Array.isArray(accounts) || accounts.length === 0) return []
-    
+
     // If no accounts selected (or explicit "all accounts" mode where accountNumbers is empty/null), return ALL accounts
     if (!accountNumbers || accountNumbers.length === 0) {
       return accounts
     }
-    
+
     // Filter to selected accounts by matching account number (phaseId) ONLY
     return accounts.filter(acc => accountNumbers.includes(acc.number))
   }, [accounts, accountNumbers])
-  
+
   // ✅ USE UNIFIED CALCULATOR - Single source of truth for all balance calculations
   // This replaces the old custom logic (lines 39-71) with centralized, tested functions
   const balanceInfo = React.useMemo(() => {
     return calculateBalanceInfo(filteredAccounts, formattedTrades)
   }, [filteredAccounts, formattedTrades])
-  
+
   const totalBalance = balanceInfo.currentBalance
   const grossPnl = balanceInfo.totalPnL
   const totalCommissions = Math.abs(balanceInfo.totalCommissions)
   const netPnl = balanceInfo.netPnL
-  
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -91,11 +91,11 @@ const AccountBalancePnl = React.memo(function AccountBalancePnl({ size }: Accoun
             </Tooltip>
           </TooltipProvider>
         </div>
-        
+
         <div className="text-xl font-bold text-foreground">
           {formatCompactCurrency(totalBalance)}
         </div>
-        
+
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-3 text-[10px]">
             <div className="flex items-center gap-1">

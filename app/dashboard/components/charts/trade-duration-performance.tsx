@@ -5,7 +5,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, Tooltip, ResponsiveCo
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { useData } from "@/context/data-provider"
-import { cn } from "@/lib/utils"
+import { cn, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
 import { Info } from 'lucide-react'
 import { Switch } from "@/components/ui/switch"
@@ -111,11 +111,11 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
     // CRITICAL FIX: Group trades first to handle partial closes correctly
     const { groupTradesByExecution } = require('@/lib/utils')
     const groupedTrades = groupTradesByExecution(formattedTrades)
-    
+
     // Define bucket order
     const bucketOrder = [
       "< 1min",
-      "1-5min", 
+      "1-5min",
       "5-15min",
       "15-30min",
       "30min-1hr",
@@ -126,7 +126,7 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
 
     // Group trades by duration bucket
     const durationMap: Record<string, { pnl: number; trades: number; wins: number; losses: number }> = {}
-    
+
     bucketOrder.forEach(bucket => {
       durationMap[bucket] = { pnl: 0, trades: 0, wins: 0, losses: 0 }
     })
@@ -135,14 +135,14 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
       if (trade.entryDate && trade.closeDate) {
         const durationMinutes = calculateDurationMinutes(trade.entryDate, trade.closeDate)
         const bucket = getDurationBucket(durationMinutes)
-        
+
         const netPnL = trade.pnl - (trade.commission || 0)
         durationMap[bucket].pnl += netPnL
         durationMap[bucket].trades++
-        
-        if (netPnL > 0) {
+
+        if (netPnL > BREAK_EVEN_THRESHOLD) {
           durationMap[bucket].wins++
-        } else if (netPnL < 0) {
+        } else if (netPnL < -BREAK_EVEN_THRESHOLD) {
           durationMap[bucket].losses++
         }
       }
@@ -153,7 +153,7 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
       const data = durationMap[bucket]
       const winRate = data.trades > 0 ? (data.wins / data.trades) * 100 : 0
       const avgPnl = data.trades > 0 ? data.pnl / data.trades : 0
-      
+
       // Apply average if toggle is on
       const displayPnl = showAverage ? avgPnl : data.pnl
 
@@ -171,7 +171,7 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader 
+      <CardHeader
         className={cn(
           "flex flex-col items-stretch space-y-0 border-b shrink-0",
           size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
@@ -179,7 +179,7 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
       >
         <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-1.5">
-            <CardTitle 
+            <CardTitle
               className={cn(
                 "line-clamp-1",
                 size === 'small-long' ? "text-sm" : "text-base"
@@ -201,7 +201,7 @@ export default function TradeDurationPerformance({ size = 'small-long' }: TradeD
               </UITooltip>
             </TooltipProvider>
           </div>
-          
+
           {/* Average Toggle */}
           <div className="flex items-center gap-2">
             <Label htmlFor="duration-average-toggle" className="text-xs text-muted-foreground cursor-pointer">

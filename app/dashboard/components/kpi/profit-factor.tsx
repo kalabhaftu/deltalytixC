@@ -18,19 +18,19 @@ interface ProfitFactorProps {
 
 const ProfitFactor = React.memo(function ProfitFactor({ size }: ProfitFactorProps) {
   const { profitFactor, grossWin, grossLosses } = useTradeStatistics()
-  
+
   // Memoize expensive calculations
   const { progressValue, color } = React.useMemo(() => {
-  // Convert profit factor to percentage for circular progress (capped at 100%)
-  // Values above 1.0 are good, so we'll map 0-2.0 to 0-100%
+    // Convert profit factor to percentage for circular progress (capped at 100%)
+    // Values above 1.0 are good, so we'll map 0-2.0 to 0-100%
     const progress = Math.min((profitFactor / 2.0) * 100, 100)
-    const colorValue = profitFactor >= 1.0 
-      ? 'hsl(var(--chart-profit))' 
+    const colorValue = profitFactor >= 1.0
+      ? 'hsl(var(--chart-profit))'
       : 'hsl(var(--chart-loss))'
-    
+
     return { progressValue: progress, color: colorValue }
   }, [profitFactor])
-  
+
 
   return (
     <Card className="w-full h-24">
@@ -57,7 +57,7 @@ const ProfitFactor = React.memo(function ProfitFactor({ size }: ProfitFactorProp
             {profitFactor.toFixed(2)}
           </span>
         </div>
-        
+
         <div className="flex-shrink-0">
           <CircularProgress
             value={progressValue}

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
+import {
   ArrowLeft,
   RefreshCw,
   Plus,
@@ -26,7 +26,7 @@ import {
   Zap,
   Clock
 } from "lucide-react"
-import { cn, formatTradeData } from "@/lib/utils"
+import { cn, formatCurrency, formatTradeData, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { AccountStatus, PhaseType } from "@/types/prop-firm"
 
 interface TradeData {
@@ -71,7 +71,7 @@ export default function AccountTradesPage() {
   const fetchAccount = async () => {
     try {
       const response = await fetch(`/api/prop-firm/accounts/${accountId}`)
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch account details')
       }
@@ -95,7 +95,7 @@ export default function AccountTradesPage() {
       setIsLoading(true)
       // ✅ FIXED: Add phase filter to API call
       const response = await fetch(`/api/prop-firm/accounts/${accountId}/trades?phase=${filter}`)
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch trades')
       }
@@ -157,8 +157,8 @@ export default function AccountTradesPage() {
 
   // Calculate trade statistics using GROUPED trades and NET P&L
   const totalTrades = groupedTrades.length
-  const winningTrades = groupedTrades.filter((trade: any) => (trade.pnl - (trade.commission || 0)) > 0).length
-  const losingTrades = groupedTrades.filter((trade: any) => (trade.pnl - (trade.commission || 0)) < 0).length
+  const winningTrades = groupedTrades.filter((trade: any) => (trade.pnl - (trade.commission || 0)) > BREAK_EVEN_THRESHOLD).length
+  const losingTrades = groupedTrades.filter((trade: any) => (trade.pnl - (trade.commission || 0)) < -BREAK_EVEN_THRESHOLD).length
   const breakEvenTrades = groupedTrades.filter((trade: any) => (trade.pnl - (trade.commission || 0)) === 0).length
   // Calculate win rate excluding break-even trades (industry standard)
   const tradableTradesCount = winningTrades + losingTrades
@@ -404,25 +404,25 @@ export default function AccountTradesPage() {
                             {trade.status}
                           </Badge>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           <div>
                             <p className="text-xs text-muted-foreground">Entry Price</p>
                             <p className="font-medium">{formatCurrency(trade.entryPrice)}</p>
                           </div>
-                          
+
                           {trade.exitPrice && (
                             <div>
                               <p className="text-xs text-muted-foreground">Exit Price</p>
                               <p className="font-medium">{formatCurrency(trade.exitPrice)}</p>
                             </div>
                           )}
-                          
+
                           <div>
                             <p className="text-xs text-muted-foreground">Quantity</p>
                             <p className="font-medium">{formatTradeData(trade as any).quantityWithUnit}</p>
                           </div>
-                          
+
                           <div>
                             <p className="text-xs text-muted-foreground">P&L</p>
                             <p className={cn("font-medium", trade.pnl >= 0 ? "text-green-600" : "text-red-600")}>
@@ -430,13 +430,13 @@ export default function AccountTradesPage() {
                             </p>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
                             <span>Entry: {formatDateTime(trade.entryTime)}</span>
                           </div>
-                          
+
                           {trade.exitTime && (
                             <div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
@@ -444,7 +444,7 @@ export default function AccountTradesPage() {
                             </div>
                           )}
                         </div>
-                        
+
                         {trade.notes && (
                           <div>
                             <p className="text-xs text-muted-foreground">Notes</p>
@@ -452,10 +452,10 @@ export default function AccountTradesPage() {
                           </div>
                         )}
                       </div>
-                      
+
                       <div>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => router.push(`/dashboard/prop-firm/accounts/${accountId}/trades/${trade.id}`)}
                         >
@@ -496,18 +496,18 @@ export default function AccountTradesPage() {
                             </Badge>
                             <Badge variant="outline">Open</Badge>
                           </div>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                               <p className="text-xs text-muted-foreground">Entry Price</p>
                               <p className="font-medium">{formatCurrency(trade.entryPrice)}</p>
                             </div>
-                            
+
                             <div>
                               <p className="text-xs text-muted-foreground">Quantity</p>
                               <p className="font-medium">{Number(trade.quantity).toFixed(2)} lots</p>
                             </div>
-                            
+
                             <div>
                               <p className="text-xs text-muted-foreground">Unrealized P&L</p>
                               <p className={cn("font-medium", trade.pnl >= 0 ? "text-green-600" : "text-red-600")}>
@@ -515,23 +515,23 @@ export default function AccountTradesPage() {
                               </p>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Calendar className="h-3 w-3" />
                             <span>Entry: {formatDateTime(trade.entryTime)}</span>
                           </div>
                         </div>
-                        
+
                         <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => router.push(`/dashboard/prop-firm/accounts/${accountId}/trades/${trade.id}/edit`)}
                           >
                             Close Position
                           </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => router.push(`/dashboard/prop-firm/accounts/${accountId}/trades/${trade.id}`)}
                           >
@@ -573,23 +573,23 @@ export default function AccountTradesPage() {
                             </Badge>
                             <Badge variant="default">Closed</Badge>
                           </div>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
                               <p className="text-xs text-muted-foreground">Entry Price</p>
                               <p className="font-medium">{formatCurrency(trade.entryPrice)}</p>
                             </div>
-                            
+
                             <div>
                               <p className="text-xs text-muted-foreground">Exit Price</p>
                               <p className="font-medium">{formatCurrency(trade.exitPrice || 0)}</p>
                             </div>
-                            
+
                             <div>
                               <p className="text-xs text-muted-foreground">Quantity</p>
                               <p className="font-medium">{Number(trade.quantity).toFixed(2)} lots</p>
                             </div>
-                            
+
                             <div>
                               <p className="text-xs text-muted-foreground">P&L</p>
                               <p className={cn("font-medium", trade.pnl >= 0 ? "text-green-600" : "text-red-600")}>
@@ -597,13 +597,13 @@ export default function AccountTradesPage() {
                               </p>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               <span>Entry: {formatDateTime(trade.entryTime)}</span>
                             </div>
-                            
+
                             {trade.exitTime && (
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
@@ -612,10 +612,10 @@ export default function AccountTradesPage() {
                             )}
                           </div>
                         </div>
-                        
+
                         <div>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => router.push(`/dashboard/prop-firm/accounts/${accountId}/trades/${trade.id}`)}
                           >

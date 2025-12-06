@@ -5,7 +5,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, Tooltip, ResponsiveCo
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { useData } from "@/context/data-provider"
-import { cn } from "@/lib/utils"
+import { cn, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
 import { Info } from 'lucide-react'
 import { Switch } from "@/components/ui/switch"
@@ -94,24 +94,24 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
 
     // Group trades by weekday (0=Sunday, 1=Monday, ..., 6=Saturday)
     const weekdayMap: Record<number, { pnl: number; trades: number; wins: number; losses: number }> = {}
-    
+
     groupedTrades.forEach((trade: any) => {
       const date = new Date(trade.entryDate)
       const dayOfWeek = date.getDay()
-      
+
       // Only include Monday-Friday (1-5)
       if (dayOfWeek >= 1 && dayOfWeek <= 5) {
         if (!weekdayMap[dayOfWeek]) {
           weekdayMap[dayOfWeek] = { pnl: 0, trades: 0, wins: 0, losses: 0 }
         }
-        
+
         const netPnL = trade.pnl - (trade.commission || 0)
         weekdayMap[dayOfWeek].pnl += netPnL
         weekdayMap[dayOfWeek].trades++
-        
-        if (netPnL > 0) {
+
+        if (netPnL > BREAK_EVEN_THRESHOLD) {
           weekdayMap[dayOfWeek].wins++
-        } else if (netPnL < 0) {
+        } else if (netPnL < -BREAK_EVEN_THRESHOLD) {
           weekdayMap[dayOfWeek].losses++
         }
       }
@@ -129,10 +129,10 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
     return weekdays.map(({ day, dayName }) => {
       const dayNum = parseInt(day)
       const data = weekdayMap[dayNum] || { pnl: 0, trades: 0, wins: 0, losses: 0 }
-      
+
       // Calculate win rate
       const winRate = data.trades > 0 ? (data.wins / data.trades) * 100 : 0
-      
+
       // Apply average if toggle is on
       const displayPnl = showAverage && data.trades > 0 ? data.pnl / data.trades : data.pnl
 
@@ -150,7 +150,7 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader 
+      <CardHeader
         className={cn(
           "flex flex-col items-stretch space-y-0 border-b shrink-0",
           size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
@@ -158,7 +158,7 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
       >
         <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-1.5">
-            <CardTitle 
+            <CardTitle
               className={cn(
                 "line-clamp-1",
                 size === 'small-long' ? "text-sm" : "text-base"
@@ -180,7 +180,7 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
               </UITooltip>
             </TooltipProvider>
           </div>
-          
+
           {/* Average Toggle */}
           <div className="flex items-center gap-2">
             <Label htmlFor="average-toggle" className="text-xs text-muted-foreground cursor-pointer">
@@ -213,18 +213,18 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
                 }
                 barGap={0}
               >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="hsl(var(--border))"
-                vertical={false}
-              />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="hsl(var(--border))"
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="dayName"
                   tickLine={false}
                   axisLine={false}
                   height={size === 'small' ? 20 : 24}
                   tickMargin={size === 'small' ? 4 : 8}
-                  tick={{ 
+                  tick={{
                     fontSize: size === 'small' ? 9 : 11,
                     fill: 'currentColor'
                   }}
@@ -234,7 +234,7 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
                   axisLine={false}
                   width={60}
                   tickMargin={4}
-                  tick={{ 
+                  tick={{
                     fontSize: size === 'small' ? 9 : 11,
                     fill: 'currentColor'
                   }}
@@ -246,12 +246,12 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
                   strokeDasharray="3 3"
                   strokeOpacity={0.5}
                 />
-                <Tooltip 
+                <Tooltip
                   content={<CustomTooltip />}
-                  wrapperStyle={{ 
+                  wrapperStyle={{
                     fontSize: size === 'small' ? '10px' : '12px',
                     zIndex: 1000
-                  }} 
+                  }}
                 />
                 <Bar
                   dataKey="pnl"

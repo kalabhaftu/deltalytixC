@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { EmotionPicker, EmotionType, getEmotionIcon } from './emotion-picker'
 import { toast } from 'sonner'
 import { Loader2, BookOpen, Save, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency, BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
@@ -66,7 +66,7 @@ export function DailyJournalModal({
       setIsLoading(true)
       fetchJournalData()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, selectedDate, accountId])
 
   // Reset state when modal closes
@@ -82,7 +82,7 @@ export function DailyJournalModal({
   // Track changes
   useEffect(() => {
     if (existingJournal) {
-      const changed = 
+      const changed =
         note !== (existingJournal.note || '') ||
         emotion !== (existingJournal.emotion || null)
       setHasChanges(changed)
@@ -102,7 +102,7 @@ export function DailyJournalModal({
       })
 
       const response = await fetch(`/api/journal/daily?${params}`)
-      
+
       if (response.ok) {
         const data = await response.json()
         if (data.journal) {
@@ -132,7 +132,7 @@ export function DailyJournalModal({
       }
 
       const method = existingJournal?.id ? 'PUT' : 'POST'
-      const url = existingJournal?.id 
+      const url = existingJournal?.id
         ? `/api/journal/daily/${existingJournal.id}`
         : '/api/journal/daily'
 
@@ -175,8 +175,8 @@ export function DailyJournalModal({
 
   const formattedDate = format(selectedDate, 'EEEE, MMMM d, yyyy')
   const totalPnL = trades.reduce((sum, trade) => sum + trade.pnl, 0)
-  const winningTrades = trades.filter(t => t.pnl > 0).length
-  const losingTrades = trades.filter(t => t.pnl < 0).length
+  const winningTrades = trades.filter(t => t.pnl > BREAK_EVEN_THRESHOLD).length
+  const losingTrades = trades.filter(t => t.pnl < -BREAK_EVEN_THRESHOLD).length
   const selectedEmotionData = getEmotionIcon(emotion)
 
   return (
@@ -212,7 +212,7 @@ export function DailyJournalModal({
                           </Badge>
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-3 gap-2 text-xs">
                         <div className="text-center p-2 rounded-md bg-muted/50">
                           <div className="text-muted-foreground">Total Trades</div>
@@ -246,8 +246,8 @@ export function DailyJournalModal({
                             </div>
                             <span className={cn(
                               "font-semibold",
-                              trade.pnl >= 0 
-                                ? "text-green-600 dark:text-green-400" 
+                              trade.pnl >= 0
+                                ? "text-green-600 dark:text-green-400"
                                 : "text-red-600 dark:text-red-400"
                             )}>
                               {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}

@@ -3,13 +3,13 @@
 import { useState, useRef } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Upload, Loader2, FileArchive, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Upload, Loader2, FileArchive, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react'
 import { toast } from "sonner"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useData } from '@/context/data-provider'
 import { useAccounts } from '@/hooks/use-accounts'
 
-export function ImportDialog() {
+export function ImportDialog() { // Kept name for compatibility
   const { refreshTrades } = useData()
   const { refetch: refetchAccounts } = useAccounts()
   const [isOpen, setIsOpen] = useState(false)
@@ -22,7 +22,7 @@ export function ImportDialog() {
     const file = event.target.files?.[0]
     if (file) {
       if (!file.name.endsWith('.zip')) {
-        toast.error('Please select a valid ZIP file')
+        toast.error('Please select a valid Backup ZIP file')
         return
       }
       setSelectedFile(file)
@@ -35,8 +35,8 @@ export function ImportDialog() {
 
     try {
       setIsImporting(true)
-      toast.info('Importing data...', {
-        description: 'Please wait while your data is being imported.',
+      toast.info('Restoring system data...', {
+        description: 'Please wait while your data is being restored. This may take a minute.',
         duration: Infinity
       })
 
@@ -51,12 +51,13 @@ export function ImportDialog() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Import failed')
+        throw new Error(data.error || 'Restore failed')
       }
 
-      setImportResults(data.results)
-      toast.success('Data imported successfully!', {
-        description: `Imported ${data.results?.trades || 0} trades and ${data.results?.accounts || 0} accounts.`
+      setImportResults(data) // API returns { success: true, imported: N, skipped: M }
+
+      toast.success('System Restore Complete!', {
+        description: `Restored ${data.imported || 0} trades. Skipped ${data.skipped || 0} duplicates.`
       })
 
       // Refresh data
@@ -66,7 +67,7 @@ export function ImportDialog() {
       }, 1000)
 
     } catch (error) {
-      toast.error('Failed to import data', {
+      toast.error('Restore Failed', {
         description: error instanceof Error ? error.message : 'An unexpected error occurred'
       })
     } finally {
@@ -94,14 +95,15 @@ export function ImportDialog() {
     }}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
-          <Upload className="mr-2 h-4 w-4" /> Import Data
+          <RotateCcw className="mr-2 h-4 w-4" /> Restore Backup
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Import Data</DialogTitle>
+          <DialogTitle>Restore System Backup</DialogTitle>
           <DialogDescription>
-            Upload a previously exported ZIP file to restore your data. All accounts, trades, backtests, and notes will be imported.
+            Restore your database from a previously exported ZIP backup.
+            This process reconstructs accounts, trades, and images.
           </DialogDescription>
         </DialogHeader>
 
@@ -112,19 +114,11 @@ export function ImportDialog() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Important:</strong> This will create new records in your account. Existing data will not be affected or overwritten.
+                  <strong>Safe Restore:</strong> This process will <strong>not</strong> overwrite existing data. It only adds missing records. Duplicates are automatically skipped.
                 </AlertDescription>
               </Alert>
 
-              <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-amber-800 dark:text-amber-200">
-                  <strong>Note:</strong> Large imports (1000+ trades) may take 1-2 minutes. The dialog will show &ldquo;Importing...&rdquo; until complete. 
-                  Check the browser console (F12) to see detailed progress.
-                </AlertDescription>
-              </Alert>
-
-              <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-12 space-y-4">
+              <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-12 space-y-4 bg-muted/10">
                 {selectedFile ? (
                   <>
                     <FileArchive className="h-16 w-16 text-primary" />
@@ -134,21 +128,21 @@ export function ImportDialog() {
                         {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={handleReset}
                     >
-                      Choose Different File
+                      Choose Different Backup
                     </Button>
                   </>
                 ) : (
                   <>
                     <Upload className="h-16 w-16 text-muted-foreground" />
                     <div className="text-center">
-                      <p className="text-sm font-medium mb-2">Select a ZIP file to import</p>
+                      <p className="text-sm font-medium mb-2">Select Backup ZIP File</p>
                       <p className="text-xs text-muted-foreground mb-4">
-                        Only files exported from Deltalytix are supported
+                        Upload the .zip file generated by the "System Backup" tool
                       </p>
                     </div>
                     <input
@@ -174,24 +168,26 @@ export function ImportDialog() {
           {/* Import Results */}
           {importResults && (
             <div className="space-y-4">
-              <Alert className="border-green-200 bg-green-50 dark:bg-green-950">
+              <Alert className="border-green-200 bg-green-50 dark:bg-green-950/20">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-800 dark:text-green-200">
-                  <strong>Import completed successfully!</strong>
+                  <strong>Restore operation completed successfully.</strong>
                 </AlertDescription>
               </Alert>
 
               <div className="grid grid-cols-2 gap-4">
-                {Object.entries(importResults).map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
-                    <span className="text-sm font-medium capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                    <span className="text-lg font-bold text-primary">
-                      {value as number}
-                    </span>
-                  </div>
-                ))}
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-card">
+                  <span className="text-sm font-medium text-muted-foreground">Imported</span>
+                  <span className="text-2xl font-bold text-green-600">
+                    {importResults.imported || 0}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-card">
+                  <span className="text-sm font-medium text-muted-foreground">Skipped (Duplicates)</span>
+                  <span className="text-2xl font-bold text-amber-600">
+                    {importResults.skipped || 0}
+                  </span>
+                </div>
               </div>
 
               <div className="flex items-center justify-center gap-4 pt-4">
@@ -199,7 +195,7 @@ export function ImportDialog() {
                   Close
                 </Button>
                 <Button onClick={handleReset}>
-                  Import Another File
+                  Restore Another
                 </Button>
               </div>
             </div>
@@ -212,19 +208,19 @@ export function ImportDialog() {
             <Button variant="ghost" onClick={handleClose}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleImport} 
+            <Button
+              onClick={handleImport}
               disabled={!selectedFile || isImporting}
             >
               {isImporting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Importing...
+                  Restoring...
                 </>
               ) : (
                 <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Import
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Start Restore
                 </>
               )}
             </Button>
@@ -234,4 +230,3 @@ export function ImportDialog() {
     </Dialog>
   )
 }
-

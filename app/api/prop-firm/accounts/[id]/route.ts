@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserId } from '@/server/auth-utils'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const { id: masterAccountId } = await params
     // ID is pure masterAccountId (UUID), not composite
-    
+
     // PERFORMANCE OPTIMIZATION: Use parallel queries and database aggregations
     const [masterAccount, phases, tradeStats] = await Promise.all([
       // 1. Get master account basic info (no nested relations)
@@ -97,16 +98,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         }
       })
     ])
-    
+
     if (!masterAccount) {
       return NextResponse.json(
         { success: false, error: 'Master account not found' },
         { status: 404 }
       )
     }
-    
+
     // Get the current active phase
-    const currentPhase = phases.find(phase => 
+    const currentPhase = phases.find(phase =>
       phase.phaseNumber === masterAccount.currentPhase
     )
 
@@ -151,7 +152,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // CRITICAL FIX: Group trades to handle partial closes correctly
     const { groupTradesByExecution } = await import('@/lib/utils')
     const groupedTrades = groupTradesByExecution(currentPhaseTradesFull as any)
-    
+
     // Create minimal version for response (after grouping)
     const currentPhaseTradesMinimal = groupedTrades.map((trade: any) => ({
       pnl: trade.pnl,
@@ -175,21 +176,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // CRITICAL FIX: Use net P&L and exclude break-even trades
     const winningTrades = allTradesMinimal.filter(trade => {
       const netPnL = trade.pnl - (trade.commission || 0)
-      return netPnL > 0
+      return netPnL > BREAK_EVEN_THRESHOLD
     }).length
     const losingTrades = allTradesMinimal.filter(trade => {
       const netPnL = trade.pnl - (trade.commission || 0)
-      return netPnL < 0
+      return netPnL < -BREAK_EVEN_THRESHOLD
     }).length
     const tradableCount = winningTrades + losingTrades
     const winRate = tradableCount > 0 ? (winningTrades / tradableCount) * 100 : 0
 
     // Calculate current phase statistics - PHASE SPECIFIC!
     const currentPhaseStat = tradeStats.find(stat => stat.phaseAccountId === currentPhase?.id)
-    const currentPhasePnL = currentPhaseStat 
+    const currentPhasePnL = currentPhaseStat
       ? (currentPhaseStat._sum.pnl || 0) - (currentPhaseStat._sum.commission || 0)
       : 0
-    
+
     // Determine next action based on phase status
     let nextAction = 'continue_trading'
     if (!currentPhase?.phaseId) {
@@ -222,14 +223,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       // Use grouped trades for accurate high-water mark calculation
       let highWaterMark = masterAccount.accountSize
       let runningBalance = masterAccount.accountSize
-      
+
       // Calculate high-water mark from CURRENT PHASE grouped trades in order
       // Grouped trades ensure partial closes are counted as single trades
       for (const trade of groupedTrades) {
         runningBalance += (trade.pnl - (trade.commission || 0))
         highWaterMark = Math.max(highWaterMark, runningBalance)
       }
-      
+
       drawdownData.highestEquity = highWaterMark
       drawdownData.currentEquity = currentEquity
 
@@ -243,7 +244,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
         orderBy: { date: 'desc' }
       })
-      
+
       const dailyStartBalance = todayAnchor?.anchorEquity || masterAccount.accountSize
       drawdownData.dailyStartBalance = dailyStartBalance
 
@@ -257,7 +258,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       // Max drawdown calculation (static vs trailing)
       let maxDrawdownBase: number
       let maxDrawdownLimit: number
-      
+
       if (currentPhase.maxDrawdownType === 'trailing') {
         // Trailing: Base on high-water mark
         maxDrawdownBase = highWaterMark
@@ -267,7 +268,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         maxDrawdownBase = masterAccount.accountSize
         maxDrawdownLimit = masterAccount.accountSize * (currentPhase.maxDrawdownPercent / 100)
       }
-      
+
       const maxDrawdownUsed = Math.max(0, maxDrawdownBase - currentEquity)
       drawdownData.maxDrawdownRemaining = Math.max(0, maxDrawdownLimit - maxDrawdownUsed)
 
@@ -435,13 +436,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       success: true,
       data: response
     })
-    
+
   } catch (error) {
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Failed to fetch account',
-        details: error instanceof Error ? error.message : 'Unknown error' 
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     )
@@ -470,47 +471,47 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         userId
       }
     })
-    
+
     if (!existingAccount) {
       return NextResponse.json(
         { success: false, error: 'Master account not found or unauthorized' },
         { status: 404 }
       )
     }
-    
+
     // Update the account
     const updatedAccount = await prisma.masterAccount.update({
       where: { id: masterAccountId },
       data: updateData
     })
-    
+
     // Invalidate caches after archiving/unarchiving to refresh dashboard
     if (typeof updateData.isArchived === 'boolean') {
       const { invalidateUserCaches } = await import('@/server/accounts')
       await invalidateUserCaches(userId)
     }
-    
+
     return NextResponse.json({
       success: true,
       data: updatedAccount
     })
-    
+
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Validation failed',
           details: error.errors
         },
         { status: 400 }
       )
     }
-    
+
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to update account' 
+      {
+        success: false,
+        error: 'Failed to update account'
       },
       { status: 500 }
     )
@@ -603,12 +604,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       success: true,
       message: 'Master account deleted successfully'
     })
-    
+
   } catch (error) {
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to delete account' 
+      {
+        success: false,
+        error: 'Failed to delete account'
       },
       { status: 500 }
     )

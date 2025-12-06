@@ -17,7 +17,7 @@ import { TradeDetailView } from '@/app/dashboard/components/tables/trade-detail-
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
-import { formatQuantity, formatTradeData } from '@/lib/utils'
+import { formatQuantity, formatTradeData, BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 
 type SortConfig = {
   key: keyof Trade
@@ -40,7 +40,7 @@ export default function TradeTable() {
   const [selectedTradeForView, setSelectedTradeForView] = useState<Trade | null>(null)
   const [isDetailViewOpen, setIsDetailViewOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  
+
   // Modern Filters
   const [selectedInstruments, setSelectedInstruments] = useState<string[]>([])
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([])
@@ -81,8 +81,8 @@ export default function TradeTable() {
         // PnL filter
         if (pnlFilter !== 'all') {
           const netPnl = trade.pnl - (trade.commission || 0)
-          if (pnlFilter === 'wins' && netPnl <= 0) return false
-          if (pnlFilter === 'losses' && netPnl >= 0) return false
+          if (pnlFilter === 'wins' && netPnl <= BREAK_EVEN_THRESHOLD) return false
+          if (pnlFilter === 'losses' && netPnl >= -BREAK_EVEN_THRESHOLD) return false
         }
 
         return true
@@ -115,47 +115,47 @@ export default function TradeTable() {
 
   const handleDelete = async (ids: string[]) => {
     if (ids.length === 0) return
-    
+
     setIsDeleting(true)
-    
+
     // Clear selection immediately for responsive UI
     setSelectedTrades(new Set())
     setSelectAll(false)
-    
+
     let loadingToastId: string | number | null = null
-    
+
     try {
       // Show loading toast and store the ID
       loadingToastId = toast.info("Deleting Trades", {
         description: `Deleting ${ids.length} trade(s)...`,
         duration: Infinity
       })
-      
+
       // Perform deletion
       await deleteTradesByIdsAction(ids)
-      
+
       // Refresh trades data immediately
       refreshTrades()
-      
+
       // CRITICAL: Force router refresh to update UI everywhere
       router.refresh()
-      
+
       // Dismiss loading toast before showing success
       if (loadingToastId) {
         toast.dismiss(loadingToastId)
       }
-      
+
       // Show success toast
       toast.success("Trades Deleted", {
         description: `Successfully deleted ${ids.length} trade(s).`,
       })
     } catch (error) {
-      
+
       // Dismiss loading toast before showing error
       if (loadingToastId) {
         toast.dismiss(loadingToastId)
       }
-      
+
       toast.error("Error", {
         description: "Failed to delete trades. Please try again.",
       })
@@ -197,11 +197,11 @@ export default function TradeTable() {
 
   const handleSaveTrade = async (updatedTrade: Partial<Trade>) => {
     if (!selectedTradeForEdit) return
-    
+
     try {
       // Update the trade with new data
       await updateTrades([selectedTradeForEdit.id], updatedTrade)
-      
+
       toast.success("Trade Updated", {
         description: "Trade has been successfully updated.",
       })
@@ -381,16 +381,16 @@ export default function TradeTable() {
           </Popover>
 
           {activeFiltersCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={clearAllFilters}
               className="h-9"
-              >
+            >
               <X className="h-4 w-4 mr-1" />
               Clear Filters
-              </Button>
-            )}
+            </Button>
+          )}
 
           <div className="flex-1" />
 
@@ -399,8 +399,8 @@ export default function TradeTable() {
           </div>
 
           {selectedTrades.size > 0 && (
-            <Button 
-              onClick={() => handleDelete(Array.from(selectedTrades))} 
+            <Button
+              onClick={() => handleDelete(Array.from(selectedTrades))}
               disabled={isDeleting}
               variant="destructive"
               size="sm"
@@ -446,112 +446,112 @@ export default function TradeTable() {
                   aria-label="Select all"
                 />
               </TableHead>
-            <TableHead className="w-[100px]">
-              <Button variant="ghost" onClick={() => handleSort('instrument')}>
-                Instrument
-                {sortConfig.key === 'instrument' && <ArrowUpDown className="ml-2 h-4 w-4" />}
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('accountNumber')}>
-                Account
-                {sortConfig.key === 'accountNumber' && <ArrowUpDown className="ml-2 h-4 w-4" />}
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('side')}>
-                Side
-                {sortConfig.key === 'side' && <ArrowUpDown className="ml-2 h-4 w-4" />}
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('quantity')}>
-                Quantity
-                {sortConfig.key === 'quantity' && <ArrowUpDown className="ml-2 h-4 w-4" />}
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('entryPrice')}>
-                Entry Price
-                {sortConfig.key === 'entryPrice' && <ArrowUpDown className="ml-2 h-4 w-4" />}
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('closePrice')}>
-                Close Price
-                {sortConfig.key === 'closePrice' && <ArrowUpDown className="ml-2 h-4 w-4" />}
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('entryDate')}>
-                Entry Date
-                {sortConfig.key === 'entryDate' && <ArrowUpDown className="ml-2 h-4 w-4" />}
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('closeDate')}>
-                Close Date
-                {sortConfig.key === 'closeDate' && <ArrowUpDown className="ml-2 h-4 w-4" />}
-              </Button>
-            </TableHead>
-            <TableHead>
-              <Button variant="ghost" onClick={() => handleSort('pnl')}>
-                PNL
-                {sortConfig.key === 'pnl' && <ArrowUpDown className="ml-2 h-4 w-4" />}
-              </Button>
-            </TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {paginatedTrades.map((trade) => {
-            const formatted = formatTradeData(trade)
-            return (
-            <TableRow key={trade.id}>
-              <TableCell>
-                <Checkbox
-                  checked={selectedTrades.has(trade.id)}
-                  onCheckedChange={() => toggleTradeSelection(trade.id)}
-                />
-              </TableCell>
-                <TableCell>{formatted.instrument}</TableCell>
-                <TableCell>{formatted.accountNumber}</TableCell>
-                <TableCell>{formatted.side}</TableCell>
-                <TableCell>{formatted.quantity}</TableCell>
-                <TableCell>{formatted.entryPrice}</TableCell>
-                <TableCell>{formatted.closePrice}</TableCell>
-                <TableCell>{formatted.entryDateFormatted}</TableCell>
-                <TableCell>{formatted.closeDateFormatted}</TableCell>
-                <TableCell>{formatted.pnlFormatted}</TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedTradeForView(trade)
-                      setIsDetailViewOpen(true)
-                    }}
-                  >
-                    View
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedTradeForEdit(trade)
-                      setIsEnhancedEditOpen(true)
-                    }}
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
-                </div>
-              </TableCell>
+              <TableHead className="w-[100px]">
+                <Button variant="ghost" onClick={() => handleSort('instrument')}>
+                  Instrument
+                  {sortConfig.key === 'instrument' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" onClick={() => handleSort('accountNumber')}>
+                  Account
+                  {sortConfig.key === 'accountNumber' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" onClick={() => handleSort('side')}>
+                  Side
+                  {sortConfig.key === 'side' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" onClick={() => handleSort('quantity')}>
+                  Quantity
+                  {sortConfig.key === 'quantity' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" onClick={() => handleSort('entryPrice')}>
+                  Entry Price
+                  {sortConfig.key === 'entryPrice' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" onClick={() => handleSort('closePrice')}>
+                  Close Price
+                  {sortConfig.key === 'closePrice' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" onClick={() => handleSort('entryDate')}>
+                  Entry Date
+                  {sortConfig.key === 'entryDate' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" onClick={() => handleSort('closeDate')}>
+                  Close Date
+                  {sortConfig.key === 'closeDate' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" onClick={() => handleSort('pnl')}>
+                  PNL
+                  {sortConfig.key === 'pnl' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                </Button>
+              </TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
-            )
-          })}
-        </TableBody>
+          </TableHeader>
+          <TableBody>
+            {paginatedTrades.map((trade) => {
+              const formatted = formatTradeData(trade)
+              return (
+                <TableRow key={trade.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedTrades.has(trade.id)}
+                      onCheckedChange={() => toggleTradeSelection(trade.id)}
+                    />
+                  </TableCell>
+                  <TableCell>{formatted.instrument}</TableCell>
+                  <TableCell>{formatted.accountNumber}</TableCell>
+                  <TableCell>{formatted.side}</TableCell>
+                  <TableCell>{formatted.quantity}</TableCell>
+                  <TableCell>{formatted.entryPrice}</TableCell>
+                  <TableCell>{formatted.closePrice}</TableCell>
+                  <TableCell>{formatted.entryDateFormatted}</TableCell>
+                  <TableCell>{formatted.closeDateFormatted}</TableCell>
+                  <TableCell>{formatted.pnlFormatted}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedTradeForView(trade)
+                          setIsDetailViewOpen(true)
+                        }}
+                      >
+                        View
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedTradeForEdit(trade)
+                          setIsEnhancedEditOpen(true)
+                        }}
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
         </Table>
       </div>
 
@@ -562,8 +562,8 @@ export default function TradeTable() {
           </p>
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-500">Show:</span>
-            <select 
-              value={tradesPerPage} 
+            <select
+              value={tradesPerPage}
               onChange={(e) => {
                 setTradesPerPage(Number(e.target.value))
                 setCurrentPage(1) // Reset to first page when changing page size
@@ -603,7 +603,7 @@ export default function TradeTable() {
           </Button>
         </div>
       </div>
-      
+
       {/* Trade Detail View Dialog */}
       <TradeDetailView
         isOpen={isDetailViewOpen}
@@ -613,7 +613,7 @@ export default function TradeTable() {
         }}
         trade={selectedTradeForView}
       />
-      
+
       {/* Enhanced Edit Trade Dialog */}
       <TradeEditDialog
         isOpen={isEnhancedEditOpen}

@@ -15,12 +15,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { 
+import {
   ArrowLeft,
-  TrendingUp, 
-  TrendingDown, 
-  Target, 
-  AlertTriangle, 
+  TrendingUp,
+  TrendingDown,
+  Target,
+  AlertTriangle,
   Shield,
   DollarSign,
   Settings,
@@ -38,7 +38,7 @@ import {
   Wallet,
   Percent
 } from "lucide-react"
-import { cn, formatPercent } from "@/lib/utils"
+import { cn, formatPercent, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { AccountStatus, PhaseType } from "@/types/prop-firm"
 import { AccountNotFoundError, ConnectionError } from "@/components/prop-firm/account-error-boundary"
 import { HistoryTab } from "./components/history-tab"
@@ -127,14 +127,14 @@ function DetailPageSkeleton() {
 }
 
 // Metric Card Component
-function MetricCard({ 
-  label, 
-  value, 
-  subtext, 
-  icon, 
+function MetricCard({
+  label,
+  value,
+  subtext,
+  icon,
   trend,
-  warning 
-}: { 
+  warning
+}: {
   label: string
   value: string | number
   subtext?: string
@@ -192,8 +192,8 @@ function TradeRow({ trade, evaluationType }: { trade: any, evaluationType?: stri
         </Badge>
       </td>
       <td className="p-3 text-sm text-muted-foreground">
-        {trade.exitTime ? new Date(trade.exitTime).toLocaleDateString() : 
-         trade.entryDate ? new Date(trade.entryDate).toLocaleDateString() : 'N/A'}
+        {trade.exitTime ? new Date(trade.exitTime).toLocaleDateString() :
+          trade.entryDate ? new Date(trade.entryDate).toLocaleDateString() : 'N/A'}
       </td>
     </tr>
   )
@@ -214,35 +214,35 @@ export default function AccountDetailPage() {
   const hasFetchedDataRef = useRef(false)
 
   const accountId = params.id as string
-  
-  const { 
-    account: realtimeAccount, 
-    drawdown: realtimeDrawdown, 
-    isLoading, 
-    error: realtimeError, 
+
+  const {
+    account: realtimeAccount,
+    drawdown: realtimeDrawdown,
+    isLoading,
+    error: realtimeError,
     refetch,
     isConnected: isRealtimeConnected
-  } = usePropFirmRealtime({ 
-    accountId, 
-    enabled: !!accountId 
+  } = usePropFirmRealtime({
+    accountId,
+    enabled: !!accountId
   })
 
   // Fetch complete data
   const fetchCompleteData = useCallback(async () => {
     setIsLoadingData(true)
     setDataError(null)
-    
+
     try {
       const [tradesRes, payoutsRes] = await Promise.all([
         fetch(`/api/prop-firm/accounts/${accountId}/trades?phase=all`),
         fetch(`/api/prop-firm/accounts/${accountId}/payouts`)
       ])
-      
+
       const [tradesJson, payoutsJson] = await Promise.all([
         tradesRes.json(),
         payoutsRes.json()
       ])
-      
+
       setTradesData(tradesJson.success ? tradesJson.data.trades : [])
       setPayoutsData(payoutsJson.success ? payoutsJson.data : { eligibility: null, history: [] })
     } catch (error) {
@@ -306,7 +306,7 @@ export default function AccountDetailPage() {
   useEffect(() => {
     if (realtimeAccount) {
       const isFunded = isFundedPhase(realtimeAccount.evaluationType, realtimeAccount.currentPhase?.phaseNumber)
-      
+
       setAccountData({
         account: {
           id: realtimeAccount.id,
@@ -326,8 +326,8 @@ export default function AccountDetailPage() {
         currentPhase: {
           phaseNumber: realtimeAccount.currentPhase?.phaseNumber ?? 1,
           status: realtimeAccount.currentPhase?.status || 'active',
-          profitTarget: realtimeAccount.currentPhase && realtimeAccount.accountSize 
-            ? (realtimeAccount.currentPhase.profitTargetPercent / 100) * realtimeAccount.accountSize 
+          profitTarget: realtimeAccount.currentPhase && realtimeAccount.accountSize
+            ? (realtimeAccount.currentPhase.profitTargetPercent / 100) * realtimeAccount.accountSize
             : 0,
           netProfitSincePhaseStart: realtimeAccount.currentPnL ?? 0,
           isFunded,
@@ -346,7 +346,7 @@ export default function AccountDetailPage() {
         payouts: payoutsData?.history || [],
         phases: realtimeAccount.phases || []
       })
-      
+
       if (!editedAccountName) {
         setEditedAccountName(realtimeAccount.accountName || '')
       }
@@ -356,12 +356,12 @@ export default function AccountDetailPage() {
   // Computed values
   const stats = useMemo(() => {
     if (!tradesData.length) return null
-    
-    const wins = tradesData.filter(t => (t.pnl || 0) > 0)
-    const losses = tradesData.filter(t => (t.pnl || 0) < 0)
+
+    const wins = tradesData.filter(t => (t.pnl || 0) > BREAK_EVEN_THRESHOLD)
+    const losses = tradesData.filter(t => (t.pnl || 0) < -BREAK_EVEN_THRESHOLD)
     const totalPnl = tradesData.reduce((sum, t) => sum + (t.pnl || 0), 0)
     const tradableCount = wins.length + losses.length
-    
+
     return {
       totalTrades: tradesData.length,
       winRate: tradableCount > 0 ? Math.round((wins.length / tradableCount) * 100) : 0,
@@ -388,7 +388,7 @@ export default function AccountDetailPage() {
       })
 
       if (!response.ok) throw new Error('Failed to update')
-      
+
       toast.success("Name updated")
       setIsEditingName(false)
       await refetch()
@@ -416,7 +416,7 @@ export default function AccountDetailPage() {
   if (realtimeError) {
     if (realtimeError.includes('404') || realtimeError.includes('not found')) {
       return (
-        <AccountNotFoundError 
+        <AccountNotFoundError
           accountId={accountId}
           onRetry={refetch}
           onGoBack={() => router.push('/dashboard/accounts')}
@@ -445,9 +445,9 @@ export default function AccountDetailPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        
+
         {/* Header */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-4"
@@ -461,13 +461,13 @@ export default function AccountDetailPage() {
             <ArrowLeft className="h-4 w-4" />
             Back to Accounts
           </Button>
-          
+
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 {isEditingName ? (
                   <div className="flex items-center gap-2">
-                    <Input 
+                    <Input
                       value={editedAccountName}
                       onChange={(e) => setEditedAccountName(e.target.value)}
                       className="h-8 w-48"
@@ -482,10 +482,10 @@ export default function AccountDetailPage() {
                 ) : (
                   <h1 className="text-2xl font-bold flex items-center gap-2">
                     {account.name}
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-6 w-6" 
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
                       onClick={() => setIsEditingName(true)}
                     >
                       <Edit className="h-3 w-3" />
@@ -493,7 +493,7 @@ export default function AccountDetailPage() {
                   </h1>
                 )}
               </div>
-              
+
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={getStatusVariant(account.status)}>
                   {currentPhase.isFunded ? 'Funded' : account.status === 'active' ? 'Active' : account.status}
@@ -506,7 +506,7 @@ export default function AccountDetailPage() {
                 </span>
               </div>
             </div>
-            
+
             <Button
               variant="outline"
               size="sm"
@@ -570,10 +570,10 @@ export default function AccountDetailPage() {
           />
           <MetricCard
             label={currentPhase.isFunded ? "Total Profit" : "Progress"}
-            value={currentPhase.isFunded 
+            value={currentPhase.isFunded
               ? formatCurrency(currentPhase.netProfitSincePhaseStart)
               : `${Math.min(progress.profitProgress, 100).toFixed(1)}%`}
-            subtext={currentPhase.isFunded 
+            subtext={currentPhase.isFunded
               ? `Split: ${account.profitSplitPercent || 80}%`
               : `Target: ${formatCurrency(currentPhase.profitTarget)}`}
             icon={<Target className="h-5 w-5" />}
@@ -666,12 +666,12 @@ export default function AccountDetailPage() {
                   <CardContent>
                     <div className="space-y-4">
                       {accountData.phases.map((phase: any) => {
-                        const phaseTrades = tradesData.filter((t: any) => 
+                        const phaseTrades = tradesData.filter((t: any) =>
                           t.phase?.id === phase.id || t.phaseAccountId === phase.id
                         )
                         const phasePnL = phaseTrades.reduce((sum: number, t: any) => sum + (t.pnl || 0), 0)
-                        const wins = phaseTrades.filter((t: any) => (t.pnl || 0) > 0).length
-                        const losses = phaseTrades.filter((t: any) => (t.pnl || 0) < 0).length
+                        const wins = phaseTrades.filter((t: any) => (t.pnl || 0) > BREAK_EVEN_THRESHOLD).length
+                        const losses = phaseTrades.filter((t: any) => (t.pnl || 0) < -BREAK_EVEN_THRESHOLD).length
                         const tradable = wins + losses
                         const winRate = tradable > 0 ? Math.round((wins / tradable) * 100) : 0
 
@@ -833,7 +833,7 @@ export default function AccountDetailPage() {
                           </div>
                         )}
                         {payoutEligibility.isEligible && (
-                          <Button 
+                          <Button
                             className="w-full"
                             onClick={() => router.push(`/dashboard/prop-firm/accounts/${accountId}/payouts/request`)}
                           >
@@ -887,14 +887,14 @@ export default function AccountDetailPage() {
                 breaches={[]}
                 evaluationType={account.evaluationType}
                 phases={accountData.phases?.map((phase: any) => {
-                  const phaseTrades = tradesData.filter((t: any) => 
+                  const phaseTrades = tradesData.filter((t: any) =>
                     t.phase?.id === phase.id || t.phaseAccountId === phase.id
                   )
                   const totalPnL = phaseTrades.reduce((sum: number, t: any) => sum + (t.pnl || 0), 0)
-                  const wins = phaseTrades.filter((t: any) => (t.pnl || 0) > 0).length
-                  const losses = phaseTrades.filter((t: any) => (t.pnl || 0) < 0).length
+                  const wins = phaseTrades.filter((t: any) => (t.pnl || 0) > BREAK_EVEN_THRESHOLD).length
+                  const losses = phaseTrades.filter((t: any) => (t.pnl || 0) < -BREAK_EVEN_THRESHOLD).length
                   const tradable = wins + losses
-                  
+
                   return {
                     id: phase.id,
                     phaseNumber: phase.phaseNumber,
@@ -906,8 +906,8 @@ export default function AccountDetailPage() {
                     totalPnL,
                     winRate: tradable > 0 ? (wins / tradable) * 100 : 0,
                     profitTargetPercent: phase.profitTargetPercent,
-                    profitProgress: phase.profitTargetPercent > 0 
-                      ? Math.min((totalPnL / ((phase.profitTargetPercent / 100) * account.startingBalance)) * 100, 100) 
+                    profitProgress: phase.profitTargetPercent > 0
+                      ? Math.min((totalPnL / ((phase.profitTargetPercent / 100) * account.startingBalance)) * 100, 100)
                       : 0,
                   }
                 }) || []}

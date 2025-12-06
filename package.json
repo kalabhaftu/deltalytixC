@@ -103,6 +103,7 @@
     "ios-vibrator-pro-max": "^1.0.7",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
+    "jszip": "^3.10.1",
     "ldrs": "^1.1.7",
     "lightweight-charts": "^5.0.2",
     "lucide-react": "^0.511.0",

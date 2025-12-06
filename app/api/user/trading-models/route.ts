@@ -3,6 +3,7 @@ import { getUserId } from '@/server/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
+import { BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 
 const tradingModelSchema = z.object({
   name: z.string().min(1, 'Model name is required').max(100),
@@ -21,17 +22,63 @@ export async function GET(request: NextRequest) {
     const models = await prisma.tradingModel.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      include: {
+        Trade: {
+          select: {
+            pnl: true,
+            commission: true
+          }
+        }
+      }
     })
 
-    // Parse rules from JSON to array
-    const formattedModels = models.map(model => ({
-      ...model,
-      rules: typeof model.rules === 'string' 
-        ? JSON.parse(model.rules) 
-        : Array.isArray(model.rules) 
-          ? model.rules 
-          : [],
-    }))
+    // Parse rules from JSON to array and calculate stats
+    const formattedModels = models.map(model => {
+      const trades = model.Trade || []
+      const tradeCount = trades.length
+
+      let totalPnL = 0
+      let winCount = 0
+      let lossCount = 0
+      let breakEvenCount = 0
+
+      trades.forEach(trade => {
+        const netPnL = (trade.pnl || 0) - (trade.commission || 0)
+        totalPnL += netPnL
+
+        if (netPnL > BREAK_EVEN_THRESHOLD) {
+          winCount++
+        } else if (netPnL < -BREAK_EVEN_THRESHOLD) {
+          lossCount++
+        } else {
+          breakEvenCount++
+        }
+      })
+
+      // Calculate win rate (excluding break-even from denominator)
+      const tradableCount = winCount + lossCount
+      const winRate = tradableCount > 0 ? (winCount / tradableCount) * 100 : 0
+
+      // Remove Trade array from response to keep it light
+      const { Trade, ...modelData } = model
+
+      return {
+        ...modelData,
+        rules: typeof model.rules === 'string'
+          ? JSON.parse(model.rules)
+          : Array.isArray(model.rules)
+            ? model.rules
+            : [],
+        stats: {
+          tradeCount,
+          totalPnL,
+          winRate,
+          winCount,
+          lossCount,
+          breakEvenCount
+        }
+      }
+    })
 
     return NextResponse.json({ success: true, models: formattedModels })
   } catch (error) {

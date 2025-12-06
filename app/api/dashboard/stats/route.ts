@@ -6,6 +6,7 @@ import { getUserId } from '@/server/auth'
 import { calculateAccountBalances } from '@/lib/utils/balance-calculator'
 import { CacheHeaders } from '@/lib/api-cache-headers'
 import { API_TIMEOUT_LONG } from '@/lib/constants'
+import { BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 
 // GET /api/dashboard/stats - Fast dashboard statistics for charts
 export async function GET(request: NextRequest) {
@@ -24,21 +25,21 @@ export async function GET(request: NextRequest) {
       }
 
       if (!currentUserId) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          totalAccounts: 0,
-          totalTrades: 0,
-          totalEquity: 0,
-          totalPnL: 0,
-          winRate: 0,
-          chartData: [],
-          isAuthenticated: false,
-          lastUpdated: new Date().toISOString()
-        }
-      }, {
-        headers: CacheHeaders.noCache // Don't cache unauthenticated responses
-      })
+        return NextResponse.json({
+          success: true,
+          data: {
+            totalAccounts: 0,
+            totalTrades: 0,
+            totalEquity: 0,
+            totalPnL: 0,
+            winRate: 0,
+            chartData: [],
+            isAuthenticated: false,
+            lastUpdated: new Date().toISOString()
+          }
+        }, {
+          headers: CacheHeaders.noCache // Don't cache unauthenticated responses
+        })
       }
 
       // Get user's account filter settings if they exist
@@ -82,11 +83,11 @@ export async function GET(request: NextRequest) {
       // Build account where clause based on user's filter settings
       // NOTE: The Account model does NOT have a status field - it's only on MasterAccount/PhaseAccount
       // Regular accounts are always "live" trading accounts
-      let accountWhereClause: any = { 
+      let accountWhereClause: any = {
         userId: internalUserId,
         isArchived: false // ALWAYS exclude archived accounts from calculations
       }
-      
+
       // For regular Account table, we can only filter by:
       // - userId (always applied)
       // - isArchived (always exclude archived)
@@ -101,16 +102,16 @@ export async function GET(request: NextRequest) {
           startingBalance: true
         }
       })
-      
+
       // Also get prop firm phase accounts based on filter settings
       let propFirmPhaseNumbers: string[] = []
-      
+
       // Build master account where clause for prop firm filtering
-      const masterAccountWhere: any = { 
+      const masterAccountWhere: any = {
         userId: internalUserId,
         isArchived: false
       }
-      
+
       // Apply status filtering to MasterAccount (which DOES have a status field)
       // NOTE: MasterAccountStatus only has: active, funded, failed
       // The 'passed' status exists only on PhaseAccount, not MasterAccount
@@ -120,7 +121,7 @@ export async function GET(request: NextRequest) {
       } else if (accountFilterSettings.showMode === 'custom') {
         // Apply custom filtering logic
         const statusFilters: ('active' | 'funded' | 'failed')[] = []
-        
+
         if (accountFilterSettings.includeStatuses?.includes('active')) {
           statusFilters.push('active')
         }
@@ -139,19 +140,19 @@ export async function GET(request: NextRequest) {
         if (accountFilterSettings.showFailedAccounts) {
           statusFilters.push('failed')
         }
-        
+
         if (statusFilters.length > 0) {
           masterAccountWhere.status = { in: statusFilters }
         }
       }
       // else 'all-accounts' - no status filter
-      
+
       // Get prop firm accounts with their phases
       const propFirmAccounts = await prisma.masterAccount.findMany({
         where: masterAccountWhere,
         include: {
           PhaseAccount: {
-            where: { 
+            where: {
               // Only include activated phases - exclude pending and pending_approval
               // Cast to any to avoid TypeScript enum issues with Prisma client
               status: { notIn: ['pending', 'pending_approval'] as any }
@@ -160,7 +161,7 @@ export async function GET(request: NextRequest) {
           }
         }
       })
-      
+
       // Extract phase IDs (which are used as account numbers in trades)
       propFirmPhaseNumbers = propFirmAccounts
         .flatMap((ma: { PhaseAccount: Array<{ phaseId: string | null; status: string }> }) => ma.PhaseAccount
@@ -184,13 +185,13 @@ export async function GET(request: NextRequest) {
 
       // Optimized: Use single query with aggregation instead of separate queries
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-      
+
       const [totalTrades, recentTrades, allTradesForEquity] = await Promise.all([
         // Total trades count (only from filtered accounts)
         prisma.trade.count({
           where: tradeWhereClause
         }),
-        
+
         // Recent trades for chart and stats (last 30 days, only from filtered accounts)
         // Include fields needed for grouping
         prisma.trade.findMany({
@@ -277,8 +278,8 @@ export async function GET(request: NextRequest) {
       const groupedTrades = groupTradesByExecution(recentTrades as any[])
 
       // Calculate average win/loss from GROUPED trades
-      const wins = groupedTrades.filter(t => (t.pnl - (t.commission || 0)) > 0)
-      const losses = groupedTrades.filter(t => (t.pnl - (t.commission || 0)) < 0)
+      const wins = groupedTrades.filter(t => (t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD)
+      const losses = groupedTrades.filter(t => (t.pnl - (t.commission || 0)) < -BREAK_EVEN_THRESHOLD)
       const avgWin = wins.length > 0 ? wins.reduce((sum, t) => sum + (t.pnl - (t.commission || 0)), 0) / wins.length : 0
       const avgLoss = losses.length > 0 ? losses.reduce((sum, t) => sum + Math.abs(t.pnl - (t.commission || 0)), 0) / losses.length : 0
       const riskRewardRatio = avgLoss > 0 ? avgWin / avgLoss : 0
@@ -286,15 +287,15 @@ export async function GET(request: NextRequest) {
       // Calculate trading statistics (net of commissions) using GROUPED trades
       const winningTrades = groupedTrades.filter(trade => {
         const netPnL = trade.pnl - (trade.commission || 0)
-        return netPnL > 0
+        return netPnL > BREAK_EVEN_THRESHOLD
       }).length
       const losingTrades = groupedTrades.filter(trade => {
         const netPnL = trade.pnl - (trade.commission || 0)
-        return netPnL < 0
+        return netPnL < -BREAK_EVEN_THRESHOLD
       }).length
       const breakEvenTrades = groupedTrades.filter(trade => {
         const netPnL = trade.pnl - (trade.commission || 0)
-        return netPnL === 0
+        return Math.abs(netPnL) <= BREAK_EVEN_THRESHOLD
       }).length
 
       // Win rate calculation (excluding break-even trades)
@@ -307,12 +308,12 @@ export async function GET(request: NextRequest) {
       // Calculate gross profits and losses for profit factor using GROUPED trades
       const grossProfits = groupedTrades.reduce((sum, trade) => {
         const netPnL = trade.pnl - (trade.commission || 0)
-        return netPnL > 0 ? sum + netPnL : sum
+        return netPnL > BREAK_EVEN_THRESHOLD ? sum + netPnL : sum
       }, 0)
 
       const grossLosses = Math.abs(groupedTrades.reduce((sum, trade) => {
         const netPnL = trade.pnl - (trade.commission || 0)
-        return netPnL < 0 ? sum + netPnL : sum
+        return netPnL < -BREAK_EVEN_THRESHOLD ? sum + netPnL : sum
       }, 0))
 
       // Profit factor calculation
@@ -352,14 +353,14 @@ export async function GET(request: NextRequest) {
     return await Promise.race([operationPromise(), timeoutPromise])
 
   } catch (error) {
-    
+
     if (error instanceof Error && error.message === 'Request timeout') {
       return NextResponse.json(
         { success: false, error: 'Request timeout - please try again' },
         { status: 408 }
       )
     }
-    
+
     return NextResponse.json(
       { success: false, error: 'Failed to fetch dashboard stats' },
       { status: 500 }

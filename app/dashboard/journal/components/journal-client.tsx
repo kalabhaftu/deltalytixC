@@ -3,15 +3,15 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TradeCard } from './trade-card'
-import { 
-  Search, 
-  Filter, 
-  AlertTriangle, 
-  RefreshCw, 
-  ChevronLeft, 
-  ChevronRight, 
-  X, 
-  Sparkles, 
+import {
+  Search,
+  Filter,
+  AlertTriangle,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Sparkles,
   Tag,
   TrendingUp,
   TrendingDown,
@@ -51,7 +51,7 @@ import { useModalStateStore } from '@/store/modal-state-store'
 import TradeEditDialog from '@/app/dashboard/components/tables/trade-edit-dialog'
 import { TradeDetailView } from '@/app/dashboard/components/tables/trade-detail-view'
 import { Trade } from '@prisma/client'
-import { groupTradesByExecution, formatCurrency } from '@/lib/utils'
+import { groupTradesByExecution, formatCurrency, BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 import Fuse from 'fuse.js'
 import { getAssetSearchTerms } from '@/lib/asset-aliases'
 import { useTags } from '@/context/tags-provider'
@@ -63,15 +63,19 @@ const ITEMS_PER_PAGE = 21
 function JournalStats({ trades }: { trades: Trade[] }) {
   const stats = useMemo(() => {
     if (trades.length === 0) return null
-    
-    const wins = trades.filter(t => t.pnl > 0)
-    const losses = trades.filter(t => t.pnl < 0)
+
+    const wins = trades.filter(t => t.pnl > BREAK_EVEN_THRESHOLD)
+    const losses = trades.filter(t => t.pnl < -BREAK_EVEN_THRESHOLD)
     const totalPnl = trades.reduce((sum, t) => sum + t.pnl, 0)
     const avgDuration = trades.reduce((sum, t) => sum + (t.timeInPosition || 0), 0) / trades.length
-    
+
+    // Win Rate = Wins / (Wins + Losses) - break-even trades excluded from denominator
+    const tradableCount = wins.length + losses.length
+    const winRate = tradableCount > 0 ? (wins.length / tradableCount) * 100 : 0
+
     return {
       totalTrades: trades.length,
-      winRate: trades.length > 0 ? (wins.length / trades.length) * 100 : 0,
+      winRate,
       totalPnl,
       avgDuration: Math.floor(avgDuration / 60) // in minutes
     }
@@ -94,7 +98,7 @@ function JournalStats({ trades }: { trades: Trade[] }) {
           </div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
@@ -115,7 +119,7 @@ function JournalStats({ trades }: { trades: Trade[] }) {
           </div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
@@ -138,7 +142,7 @@ function JournalStats({ trades }: { trades: Trade[] }) {
           </div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
@@ -226,14 +230,14 @@ function JournalSkeleton() {
 }
 
 // Empty State
-function EmptyState({ 
-  hasFilters, 
+function EmptyState({
+  hasFilters,
   searchTerm,
-  onClearFilters 
-}: { 
+  onClearFilters
+}: {
   hasFilters: boolean
   searchTerm: string
-  onClearFilters: () => void 
+  onClearFilters: () => void
 }) {
   return (
     <Card className="border-dashed">
@@ -243,9 +247,9 @@ function EmptyState({
         </div>
         <h3 className="text-lg font-semibold mb-2">No trades found</h3>
         <p className="text-sm text-muted-foreground text-center max-w-sm">
-          {searchTerm 
+          {searchTerm
             ? `No trades match "${searchTerm}"`
-            : hasFilters 
+            : hasFilters
               ? 'Try adjusting your filters'
               : 'Import trades to start journaling'
           }
@@ -265,7 +269,7 @@ export function JournalClient() {
   const { formattedTrades, refreshTrades, updateTrades, isLoading } = useData()
   const { tags } = useTags()
   const searchInputRef = useRef<HTMLInputElement>(null)
-  
+
   // State
   const [searchTerm, setSearchTerm] = useState('')
   const [filterBy, setFilterBy] = useState<'all' | 'wins' | 'losses' | 'buys' | 'sells'>('all')
@@ -296,15 +300,15 @@ export function JournalClient() {
           const instrument = (trade.instrument || '').toLowerCase()
           const symbol = (trade.symbol || '').toLowerCase()
           const comment = (trade.comment || '').toLowerCase()
-          
+
           if (instrument.startsWith(term) || symbol.startsWith(term)) return true
-          
+
           const aliases = getAssetSearchTerms(trade.instrument || trade.symbol || '')
           const aliasMatch = aliases.some(alias => alias.toLowerCase().startsWith(term))
           if (aliasMatch) return true
-          
+
           if (comment.includes(term)) return true
-          
+
           return false
         })
       } else if (termLength <= 4) {
@@ -325,7 +329,7 @@ export function JournalClient() {
           minMatchCharLength: 1,
           includeScore: true,
         })
-        
+
         const results = fuse.search(term)
         trades = results.map(result => result.item)
       } else {
@@ -346,7 +350,7 @@ export function JournalClient() {
           minMatchCharLength: 1,
           includeScore: true,
         })
-        
+
         const results = fuse.search(term)
         trades = results.map(result => result.item)
       }
@@ -354,10 +358,10 @@ export function JournalClient() {
 
     // Apply additional filters
     return trades.filter(trade => {
-      const matchesFilter = 
+      const matchesFilter =
         filterBy === 'all' ||
-        (filterBy === 'wins' && trade.pnl > 0) ||
-        (filterBy === 'losses' && trade.pnl < 0) ||
+        (filterBy === 'wins' && trade.pnl > BREAK_EVEN_THRESHOLD) ||
+        (filterBy === 'losses' && trade.pnl < -BREAK_EVEN_THRESHOLD) ||
         (filterBy === 'buys' && trade.side?.toUpperCase() === 'BUY') ||
         (filterBy === 'sells' && trade.side?.toUpperCase() === 'SELL')
 
@@ -411,10 +415,10 @@ export function JournalClient() {
     setTradeToDelete(trade)
     setShowDeleteDialog(true)
   }, [])
-  
+
   const confirmDeleteTrade = useCallback(async () => {
     if (!tradeToDelete) return
-    
+
     try {
       toast.success('Trade deleted successfully')
       await refreshTrades()
@@ -428,17 +432,17 @@ export function JournalClient() {
 
   const handleSaveTrade = useCallback(async (updatedTrade: Partial<Trade>) => {
     if (!selectedTrade) return
-    
+
     try {
       await updateTrades([selectedTrade.id], updatedTrade)
       toast.success('Trade updated successfully')
       setIsEditDialogOpen(false)
-      
+
       setSelectedTrade({
         ...selectedTrade,
         ...updatedTrade
       } as Trade)
-      
+
       await refreshTrades()
     } catch (error) {
       toast.error('Failed to update trade')
@@ -461,7 +465,7 @@ export function JournalClient() {
   return (
     <div className="w-full max-w-full py-6 px-4 sm:px-6 space-y-6">
       {/* Header */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center justify-between gap-4"
@@ -473,9 +477,9 @@ export function JournalClient() {
           </p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <Button 
-            variant="default" 
-            size="sm" 
+          <Button
+            variant="default"
+            size="sm"
             onClick={() => setShowAIAnalysis(true)}
             className="gap-2"
           >
@@ -483,9 +487,9 @@ export function JournalClient() {
             <span className="hidden sm:inline">AI Analysis</span>
             <span className="sm:hidden">AI</span>
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleRefresh}
             disabled={isRefreshing}
             className="gap-2"
@@ -599,20 +603,20 @@ export function JournalClient() {
                   key={tag.id}
                   checked={selectedTagIds.includes(tag.id)}
                   onCheckedChange={(checked) => {
-                    setSelectedTagIds(prev => 
-                      checked 
+                    setSelectedTagIds(prev =>
+                      checked
                         ? [...prev, tag.id]
                         : prev.filter(id => id !== tag.id)
                     )
                   }}
                 >
-                    <Badge
-                      variant="secondary"
-                      className="text-xs"
-                      style={{ backgroundColor: tag.color, color: 'white', borderColor: tag.color }}
-                    >
-                      {tag.name}
-                    </Badge>
+                  <Badge
+                    variant="secondary"
+                    className="text-xs"
+                    style={{ backgroundColor: tag.color, color: 'white', borderColor: tag.color }}
+                  >
+                    {tag.name}
+                  </Badge>
                 </DropdownMenuCheckboxItem>
               ))
             )}
@@ -622,7 +626,7 @@ export function JournalClient() {
 
       {/* Active tag filters display */}
       {selectedTagIds.length > 0 && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           className="flex flex-wrap gap-2 items-center"
@@ -655,7 +659,7 @@ export function JournalClient() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <EmptyState 
+            <EmptyState
               hasFilters={hasFilters}
               searchTerm={searchTerm}
               onClearFilters={handleClearFilters}
@@ -669,7 +673,7 @@ export function JournalClient() {
             exit={{ opacity: 0 }}
           >
             {/* Trade cards grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {paginatedTrades.map((trade, index) => (
                 <motion.div
                   key={trade.id}
@@ -677,78 +681,78 @@ export function JournalClient() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.03, duration: 0.2 }}
                 >
-              <TradeCard 
-                trade={trade}
-                onEdit={() => handleEditTrade(trade)}
-                onView={() => handleViewTrade(trade)}
-                onDelete={() => handleDeleteTrade(trade)}
-              />
+                  <TradeCard
+                    trade={trade}
+                    onEdit={() => handleEditTrade(trade)}
+                    onView={() => handleViewTrade(trade)}
+                    onDelete={() => handleDeleteTrade(trade)}
+                  />
                 </motion.div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          {/* Pagination controls */}
-          {totalPages > 1 && (
+            {/* Pagination controls */}
+            {totalPages > 1 && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
                 className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8"
               >
-              <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
-                Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredTrades.length)} of {filteredTrades.length} trades
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="gap-1"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">Previous</span>
-                </Button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum: number
-                    if (totalPages <= 5) {
-                      pageNum = i + 1
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i
-                    } else {
-                      pageNum = currentPage - 2 + i
-                    }
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(pageNum)}
-                        className="w-8 h-8 sm:w-9 sm:h-9 p-0 text-xs sm:text-sm"
-                      >
-                        {pageNum}
-                      </Button>
-                    )
-                  })}
+                <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
+                  Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredTrades.length)} of {filteredTrades.length} trades
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="gap-1"
-                >
-                  <span className="hidden sm:inline">Next</span>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="gap-1"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline">Previous</span>
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum: number
+                      if (totalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i
+                      } else {
+                        pageNum = currentPage - 2 + i
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="w-8 h-8 sm:w-9 sm:h-9 p-0 text-xs sm:text-sm"
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="gap-1"
+                  >
+                    <span className="hidden sm:inline">Next</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </motion.div>
-          )}
+            )}
           </motion.div>
-      )}
+        )}
       </AnimatePresence>
 
       {/* Dialogs */}
@@ -770,7 +774,7 @@ export function JournalClient() {
         }}
         trade={selectedTrade}
       />
-      
+
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent className="z-[10002]">
           <AlertDialogHeader>
@@ -779,7 +783,7 @@ export function JournalClient() {
               Delete Trade?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this trade ({tradeToDelete?.instrument} {tradeToDelete?.side})? 
+              Are you sure you want to delete this trade ({tradeToDelete?.instrument} {tradeToDelete?.side})?
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

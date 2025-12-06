@@ -34,6 +34,14 @@ interface TradingModel {
   notes?: string | null
   createdAt: string
   updatedAt: string
+  stats?: {
+    tradeCount: number
+    totalPnL: number
+    winRate: number
+    winCount: number
+    lossCount: number
+    breakEvenCount: number
+  }
 }
 
 export default function MenuPage() {
@@ -80,7 +88,7 @@ export default function MenuPage() {
 
   // Handle save model
   const handleSaveModel = async (data: { name: string; rules: string[]; notes?: string }) => {
-    const url = modalMode === 'add' 
+    const url = modalMode === 'add'
       ? '/api/user/trading-models'
       : `/api/user/trading-models/${selectedModel?.id}`
 
@@ -132,9 +140,9 @@ export default function MenuPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Menu</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Trading Models</h1>
               <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-                Manage your trading models and strategies
+                Manage your trading models and track their performance
               </p>
             </div>
             <Button onClick={handleAddModel} className="gap-2">
@@ -248,6 +256,30 @@ export default function MenuPage() {
                       {model.notes}
                     </p>
                   )}
+
+                  <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Win Rate</p>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-lg font-bold ${(model.stats?.winRate || 0) >= 50 ? 'text-green-500' :
+                            (model.stats?.winRate || 0) > 0 ? 'text-yellow-500' : 'text-muted-foreground'
+                          }`}>
+                          {model.stats?.winRate?.toFixed(1) || '0.0'}%
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          ({model.stats?.tradeCount || 0})
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Total PnL</p>
+                      <span className={`text-lg font-bold ${(model.stats?.totalPnL || 0) > 0 ? 'text-green-500' :
+                          (model.stats?.totalPnL || 0) < 0 ? 'text-red-500' : 'text-muted-foreground'
+                        }`}>
+                        ${model.stats?.totalPnL?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                      </span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             ))}

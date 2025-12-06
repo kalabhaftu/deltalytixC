@@ -12,11 +12,11 @@ import { convertDecimal } from '@/lib/utils/decimal'
  */
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
-  
+
   try {
     // Single auth check for all data
     const userId = await getUserIdSafe()
-    
+
     if (!userId) {
       return NextResponse.json({
         success: true,
@@ -109,25 +109,34 @@ export async function GET(request: NextRequest) {
         if (forAccountsPage) {
           return []
         }
-        
+
         const whereClause: any = { userId: internalUserId }
         if (selectedAccounts.length > 0) {
           whereClause.accountNumber = { in: selectedAccounts }
         }
-        
+
         const rawTrades = await prisma.trade.findMany({
           where: whereClause,
           orderBy: { entryDate: 'desc' },
-          take: tradesLimit
+          take: tradesLimit,
+          include: {
+            TradingModel: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
         })
-        
-        // Convert decimals
+
+        // Convert decimals and map TradingModel
         return rawTrades.map(trade => ({
           ...trade,
           entryPrice: convertDecimal(trade.entryPrice),
           closePrice: convertDecimal(trade.closePrice),
           stopLoss: convertDecimal(trade.stopLoss),
           takeProfit: convertDecimal(trade.takeProfit),
+          tradingModel: (trade as any).TradingModel?.name || null
         }))
       })(),
 
@@ -135,7 +144,7 @@ export async function GET(request: NextRequest) {
       (async () => {
         const twoYearsAgo = new Date()
         twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2)
-        
+
         const notes = await prisma.dailyNote.findMany({
           where: {
             userId: internalUserId,
@@ -143,10 +152,10 @@ export async function GET(request: NextRequest) {
           },
           select: { date: true, note: true }
         })
-        
+
         return notes.reduce((acc, note) => {
-          const dateKey = typeof note.date === 'string' 
-            ? note.date 
+          const dateKey = typeof note.date === 'string'
+            ? note.date
             : note.date.toISOString().split('T')[0]
           acc[dateKey] = note.note
           return acc
@@ -173,7 +182,7 @@ export async function GET(request: NextRequest) {
         default: return phaseNumber >= 3
       }
     }
-    
+
     // Get phase display name - stage only (Phase 1, Phase 2, Funded) - no status
     const getPhaseDisplayName = (evaluationType: string, phaseNumber: number): string => {
       if (isFundedPhase(evaluationType, phaseNumber)) return 'Funded'
@@ -210,13 +219,13 @@ export async function GET(request: NextRequest) {
           if (phase.status === 'pending' || phase.status === 'pending_approval') return
           // Skip phases without phaseId - they haven't been activated
           if (!phase.phaseId || phase.phaseId.trim() === '') return
-          
+
           const phaseName = getPhaseDisplayName(masterAccount.evaluationType, phase.phaseNumber)
-          
+
           // Always use individual phase trade count
           // Aggregation for failed phases will be calculated on the client side (accounts page)
           const phaseTradeCount = tradeCountMap.get(phase.phaseId) || 0
-          
+
           processedPropFirmAccounts.push({
             id: phase.id,
             number: phase.phaseId, // This is the account number used in trades
@@ -255,12 +264,12 @@ export async function GET(request: NextRequest) {
       const accountNumbers = processedAccounts
         .map(acc => acc.number)
         .filter((num): num is string => Boolean(num) && num.trim() !== '')
-      
+
       const phaseIds = processedAccounts
         .filter(acc => acc.accountType === 'prop-firm')
         .map(acc => acc.id)
         .filter((id): id is string => Boolean(id) && id.trim() !== '')
-      
+
       // Build OR condition for trades query
       const orConditions: any[] = []
       if (accountNumbers.length > 0) {
@@ -269,20 +278,28 @@ export async function GET(request: NextRequest) {
       if (phaseIds.length > 0) {
         orConditions.push({ phaseAccountId: { in: phaseIds } })
       }
-      
+
       // Fetch trades matching any of the account numbers or phase IDs
       if (orConditions.length > 0) {
         const whereClause: any = {
           userId: internalUserId,
           OR: orConditions
         }
-        
+
         const rawTrades = await prisma.trade.findMany({
           where: whereClause,
           orderBy: { entryDate: 'desc' },
-          take: tradesLimit
+          take: tradesLimit,
+          include: {
+            TradingModel: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
         })
-        
+
         // Convert decimals
         finalTrades = rawTrades.map(trade => ({
           ...trade,
@@ -290,6 +307,7 @@ export async function GET(request: NextRequest) {
           closePrice: convertDecimal(trade.closePrice),
           stopLoss: convertDecimal(trade.stopLoss),
           takeProfit: convertDecimal(trade.takeProfit),
+          tradingModel: (trade as any).TradingModel?.name || null
         }))
       }
     }

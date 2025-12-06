@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, DollarSign, Activity, Calendar, CheckCircle2, XCircle, Clock, Trophy } from "lucide-react"
-import { cn, formatPercent } from "@/lib/utils"
+import { cn, formatCurrency, formatPercent, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 
 interface PhaseData {
   id: string
@@ -36,10 +36,10 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     })
   }
 
@@ -62,7 +62,7 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
       failed: 'destructive',
       pending: 'outline'
     } as const
-    
+
     const labels = {
       active: 'Active',
       archived: 'Archived (Passed)',
@@ -80,10 +80,10 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
 
   const totalTrades = phase.trades?.length || 0
   const totalPnL = phase.trades?.reduce((sum, t) => sum + (t.pnl || 0), 0) || 0
-  
+
   // CRITICAL FIX: Use net P&L and exclude break-even trades
-  const winningTrades = phase.trades?.filter(t => ((t.pnl || 0) - (t.commission || 0)) > 0).length || 0
-  const losingTrades = phase.trades?.filter(t => ((t.pnl || 0) - (t.commission || 0)) < 0).length || 0
+  const winningTrades = phase.trades?.filter(t => ((t.pnl || 0) - (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length || 0
+  const losingTrades = phase.trades?.filter(t => ((t.pnl || 0) - (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).length || 0
   const tradableCount = winningTrades + losingTrades
   const winRate = tradableCount > 0 ? (winningTrades / tradableCount) * 100 : 0
   const currentBalance = accountSize + totalPnL

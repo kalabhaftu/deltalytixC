@@ -1,238 +1,264 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserId } from '@/server/auth'
 import { prisma } from '@/lib/prisma'
-import JSZip from 'jszip'
-import { format } from 'date-fns'
+import { getUserIdSafe } from '@/server/auth'
+import archiver from 'archiver'
+import { PassThrough } from 'stream'
 
-export const maxDuration = 300 // 5 minutes for large exports
+// Helper to sanitize and transform data
+const sanitizeUser = (data: any) => {
+  const { id, userId, auth_user_id, ...rest } = data
+  return numberValuesToString(rest)
+}
 
-interface ExportFilters {
-  accountIds?: string[]
-  instruments?: string[]
-  dateFrom?: string
-  dateTo?: string
+// Convert bigints/decimals to string/number if needed (though simple objects usually fine)
+const numberValuesToString = (obj: any) => {
+  return obj // Assuming standard JSON safe
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const authUserId = await getUserId()
-    if (!authUserId) {
+    const userId = await getUserIdSafe()
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user from database
     const user = await prisma.user.findUnique({
-      where: { auth_user_id: authUserId }
+      where: { auth_user_id: userId },
+      select: { id: true }
     })
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const body = await request.json()
-    const filters: ExportFilters = body.filters || {}
+    const internalUserId = user.id
 
-    // Create ZIP file
-    const zip = new JSZip()
-
-    // Export metadata
-    const metadata = {
-      exportDate: new Date().toISOString(),
-      userId: user.id,
-      userEmail: user.email,
-      timezone: user.timezone,
-      version: '1.0.0'
+    // Parse Filters
+    let filters: { from?: string; to?: string; accountIds?: string[]; instruments?: string[] } = {}
+    if (request.headers.get('content-type')?.includes('application/json')) {
+      try {
+        filters = await request.json()
+      } catch (e) {
+        console.warn('Failed to parse export filters', e)
+      }
     }
-    zip.file('metadata.json', JSON.stringify(metadata, null, 2))
 
-    // 1. Export Accounts (Groups removed - no longer used)
-    // 2. Export Accounts
-    let accountsQuery: any = { userId: user.id }
+    // Prepare Where Clauses
+    const dateFilter = (dateField: string) => {
+      if (!filters.from && !filters.to) return {}
+      return {
+        [dateField]: {
+          ...(filters.from ? { gte: new Date(filters.from) } : {}),
+          ...(filters.to ? { lte: new Date(filters.to) } : {})
+        }
+      }
+    }
+
+    // Trade Filter: Date + Account
+    const tradeWhere: any = {
+      userId: internalUserId,
+      ...dateFilter('entryDate')
+    }
+
     if (filters.accountIds && filters.accountIds.length > 0) {
-      accountsQuery.id = { in: filters.accountIds }
-    }
-    
-    const accounts = await prisma.account.findMany({
-      where: accountsQuery
-    })
-    if (accounts.length > 0) {
-      const accountsCsv = convertToCSV(accounts)
-      zip.file('accounts.csv', accountsCsv)
+      tradeWhere['OR'] = [
+        { accountId: { in: filters.accountIds } },
+        { phaseAccountId: { in: filters.accountIds } }
+      ]
     }
 
-    // 3. Export Trades
-    let tradesQuery: any = { userId: user.id }
-    const conditions: any[] = []
-    
-    if (filters.accountIds && filters.accountIds.length > 0) {
-      conditions.push({ accountId: { in: filters.accountIds } })
-    }
     if (filters.instruments && filters.instruments.length > 0) {
-      conditions.push({ instrument: { in: filters.instruments } })
-    }
-    if (filters.dateFrom) {
-      conditions.push({ entryTime: { gte: new Date(filters.dateFrom) } })
-    }
-    if (filters.dateTo) {
-      conditions.push({ entryTime: { lte: new Date(filters.dateTo) } })
-    }
-    
-    if (conditions.length > 0) {
-      tradesQuery.AND = conditions
+      tradeWhere['instrument'] = { in: filters.instruments }
     }
 
-    const trades = await prisma.trade.findMany({
-      where: tradesQuery
-    })
-    if (trades.length > 0) {
-      const tradesCsv = convertToCSV(trades)
-      zip.file('trades.csv', tradesCsv)
-    }
-
-    // 4. Export Master Accounts (Prop Firm)
-    const masterAccounts = await prisma.masterAccount.findMany({
-      where: { userId: user.id }
-    })
-    if (masterAccounts.length > 0) {
-      const masterAccountsCsv = convertToCSV(masterAccounts)
-      zip.file('master_accounts.csv', masterAccountsCsv)
-    }
-
-    // 5. Export Phase Accounts
-    if (masterAccounts.length > 0) {
-      const phaseAccounts = await prisma.phaseAccount.findMany({
+    // Fetch primary data (fast)
+    // We export ALL metadata (Accounts, Models, Tags) to ensure referential integrity for imported trades.
+    // We only filter the transactional data (Trades, Notes, etc).
+    const [
+      accounts,
+      masterAccounts,
+      tradingModels,
+      tradeTags,
+      dailyNotes,
+      weeklyReviews,
+      trades,
+      backtestTrades
+    ] = await Promise.all([
+      prisma.account.findMany({ where: { userId: internalUserId } }),
+      prisma.masterAccount.findMany({
+        where: { userId: internalUserId },
+        include: { PhaseAccount: true }
+      }),
+      prisma.tradingModel.findMany({ where: { userId: internalUserId } }),
+      prisma.tradeTag.findMany({ where: { userId: internalUserId } }),
+      prisma.dailyNote.findMany({
         where: {
-          masterAccountId: { in: masterAccounts.map(ma => ma.id) }
+          userId: internalUserId,
+          ...dateFilter('date')
+        }
+      }),
+      prisma.weeklyReview.findMany({
+        where: {
+          userId: internalUserId,
+          ...dateFilter('startDate') // Approximate
+        }
+      }),
+      prisma.trade.findMany({
+        where: tradeWhere,
+      }),
+      prisma.backtestTrade.findMany({
+        where: {
+          userId: internalUserId,
+          ...dateFilter('dateExecuted')
         }
       })
-      if (phaseAccounts.length > 0) {
-        const phaseAccountsCsv = convertToCSV(phaseAccounts)
-        zip.file('phase_accounts.csv', phaseAccountsCsv)
-      }
+    ])
 
-      // 6. Export Daily Anchors
-      const dailyAnchors = await prisma.dailyAnchor.findMany({
-        where: {
-          phaseAccountId: { in: phaseAccounts.map(pa => pa.id) }
+    const modelMap = new Map(tradingModels.map(m => [m.id, m.name]))
+
+    const manifest = {
+      version: '2.0',
+      exportedAt: new Date().toISOString(),
+      filters: filters, // Include metadata about what was filtered
+      accounts: accounts.map(sanitizeUser),
+      masterAccounts: masterAccounts.map(ma => ({
+        ...sanitizeUser(ma),
+        PhaseAccount: ma.PhaseAccount.map(p => {
+          const { id, masterAccountId, ...rest } = p
+          return rest
+        })
+      })),
+      tradingModels: tradingModels.map(sanitizeUser),
+      tradeTags: tradeTags.map(sanitizeUser),
+      dailyNotes: dailyNotes.map(sanitizeUser),
+      weeklyReviews: weeklyReviews.map(sanitizeUser),
+      trades: trades.map(t => {
+        const { id, userId, accountId, phaseAccountId, modelId, ...rest } = t
+        return {
+          ...rest,
+          originalId: id,
+          modelName: modelId ? modelMap.get(modelId) : null,
         }
-      })
-      if (dailyAnchors.length > 0) {
-        const dailyAnchorsCsv = convertToCSV(dailyAnchors)
-        zip.file('daily_anchors.csv', dailyAnchorsCsv)
-      }
+      }),
+      backtestTrades: backtestTrades.map(sanitizeUser)
+    }
 
-      // 7. Export Breach Records
-      const breachRecords = await prisma.breachRecord.findMany({
-        where: {
-          phaseAccountId: { in: phaseAccounts.map(pa => pa.id) }
+    // Set up Archive Stream
+    const stream = new PassThrough()
+    const archive = archiver('zip', { zlib: { level: 9 } })
+
+    // Log archive warnings/errors
+    archive.on('warning', (err) => {
+      console.warn('Archive warning:', err)
+    })
+    archive.on('error', (err) => {
+      console.error('Archive error:', err)
+      stream.destroy(err) // Kill the stream
+    })
+
+    // Pipe archive to response stream
+    archive.pipe(stream)
+
+    // Execute heavy lifting asynchronously
+    const processArchive = async () => {
+      try {
+        // 1. Add Manifest
+        archive.append(JSON.stringify(manifest, null, 2), { name: 'data.json' })
+
+        // 2. Fetch Images
+        // Helper to download
+        const downloadFile = async (url: string): Promise<Buffer | null> => {
+          try {
+            const res = await fetch(url)
+            if (!res.ok) return null
+            return Buffer.from(await res.arrayBuffer())
+          } catch (e) {
+            return null
+          }
         }
-      })
-      if (breachRecords.length > 0) {
-        const breachRecordsCsv = convertToCSV(breachRecords)
-        zip.file('breach_records.csv', breachRecordsCsv)
-      }
 
-      // 8. Export Payouts
-      const payouts = await prisma.payout.findMany({
-        where: {
-          masterAccountId: { in: masterAccounts.map(ma => ma.id) }
+        // We process trades in chunks to avoid blowing up memory or connections
+        const CHUNK_SIZE = 5
+        const allTradesWithImages = trades.filter(t => t.imageOne || t.imageTwo || t.imageThree || t.imageFour || t.imageFive || t.imageSix || t.cardPreviewImage)
+
+        // Helper to process a single trade's images
+        const processTradeImages = async (trade: any) => {
+          const images = [
+            { url: trade.imageOne, suffix: '1' },
+            { url: trade.imageTwo, suffix: '2' },
+            { url: trade.imageThree, suffix: '3' },
+            { url: trade.imageFour, suffix: '4' },
+            { url: trade.imageFive, suffix: '5' },
+            { url: trade.imageSix, suffix: '6' },
+            { url: trade.cardPreviewImage, suffix: 'preview' },
+          ]
+
+          for (const img of images) {
+            if (img.url && img.url.startsWith('http')) {
+              const ext = img.url.split('.').pop()?.split('?')[0] || 'png'
+              const buffer = await downloadFile(img.url)
+              if (buffer) {
+                archive.append(buffer, { name: `images/trades/${trade.id}_${img.suffix}.${ext}` })
+              }
+            }
+          }
         }
-      })
-      if (payouts.length > 0) {
-        const payoutsCsv = convertToCSV(payouts)
-        zip.file('payouts.csv', payoutsCsv)
+
+        // Chunk processing
+        for (let i = 0; i < allTradesWithImages.length; i += CHUNK_SIZE) {
+          const chunk = allTradesWithImages.slice(i, i + CHUNK_SIZE)
+          await Promise.all(chunk.map(processTradeImages))
+          // Small delay to yield event loop if needed?
+        }
+
+        // Process Backtest images
+        const backtestsWithImages = backtestTrades.filter(t => t.imageOne || t.imageTwo || t.imageThree || t.imageFour || t.imageFive || t.imageSix || t.cardPreviewImage)
+        const processBacktestImages = async (trade: any) => {
+          const images = [
+            { url: trade.imageOne, suffix: '1' },
+            { url: trade.imageTwo, suffix: '2' },
+            { url: trade.imageThree, suffix: '3' },
+            { url: trade.imageFour, suffix: '4' },
+            { url: trade.imageFive, suffix: '5' },
+            { url: trade.imageSix, suffix: '6' },
+            { url: trade.cardPreviewImage, suffix: 'preview' },
+          ]
+          for (const img of images) {
+            if (img.url && img.url.startsWith('http')) {
+              const ext = img.url.split('.').pop()?.split('?')[0] || 'png'
+              const buffer = await downloadFile(img.url)
+              if (buffer) {
+                archive.append(buffer, { name: `images/backtest/${trade.id}_${img.suffix}.${ext}` })
+              }
+            }
+          }
+        }
+
+        for (let i = 0; i < backtestsWithImages.length; i += CHUNK_SIZE) {
+          const chunk = backtestsWithImages.slice(i, i + CHUNK_SIZE)
+          await Promise.all(chunk.map(processBacktestImages))
+        }
+
+        // Finalize
+        await archive.finalize()
+      } catch (error) {
+        console.error('Async archive processing error:', error)
+        stream.destroy(error as Error)
       }
     }
 
-    // 9. Export Backtest Trades
-    const backtestTrades = await prisma.backtestTrade.findMany({
-      where: { userId: user.id }
-    })
-    if (backtestTrades.length > 0) {
-      const backtestTradesCsv = convertToCSV(backtestTrades)
-      zip.file('backtest_trades.csv', backtestTradesCsv)
-    }
+    // Fire and forget
+    processArchive()
 
-    // 10. Export Daily Notes
-    let notesQuery: any = { userId: user.id }
-    if (filters.dateFrom || filters.dateTo) {
-      notesQuery.date = {}
-      if (filters.dateFrom) notesQuery.date.gte = new Date(filters.dateFrom)
-      if (filters.dateTo) notesQuery.date.lte = new Date(filters.dateTo)
-    }
-
-    const dailyNotes = await prisma.dailyNote.findMany({
-      where: notesQuery
-    })
-    if (dailyNotes.length > 0) {
-      const dailyNotesCsv = convertToCSV(dailyNotes)
-      zip.file('daily_notes.csv', dailyNotesCsv)
-    }
-
-    // 11. Export Dashboard Templates
-    const dashboardTemplates = await prisma.dashboardTemplate.findMany({
-      where: { userId: user.id }
-    })
-    if (dashboardTemplates.length > 0) {
-      const templatesCsv = convertToCSV(dashboardTemplates)
-      zip.file('dashboard_templates.csv', templatesCsv)
-    }
-
-    // Generate ZIP file
-    const zipBlob = await zip.generateAsync({ type: 'blob' })
-    
-    const filename = `deltalytix-export-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.zip`
-
-    return new NextResponse(zipBlob, {
+    return new NextResponse(stream as any, {
       headers: {
         'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="${filename}"`
+        'Content-Disposition': `attachment; filename="deltalytix-export-${new Date().toISOString().split('T')[0]}.zip"`
       }
     })
 
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to export data' },
-      { status: 500 }
-    )
+    console.error('Export init error:', error)
+    return NextResponse.json({ error: 'Export failed' }, { status: 500 })
   }
 }
-
-// Helper function to convert array of objects to CSV
-function convertToCSV(data: any[]): string {
-  if (data.length === 0) return ''
-
-  const headers = Object.keys(data[0])
-  const csvRows = []
-
-  // Add headers
-  csvRows.push(headers.join(','))
-
-  // Add data rows
-  for (const row of data) {
-    const values = headers.map(header => {
-      const value = row[header]
-      
-      // Handle null/undefined
-      if (value === null || value === undefined) return ''
-      
-      // Handle dates
-      if (value instanceof Date) return value.toISOString()
-      
-      // Handle objects/arrays (stringify them)
-      if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, '""')}"`
-      
-      // Handle strings with commas, quotes, or newlines
-      const stringValue = String(value)
-      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-        return `"${stringValue.replace(/"/g, '""')}"`
-      }
-      
-      return stringValue
-    })
-    csvRows.push(values.join(','))
-  }
-
-  return csvRows.join('\n')
-}
-

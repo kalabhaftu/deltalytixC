@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { format, isValid } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency, BREAK_EVEN_THRESHOLD } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Play, RotateCcw, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
@@ -77,7 +78,7 @@ export function FormatPreview({
 
   const [error, setError] = useState<string | null>(null);
   const [currentBatch, setCurrentBatch] = useState(0);
-  
+
   // Optimized batch size - process more trades at once
   const batchSize = 25;
   const totalBatches = Math.ceil(validTrades.length / batchSize);
@@ -132,7 +133,7 @@ export function FormatPreview({
         const nextBatchStart = nextBatch * batchSize;
         const nextBatchEnd = (nextBatch + 1) * batchSize;
         const nextBatchRows = validTrades.slice(nextBatchStart, nextBatchEnd);
-        
+
         // Auto-advance to next batch
         const timer = setTimeout(() => {
           setCurrentBatch(nextBatch);
@@ -296,7 +297,7 @@ export function FormatPreview({
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center gap-2">
           {!hasStartedRef.current || processedTrades.length === 0 ? (
             <Button
@@ -415,7 +416,7 @@ export function FormatPreview({
           <div className="text-center">
             <p className="text-xs text-muted-foreground">Win Rate</p>
             <p className="text-lg font-bold">
-              {((processedTrades.filter(t => (t.pnl || 0) > 0).length / processedTrades.length) * 100).toFixed(0)}%
+              {((processedTrades.filter(t => (t.pnl || 0) > BREAK_EVEN_THRESHOLD).length / processedTrades.length) * 100).toFixed(0)}%
             </p>
           </div>
           <div className="text-center">

@@ -92,6 +92,7 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
+
     // Mark all as read
     await prisma.notification.updateMany({
       where: {
@@ -114,4 +115,48 @@ export async function PATCH(request: NextRequest) {
     )
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const authUserId = await getUserId()
+    if (!authUserId) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { auth_user_id: authUserId },
+      select: { id: true }
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
+    // Delete all notifications for the user
+    await prisma.notification.deleteMany({
+      where: {
+        userId: user.id
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'All notifications cleared'
+    })
+
+  } catch (error) {
+    console.error('Clear all notifications error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to clear notifications' },
+      { status: 500 }
+    )
+  }
+}
+
 

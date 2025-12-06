@@ -10,7 +10,7 @@ import { unstable_cache } from 'next/cache'
 import { logger } from '@/lib/logger'
 import { convertDecimal } from '@/lib/utils/decimal'
 
-type TradeError = 
+type TradeError =
   | 'DUPLICATE_TRADES'
   | 'NO_TRADES_ADDED'
   | 'DATABASE_ERROR'
@@ -49,102 +49,102 @@ export async function revalidateCache(tags: string[]) {
 }
 
 export async function saveTradesAction(data: Trade[]): Promise<TradeResponse> {
-    if (!Array.isArray(data) || data.length === 0) {
+  if (!Array.isArray(data) || data.length === 0) {
+    return {
+      error: 'INVALID_DATA',
+      numberOfTradesAdded: 0,
+      details: 'No trades provided'
+    }
+  }
+
+  try {
+    // Clean the data to remove undefined values and ensure all required fields are present
+    const cleanedData = data.map(trade => {
+      const cleanTrade = Object.fromEntries(
+        Object.entries(trade).filter(([_, value]) => value !== undefined)
+      ) as Partial<Trade>
+
+      return {
+        ...cleanTrade,
+        // Ensure required fields have default values
+        accountNumber: cleanTrade.accountNumber || '',
+        instrument: cleanTrade.instrument || '',
+        entryPrice: cleanTrade.entryPrice || '',
+        closePrice: cleanTrade.closePrice || '',
+        entryDate: cleanTrade.entryDate || '',
+        closeDate: cleanTrade.closeDate || '',
+        quantity: cleanTrade.quantity ?? 0,
+        pnl: cleanTrade.pnl || 0,
+        timeInPosition: cleanTrade.timeInPosition || 0,
+        userId: cleanTrade.userId || '',
+        side: cleanTrade.side || '',
+        commission: cleanTrade.commission || 0,
+        entryId: cleanTrade.entryId || null,
+        comment: cleanTrade.comment || null,
+        groupId: cleanTrade.groupId || null,
+        createdAt: cleanTrade.createdAt || new Date(),
+      } as Trade
+    })
+
+    // Note: We now allow unlinked trades to be saved first, then linked in a separate step
+    // This validation is removed to support the save-then-link flow
+
+    const userId = cleanedData[0]?.userId
+    if (!userId) {
       return {
         error: 'INVALID_DATA',
         numberOfTradesAdded: 0,
-        details: 'No trades provided'
+        details: 'No user ID found in trades'
       }
     }
 
-    try {
-      // Clean the data to remove undefined values and ensure all required fields are present
-      const cleanedData = data.map(trade => {
-        const cleanTrade = Object.fromEntries(
-          Object.entries(trade).filter(([_, value]) => value !== undefined)
-        ) as Partial<Trade>
-        
-        return {
-          ...cleanTrade,
-          // Ensure required fields have default values
-          accountNumber: cleanTrade.accountNumber || '',
-          instrument: cleanTrade.instrument || '',
-          entryPrice: cleanTrade.entryPrice || '',
-          closePrice: cleanTrade.closePrice || '',
-          entryDate: cleanTrade.entryDate || '',
-          closeDate: cleanTrade.closeDate || '',
-          quantity: cleanTrade.quantity ?? 0,
-          pnl: cleanTrade.pnl || 0,
-          timeInPosition: cleanTrade.timeInPosition || 0,
-          userId: cleanTrade.userId || '',
-          side: cleanTrade.side || '',
-          commission: cleanTrade.commission || 0,
-          entryId: cleanTrade.entryId || null,
-          comment: cleanTrade.comment || null,
-          groupId: cleanTrade.groupId || null,
-          createdAt: cleanTrade.createdAt || new Date(),
-        } as Trade
-      })
+    // Database-level deduplication: Let PostgreSQL handle duplicate detection via unique constraint
+    // This is much more efficient than JavaScript-based filtering
+    logger.debug(`Inserting ${cleanedData.length} trades with database-level deduplication`, { userId }, 'SaveTrades')
 
-      // Note: We now allow unlinked trades to be saved first, then linked in a separate step
-      // This validation is removed to support the save-then-link flow
+    const result = await prisma.trade.createMany({
+      data: cleanedData as any,
+      skipDuplicates: true // Database constraint handles duplicate rejection efficiently
+    })
 
-      const userId = cleanedData[0]?.userId
-      if (!userId) {
-        return {
-          error: 'INVALID_DATA',
-          numberOfTradesAdded: 0,
-          details: 'No user ID found in trades'
-        }
-      }
-
-      // Database-level deduplication: Let PostgreSQL handle duplicate detection via unique constraint
-      // This is much more efficient than JavaScript-based filtering
-      logger.debug(`Inserting ${cleanedData.length} trades with database-level deduplication`, { userId }, 'SaveTrades')
-      
-      const result = await prisma.trade.createMany({
-        data: cleanedData as any,
-        skipDuplicates: true // Database constraint handles duplicate rejection efficiently
-      })
-
-      logger.debug(`Batch insert completed: ${result.count} trades added`, { 
-        total: cleanedData.length, 
-        added: result.count,
-        skipped: cleanedData.length - result.count
-      }, 'SaveTrades')
+    logger.debug(`Batch insert completed: ${result.count} trades added`, {
+      total: cleanedData.length,
+      added: result.count,
+      skipped: cleanedData.length - result.count
+    }, 'SaveTrades')
 
 
-      revalidatePath('/')
+    revalidatePath('/')
+    return {
+      error: false,
+      numberOfTradesAdded: result.count,
+      details: `Processed ${cleanedData.length} entries. ${result.count} new trades added.`
+    }
+  } catch (error) {
+    logger.error('Database error in saveTrades', error, 'saveTrades')
+
+    // Handle database connection errors more gracefully
+    if (error instanceof Error && (
+      error.message.includes("Can't reach database server") ||
+      error.message.includes('P1001') ||
+      error.message.includes('Connection timeout') ||
+      error.message.includes('ECONNREFUSED') ||
+      error.message.includes('ENOTFOUND')
+    )) {
       return {
-        error: false,
-        numberOfTradesAdded: result.count,
-        details: `Processed ${cleanedData.length} entries. ${result.count} new trades added.`
-      }
-    } catch(error) {
-      logger.error('Database error in saveTrades', error, 'saveTrades')
-      
-      // Handle database connection errors more gracefully
-      if (error instanceof Error && (
-        error.message.includes("Can't reach database server") ||
-        error.message.includes('P1001') ||
-        error.message.includes('Connection timeout') ||
-        error.message.includes('ECONNREFUSED') ||
-        error.message.includes('ENOTFOUND')
-      )) {
-        return { 
-          error: 'DATABASE_CONNECTION_ERROR', 
-          numberOfTradesAdded: 0,
-          details: 'Database is temporarily unavailable. Please check your database connection and try again.'
-        }
-      }
-      
-      // Handle other database errors
-      return { 
-        error: 'DATABASE_ERROR', 
+        error: 'DATABASE_CONNECTION_ERROR',
         numberOfTradesAdded: 0,
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: 'Database is temporarily unavailable. Please check your database connection and try again.'
       }
     }
+
+    // Handle other database errors
+    return {
+      error: 'DATABASE_ERROR',
+      numberOfTradesAdded: 0,
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }
+  }
 }
 
 
@@ -163,7 +163,7 @@ export async function getTradesAction(userId: string | null = null, options?: {
     // PERFORMANCE FIX: If userId is provided (from DataProvider), use it directly
     // Only fetch from auth if no userId provided (rare case)
     let actualUserId = userId
-    
+
     if (!actualUserId) {
       const supabase = await createClient()
       const { data: { user } } = await supabase.auth.getUser()
@@ -206,20 +206,30 @@ export async function getTradesAction(userId: string | null = null, options?: {
         where: whereClause,
         orderBy: { entryDate: 'desc' },
         skip: offset,
-        take: limit
+        take: limit,
+        include: {
+          TradingModel: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
       }
 
       const trades = await prisma.trade.findMany(query)
 
-      // Use shared decimal conversion utility
-      return trades.map(trade => ({
+      // Use shared decimal conversion utility and map TradingModel
+      return trades.map((trade: any) => ({
         ...trade,
         entryPrice: convertDecimal(trade.entryPrice),
         closePrice: convertDecimal(trade.closePrice),
         stopLoss: convertDecimal(trade.stopLoss),
         takeProfit: convertDecimal(trade.takeProfit),
         entryDate: new Date(trade.entryDate).toISOString(),
-        exitDate: trade.closeDate ? new Date(trade.closeDate).toISOString() : null
+        exitDate: trade.closeDate ? new Date(trade.closeDate).toISOString() : null,
+        // Map TradingModel relation to tradingModel field for chart components
+        tradingModel: trade.TradingModel?.name || null
       })) as any
     } catch (error) {
       if (error instanceof Error) {
@@ -229,9 +239,9 @@ export async function getTradesAction(userId: string | null = null, options?: {
         }
         // Handle database connection errors
         if (error.message.includes("Can't reach database server") ||
-            error.message.includes('P1001') ||
-            error.message.includes('connection') ||
-            error.message.includes('timeout')) {
+          error.message.includes('P1001') ||
+          error.message.includes('connection') ||
+          error.message.includes('timeout')) {
           return []
         }
       }

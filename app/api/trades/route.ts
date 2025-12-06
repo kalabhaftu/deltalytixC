@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { DataSerializer } from '@/lib/data-serialization'
 import { createSuccessResponse, createErrorResponse, ErrorResponses } from '@/lib/api-response'
 import { tradeQuerySchema, tradeDeleteSchema } from '@/lib/validation/trade-schemas'
+import { BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    
+
     // Validate query parameters
     const queryParams = {
       page: searchParams.get('page'),
@@ -38,14 +39,14 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit
     const stream = searchParams.get('stream') === 'true'
     const test = searchParams.get('test') === '1'
-    
+
     // PROFESSIONAL PAGINATION: Support cursor-based pagination for large datasets
     const cursor = searchParams.get('cursor')
     const useCursorPagination = !!cursor
 
     // For cursor pagination: unlimited (let database handle efficiently)
     // For offset pagination: cap at reasonable limit but allow larger datasets
-    const actualLimit = useCursorPagination 
+    const actualLimit = useCursorPagination
       ? limit  // No artificial limit with cursor
       : stream ? Math.min(limit, 50) : Math.min(limit, 10000) // Increased from 5000 to 10000
 
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest) {
     // PROFESSIONAL PAGINATION: Support both offset and cursor pagination
     let trades: any[]
     let nextCursor: string | null = null
-    
+
     if (useCursorPagination) {
       // Cursor-based pagination (more efficient for large datasets)
       const result = await getTradesWithCursor(cursor, actualLimit)
@@ -423,8 +424,8 @@ async function getTradesStatistics(offset: number, limit: number) {
     acc.totalPnL += netPnl
     acc.totalTrades += 1
     acc.totalCommission += trade.commission
-    acc.winningTrades += netPnl > 0 ? 1 : 0
-    acc.losingTrades += netPnl < 0 ? 1 : 0
+    acc.winningTrades += netPnl > BREAK_EVEN_THRESHOLD ? 1 : 0
+    acc.losingTrades += netPnl < -BREAK_EVEN_THRESHOLD ? 1 : 0
     acc.totalVolume += Math.abs(trade.quantity)
     return acc
   }, {

@@ -6,6 +6,35 @@ import { formatInTimeZone } from 'date-fns-tz'
 import { StatisticsProps } from "@/app/dashboard/types/statistics"
 import { Account } from "@/context/data-provider"
 
+// Threshold for considering a trade break-even (e.g. +/- $5.00)
+export const BREAK_EVEN_THRESHOLD = 5.0;
+
+/**
+ * Calculate win rate from trade counts - SINGLE SOURCE OF TRUTH
+ * Win Rate = (Wins / (Wins + Losses)) * 100
+ * Break-even trades are EXCLUDED from both numerator and denominator
+ * 
+ * @param winCount Number of winning trades (netPnL > BREAK_EVEN_THRESHOLD)
+ * @param lossCount Number of losing trades (netPnL < -BREAK_EVEN_THRESHOLD)
+ * @returns Win rate as a percentage (0-100)
+ */
+export function calculateWinRate(winCount: number, lossCount: number): number {
+  const tradableCount = winCount + lossCount
+  if (tradableCount === 0) return 0
+  return (winCount / tradableCount) * 100
+}
+
+/**
+ * Classify a trade's outcome based on net PnL
+ * @param netPnL The net PnL (pnl - commission) of the trade
+ * @returns 'win' | 'loss' | 'breakeven'
+ */
+export function classifyTrade(netPnL: number): 'win' | 'loss' | 'breakeven' {
+  if (netPnL > BREAK_EVEN_THRESHOLD) return 'win'
+  if (netPnL < -BREAK_EVEN_THRESHOLD) return 'loss'
+  return 'breakeven'
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -13,7 +42,7 @@ export function cn(...inputs: ClassValue[]) {
 // Utility function to format numbers without unnecessary trailing zeros
 export function formatNumber(value: number, maxDecimals: number = 4): string {
   if (isNaN(value) || !isFinite(value)) return '0'
-  
+
   // Convert to string and remove trailing zeros
   const formatted = value.toFixed(maxDecimals)
   return parseFloat(formatted).toString()
@@ -22,7 +51,7 @@ export function formatNumber(value: number, maxDecimals: number = 4): string {
 // Utility function to format currency without unnecessary trailing zeros
 export function formatCurrency(value: number, maxDecimals: number = 2): string {
   if (isNaN(value) || !isFinite(value)) return '$0'
-  
+
   const formatted = value.toFixed(maxDecimals)
   const cleanNumber = parseFloat(formatted)
   return `$${cleanNumber}`
@@ -31,7 +60,7 @@ export function formatCurrency(value: number, maxDecimals: number = 2): string {
 // Utility function to format percentage without unnecessary trailing zeros
 export function formatPercentage(value: number, maxDecimals: number = 1): string {
   if (isNaN(value) || !isFinite(value)) return '0%'
-  
+
   const formatted = (value * 100).toFixed(maxDecimals)
   const cleanNumber = parseFloat(formatted)
   return `${cleanNumber}%`
@@ -40,7 +69,7 @@ export function formatPercentage(value: number, maxDecimals: number = 1): string
 // Utility function to format percent values that are already in percentage form (e.g., 102.127 -> "102.13%")
 export function formatPercent(value: number, maxDecimals: number = 2): string {
   if (isNaN(value) || !isFinite(value)) return '0%'
-  
+
   const formatted = value.toFixed(maxDecimals)
   const cleanNumber = parseFloat(formatted)
   return `${cleanNumber}%`
@@ -51,7 +80,7 @@ export function formatQuantity(value: number | string | null | undefined): strin
   if (value === null || value === undefined) return '0'
   const numValue = typeof value === 'string' ? parseFloat(value) : value
   if (isNaN(numValue) || !isFinite(numValue)) return '0'
-  
+
   // Use up to 4 decimal places but remove trailing zeros
   const formatted = numValue.toFixed(4)
   const cleanNumber = parseFloat(formatted)
@@ -61,14 +90,14 @@ export function formatQuantity(value: number | string | null | undefined): strin
 // Get decimal precision based on instrument/pair
 export function getPricePrecision(instrument: string): number {
   if (!instrument) return 5
-  
+
   const upper = instrument.toUpperCase()
-  
+
   // JPY pairs use 3 decimals (2 pips + 1 pipette)
   if (upper.includes('JPY')) {
     return 3
   }
-  
+
   // All other pairs use 5 decimals (4 pips + 1 pipette)
   return 5
 }
@@ -76,7 +105,7 @@ export function getPricePrecision(instrument: string): number {
 // Format price based on instrument type (preserves exact decimal from import for display)
 export function formatPrice(price: string | number | { toString(): string }, instrument: string, forAggregation: boolean = false): string {
   if (!price) return '0'
-  
+
   // Handle Prisma Decimal type
   let numPrice: number
   if (typeof price === 'object' && 'toString' in price) {
@@ -87,9 +116,9 @@ export function formatPrice(price: string | number | { toString(): string }, ins
   } else {
     numPrice = price
   }
-  
+
   if (isNaN(numPrice) || !isFinite(numPrice)) return '0'
-  
+
   // For trade details: show exact value as imported (no rounding)
   if (!forAggregation) {
     // Return the original string representation if available
@@ -98,7 +127,7 @@ export function formatPrice(price: string | number | { toString(): string }, ins
     }
     return numPrice.toString()
   }
-  
+
   // For charts/aggregations: round to instrument-specific precision
   const precision = getPricePrecision(instrument)
   const fixed = numPrice.toFixed(precision)
@@ -108,13 +137,13 @@ export function formatPrice(price: string | number | { toString(): string }, ins
 // Unified trade data formatter - single source of truth for all trade displays
 export function formatTradeData(trade: Trade) {
   const instrument = trade.instrument || ''
-  
+
   return {
     // Core trade info
     instrument: instrument || 'N/A',
     accountNumber: trade.accountNumber || 'N/A',
     side: trade.side?.toUpperCase() || 'N/A',
-    
+
     // Quantities and prices - smart formatting based on instrument type
     quantity: formatQuantity(trade.quantity),
     quantityWithUnit: `${formatQuantity(trade.quantity)} lots`,
@@ -122,7 +151,7 @@ export function formatTradeData(trade: Trade) {
     closePrice: trade.closePrice ? formatPrice(trade.closePrice, instrument) : 'Open',
     entryPriceCurrency: `$${formatPrice(trade.entryPrice, instrument)}`,
     closePriceCurrency: trade.closePrice ? `$${formatPrice(trade.closePrice, instrument)}` : 'Open',
-    
+
     // P&L and commission
     pnl: trade.pnl || 0,
     pnlFormatted: formatCurrency(trade.pnl || 0),
@@ -130,7 +159,7 @@ export function formatTradeData(trade: Trade) {
     commissionFormatted: formatCurrency(trade.commission || 0),
     netPnl: (trade.pnl || 0) - (trade.commission || 0),
     netPnlFormatted: formatCurrency((trade.pnl || 0) - (trade.commission || 0)),
-    
+
     // Dates and times
     entryDate: trade.entryDate ? new Date(trade.entryDate) : null,
     closeDate: trade.closeDate ? new Date(trade.closeDate) : null,
@@ -138,29 +167,32 @@ export function formatTradeData(trade: Trade) {
     closeDateFormatted: trade.closeDate ? new Date(trade.closeDate).toLocaleString() : 'Open',
     entryDateShort: trade.entryDate ? new Date(trade.entryDate).toLocaleDateString() : 'N/A',
     closeDateShort: trade.closeDate ? new Date(trade.closeDate).toLocaleDateString() : 'Open',
-    
+
     // Time in position
     timeInPosition: trade.timeInPosition || 0,
     timeInPositionFormatted: parsePositionTime(trade.timeInPosition || 0),
-    
+
     // Trade status helpers
-    isWin: (trade.pnl || 0) - (trade.commission || 0) > 0,
-    isLoss: (trade.pnl || 0) - (trade.commission || 0) < 0,
-    isBreakEven: (trade.pnl || 0) - (trade.commission || 0) === 0,
+    isWin: (trade.pnl || 0) - (trade.commission || 0) > BREAK_EVEN_THRESHOLD,
+    isLoss: (trade.pnl || 0) - (trade.commission || 0) < -BREAK_EVEN_THRESHOLD,
+    isBreakEven: Math.abs((trade.pnl || 0) - (trade.commission || 0)) <= BREAK_EVEN_THRESHOLD,
     isOpen: !trade.closeDate,
     isClosed: !!trade.closeDate,
-    
+
     // Additional data
     stopLoss: (trade as any).stopLoss || null,
     takeProfit: (trade as any).takeProfit || null,
     closeReason: (trade as any).closeReason || null,
     comment: trade.comment || null,
-    
+
     // IDs
     id: trade.id,
     entryId: trade.entryId || null,
     groupId: trade.groupId || null,
-    
+
+    // Strategy/Model info
+    tradingModel: (trade as any).tradingModel || null,
+
     // Raw data for custom formatting
     raw: trade
   }
@@ -170,17 +202,17 @@ export function parsePositionTime(timeInSeconds: number): string {
   const hours = Math.floor(timeInSeconds / 3600);
   const minutesLeft = Math.floor((timeInSeconds - (hours * 3600)) / 60);
   const secondsLeft = Math.floor(timeInSeconds - (hours * 3600) - (minutesLeft * 60));
-  
+
   if (isNaN(hours) || isNaN(minutesLeft) || isNaN(secondsLeft)) {
     return '0';
   }
-  
+
   const formattedTime = [
     hours > 0 ? `${hours}h` : '',
     `${minutesLeft}m`,
     `${secondsLeft}s`
   ].filter(Boolean).join(' ');
-  
+
   return formattedTime;
 }
 
@@ -220,18 +252,18 @@ export function groupTradesByExecution(trades: Trade[]): GroupedTrade[] {
     } else {
       // Additional trade in group (partial close) - merge data
       const group = groups.get(key)!
-      
+
       // Add to partial trades array
       group.partialTrades!.push(trade)
       group.isGrouped = true
-      
+
       // Sum P&L and commission
       group.pnl += trade.pnl || 0
       group.commission += trade.commission || 0
-      
+
       // Sum quantities
       group.quantity += trade.quantity || 0
-      
+
       // Use the longest timeInPosition (last close)
       if ((trade.timeInPosition || 0) > (group.timeInPosition || 0)) {
         group.timeInPosition = trade.timeInPosition
@@ -354,14 +386,14 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
     const pnl = Number(trade.pnl) || 0;
     const commission = Number(trade.commission) || 0;
     const timeInPosition = Number(trade.timeInPosition) || 0;
-    
+
     const netPnl = pnl - commission;
 
     acc.nbTrades++;
     acc.cumulativePnl += pnl;
     acc.cumulativeFees += commission;
     acc.totalPositionTime += timeInPosition;
-    
+
     // Update totalPnL (net P&L)
     if ((acc as any).totalPnL === undefined) (acc as any).totalPnL = 0;
     (acc as any).totalPnL += netPnl;
@@ -375,10 +407,10 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
     }
 
     // Categorize trades using net P&L and handle winning streak correctly
-    if (Math.abs(netPnl) < 0.000001) { // Treat extremely small values as 0
+    if (Math.abs(netPnl) <= BREAK_EVEN_THRESHOLD) { // Treat small values within threshold as break-even
       acc.nbBe++;
       currentWinningStreak = 0; // Break-even breaks winning streak
-    } else if (netPnl > 0) {
+    } else if (netPnl > BREAK_EVEN_THRESHOLD) {
       acc.nbWin++;
       acc.grossWin += netPnl;
       currentWinningStreak++;
@@ -393,7 +425,7 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
 
     return acc;
   }, { ...initialStatistics });
-  
+
   // Calculate Win Rate properly
   const tradableTradesCount = statistics.nbWin + statistics.nbLoss;
   statistics.winRate = tradableTradesCount > 0 ? (statistics.nbWin / tradableTradesCount) * 100 : 0;
@@ -404,7 +436,7 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
   } else {
     (statistics as any).averageWin = 0;
   }
-  
+
   if (statistics.nbLoss > 0) {
     (statistics as any).averageLoss = statistics.grossLosses / statistics.nbLoss;
   } else {
@@ -458,7 +490,7 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
 export function formatCalendarData(trades: Trade[], accounts: Account[] = []) {
   // CRITICAL: Group trades by execution to handle partial closes correctly
   const groupedTrades = groupTradesByExecution(trades)
-  
+
   // Create a map of accounts for quick lookup
   const accountMap = new Map(accounts.map(account => [account.number, account]));
 
@@ -468,17 +500,17 @@ export function formatCalendarData(trades: Trade[], accounts: Account[] = []) {
   return filteredTrades.reduce((acc: any, trade: Trade) => {
     // Parse the date and format it in UTC to ensure consistency across timezones
     const date = formatInTimeZone(new Date(trade.entryDate), 'UTC', 'yyyy-MM-dd')
-    
+
     if (!acc[date]) {
       acc[date] = { pnl: 0, tradeNumber: 0, longNumber: 0, shortNumber: 0, trades: [] }
     }
     acc[date].tradeNumber++
-    acc[date].pnl += trade.pnl-trade.commission;
+    acc[date].pnl += trade.pnl - trade.commission;
 
-    const isLong = trade.side 
-      ? (trade.side.toLowerCase() === 'long' || trade.side.toLowerCase() === 'buy' || trade.side.toLowerCase() === 'b') 
+    const isLong = trade.side
+      ? (trade.side.toLowerCase() === 'long' || trade.side.toLowerCase() === 'buy' || trade.side.toLowerCase() === 'b')
       : (new Date(trade.entryDate).getTime() < new Date(trade.closeDate).getTime())
-    
+
     acc[date].longNumber += isLong ? 1 : 0
     acc[date].shortNumber += isLong ? 0 : 1
     acc[date].trades.push(trade)
@@ -519,26 +551,26 @@ export function calculateAverageWinLoss(trades: Trade[]): {
 
   const winningTrades = groupedTrades.filter(trade => {
     const netPnl = trade.pnl - (trade.commission || 0);
-    return netPnl > 0;
+    return netPnl > BREAK_EVEN_THRESHOLD;
   });
 
   const losingTrades = groupedTrades.filter(trade => {
     const netPnl = trade.pnl - (trade.commission || 0);
-    return netPnl < 0;
+    return netPnl < -BREAK_EVEN_THRESHOLD;
   });
 
   const avgWin = winningTrades.length > 0
     ? winningTrades.reduce((sum, trade) => {
-        const netPnl = trade.pnl - (trade.commission || 0);
-        return sum + netPnl;
-      }, 0) / winningTrades.length
+      const netPnl = trade.pnl - (trade.commission || 0);
+      return sum + netPnl;
+    }, 0) / winningTrades.length
     : 0;
 
   const avgLoss = losingTrades.length > 0
     ? Math.abs(losingTrades.reduce((sum, trade) => {
-        const netPnl = trade.pnl - (trade.commission || 0);
-        return sum + netPnl;
-      }, 0) / losingTrades.length)
+      const netPnl = trade.pnl - (trade.commission || 0);
+      return sum + netPnl;
+    }, 0) / losingTrades.length)
     : 0;
 
   const riskRewardRatio = avgLoss > 0 ? Math.round((avgWin / avgLoss) * 100) / 100 : 0;
