@@ -190,7 +190,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
     .map(t => ({
       date: t.entryDate,
       note: t.comment,
-      pnl: t.pnl - (t.commission || 0),
+      pnl: t.pnl + (t.commission || 0),
       instrument: t.instrument,
       side: t.side,
       duration: t.closeDate ? (new Date(t.closeDate).getTime() - new Date(t.entryDate).getTime()) / 1000 / 60 : 0 // duration in minutes
@@ -198,18 +198,18 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
 
   const tradeStats = {
     totalTrades: trades.length,
-    winningTrades: trades.filter(t => (t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length,
-    losingTrades: trades.filter(t => (t.pnl - (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).length,
-    breakEvenTrades: trades.filter(t => Math.abs(t.pnl - (t.commission || 0)) <= BREAK_EVEN_THRESHOLD).length,
-    totalPnL: trades.reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0),
-    averagePnL: trades.length > 0 ? trades.reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0) / trades.length : 0,
+    winningTrades: trades.filter(t => (t.pnl + (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length,
+    losingTrades: trades.filter(t => (t.pnl + (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).length,
+    breakEvenTrades: trades.filter(t => Math.abs(t.pnl + (t.commission || 0)) <= BREAK_EVEN_THRESHOLD).length,
+    totalPnL: trades.reduce((sum, t) => sum + t.pnl + (t.commission || 0), 0),
+    averagePnL: trades.length > 0 ? trades.reduce((sum, t) => sum + t.pnl + (t.commission || 0), 0) / trades.length : 0,
     totalCommission: trades.reduce((sum, t) => sum + (t.commission || 0), 0),
     tradesWithNotes: tradeNotes.length
   }
 
   // Calculate profit factor
-  const grossProfit = trades.filter(t => (t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
-  const grossLoss = Math.abs(trades.filter(t => (t.pnl - (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0))
+  const grossProfit = trades.filter(t => (t.pnl + (t.commission || 0)) > BREAK_EVEN_THRESHOLD).reduce((sum, t) => sum + t.pnl + (t.commission || 0), 0)
+  const grossLoss = Math.abs(trades.filter(t => (t.pnl + (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).reduce((sum, t) => sum + t.pnl + (t.commission || 0), 0))
   const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0
 
   // Calculate average win/loss
@@ -219,7 +219,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   // P&L by instrument
   const pnlByInstrument: Record<string, { trades: number, pnl: number, wins: number }> = {}
   trades.forEach(t => {
-    const netPnL = t.pnl - (t.commission || 0)
+    const netPnL = t.pnl + (t.commission || 0)
     if (!pnlByInstrument[t.instrument]) {
       pnlByInstrument[t.instrument] = { trades: 0, pnl: 0, wins: 0 }
     }
@@ -237,7 +237,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   const pnlByStrategy: Record<string, { trades: number, pnl: number, wins: number }> = {}
   trades.forEach(t => {
     const strategy = (t as any).TradingModel?.name || 'No Strategy'
-    const netPnL = t.pnl - (t.commission || 0)
+    const netPnL = t.pnl + (t.commission || 0)
     if (!pnlByStrategy[strategy]) {
       pnlByStrategy[strategy] = { trades: 0, pnl: 0, wins: 0 }
     }
@@ -258,7 +258,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   }
   trades.forEach(t => {
     const dayOfWeek = new Date(t.entryDate).toLocaleDateString('en-US', { weekday: 'long' })
-    const netPnL = t.pnl - (t.commission || 0)
+    const netPnL = t.pnl + (t.commission || 0)
     pnlByWeekday[dayOfWeek].trades++
     pnlByWeekday[dayOfWeek].pnl += netPnL
   })
@@ -267,7 +267,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   const pnlByHour: Record<number, { trades: number, pnl: number }> = {}
   trades.forEach(t => {
     const hour = new Date(t.entryDate).getHours()
-    const netPnL = t.pnl - (t.commission || 0)
+    const netPnL = t.pnl + (t.commission || 0)
     if (!pnlByHour[hour]) {
       pnlByHour[hour] = { trades: 0, pnl: 0 }
     }
@@ -301,7 +301,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
 
       emotionPerformance[j.emotion].trades += dayTrades.length
       emotionPerformance[j.emotion].totalPnL += dayTrades.reduce(
-        (sum, t) => sum + t.pnl - (t.commission || 0),
+        (sum, t) => sum + t.pnl + (t.commission || 0),
         0
       )
     }
@@ -320,7 +320,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   trades.forEach(t => {
     if (t.marketBias) {
       tradesWithBias++
-      const netPnL = t.pnl - (t.commission || 0)
+      const netPnL = t.pnl + (t.commission || 0)
       biasPerformance[t.marketBias].trades++
       biasPerformance[t.marketBias].pnl += netPnL
       if (netPnL > BREAK_EVEN_THRESHOLD) biasPerformance[t.marketBias].wins++
@@ -346,18 +346,18 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
     noNewsTraded: trades.filter(t => !t.newsDay).length,
   }
 
-  const newsDayPnL = trades.filter(t => t.newsDay).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
-  const noNewsDayPnL = trades.filter(t => !t.newsDay).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
+  const newsDayPnL = trades.filter(t => t.newsDay).reduce((sum, t) => sum + t.pnl + (t.commission || 0), 0)
+  const noNewsDayPnL = trades.filter(t => !t.newsDay).reduce((sum, t) => sum + t.pnl + (t.commission || 0), 0)
 
-  const tradedDuringNewsPnL = trades.filter(t => t.newsDay && t.newsTraded).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
-  const tradedBeforeAfterNewsPnL = trades.filter(t => t.newsDay && !t.newsTraded).reduce((sum, t) => sum + t.pnl - (t.commission || 0), 0)
+  const tradedDuringNewsPnL = trades.filter(t => t.newsDay && t.newsTraded).reduce((sum, t) => sum + t.pnl + (t.commission || 0), 0)
+  const tradedBeforeAfterNewsPnL = trades.filter(t => t.newsDay && !t.newsTraded).reduce((sum, t) => sum + t.pnl + (t.commission || 0), 0)
 
-  const newsDayWins = trades.filter(t => t.newsDay && (t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length
-  const newsDayLosses = trades.filter(t => t.newsDay && (t.pnl - (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).length
+  const newsDayWins = trades.filter(t => t.newsDay && (t.pnl + (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length
+  const newsDayLosses = trades.filter(t => t.newsDay && (t.pnl + (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).length
   const newsDayWinRate = newsTradesStats.totalNewsDays > 0 ? (newsDayWins / newsTradesStats.totalNewsDays) * 100 : 0
 
-  const noNewsDayWins = trades.filter(t => !t.newsDay && (t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length
-  const noNewsDayLosses = trades.filter(t => !t.newsDay && (t.pnl - (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).length
+  const noNewsDayWins = trades.filter(t => !t.newsDay && (t.pnl + (t.commission || 0)) > BREAK_EVEN_THRESHOLD).length
+  const noNewsDayLosses = trades.filter(t => !t.newsDay && (t.pnl + (t.commission || 0)) < -BREAK_EVEN_THRESHOLD).length
   const noNewsDayWinRate = newsTradesStats.noNewsTraded > 0 ? (noNewsDayWins / newsTradesStats.noNewsTraded) * 100 : 0
 
   // Extract specific news events that were traded
@@ -365,7 +365,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   trades.forEach(t => {
     if (t.newsDay && t.selectedNews) {
       const newsIds = t.selectedNews.split(',').filter(Boolean)
-      const netPnL = t.pnl - (t.commission || 0)
+      const netPnL = t.pnl + (t.commission || 0)
       newsIds.forEach((newsId: string) => {
         if (!newsEventsTrade[newsId]) {
           newsEventsTrade[newsId] = { trades: 0, pnl: 0, wins: 0, tradedDuring: 0 }
@@ -405,7 +405,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
 
   // Count usage by timeframe type (entry is most important)
   trades.forEach(t => {
-    const netPnL = t.pnl - (t.commission || 0)
+    const netPnL = t.pnl + (t.commission || 0)
     const isWin = netPnL > BREAK_EVEN_THRESHOLD
 
     // Count entry timeframe (primary indicator)
@@ -429,7 +429,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
 
   trades.forEach(t => {
     if ((t as any).orderType) {
-      const netPnL = t.pnl - (t.commission || 0)
+      const netPnL = t.pnl + (t.commission || 0)
       const isWin = netPnL > BREAK_EVEN_THRESHOLD
       const orderType = (t as any).orderType
 
@@ -452,7 +452,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   trades.forEach(t => {
     if ((t as any).entryTime) {
       const session = getTradingSession((t as any).entryTime)
-      const netPnL = t.pnl - (t.commission || 0)
+      const netPnL = t.pnl + (t.commission || 0)
       const isWin = netPnL > BREAK_EVEN_THRESHOLD
 
       if (!sessionStats[session]) {
@@ -480,34 +480,46 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
       return generateRuleBasedAnalysis(journalSummary, tradeStats, emotionCounts, emotionPerformance)
     }
 
-    const prompt = `You are an elite trading psychology mentor and performance coach with 20+ years of experience helping traders reach peak performance. You combine the wisdom of Mark Douglas with the warmth of a supportive best friend who genuinely wants to see them succeed.
-    Your mission: Provide a thoughtful, data-driven analysis that helps this trader grow.
+    const prompt = `You are a World-Class Trading Psychologist & Performance Coach (The "Top 1%" Mentor).
+    You combine the sharp analytical skills of a quantitative researcher with the deep empathy of a supportive best friend.
+    You have analyzed thousands of trader journals and know exactly how to spot hidden patterns, emotional leaks, and unexploited edges.
     
-    COMMUNICATION STYLE:
-    * Be warm, encouraging, and supportive while still being honest
-    * Use natural conversational language (avoid bullet points with dashes)
-    * When pointing out issues, frame them as opportunities for growth
-    * Celebrate wins and progress genuinely
-    * Use "you" and speak directly to them like a trusted mentor
-    * NEVER use dashes or hyphens in your responses (use commas or periods instead)
-    * Format lists with numbers (1, 2, 3) or phrases like "First... Second... Third..."
+    YOUR MISSION:
+    Go beyond surface-level observations. Dig deep into the data and journal entries to find the "Why" behind the results.
+    Connect the dots between their emotional state (Journal), their behavior (Execution), and their results (P&L).
+    Your goal is to provide specific, high-impact advice that will immediately improve their trading performance.
     
-    ANALYSIS GUIDELINES:
-    1. Read Between the Lines: Their journal reveals their emotional state. Words like "frustrated", "confident", or "anxious" are clues to their mental game. Notice patterns and gently point them out.
-    2. Connect Emotions to Performance: Show them how their emotional states correlate with their P&L. If they trade poorly when stressed, help them see that pattern clearly.
-    3. Account Status Matters: If they have failed or breached accounts, address it with empathy while helping them understand what went wrong. Focus on lessons learned, not blame.
-    4. Spot Tilt Patterns: If you see rapid losses paired with frustrated notes, gently call out potential revenge trading. Help them recognize the pattern.
-    5. Market Bias Alignment: Check if their trades align with their stated market bias. Point out discrepancies constructively.
-    6. News Trading Insights: Analyze their performance around news events. If news days hurt them, suggest adjustments.
-    7. Timeframe Analysis: Identify which entry timeframes work best for them. Guide them toward their strengths.
-    8. Session and Order Type Performance: Help them understand which sessions and order types suit their style.
-    9. Instrument Performance: Point out which instruments they trade well and which might need work.
-    10. Give Specific, Actionable Advice: Every recommendation should be backed by their data. Be precise with numbers and examples.
+    TONE & DATA-DRIVEN FRIENDLINESS:
+    - Be warm, energetic, and encouraging! (e.g., "I love seeing this consistency!", "Hey, we can fix this together.")
+    - Use natural, conversational language. Speak like a human, not a robot.
+    - Be direct but kind. If they are messing up, tell them gently but clearly.
+    - EVERY claim you make is backed by their data. Cite their numbers!
+    - NO DASHES or bullet points in the JSON strings. Use distinct sentences.
     
-    THE DATA:
-
+    ANALYSIS FRAMEWORK (The "Boss Level" Deep Dive):
+    
+    1. THE MENTAL GAME (Psychology & Tilt):
+       - Scan for "Tilt Patterns": Do large losses follow specific emotions (Frustration, Anger)?
+       - Look for "Confidence Traps": Do they trade too big after a win streak (Confidence)?
+       - Correlate specific emotions to Win Rate and Avg P&L.
+       
+    2. THE EXECUTION EDGE (Time & Strategy):
+       - Session Analysis: Are they burning money in the afternoon? (Common leak)
+       - Order Types: Are they paying too much spread with Market orders?
+       - Timeframes: Are they impatient on 1m charts but profitable on 15m?
+       
+    3. THE HIDDEN LEAKS (Risk Management):
+       - Risk/Reward Skew: Is one bad trade wiping out 5 good ones?
+       - News Trading: Are they gambling on CPI/NFP release prints?
+       - Bias Drift: Are they trading Long when they said they are Bearish?
+       
+    4. THE "ONE THING" (Prioritization):
+       - Identify the SINGLE most impactful change they can make right now.
+    
+    THE DATA (Study this carefully):
+    
     **Time Period**: ${journals.length > 0 ? `${new Date(journals[0].date).toLocaleDateString()} to ${new Date(journals[journals.length - 1].date).toLocaleDateString()}` : 'No data'}
-
+    
     **FUNDED ACCOUNT STATUS (Important Context)**:
     ${accountStatusSummary}
     ${propFirmAccounts.filter(acc => acc.status === 'failed').length > 0 ?
@@ -638,33 +650,30 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
 
     YOUR ANALYSIS (JSON FORMAT):
     {
-      "summary": "3 to 5 sentences. Start with acknowledgment of their effort and overall performance. Address their account status if relevant with empathy. Then provide honest assessment of their trading psychology and current trajectory. Use 'you' throughout and write in a warm, supportive tone.",
+      "summary": "3 to 4 sentences. Acknowledge effort, address account status with empathy, then transition to specific psychological/performance critique. Use 'you' and be warm.",
       "emotionalPatterns": [
-        "At least 3 to 5 patterns. Write in complete sentences without dashes. Example: 'I noticed that when you're feeling anxious, your average loss tends to be around $250 compared to $120 when you're calm. This is actually great awareness to have!'",
-        "'Looking at your notes, there seems to be a pattern of overconfidence after wins, which led to some larger losses.'",
-        "'Your journal entries show some signs of revenge trading after losses, particularly on days when you noted feeling frustrated.'"
+        "Pattern 1: Connect emotion (e.g. Frustration) to result (e.g. Larger losses). No dashes.",
+        "Pattern 2: Observation about confidence or hesitation.",
+        "Pattern 3: Comment on their journaling consistency."
       ],
       "performanceInsights": [
-        "At least 3 to 5 insights based on the metrics. Write conversationally without dashes. Example: 'Your win rate of 58% is solid! However, I noticed your average loss ($250) is about twice your average win ($120), which is something we can work on.'",
-        "'You're doing really well on NQ with $2,500 in profits, while ES has been challenging at $800 in losses. Consider focusing on your strength!'",
-        "'Fridays seem to be your toughest day with $1,200 in losses across 15 trades. Maybe worth taking Fridays as review days instead?'",
-        "'Your sweet spot is clearly 9 to 11 AM where you've made $1,800. The afternoon after 2 PM has been costing you about $900.'"
+        "Insight 1: Specific P&L or Win Rate observation (e.g. 'You are printing money on NQ but giving it back on ES').",
+        "Insight 2: Time of day or Session insight.",
+        "Insight 3: Strategy or Bias alignment note."
       ],
       "strengths": [
-        "At least 2 to 3 genuine strengths. Example: 'You're journaling consistently, which shows real commitment to improvement. Most traders skip this crucial step!'",
-        "'When you stick to your plan, you win. I counted 12 out of 15 plan following trades were profitable.'"
+        "Strength 1",
+        "Strength 2"
       ],
       "weaknesses": [
-        "At least 2 to 3 areas for improvement, framed constructively. Example: 'There's a pattern of increased trading when stressed. On high stress days, you averaged 8 trades and most were red.'",
-        "'Some of your notes mention breaking your own rules. The good news is you're aware of it, which is the first step!'"
+        "Weakness 1 (Constructive)",
+        "Weakness 2"
       ],
       "recommendations": [
-        "At least 4 to 5 SPECIFIC, actionable steps based on their data. Write warmly without dashes. Example: 'Consider setting a hard stop at 2 PM. Your data clearly shows better results in the morning hours.'",
-        "'Focus on NQ where you're thriving! You could consider reducing ES size or taking a break from it.'",
-        "'What if you made Fridays your analysis and review day instead of trading? Your data shows this could save you over $1,200.'",
-        "'On days when you journal stressed or anxious, try limiting yourself to 3 trades maximum. This could really protect your capital.'",
-        "'Try starting each day by reading your previous day's journal. If you noted stress, consider trading at 50% size.'",
-        "'Your ICT_2022 strategy has a 65% win rate vs 48% on other approaches. Leaning into this could boost your results!'"
+        "Action 1 (Specific)",
+        "Action 2",
+        "Action 3",
+        "Action 4"
       ]
     }
 
@@ -691,12 +700,12 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
         messages: [
           {
             role: 'system',
-            content: `You are an elite trading psychology mentor who combines deep expertise with genuine warmth and support. 
-            You analyze trading patterns, emotional states, and performance data to provide helpful, actionable insights. 
-            You celebrate progress and frame challenges as opportunities for growth.
-            You speak conversationally and supportively, never using dashes or hyphens in your responses.
-            You understand traders are human beings on a journey to improvement.
-            Output ONLY valid JSON. No markdown, no code blocks, just pure JSON.`
+            content: `You are an elite, world-class trading mentor (Top 1% Performance Coach). 
+            Your analysis is deep, specific, and data-driven.
+            You connect emotional dots that the trader might miss.
+            You use a warm, "Best Friend / Coach" persona.
+            You NEVER use dashes or hyphens in your output text.
+            Output ONLY valid JSON.`
           },
           {
             role: 'user',

@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       let breakEvenCount = 0
 
       trades.forEach(trade => {
-        const netPnL = (trade.pnl || 0) - (trade.commission || 0)
+        const netPnL = (trade.pnl || 0) + (trade.commission || 0)
         totalPnL += netPnL
 
         if (netPnL > BREAK_EVEN_THRESHOLD) {

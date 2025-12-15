@@ -420,7 +420,7 @@ async function getTradesStatistics(offset: number, limit: number) {
   })
 
   const stats = trades.reduce((acc, trade) => {
-    const netPnl = trade.pnl - trade.commission
+    const netPnl = trade.pnl + trade.commission
     acc.totalPnL += netPnl
     acc.totalTrades += 1
     acc.totalCommission += trade.commission

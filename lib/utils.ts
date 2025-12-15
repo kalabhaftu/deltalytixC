@@ -157,8 +157,8 @@ export function formatTradeData(trade: Trade) {
     pnlFormatted: formatCurrency(trade.pnl || 0),
     commission: trade.commission || 0,
     commissionFormatted: formatCurrency(trade.commission || 0),
-    netPnl: (trade.pnl || 0) - (trade.commission || 0),
-    netPnlFormatted: formatCurrency((trade.pnl || 0) - (trade.commission || 0)),
+    netPnl: (trade.pnl || 0) + (trade.commission || 0),  // Commission is negative
+    netPnlFormatted: formatCurrency((trade.pnl || 0) + (trade.commission || 0)),
 
     // Dates and times
     entryDate: trade.entryDate ? new Date(trade.entryDate) : null,
@@ -173,9 +173,9 @@ export function formatTradeData(trade: Trade) {
     timeInPositionFormatted: parsePositionTime(trade.timeInPosition || 0),
 
     // Trade status helpers
-    isWin: (trade.pnl || 0) - (trade.commission || 0) > BREAK_EVEN_THRESHOLD,
-    isLoss: (trade.pnl || 0) - (trade.commission || 0) < -BREAK_EVEN_THRESHOLD,
-    isBreakEven: Math.abs((trade.pnl || 0) - (trade.commission || 0)) <= BREAK_EVEN_THRESHOLD,
+    isWin: (trade.pnl || 0) + (trade.commission || 0) > BREAK_EVEN_THRESHOLD,
+    isLoss: (trade.pnl || 0) + (trade.commission || 0) < -BREAK_EVEN_THRESHOLD,
+    isBreakEven: Math.abs((trade.pnl || 0) + (trade.commission || 0)) <= BREAK_EVEN_THRESHOLD,
     isOpen: !trade.closeDate,
     isClosed: !!trade.closeDate,
 
@@ -387,7 +387,7 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
     const commission = Number(trade.commission) || 0;
     const timeInPosition = Number(trade.timeInPosition) || 0;
 
-    const netPnl = pnl - commission;
+    const netPnl = pnl + commission;  // Commission is stored as negative
 
     acc.nbTrades++;
     acc.cumulativePnl += pnl;
@@ -505,7 +505,7 @@ export function formatCalendarData(trades: Trade[], accounts: Account[] = []) {
       acc[date] = { pnl: 0, tradeNumber: 0, longNumber: 0, shortNumber: 0, trades: [] }
     }
     acc[date].tradeNumber++
-    acc[date].pnl += trade.pnl - trade.commission;
+    acc[date].pnl += trade.pnl + trade.commission;  // Commission is negative
 
     const isLong = trade.side
       ? (trade.side.toLowerCase() === 'long' || trade.side.toLowerCase() === 'buy' || trade.side.toLowerCase() === 'b')
@@ -550,25 +550,25 @@ export function calculateAverageWinLoss(trades: Trade[]): {
   const groupedTrades = groupTradesByExecution(trades)
 
   const winningTrades = groupedTrades.filter(trade => {
-    const netPnl = trade.pnl - (trade.commission || 0);
+    const netPnl = trade.pnl + (trade.commission || 0);
     return netPnl > BREAK_EVEN_THRESHOLD;
   });
 
   const losingTrades = groupedTrades.filter(trade => {
-    const netPnl = trade.pnl - (trade.commission || 0);
+    const netPnl = trade.pnl + (trade.commission || 0);
     return netPnl < -BREAK_EVEN_THRESHOLD;
   });
 
   const avgWin = winningTrades.length > 0
     ? winningTrades.reduce((sum, trade) => {
-      const netPnl = trade.pnl - (trade.commission || 0);
+      const netPnl = trade.pnl + (trade.commission || 0);
       return sum + netPnl;
     }, 0) / winningTrades.length
     : 0;
 
   const avgLoss = losingTrades.length > 0
     ? Math.abs(losingTrades.reduce((sum, trade) => {
-      const netPnl = trade.pnl - (trade.commission || 0);
+      const netPnl = trade.pnl + (trade.commission || 0);
       return sum + netPnl;
     }, 0) / losingTrades.length)
     : 0;

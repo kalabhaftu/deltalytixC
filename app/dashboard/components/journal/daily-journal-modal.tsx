@@ -59,11 +59,17 @@ export function DailyJournalModal({
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const [showConfirmClose, setShowConfirmClose] = useState(false)
+  // FIX: Track journal ID from both prop and fetched data
+  const [journalId, setJournalId] = useState<string | null>(null)
 
   // Load existing journal data
   useEffect(() => {
     if (isOpen && selectedDate) {
       setIsLoading(true)
+      // Initialize from prop if available
+      if (existingJournal?.id) {
+        setJournalId(existingJournal.id)
+      }
       fetchJournalData()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -76,20 +82,21 @@ export function DailyJournalModal({
       setEmotion(null)
       setHasChanges(false)
       setShowConfirmClose(false)
+      setJournalId(null)  // Reset journal ID
     }
   }, [isOpen])
 
   // Track changes
   useEffect(() => {
-    if (existingJournal) {
+    if (existingJournal || journalId) {
       const changed =
-        note !== (existingJournal.note || '') ||
-        emotion !== (existingJournal.emotion || null)
+        note !== (existingJournal?.note || '') ||
+        emotion !== (existingJournal?.emotion || null)
       setHasChanges(changed)
     } else {
       setHasChanges(note.trim() !== '' || emotion !== null)
     }
-  }, [note, emotion, existingJournal])
+  }, [note, emotion, existingJournal, journalId])
 
   const fetchJournalData = async () => {
     if (!selectedDate) return
@@ -108,6 +115,8 @@ export function DailyJournalModal({
         if (data.journal) {
           setNote(data.journal.note || '')
           setEmotion(data.journal.emotion || null)
+          // FIX: Store the fetched journal ID so we use PUT instead of POST
+          setJournalId(data.journal.id)
         }
       }
     } catch (error) {
@@ -131,9 +140,9 @@ export function DailyJournalModal({
         accountId: accountId || null
       }
 
-      const method = existingJournal?.id ? 'PUT' : 'POST'
-      const url = existingJournal?.id
-        ? `/api/journal/daily/${existingJournal.id}`
+      const method = journalId ? 'PUT' : 'POST'
+      const url = journalId
+        ? `/api/journal/daily/${journalId}`
         : '/api/journal/daily'
 
       const response = await fetch(url, {

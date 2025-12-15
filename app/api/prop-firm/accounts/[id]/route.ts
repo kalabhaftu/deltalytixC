@@ -119,7 +119,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const totalPnL = tradeStats.reduce((sum: number, stat: any) => {
       const pnl = stat._sum.pnl || 0
       const commission = stat._sum.commission || 0
-      return sum + (pnl - commission)
+      return sum + (pnl + commission)
     }, 0)
 
     // FIXED: Get trades ONLY for the current active phase (not all phases)
@@ -157,7 +157,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const currentPhaseTradesMinimal = groupedTrades.map((trade: any) => ({
       pnl: trade.pnl,
       commission: trade.commission,
-      netPnL: trade.pnl - (trade.commission || 0)
+      netPnL: trade.pnl + (trade.commission || 0)
     }))
 
     // Get ALL trades for overall statistics
@@ -175,11 +175,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // CRITICAL FIX: Use net P&L and exclude break-even trades
     const winningTrades = allTradesMinimal.filter(trade => {
-      const netPnL = trade.pnl - (trade.commission || 0)
+      const netPnL = trade.pnl + (trade.commission || 0)
       return netPnL > BREAK_EVEN_THRESHOLD
     }).length
     const losingTrades = allTradesMinimal.filter(trade => {
-      const netPnL = trade.pnl - (trade.commission || 0)
+      const netPnL = trade.pnl + (trade.commission || 0)
       return netPnL < -BREAK_EVEN_THRESHOLD
     }).length
     const tradableCount = winningTrades + losingTrades
@@ -188,7 +188,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Calculate current phase statistics - PHASE SPECIFIC!
     const currentPhaseStat = tradeStats.find(stat => stat.phaseAccountId === currentPhase?.id)
     const currentPhasePnL = currentPhaseStat
-      ? (currentPhaseStat._sum.pnl || 0) - (currentPhaseStat._sum.commission || 0)
+      ? (currentPhaseStat._sum.pnl || 0) + (currentPhaseStat._sum.commission || 0)
       : 0
 
     // Determine next action based on phase status
@@ -227,7 +227,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       // Calculate high-water mark from CURRENT PHASE grouped trades in order
       // Grouped trades ensure partial closes are counted as single trades
       for (const trade of groupedTrades) {
-        runningBalance += (trade.pnl - (trade.commission || 0))
+        runningBalance += (trade.pnl + (trade.commission || 0))
         highWaterMark = Math.max(highWaterMark, runningBalance)
       }
 
@@ -371,7 +371,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           startDate: phase.startDate,
           endDate: phase.endDate,
           tradeCount: phaseStat?._count.id || 0,
-          totalPnL: phaseStat ? (phaseStat._sum.pnl || 0) - (phaseStat._sum.commission || 0) : 0
+          totalPnL: phaseStat ? (phaseStat._sum.pnl || 0) + (phaseStat._sum.commission || 0) : 0
         }
       }),
       currentPhase: currentPhase ? {
@@ -405,7 +405,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         id: trade.id,
         pnl: trade.pnl,
         commission: trade.commission,
-        netPnL: trade.pnl - (trade.commission || 0),
+        netPnL: trade.pnl + (trade.commission || 0),
         instrument: trade.instrument || trade.symbol,
         symbol: trade.symbol,
         side: trade.side,

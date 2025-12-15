@@ -28,7 +28,7 @@ function generateTradeSummary(trades: Trade[]): TradeSummary[] {
 
         return {
             accountNumber,
-            pnl: accountPnL - accountCommission,
+            pnl: accountPnL + accountCommission,  // Commission is stored as NEGATIVE
             commission: accountCommission,
             longTrades,
             shortTrades,
@@ -45,16 +45,16 @@ export const getCurrentWeekSummary = tool({
 
 export async function executeGetCurrentWeekSummary() {
     const now = new Date();
-    const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const currentWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
-    
-    
+    const currentWeekStart = startOfWeek(now, { weekStartsOn: 0 });  // Sunday start to match calendar
+    const currentWeekEnd = endOfWeek(now, { weekStartsOn: 0 });
+
+
     const trades = await getTradesAction();
     const filteredTrades = trades.filter(trade => {
         const tradeDate = new Date(trade.entryDate);
         return tradeDate >= currentWeekStart && tradeDate <= currentWeekEnd;
     });
-    
+
     return {
         weekPeriod: `${format(currentWeekStart, 'MMM d')} - ${format(currentWeekEnd, 'MMM d, yyyy')}`,
         dateRange: {

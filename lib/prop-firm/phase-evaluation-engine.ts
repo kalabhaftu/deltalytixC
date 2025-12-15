@@ -45,7 +45,7 @@ export interface PhaseEvaluationResult {
 }
 
 export class PhaseEvaluationEngine {
-  
+
   /**
    * Enhanced logging for development mode
    */
@@ -57,7 +57,7 @@ export class PhaseEvaluationEngine {
   private static logError(message: string, error: any) {
     // Error logged internally
   }
-  
+
   /**
    * CRITICAL: Evaluate phase status with FAILURE-FIRST PRIORITY
    * Always check for failure conditions before checking if profit target is met
@@ -68,9 +68,9 @@ export class PhaseEvaluationEngine {
     masterAccountId: string,
     phaseAccountId: string
   ): Promise<PhaseEvaluationResult> {
-    
+
     this.log(`Starting evaluation for masterAccountId: ${masterAccountId}, phaseAccountId: ${phaseAccountId}`)
-    
+
     // Get complete phase data
     const phaseAccount = await prisma.phaseAccount.findFirst({
       where: { id: phaseAccountId },
@@ -105,12 +105,13 @@ export class PhaseEvaluationEngine {
 
     const masterAccount = phaseAccount.MasterAccount
     const trades = phaseAccount.Trade
-    const timezone = masterAccount.User.timezone || 'UTC'
+    // CRITICAL: Always use UTC for evaluation to ensure consistent 00:00 daily resets
+    const timezone = 'UTC'
 
     // CRITICAL FIX: Calculate current metrics using NET P&L (after commission)
-    // Prop firms must account for commission as it affects actual account balance
+    // Commission is stored as NEGATIVE in DB (e.g., -4.5), so we ADD it to pnl
     const currentPnL = trades.reduce((sum, trade) => {
-      const netPnl = (trade.pnl || 0) - (trade.commission || 0)
+      const netPnl = (trade.pnl || 0) + (trade.commission || 0)
       return sum + netPnl
     }, 0)
     const currentEquity = masterAccount.accountSize + currentPnL
@@ -124,9 +125,9 @@ export class PhaseEvaluationEngine {
     // Calculate high-water mark (highest equity since phase start) using NET P&L
     let highWaterMark = masterAccount.accountSize
     let runningBalance = masterAccount.accountSize
-    
+
     for (const trade of trades) {
-      const netPnl = (trade.pnl || 0) - (trade.commission || 0)
+      const netPnl = (trade.pnl || 0) + (trade.commission || 0)
       runningBalance += netPnl
       highWaterMark = Math.max(highWaterMark, runningBalance)
     }
@@ -136,7 +137,7 @@ export class PhaseEvaluationEngine {
     // CRITICAL FIX: Check historical daily drawdowns for ALL days
     this.log(`[EVAL] Starting historical breach check for ${trades.length} trades`)
     this.log(`[EVAL] Account size: $${masterAccount.accountSize}, Daily DD%: ${phaseAccount.dailyDrawdownPercent}%, Limit: $${(masterAccount.accountSize * phaseAccount.dailyDrawdownPercent / 100).toFixed(2)}`)
-    
+
     const historicalBreachCheck = await this.checkHistoricalDailyDrawdowns(
       phaseAccount,
       trades,
@@ -224,7 +225,7 @@ export class PhaseEvaluationEngine {
         breachAmount: drawdown.breachAmount,
         profitTargetMet: progress.profitTargetPercent >= 100
       })
-      
+
       return {
         drawdown,
         progress,
@@ -237,14 +238,14 @@ export class PhaseEvaluationEngine {
 
     // STEP 4: Check if profit target is met AND other requirements
     const canAdvance = progress.canPassPhase && progress.isEligibleForAdvancement
-    
+
     this.log(`Final evaluation result`, {
       canAdvance,
       nextAction: canAdvance ? 'advance' : 'continue',
       isFailed: false,
       isPassed: canAdvance
     })
-    
+
     return {
       drawdown,
       progress,
@@ -274,7 +275,7 @@ export class PhaseEvaluationEngine {
     dailyLimit: number
     breachAmount?: number
   }> {
-    
+
     if (trades.length === 0) {
       return {
         isBreached: false,
@@ -290,14 +291,14 @@ export class PhaseEvaluationEngine {
 
     // Group trades by day
     const tradesByDay = new Map<string, any[]>()
-    
+
     this.log(`[EVAL] Grouping ${trades.length} trades by day...`)
     for (const trade of trades) {
       const exitDate = trade.exitTime || trade.createdAt
       const dateStr = this.getDateInTimezone(new Date(exitDate), timezone)
-      
+
       // this.log(`[EVAL] Trade: ${trade.instrument} PnL=$${trade.pnl} exitDate=${exitDate} -> day=${dateStr}`)
-      
+
       if (!tradesByDay.has(dateStr)) {
         tradesByDay.set(dateStr, [])
       }
@@ -306,7 +307,7 @@ export class PhaseEvaluationEngine {
 
     this.log(`[EVAL] Grouped into ${tradesByDay.size} days: ${Array.from(tradesByDay.keys()).join(', ')}`)
     this.log(`[EVAL] Daily limit: $${dailyDrawdownLimit.toFixed(2)} (${phaseAccount.dailyDrawdownPercent}%)`)
-    
+
     this.log(`Checking ${tradesByDay.size} days for historical breaches`, {
       dailyDrawdownLimit,
       dailyDrawdownPercent: phaseAccount.dailyDrawdownPercent
@@ -323,48 +324,49 @@ export class PhaseEvaluationEngine {
       const dayTrades = tradesByDay.get(dayStr)!
       const dayStartBalance = runningBalance
 
-    // Calculate day's P&L
-    let dayPnL = 0
-    for (const trade of dayTrades) {
-      // CRITICAL FIX: Use net P&L for daily drawdown calculations
-      const netPnl = (trade.pnl || 0) - (trade.commission || 0)
-      dayPnL += netPnl
-    }
+      // Calculate day's P&L
+      let dayPnL = 0
+      for (const trade of dayTrades) {
+        // CRITICAL FIX: Use net P&L for daily drawdown calculations
+        // Commission is stored as NEGATIVE in DB, so we ADD it
+        const netPnl = (trade.pnl || 0) + (trade.commission || 0)
+        dayPnL += netPnl
+      }
 
-    const dayEndBalance = dayStartBalance + dayPnL
-    const dayLoss = dayPnL < 0 ? Math.abs(dayPnL) : 0
+      const dayEndBalance = dayStartBalance + dayPnL
+      const dayLoss = dayPnL < 0 ? Math.abs(dayPnL) : 0
 
-    this.log(`[EVAL] 📅 Day: ${dayStr}`, {
-      dayStartBalance: `$${dayStartBalance.toFixed(2)}`,
-      dayPnL: `$${dayPnL.toFixed(2)}`,
-      dayEndBalance: `$${dayEndBalance.toFixed(2)}`,
-      dayLoss: `$${dayLoss.toFixed(2)}`,
-      dailyLimit: `$${dailyDrawdownLimit.toFixed(2)}`,
-      tradesCount: dayTrades.length,
-      isBreached: dayLoss > dailyDrawdownLimit
-    })
-
-    // Check if this day breached the daily drawdown limit
-    if (dayLoss > dailyDrawdownLimit) {
-      const breachAmount = dayLoss - dailyDrawdownLimit
-      
-      // Historical daily drawdown breach detected
-      this.log(`[EVAL] ⚠️ Historical daily drawdown breach detected`, {
-        breachAmount,
-        tradesOnDay: dayTrades.length
+      this.log(`[EVAL] 📅 Day: ${dayStr}`, {
+        dayStartBalance: `$${dayStartBalance.toFixed(2)}`,
+        dayPnL: `$${dayPnL.toFixed(2)}`,
+        dayEndBalance: `$${dayEndBalance.toFixed(2)}`,
+        dayLoss: `$${dayLoss.toFixed(2)}`,
+        dailyLimit: `$${dailyDrawdownLimit.toFixed(2)}`,
+        tradesCount: dayTrades.length,
+        isBreached: dayLoss > dailyDrawdownLimit
       })
 
-      return {
-        isBreached: true,
-        breachDate: dayStr,
-        breachTime: new Date(dayStr),
-        dayStartBalance,
-        dayEndBalance,
-        dayLoss,
-        dailyLimit: dailyDrawdownLimit,
-        breachAmount
+      // Check if this day breached the daily drawdown limit
+      if (dayLoss > dailyDrawdownLimit) {
+        const breachAmount = dayLoss - dailyDrawdownLimit
+
+        // Historical daily drawdown breach detected
+        this.log(`[EVAL] ⚠️ Historical daily drawdown breach detected`, {
+          breachAmount,
+          tradesOnDay: dayTrades.length
+        })
+
+        return {
+          isBreached: true,
+          breachDate: dayStr,
+          breachTime: new Date(dayStr),
+          dayStartBalance,
+          dayEndBalance,
+          dayLoss,
+          dailyLimit: dailyDrawdownLimit,
+          breachAmount
+        }
       }
-    }
 
       // Update running balance for next day
       runningBalance = dayEndBalance
@@ -391,7 +393,7 @@ export class PhaseEvaluationEngine {
     highWaterMark: number,
     accountSize: number
   ): DrawdownCalculation {
-    
+
     // Daily drawdown calculation (always from daily start balance)
     const dailyDrawdownLimit = accountSize * (phaseAccount.dailyDrawdownPercent / 100)
     const dailyDrawdownUsed = Math.max(0, dailyStartBalance - currentEquity)
@@ -401,7 +403,7 @@ export class PhaseEvaluationEngine {
     // Max drawdown calculation (static vs trailing)
     let maxDrawdownBase: number
     let maxDrawdownLimit: number
-    
+
     if (phaseAccount.maxDrawdownType === 'trailing') {
       // Trailing: Use high-water mark as base
       maxDrawdownBase = highWaterMark
@@ -462,14 +464,14 @@ export class PhaseEvaluationEngine {
     currentPnL: number,
     trades: any[]
   ): PhaseProgress {
-    
+
     // CRITICAL FIX: Prisma relation is MasterAccount (capital M), not masterAccount
     const accountSize = phaseAccount.MasterAccount?.accountSize || phaseAccount.masterAccount?.accountSize || 0
-    
+
     if (!accountSize || accountSize === 0) {
       // Account size is 0 or undefined
     }
-    
+
     const profitTargetAmount = accountSize * (phaseAccount.profitTargetPercent / 100)
     const profitTargetRemaining = Math.max(0, profitTargetAmount - currentPnL)
     const profitTargetPercent = profitTargetAmount > 0 ? (currentPnL / profitTargetAmount) * 100 : 100
@@ -494,7 +496,7 @@ export class PhaseEvaluationEngine {
 
     // Check if profit target is met
     const isProfitTargetMet = phaseAccount.profitTargetPercent === 0 || currentPnL >= profitTargetAmount
-    
+
     // Check if minimum trading days are met
     const areMinTradingDaysMet = tradingDaysCompleted >= minTradingDaysRequired
 
@@ -506,7 +508,7 @@ export class PhaseEvaluationEngine {
       const phaseStartDate = new Date(phaseAccount.startDate)
       const currentDate = new Date()
       const daysSinceStart = Math.floor((currentDate.getTime() - phaseStartDate.getTime()) / (1000 * 60 * 60 * 24))
-      
+
       daysRemaining = phaseAccount.timeLimitDays - daysSinceStart
       isWithinTimeLimit = daysSinceStart <= phaseAccount.timeLimitDays
     }
@@ -543,12 +545,12 @@ export class PhaseEvaluationEngine {
     timezone: string,
     fallbackBalance: number
   ): Promise<number> {
-    
+
     // Get today's date in the account's timezone
     const today = this.getDateInTimezone(new Date(), timezone)
     const todayDate = new Date(today)
-    
-    
+
+
     // STEP 1: Look for today's daily anchor
     const todayAnchor = await prisma.dailyAnchor.findFirst({
       where: {
@@ -582,7 +584,7 @@ export class PhaseEvaluationEngine {
 
       // STEP 3: Calculate current equity for anchor using NET P&L
       const tradesPnL = phaseAccount.Trade.reduce((sum, trade) => {
-        const netPnl = (trade.pnl || 0) - (trade.commission || 0)
+        const netPnl = (trade.pnl || 0) + (trade.commission || 0)
         return sum + netPnl
       }, 0)
       const anchorEquity = phaseAccount.MasterAccount.accountSize + tradesPnL
@@ -602,7 +604,7 @@ export class PhaseEvaluationEngine {
 
     } catch (error) {
       // STEP 5: Ultimate fallback - use provided fallback balance
-      
+
       return fallbackBalance
     }
   }
@@ -618,7 +620,7 @@ export class PhaseEvaluationEngine {
         month: '2-digit',
         day: '2-digit'
       }
-      
+
       const parts = new Intl.DateTimeFormat('en-CA', options).format(date)
       return parts // Returns YYYY-MM-DD format
     } catch (error) {

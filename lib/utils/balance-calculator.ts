@@ -75,11 +75,11 @@ export function calculateAccountBalance(
   // For prop firm accounts: match by phase ID (UUID) since trades use phaseAccountId
   // For regular accounts: match by account number
   let relevantTrades: (Trade | any)[]
-  
+
   if (account.accountType === 'prop-firm') {
     // Prop firm accounts use phase ID (UUID) for linking trades
-    relevantTrades = trades.filter(trade => 
-      trade.phaseAccountId === account.id || 
+    relevantTrades = trades.filter(trade =>
+      trade.phaseAccountId === account.id ||
       trade.accountNumber === account.number
     )
   } else {
@@ -92,8 +92,9 @@ export function calculateAccountBalance(
   // The excludeFailedAccounts option is used elsewhere for total calculations
 
   // Calculate cumulative PnL (net of commissions)
+  // Commission is stored as NEGATIVE in DB, so we ADD it
   const cumulativePnL = relevantTrades.reduce((sum, trade) => {
-    const netPnL = (trade.pnl || 0) - (trade.commission || 0)
+    const netPnL = (trade.pnl || 0) + (trade.commission || 0)
     return sum + netPnL
   }, 0)
 
@@ -137,7 +138,7 @@ export function calculateAccountBalances(
   // Group trades by account number AND phase ID for efficiency
   const tradesByAccountNumber = new Map<string, any[]>()
   const tradesByPhaseId = new Map<string, any[]>()
-  
+
   allTrades.forEach(trade => {
     // Group by account number (for regular accounts and backwards compatibility)
     if (trade.accountNumber) {
@@ -146,7 +147,7 @@ export function calculateAccountBalances(
       }
       tradesByAccountNumber.get(trade.accountNumber)!.push(trade)
     }
-    
+
     // Group by phase ID (for prop firm accounts)
     if (trade.phaseAccountId) {
       if (!tradesByPhaseId.has(trade.phaseAccountId)) {
@@ -180,13 +181,13 @@ export function calculateAccountBalances(
   // Calculate balance for each account
   accounts.forEach(account => {
     let accountTrades: any[] = []
-    
+
     if (account.accountType === 'prop-firm') {
       // For prop firm accounts: always use only the current phase's trades for balance
       // Even for failed accounts, show the balance of the failed phase (what caused the failure)
       // Trade count is aggregated elsewhere, but balance should reflect the failed phase's state
       accountTrades = tradesByPhaseId.get(account.id) || []
-      
+
       // Fallback to account number for backwards compatibility
       if (accountTrades.length === 0 && account.number) {
         accountTrades = tradesByAccountNumber.get(account.number) || []
@@ -195,7 +196,7 @@ export function calculateAccountBalances(
       // For regular accounts, use account number
       accountTrades = tradesByAccountNumber.get(account.number) || []
     }
-    
+
     const accountTransactions = transactionsByAccountId.get(account.id) || []
     const balance = calculateAccountBalance(account, accountTrades, accountTransactions, options)
     balanceMap.set(account.number, balance)
@@ -248,24 +249,24 @@ export function calculateTotalStartingBalance(
 ): number {
   // Group accounts by master account ID to prevent double-counting
   const masterAccountBalances = new Map<string, { balance: number, isActive: boolean, isFunded: boolean, status: string }>()
-  
-  
+
+
   accounts.forEach(account => {
     // For prop firms, use master account ID as the key
     // For regular accounts, use the account ID itself
     const phaseDetails = account.currentPhaseDetails || account.phaseDetails
     const masterKey = phaseDetails?.masterAccountId || account.id
     const accountName = phaseDetails?.masterAccountName || account.name || account.number
-    
+
     const isActive = account.status === 'active'
     const isFunded = account.status === 'funded'
     const status = account.status || 'active'
     // Ensure we get a valid number (handle undefined, null, NaN)
     const balance = Number(account.startingBalance) || 0
-    
-    
+
+
     const existing = masterAccountBalances.get(masterKey)
-    
+
     // If this master account already exists in our map
     if (existing) {
       // For prop firms with multiple phases: Priority order is funded > active > passed
@@ -284,9 +285,9 @@ export function calculateTotalStartingBalance(
       masterAccountBalances.set(masterKey, { balance, isActive, isFunded, status })
     }
   })
-  
+
   const total = Array.from(masterAccountBalances.values()).reduce((sum, { balance }) => sum + balance, 0)
-  
+
   // Sum up balances from unique master accounts only
   return total
 }
@@ -309,16 +310,16 @@ export function calculateBalanceInfo(
 ): BalanceResult {
   // Use the deduplicated starting balance calculation
   const startingBalance = calculateTotalStartingBalance(accounts)
-  
+
   // Calculate totals from trades
   const totalPnL = trades.reduce((sum, t) => sum + (t.pnl || 0), 0)
   const totalCommissions = trades.reduce((sum, t) => sum + (t.commission || 0), 0)
-  const netPnL = totalPnL - totalCommissions
-  
+  const netPnL = totalPnL + totalCommissions  // Commission is negative
+
   const currentBalance = startingBalance + netPnL
   const changeAmount = currentBalance - startingBalance
   const changePercent = startingBalance > 0 ? (changeAmount / startingBalance) * 100 : 0
-  
+
   return {
     startingBalance,
     currentBalance,
@@ -352,32 +353,32 @@ export function calculateBalanceHistory(
   calendarData: Record<string, { pnl: number, trades?: any[] }>
 ): DailyBalancePoint[] {
   const startingBalance = calculateTotalStartingBalance(accounts)
-  
+
   // Get sorted dates from calendar data
   const sortedDates = Object.keys(calendarData).sort()
-  
+
   let runningBalance = startingBalance
   let previousBalance = startingBalance
-  
+
   return sortedDates.map(date => {
     const dayData = calendarData[date]
     const dailyPnL = dayData.pnl || 0
-    
+
     runningBalance += dailyPnL
     const change = runningBalance - previousBalance
     const changePercent = previousBalance !== 0 ? (change / Math.abs(previousBalance)) * 100 : 0
-    
+
     // Count wins/losses from day's trades
     const dayTrades = dayData.trades || []
     const wins = dayTrades.filter(t => {
-      const netPnL = (t.pnl || 0) - (t.commission || 0)
+      const netPnL = (t.pnl || 0) + (t.commission || 0)  // Commission is negative
       return netPnL > 0
     }).length
     const losses = dayTrades.filter(t => {
-      const netPnL = (t.pnl || 0) - (t.commission || 0)
+      const netPnL = (t.pnl || 0) + (t.commission || 0)  // Commission is negative
       return netPnL < 0
     }).length
-    
+
     const point: DailyBalancePoint = {
       date,
       balance: runningBalance,
@@ -388,7 +389,7 @@ export function calculateBalanceHistory(
       wins,
       losses
     }
-    
+
     previousBalance = runningBalance
     return point
   })

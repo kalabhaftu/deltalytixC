@@ -79,7 +79,7 @@ function calculateStreaks(groupedTrades: any[]): {
   // Calculate trade streaks
   for (let i = 0; i < groupedTrades.length; i++) {
     const trade = groupedTrades[i]
-    const netPnl = trade.pnl - (trade.commission || 0)
+    const netPnl = trade.pnl + (trade.commission || 0)  // Commission is negative
     const isWin = netPnl > 0
 
     if (isWin) {
@@ -117,7 +117,7 @@ function calculateStreaks(groupedTrades: any[]): {
   for (let i = 0; i < sortedDays.length; i++) {
     const dayTrades = tradesByDay[sortedDays[i]]
     const dayPnl = dayTrades.reduce(
-      (sum: number, t: any) => sum + (t.pnl - (t.commission || 0)),
+      (sum: number, t: any) => sum + (t.pnl + (t.commission || 0)),
       0
     )
     const isWinDay = dayPnl > 0
@@ -226,19 +226,19 @@ async function calculateStatisticsCore(
 
   // Calculate win/loss counts
   const winningTrades = groupedTrades.filter(
-    t => t.pnl - (t.commission || 0) > 0
+    t => t.pnl + (t.commission || 0) > 0
   ).length
   const losingTrades = groupedTrades.filter(
-    t => t.pnl - (t.commission || 0) < 0
+    t => t.pnl + (t.commission || 0) < 0
   ).length
   const breakEvenTrades = groupedTrades.filter(
-    t => t.pnl - (t.commission || 0) === 0
+    t => t.pnl + (t.commission || 0) === 0
   ).length
 
   // Calculate rates
   const tradableCount = winningTrades + losingTrades
-  const winRate = tradableCount > 0 
-    ? Math.round((winningTrades / tradableCount) * 1000) / 10 
+  const winRate = tradableCount > 0
+    ? Math.round((winningTrades / tradableCount) * 1000) / 10
     : 0
   const lossRate = groupedTrades.length > 0
     ? Math.round((losingTrades / groupedTrades.length) * 1000) / 10
@@ -246,19 +246,19 @@ async function calculateStatisticsCore(
 
   // Calculate P&L metrics
   const grossProfits = groupedTrades.reduce((sum, t) => {
-    const netPnL = t.pnl - (t.commission || 0)
+    const netPnL = t.pnl + (t.commission || 0)
     return netPnL > 0 ? sum + netPnL : sum
   }, 0)
 
   const grossLosses = Math.abs(
     groupedTrades.reduce((sum, t) => {
-      const netPnL = t.pnl - (t.commission || 0)
+      const netPnL = t.pnl + (t.commission || 0)
       return netPnL < 0 ? sum + netPnL : sum
     }, 0)
   )
 
   const totalPnL = groupedTrades.reduce(
-    (sum, t) => sum + (t.pnl - (t.commission || 0)),
+    (sum, t) => sum + (t.pnl + (t.commission || 0)),
     0
   )
 
@@ -270,30 +270,30 @@ async function calculateStatisticsCore(
       : grossProfits / grossLosses
 
   // Calculate averages
-  const wins = groupedTrades.filter(t => t.pnl - (t.commission || 0) > 0)
-  const losses = groupedTrades.filter(t => t.pnl - (t.commission || 0) < 0)
+  const wins = groupedTrades.filter(t => t.pnl + (t.commission || 0) > 0)
+  const losses = groupedTrades.filter(t => t.pnl + (t.commission || 0) < 0)
 
   const avgWin =
     wins.length > 0
-      ? wins.reduce((sum, t) => sum + (t.pnl - (t.commission || 0)), 0) /
-        wins.length
+      ? wins.reduce((sum, t) => sum + (t.pnl + (t.commission || 0)), 0) /
+      wins.length
       : 0
   const avgLoss =
     losses.length > 0
       ? losses.reduce(
-          (sum, t) => sum + Math.abs(t.pnl - (t.commission || 0)),
-          0
-        ) / losses.length
+        (sum, t) => sum + Math.abs(t.pnl + (t.commission || 0)),
+        0
+      ) / losses.length
       : 0
   const riskRewardRatio = avgLoss > 0 ? avgWin / avgLoss : 0
 
   // Find biggest win/loss
   const biggestWin = Math.max(
     0,
-    ...groupedTrades.map(t => t.pnl - (t.commission || 0))
+    ...groupedTrades.map(t => t.pnl + (t.commission || 0))
   )
   const biggestLoss = Math.abs(
-    Math.min(0, ...groupedTrades.map(t => t.pnl - (t.commission || 0)))
+    Math.min(0, ...groupedTrades.map(t => t.pnl + (t.commission || 0)))
   )
 
   // Calculate streaks
@@ -329,7 +329,7 @@ async function calculateStatisticsCore(
   const dailyPnL = new Map<string, number>()
   recentTrades.forEach(trade => {
     const date = new Date(trade.createdAt).toISOString().split('T')[0]
-    const netPnL = trade.pnl - (trade.commission || 0)
+    const netPnL = trade.pnl + (trade.commission || 0)
     dailyPnL.set(date, (dailyPnL.get(date) || 0) + netPnL)
   })
 
