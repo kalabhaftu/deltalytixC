@@ -6,7 +6,7 @@ import { User, Trade } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createClient, getUserId, getUserIdSafe } from './auth'
 import { Account } from '@/context/data-provider'
-import { revalidateTag, unstable_cache } from 'next/cache' 
+import { revalidateTag, unstable_cache } from 'next/cache'
 
 
 import { getAccountsAction } from './accounts'
@@ -38,7 +38,7 @@ export async function getUserData(): Promise<{
     try {
       // PERFORMANCE FIX: Removed aggressive timeout wrapper - let Prisma handle connection timeouts naturally
       // Aggressive timeouts cause premature failures when network is slow
-      
+
       // PERFORMANCE OPTIMIZATION: Reduce database queries and use parallel fetching
       const [userData, accounts, groups, calendarNotes] = await Promise.all([
         // User data - essential only with error handling
@@ -59,6 +59,7 @@ export async function getUserData(): Promise<{
                 firstName: true,
                 lastName: true,
                 accountFilterSettings: true,
+                goalSettings: true,
                 backtestInputMode: true
               }
             })
@@ -82,9 +83,9 @@ export async function getUserData(): Promise<{
             // PERFORMANCE: Limit notes to last 2 years to prevent payload bloat
             const twoYearsAgo = new Date()
             twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2)
-            
+
             const notes = await prisma.dailyNote.findMany({
-              where: { 
+              where: {
                 userId,
                 date: {
                   gte: twoYearsAgo
@@ -134,18 +135,18 @@ export async function updateIsFirstConnectionAction(isFirstConnection: boolean) 
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const userId = user?.id
-    
+
     if (!userId) {
       throw new Error('User not authenticated')
     }
-    
+
     await prisma.user.update({
       where: { auth_user_id: userId },
       data: { isFirstConnection }
     })
-    
+
     revalidateTag(`user-data-${userId}`)
-    
+
     return { success: true }
   } catch (error) {
     throw new Error('Failed to update onboarding status')

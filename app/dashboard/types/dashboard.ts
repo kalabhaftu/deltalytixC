@@ -1,4 +1,4 @@
-export type WidgetType = 
+export type WidgetType =
   | 'calendarAdvanced'
   | 'calendarMini'
   | 'recentTrades'
@@ -8,6 +8,9 @@ export type WidgetType =
   | 'profitFactor'
   | 'avgWinLoss'
   | 'currentStreak'
+  | 'goalsProgress'
+  | 'riskMetrics'
+  | 'sessionAnalysis'
   | 'netDailyPnL'
   | 'dailyCumulativePnL'
   | 'accountBalanceChart'

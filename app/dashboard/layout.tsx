@@ -8,6 +8,8 @@ import Navbar from "./components/navbar";
 import { AutoRefreshProvider } from "./components/auto-refresh-provider";
 import { SidebarLayout } from "./components/sidebar-layout";
 import { MobileBottomNav } from "@/components/ui/mobile-nav";
+import { QuickAddFAB } from "@/components/quick-add-fab";
+import { CommandPalette } from "@/components/command-palette";
 
 export default function RootLayout({ children }: { children: ReactElement }) {
 
@@ -18,21 +20,23 @@ export default function RootLayout({ children }: { children: ReactElement }) {
           <TemplateProvider>
             {/* Data syncs via Supabase Realtime - no polling needed */}
             <AutoRefreshProvider>
-                <div className="min-h-screen flex flex-col">
-                      <Navbar />
-                      <div className="flex flex-1">
-                        <Suspense fallback={<div className="flex flex-1" />}>
-                          <SidebarLayout>
-                            {/* Add bottom padding on mobile for nav */}
-                            <div className="pb-20 md:pb-0">
-                              {children}
-                            </div>
-                          </SidebarLayout>
-                        </Suspense>
+              <div className="min-h-screen flex flex-col">
+                <Navbar />
+                <div className="flex flex-1">
+                  <Suspense fallback={<div className="flex flex-1" />}>
+                    <SidebarLayout>
+                      {/* Add bottom padding on mobile for nav */}
+                      <div className="pb-20 md:pb-0">
+                        {children}
                       </div>
-                      <Modals />
-                      <MobileBottomNav />
+                    </SidebarLayout>
+                  </Suspense>
                 </div>
+                <Modals />
+                <MobileBottomNav />
+                <QuickAddFAB />
+                <CommandPalette />
+              </div>
             </AutoRefreshProvider>
           </TemplateProvider>
         </TagsProvider>

@@ -16,6 +16,9 @@ import DayWinRate from '../components/kpi/day-win-rate'
 import ProfitFactor from '../components/kpi/profit-factor'
 import AvgWinLoss from '../components/kpi/avg-win-loss'
 import CurrentStreak from '../components/kpi/current-streak'
+import GoalsProgress from '../components/kpi/goals-progress'
+import RiskMetrics from '../components/kpi/risk-metrics'
+import SessionAnalysis from '../components/kpi/session-analysis'
 
 // Chart components
 import NetDailyPnL from '../components/charts/net-daily-pnl'
@@ -64,17 +67,17 @@ function CreateCalendarPreview() {
           <div className="grid grid-cols-7 gap-1 text-xs text-muted-foreground">
             {weekdays.map(day => (
               <div key={day} className="text-center p-1">{day}</div>
-          ))}
-        </div>
+            ))}
+          </div>
           <div className="grid grid-cols-7 gap-1">
-          {Array.from({ length: 35 }, (_, i) => (
-            <div 
-              key={i} 
+            {Array.from({ length: 35 }, (_, i) => (
+              <div
+                key={i}
                 className="aspect-square text-xs flex items-center justify-center rounded hover:bg-muted"
-            >
+              >
                 {i % 7 === 0 ? Math.floor(i / 7) + 1 : ''}
-            </div>
-          ))}
+              </div>
+            ))}
           </div>
         </div>
       </CardContent>
@@ -214,8 +217,8 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
               const isPositive = Math.random() > 0.4
               const height = Math.random() * 80 + 20
               return (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   className={cn(
                     "flex-1 rounded-t",
                     isPositive ? "bg-green-500" : "bg-red-500"
@@ -247,8 +250,8 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
             <svg viewBox="0 0 100 100" className="w-full h-full">
               <defs>
                 <linearGradient id="preview-gradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity="0.8"/>
-                  <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity="0.1"/>
+                  <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity="0.8" />
+                  <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity="0.1" />
                 </linearGradient>
               </defs>
               <path
@@ -316,7 +319,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
               const height = Math.random() * 80 + 20
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div 
+                  <div
                     className={cn(
                       "w-full rounded-t",
                       isPositive ? "bg-green-500" : "bg-red-500"
@@ -351,8 +354,8 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
               const isPositive = Math.random() > 0.4
               const height = Math.random() * 80 + 20
               return (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   className={cn(
                     "flex-1 rounded-t",
                     isPositive ? "bg-green-500" : "bg-red-500"
@@ -496,6 +499,72 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
               <span>Price Action</span>
               <span className="text-yellow-600 font-medium">45%</span>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  },
+  goalsProgress: {
+    type: 'goalsProgress',
+    defaultSize: 'small-long',
+    allowedSizes: ['small-long', 'medium', 'large'],
+    category: 'statistics',
+    description: 'Track your trading goals and targets',
+    previewHeight: 200,
+    getComponent: ({ size }) => <GoalsProgress size={size as any} />,
+    getPreview: () => (
+      <Card className="w-full h-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Goals & Targets</CardTitle>
+        </CardHeader>
+        <CardContent className="p-2">
+          <div className="space-y-2">
+            <div className="h-2 bg-muted rounded-full overflow-hidden"><div className="h-full w-3/4 bg-green-500 rounded-full" /></div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden"><div className="h-full w-1/2 bg-primary rounded-full" /></div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  },
+  riskMetrics: {
+    type: 'riskMetrics',
+    defaultSize: 'small-long',
+    allowedSizes: ['small-long', 'medium', 'large'],
+    category: 'statistics',
+    description: 'Monitor your risk exposure and drawdown',
+    previewHeight: 200,
+    getComponent: ({ size }) => <RiskMetrics size={size as any} />,
+    getPreview: () => (
+      <Card className="w-full h-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Risk Metrics</CardTitle>
+        </CardHeader>
+        <CardContent className="p-2">
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="p-2 bg-red-500/10 rounded"><span>Max DD</span></div>
+            <div className="p-2 bg-amber-500/10 rounded"><span>Loss Streak</span></div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  },
+  sessionAnalysis: {
+    type: 'sessionAnalysis',
+    defaultSize: 'small-long',
+    allowedSizes: ['small-long', 'medium', 'large'],
+    category: 'statistics',
+    description: 'Performance breakdown by trading session',
+    previewHeight: 200,
+    getComponent: ({ size }) => <SessionAnalysis size={size as any} />,
+    getPreview: () => (
+      <Card className="w-full h-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Session Analysis</CardTitle>
+        </CardHeader>
+        <CardContent className="p-2">
+          <div className="space-y-2 text-xs">
+            <div className="p-2 bg-purple-500/10 rounded"><span>Asia</span></div>
+            <div className="p-2 bg-amber-500/10 rounded"><span>New York</span></div>
           </div>
         </CardContent>
       </Card>

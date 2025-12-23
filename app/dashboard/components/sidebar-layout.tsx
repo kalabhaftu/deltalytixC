@@ -32,7 +32,8 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
     if (pathname?.startsWith('/dashboard/journal')) return 'journal'
     if (pathname?.startsWith('/dashboard/backtesting')) return 'backtesting'
     if (pathname?.startsWith('/dashboard/menu')) return 'menu'
-    
+    if (pathname?.startsWith('/dashboard/reports')) return 'reports'
+
     // For other routes (settings, data, prop-firm), return null to show no active tab
     return null
   }
@@ -47,9 +48,10 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       'accounts': '/dashboard/accounts',
       'journal': '/dashboard/journal',
       'backtesting': '/dashboard/backtesting',
-      'menu': '/dashboard/menu'
+      'menu': '/dashboard/menu',
+      'reports': '/dashboard/reports'
     }
-    
+
     router.push(tabRoutes[tab] || '/dashboard')
   }
 
@@ -59,7 +61,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
     const timer = setTimeout(() => {
       setIsLoading(false)
     }, 100)
-    
+
     return () => clearTimeout(timer)
   }, [pathname, setIsLoading])
 
@@ -68,7 +70,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
     }
-    
+
     checkMobile()
     window.addEventListener('resize', checkMobile)
 
@@ -83,7 +85,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
         }
       }
     }
-    
+
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 

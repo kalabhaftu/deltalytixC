@@ -140,14 +140,14 @@ export default function MenuPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Trading Models</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Your Trading Playbook</h1>
               <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-                Manage your trading models and track their performance
+                Document your setups, rules, and strategies here
               </p>
             </div>
             <Button onClick={handleAddModel} className="gap-2">
               <Plus className="h-4 w-4" />
-              Add Model
+              New Entry
             </Button>
           </div>
         </div>
@@ -172,13 +172,13 @@ export default function MenuPage() {
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-16">
               <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No trading models yet</h3>
-              <p className="text-sm text-muted-foreground text-center mb-4">
-                Create your first trading model to organize your trading strategies
+              <h3 className="text-lg font-semibold mb-2">Ready to build your playbook?</h3>
+              <p className="text-sm text-muted-foreground text-center mb-4 max-w-md">
+                This is where you document the setups that work for you. Add your first entry and start tracking what makes you profitable!
               </p>
               <Button onClick={handleAddModel} className="gap-2">
                 <Plus className="h-4 w-4" />
-                Create First Model
+                Create Your First Entry
               </Button>
             </CardContent>
           </Card>
@@ -262,7 +262,7 @@ export default function MenuPage() {
                       <p className="text-xs text-muted-foreground mb-1">Win Rate</p>
                       <div className="flex items-center gap-2">
                         <span className={`text-lg font-bold ${(model.stats?.winRate || 0) >= 50 ? 'text-green-500' :
-                            (model.stats?.winRate || 0) > 0 ? 'text-yellow-500' : 'text-muted-foreground'
+                          (model.stats?.winRate || 0) > 0 ? 'text-yellow-500' : 'text-muted-foreground'
                           }`}>
                           {model.stats?.winRate?.toFixed(1) || '0.0'}%
                         </span>
@@ -274,7 +274,7 @@ export default function MenuPage() {
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Total PnL</p>
                       <span className={`text-lg font-bold ${(model.stats?.totalPnL || 0) > 0 ? 'text-green-500' :
-                          (model.stats?.totalPnL || 0) < 0 ? 'text-red-500' : 'text-muted-foreground'
+                        (model.stats?.totalPnL || 0) < 0 ? 'text-red-500' : 'text-muted-foreground'
                         }`}>
                         ${model.stats?.totalPnL?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                       </span>

@@ -7,25 +7,26 @@ const globalForPrisma = globalThis as unknown as {
 // Build optimized database URL with connection pooling
 function buildDatabaseUrl(): string {
   const baseUrl = process.env.DATABASE_URL || process.env.DIRECT_URL || 'file:./dev.db'
-  
+
   // Skip pooling config for file-based databases
   if (baseUrl.startsWith('file:')) {
     return baseUrl
   }
-  
+
   // Parse URL to add/modify connection pool parameters
   try {
     const url = new URL(baseUrl)
-    
+
     // Optimize connection pool for serverless (Vercel free tier)
-    url.searchParams.set('connection_limit', '10') // Max connections per instance
-    url.searchParams.set('pool_timeout', '10') // 10 second timeout
-    url.searchParams.set('connect_timeout', '10') // 10 second connect timeout
-    url.searchParams.set('socket_timeout', '20') // 20 second socket timeout
-    
+    // Increased limits to handle concurrent dashboard requests
+    url.searchParams.set('connection_limit', '20') // Max connections per instance
+    url.searchParams.set('pool_timeout', '30') // 30 second timeout for pool
+    url.searchParams.set('connect_timeout', '15') // 15 second connect timeout
+    url.searchParams.set('socket_timeout', '30') // 30 second socket timeout
+
     // Enable prepared statements for better performance
     url.searchParams.set('pgbouncer', 'true')
-    
+
     return url.toString()
   } catch {
     return baseUrl
@@ -99,7 +100,7 @@ async function connectWithRetry(client: PrismaClient, maxRetries = 3, baseDelay 
       }
     }
   }
-  
+
   isDatabaseAvailable = false
   throw new Error(`Database connection failed after ${maxRetries} attempts`)
 }

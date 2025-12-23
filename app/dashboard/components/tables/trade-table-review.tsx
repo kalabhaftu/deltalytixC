@@ -108,38 +108,38 @@ const cloneTradeForGroup = (trade: ExtendedTrade): ExtendedTrade => ({
 })
 
 const buildGroupedTrades = (trades: ExtendedTrade[]) => {
-    const groups = new Map<string, ExtendedTrade>()
+  const groups = new Map<string, ExtendedTrade>()
 
   trades.forEach((trade) => {
-      const entryDate = new Date(trade.entryDate)
+    const entryDate = new Date(trade.entryDate)
     const key = trade.groupId ? `${trade.groupId}` : `${trade.instrument}-${entryDate.toISOString()}`
 
-      if (!groups.has(key)) {
-        groups.set(key, {
-            ...trade,
+    if (!groups.has(key)) {
+      groups.set(key, {
+        ...trade,
         id: trade.id,
         entryDate: entryDate.toISOString(),
         trades: [cloneTradeForGroup(trade)],
         accountNumber: trade.accountNumber ?? '',
       })
     } else {
-        const group = groups.get(key)!
+      const group = groups.get(key)!
       if (!group.trades) group.trades = []
       group.trades.push(cloneTradeForGroup(trade))
-        group.pnl += trade.pnl || 0
-        group.commission += trade.commission || 0
-        group.quantity += trade.quantity || 0
+      group.pnl += trade.pnl || 0
+      group.commission += trade.commission || 0
+      group.quantity += trade.quantity || 0
       if (trade.closeDate && (!group.closeDate || new Date(trade.closeDate) > new Date(group.closeDate))) {
-          group.closeDate = trade.closeDate
-        }
-        if ((trade.timeInPosition || 0) > (group.timeInPosition || 0)) {
-          group.timeInPosition = trade.timeInPosition
-        }
-      group.accountNumber = mergeAccountNumbers(group.accountNumber, trade.accountNumber)
+        group.closeDate = trade.closeDate
       }
-    })
+      if ((trade.timeInPosition || 0) > (group.timeInPosition || 0)) {
+        group.timeInPosition = trade.timeInPosition
+      }
+      group.accountNumber = mergeAccountNumbers(group.accountNumber, trade.accountNumber)
+    }
+  })
 
-    return Array.from(groups.values())
+  return Array.from(groups.values())
 }
 
 const getDecimalPlaces = (instrument: string, price: number): number => {
@@ -209,15 +209,15 @@ const useTradeTableColumns = ({
       cell: ({ row }) => {
         const tradeIds = [row.original.id, ...(row.original.trades?.map((t) => t.id) || [])].filter(Boolean) as string[]
         return (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => {
-            row.toggleSelected(!!value)
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => {
+              row.toggleSelected(!!value)
               onRowSelectionChange(tradeIds, !!value)
-          }}
-          aria-label="Select row"
-          className="translate-y-[2px]"
-        />
+            }}
+            aria-label="Select row"
+            className="translate-y-[2px]"
+          />
         )
       },
       enableSorting: false,
@@ -250,27 +250,27 @@ const useTradeTableColumns = ({
 
         return (
           <div className="flex items-center gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <div
+            <Popover>
+              <PopoverTrigger asChild>
+                <div
                   className="flex items-center justify-center min-w-6 px-2 h-6 rounded-full bg-muted text-xs font-medium cursor-pointer hover:bg-muted/80 transition-colors"
                   title={accounts.join(', ')}
                 >
                   {accounts.length <= 1
                     ? accounts[0] ?? '--'
                     : `+${accounts.length}`}
-                  </div>
-                </PopoverTrigger>
+                </div>
+              </PopoverTrigger>
               <PopoverContent className="w-fit p-0" align="start" side="right">
-                  <ScrollArea className="h-36 rounded-md border">
-                    {accounts.map((account) => (
+                <ScrollArea className="h-36 rounded-md border">
+                  {accounts.map((account) => (
                     <div key={account} className="px-3 py-2 text-sm hover:bg-muted/50 cursor-default">
-                        {account}
-                      </div>
-                    ))}
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
+                      {account}
+                    </div>
+                  ))}
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
             {(row.original.trades?.length || 0) > 1 && (
               <span className="text-xs text-muted-foreground">({row.original.trades?.length})</span>
             )}
@@ -371,7 +371,7 @@ const useTradeTableColumns = ({
         const trade = row.original
         const tradeToEdit = (trade.trades?.length || 0) > 0 ? trade.trades![0] : trade
         const disableChart = !trade.entryDate || !trade.closeDate || !trade.entryPrice || !trade.closePrice
-        
+
         return (
           <div className="flex items-center space-x-2">
             <Button variant='outline' size='sm' onClick={() => onViewDetails(trade)}>
@@ -380,23 +380,6 @@ const useTradeTableColumns = ({
             <Button variant='outline' size='sm' onClick={() => onEditTrade(tradeToEdit)}>
               Edit
             </Button>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    disabled={disableChart}
-                    onClick={() => onViewChart(trade)}
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  {disableChart ? 'Trade data incomplete' : 'View on Chart'}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
         )
       },
@@ -624,22 +607,22 @@ export function TradeTableReview() {
               </Tooltip>
             </TooltipProvider>
           </div>
-          </div>
-          
+        </div>
+
         <div className="flex flex-wrap items-center gap-2">
-            {selectedTrades.length >= 2 && (
+          {selectedTrades.length >= 2 && (
             <Button variant="outline" size="sm" onClick={handleGroupTrades} className="text-xs sm:text-sm">
               Group ({selectedTrades.length})
-              </Button>
-            )}
-            {selectedTrades.length > 0 && (
+            </Button>
+          )}
+          {selectedTrades.length > 0 && (
             <Button variant="ghost" size="sm" onClick={handleUngroupTrades} className="text-xs sm:text-sm">
               Ungroup
-              </Button>
-            )}
-            <ColumnConfigDialog tableId="trade-table" />
-          </div>
+            </Button>
+          )}
+          <ColumnConfigDialog tableId="trade-table" />
         </div>
+      </div>
 
       <div className="rounded-3xl border border-border/60 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/50 shadow-sm dark:shadow-[0_20px_70px_rgba(0,0,0,0.35)]">
         {isMobile ? (
@@ -767,7 +750,7 @@ export function TradeTableReview() {
               </DropdownMenu>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-end">
             <Button
               variant="outline"
@@ -795,7 +778,7 @@ export function TradeTableReview() {
           </div>
         </div>
       </div>
-      
+
       <TradeDetailView
         isOpen={isDetailViewOpen}
         onClose={() => {
@@ -804,7 +787,7 @@ export function TradeTableReview() {
         }}
         trade={selectedTradeForView as any}
       />
-      
+
       <TradeEditDialog
         isOpen={isEnhancedEditOpen}
         onClose={() => {

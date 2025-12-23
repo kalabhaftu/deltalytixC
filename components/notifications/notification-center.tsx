@@ -79,12 +79,31 @@ export function NotificationCenter() {
     refreshUnreadCount()
   }, [refreshUnreadCount])
 
-  // Fetch full notification list when popover opens
+  // Auto-fetch full notifications on initial mount
+  // This pre-loads notifications so they're ready when user opens the popover
+  useEffect(() => {
+    fetchNotifications()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Run once on mount
+
+  // Refetch when popover opens for fresh data
   useEffect(() => {
     if (isOpen) {
       fetchNotifications()
     }
   }, [isOpen, fetchNotifications])
+
+  // Poll for new notifications every 60 seconds when popover is closed
+  // This keeps the badge count accurate without requiring user interaction
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!isOpenRef.current) {
+        refreshUnreadCount()
+      }
+    }, 60000) // 60 seconds
+
+    return () => clearInterval(interval)
+  }, [refreshUnreadCount])
 
   // Subscribe to realtime notification changes
   useDatabaseRealtime({
@@ -288,9 +307,9 @@ export function NotificationCenter() {
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Bell className="h-10 w-10 text-muted-foreground/50 mb-3" />
-                <p className="text-sm text-muted-foreground">No notifications yet</p>
+                <p className="text-sm text-muted-foreground">All caught up!</p>
                 <p className="text-xs text-muted-foreground/70 mt-1">
-                  You'll see updates here when something happens
+                  We'll let you know when something happens
                 </p>
               </div>
             ) : (

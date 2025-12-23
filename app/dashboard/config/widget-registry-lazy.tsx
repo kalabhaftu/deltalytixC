@@ -16,6 +16,9 @@ const DayWinRate = lazy(() => import('../components/kpi/day-win-rate'))
 const ProfitFactor = lazy(() => import('../components/kpi/profit-factor'))
 const AvgWinLoss = lazy(() => import('../components/kpi/avg-win-loss'))
 const CurrentStreak = lazy(() => import('../components/kpi/current-streak'))
+const GoalsProgress = lazy(() => import('../components/kpi/goals-progress'))
+const RiskMetrics = lazy(() => import('../components/kpi/risk-metrics'))
+const SessionAnalysis = lazy(() => import('../components/kpi/session-analysis'))
 
 // Chart components (lazy loaded)
 const NetDailyPnL = lazy(() => import('../components/charts/net-daily-pnl'))
@@ -31,11 +34,11 @@ const WinRateByStrategy = lazy(() => import('../components/charts/win-rate-by-st
 
 
 // Lazy component wrapper with suspense
-function LazyWidget({ 
-  Component, 
+function LazyWidget({
+  Component,
   size,
   type
-}: { 
+}: {
   Component: React.LazyExoticComponent<React.ComponentType<{ size?: WidgetSize }>>
   size: WidgetSize
   type: WidgetType
@@ -85,17 +88,17 @@ function CreateCalendarPreview() {
           <div className="grid grid-cols-7 gap-1 text-xs text-muted-foreground">
             {weekdays.map(day => (
               <div key={day} className="text-center p-1">{day}</div>
-          ))}
-        </div>
+            ))}
+          </div>
           <div className="grid grid-cols-7 gap-1">
-          {Array.from({ length: 35 }, (_, i) => (
-            <div 
-              key={i} 
+            {Array.from({ length: 35 }, (_, i) => (
+              <div
+                key={i}
                 className="aspect-square text-xs flex items-center justify-center rounded hover:bg-muted"
-            >
+              >
                 {i % 7 === 0 ? Math.floor(i / 7) + 1 : ''}
-            </div>
-          ))}
+              </div>
+            ))}
           </div>
         </div>
       </CardContent>
@@ -135,10 +138,10 @@ function CreateChartPreview(title: string) {
               {Array(6).fill(0).map((_, j) => {
                 const height = Math.random() * 60 + 20
                 return (
-                  <div 
-                    key={j} 
+                  <div
+                    key={j}
                     className="flex-1 bg-muted-foreground/20 rounded-t animate-pulse"
-                    style={{ 
+                    style={{
                       height: `${height}%`,
                       animationDelay: `${j * 50}ms`
                     }}
@@ -356,6 +359,36 @@ export const WIDGET_REGISTRY_LAZY: Record<WidgetType, WidgetConfig> = {
     previewHeight: 250,
     getComponent: ({ size }) => <LazyWidget Component={WinRateByStrategy} size={size} type="winRateByStrategy" />,
     getPreview: () => CreateChartPreview('Win Rate by Strategy')
+  },
+  goalsProgress: {
+    type: 'goalsProgress',
+    defaultSize: 'medium',
+    allowedSizes: ['small', 'medium', 'large'],
+    category: 'statistics',
+    description: 'Track your trading goals and targets',
+    previewHeight: 200,
+    getComponent: ({ size }) => <LazyWidget Component={GoalsProgress} size={size} type="goalsProgress" />,
+    getPreview: () => CreateKpiPreview('Goals & Targets')
+  },
+  riskMetrics: {
+    type: 'riskMetrics',
+    defaultSize: 'medium',
+    allowedSizes: ['small', 'medium', 'large'],
+    category: 'statistics',
+    description: 'Monitor your risk exposure and drawdown',
+    previewHeight: 200,
+    getComponent: ({ size }) => <LazyWidget Component={RiskMetrics} size={size} type="riskMetrics" />,
+    getPreview: () => CreateKpiPreview('Risk Metrics')
+  },
+  sessionAnalysis: {
+    type: 'sessionAnalysis',
+    defaultSize: 'medium',
+    allowedSizes: ['small', 'medium', 'large'],
+    category: 'statistics',
+    description: 'Performance breakdown by trading session',
+    previewHeight: 200,
+    getComponent: ({ size }) => <LazyWidget Component={SessionAnalysis} size={size} type="sessionAnalysis" />,
+    getPreview: () => CreateKpiPreview('Session Analysis')
   }
 }
 

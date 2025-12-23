@@ -335,6 +335,7 @@ model User {
   firstName              String?
   lastName               String?
   accountFilterSettings  String?
+  goalSettings           Json?
   backtestInputMode      String                   @default("manual")
   Account                Account[]
   BacktestTrade          BacktestTrade[]

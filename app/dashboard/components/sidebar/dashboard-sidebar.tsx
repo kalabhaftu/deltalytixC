@@ -46,14 +46,9 @@ const navigationItems: NavigationItem[] = [
     icon: LayoutDashboard
   },
   {
-    id: 'table',
-    label: 'Table',
-    icon: Table
-  },
-  {
-    id: 'accounts',
-    label: 'Accounts',
-    icon: Users
+    id: 'reports',
+    label: 'Reports',
+    icon: BarChart3
   },
   {
     id: 'journal',
@@ -61,14 +56,24 @@ const navigationItems: NavigationItem[] = [
     icon: BookOpen
   },
   {
-    id: 'backtesting',
-    label: 'Backtesting',
-    icon: FlaskConical
+    id: 'accounts',
+    label: 'Accounts',
+    icon: Users
+  },
+  {
+    id: 'table',
+    label: 'Trades',
+    icon: Table
   },
   {
     id: 'menu',
-    label: 'Menu',
+    label: 'Playbook',
     icon: MenuSquare
+  },
+  {
+    id: 'backtesting',
+    label: 'Backtesting',
+    icon: FlaskConical
   },
 ]
 
@@ -102,7 +107,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
     }
-    
+
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
@@ -119,7 +124,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
         {navigationItems.map((item, index) => {
           const Icon = item.icon
           const isActive = activeTab === item.id
-          
+
           return (
             <TooltipProvider key={item.id}>
               <Tooltip delayDuration={0}>
@@ -135,8 +140,8 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
                         "w-full justify-start transition-all duration-300 ease-out group",
                         isCollapsed && !isMobile ? "px-2" : "px-3",
                         isMobile ? "h-12 text-base" : "h-10",
-                        isActive 
-                          ? "bg-muted text-foreground shadow-lg scale-[1.02]" 
+                        isActive
+                          ? "bg-muted text-foreground shadow-lg scale-[1.02]"
                           : "hover:bg-muted/50 hover:shadow-md hover:scale-[1.02] hover:translate-x-1"
                       )}
                       onClick={() => {
@@ -150,8 +155,8 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
                       <Icon className={cn(
                         "h-5 w-5 shrink-0 transition-all duration-300",
                         isCollapsed && !isMobile ? "mr-0" : "mr-3",
-                        isActive 
-                          ? "scale-110 text-foreground" 
+                        isActive
+                          ? "scale-110 text-foreground"
                           : "text-muted-foreground group-hover:scale-110 group-hover:text-foreground"
                       )} />
                       {(!isCollapsed || isMobile) && (
@@ -218,7 +223,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
 
       {/* Collapse Toggle - Desktop Only */}
       {!isMobile && (
-        <motion.div 
+        <motion.div
           className="p-4 border-t border-border/50"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -262,7 +267,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
         !isHydrated ? "w-64" : isCollapsed ? "w-16" : "w-64",
         className
       )}
-      style={{ 
+      style={{
         top: 'var(--navbar-height, 56px)',
         height: 'calc(100vh - var(--navbar-height, 56px))'
       }}

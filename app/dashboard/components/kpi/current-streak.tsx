@@ -1,111 +1,152 @@
 'use client'
 
-import React from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { useTradeStatistics } from '@/hooks/use-trade-statistics'
-import { HelpCircle } from 'lucide-react'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { useMemo } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useData } from '@/context/data-provider'
+import { Flame, Snowflake, TrendingUp, TrendingDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { parseISO } from 'date-fns'
+
+interface StreakData {
+  currentStreak: number
+  isWinning: boolean
+  longestWinStreak: number
+  longestLoseStreak: number
+}
+
+function calculateStreaks(trades: any[]): StreakData {
+  if (!trades || trades.length === 0) {
+    return { currentStreak: 0, isWinning: true, longestWinStreak: 0, longestLoseStreak: 0 }
+  }
+
+  // Sort by date (most recent first for current streak)
+  const sorted = [...trades].sort((a, b) => {
+    const dateA = a.entryDate ? new Date(a.entryDate).getTime() : 0
+    const dateB = b.entryDate ? new Date(b.entryDate).getTime() : 0
+    return dateB - dateA
+  })
+
+  // Calculate current streak
+  let currentStreak = 0
+  let isWinning = true
+
+  if (sorted.length > 0) {
+    const firstResult = (sorted[0].pnl || 0) > 0
+    isWinning = firstResult
+
+    for (const trade of sorted) {
+      const isWin = (trade.pnl || 0) > 0
+      if (isWin === firstResult) {
+        currentStreak++
+      } else {
+        break
+      }
+    }
+  }
+
+  // Calculate longest streaks (chronological order)
+  const chronological = [...trades].sort((a, b) => {
+    const dateA = a.entryDate ? new Date(a.entryDate).getTime() : 0
+    const dateB = b.entryDate ? new Date(b.entryDate).getTime() : 0
+    return dateA - dateB
+  })
+
+  let longestWinStreak = 0
+  let longestLoseStreak = 0
+  let tempStreak = 0
+  let lastWasWin: boolean | null = null
+
+  for (const trade of chronological) {
+    const isWin = (trade.pnl || 0) > 0
+
+    if (lastWasWin === null) {
+      tempStreak = 1
+      lastWasWin = isWin
+    } else if (isWin === lastWasWin) {
+      tempStreak++
+    } else {
+      if (lastWasWin) {
+        longestWinStreak = Math.max(longestWinStreak, tempStreak)
+      } else {
+        longestLoseStreak = Math.max(longestLoseStreak, tempStreak)
+      }
+      tempStreak = 1
+      lastWasWin = isWin
+    }
+  }
+
+  // Final check
+  if (lastWasWin) {
+    longestWinStreak = Math.max(longestWinStreak, tempStreak)
+  } else if (lastWasWin === false) {
+    longestLoseStreak = Math.max(longestLoseStreak, tempStreak)
+  }
+
+  return { currentStreak, isWinning, longestWinStreak, longestLoseStreak }
+}
 
 interface CurrentStreakProps {
   size?: string
 }
 
-const CurrentStreak = React.memo(function CurrentStreak({ size }: CurrentStreakProps) {
-  const {
-    currentDayStreak,
-    bestDayStreak,
-    worstDayStreak,
-    currentTradeStreak,
-    bestTradeStreak,
-    worstTradeStreak
-  } = useTradeStatistics()
+export default function CurrentStreak({ size }: CurrentStreakProps) {
+  const { formattedTrades } = useData()
 
-  // Determine circle colors based on current streak - use CSS variables for consistency
-  const getDayColor = () => currentDayStreak >= 0 ? 'hsl(var(--chart-profit))' : 'hsl(var(--chart-loss))'
-  const getTradeColor = () => currentTradeStreak >= 0 ? 'hsl(var(--chart-profit))' : 'hsl(var(--chart-loss))'
+  const streakData = useMemo(() => {
+    return calculateStreaks(formattedTrades || [])
+  }, [formattedTrades])
+
+  const { currentStreak, isWinning, longestWinStreak, longestLoseStreak } = streakData
 
   return (
-    <Card className="w-full h-24">
-      <CardContent className="p-1 h-full flex flex-col">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs text-muted-foreground font-medium">
-            Current Streak
+    <Card className="h-full">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
+        {isWinning ? (
+          <Flame className="h-4 w-4 text-orange-500" />
+        ) : (
+          <Snowflake className="h-4 w-4 text-blue-500" />
+        )}
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-baseline gap-2">
+          <div className={cn(
+            "text-2xl font-bold",
+            isWinning ? "text-green-500" : "text-red-500"
+          )}>
+            {currentStreak}
+          </div>
+          <span className="text-sm text-muted-foreground">
+            {isWinning ? 'wins' : 'losses'} in a row
           </span>
-          <TooltipProvider delayDuration={100}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="w-3 h-3 rounded-full bg-muted flex items-center justify-center cursor-help">
-                  <HelpCircle className="h-2 w-2 text-muted-foreground" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={5} className="max-w-[220px]">
-                <p className="text-xs">Combined view of winning trade and day streaks. Shows current streak (number in circle) and best/worst streaks for both days and trades.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </div>
 
-        <div className="flex items-center justify-between flex-1">
-          {/* DAYS Section */}
-          <div className="flex flex-col items-center gap-1.5 flex-1">
-            <span className="text-[10px] font-bold text-foreground tracking-wider">DAYS</span>
-            <div className="flex items-center gap-2">
-              {/* Days Circle */}
-              <div
-                className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-lg"
-                style={{
-                  border: `3px solid ${getDayColor()}`,
-                  color: getDayColor()
-                }}
-              >
-                {Math.abs(currentDayStreak)}
-              </div>
-              {/* Days Streaks */}
-              <div className="flex flex-col justify-center">
-                <div className="text-[11px] text-red-500 font-medium whitespace-nowrap bg-red-50 dark:bg-red-950/20 px-1.5 py-0.5 rounded">
-                  {Math.abs(worstDayStreak)} days
-                </div>
-                <div className="text-[11px] text-green-500 font-medium whitespace-nowrap bg-green-50 dark:bg-green-950/20 px-1.5 py-0.5 rounded mt-0.5">
-                  {bestDayStreak} days
-                </div>
-              </div>
-            </div>
+        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-3 w-3 text-green-500" />
+            <span className="text-muted-foreground">Best:</span>
+            <span className="font-medium">{longestWinStreak}</span>
           </div>
-
-          {/* TRADES Section */}
-          <div className="flex flex-col items-center gap-1.5 flex-1">
-            <span className="text-[10px] font-bold text-foreground tracking-wider">TRADES</span>
-            <div className="flex items-center gap-2">
-              {/* Trades Circle */}
-              <div
-                className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-lg"
-                style={{
-                  border: `3px solid ${getTradeColor()}`,
-                  color: getTradeColor()
-                }}
-              >
-                {Math.abs(currentTradeStreak)}
-              </div>
-              {/* Trades Streaks */}
-              <div className="flex flex-col justify-center">
-                <div className="text-[11px] text-red-500 font-medium whitespace-nowrap bg-red-50 dark:bg-red-950/20 px-1.5 py-0.5 rounded">
-                  {Math.abs(worstTradeStreak)} trades
-                </div>
-                <div className="text-[11px] text-green-500 font-medium whitespace-nowrap bg-green-50 dark:bg-green-950/20 px-1.5 py-0.5 rounded mt-0.5">
-                  {bestTradeStreak} trades
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            <TrendingDown className="h-3 w-3 text-red-500" />
+            <span className="text-muted-foreground">Worst:</span>
+            <span className="font-medium">{longestLoseStreak}</span>
           </div>
         </div>
+
+        {currentStreak >= 3 && isWinning && (
+          <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
+            <Flame className="h-3 w-3 text-orange-500" />
+            You're on fire! Keep it up!
+          </p>
+        )}
+        {currentStreak >= 3 && !isWinning && (
+          <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
+            <TrendingUp className="h-3 w-3 text-blue-500" />
+            Hang in there, the market gives back!
+          </p>
+        )}
       </CardContent>
     </Card>
   )
-})
-
-export default CurrentStreak
+}

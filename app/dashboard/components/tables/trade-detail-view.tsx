@@ -9,10 +9,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { VisuallyHidden } from '@/components/ui/visually-hidden'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { 
-  TrendingUp, TrendingDown, DollarSign, Clock, Calendar, 
-  Target, Minus, X, Download, ExternalLink, 
-  BarChart3, Newspaper, AlertCircle, Zap, ShoppingCart, Tag as TagIcon
+import {
+  TrendingUp, TrendingDown, DollarSign, Clock, Calendar,
+  Target, Minus, X, Download, ExternalLink,
+  BarChart3, Newspaper, AlertCircle, Zap, ShoppingCart, Tag as TagIcon, Play
 } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
 import Image from 'next/image'
@@ -22,6 +22,7 @@ import { useTags } from '@/context/tags-provider'
 import { getNewsById } from '@/lib/major-news-events'
 import { getTradingSession, formatTimeInZone, DEFAULT_TIMEZONE } from '@/lib/time-utils'
 import { useUserStore } from '@/store/user-store'
+import TradeReplay from '../trades/trade-replay'
 
 interface TradeDetailViewProps {
   isOpen: boolean
@@ -33,13 +34,13 @@ interface TradeDetailViewProps {
 async function downloadImage(imageUrl: string, trade: Trade, imageIndex: number) {
   try {
     const response = await fetch(imageUrl)
-      if (!response.ok) throw new Error('Failed to fetch image')
-      
+    if (!response.ok) throw new Error('Failed to fetch image')
+
     const blob = await response.blob()
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-        const date = new Date(trade.entryDate).toISOString().split('T')[0]
+    const date = new Date(trade.entryDate).toISOString().split('T')[0]
     a.download = `${trade.instrument}_${trade.side}_${date}_${imageIndex}.png`
     document.body.appendChild(a)
     a.click()
@@ -57,6 +58,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const imageDialogOpenRef = useRef(false)
+  const [showReplay, setShowReplay] = useState(false)
 
   if (!trade) return null
 
@@ -87,13 +89,13 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   ].filter((img) => img && String(img).trim() !== '')
 
   // Parse chart links
-  const chartLinks = tradeData.chartLinks 
-    ? tradeData.chartLinks.split(',').filter((l: string) => l.trim()) 
+  const chartLinks = tradeData.chartLinks
+    ? tradeData.chartLinks.split(',').filter((l: string) => l.trim())
     : []
 
   // Parse news events
-  const newsEventIds = tradeData.selectedNews 
-    ? tradeData.selectedNews.split(',').filter(Boolean) 
+  const newsEventIds = tradeData.selectedNews
+    ? tradeData.selectedNews.split(',').filter(Boolean)
     : []
   const newsEvents = newsEventIds.map((id: string) => getNewsById(id)).filter(Boolean)
 
@@ -107,8 +109,8 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
 
   return (
     <>
-      <Dialog 
-        open={isOpen} 
+      <Dialog
+        open={isOpen}
         onOpenChange={(open) => {
           // Only close if image viewer is not open
           if (!open && !imageDialogOpenRef.current) {
@@ -116,7 +118,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
           }
         }}
       >
-        <DialogContent 
+        <DialogContent
           className="max-w-6xl h-[90vh] flex flex-col p-0"
           onInteractOutside={(e) => {
             // Prevent closing when image viewer is open
@@ -152,24 +154,24 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
+                    <div>
                       <Label className="text-muted-foreground text-xs">Entry Price</Label>
                       <p className="text-lg font-semibold">{trade.entryPrice}</p>
-                  </div>
-                  <div>
+                    </div>
+                    <div>
                       <Label className="text-muted-foreground text-xs">Exit Price</Label>
                       <p className="text-lg font-semibold">{trade.closePrice}</p>
-                  </div>
-                  <div>
+                    </div>
+                    <div>
                       <Label className="text-muted-foreground text-xs">Quantity</Label>
                       <p className="text-lg font-semibold">{trade.quantity} lots</p>
-                  </div>
-                  <div>
+                    </div>
+                    <div>
                       <Label className="text-muted-foreground text-xs">P&L</Label>
                       <p className={cn("text-lg font-semibold", isWin ? "text-green-600" : isLoss ? "text-red-600" : "")}>
                         {formatCurrency(netPnL)}
                       </p>
-                  </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -177,18 +179,18 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
               {/* Timing & Context Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Timing Details */}
-              <Card>
-                <CardHeader>
+                <Card>
+                  <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
                       <Clock className="h-4 w-4" />
                       Timing & Session
-                  </CardTitle>
-                </CardHeader>
+                    </CardTitle>
+                  </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex justify-between">
                       <Label className="text-muted-foreground">Entry</Label>
                       <span className="font-medium">{formatTimeInZone(trade.entryDate, 'MMM dd, yyyy HH:mm', timezone)}</span>
-                  </div>
+                    </div>
                     <div className="flex justify-between">
                       <Label className="text-muted-foreground">Exit</Label>
                       <span className="font-medium">{formatTimeInZone(trade.closeDate, 'MMM dd, yyyy HH:mm', timezone)}</span>
@@ -205,9 +207,9 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                           <Badge variant="secondary">{session}</Badge>
                         </div>
                       </>
-                  )}
-                </CardContent>
-              </Card>
+                    )}
+                  </CardContent>
+                </Card>
 
                 {/* Strategy & Context */}
                 <Card>
@@ -233,7 +235,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                         </Badge>
                       </div>
                     )}
-                    
+
                     {tradeData.orderType && (
                       <div className="flex justify-between items-center">
                         <Label className="text-muted-foreground">Order Type</Label>
@@ -370,7 +372,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                             </div>
                           </div>
                         ))}
-                        
+
                         {tradeData.newsTraded && (
                           <div className="flex items-center gap-2 p-2 rounded border border-amber-500/50 bg-amber-500/10">
                             <AlertCircle className="h-4 w-4 text-amber-600" />
@@ -426,17 +428,25 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                           </div>
                           <Badge className="absolute top-2 right-2 text-xs">
                             {index === 0 ? 'Preview' : `#${index}`}
-                            </Badge>
+                          </Badge>
                         </div>
                       ))}
-                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               )}
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 px-6 py-4 border-t shrink-0">
+          <div className="flex justify-between gap-2 px-6 py-4 border-t shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowReplay(true)}
+              className="gap-2"
+            >
+              <Play className="h-4 w-4" />
+              Trade Replay
+            </Button>
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
@@ -444,10 +454,18 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
         </DialogContent>
       </Dialog>
 
+      {/* Trade Replay Modal */}
+      {showReplay && trade && (
+        <TradeReplay
+          trade={trade}
+          onClose={() => setShowReplay(false)}
+        />
+      )}
+
       {/* Image Viewer Modal - Separate Dialog to prevent closing parent */}
       {selectedImage && (
-        <Dialog 
-          open={!!selectedImage} 
+        <Dialog
+          open={!!selectedImage}
           onOpenChange={(open) => {
             // Update ref to track image dialog state
             imageDialogOpenRef.current = open
@@ -462,7 +480,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
           }}
           modal={true}
         >
-          <DialogContent 
+          <DialogContent
             className="max-w-[95vw] max-h-[95vh] p-0 gap-0 z-[100]"
             onInteractOutside={(e) => {
               e.preventDefault()
