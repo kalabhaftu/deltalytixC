@@ -19,6 +19,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { ChevronRight, ChevronDown, ChevronLeft, Info, ChevronRight as ArrowRight, BarChart3 } from 'lucide-react'
 import { Trade, TradingModel } from '@prisma/client'
+import Link from 'next/link'
+import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn, parsePositionTime, formatCurrency, formatQuantity } from '@/lib/utils'
@@ -298,86 +300,91 @@ const useTradeTableColumns = ({
     },
     {
       accessorKey: 'instrument',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Instrument" tableId="trade-table" />,
-      cell: ({ row }) => <div className="text-right font-medium">{row.original.instrument}</div>,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Instr." tableId="trade-table" />,
+      cell: ({ row }) => <div className="font-bold tracking-tight">{row.original.instrument}</div>,
+      size: 100,
     },
     {
       accessorKey: 'direction',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Direction" tableId="trade-table" />,
-      cell: ({ row }) => <div className="text-right font-medium">{row.original.side?.toUpperCase()}</div>,
-      sortingFn: (rowA, rowB) => {
-        const a = rowA.original.side?.toUpperCase() ?? ''
-        const b = rowB.original.side?.toUpperCase() ?? ''
-        if (a === 'LONG' && b === 'SHORT') return -1
-        if (a === 'SHORT' && b === 'LONG') return 1
-        return a.localeCompare(b)
-      },
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Side" tableId="trade-table" className="justify-center" />,
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <Badge variant={row.original.side?.toUpperCase() === 'BUY' || row.original.side?.toUpperCase() === 'LONG' ? 'default' : 'destructive'} className="text-[10px] uppercase font-bold px-1.5 py-0">
+            {row.original.side?.toUpperCase().slice(0, 4)}
+          </Badge>
+        </div>
+      ),
+      size: 80,
     },
     {
       accessorKey: 'entryPrice',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Entry Price" tableId="trade-table" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Entry" tableId="trade-table" className="justify-end px-0" />,
       cell: ({ row }) => {
         const value = parseFloat(String(row.original.entryPrice))
         const decimals = getDecimalPlaces(row.original.instrument, value)
-        return <div className="text-right font-medium">{formatCurrency(value, decimals)}</div>
+        return <div className="text-right font-mono text-xs">{formatCurrency(value, decimals)}</div>
       },
+      size: 110,
     },
     {
       accessorKey: 'closePrice',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Close Price" tableId="trade-table" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Close" tableId="trade-table" className="justify-end px-0" />,
       cell: ({ row }) => {
         const value = parseFloat(String(row.original.closePrice))
         const decimals = getDecimalPlaces(row.original.instrument, value)
-        return <div className="text-right font-medium">{formatCurrency(value, decimals)}</div>
+        return <div className="text-right font-mono text-xs">{formatCurrency(value, decimals)}</div>
       },
+      size: 110,
     },
     {
       accessorKey: 'timeInPosition',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Time in Position" tableId="trade-table" />,
-      cell: ({ row }) => <div>{parsePositionTime(row.original.timeInPosition || 0)}</div>,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Duration" tableId="trade-table" className="justify-end px-0" />,
+      cell: ({ row }) => <div className="text-right font-mono text-xs text-muted-foreground">{parsePositionTime(row.original.timeInPosition || 0)}</div>,
       sortingFn: (rowA, rowB) => (rowA.original.timeInPosition || 0) - (rowB.original.timeInPosition || 0),
+      size: 100,
     },
     {
       accessorKey: 'pnl',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="PnL" tableId="trade-table" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="PnL" tableId="trade-table" className="justify-end px-0" />,
       cell: ({ row }) => {
         const value = row.original.pnl
         return (
-          <div className="text-right font-medium">
-            <span className={cn(value >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive')}>
-              {formatCurrency(value)}
+          <div className="text-right font-bold font-mono">
+            <span className={cn(value >= 0 ? 'text-green-500' : 'text-red-500')}>
+              {value >= 0 ? '+' : ''}{formatCurrency(value)}
             </span>
           </div>
         )
       },
       sortingFn: 'basic',
+      size: 110,
     },
     {
       accessorKey: 'commission',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Commission" tableId="trade-table" />,
-      cell: ({ row }) => <div className="text-right font-medium">{formatCurrency(row.original.commission)}</div>,
-      size: 120,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Comm." tableId="trade-table" className="justify-end px-0" />,
+      cell: ({ row }) => <div className="text-right font-mono text-muted-foreground">{formatCurrency(row.original.commission)}</div>,
+      size: 90,
     },
     {
       accessorKey: 'quantity',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Quantity" tableId="trade-table" />,
-      cell: ({ row }) => <div className="text-right font-medium">{formatQuantity(row.original.quantity)}</div>,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Qty" tableId="trade-table" className="justify-end px-0" />,
+      cell: ({ row }) => <div className="text-right font-mono font-medium">{formatQuantity(row.original.quantity)}</div>,
       sortingFn: 'basic',
+      size: 80,
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: () => <div className="text-center w-full">Actions</div>,
       cell: ({ row }) => {
         const trade = row.original
         const tradeToEdit = (trade.trades?.length || 0) > 0 ? trade.trades![0] : trade
-        const disableChart = !trade.entryDate || !trade.closeDate || !trade.entryPrice || !trade.closePrice
 
         return (
-          <div className="flex items-center space-x-2">
-            <Button variant='outline' size='sm' onClick={() => onViewDetails(trade)}>
+          <div className="flex items-center justify-center space-x-1.5">
+            <Button variant='secondary' size='sm' className="h-7 px-2 text-[11px]" onClick={() => onViewDetails(trade)}>
               View
             </Button>
-            <Button variant='outline' size='sm' onClick={() => onEditTrade(tradeToEdit)}>
+            <Button variant='ghost' size='sm' className="h-7 px-2 text-[11px]" onClick={() => onEditTrade(tradeToEdit)}>
               Edit
             </Button>
           </div>
@@ -385,6 +392,7 @@ const useTradeTableColumns = ({
       },
       enableSorting: false,
       enableHiding: false,
+      size: 100,
     },
   ], [timezone, onRowSelectionChange, onViewDetails, onEditTrade, onViewChart])
 }
@@ -660,7 +668,7 @@ export function TradeTableReview() {
                       <th
                         key={header.id}
                         className={cn(
-                          'h-11 px-4 text-left align-middle font-medium text-muted-foreground text-xs lg:text-sm whitespace-nowrap uppercase tracking-wide',
+                          'h-11 px-2.5 text-left align-middle font-medium text-muted-foreground text-[11px] uppercase tracking-wide',
                           '[&:has([role=checkbox])]:pr-2'
                         )}
                       >
@@ -682,7 +690,7 @@ export function TradeTableReview() {
                           <td
                             key={cell.id}
                             className={cn(
-                              'px-4 py-3 align-middle text-xs lg:text-sm whitespace-nowrap',
+                              'px-2.5 py-2.5 align-middle text-xs whitespace-nowrap',
                               '[&:has([role=checkbox])]:pr-2'
                             )}
                           >

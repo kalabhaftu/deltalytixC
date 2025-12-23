@@ -33,6 +33,8 @@ import {
     Clock,
     AlertTriangle
 } from 'lucide-react'
+import { toast } from 'sonner'
+import html2canvas from 'html2canvas'
 import {
     Select,
     SelectContent,
@@ -133,7 +135,38 @@ function MonthlyBar({ month, value, max }: { month: string, value: number, max: 
 export default function ReportsPage() {
     const { formattedTrades, accounts } = useData()
     const [selectedPeriod, setSelectedPeriod] = useState<string>('this-year')
+    const [isExporting, setIsExporting] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
+
+    const handleDownloadReport = async () => {
+        const element = document.getElementById('report-content')
+        if (!element) return
+
+        setIsExporting(true)
+        try {
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                backgroundColor: '#09090b', // zinc-950
+                useCORS: true,
+                ignoreElements: (element) => {
+                    // Ignore the header buttons during capture
+                    return element.classList.contains('no-export')
+                }
+            })
+
+            const link = document.createElement('a')
+            link.download = `deltalytix-report-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.png`
+            link.href = canvas.toDataURL('image/png')
+            link.click()
+
+            toast.success('Report downloaded successfully!')
+        } catch (error) {
+            console.error('Download failed:', error)
+            toast.error('Failed to download report')
+        } finally {
+            setIsExporting(false)
+        }
+    }
 
     // Calculate date range based on selected period
     const dateRange = useMemo(() => {
@@ -336,7 +369,7 @@ export default function ReportsPage() {
             'All Time'
 
     return (
-        <div className="w-full max-w-7xl mx-auto py-8 px-4 sm:px-6 pb-20 md:pb-8">
+        <div className="w-full max-w-7xl mx-auto py-8 px-4 sm:px-6 pb-20 md:pb-8" id="report-content">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -355,51 +388,61 @@ export default function ReportsPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                            <SelectTrigger className="w-[140px]">
-                                <SelectValue placeholder="Select period" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="this-year">This Year</SelectItem>
-                                <SelectItem value="last-year">Last Year</SelectItem>
-                                <SelectItem value="all-time">All Time</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="no-export flex items-center gap-3">
+                            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                                <SelectTrigger className="w-[140px]">
+                                    <SelectValue placeholder="Select period" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="this-year">This Year</SelectItem>
+                                    <SelectItem value="last-year">Last Year</SelectItem>
+                                    <SelectItem value="all-time">All Time</SelectItem>
+                                </SelectContent>
+                            </Select>
 
-                        <Button variant="outline" size="icon" title="Download Report">
-                            <Download className="h-4 w-4" />
-                        </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                title="Download Report"
+                                onClick={handleDownloadReport}
+                                disabled={isExporting}
+                            >
+                                <Download className="h-4 w-4" />
+                            </Button>
 
-                        {/* Share Dialog */}
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button variant="outline" size="icon" title="Share">
-                                    <Share2 className="h-4 w-4" />
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-md">
-                                <DialogHeader>
-                                    <DialogTitle>Share Your Performance</DialogTitle>
-                                    <DialogDescription>
-                                        Download or copy your stats for social media
-                                    </DialogDescription>
-                                </DialogHeader>
-                                {tradingActivity && psychMetrics && (
-                                    <PerformanceCard
-                                        period={String(periodLabel)}
-                                        stats={{
-                                            totalTrades: tradingActivity.totalTrades,
-                                            winRate: tradingActivity.winRate,
-                                            totalPnL: psychMetrics.totalNetPnL,
-                                            longestWinStreak: psychMetrics.longestWinStreak,
-                                            longestLoseStreak: psychMetrics.longestLoseStreak,
-                                            tradingDays: tradingActivity.tradingDaysActive,
-                                            avgTradesPerMonth: tradingActivity.avgTradesPerMonth
-                                        }}
-                                    />
-                                )}
-                            </DialogContent>
-                        </Dialog>
+
+
+                            {/* Share Dialog */}
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="icon" title="Share">
+                                        <Share2 className="h-4 w-4" />
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-md">
+                                    <DialogHeader>
+                                        <DialogTitle>Share Your Performance</DialogTitle>
+                                        <DialogDescription>
+                                            Download or copy your stats for social media
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    {tradingActivity && psychMetrics && (
+                                        <PerformanceCard
+                                            period={String(periodLabel)}
+                                            stats={{
+                                                totalTrades: tradingActivity.totalTrades,
+                                                winRate: tradingActivity.winRate,
+                                                totalPnL: psychMetrics.totalNetPnL,
+                                                longestWinStreak: psychMetrics.longestWinStreak,
+                                                longestLoseStreak: psychMetrics.longestLoseStreak,
+                                                tradingDays: tradingActivity.tradingDaysActive,
+                                                avgTradesPerMonth: tradingActivity.avgTradesPerMonth
+                                            }}
+                                        />
+                                    )}
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                     </div>
                 </div>
 

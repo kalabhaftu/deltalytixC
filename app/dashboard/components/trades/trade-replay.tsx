@@ -1,24 +1,22 @@
 'use client'
 
-import { useMemo, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
-    Play,
-    Pause,
-    SkipBack,
-    SkipForward,
-    ZoomIn,
-    ZoomOut,
+    Calendar,
+    Clock,
     TrendingUp,
     TrendingDown,
-    AlertCircle,
-    Calendar,
-    Clock
+    Loader2,
+    AlertCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { format, parseISO, differenceInDays } from 'date-fns'
+import { format, parseISO } from 'date-fns'
+import { createChart, ColorType, IChartApi, ISeriesApi, Time, CandlestickSeries, createSeriesMarkers } from 'lightweight-charts'
+import { getMarketData } from '@/app/actions/get-market-data'
+import { getTimezoneOffset } from 'date-fns-tz'
 
 interface TradeReplayProps {
     trade: {
@@ -35,187 +33,194 @@ interface TradeReplayProps {
     onClose?: () => void
 }
 
-
-// Maximum days back that TradingView free data supports (approximately)
-const MAX_DATA_DAYS = 365
-
 export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
-    const containerRef = useRef<HTMLDivElement>(null)
-    const [isDataAvailable, setIsDataAvailable] = useState(true)
-    const [isPlaying, setIsPlaying] = useState(false)
+    const chartContainerRef = useRef<HTMLDivElement>(null)
+    const chartRef = useRef<IChartApi | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
-    // Check if trade is within data availability window
-    const dataAvailability = useMemo(() => {
-        if (!trade.entryDate) return { available: false, daysSince: 0 }
-
-        const tradeDate = parseISO(trade.entryDate)
-        const daysSince = differenceInDays(new Date(), tradeDate)
-
-        return {
-            available: daysSince <= MAX_DATA_DAYS,
-            daysSince
-        }
-    }, [trade.entryDate])
-
-    useEffect(() => {
-        setIsDataAvailable(dataAvailability.available)
-    }, [dataAvailability])
-
+    const isLong = trade.side?.toLowerCase() === 'long' || trade.side?.toLowerCase() === 'buy'
     const isProfit = trade.pnl > 0
     const formattedDate = trade.entryDate ? format(parseISO(trade.entryDate), 'MMM d, yyyy') : 'Unknown'
     const formattedTime = trade.entryDate ? format(parseISO(trade.entryDate), 'h:mm a') : ''
 
-    if (!isDataAvailable) {
-        return (
-            <Card className="w-full">
-                <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                            <AlertCircle className="h-5 w-5 text-amber-500" />
-                            Trade Replay
-                        </CardTitle>
-                        <Badge variant="secondary">{trade.instrument}</Badge>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                        <Calendar className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                        <h3 className="text-lg font-medium mb-2">This trade is from a while back!</h3>
-                        <p className="text-sm text-muted-foreground max-w-md mb-4">
-                            TradingView's free data only goes back about a year, so we can't show the chart for this {dataAvailability.daysSince}-day-old trade.
-                            But don't worry — your trade data is still safely stored.
-                        </p>
+    useEffect(() => {
+        let isMounted = true
 
-                        {/* Trade Summary Card */}
-                        <div className="w-full max-w-sm bg-muted/50 rounded-lg p-4 mt-2">
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div className="text-left">
-                                    <p className="text-muted-foreground">Entry Price</p>
-                                    <p className="font-medium">${Number(trade.entryPrice).toFixed(2)}</p>
-                                </div>
-                                <div className="text-left">
-                                    <p className="text-muted-foreground">Exit Price</p>
-                                    <p className="font-medium">${trade.closePrice ? Number(trade.closePrice).toFixed(2) : 'Open'}</p>
-                                </div>
-                                <div className="text-left">
-                                    <p className="text-muted-foreground">Side</p>
-                                    <p className={cn(
-                                        "font-medium",
-                                        trade.side?.toLowerCase() === 'long' || trade.side?.toLowerCase() === 'buy' ? 'text-green-500' : 'text-red-500'
-                                    )}>
-                                        {(trade.side || 'Unknown').toUpperCase()}
-                                    </p>
-                                </div>
-                                <div className="text-left">
-                                    <p className="text-muted-foreground">P&L</p>
-                                    <p className={cn(
-                                        "font-medium",
-                                        isProfit ? 'text-green-500' : 'text-red-500'
-                                    )}>
-                                        {isProfit ? '+' : ''}${trade.pnl.toFixed(2)}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        )
-    }
+        const initChart = async () => {
+            if (!chartContainerRef.current) return
+
+            setIsLoading(true)
+            setError(null)
+
+            try {
+                // Fetch Real Data
+                const { data, error: fetchError } = await getMarketData(
+                    trade.instrument,
+                    '5m',
+                    trade.entryDate ? new Date(trade.entryDate) : undefined,
+                    trade.closeDate ? new Date(trade.closeDate) : undefined
+                )
+
+                if (fetchError || !data || data.length === 0) {
+                    if (isMounted) setError(fetchError || 'No market data available for this period')
+                    setIsLoading(false)
+                    return
+                }
+
+                if (!isMounted) return
+
+                // Timezone adjustment for New York
+                // we shift the timestamps by the offset to "trick" lightweight charts into showing NY time
+                const nyTimezone = 'America/New_York'
+                const adjustedData = data.map((d: any) => {
+                    const date = new Date(d.time * 1000)
+                    // Get offset in milliseconds
+                    const offset = getTimezoneOffset(nyTimezone, date)
+                    return {
+                        ...d,
+                        time: (d.time + (offset / 1000)) as Time
+                    }
+                })
+
+                // Create Chart
+                const chart = createChart(chartContainerRef.current, {
+                    layout: {
+                        background: { type: ColorType.Solid, color: 'transparent' },
+                        textColor: '#9ca3af',
+                    },
+                    grid: {
+                        vertLines: { color: 'rgba(42, 46, 57, 0.05)' },
+                        horzLines: { color: 'rgba(42, 46, 57, 0.05)' },
+                    },
+                    width: chartContainerRef.current.clientWidth,
+                    height: chartContainerRef.current.clientHeight,
+                    handleScale: true,
+                    handleScroll: true,
+                    timeScale: {
+                        timeVisible: true,
+                        secondsVisible: false,
+                        borderColor: 'rgba(42, 46, 57, 0.2)',
+                    },
+                    rightPriceScale: {
+                        borderColor: 'rgba(42, 46, 57, 0.2)',
+                        scaleMargins: {
+                            top: 0.1,
+                            bottom: 0.1,
+                        },
+                    }
+                })
+
+                const candleSeries = chart.addSeries(CandlestickSeries, {
+                    upColor: '#22c55e',
+                    downColor: '#ef4444',
+                    borderVisible: false,
+                    wickUpColor: '#22c55e',
+                    wickDownColor: '#ef4444',
+                })
+
+                candleSeries.setData(adjustedData as any)
+
+                // Plot Markers
+                const markers: any[] = []
+
+                // Need to find nearest candle time for entry/exit to place marker on top of it
+                // Lightweight charts requires marker time to match a candle time exactly
+                const findNearestTime = (targetTimeStr: string) => {
+                    const target = new Date(targetTimeStr).getTime() / 1000
+                    // Find candle with smallest time difference
+                    return data.reduce((prev: any, curr: any) =>
+                        Math.abs(curr.time - target) < Math.abs(prev.time - target) ? curr : prev
+                    ).time
+                }
+
+                if (trade.entryDate) {
+                    const entryTime = findNearestTime(trade.entryDate)
+                    markers.push({
+                        time: entryTime,
+                        position: isLong ? 'belowBar' : 'aboveBar',
+                        color: isLong ? '#22c55e' : '#ef4444',
+                        shape: isLong ? 'arrowUp' : 'arrowDown',
+                        text: `ENTRY $${Number(trade.entryPrice).toFixed(2)}`,
+                        size: 2
+                    })
+                }
+
+                if (trade.closeDate && trade.closePrice) {
+                    const exitTime = findNearestTime(trade.closeDate)
+                    // Ensure exit marker doesn't overwrite entry if same candle (rare for 5m but possible)
+                    // If same, we might barely offset or just accept overlap priority
+
+                    markers.push({
+                        time: exitTime,
+                        position: isLong ? 'aboveBar' : 'belowBar',
+                        color: isLong ? '#ef4444' : '#22c55e', // Exit color opposite
+                        shape: isLong ? 'arrowDown' : 'arrowUp',
+                        text: `EXIT $${Number(trade.closePrice).toFixed(2)}`,
+                        size: 2
+                    })
+                }
+
+                // @ts-ignore
+                createSeriesMarkers(candleSeries, markers)
+
+                chart.timeScale().fitContent()
+
+                chartRef.current = chart
+                setIsLoading(false)
+
+            } catch (err) {
+                console.error(err)
+                if (isMounted) setError('Failed to load chart')
+                setIsLoading(false)
+            }
+        }
+
+        initChart()
+
+        // Robust ResizeObserver that handles exact container dimensions
+        const resizeObserver = new ResizeObserver((entries) => {
+            if (!entries[0].contentRect || !chartRef.current) return
+            const { width, height } = entries[0].contentRect
+            // Only resize if dimensions are valid and changed
+            if (width > 0 && height > 0) {
+                chartRef.current.applyOptions({ width, height })
+            }
+        })
+
+        if (chartContainerRef.current) {
+            resizeObserver.observe(chartContainerRef.current)
+        }
+
+        return () => {
+            isMounted = false
+            resizeObserver.disconnect()
+            if (chartRef.current) {
+                chartRef.current.remove()
+                chartRef.current = null
+            }
+        }
+    }, [trade])
+
 
     return (
-        <Card className="w-full">
-            <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <CardTitle className="text-lg">Trade Replay</CardTitle>
-                        <Badge variant={trade.side?.toLowerCase() === 'long' || trade.side?.toLowerCase() === 'buy' ? 'default' : 'destructive'}>
-                            {(trade.side || 'Unknown').toUpperCase()}
-                        </Badge>
-                        <Badge variant="secondary">{trade.instrument}</Badge>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>{formattedDate}</span>
-                        <Clock className="h-4 w-4 ml-2" />
-                        <span>{formattedTime}</span>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent>
-                {/* Chart Container */}
-                <div
-                    ref={containerRef}
-                    className="w-full h-[400px] bg-muted/30 rounded-lg flex items-center justify-center border border-border/50"
-                >
-                    <div className="text-center text-muted-foreground">
-                        <Play className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                        <p className="text-sm">Chart visualization coming soon!</p>
-                        <p className="text-xs mt-1">TradingView integration in progress</p>
-                    </div>
-                </div>
+        <div className="w-full h-full relative">
+            <div ref={chartContainerRef} className="absolute inset-0 w-full h-full" />
 
-                {/* Trade Info Bar */}
-                <div className="flex items-center justify-between mt-4 p-3 bg-muted/30 rounded-lg">
-                    <div className="flex items-center gap-6">
-                        <div>
-                            <p className="text-xs text-muted-foreground">Entry</p>
-                            <p className="font-medium text-green-500 flex items-center gap-1">
-                                <TrendingUp className="h-3 w-3" />
-                                ${Number(trade.entryPrice).toFixed(2)}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">Exit</p>
-                            <p className="font-medium text-red-500 flex items-center gap-1">
-                                <TrendingDown className="h-3 w-3" />
-                                ${trade.closePrice ? Number(trade.closePrice).toFixed(2) : 'Open'}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">Qty</p>
-                            <p className="font-medium">{trade.quantity}</p>
-                        </div>
-                    </div>
-
-                    <div className={cn(
-                        "text-xl font-bold",
-                        isProfit ? "text-green-500" : "text-red-500"
-                    )}>
-                        {isProfit ? '+' : ''}${trade.pnl.toFixed(2)}
-                    </div>
+            {isLoading && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 z-20 transition-opacity duration-500 backdrop-blur-sm">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                    <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">Loading Chart...</p>
                 </div>
+            )}
 
-                {/* Playback Controls */}
-                <div className="flex items-center justify-center gap-2 mt-4">
-                    <Button variant="outline" size="icon" disabled>
-                        <SkipBack className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant="default"
-                        size="icon"
-                        className="h-10 w-10"
-                        onClick={() => setIsPlaying(!isPlaying)}
-                        disabled
-                    >
-                        {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                    </Button>
-                    <Button variant="outline" size="icon" disabled>
-                        <SkipForward className="h-4 w-4" />
-                    </Button>
-                    <div className="border-l border-border h-6 mx-2" />
-                    <Button variant="outline" size="icon" disabled>
-                        <ZoomOut className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" disabled>
-                        <ZoomIn className="h-4 w-4" />
-                    </Button>
+            {error && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/95 z-20 p-6 text-center">
+                    <AlertCircle className="h-10 w-10 text-destructive mb-4" />
+                    <h3 className="text-sm font-semibold mb-2">Error</h3>
+                    <p className="text-xs text-muted-foreground">{error}</p>
                 </div>
-
-                <p className="text-xs text-center text-muted-foreground mt-3">
-                    Full chart replay coming in a future update
-                </p>
-            </CardContent>
-        </Card>
+            )}
+        </div>
     )
 }

@@ -14,6 +14,7 @@ import {
   Target, Minus, X, Download, ExternalLink,
   BarChart3, Newspaper, AlertCircle, Zap, ShoppingCart, Tag as TagIcon, Play
 } from 'lucide-react'
+import Link from 'next/link'
 import { cn, formatCurrency } from '@/lib/utils'
 import Image from 'next/image'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
@@ -439,34 +440,21 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
           </div>
 
           <div className="flex justify-between gap-2 px-6 py-4 border-t shrink-0">
-            <Button
-              variant="outline"
-              onClick={() => setShowReplay(true)}
-              className="gap-2"
-            >
-              <Play className="h-4 w-4" />
-              Trade Replay
-            </Button>
+            <Link href={`/dashboard/table?view=replay&tradeId=${trade.id}`}>
+              <Button
+                variant="outline"
+                className="gap-2"
+              >
+                <Play className="h-4 w-4" />
+                Trade Replay
+              </Button>
+            </Link>
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Trade Replay Modal */}
-      {showReplay && trade && (
-        <Dialog open={showReplay} onOpenChange={setShowReplay}>
-          <DialogContent className="max-w-4xl p-0 gap-0 overflow-hidden bg-background">
-            <div className="max-h-[85vh] overflow-y-auto p-1">
-              <TradeReplay
-                trade={trade}
-                onClose={() => setShowReplay(false)}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* Image Viewer Modal - Separate Dialog to prevent closing parent */}
       {selectedImage && (
