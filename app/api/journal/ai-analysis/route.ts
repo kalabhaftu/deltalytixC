@@ -101,7 +101,6 @@ export async function GET(request: Request) {
         newsTraded: true,
         biasTimeframe: true,
         narrativeTimeframe: true,
-        driverTimeframe: true,
         entryTimeframe: true,
         structureTimeframe: true,
         orderType: true,

@@ -265,7 +265,6 @@ model Trade {
   newsTraded         Boolean?      @default(false)
   biasTimeframe      String?
   narrativeTimeframe String?
-  driverTimeframe    String?
   entryTimeframe     String?
   structureTimeframe String?
   orderType          String?
