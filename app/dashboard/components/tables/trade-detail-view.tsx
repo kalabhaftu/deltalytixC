@@ -456,10 +456,16 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
 
       {/* Trade Replay Modal */}
       {showReplay && trade && (
-        <TradeReplay
-          trade={trade}
-          onClose={() => setShowReplay(false)}
-        />
+        <Dialog open={showReplay} onOpenChange={setShowReplay}>
+          <DialogContent className="max-w-4xl p-0 gap-0 overflow-hidden bg-background">
+            <div className="max-h-[85vh] overflow-y-auto p-1">
+              <TradeReplay
+                trade={trade}
+                onClose={() => setShowReplay(false)}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Image Viewer Modal - Separate Dialog to prevent closing parent */}
