@@ -16,7 +16,10 @@ import { cn } from '@/lib/utils'
 import { format, parseISO } from 'date-fns'
 import { createChart, ColorType, IChartApi, ISeriesApi, Time, CandlestickSeries, createSeriesMarkers } from 'lightweight-charts'
 import { getMarketData } from '@/app/actions/get-market-data'
+import { CHART_COLORS } from '@/lib/constants'
 import { getTimezoneOffset } from 'date-fns-tz'
+import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface TradeReplayProps {
     trade: {
@@ -112,11 +115,11 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
                 })
 
                 const candleSeries = chart.addSeries(CandlestickSeries, {
-                    upColor: '#22c55e',
-                    downColor: '#ef4444',
+                    upColor: CHART_COLORS.UP,
+                    downColor: CHART_COLORS.DOWN,
                     borderVisible: false,
-                    wickUpColor: '#22c55e',
-                    wickDownColor: '#ef4444',
+                    wickUpColor: CHART_COLORS.UP,
+                    wickDownColor: CHART_COLORS.DOWN,
                 })
 
                 candleSeries.setData(adjustedData as any)
@@ -139,7 +142,7 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
                     markers.push({
                         time: entryTime,
                         position: isLong ? 'belowBar' : 'aboveBar',
-                        color: isLong ? '#22c55e' : '#ef4444',
+                        color: isLong ? CHART_COLORS.UP : CHART_COLORS.DOWN,
                         shape: isLong ? 'arrowUp' : 'arrowDown',
                         text: `ENTRY $${Number(trade.entryPrice).toFixed(2)}`,
                         size: 2
@@ -154,7 +157,7 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
                     markers.push({
                         time: exitTime,
                         position: isLong ? 'aboveBar' : 'belowBar',
-                        color: isLong ? '#ef4444' : '#22c55e', // Exit color opposite
+                        color: isLong ? CHART_COLORS.DOWN : CHART_COLORS.UP, // Exit color opposite
                         shape: isLong ? 'arrowDown' : 'arrowUp',
                         text: `EXIT $${Number(trade.closePrice).toFixed(2)}`,
                         size: 2
@@ -200,7 +203,7 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
                 chartRef.current = null
             }
         }
-    }, [trade])
+    }, [trade, isLong])
 
 
     return (
@@ -209,8 +212,10 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
 
             {isLoading && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 z-20 transition-opacity duration-500 backdrop-blur-sm">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                    <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">Loading Chart...</p>
+                    <div className="w-full h-full p-4 space-y-2">
+                        <Skeleton className="h-3 w-20 mb-4" />
+                        <Skeleton className="h-full w-full rounded" />
+                    </div>
                 </div>
             )}
 

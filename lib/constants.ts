@@ -113,3 +113,46 @@ export const MAX_TRADES_BATCH = 500
 /** Warning threshold for trade count */
 export const TRADES_WARNING_THRESHOLD = 5000
 
+
+// ===========================================
+// TRADING & MARKET DATA
+// ===========================================
+
+export const TIMEFRAME_OPTIONS = [
+  { value: '1m', label: '1 Minute' },
+  { value: '5m', label: '5 Minutes' },
+  { value: '15m', label: '15 Minutes' },
+  { value: '30m', label: '30 Minutes' },
+  { value: '1h', label: '1 Hour' },
+  { value: '4h', label: '4 Hours' },
+  { value: 'd', label: 'Daily' },
+  { value: 'w', label: 'Weekly' },
+  { value: 'm', label: 'Monthly' },
+] as const
+
+export const MARKET_BIAS_OPTIONS = [
+  { value: 'BULLISH', label: 'Bullish', activeClass: 'bg-green-500/10 border-green-500/50 text-green-700 dark:text-green-400' },
+  { value: 'BEARISH', label: 'Bearish', activeClass: 'bg-red-500/10 border-red-500/50 text-red-700 dark:text-red-400' },
+  { value: 'UNDECIDED', label: 'Neutral', activeClass: 'bg-muted border-primary/50 text-foreground' }
+] as const
+
+export const YAHOO_FINANCE_SYMBOL_MAP: Record<string, string> = {
+  'NQ': 'NQ=F', 'NAS100': 'NQ=F', 'US100': 'NQ=F',
+  'ES': 'ES=F', 'US500': 'ES=F', 'SPX500': 'ES=F',
+  'YM': 'YM=F', 'US30': 'YM=F', 'DJI': 'YM=F',
+  'RTY': 'RTY=F', 'US2000': 'RTY=F',
+  'CL': 'CL=F', 'USOIL': 'CL=F', 'WTI': 'CL=F',
+  'GC': 'GC=F', 'GOLD': 'GC=F', 'XAUUSD': 'GC=F',
+  'BTC': 'BTC-USD', 'ETH': 'ETH-USD'
+}
+
+export const FOREX_PAIRS = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD']
+
+export const CHART_COLORS = {
+  UP: '#22c55e',   // green-500
+  DOWN: '#ef4444', // red-500
+  BG: '#ffffff',
+  TEXT: '#333333',
+  GRID: '#f0f0f0',
+  CROSSHAIR: '#2962FF',
+}

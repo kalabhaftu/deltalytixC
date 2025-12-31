@@ -1,17 +1,23 @@
 'use client'
 
 import { formatDistanceToNow } from 'date-fns'
-import { 
-  Check, 
-  Trash2, 
-  Trophy, 
-  XCircle, 
-  DollarSign, 
+import {
+  Check,
+  Trash2,
+  Trophy,
+  XCircle,
+  DollarSign,
   Bell,
   ChevronRight,
   AlertCircle,
   ArrowRight,
-  X
+  X,
+  ShieldAlert,
+  Download,
+  Activity,
+  Megaphone,
+  BarChart,
+  RefreshCw
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -31,7 +37,23 @@ const notificationIcons: Record<NotificationType, React.ReactNode> = {
   PHASE_TRANSITION_PENDING: <ArrowRight className="h-4 w-4 text-primary" />,
   PAYOUT_APPROVED: <DollarSign className="h-4 w-4 text-long" />,
   PAYOUT_REJECTED: <DollarSign className="h-4 w-4 text-short" />,
-  SYSTEM: <Bell className="h-4 w-4 text-muted-foreground" />
+  SYSTEM: <Bell className="h-4 w-4 text-muted-foreground" />,
+  RISK_ALERT: <ShieldAlert className="h-4 w-4 text-destructive" />,
+  IMPORT_STATUS: <Download className="h-4 w-4 text-primary" />,
+  WEEKLY_PERFORMANCE: <BarChart className="h-4 w-4 text-long" />,
+  STRATEGY_DEVIATION: <Activity className="h-4 w-4 text-orange-500" />,
+  SYSTEM_ANNOUNCEMENT: <Megaphone className="h-4 w-4 text-muted-foreground" />,
+  TRADE_STATUS: <RefreshCw className="h-4 w-4 text-muted-foreground" />,
+  // New granular risk alert types
+  RISK_DAILY_LOSS_80: <ShieldAlert className="h-4 w-4 text-orange-500" />,
+  RISK_DAILY_LOSS_95: <ShieldAlert className="h-4 w-4 text-destructive" />,
+  RISK_MAX_DRAWDOWN_80: <ShieldAlert className="h-4 w-4 text-orange-500" />,
+  RISK_MAX_DRAWDOWN_95: <ShieldAlert className="h-4 w-4 text-destructive" />,
+  // Import lifecycle types
+  IMPORT_PROCESSING: <Download className="h-4 w-4 text-primary animate-pulse" />,
+  IMPORT_COMPLETE: <Download className="h-4 w-4 text-long" />,
+  // Strategy compliance
+  STRATEGY_SESSION_VIOLATION: <Activity className="h-4 w-4 text-orange-500" />
 }
 
 const notificationColors: Record<NotificationType, string> = {
@@ -41,20 +63,36 @@ const notificationColors: Record<NotificationType, string> = {
   PHASE_TRANSITION_PENDING: 'border-l-primary',
   PAYOUT_APPROVED: 'border-l-long',
   PAYOUT_REJECTED: 'border-l-short',
-  SYSTEM: 'border-l-muted-foreground'
+  SYSTEM: 'border-l-muted-foreground',
+  RISK_ALERT: 'border-l-destructive',
+  IMPORT_STATUS: 'border-l-primary',
+  WEEKLY_PERFORMANCE: 'border-l-long',
+  STRATEGY_DEVIATION: 'border-l-orange-500',
+  SYSTEM_ANNOUNCEMENT: 'border-l-muted-foreground',
+  TRADE_STATUS: 'border-l-muted-foreground',
+  // New granular risk alert types
+  RISK_DAILY_LOSS_80: 'border-l-orange-500',
+  RISK_DAILY_LOSS_95: 'border-l-destructive',
+  RISK_MAX_DRAWDOWN_80: 'border-l-orange-500',
+  RISK_MAX_DRAWDOWN_95: 'border-l-destructive',
+  // Import lifecycle types
+  IMPORT_PROCESSING: 'border-l-primary',
+  IMPORT_COMPLETE: 'border-l-long',
+  // Strategy compliance
+  STRATEGY_SESSION_VIOLATION: 'border-l-orange-500'
 }
 
-export function NotificationItem({ 
-  notification, 
-  onMarkAsRead, 
-  onDelete, 
-  onAction 
+export function NotificationItem({
+  notification,
+  onMarkAsRead,
+  onDelete,
+  onAction
 }: NotificationItemProps) {
   const isActionable = notification.actionRequired && (
-    notification.type === 'FUNDED_PENDING_APPROVAL' || 
+    notification.type === 'FUNDED_PENDING_APPROVAL' ||
     notification.type === 'PHASE_TRANSITION_PENDING'
   )
-  
+
   return (
     <div
       className={cn(
@@ -81,7 +119,7 @@ export function NotificationItem({
         <div className="shrink-0 mt-0.5">
           {notificationIcons[notification.type]}
         </div>
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
@@ -95,17 +133,17 @@ export function NotificationItem({
                 {notification.message}
               </p>
             </div>
-            
+
             {!notification.isRead && (
               <div className="shrink-0 h-2 w-2 rounded-full bg-primary mt-1" />
             )}
           </div>
-          
+
           <div className="flex items-center justify-between mt-2">
             <span className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
             </span>
-            
+
             <div className="flex items-center gap-1">
               {isActionable ? (
                 <Button

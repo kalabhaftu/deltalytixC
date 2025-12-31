@@ -24,8 +24,16 @@ import {
   AlertTriangle,
   Check,
   ChevronRight,
-  Palette
+  Palette,
+  Activity,
+  BarChart2
 } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
+import { motion } from "framer-motion"
 import { signOut } from "@/server/auth"
 import { createClient } from "@/lib/supabase"
 import Link from 'next/link'
@@ -70,7 +78,7 @@ function SettingRow({
   action,
   className
 }: {
-  icon: any
+  icon: React.ComponentType<{ className?: string }>
   label: string
   description?: string
   action: React.ReactNode
@@ -113,6 +121,7 @@ export default function SettingsPage() {
   })
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
+
 
   const handleThemeChange = (value: string) => {
     setTheme(value as "light" | "dark" | "system")
@@ -248,7 +257,12 @@ export default function SettingsPage() {
         <p className="text-muted-foreground mt-1 text-sm">Manage your account settings and preferences</p>
       </div>
 
-      <div className="grid gap-6 grid-cols-1 xl:grid-cols-2">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="grid gap-6 grid-cols-1 xl:grid-cols-2"
+      >
         {/* Profile Section */}
         <Card>
           <CardHeader className="pb-4">
@@ -280,31 +294,37 @@ export default function SettingsPage() {
               <Badge variant="secondary" className="shrink-0">Active</Badge>
             </div>
 
-            {/* Name fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="firstName" className="text-xs">First Name</Label>
-                <Input
-                  id="firstName"
-                  placeholder="Enter your first name"
-                  value={profileData.firstName}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
-                  disabled={isLoadingProfile}
-                  className="h-9"
-                />
+            {isLoadingProfile ? (
+              <div className="space-y-4">
+                <div className="space-y-1.5"><Skeleton className="h-3 w-16" /><Skeleton className="h-9 w-full" /></div>
+                <div className="space-y-1.5"><Skeleton className="h-3 w-16" /><Skeleton className="h-9 w-full" /></div>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="lastName" className="text-xs">Last Name</Label>
-                <Input
-                  id="lastName"
-                  placeholder="Enter your last name"
-                  value={profileData.lastName}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
-                  disabled={isLoadingProfile}
-                  className="h-9"
-                />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="firstName" className="text-xs">First Name</Label>
+                  <Input
+                    id="firstName"
+                    placeholder="Enter your first name"
+                    value={profileData.firstName}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
+                    disabled={isLoadingProfile}
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="lastName" className="text-xs">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    placeholder="Enter your last name"
+                    value={profileData.lastName}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
+                    disabled={isLoadingProfile}
+                    className="h-9"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-xs">Email</Label>
@@ -314,7 +334,7 @@ export default function SettingsPage() {
             <PrimaryButton
               onClick={handleProfileUpdate}
               loading={isUpdatingProfile || isLoadingProfile}
-              loadingText={isLoadingProfile ? "Loading..." : "Updating..."}
+              loadingText={isLoadingProfile ? "Fetching..." : "Updating..."}
               className="w-full sm:w-auto"
             >
               Update Profile
@@ -453,7 +473,10 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+
+
+
+      </motion.div>
 
       {/* Delete Account Modal */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
@@ -522,6 +545,6 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   )
 }

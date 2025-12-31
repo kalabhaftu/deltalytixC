@@ -285,7 +285,7 @@ export default function ImportButton() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // resetImportState is intentionally excluded - it has empty deps and doesn't affect handleSave behavior
-  }, [user, supabaseUser, selectedAccountId, processedTrades, refreshTrades])
+  }, [user, supabaseUser, selectedAccountId, processedTrades, refreshTrades, resetImportState])
 
   const handleNextStep = useCallback(() => {
     if (!platform) return

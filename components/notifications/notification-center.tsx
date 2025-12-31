@@ -314,23 +314,49 @@ export function NotificationCenter() {
               </div>
             ) : (
               <div className="divide-y">
-                {notifications.map((notification) => (
-                  <NotificationItem
-                    key={notification.id}
-                    notification={notification}
-                    onMarkAsRead={handleMarkAsRead}
-                    onDelete={handleDelete}
-                    onAction={handleNotificationAction}
-                  />
-                ))}
+                {['Today', 'Yesterday', 'Old'].map((group) => {
+                  const groupedNotifications = notifications.filter(n => {
+                    const date = new Date(n.createdAt)
+                    const today = new Date()
+                    const yesterday = new Date(today)
+                    yesterday.setDate(yesterday.getDate() - 1)
+
+                    if (group === 'Today') {
+                      return date.toDateString() === today.toDateString()
+                    } else if (group === 'Yesterday') {
+                      return date.toDateString() === yesterday.toDateString()
+                    } else {
+                      return date < yesterday && date.toDateString() !== yesterday.toDateString()
+                    }
+                  })
+
+                  if (groupedNotifications.length === 0) return null
+
+                  return (
+                    <div key={group}>
+                      <div className="bg-muted/50 px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider sticky top-0 z-10 backdrop-blur-sm">
+                        {group}
+                      </div>
+                      {groupedNotifications.map((notification) => (
+                        <NotificationItem
+                          key={notification.id}
+                          notification={notification}
+                          onMarkAsRead={handleMarkAsRead}
+                          onDelete={handleDelete}
+                          onAction={handleNotificationAction}
+                        />
+                      ))}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </ScrollArea>
         </PopoverContent>
-      </Popover>
+      </Popover >
 
       {/* Funded Approval Dialog */}
-      <FundedApprovalDialog
+      < FundedApprovalDialog
         open={approvalDialogOpen}
         onOpenChange={setApprovalDialogOpen}
         notification={selectedNotification}
@@ -338,7 +364,7 @@ export function NotificationCenter() {
       />
 
       {/* Phase Transition Dialog */}
-      <PhaseTransitionApprovalDialog
+      < PhaseTransitionApprovalDialog
         open={phaseTransitionDialogOpen}
         onOpenChange={setPhaseTransitionDialogOpen}
         notification={selectedNotification}

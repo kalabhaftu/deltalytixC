@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useData } from "@/context/data-provider"
-import { Database, LogOut, Globe, LayoutDashboard, HelpCircle, Clock, RefreshCw, Home, Moon, Sun, Laptop, Settings, Pencil, Plus, Waves, BookOpen, LayoutTemplate, Trash2 } from "lucide-react"
+import { Database, LogOut, LayoutDashboard, RefreshCw, Home, Moon, Sun, Laptop, Settings, Pencil, Plus, Waves, BookOpen, LayoutTemplate, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -25,8 +25,10 @@ import ImportButton from './import/import-button'
 import { AccountSelector } from './navbar-filters/account-selector'
 import { CombinedFilters } from './navbar-filters/combined-filters'
 import { NotificationCenter } from '@/components/notifications/notification-center'
-
+import { SeasonalAvatarBadge } from '@/app/dashboard/components/seasonal/seasonal-avatar-badge'
 import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts'
+import { useDashboardLayout } from '../hooks/use-dashboard-layout'
+import { Skeleton } from "@/components/ui/skeleton"
 import { motion } from 'framer-motion'
 
 import {
@@ -61,8 +63,7 @@ import { Separator } from "@/components/ui/separator"
 import { useUserStore } from '@/store/user-store'
 import { useDashboardEditStore } from '@/store/dashboard-edit-store'
 import { WidgetType, WidgetSize } from '../types/dashboard'
-import { defaultLayouts, defaultLayoutsWithKPI } from '@/context/data-provider'
-import { WIDGET_REGISTRY } from '../config/widget-registry-lazy'
+
 import { toast } from 'sonner'
 import { useTemplates } from '@/context/template-provider'
 import { useTemplateEditStore } from '@/store/template-edit-store'
@@ -96,35 +97,10 @@ function getPhaseDisplayName(evaluationType: string | undefined, phaseNumber: nu
   return `Phase ${phaseNumber}`
 }
 
-// Helper function to convert widget size to grid dimensions
-const sizeToGrid = (size: WidgetSize, isSmallScreen = false): { w: number, h: number } => {
-  if (isSmallScreen) {
-    switch (size) {
-      case 'tiny': return { w: 12, h: 1 }
-      case 'small': return { w: 12, h: 2 }
-      case 'small-long': return { w: 12, h: 2 }
-      case 'medium': return { w: 12, h: 4 }
-      case 'large':
-      case 'extra-large': return { w: 12, h: 10 }
-      case 'kpi': return { w: 12, h: 3 }
-      default: return { w: 12, h: 4 }
-    }
-  }
-  
-  switch (size) {
-    case 'tiny': return { w: 3, h: 1 }
-    case 'small': return { w: 3, h: 4 }
-    case 'small-long': return { w: 6, h: 2 }
-    case 'medium': return { w: 6, h: 4 }
-    case 'large': return { w: 6, h: 8 }
-    case 'extra-large': return { w: 12, h: 12 }
-    case 'kpi': return { w: 2.3, h: 2.4 }
-    default: return { w: 6, h: 4 }
-  }
-}
+
 
 export default function Navbar() {
-  const  user = useUserStore(state => state.supabaseUser)
+  const user = useUserStore(state => state.supabaseUser)
   const [mounted, setMounted] = useState(false)
 
   const { theme, setTheme } = useTheme()
@@ -145,11 +121,12 @@ export default function Navbar() {
     setMounted(true)
   }, [])
 
-  const {refreshTrades, saveDashboardLayout, accountNumbers, accounts, dateRange, instruments} = useData()
-  const { dashboardLayout: layouts, setDashboardLayout: setLayouts, isMobile } = useUserStore(state => state)
-  const { 
-    isCustomizing, 
-    setIsCustomizing, 
+  const { refreshTrades, saveDashboardLayout, accountNumbers, accounts, dateRange, instruments } = useData()
+  const { dashboardLayout: layouts, isMobile } = useUserStore(state => state)
+  const { handleEditToggle, addWidget } = useDashboardLayout()
+  const {
+    isCustomizing,
+    setIsCustomizing,
     hasUnsavedChanges,
     setOriginalLayout,
     resetChanges,
@@ -161,7 +138,7 @@ export default function Navbar() {
   // Handle template create
   const handleCreateTemplate = async () => {
     if (!newTemplateName.trim()) return
-    
+
     try {
       await createTemplate(newTemplateName.trim())
       setNewTemplateName('')
@@ -175,7 +152,7 @@ export default function Navbar() {
   // Handle template delete
   const handleDeleteTemplate = async () => {
     if (!templateToDelete) return
-    
+
     try {
       await deleteTemplate(templateToDelete)
       setTemplateToDelete(null)
@@ -193,7 +170,7 @@ export default function Navbar() {
 
   const handleEditTemplate = (template: typeof templates[0], e: React.MouseEvent) => {
     e.stopPropagation()
-    
+
     // Don't allow editing temporary/fallback template or default template
     if (template.id === 'default-temp' || template.id === 'fallback' || template.isDefault) {
       if (template.isDefault) {
@@ -206,13 +183,13 @@ export default function Navbar() {
       }
       return
     }
-    
+
     if (template.layout) {
       enterEditMode(template.layout)
       setTemplatePopoverOpen(false)
     }
   }
-  
+
   // Refs for programmatically triggering components
   const addWidgetSheetRef = useRef<HTMLButtonElement>(null)
 
@@ -255,10 +232,10 @@ export default function Navbar() {
     // Group prop-firm accounts by masterAccountId (or name as fallback)
     // Count live accounts individually
     const masterAccountSet = new Set<string>()
-    
+
     selectedAccounts.forEach(acc => {
       const accountType = (acc as any).accountType || (acc.propfirm ? 'prop-firm' : 'live')
-      
+
       if (accountType === 'prop-firm') {
         // For prop-firm: group by masterAccountId or name
         const masterId = (acc as any).currentPhaseDetails?.masterAccountId || acc.name || acc.number
@@ -268,7 +245,7 @@ export default function Navbar() {
         masterAccountSet.add(acc.id || acc.number)
       }
     })
-    
+
     return masterAccountSet.size
   }
 
@@ -296,15 +273,15 @@ export default function Navbar() {
     }
 
     const masterCount = getMasterAccountCount()
-    
+
     if (masterCount === 0) {
       return "All Accounts"
     }
 
     if (accountNumbers.length === 1) {
       // accountNumbers contains the phase ID (account.number), so find by number
-      const account = accounts.find(acc => 
-        acc.number === accountNumbers[0] || 
+      const account = accounts.find(acc =>
+        acc.number === accountNumbers[0] ||
         acc.id === accountNumbers[0]
       )
       if (account) {
@@ -323,127 +300,12 @@ export default function Navbar() {
   }
 
 
-  // Dashboard action functions
-  const handleEditToggle = () => {
-    if (isCustomizing) {
-      // Trying to exit edit mode - this will be handled by EditModeControls if there are unsaved changes
-      if (!hasUnsavedChanges) {
-        setIsCustomizing(false)
-        resetChanges()
-        toast.success('Edit mode disabled', { duration: 2000 })
-      }
-    } else {
-      // Starting edit mode - store original layout
-      if (layouts) {
-        setOriginalLayout(layouts)
-      }
-      setIsCustomizing(true)
-      toast.success('Edit mode enabled', {
-        description: 'Drag widgets to move, resize handles to resize',
-        duration: 2500
-      })
-    }
-  }
 
-  const addWidget = (type: WidgetType, size?: WidgetSize) => {
-    if (!layouts || !user?.id) return
-
-    const activeLayout = isMobile ? 'mobile' : 'desktop'
-    const currentLayoutWidgets = layouts[activeLayout] || []
-    
-    // Check for duplicate widget
-    const existingWidget = currentLayoutWidgets.find(widget => widget.type === type)
-    if (existingWidget) {
-      toast.error(`${type.charAt(0).toUpperCase() + type.slice(1)} widget already exists`, {
-        description: "Each widget type can only be added once",
-        duration: 3000,
-      })
-      return
-    }
-    
-    // Get default size from registry
-    const config = WIDGET_REGISTRY[type]
-    const effectiveSize = size || config?.defaultSize || 'medium'
-    const grid = sizeToGrid(effectiveSize, activeLayout === 'mobile')
-    
-    // Find the best position at bottom with gap filling
-    let bestX = 0
-    let bestY = 0
-    let lowestY = 0
-    
-    // Find the lowest Y coordinate
-    currentLayoutWidgets.forEach(widget => {
-      const widgetBottom = widget.y + widget.h
-      if (widgetBottom > lowestY) {
-        lowestY = widgetBottom
-      }
-    })
-    
-    // Try to find gaps in the last few rows first
-    let foundGap = false
-    for (let y = Math.max(0, lowestY - 3); y <= lowestY && !foundGap; y++) {
-      for (let x = 0; x <= 12 - grid.w && !foundGap; x++) {
-        // Check if this position is available
-        const isPositionFree = !currentLayoutWidgets.some(widget => {
-          return !(
-            x >= widget.x + widget.w || 
-            x + grid.w <= widget.x || 
-            y >= widget.y + widget.h || 
-            y + grid.h <= widget.y
-          )
-        })
-        
-        if (isPositionFree) {
-          bestX = x
-          bestY = y
-          foundGap = true
-        }
-      }
-    }
-    
-    // If no gap found, place at bottom
-    if (!foundGap) {
-      bestX = 0
-      bestY = lowestY
-    }
-    
-    // Create new widget
-    const newWidget = {
-      i: `widget_${Date.now()}`,
-      type,
-      size: effectiveSize,
-      x: bestX,
-      y: bestY,
-      w: grid.w,
-      h: grid.h
-    }
-
-    const updatedLayouts = {
-      ...layouts,
-      [activeLayout]: [...currentLayoutWidgets, newWidget]
-    }
-
-    setLayouts(updatedLayouts)
-
-    // Note: Dashboard layout moved to DashboardTemplate model
-    // Layout is now managed through the template system
-    // saveDashboardLayout(updatedLayouts) // DEPRECATED
-
-    // Mark as changed if in edit mode (for unsaved changes indicator)
-    if (isCustomizing) {
-      markAsChanged()
-    }
-
-    toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} widget added`, {
-      description: "Widget added and saved",
-      duration: 3000,
-    })
-  }
 
 
   return (
     <>
-      <motion.nav 
+      <motion.nav
         className="fixed py-3 top-0 left-0 right-0 z-50 flex flex-col text-foreground bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-xl shadow-background/10 w-full transition-all duration-300 ease-out"
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -462,8 +324,8 @@ export default function Navbar() {
                   <div className="space-y-2">
                     <h4 className="font-medium leading-none mb-3">Navigation</h4>
                     <div className="grid gap-2">
-                      <Link 
-                        href="/dashboard" 
+                      <Link
+                        href="/dashboard"
                         className="flex items-center gap-2 text-sm hover:bg-muted/50 p-3 rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-md"
                         onClick={() => setIsLogoPopoverOpen(false)}
                       >
@@ -472,8 +334,8 @@ export default function Navbar() {
                         </div>
                         Dashboard
                       </Link>
-                      <Link 
-                        href="/" 
+                      <Link
+                        href="/"
                         className="flex items-center gap-2 text-sm hover:bg-muted/50 p-3 rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-md"
                         onClick={() => setIsLogoPopoverOpen(false)}
                       >
@@ -508,249 +370,253 @@ export default function Navbar() {
                 <AccountSelector onSave={() => setAccountPopoverOpen(false)} />
               </PopoverContent>
             </Popover>
-            
+
             {/* Combined Filters Dropdown */}
-            <CombinedFilters 
-              onSave={() => setFiltersPopoverOpen(false)} 
+            <CombinedFilters
+              onSave={() => setFiltersPopoverOpen(false)}
               open={filtersPopoverOpen}
               onOpenChange={setFiltersPopoverOpen}
             />
 
-              {/* Import Trades Button (moved here) - Always visible */}
-              <ImportButton />
+            {/* Import Trades Button (moved here) - Always visible */}
+            <ImportButton />
 
-              {/* Template Selector - Desktop only */}
-              <Popover open={templatePopoverOpen} onOpenChange={setTemplatePopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="hidden md:flex h-9 w-9 hover:bg-muted/50 transition-all duration-200 hover:scale-105 hover:shadow-md"
-                    title="Templates"
-                  >
-                    <LayoutTemplate className="h-4 w-4" />
-                    <span className="sr-only">Templates</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-4 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl" align="end" sideOffset={8}>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium">Templates</h4>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-2"
-                        onClick={() => setCreateTemplateDialogOpen(true)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="space-y-1">
-                      {templates.map((template) => (
-                        <div
-                          key={template.id}
-                          className={cn(
-                            "flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer",
-                            activeTemplate?.id === template.id && "bg-muted"
-                          )}
-                          onClick={() => !template.isActive && switchTemplate(template.id)}
-                        >
-                          <div className="flex items-center gap-2 flex-1">
-                            <span className="text-sm">{template.name}</span>
-                            {template.isDefault && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-foreground">
-                                Default
-                              </span>
-                            )}
-                            {template.isActive && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400">
-                                Active
-                              </span>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center gap-1">
-                            {!template.isDefault && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 hover:bg-muted/80"
-                                onClick={(e) => handleEditTemplate(template, e)}
-                                disabled={!template.isActive}
-                                title="Edit template"
-                              >
-                                <Pencil className="h-3 w-3 text-muted-foreground" />
-                              </Button>
-                            )}
-                            
-                            {!template.isDefault && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 hover:bg-destructive/20 hover:text-destructive"
-                                onClick={(e) => openDeleteDialog(template.id, e)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+            {/* Template Selector - Desktop only */}
+            <Popover open={templatePopoverOpen} onOpenChange={setTemplatePopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hidden md:flex h-9 w-9 hover:bg-muted/50 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                  title="Templates"
+                >
+                  <LayoutTemplate className="h-4 w-4" />
+                  <span className="sr-only">Templates</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-4 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl" align="end" sideOffset={8}>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Templates</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2"
+                      onClick={() => setCreateTemplateDialogOpen(true)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
-                </PopoverContent>
-              </Popover>
-
-              {/* Notification Center - Always visible */}
-              <NotificationCenter />
-
-              {/* Theme Switcher - Hidden on small mobile */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="hidden sm:flex h-9 w-9 hover:bg-muted/50 transition-all duration-200 hover:scale-105 hover:shadow-md">
-                    {getThemeIcon()}
-                    <span className="sr-only">Toggle theme</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0 bg-card border-border shadow-2xl" align="end" sideOffset={8}>
-                  <Command>
-                    <CommandList>
-                      <CommandGroup>
-                        <CommandItem onSelect={() => handleThemeChange("light")} className="hover:bg-muted/50 transition-colors duration-200">
-                          <Sun className="mr-2 h-4 w-4" />
-                          <span>Light mode</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => handleThemeChange("dark")} className="hover:bg-muted/50 transition-colors duration-200">
-                          <Moon className="mr-2 h-4 w-4" />
-                          <span>Dark mode</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => handleThemeChange("midnight-ocean")} className="hover:bg-muted/50 transition-colors duration-200">
-                          <Waves className="mr-2 h-4 w-4" />
-                          <span>Midnight Ocean</span>
-                        </CommandItem>
-                        <CommandItem onSelect={() => handleThemeChange("system")} className="hover:bg-muted/50 transition-colors duration-200">
-                          <Laptop className="mr-2 h-4 w-4" />
-                          <span>System theme</span>
-                        </CommandItem>
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              <div className="relative">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Avatar className="cursor-pointer h-9 w-9 ring-2 ring-transparent hover:ring-border transition-all duration-200 hover:scale-105 hover:shadow-lg">
-                      <AvatarImage src={user?.user_metadata?.avatar_url} className="transition-transform duration-200" />
-                      <AvatarFallback className="uppercase text-xs bg-muted text-foreground font-medium">
-                        {user?.email?.[0] || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                      {user?.email || 'Loading...'}
-                    </div>
-                    
-                    {/* Mobile-only quick actions */}
-                    <div className="md:hidden">
-                      <DropdownMenuItem onClick={() => setAccountPopoverOpen(true)} className="hover:bg-muted/50 transition-colors duration-200">
-                        <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                        </svg>
-                        <span>{getAccountButtonText()}</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => {
-                          // Open the filters popover from mobile menu
-                          setFiltersPopoverOpen(true)
-                        }}
-                        className="hover:bg-muted/50 transition-colors duration-200"
-                      >
-                        <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
-                        </svg>
-                        <span>Filters</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => setMobileTemplateDialogOpen(true)}
-                        className="hover:bg-muted/50 transition-colors duration-200"
-                      >
-                        <LayoutTemplate className="mr-2 h-4 w-4" />
-                        <span>Templates</span>
-                        {activeTemplate && (
-                          <span className="ml-auto text-xs text-muted-foreground">{activeTemplate.name}</span>
+                  <div className="space-y-1">
+                    {templates.map((template) => (
+                      <div
+                        key={template.id}
+                        className={cn(
+                          "flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer",
+                          activeTemplate?.id === template.id && "bg-muted"
                         )}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => setMobileThemeDialogOpen(true)}
-                        className="hover:bg-muted/50 transition-colors duration-200"
+                        onClick={() => !template.isActive && switchTemplate(template.id)}
                       >
-                        {getThemeIcon()}
-                        <span className="ml-2">Theme</span>
-                        <span className="ml-auto text-xs text-muted-foreground capitalize">{theme}</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </div>
-                    
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard/settings" className="hover:bg-muted/50 transition-colors duration-200">
-                        <div className="flex w-full">
-                          <Settings className="mr-2 h-4 w-4" />
-                          <span>Settings</span>
-                          <DropdownMenuShortcut>⌘,</DropdownMenuShortcut>
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="text-sm">{template.name}</span>
+                          {template.isDefault && (
+                            <span className="text-xxs px-1.5 py-0.5 rounded bg-muted text-foreground">
+                              Default
+                            </span>
+                          )}
+                          {template.isActive && (
+                            <span className="text-xxs px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400">
+                              Active
+                            </span>
+                          )}
                         </div>
-                      </Link>
-                    </DropdownMenuItem>
 
-                    <Link href={"/dashboard/data"}>
-                      <DropdownMenuItem className="hover:bg-muted/50 transition-colors duration-200">
-                        <Database className="mr-2 h-4 w-4" />
-                        <span>Data</span>
-                        <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-                      </DropdownMenuItem>
-                    </Link>
-                    
-                    <Link href={"/docs"}>
-                      <DropdownMenuItem className="hover:bg-muted/50 transition-colors duration-200">
-                        <BookOpen className="mr-2 h-4 w-4" />
-                        <span>Documentation</span>
-                        <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
-                      </DropdownMenuItem>
-                    </Link>
-                    
-                    <DropdownMenuItem onClick={async ()=>await refreshTrades()} className="hover:bg-muted/50 transition-colors duration-200">
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      <span>Refresh Data</span>
-                      <DropdownMenuShortcut>⌘R</DropdownMenuShortcut>
+                        <div className="flex items-center gap-1">
+                          {!template.isDefault && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 hover:bg-muted/80"
+                              onClick={(e) => handleEditTemplate(template, e)}
+                              disabled={!template.isActive}
+                              title="Edit template"
+                            >
+                              <Pencil className="h-3 w-3 text-muted-foreground" />
+                            </Button>
+                          )}
+
+                          {!template.isDefault && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 hover:bg-destructive/20 hover:text-destructive"
+                              onClick={(e) => openDeleteDialog(template.id, e)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Notification Center - Always visible */}
+            <NotificationCenter />
+
+            {/* Theme Switcher - Hidden on small mobile */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="hidden sm:flex h-9 w-9 hover:bg-muted/50 transition-all duration-200 hover:scale-105 hover:shadow-md">
+                  {getThemeIcon()}
+                  <span className="sr-only">Toggle theme</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-0 bg-card border-border shadow-2xl" align="end" sideOffset={8}>
+                <Command>
+                  <CommandList>
+                    <CommandGroup>
+                      <CommandItem onSelect={() => handleThemeChange("light")} className="hover:bg-muted/50 transition-colors duration-200">
+                        <Sun className="mr-2 h-4 w-4" />
+                        <span>Light mode</span>
+                      </CommandItem>
+                      <CommandItem onSelect={() => handleThemeChange("dark")} className="hover:bg-muted/50 transition-colors duration-200">
+                        <Moon className="mr-2 h-4 w-4" />
+                        <span>Dark mode</span>
+                      </CommandItem>
+                      <CommandItem onSelect={() => handleThemeChange("midnight-ocean")} className="hover:bg-muted/50 transition-colors duration-200">
+                        <Waves className="mr-2 h-4 w-4" />
+                        <span>Midnight Ocean</span>
+                      </CommandItem>
+                      <CommandItem onSelect={() => handleThemeChange("system")} className="hover:bg-muted/50 transition-colors duration-200">
+                        <Laptop className="mr-2 h-4 w-4" />
+                        <span>System theme</span>
+                      </CommandItem>
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <div className="relative">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div>
+                    <SeasonalAvatarBadge>
+                      <Avatar className="cursor-pointer h-9 w-9 ring-2 ring-transparent hover:ring-border transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                        <AvatarImage src={user?.user_metadata?.avatar_url} className="transition-transform duration-200" />
+                        <AvatarFallback className="uppercase text-xs bg-muted text-foreground font-medium">
+                          {user?.email?.[0] || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                    </SeasonalAvatarBadge>
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                    {user?.email || <Skeleton className="h-4 w-32" />}
+                  </div>
+
+                  {/* Mobile-only quick actions */}
+                  <div className="md:hidden">
+                    <DropdownMenuItem onClick={() => setAccountPopoverOpen(true)} className="hover:bg-muted/50 transition-colors duration-200">
+                      <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                      </svg>
+                      <span>{getAccountButtonText()}</span>
                     </DropdownMenuItem>
-                    
+                    <DropdownMenuItem
+                      onClick={() => {
+                        // Open the filters popover from mobile menu
+                        setFiltersPopoverOpen(true)
+                      }}
+                      className="hover:bg-muted/50 transition-colors duration-200"
+                    >
+                      <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
+                      </svg>
+                      <span>Filters</span>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={async () => {
-                      // Clear all local storage
-                      localStorage.clear()
-                      sessionStorage.clear()
-                      
-                      // Sign out from Supabase and redirect
-                      await signOut()
-                    }} className="hover:bg-destructive/20 transition-colors duration-200">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log Out</span>
-                      <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
+                    <DropdownMenuItem
+                      onClick={() => setMobileTemplateDialogOpen(true)}
+                      className="hover:bg-muted/50 transition-colors duration-200"
+                    >
+                      <LayoutTemplate className="mr-2 h-4 w-4" />
+                      <span>Templates</span>
+                      {activeTemplate && (
+                        <span className="ml-auto text-xs text-muted-foreground">{activeTemplate.name}</span>
+                      )}
                     </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                    <DropdownMenuItem
+                      onClick={() => setMobileThemeDialogOpen(true)}
+                      className="hover:bg-muted/50 transition-colors duration-200"
+                    >
+                      {getThemeIcon()}
+                      <span className="ml-2">Theme</span>
+                      <span className="ml-auto text-xs text-muted-foreground capitalize">{theme}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </div>
+
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/settings" className="hover:bg-muted/50 transition-colors duration-200">
+                      <div className="flex w-full">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
+                        <DropdownMenuShortcut>⌘,</DropdownMenuShortcut>
+                      </div>
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <Link href={"/dashboard/data"}>
+                    <DropdownMenuItem className="hover:bg-muted/50 transition-colors duration-200">
+                      <Database className="mr-2 h-4 w-4" />
+                      <span>Data</span>
+                      <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                  </Link>
+
+                  <Link href={"/docs"}>
+                    <DropdownMenuItem className="hover:bg-muted/50 transition-colors duration-200">
+                      <BookOpen className="mr-2 h-4 w-4" />
+                      <span>Documentation</span>
+                      <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                  </Link>
+
+                  <DropdownMenuItem onClick={async () => await refreshTrades()} className="hover:bg-muted/50 transition-colors duration-200">
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <span>Refresh Data</span>
+                    <DropdownMenuShortcut>⌘R</DropdownMenuShortcut>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={async () => {
+                    // Clear all local storage
+                    localStorage.clear()
+                    sessionStorage.clear()
+
+                    // Sign out from Supabase and redirect
+                    await signOut()
+                  }} className="hover:bg-destructive/20 transition-colors duration-200">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log Out</span>
+                    <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </motion.nav>
       <div className="h-[48px]" />
-      
+
       {/* Hidden components for programmatic triggering */}
-        <div className="hidden">
-        </div>
+      <div className="hidden">
+      </div>
 
       {/* Mobile Template Selector Dialog */}
       <Dialog open={mobileTemplateDialogOpen} onOpenChange={setMobileTemplateDialogOpen}>
@@ -779,12 +645,12 @@ export default function Navbar() {
                 <div className="flex items-center gap-2 flex-1">
                   <span className="text-sm font-medium">{template.name}</span>
                   {template.isDefault && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-foreground">
+                    <span className="text-xxs px-1.5 py-0.5 rounded bg-muted text-foreground">
                       Default
                     </span>
                   )}
                   {template.isActive && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400">
+                    <span className="text-xxs px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400">
                       Active
                     </span>
                   )}
@@ -862,8 +728,8 @@ export default function Navbar() {
       </Dialog>
 
       {/* Create Template Dialog */}
-      <Dialog 
-        open={createTemplateDialogOpen} 
+      <Dialog
+        open={createTemplateDialogOpen}
         onOpenChange={(open) => {
           setCreateTemplateDialogOpen(open)
           // Clear template name when dialog closes (user cancels or dismisses)
@@ -879,7 +745,7 @@ export default function Navbar() {
               Create a new dashboard template. It will be initialized with the default layout.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="template-name">Template Name</Label>
@@ -897,7 +763,7 @@ export default function Navbar() {
               />
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateTemplateDialogOpen(false)}>
               Cancel

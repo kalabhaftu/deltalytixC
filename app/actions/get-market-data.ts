@@ -1,11 +1,14 @@
 'use server'
 
 import YahooFinance from 'yahoo-finance2'
+import { YAHOO_FINANCE_SYMBOL_MAP, FOREX_PAIRS } from '@/lib/constants'
+import { YahooFinanceQuote } from '@/types/yahoo-finance'
+import { getUserId } from '@/server/auth'
 
 const yahooFinance = new YahooFinance()
 
 export interface CandleData {
-    time: string
+    time: number
     open: number
     high: number
     low: number
@@ -19,22 +22,18 @@ export async function getMarketData(
     endDate?: Date
 ): Promise<{ data: CandleData[], error?: string }> {
     try {
+        await getUserId()
         console.log(`Fetching data for ${symbol}...`)
 
         // Map common symbols to Yahoo Finance tickers
         let querySymbol = symbol.toUpperCase()
 
-        // Indices / Futures
-        if (querySymbol === 'NQ' || querySymbol === 'NAS100' || querySymbol === 'US100') querySymbol = 'NQ=F'
-        else if (querySymbol === 'ES' || querySymbol === 'US500' || querySymbol === 'SPX500') querySymbol = 'ES=F'
-        else if (querySymbol === 'YM' || querySymbol === 'US30' || querySymbol === 'DJI') querySymbol = 'YM=F'
-        else if (querySymbol === 'RTY' || querySymbol === 'US2000') querySymbol = 'RTY=F'
-        else if (querySymbol === 'CL' || querySymbol === 'USOIL' || querySymbol === 'WTI') querySymbol = 'CL=F'
-        else if (querySymbol === 'GC' || querySymbol === 'GOLD' || querySymbol === 'XAUUSD') querySymbol = 'GC=F'
+        if (YAHOO_FINANCE_SYMBOL_MAP[querySymbol]) {
+            querySymbol = YAHOO_FINANCE_SYMBOL_MAP[querySymbol]
+        }
 
-        // Forex (Yahoo usually uses format "EURUSD=X")
-        const forexPairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD']
-        if (querySymbol.length === 6 && forexPairs.includes(querySymbol)) {
+        // Forex
+        if (querySymbol.length === 6 && FOREX_PAIRS.includes(querySymbol)) {
             querySymbol = `${querySymbol}=X`
         }
 
@@ -66,23 +65,24 @@ export async function getMarketData(
                     period1 = startDate ? new Date(startDate.getTime() - 30 * 24 * 60 * 60 * 1000) : period1
                 }
 
-                const queryOptions: any = {
+                const queryOptions = {
                     period1,
                     period2: endDate ? new Date(endDate.getTime() + 24 * 60 * 60 * 1000) : new Date(),
                     interval: queryInterval
                 }
 
                 console.log(`Trying interval: ${queryInterval} for ${querySymbol}`)
-                const result = await yahooFinance.chart(querySymbol, queryOptions) as any
+                // @ts-ignore - yahoo-finance2 types might not be perfectly aligned with chart result
+                const result = await yahooFinance.chart(querySymbol, queryOptions) as unknown as import('@/types/yahoo-finance').YahooFinanceResult
 
                 if (result && result.quotes && result.quotes.length > 2) {
-                    const candles = result.quotes.map((q: any) => ({
+                    const candles = result.quotes.map((q: YahooFinanceQuote) => ({
                         time: Math.floor(new Date(q.date).getTime() / 1000),
                         open: q.open,
                         high: q.high,
                         low: q.low,
                         close: q.close,
-                    })).filter((c: any) => c.open != null && c.close != null)
+                    })).filter((c: { open: number | null, close: number | null }) => c.open != null && c.close != null)
 
                     return { data: candles }
                 }

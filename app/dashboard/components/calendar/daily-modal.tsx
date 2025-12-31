@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { BarChart3, BookOpen, Edit2, Save, X } from "lucide-react"
 import { cn, parsePositionTime, formatCurrency } from "@/lib/utils"
@@ -236,11 +237,18 @@ export function CalendarModal({
           {/* Journal Tab */}
           <TabsContent value="journal" className="flex-1 overflow-auto m-0 px-4 pb-4">
             {isLoadingJournal ? (
-              <div className="flex items-center justify-center h-full min-h-[200px]">
-                <div className="text-center space-y-2">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto" />
-                  <p className="text-sm text-muted-foreground">Loading journal...</p>
+              <div className="flex flex-col gap-4 p-4 min-h-[200px]">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-10 w-10 rounded-full" />)}
+                  </div>
                 </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-24 w-full rounded-lg" />
+                </div>
+                <Skeleton className="h-10 w-full rounded-lg" />
               </div>
             ) : (
               <ScrollArea className="h-full">

@@ -4,6 +4,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { createRiskAlert } from '@/lib/services/notification-service'
 
 export interface DrawdownCalculation {
   currentEquity: number
@@ -217,6 +218,49 @@ export class PhaseEvaluationEngine {
       tradingDaysCompleted: progress.tradingDaysCompleted,
       minTradingDaysRequired: progress.minTradingDaysRequired
     })
+
+    // STEP 2.5: RISK ALERTS - Trigger notifications at 80% and 95% thresholds
+    // Smart invalidation ensures we update existing alerts instead of spamming
+    try {
+      const userId = masterAccount.userId
+
+      // Daily loss alerts
+      if (drawdown.dailyDrawdownPercent >= 80 && drawdown.dailyDrawdownPercent < 100 && !drawdown.isBreached) {
+        await createRiskAlert(
+          userId,
+          phaseAccountId,
+          'daily_loss',
+          drawdown.dailyDrawdownPercent,
+          {
+            accountName: masterAccount.accountName,
+            currentBalance: currentEquity,
+            limit: drawdown.dailyDrawdownLimit,
+            used: drawdown.dailyDrawdownUsed
+          }
+        )
+        this.log(`Risk alert sent: Daily loss at ${drawdown.dailyDrawdownPercent.toFixed(1)}%`)
+      }
+
+      // Max drawdown alerts
+      if (drawdown.maxDrawdownPercent >= 80 && drawdown.maxDrawdownPercent < 100 && !drawdown.isBreached) {
+        await createRiskAlert(
+          userId,
+          phaseAccountId,
+          'max_drawdown',
+          drawdown.maxDrawdownPercent,
+          {
+            accountName: masterAccount.accountName,
+            currentBalance: currentEquity,
+            limit: drawdown.maxDrawdownLimit,
+            used: drawdown.maxDrawdownUsed
+          }
+        )
+        this.log(`Risk alert sent: Max drawdown at ${drawdown.maxDrawdownPercent.toFixed(1)}%`)
+      }
+    } catch (notificationError) {
+      // Don't fail evaluation if notification fails
+      this.logError('Failed to send risk notification', notificationError)
+    }
 
     // STEP 3: FAILURE-FIRST EVALUATION
     // If account is breached, it CANNOT pass regardless of profit target

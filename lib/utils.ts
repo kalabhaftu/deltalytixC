@@ -5,9 +5,21 @@ import { format } from "date-fns"
 import { formatInTimeZone } from 'date-fns-tz'
 import { StatisticsProps } from "@/app/dashboard/types/statistics"
 import { Account } from "@/context/data-provider"
+import { ExtendedTrade, MarketBias } from "@/types/trade-extended"
 
 // Threshold for considering a trade break-even (e.g. +/- $5.00)
 export const BREAK_EVEN_THRESHOLD = 5.0;
+
+export function ensureExtendedTrade(trade: Trade): ExtendedTrade {
+  return {
+    ...trade,
+    tags: Array.isArray(trade.tags) ? (trade.tags as string[]) : [],
+    selectedRules: Array.isArray(trade.selectedRules) ? (trade.selectedRules as string[]) : [],
+    marketBias: (trade.marketBias as MarketBias) || null,
+    selectedNews: (trade.selectedNews as string) || null,
+    chartLinks: (trade.chartLinks as string) || null,
+  } as ExtendedTrade
+}
 
 /**
  * Calculate win rate from trade counts - SINGLE SOURCE OF TRUTH

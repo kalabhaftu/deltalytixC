@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 import { useData } from "@/context/data-provider"
@@ -26,7 +27,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
   // Fetch accounts independently with forAccountFilter=true to ensure individual counts
   const [accounts, setAccounts] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  
+
   // Fetch accounts independently for account filter (always individual counts)
   useEffect(() => {
     const fetchAccountsForFilter = async () => {
@@ -36,11 +37,11 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
           cache: 'no-store',
           headers: { 'Cache-Control': 'no-cache' }
         })
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch accounts')
         }
-        
+
         const data = await response.json()
         if (data.success && data.data?.accounts) {
           // Include all phases (active, passed, failed) - don't filter by status
@@ -53,10 +54,10 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         setIsLoading(false)
       }
     }
-    
+
     fetchAccountsForFilter()
   }, [])
-  
+
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set())
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set())
@@ -64,27 +65,27 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
 
   // Track previous accountNumbers to detect external changes
   const prevAccountNumbersRef = React.useRef<string[]>([])
-  
+
   // Sync selectedAccounts when accountNumbers context changes (including external updates)
   useEffect(() => {
     if (!accounts || accounts.length === 0) return
-    
+
     // Check if accountNumbers actually changed from external source (bidirectional check)
     const prevNumbers = prevAccountNumbersRef.current
     const currentNumbers = accountNumbers || []
-    const hasChanged = prevNumbers.length !== currentNumbers.length || 
+    const hasChanged = prevNumbers.length !== currentNumbers.length ||
       !prevNumbers.every(n => currentNumbers.includes(n)) ||
       !currentNumbers.every(n => prevNumbers.includes(n))
-    
+
     if (hasChanged && currentNumbers.length > 0) {
       // Find all accounts that match the saved account numbers BY number field
       const matchingAccountIds = accounts
         .filter(acc => currentNumbers.includes(acc.number))
         .map(acc => acc.id)
-      
+
       if (matchingAccountIds.length > 0) {
         setSelectedAccounts(new Set(matchingAccountIds))
-        
+
         // Auto-expand parent groups for selected accounts
         const matchingAccounts = accounts.filter(acc => currentNumbers.includes(acc.number))
         const accountNames = new Set(matchingAccounts.map(acc => acc.name || acc.number))
@@ -98,7 +99,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
       // accountNumbers was cleared - clear selection
       setSelectedAccounts(new Set())
     }
-    
+
     prevAccountNumbersRef.current = currentNumbers
   }, [accountNumbers, accounts])
 
@@ -160,7 +161,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
   const filteredGroupedAccounts = useMemo(() => {
     if (!searchQuery) return groupedAccountsByName
 
-      const query = searchQuery.toLowerCase()
+    const query = searchQuery.toLowerCase()
     const filtered: Record<string, any> = {}
 
     Object.entries(groupedAccountsByName).forEach(([accountName, accountData]) => {
@@ -197,18 +198,18 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
   // Restore saved account selection from settings and auto-expand parent groups
   useEffect(() => {
     if (!accounts || accounts.length === 0) return
-    
+
     // If accountNumbers are already set from saved settings, find and expand parent groups
     if (accountNumbers.length > 0 && selectedAccounts.size === 0) {
-      const matchingAccounts = accounts.filter(acc => 
-        accountNumbers.includes(acc.number) || 
+      const matchingAccounts = accounts.filter(acc =>
+        accountNumbers.includes(acc.number) ||
         accountNumbers.includes(acc.id)
       )
-      
+
       if (matchingAccounts.length > 0) {
         // Set selected accounts
         setSelectedAccounts(new Set(matchingAccounts.map(acc => acc.id)))
-        
+
         // Auto-expand all parent groups for selected accounts
         const accountNames = new Set(matchingAccounts.map(acc => acc.name || acc.number))
         setExpandedAccounts(accountNames)
@@ -230,10 +231,10 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
     // Group prop-firm accounts by masterAccountId (or name as fallback)
     // Count live accounts individually
     const masterAccountSet = new Set<string>()
-    
+
     selectedAccountObjects.forEach(acc => {
       const accountType = acc.accountType || (acc.propfirm ? 'prop-firm' : 'live')
-      
+
       if (accountType === 'prop-firm') {
         // For prop-firm: group by masterAccountId or name
         const masterId = acc.currentPhaseDetails?.masterAccountId || acc.name || acc.number
@@ -243,21 +244,21 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         masterAccountSet.add(acc.id || acc.number)
       }
     })
-    
+
     return masterAccountSet.size
   }, [selectedAccounts, accounts])
 
   const handleToggleAccount = (accountId: string, checked: boolean) => {
     const newSelected = new Set(selectedAccounts)
-    
+
     if (checked) {
       newSelected.add(accountId)
     } else {
       newSelected.delete(accountId)
     }
-    
+
     setSelectedAccounts(newSelected)
-    
+
     // Auto-expand the parent group for the toggled account
     const accountData = accounts?.find(acc => acc.id === accountId)
     if (accountData && checked) {
@@ -271,10 +272,10 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
       toast.error("Please select at least one account")
       return
     }
-    
+
     try {
       setIsSaving(true)
-      
+
       // Get all selected account numbers (phaseIds) for filtering
       const accountNumbersToSave = Array.from(selectedAccounts)
         .map(accountId => {
@@ -289,7 +290,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       })
-      
+
       let currentSettings = {}
       if (currentSettingsResponse.ok) {
         const data = await currentSettingsResponse.json()
@@ -314,7 +315,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
           selectedPhaseAccountIds: accountNumbersToSave,
           updatedAt: new Date().toISOString()
         }
-        
+
         // Update localStorage cache immediately for fast access on reload
         try {
           localStorage.setItem('account-filter-settings-cache', JSON.stringify(newSettings))
@@ -323,21 +324,21 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         } catch (e) {
           // Ignore storage errors
         }
-        
+
         // Set accountNumbers immediately for instant filtering
         setAccountNumbers(accountNumbersToSave)
-        
+
         // Trigger data refresh to fetch trades for the new selection
         // This runs in background while UI updates optimistically
         refreshTrades().then(() => {
           // Clear pending flag after refresh completes
           try {
             localStorage.removeItem('account-filter-settings-pending')
-          } catch (e) {}
+          } catch (e) { }
         }).catch(() => {
           // Ignore errors - optimistic update already applied
         })
-        
+
         toast.success(`${selectedAccounts.size} account(s) selected`)
         onSave?.()
       } else {
@@ -353,15 +354,15 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
   const handleSelectAllPhasesForAccount = (accountName: string) => {
     const accountData = groupedAccountsByName[accountName]
     if (!accountData) return
-    
+
     const phaseIds = accountData.phases.map(p => p.id)
     const newSelected = new Set(selectedAccounts)
-    
+
     // Add all phases of this account
     phaseIds.forEach(id => newSelected.add(id))
-    
+
     setSelectedAccounts(newSelected)
-    
+
     // Ensure expanded
     setExpandedAccounts(prev => new Set([...prev, accountName]))
   }
@@ -387,30 +388,30 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
   const handleClearAll = async () => {
     // Clear all selections
     setSelectedAccounts(new Set())
-    
+
     // Also clear from the data provider and save to backend
     try {
       setIsSaving(true)
-      
+
       // CRITICAL FIX: Preserve existing settings when clearing selections
       const currentSettingsResponse = await fetch('/api/settings/account-filters', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       })
-      
+
       let currentSettings = {}
       if (currentSettingsResponse.ok) {
         const data = await currentSettingsResponse.json()
         currentSettings = data.data || {}
       }
-      
+
       const newSettings = {
         ...currentSettings,
         selectedAccounts: [],
         selectedPhaseAccountIds: [],
         updatedAt: new Date().toISOString()
       }
-      
+
       const response = await fetch('/api/settings/account-filters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -422,17 +423,17 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         try {
           localStorage.setItem('account-filter-settings-cache', JSON.stringify(newSettings))
           localStorage.setItem('account-filter-settings-pending', 'true')
-        } catch (e) {}
-        
+        } catch (e) { }
+
         setAccountNumbers([])
-        
+
         // Refresh data in background
         refreshTrades().then(() => {
           try {
             localStorage.removeItem('account-filter-settings-pending')
-          } catch (e) {}
-        }).catch(() => {})
-        
+          } catch (e) { }
+        }).catch(() => { })
+
         toast.success("Selection cleared")
         onSave?.()
       }
@@ -441,7 +442,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
       setIsSaving(false)
     }
   }
-  
+
   const handleActiveOnly = () => {
     // Select only active accounts
     const activeIds = activeAccounts.map(acc => acc.id)
@@ -502,7 +503,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
           Clear
         </Button>
       </div>
-      
+
       {/* Selection Count */}
       {selectedAccounts.size > 0 && (
         <div className="text-xs text-muted-foreground text-center">
@@ -516,9 +517,12 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
       <ScrollArea className="h-[220px] sm:h-[260px]">
         <div className="pr-3">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
-              <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-foreground mb-2 sm:mb-3"></div>
-              <p className="text-xs sm:text-sm text-muted-foreground">Loading accounts...</p>
+            <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center space-y-3">
+              <div className="space-y-2 w-full px-4">
+                <Skeleton className="h-10 w-full rounded-lg" />
+                <Skeleton className="h-10 w-full rounded-lg" />
+                <Skeleton className="h-10 w-3/4 rounded-lg" />
+              </div>
             </div>
           ) : totalAccounts === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
@@ -530,7 +534,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
               {Object.entries(filteredGroupedAccounts).map(([accountName, accountData]) => {
                 const selectedPhasesCount = accountData.phases.filter((p: any) => selectedAccounts.has(p.id)).length
                 const totalPhasesCount = accountData.phases.filter((p: any) => p.status !== 'pending').length
-                
+
                 return (
                   <Collapsible key={accountName} open={expandedAccounts.has(accountName)} onOpenChange={() => toggleAccountExpansion(accountName)}>
                     <div className="flex items-center gap-2">
@@ -562,59 +566,59 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
                       {accountData.phases
                         .filter((phase: any) => phase.status && phase.status !== 'pending') // Filter out pending phases that don't exist
                         .map((phase: any) => (
-                        <div key={phase.id} className="flex items-center gap-2 py-1">
-                        <Checkbox
-                            checked={selectedAccounts.has(phase.id)}
-                            onCheckedChange={(checked) => handleToggleAccount(phase.id, checked as boolean)}
-                            id={phase.id}
-                        />
-                        <Label
-                            htmlFor={phase.id}
-                            className="flex-1 text-xs sm:text-sm cursor-pointer leading-tight"
-                        >
-                          <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium">{phase.number}</span>
-                              <Badge
-                                variant={
-                                  phase.status === 'active' ? 'outline' :
-                                  phase.status === 'funded' || phase.status === 'passed' ? 'default' :
-                                  phase.status === 'failed' || phase.status === 'archived' ? 'destructive' : 'secondary'
-                                }
-                                className="text-[10px] h-4 px-1.5 min-w-[3rem] justify-center"
-                              >
-                                {phase.status === 'archived' ? 'failed' : phase.status}
-                              </Badge>
-                              <Badge variant="outline" className="text-[10px] h-4 px-1.5 min-w-[2.5rem] justify-center">
-                                {(() => {
-                                  const phaseNum = phase.currentPhase || phase.phaseDetails?.phaseNumber
-                                  if (!phaseNum) return 'N/A'
-                                  const evalType = phase.phaseDetails?.evaluationType
-                                  // Determine funded phase based on evaluation type
-                                  // Note: PhaseAccountStatus does NOT have 'funded' - it only exists on MasterAccount
-                                  // Use consistent logic with isFundedPhase helper
-                                  const isFunded = (() => {
-                                    switch (evalType) {
-                                      case 'Two Step':
-                                        return phaseNum >= 3
-                                      case 'One Step':
-                                        return phaseNum >= 2
-                                      case 'Instant':
-                                        return phaseNum >= 1
-                                      default:
-                                        // Default to Two Step behavior
-                                        return phaseNum >= 3
-                                    }
-                                  })()
-                                  return isFunded ? 'Funded' : `Phase ${phaseNum}`
-                                })()}
-                              </Badge>
-                              {phase.tradeCount > 0 && (
-                                <span className="text-muted-foreground text-xs">• {phase.tradeCount} trades</span>
-                            )}
+                          <div key={phase.id} className="flex items-center gap-2 py-1">
+                            <Checkbox
+                              checked={selectedAccounts.has(phase.id)}
+                              onCheckedChange={(checked) => handleToggleAccount(phase.id, checked as boolean)}
+                              id={phase.id}
+                            />
+                            <Label
+                              htmlFor={phase.id}
+                              className="flex-1 text-xs sm:text-sm cursor-pointer leading-tight"
+                            >
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium">{phase.number}</span>
+                                <Badge
+                                  variant={
+                                    phase.status === 'active' ? 'outline' :
+                                      phase.status === 'funded' || phase.status === 'passed' ? 'default' :
+                                        phase.status === 'failed' || phase.status === 'archived' ? 'destructive' : 'secondary'
+                                  }
+                                  className="text-[10px] h-4 px-1.5 min-w-[3rem] justify-center"
+                                >
+                                  {phase.status === 'archived' ? 'failed' : phase.status}
+                                </Badge>
+                                <Badge variant="outline" className="text-[10px] h-4 px-1.5 min-w-[2.5rem] justify-center">
+                                  {(() => {
+                                    const phaseNum = phase.currentPhase || phase.phaseDetails?.phaseNumber
+                                    if (!phaseNum) return 'N/A'
+                                    const evalType = phase.phaseDetails?.evaluationType
+                                    // Determine funded phase based on evaluation type
+                                    // Note: PhaseAccountStatus does NOT have 'funded' - it only exists on MasterAccount
+                                    // Use consistent logic with isFundedPhase helper
+                                    const isFunded = (() => {
+                                      switch (evalType) {
+                                        case 'Two Step':
+                                          return phaseNum >= 3
+                                        case 'One Step':
+                                          return phaseNum >= 2
+                                        case 'Instant':
+                                          return phaseNum >= 1
+                                        default:
+                                          // Default to Two Step behavior
+                                          return phaseNum >= 3
+                                      }
+                                    })()
+                                    return isFunded ? 'Funded' : `Phase ${phaseNum}`
+                                  })()}
+                                </Badge>
+                                {phase.tradeCount > 0 && (
+                                  <span className="text-muted-foreground text-xs">• {phase.tradeCount} trades</span>
+                                )}
+                              </div>
+                            </Label>
                           </div>
-                        </Label>
-                      </div>
-                    ))}
+                        ))}
                     </CollapsibleContent>
                   </Collapsible>
                 )
@@ -634,8 +638,8 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
 
       {/* Apply Button */}
       <div className="space-y-2">
-            <Button
-          className="w-full h-9 sm:h-10" 
+        <Button
+          className="w-full h-9 sm:h-10"
           onClick={handleApplySelection}
           disabled={isSaving || selectedAccounts.size === 0}
         >

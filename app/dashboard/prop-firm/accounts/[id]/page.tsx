@@ -43,6 +43,10 @@ import { AccountStatus, PhaseType } from "@/types/prop-firm"
 import { AccountNotFoundError, ConnectionError } from "@/components/prop-firm/account-error-boundary"
 import { HistoryTab } from "./components/history-tab"
 
+import { DetailPageSkeleton } from "./components/detail-skeleton"
+import { MetricCard } from "./components/metric-card"
+import { TradeRow } from "./components/trade-row"
+
 // Helpers
 function isFundedPhase(evaluationType: string | undefined, phaseNumber: number | undefined): boolean {
   if (!phaseNumber) return false
@@ -62,141 +66,6 @@ function getPhaseDisplayName(evaluationType: string | undefined, phaseNumber: nu
 
 function formatCurrency(amount: number | undefined | null) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount ?? 0)
-}
-
-// Skeleton Components
-function DetailPageSkeleton() {
-  return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header skeleton */}
-      <div className="space-y-3">
-        <Skeleton className="h-8 w-20" />
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-6 w-16" />
-          <Skeleton className="h-6 w-20" />
-          <Skeleton className="h-4 w-32" />
-        </div>
-      </div>
-
-      {/* Metrics skeleton */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => (
-          <Card key={i}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-7 w-24" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-                <Skeleton className="h-10 w-10 rounded-lg" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Progress skeleton */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-            <Skeleton className="h-3 w-full" />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tabs skeleton */}
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full max-w-md" />
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-}
-
-// Metric Card Component
-function MetricCard({
-  label,
-  value,
-  subtext,
-  icon,
-  trend,
-  warning
-}: {
-  label: string
-  value: string | number
-  subtext?: string
-  icon: React.ReactNode
-  trend?: 'positive' | 'negative' | 'neutral'
-  warning?: boolean
-}) {
-  return (
-    <Card className={cn(warning && "ring-1 ring-destructive/30")}>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">{label}</p>
-            <p className={cn(
-              "text-xl font-bold",
-              trend === 'positive' && "text-long",
-              trend === 'negative' && "text-short"
-            )}>
-              {value}
-            </p>
-            {subtext && (
-              <p className="text-xs text-muted-foreground">{subtext}</p>
-            )}
-          </div>
-          <div className={cn(
-            "h-10 w-10 rounded-lg flex items-center justify-center",
-            warning ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
-          )}>
-            {icon}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-// Trade Row Component
-function TradeRow({ trade, evaluationType }: { trade: any, evaluationType?: string }) {
-  const pnl = trade.pnl || 0
-  return (
-    <tr className="border-b hover:bg-muted/50 transition-colors">
-      <td className="p-3 font-medium">{trade.instrument || trade.symbol || 'N/A'}</td>
-      <td className="p-3">
-        <Badge variant={trade.side?.toUpperCase() === 'BUY' ? 'default' : 'secondary'}>
-          {trade.side?.toUpperCase() || 'N/A'}
-        </Badge>
-      </td>
-      <td className="p-3 text-sm">{trade.quantity || 'N/A'}</td>
-      <td className={cn("p-3 font-medium", pnl >= 0 ? "text-long" : "text-short")}>
-        {formatCurrency(pnl)}
-      </td>
-      <td className="p-3">
-        <Badge variant="outline" className="text-xs">
-          {trade.phase ? getPhaseDisplayName(evaluationType, trade.phase.phaseNumber) : 'Phase 1'}
-        </Badge>
-      </td>
-      <td className="p-3 text-sm text-muted-foreground">
-        {trade.exitTime ? new Date(trade.exitTime).toLocaleDateString() :
-          trade.entryDate ? new Date(trade.entryDate).toLocaleDateString() : 'N/A'}
-      </td>
-    </tr>
-  )
 }
 
 export default function AccountDetailPage() {
@@ -757,9 +626,31 @@ export default function AccountDetailPage() {
                 </CardHeader>
                 <CardContent>
                   {isLoadingData ? (
-                    <div className="text-center py-12">
-                      <RefreshCw className="h-8 w-8 mx-auto animate-spin text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">Loading trades...</p>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-muted/50">
+                          <tr className="text-left text-xs">
+                            <th className="p-3 font-medium">Symbol</th>
+                            <th className="p-3 font-medium">Side</th>
+                            <th className="p-3 font-medium">Qty</th>
+                            <th className="p-3 font-medium">P&L</th>
+                            <th className="p-3 font-medium">Phase</th>
+                            <th className="p-3 font-medium">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <tr key={i} className="border-t">
+                              <td className="p-3"><Skeleton className="h-4 w-16" /></td>
+                              <td className="p-3"><Skeleton className="h-4 w-12" /></td>
+                              <td className="p-3"><Skeleton className="h-4 w-10" /></td>
+                              <td className="p-3"><Skeleton className="h-4 w-16" /></td>
+                              <td className="p-3"><Skeleton className="h-4 w-14" /></td>
+                              <td className="p-3"><Skeleton className="h-4 w-20" /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   ) : tradesData.length === 0 ? (
                     <div className="text-center py-12">

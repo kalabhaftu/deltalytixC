@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-provider"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft } from 'lucide-react'
 import ImportTradesCard from '@/app/dashboard/components/import/import-trades-card'
@@ -38,17 +39,17 @@ export default function NewTradePage() {
   const fetchAccount = useCallback(async () => {
     try {
       const response = await fetch(`/api/prop-firm/accounts/${accountId}`)
-      
-             if (!response.ok) {
-         throw new Error('Failed to fetch account details')
-       }
 
-       const data = await response.json()
-       if (data.success) {
-         setAccount(data.data.account)
-       } else {
-         throw new Error(data.error || 'Failed to fetch account details')
-       }
+      if (!response.ok) {
+        throw new Error('Failed to fetch account details')
+      }
+
+      const data = await response.json()
+      if (data.success) {
+        setAccount(data.data.account)
+      } else {
+        throw new Error(data.error || 'Failed to fetch account details')
+      }
     } catch (error) {
       toast.error('Failed to fetch account details', {
         description: 'An error occurred while loading account details'
@@ -67,10 +68,17 @@ export default function NewTradePage() {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading account details...</p>
+      <div className="min-h-screen">
+        <div className="container mx-auto p-6 max-w-7xl">
+          <div className="flex items-center gap-4 mb-6">
+            <Skeleton className="h-9 w-32" />
+            <div>
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+          </div>
+          <Skeleton className="h-40 w-full rounded-lg mb-6" />
+          <Skeleton className="h-64 w-full rounded-lg" />
         </div>
       </div>
     )

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table'
 import { ScrollArea } from './scroll-area'
+import { Skeleton } from './skeleton'
 import { cn } from '@/lib/utils'
 
 export interface Column<T> {
@@ -23,6 +24,9 @@ interface VirtualizedTableProps<T> {
   onRowClick?: (row: T, index: number) => void
   loading?: boolean
   emptyMessage?: string
+  emptyAction?: () => void
+  emptyActionText?: string
+  emptyIcon?: React.ReactNode
 }
 
 export function VirtualizedTable<T>({
@@ -34,7 +38,10 @@ export function VirtualizedTable<T>({
   className,
   onRowClick,
   loading = false,
-  emptyMessage = 'No data available'
+  emptyMessage = 'No data available',
+  emptyAction,
+  emptyActionText = 'Take Action',
+  emptyIcon
 }: VirtualizedTableProps<T>) {
   const [scrollTop, setScrollTop] = useState(0)
   const [containerHeight, setContainerHeight] = useState(height)
@@ -117,10 +124,35 @@ export function VirtualizedTable<T>({
     return (
       <div
         ref={containerRef}
-        className={cn('flex items-center justify-center', className)}
+        className={cn('border rounded-md overflow-hidden', className)}
         style={{ height }}
       >
-        <div className="text-muted-foreground">Loading...</div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {columns.map((column) => (
+                <TableHead
+                  key={String(column.key)}
+                  className="p-2 font-semibold"
+                  style={{ width: column.width }}
+                >
+                  {column.header}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: Math.floor((containerHeight || height) / rowHeight) }).map((_, idx) => (
+              <TableRow key={idx}>
+                {columns.map((column) => (
+                  <TableCell key={String(column.key)} className="p-2">
+                    <Skeleton className="h-4 w-full" />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     )
   }
@@ -129,10 +161,21 @@ export function VirtualizedTable<T>({
     return (
       <div
         ref={containerRef}
-        className={cn('flex items-center justify-center', className)}
+        className={cn('flex flex-col items-center justify-center gap-3', className)}
         style={{ height }}
       >
-        <div className="text-muted-foreground">{emptyMessage}</div>
+        {emptyIcon && <div className="text-muted-foreground/50">{emptyIcon}</div>}
+        <div className="text-muted-foreground text-center">
+          <div className="font-medium">{emptyMessage}</div>
+          {emptyAction && emptyActionText && (
+            <button
+              onClick={emptyAction}
+              className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary hover:text-primary/90 hover:underline underline-offset-4 transition-colors"
+            >
+              {emptyActionText}
+            </button>
+          )}
+        </div>
       </div>
     )
   }

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useState, useMemo, useEffect } from "react"
-import { Search, X, Filter, Calendar as CalendarIcon, ArrowLeft, Clock } from "lucide-react"
+import { Search, Filter, Calendar as CalendarIcon, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -95,15 +95,15 @@ export function CombinedFilters({ onSave, open: controlledOpen, onOpenChange }: 
   const { formattedTrades, instruments, setInstruments, dateRange, setDateRange } = useData()
   const [currentView, setCurrentView] = useState<FilterView>('menu')
   const [internalOpen, setInternalOpen] = useState(false)
-  
+
   // Use controlled open state if provided, otherwise use internal state
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen
   const setIsOpen = onOpenChange || setInternalOpen
-  
+
   // Instrument filter state
   const [selectedInstruments, setSelectedInstruments] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
-  
+
   // Date filter state
   const [startDate, setStartDate] = useState<Date | null>(dateRange?.from || null)
   const [endDate, setEndDate] = useState<Date | null>(dateRange?.to || null)
@@ -183,7 +183,7 @@ export function CombinedFilters({ onSave, open: controlledOpen, onOpenChange }: 
 
   const handleApplyInstruments = () => {
     setInstruments(selectedInstruments)
-    
+
     if (selectedInstruments.length === 0) {
       toast.success("Showing all instruments")
     } else {
@@ -191,7 +191,7 @@ export function CombinedFilters({ onSave, open: controlledOpen, onOpenChange }: 
         `Filtering ${selectedInstruments.length} instrument${selectedInstruments.length > 1 ? 's' : ''}`
       )
     }
-    
+
     onSave?.()
   }
 
@@ -254,7 +254,7 @@ export function CombinedFilters({ onSave, open: controlledOpen, onOpenChange }: 
 
   // Render menu view
   const renderMenuView = () => (
-    <div className="w-full min-w-[300px] sm:min-w-[380px] max-w-[400px] sm:max-w-[480px] p-3 sm:p-4 space-y-2">
+    <div className="w-full min-w-72 sm:min-w-96 max-w-sm sm:max-w-md p-3 sm:p-4 space-y-2">
       <div className="space-y-1 sm:space-y-2">
         <h4 className="font-semibold text-sm sm:text-base">Filters</h4>
         <p className="text-xs sm:text-sm text-muted-foreground">
@@ -275,7 +275,7 @@ export function CombinedFilters({ onSave, open: controlledOpen, onOpenChange }: 
             <div className="flex-1 text-left">
               <div className="font-medium text-sm">Instrument Filter</div>
               <div className="text-xs text-muted-foreground">
-                {displayedCount === totalInstruments 
+                {displayedCount === totalInstruments
                   ? `All ${totalInstruments} instruments`
                   : `${displayedCount} of ${totalInstruments} selected`}
               </div>
@@ -296,8 +296,8 @@ export function CombinedFilters({ onSave, open: controlledOpen, onOpenChange }: 
                 {startDate && endDate
                   ? `${format(startDate, 'MMM d, yyyy')} - ${format(endDate, 'MMM d, yyyy')}`
                   : startDate
-                  ? `From ${format(startDate, 'MMM d, yyyy')}`
-                  : "All time"}
+                    ? `From ${format(startDate, 'MMM d, yyyy')}`
+                    : "All time"}
               </div>
             </div>
           </div>
@@ -308,7 +308,7 @@ export function CombinedFilters({ onSave, open: controlledOpen, onOpenChange }: 
 
   // Render instrument filter view
   const renderInstrumentView = () => (
-    <div className="w-full min-w-[300px] sm:min-w-[380px] max-w-[400px] sm:max-w-[480px] p-3 sm:p-4 space-y-2 sm:space-y-3">
+    <div className="w-full min-w-72 sm:min-w-96 max-w-sm sm:max-w-md p-3 sm:p-4 space-y-2 sm:space-y-3">
       <div className="flex items-center gap-2 mb-2">
         <Button
           variant="ghost"
@@ -362,7 +362,7 @@ export function CombinedFilters({ onSave, open: controlledOpen, onOpenChange }: 
       <Separator />
 
       {/* Instrument List */}
-      <ScrollArea className="h-[200px] sm:h-[280px] pr-3">
+      <ScrollArea className="h-48 sm:h-72 pr-3">
         {totalInstruments === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
             <Filter className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground/30 mb-2 sm:mb-3" />
@@ -446,7 +446,7 @@ export function CombinedFilters({ onSave, open: controlledOpen, onOpenChange }: 
 
   // Render date filter view
   const renderDateView = () => (
-    <div className="w-full min-w-[280px] sm:min-w-[320px] max-w-[360px] sm:max-w-[400px] p-3 sm:p-4 space-y-3 sm:space-y-4">
+    <div className="w-full min-w-72 sm:min-w-80 max-w-sm sm:max-w-md p-3 sm:p-4 space-y-3 sm:space-y-4">
       <div className="flex items-center gap-2 mb-2">
         <Button
           variant="ghost"
@@ -497,8 +497,8 @@ export function CombinedFilters({ onSave, open: controlledOpen, onOpenChange }: 
                 {startDate && endDate
                   ? `${format(startDate, 'MMM d, yyyy')} - ${format(endDate, 'MMM d, yyyy')}`
                   : startDate
-                  ? `From ${format(startDate, 'MMM d, yyyy')}`
-                  : "Select date range"}
+                    ? `From ${format(startDate, 'MMM d, yyyy')}`
+                    : "Select date range"}
               </span>
             </Button>
           </PopoverTrigger>
@@ -509,7 +509,7 @@ export function CombinedFilters({ onSave, open: controlledOpen, onOpenChange }: 
                 if (range) {
                   setStartDate(range.from || null)
                   setEndDate(range.to || null)
-                  
+
                   // Auto-apply when both dates are selected
                   if (range.from && range.to) {
                     const newRange = { from: range.from, to: range.to }
@@ -558,9 +558,9 @@ export function CombinedFilters({ onSave, open: controlledOpen, onOpenChange }: 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           className="h-8 px-3 hover:bg-muted/50 transition-all duration-200 border border-border/50 bg-card/50"
         >
           <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -569,21 +569,21 @@ export function CombinedFilters({ onSave, open: controlledOpen, onOpenChange }: 
           <span className="text-sm">Filters</span>
           {(instruments.length > 0 || (dateRange?.from && dateRange?.to)) && (
             <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
-              {instruments.length > 0 
-                ? instruments.length 
-                : (dateRange?.from && dateRange?.to) 
-                  ? 'Date' 
+              {instruments.length > 0
+                ? instruments.length
+                : (dateRange?.from && dateRange?.to)
+                  ? 'Date'
                   : ''}
               {(dateRange?.from && dateRange?.to) && instruments.length > 0 && '+'}
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent 
-        className="p-0 w-auto max-w-[90vw] sm:max-w-[95vw]" 
-        align="end" 
-        sideOffset={4} 
-        collisionPadding={16} 
+      <PopoverContent
+        className="p-0 w-auto max-w-[90vw] sm:max-w-[95vw]"
+        align="end"
+        sideOffset={4}
+        collisionPadding={16}
         avoidCollisions={true}
       >
         {currentView === 'menu' && renderMenuView()}

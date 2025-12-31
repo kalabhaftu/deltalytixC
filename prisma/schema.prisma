@@ -353,20 +353,23 @@ model User {
 }
 
 model Notification {
-  id             String           @id @default(uuid())
-  userId         String
-  type           NotificationType
-  title          String
-  message        String
-  data           Json?
-  isRead         Boolean          @default(false)
-  actionRequired Boolean          @default(false)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  User           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String               @id @default(uuid())
+  userId          String
+  type            NotificationType
+  title           String
+  message         String
+  data            Json?
+  isRead          Boolean              @default(false)
+  actionRequired  Boolean              @default(false)
+  invalidationKey String?              // Smart deduplication key
+  priority        NotificationPriority @default(MEDIUM)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  User            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
   @@index([userId, actionRequired])
+  @@index([userId, invalidationKey]) // Fast lookup for smart invalidation
   @@schema("public")
 }
 
@@ -463,6 +466,15 @@ enum PayoutStatus {
   @@schema("public")
 }
 
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@schema("public")
+}
+
 enum NotificationType {
   FUNDED_PENDING_APPROVAL
   FUNDED_APPROVED
@@ -471,6 +483,25 @@ enum NotificationType {
   PAYOUT_APPROVED
   PAYOUT_REJECTED
   SYSTEM
+  RISK_ALERT
+  IMPORT_STATUS
+  WEEKLY_PERFORMANCE
+  STRATEGY_DEVIATION
+  SYSTEM_ANNOUNCEMENT
+  TRADE_STATUS
+  
+  // Granular risk alert types for smart invalidation
+  RISK_DAILY_LOSS_80        // Daily loss limit at 80%
+  RISK_DAILY_LOSS_95        // Daily loss limit at 95%
+  RISK_MAX_DRAWDOWN_80      // Max drawdown at 80%
+  RISK_MAX_DRAWDOWN_95      // Max drawdown at 95%
+  
+  // Import lifecycle tracking
+  IMPORT_PROCESSING         // Import in progress
+  IMPORT_COMPLETE           // Import finished
+  
+  // Strategy compliance
+  STRATEGY_SESSION_VIOLATION // Trade outside allowed sessions
 
   @@schema("public")
 }

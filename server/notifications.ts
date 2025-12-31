@@ -15,22 +15,26 @@ export async function createNotificationAction(data: {
   data?: Record<string, any>
   actionRequired?: boolean
 }) {
-  const userId = await getUserId()
-  if (!userId) throw new Error('Unauthorized')
+  try {
+    const userId = await getUserId()
+    if (!userId) return { success: false, error: 'Unauthorized' }
 
-  const notification = await prisma.notification.create({
-    data: {
-      userId,
-      type: data.type,
-      title: data.title,
-      message: data.message,
-      data: data.data ?? undefined,
-      actionRequired: data.actionRequired ?? false
-    }
-  })
+    const notification = await prisma.notification.create({
+      data: {
+        userId,
+        type: data.type,
+        title: data.title,
+        message: data.message,
+        data: data.data ?? undefined,
+        actionRequired: data.actionRequired ?? false
+      }
+    })
 
-  revalidateTag(`notifications-${userId}`)
-  return notification
+    revalidateTag(`notifications-${userId}`)
+    return { success: true, data: notification }
+  } catch (error) {
+    return { success: false, error: 'Failed to create notification' }
+  }
 }
 
 /**
@@ -76,19 +80,23 @@ export async function getUnreadCountAction() {
  * Mark a notification as read
  */
 export async function markNotificationReadAction(notificationId: string) {
-  const userId = await getUserId()
-  if (!userId) throw new Error('Unauthorized')
+  try {
+    const userId = await getUserId()
+    if (!userId) return { success: false, error: 'Unauthorized' }
 
-  const notification = await prisma.notification.update({
-    where: {
-      id: notificationId,
-      userId // Ensure user owns this notification
-    },
-    data: { isRead: true }
-  })
+    const notification = await prisma.notification.update({
+      where: {
+        id: notificationId,
+        userId // Ensure user owns this notification
+      },
+      data: { isRead: true }
+    })
 
-  revalidateTag(`notifications-${userId}`)
-  return notification
+    revalidateTag(`notifications-${userId}`)
+    return { success: true, data: notification }
+  } catch (error) {
+    return { success: false, error: 'Failed to mark as read' }
+  }
 }
 
 /**
@@ -96,7 +104,7 @@ export async function markNotificationReadAction(notificationId: string) {
  */
 export async function markAllNotificationsReadAction() {
   const userId = await getUserId()
-  if (!userId) throw new Error('Unauthorized')
+  if (!userId) return { success: false, error: 'Unauthorized' }
 
   await prisma.notification.updateMany({
     where: {
@@ -113,17 +121,22 @@ export async function markAllNotificationsReadAction() {
  * Delete a notification
  */
 export async function deleteNotificationAction(notificationId: string) {
-  const userId = await getUserId()
-  if (!userId) throw new Error('Unauthorized')
+  try {
+    const userId = await getUserId()
+    if (!userId) return { success: false, error: 'Unauthorized' }
 
-  await prisma.notification.delete({
-    where: {
-      id: notificationId,
-      userId // Ensure user owns this notification
-    }
-  })
+    await prisma.notification.delete({
+      where: {
+        id: notificationId,
+        userId // Ensure user owns this notification
+      }
+    })
 
-  revalidateTag(`notifications-${userId}`)
+    revalidateTag(`notifications-${userId}`)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: 'Failed to delete notification' }
+  }
 }
 
 /**
@@ -168,7 +181,7 @@ export async function handleFundedApprovalAction(data: {
     // For One Step: funded is phase 2
     // For Two Step: funded is phase 3
     const isInstantAccount = masterAccount.evaluationType === 'Instant'
-    
+
     if (isInstantAccount) {
       // For Instant accounts, the pending_approval phase IS the funded phase
       // Just update it directly with the new account ID and activate it

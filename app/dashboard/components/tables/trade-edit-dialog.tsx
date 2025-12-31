@@ -5,78 +5,32 @@ import Image from 'next/image'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Trade } from '@prisma/client'
-import { toast } from 'sonner'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter
-} from '@/components/ui/dialog'
+import { ExtendedTrade } from '@/types/trade-extended'
+import { ExtendedTrade as Trade, MarketBias } from '@/types/trade-extended'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Camera,
-  X,
-  Target,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Newspaper,
-  CalendarOff,
-  Tag as TagIcon,
-  Settings,
-  Loader2,
-  Plus,
-  Search,
-  BarChart3,
-  ExternalLink,
-  Zap,
-  Pencil,
-  Trash2
-} from 'lucide-react'
-import { useUserStore } from '@/store/user-store'
+import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { uploadService } from '@/lib/upload-service'
-import { useTags } from '@/context/tags-provider'
 import { MAJOR_NEWS_EVENTS } from '@/lib/major-news-events'
-import { TagSelector } from '@/app/dashboard/components/tags/tag-selector'
-
-// Types
-type MarketBias = 'BULLISH' | 'BEARISH' | 'UNDECIDED'
-
-interface TradingModel {
-  id: string
-  name: string
-  rules: string[]
-  notes?: string | null
-}
+import { useUserStore } from '@/store/user-store'
+import { useTags } from '@/context/tags-provider'
+import { TradeNotesTab } from './components/trade-notes-tab'
+import { TradeStrategyTab } from './components/trade-strategy-tab'
+import { TradeNewsTab } from './components/trade-news-tab'
+import { TradeTimeframesTab } from './components/trade-timeframes-tab'
+import { TIMEFRAME_OPTIONS, MARKET_BIAS_OPTIONS } from '@/lib/constants'
 
 interface TradeEditDialogProps {
   isOpen: boolean
   onClose: () => void
-  trade: Trade | null
-  onSave: (updatedTrade: Partial<Trade>) => Promise<void>
+  trade: ExtendedTrade | null
+  onSave: (updatedTrade: Partial<ExtendedTrade>) => Promise<void>
 }
 
 // Timeframe options
-const TIMEFRAME_OPTIONS = [
-  { value: '1m', label: '1 Minute' },
-  { value: '5m', label: '5 Minutes' },
-  { value: '15m', label: '15 Minutes' },
-  { value: '30m', label: '30 Minutes' },
-  { value: '1h', label: '1 Hour' },
-  { value: '4h', label: '4 Hours' },
-  { value: 'd', label: 'Daily' },
-  { value: 'w', label: 'Weekly' },
-  { value: 'm', label: 'Monthly' },
-]
+// Local constants replaced by imports from @/lib/constants
 
 // Form Schema
 const editTradeSchema = z.object({
@@ -103,6 +57,13 @@ const editTradeSchema = z.object({
 })
 
 type EditTradeFormData = z.infer<typeof editTradeSchema>
+
+interface TradingModel {
+  id: string
+  name: string
+  rules: string[]
+  notes?: string | null
+}
 
 export default function TradeEditDialog({
   isOpen,
@@ -187,64 +148,66 @@ export default function TradeEditDialog({
       // Reset image errors when dialog opens
       setImageErrors({})
       // Tags - now stored as array
-      const tagIds = Array.isArray((trade as any).tags) ? (trade as any).tags : []
+      const tagIds = Array.isArray(trade.tags) ? trade.tags : []
       setSelectedTags(tagIds)
 
       // News
-      const newsIds = (trade as any).selectedNews ? (trade as any).selectedNews.split(',').filter(Boolean) : []
+      const newsIds = trade.selectedNews ? trade.selectedNews.split(',').filter(Boolean) : []
       setSelectedNewsEvents(newsIds)
-      setIsNewsDay((trade as any).newsDay || false)
-      setNewsTraded((trade as any).newsTraded || false)
+      setIsNewsDay(trade.newsDay || false)
+      setNewsTraded(trade.newsTraded || false)
 
       // Market Bias
-      setMarketBias((trade as any).marketBias || null)
+      // @ts-ignore - MarketBias type mismatch fix
+      setMarketBias(trade.marketBias || null)
 
       // Timeframes
-      setBiasTimeframe((trade as any).biasTimeframe || null)
-      setNarrativeTimeframe((trade as any).narrativeTimeframe || null)
-      setEntryTimeframe((trade as any).entryTimeframe || null)
-      setStructureTimeframe((trade as any).structureTimeframe || null)
+      setBiasTimeframe(trade.biasTimeframe || null)
+      setNarrativeTimeframe(trade.narrativeTimeframe || null)
+      setEntryTimeframe(trade.entryTimeframe || null)
+      setStructureTimeframe(trade.structureTimeframe || null)
 
       // Order Type
-      setOrderType((trade as any).orderType || null)
+      setOrderType(trade.orderType || null)
 
       // Chart Links
-      const links = (trade as any).chartLinks ? (trade as any).chartLinks.split(',').filter(Boolean) : []
+      const links = trade.chartLinks ? trade.chartLinks.split(',').filter(Boolean) : []
       setChartLinks(links.length > 0 ? links : ['', '', '', ''])
 
       // Model
-      const modelId = (trade as any).modelId
+      const modelId = trade.modelId
       if (modelId) {
         const model = tradingModels.find(m => m.id === modelId)
         setSelectedModel(model || null)
-        setSelectedRules((trade as any).selectedRules || [])
+        setSelectedRules(trade.selectedRules || [])
       }
 
       // Form values
       const imageFields = {
-        cardPreviewImage: (trade as any).cardPreviewImage || '',
-        imageOne: (trade as any).imageOne || '',
-        imageTwo: (trade as any).imageTwo || '',
-        imageThree: (trade as any).imageThree || '',
-        imageFour: (trade as any).imageFour || '',
-        imageFive: (trade as any).imageFive || '',
-        imageSix: (trade as any).imageSix || '',
+        cardPreviewImage: trade.cardPreviewImage || '',
+        imageOne: trade.imageOne || '',
+        imageTwo: trade.imageTwo || '',
+        imageThree: trade.imageThree || '',
+        imageFour: trade.imageFour || '',
+        imageFive: trade.imageFive || '',
+        imageSix: trade.imageSix || '',
       }
 
       reset({
         comment: trade.comment || '',
         ...imageFields,
         modelId: modelId || null,
-        selectedRules: (trade as any).selectedRules || [],
-        marketBias: (trade as any).marketBias || null,
-        newsDay: (trade as any).newsDay || false,
+        selectedRules: trade.selectedRules || [],
+        // @ts-ignore
+        marketBias: trade.marketBias || null,
+        newsDay: trade.newsDay || false,
         selectedNews: newsIds,
-        newsTraded: (trade as any).newsTraded || false,
-        biasTimeframe: (trade as any).biasTimeframe || null,
-        narrativeTimeframe: (trade as any).narrativeTimeframe || null,
-        entryTimeframe: (trade as any).entryTimeframe || null,
-        structureTimeframe: (trade as any).structureTimeframe || null,
-        orderType: (trade as any).orderType || null,
+        newsTraded: trade.newsTraded || false,
+        biasTimeframe: trade.biasTimeframe || null,
+        narrativeTimeframe: trade.narrativeTimeframe || null,
+        entryTimeframe: trade.entryTimeframe || null,
+        structureTimeframe: trade.structureTimeframe || null,
+        orderType: trade.orderType || null,
         chartLinks: links,
       })
 
@@ -388,569 +351,92 @@ export default function TradeEditDialog({
             <div className="py-4">
               {/* Tab 1: Notes & Images */}
               <TabsContent value="details" className="mt-0 space-y-8 px-1">
-                {/* Trade Notes */}
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-semibold text-foreground">Trade Notes</h3>
-                    <p className="text-xs text-muted-foreground">Document your thoughts, market conditions, and key takeaways.</p>
-                  </div>
-                  <Controller
-                    name="comment"
-                    control={control}
-                    render={({ field }) => (
-                      <Textarea
-                        {...field}
-                        placeholder="What did you see? What did you learn?"
-                        className="min-h-[160px] resize-none bg-muted/20 border-border/50 focus:bg-background transition-all"
-                      />
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Card Preview Image */}
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-semibold text-foreground">Featured Analysis</h3>
-                      <p className="text-xs text-muted-foreground">The primary image shown in your journal feed.</p>
-                    </div>
-                    <div className="relative aspect-video rounded-xl overflow-hidden border border-border/50 bg-muted/30 group">
-                      {(() => {
-                        const formValue = watchedValues.cardPreviewImage
-                        const tradeValue = (trade as any)?.cardPreviewImage
-                        const imageUrl = (formValue && String(formValue).trim() !== '') ? formValue : (tradeValue && String(tradeValue).trim() !== '') ? tradeValue : ''
-                        return imageUrl !== ''
-                      })() ? (
-                        <>
-                          {!imageErrors.cardPreviewImage ? (
-                            <Image
-                              src={(() => {
-                                const formValue = watchedValues.cardPreviewImage
-                                const tradeValue = (trade as any)?.cardPreviewImage
-                                return (formValue && String(formValue).trim() !== '') ? formValue : (tradeValue && String(tradeValue).trim() !== '') ? tradeValue : ''
-                              })()}
-                              alt="Preview"
-                              fill
-                              className="object-cover"
-                              unoptimized
-                              loading="eager"
-                              onError={() => setImageErrors(prev => ({ ...prev, cardPreviewImage: true }))}
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                              <X className="h-8 w-8 text-destructive/50 mb-2" />
-                              <p className="text-xs text-muted-foreground">Image link broken</p>
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-4 px-4 backdrop-blur-[2px]">
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              className="h-9 px-4 text-xs font-semibold shadow-xl border-white/20 hover:bg-white hover:text-black transition-all"
-                              onClick={() => {
-                                const input = document.createElement('input')
-                                input.type = 'file'
-                                input.accept = 'image/*'
-                                input.onchange = (e) => {
-                                  const file = (e.target as HTMLInputElement).files?.[0]
-                                  if (file) handleImageUpload('cardPreviewImage', file)
-                                }
-                                input.click()
-                              }}
-                            >
-                              <Pencil className="h-3.5 w-3.5 mr-2" />
-                              Replace
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              className="h-9 px-4 text-xs font-semibold shadow-xl hover:bg-red-600 transition-all"
-                              onClick={() => {
-                                setValue('cardPreviewImage', '')
-                                setImageErrors(prev => {
-                                  const newErrors = { ...prev }
-                                  delete newErrors.cardPreviewImage
-                                  return newErrors
-                                })
-                              }}
-                            >
-                              <Trash2 className="h-3.5 w-3.5 mr-2" />
-                              Remove
-                            </Button>
-                          </div>
-                        </>
-                      ) : (
-                        <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-muted/50 transition-colors">
-                          <Plus className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                          <span className="text-xs text-muted-foreground">Upload preview</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) handleImageUpload('cardPreviewImage', file)
-                            }}
-                            disabled={uploadingField === 'cardPreviewImage'}
-                          />
-                        </label>
-                      )}
-                      {uploadingField === 'cardPreviewImage' && (
-                        <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] flex items-center justify-center">
-                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Additional Screenshots */}
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-semibold text-foreground">Gallery</h3>
-                      <p className="text-xs text-muted-foreground">Detailed chart views and execution proofs.</p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(['imageOne', 'imageTwo', 'imageThree', 'imageFour', 'imageFive', 'imageSix'] as const).map((field, idx) => {
-                        const formValue = watchedValues[field]
-                        const tradeValue = (trade as any)?.[field]
-                        const imageUrl = (formValue && String(formValue).trim() !== '') ? formValue : (tradeValue && String(tradeValue).trim() !== '') ? tradeValue : ''
-
-                        return (
-                          <div key={field} className="relative aspect-square rounded-lg overflow-hidden border border-border/50 bg-muted/20 group">
-                            {imageUrl ? (
-                              <>
-                                {!imageErrors[field] ? (
-                                  <Image
-                                    src={imageUrl}
-                                    alt={`Screenshot ${idx + 1}`}
-                                    fill
-                                    className="object-cover"
-                                    unoptimized
-                                    loading="eager"
-                                    onError={() => setImageErrors(prev => ({ ...prev, [field]: true }))}
-                                  />
-                                ) : (
-                                  <div className="absolute inset-0 flex items-center justify-center">
-                                    <X className="h-4 w-4 text-destructive/40" />
-                                  </div>
-                                )}
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-2 backdrop-blur-[1px]">
-                                  <Button
-                                    type="button"
-                                    variant="secondary"
-                                    size="icon"
-                                    className="h-8 w-8 rounded-full bg-white/20 border-white/20 hover:bg-white hover:text-black text-white transition-all scale-90 group-hover:scale-100"
-                                    title="Edit"
-                                    onClick={() => {
-                                      const input = document.createElement('input')
-                                      input.type = 'file'
-                                      input.accept = 'image/*'
-                                      input.onchange = (e) => {
-                                        const file = (e.target as HTMLInputElement).files?.[0]
-                                        if (file) handleImageUpload(field, file)
-                                      }
-                                      input.click()
-                                    }}
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="icon"
-                                    className="h-8 w-8 rounded-full bg-red-500/40 border-red-500/20 hover:bg-red-500 transition-all scale-90 group-hover:scale-100"
-                                    title="Delete"
-                                    onClick={() => {
-                                      setValue(field, '')
-                                      setImageErrors(prev => {
-                                        const newErrors = { ...prev }
-                                        delete newErrors[field]
-                                        return newErrors
-                                      })
-                                    }}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              </>
-                            ) : (
-                              <label className="flex items-center justify-center w-full h-full cursor-pointer hover:bg-muted/50 transition-colors">
-                                <Plus className="h-5 w-5 text-muted-foreground/30" />
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  className="hidden"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0]
-                                    if (file) handleImageUpload(field, file)
-                                  }}
-                                  disabled={uploadingField === field}
-                                />
-                              </label>
-                            )}
-                            {uploadingField === field && (
-                              <div className="absolute inset-0 bg-background/40 flex items-center justify-center">
-                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
+                <TradeNotesTab
+                  control={control}
+                  cardPreviewImage={watchedValues.cardPreviewImage || null}
+                  images={{
+                    imageOne: watchedValues.imageOne || null,
+                    imageTwo: watchedValues.imageTwo || null,
+                    imageThree: watchedValues.imageThree || null,
+                    imageFour: watchedValues.imageFour || null,
+                    imageFive: watchedValues.imageFive || null,
+                    imageSix: watchedValues.imageSix || null,
+                  }}
+                  onUpload={(field, file) => handleImageUpload(field as 'cardPreviewImage' | 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix', file)}
+                  onRemove={(field) => {
+                    setValue(field as 'cardPreviewImage' | 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix', '')
+                    setImageErrors(prev => {
+                      const newErrors = { ...prev }
+                      delete newErrors[field]
+                      return newErrors
+                    })
+                  }}
+                  imageErrors={imageErrors}
+                  setImageError={(field, hasError) => setImageErrors(prev => ({ ...prev, [field]: hasError }))}
+                  uploadingField={uploadingField}
+                />
               </TabsContent>
 
               {/* Tab 2: Strategy & Context */}
               <TabsContent value="strategy" className="mt-0 space-y-6 px-1">
-                {/* Market Bias */}
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-semibold text-foreground">Market Bias</h3>
-                    <p className="text-xs text-muted-foreground">What was your overall market sentiment for this trade?</p>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { value: 'BULLISH', label: 'Bullish', activeClass: 'bg-green-500/10 border-green-500/50 text-green-700 dark:text-green-400' },
-                      { value: 'BEARISH', label: 'Bearish', activeClass: 'bg-red-500/10 border-red-500/50 text-red-700 dark:text-red-400' },
-                      { value: 'UNDECIDED', label: 'Neutral', activeClass: 'bg-muted border-primary/50 text-foreground' }
-                    ].map(({ value, label, activeClass }) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setMarketBias(value as MarketBias)}
-                        className={`py-2.5 px-4 border rounded-md text-sm font-medium transition-all ${marketBias === value
-                          ? activeClass
-                          : 'bg-background hover:bg-muted/50 border-input'
-                          }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
-                  {/* Order Type */}
-                  <div className="space-y-2">
-                    <Label htmlFor="order-type" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Execution Type</Label>
-                    <select
-                      id="order-type"
-                      value={orderType || ''}
-                      onChange={(e) => setOrderType(e.target.value || null)}
-                      className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:border-primary/50 focus:ring-0 transition-colors"
-                    >
-                      <option value="">Not specified</option>
-                      <option value="market">Market Order</option>
-                      <option value="limit">Limit Order</option>
-                    </select>
-                  </div>
-
-                  {/* Trading Model */}
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Trading Model</Label>
-                    <select
-                      value={watchedValues.modelId || ''}
-                      onChange={(e) => {
-                        const modelId = e.target.value || null
-                        setValue('modelId', modelId)
-                        const model = tradingModels.find(m => m.id === modelId)
-                        setSelectedModel(model || null)
-                        setSelectedRules([])
-                      }}
-                      className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:border-primary/50 focus:ring-0 transition-colors"
-                    >
-                      <option value="">No model selected</option>
-                      {tradingModels.map((model) => (
-                        <option key={model.id} value={model.id}>
-                          {model.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {selectedModel && selectedModel.rules.length > 0 && (
-                  <div className="space-y-3 pt-2">
-                    <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Verification Rules</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 border rounded-lg p-4 bg-muted/20">
-                      {selectedModel.rules.map((rule, idx) => (
-                        <label key={idx} className="flex items-center gap-3 cursor-pointer group">
-                          <input
-                            type="checkbox"
-                            checked={selectedRules.includes(rule)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedRules([...selectedRules, rule])
-                              } else {
-                                setSelectedRules(selectedRules.filter(r => r !== rule))
-                              }
-                            }}
-                            className="h-4 w-4 rounded border-input text-primary focus:ring-primary/20 transition-all cursor-pointer"
-                          />
-                          <span className="text-sm text-foreground group-hover:text-primary transition-colors">{rule}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Tags */}
-                <div className="space-y-3 pt-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Trade Tags</Label>
-                  </div>
-                  <div className="p-1">
-                    <TagSelector
-                      selectedTagIds={selectedTags}
-                      onChange={setSelectedTags}
-                    />
-                  </div>
-                </div>
+                <TradeStrategyTab
+                  marketBias={marketBias}
+                  setMarketBias={setMarketBias}
+                  orderType={orderType}
+                  setOrderType={setOrderType}
+                  selectedModelId={watchedValues.modelId || null}
+                  setModelId={(id) => {
+                    setValue('modelId', id)
+                    // Additional logic handled in component or effect if needed
+                    const model = tradingModels.find(m => m.id === id)
+                    setSelectedModel(model || null)
+                    if (id !== watchedValues.modelId) setSelectedRules([])
+                  }}
+                  tradingModels={tradingModels}
+                  selectedModel={selectedModel}
+                  setSelectedModel={setSelectedModel}
+                  selectedRules={selectedRules}
+                  setSelectedRules={setSelectedRules}
+                  selectedTags={selectedTags}
+                  setSelectedTags={setSelectedTags}
+                />
               </TabsContent>
 
               {/* Tab 3: News Events */}
               <TabsContent value="news" className="mt-0 space-y-6 px-1">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-semibold text-foreground">Economic Events</h3>
-                      <p className="text-xs text-muted-foreground">Select relevant economic events that influenced the trade.</p>
-                    </div>
-                    <div className="flex items-center gap-3 bg-muted/40 px-3 py-1.5 rounded-full border border-border/50">
-                      <Label htmlFor="news-day" className="text-xs font-medium cursor-pointer">News Day</Label>
-                      <input
-                        id="news-day"
-                        type="checkbox"
-                        checked={isNewsDay}
-                        onChange={(e) => {
-                          setIsNewsDay(e.target.checked)
-                          if (!e.target.checked) {
-                            setSelectedNewsEvents([])
-                            setNewsTraded(false)
-                          }
-                        }}
-                        className="h-3.5 w-3.5 rounded border-input"
-                      />
-                    </div>
-                  </div>
-
-                  {isNewsDay && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="text"
-                          placeholder="Search news events..."
-                          value={newsSearchQuery}
-                          onChange={(e) => setNewsSearchQuery(e.target.value)}
-                          className="pl-9 bg-muted/20 border-border/50 focus:bg-background transition-all"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                        {['employment', 'inflation', 'interest-rate', 'gdp', 'pmi', 'retail', 'housing', 'trade', 'manufacturing', 'bank-holiday', 'other'].map(category => {
-                          const events = filteredNewsEvents.filter(e => e.category === category)
-                          if (events.length === 0) return null
-
-                          return (
-                            <div key={category} className="space-y-3">
-                              <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">
-                                {category.replace('-', ' ')}
-                              </h4>
-                              <div className="grid grid-cols-1 gap-2">
-                                {events.map(event => (
-                                  <label
-                                    key={event.id}
-                                    className={`flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer group ${selectedNewsEvents.includes(event.id)
-                                      ? 'bg-primary/5 border-primary/30 ring-1 ring-primary/10'
-                                      : 'bg-background hover:bg-muted/50 border-transparent hover:border-border'
-                                      }`}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedNewsEvents.includes(event.id)}
-                                      onChange={(e) => {
-                                        if (e.target.checked) {
-                                          setSelectedNewsEvents([...selectedNewsEvents, event.id])
-                                        } else {
-                                          setSelectedNewsEvents(selectedNewsEvents.filter(id => id !== event.id))
-                                        }
-                                      }}
-                                      className="h-4 w-4 mt-0.5 rounded border-input text-primary focus:ring-primary/20"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2">
-                                        <span className={`text-sm font-medium transition-colors ${selectedNewsEvents.includes(event.id) ? 'text-primary' : 'text-foreground'}`}>
-                                          {event.name}
-                                        </span>
-                                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 bg-muted/60 text-muted-foreground font-normal">
-                                          {event.country}
-                                        </Badge>
-                                      </div>
-                                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 group-hover:line-clamp-none transition-all">
-                                        {event.description}
-                                      </p>
-                                    </div>
-                                  </label>
-                                ))}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-
-                      {selectedNewsEvents.length > 0 && (
-                        <div className="flex items-center gap-3 p-4 border rounded-xl bg-primary/5 border-primary/20">
-                          <input
-                            id="news-traded"
-                            type="checkbox"
-                            checked={newsTraded}
-                            onChange={(e) => setNewsTraded(e.target.checked)}
-                            className="h-4 w-4 rounded border-primary/30 text-primary"
-                          />
-                          <Label htmlFor="news-traded" className="cursor-pointer">
-                            <span className="text-sm font-semibold text-primary">Execution during news</span>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
-                              I actively managed or executed positions during this high-impact release.
-                            </p>
-                          </Label>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                <TradeNewsTab
+                  isNewsDay={isNewsDay}
+                  setIsNewsDay={(val) => {
+                    setIsNewsDay(val)
+                    if (!val) {
+                      setSelectedNewsEvents([])
+                      setNewsTraded(false)
+                    }
+                  }}
+                  newsSearchQuery={newsSearchQuery}
+                  setNewsSearchQuery={setNewsSearchQuery}
+                  filteredNewsEvents={filteredNewsEvents}
+                  selectedNewsEvents={selectedNewsEvents}
+                  setSelectedNewsEvents={setSelectedNewsEvents}
+                  newsTraded={newsTraded}
+                  setNewsTraded={setNewsTraded}
+                />
               </TabsContent>
 
               {/* Tab 4: Timeframes */}
               <TabsContent value="timeframes" className="mt-0 space-y-8 px-1">
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-semibold text-foreground">Multi-Timeframe Analysis</h3>
-                    <p className="text-xs text-muted-foreground">Select the timeframes used for each stage of your analysis.</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-5 max-w-md">
-                    {/* Bias Timeframe */}
-                    <div className="space-y-2">
-                      <Label htmlFor="bias-timeframe" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Bias</Label>
-                      <select
-                        id="bias-timeframe"
-                        value={biasTimeframe || ''}
-                        onChange={(e) => setBiasTimeframe(e.target.value || null)}
-                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm transition-colors focus:border-primary/50 focus:ring-0"
-                      >
-                        <option value="">None</option>
-                        {TIMEFRAME_OPTIONS.map(tf => (
-                          <option key={tf.value} value={tf.value}>{tf.label}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Structure Timeframe */}
-                    <div className="space-y-2">
-                      <Label htmlFor="structure-timeframe" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Structure</Label>
-                      <select
-                        id="structure-timeframe"
-                        value={structureTimeframe || ''}
-                        onChange={(e) => setStructureTimeframe(e.target.value || null)}
-                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm transition-colors focus:border-primary/50 focus:ring-0"
-                      >
-                        <option value="">None</option>
-                        {TIMEFRAME_OPTIONS.map(tf => (
-                          <option key={tf.value} value={tf.value}>{tf.label}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Narrative Timeframe */}
-                    <div className="space-y-2">
-                      <Label htmlFor="narrative-timeframe" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Narrative</Label>
-                      <select
-                        id="narrative-timeframe"
-                        value={narrativeTimeframe || ''}
-                        onChange={(e) => setNarrativeTimeframe(e.target.value || null)}
-                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm transition-colors focus:border-primary/50 focus:ring-0"
-                      >
-                        <option value="">None</option>
-                        {TIMEFRAME_OPTIONS.map(tf => (
-                          <option key={tf.value} value={tf.value}>{tf.label}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Entry Timeframe */}
-                    <div className="space-y-2">
-                      <Label htmlFor="entry-timeframe" className="text-[10px] font-bold uppercase tracking-wider text-primary">Entry</Label>
-                      <select
-                        id="entry-timeframe"
-                        value={entryTimeframe || ''}
-                        onChange={(e) => setEntryTimeframe(e.target.value || null)}
-                        className="w-full h-9 rounded-md border border-primary/30 bg-background px-3 py-1 text-sm transition-colors focus:border-primary focus:ring-0 font-medium"
-                      >
-                        <option value="">None</option>
-                        {TIMEFRAME_OPTIONS.map(tf => (
-                          <option key={tf.value} value={tf.value}>{tf.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Chart Links */}
-                <div className="space-y-4 pt-4 border-t border-border/50">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-semibold text-foreground">Chart Analysis Links</h3>
-                    <p className="text-xs text-muted-foreground">Add links to your TradingView chart analysis (up to 8)</p>
-                  </div>
-                  <div className="space-y-3 max-w-2xl">
-                    {chartLinks.map((link, index) => (
-                      <div key={index} className="flex items-center gap-2 group">
-                        <div className="flex-1">
-                          <Input
-                            type="text"
-                            placeholder="https://www.tradingview.com/x/..."
-                            value={link}
-                            onChange={(e) => {
-                              const newLinks = [...chartLinks]
-                              newLinks[index] = e.target.value
-                              setChartLinks(newLinks)
-                            }}
-                            className="text-sm h-9 bg-muted/20 border-border/50 focus:bg-background transition-all"
-                          />
-                        </div>
-                        {index >= 4 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9 text-muted-foreground hover:text-destructive transition-colors"
-                            onClick={() => {
-                              const newLinks = chartLinks.filter((_, i) => i !== index)
-                              setChartLinks(newLinks)
-                            }}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    {chartLinks.length < 8 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setChartLinks([...chartLinks, ''])}
-                        className="w-full h-9 border-dashed border-border/60 hover:border-primary/50 text-muted-foreground hover:text-primary transition-all"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Analysis Link ({chartLinks.length}/8)
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                <TradeTimeframesTab
+                  biasTimeframe={biasTimeframe}
+                  setBiasTimeframe={setBiasTimeframe}
+                  structureTimeframe={structureTimeframe}
+                  setStructureTimeframe={setStructureTimeframe}
+                  narrativeTimeframe={narrativeTimeframe}
+                  setNarrativeTimeframe={setNarrativeTimeframe}
+                  entryTimeframe={entryTimeframe}
+                  setEntryTimeframe={setEntryTimeframe}
+                  chartLinks={chartLinks}
+                  setChartLinks={setChartLinks}
+                />
               </TabsContent>
             </div >
           </div >

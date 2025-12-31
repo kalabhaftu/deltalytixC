@@ -9,6 +9,7 @@ import { ConsoleFilterWrapper } from "@/components/console-filter-wrapper";
 import { ThemeProvider } from "@/context/theme-provider";
 import { DeploymentMonitor } from "@/components/deployment-monitor";
 import { ErrorBoundaryWrapper } from "@/components/error-boundary";
+import { SeasonalManager } from "@/app/dashboard/components/seasonal/seasonal-manager";
 import Script from "next/script"
 
 // Font configuration now imported from lib/fonts.ts
@@ -160,14 +161,14 @@ export default async function RootLayout({
           href="https://fonts.gstatic.com"
           crossOrigin="anonymous"
         />
-        
+
         {/* Performance: Preconnect to Supabase for faster API calls */}
         <link
           rel="preconnect"
           href={process.env.NEXT_PUBLIC_SUPABASE_URL || ''}
           crossOrigin="anonymous"
         />
-        
+
         {/* Performance: DNS prefetch for external resources */}
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -179,17 +180,17 @@ export default async function RootLayout({
           crossOrigin="anonymous"
         />
 
-        <link 
-          rel="apple-touch-icon" 
-          sizes="180x180" 
-          href="/apple-touch-icon.png" 
+        <link
+          rel="apple-touch-icon"
+          sizes="180x180"
+          href="/apple-touch-icon.png"
         />
-        <link 
+        <link
           rel="apple-touch-icon-precomposed"
           sizes="180x180"
           href="/apple-touch-icon-precomposed.png"
         />
-          <style>
+        <style>
           {`
             /* Font fallback for when Google Fonts fails */
             @font-face {
@@ -259,6 +260,7 @@ export default async function RootLayout({
                 <DeploymentMonitor />
                 <ConsentBanner />
                 <SafeToaster />
+                <SeasonalManager />
                 {children}
               </AuthProvider>
             </ConsoleFilterWrapper>

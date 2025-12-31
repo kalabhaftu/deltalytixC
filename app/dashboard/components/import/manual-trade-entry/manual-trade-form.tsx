@@ -16,12 +16,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { 
-  Calculator, 
-  TrendingUp, 
-  TrendingDown, 
-  AlertCircle, 
-  ArrowLeft, 
+import {
+  Calculator,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Loader2,
@@ -76,7 +76,7 @@ const COMMON_INSTRUMENTS = [
 // Trading sessions
 const TRADING_SESSIONS = [
   { value: 'asian', label: 'Asian Session' },
-  { value: 'london', label: 'London Session' }, 
+  { value: 'london', label: 'London Session' },
   { value: 'new-york', label: 'New York Session' },
   { value: 'overlap', label: 'Session Overlap' },
 ]
@@ -156,7 +156,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
   const [calculatedDuration, setCalculatedDuration] = useState<string>('')
   const [instrumentOpen, setInstrumentOpen] = useState(false)
   const [instrumentSearch, setInstrumentSearch] = useState('')
-  
+
   const user = useUserStore(state => state.user)
   const supabaseUser = useUserStore(state => state.supabaseUser)
 
@@ -172,7 +172,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
     mode: 'onChange',
     defaultValues: {
       entryDate: new Date().toISOString().split('T')[0],
-      entryTime: new Date().toTimeString().split(' ')[0].slice(0, 5),   
+      entryTime: new Date().toTimeString().split(' ')[0].slice(0, 5),
       closeDate: new Date().toISOString().split('T')[0],
       closeTime: new Date().toTimeString().split(' ')[0].slice(0, 5),
       quantity: 1,
@@ -215,7 +215,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
   }, [entryDate, entryTime, closeDate, closeTime])
 
   const { accounts: allAccounts, isLoading: isLoadingAccounts } = useAccounts()
-  
+
   const unifiedAccounts = useMemo(() => {
     return allAccounts.filter(acc => {
       if (acc.accountType === 'live') return true
@@ -277,7 +277,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
 
     setIsSubmitting(true)
     setPhaseValidationError(null)
-    
+
     try {
       // Validate prop firm account phase
       if (data.accountNumber) {
@@ -287,9 +287,9 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ accountNumber: data.accountNumber })
           })
-          
+
           const phaseResult = await phaseCheckResponse.json()
-          
+
           if (!phaseCheckResponse.ok && phaseCheckResponse.status === 403) {
             setPhaseValidationError(phaseResult.error || 'Please set the ID for the current phase before adding trades.')
             toast.error("Phase ID Required", { description: phaseResult.error })
@@ -302,7 +302,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
 
       const entryDateTime = `${data.entryDate} ${data.entryTime}`
       const closeDateTime = `${data.closeDate} ${data.closeTime}`
-      
+
       const entryDateObj = new Date(`${data.entryDate}T${data.entryTime}`)
       const closeDateObj = new Date(`${data.closeDate}T${data.closeTime}`)
       const timeInPosition = (closeDateObj.getTime() - entryDateObj.getTime()) / (1000 * 60 * 60)
@@ -331,7 +331,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
       const completeTrade: any = { ...tradeData, id: tradeId, createdAt: new Date() }
 
       const targetAccount = unifiedAccounts.find(acc => acc.number === data.accountNumber)
-      
+
       if (!targetAccount) {
         toast.error('Account Not Found', { description: 'Could not find the selected account.' })
         return
@@ -430,8 +430,8 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0" align="start">
                       <Command>
-                        <CommandInput 
-                          placeholder="Search or type custom..." 
+                        <CommandInput
+                          placeholder="Search or type custom..."
                           value={instrumentSearch}
                           onValueChange={(value) => {
                             setInstrumentSearch(value)
@@ -534,8 +534,9 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Quantity *</Label>
+              <Label htmlFor="quantity">Quantity *</Label>
               <Input
+                id="quantity"
                 type="number"
                 min="0.01"
                 step="0.01"
@@ -548,8 +549,9 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Entry Price *</Label>
+              <Label htmlFor="entryPrice">Entry Price *</Label>
               <Input
+                id="entryPrice"
                 type="number"
                 step="any"
                 className="h-11"
@@ -562,8 +564,9 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Exit Price *</Label>
+              <Label htmlFor="closePrice">Exit Price *</Label>
               <Input
+                id="closePrice"
                 type="number"
                 step="any"
                 className="h-11"
@@ -595,8 +598,8 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
         return (
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label>Entry Date *</Label>
-              <Input type="date" className="h-11" {...register('entryDate')} />
+              <Label htmlFor="entryDate">Entry Date *</Label>
+              <Input id="entryDate" type="date" className="h-11" {...register('entryDate')} />
               {errors.entryDate && (
                 <p className="text-sm text-destructive">{errors.entryDate.message}</p>
               )}
@@ -804,7 +807,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
             </p>
           </div>
         </div>
-        
+
         {/* Progress steps */}
         <div className="flex items-center gap-1">
           {stepInfo.map((s, idx) => {
@@ -814,8 +817,8 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
                 <div
                   className={cn(
                     "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-all",
-                    currentStep === s.step 
-                      ? "bg-primary text-primary-foreground font-medium" 
+                    currentStep === s.step
+                      ? "bg-primary text-primary-foreground font-medium"
                       : currentStep > s.step
                         ? "bg-primary/20 text-primary"
                         : "bg-muted text-muted-foreground"
@@ -846,7 +849,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
           {renderStepContent()}
         </form>
       </div>
-      
+
       {/* Footer */}
       <div className="flex-none border-t p-4">
         <div className="flex justify-between items-center">
@@ -857,7 +860,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
           >
             Cancel
           </Button>
-          
+
           <div className="flex items-center gap-3">
             {currentStep > 1 && (
               <Button
@@ -870,7 +873,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
                 Back
               </Button>
             )}
-            
+
             {currentStep < TOTAL_STEPS ? (
               <Button
                 type="button"

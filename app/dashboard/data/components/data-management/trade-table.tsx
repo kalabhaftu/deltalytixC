@@ -17,7 +17,7 @@ import { TradeDetailView } from '@/app/dashboard/components/tables/trade-detail-
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
-import { formatQuantity, formatTradeData, BREAK_EVEN_THRESHOLD } from '@/lib/utils'
+import { formatQuantity, formatTradeData, BREAK_EVEN_THRESHOLD, ensureExtendedTrade } from '@/lib/utils'
 
 type SortConfig = {
   key: keyof Trade
@@ -504,53 +504,84 @@ export default function TradeTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedTrades.map((trade) => {
-              const formatted = formatTradeData(trade)
-              return (
-                <TableRow key={trade.id}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedTrades.has(trade.id)}
-                      onCheckedChange={() => toggleTradeSelection(trade.id)}
-                    />
-                  </TableCell>
-                  <TableCell>{formatted.instrument}</TableCell>
-                  <TableCell>{formatted.accountNumber}</TableCell>
-                  <TableCell>{formatted.side}</TableCell>
-                  <TableCell>{formatted.quantity}</TableCell>
-                  <TableCell>{formatted.entryPrice}</TableCell>
-                  <TableCell>{formatted.closePrice}</TableCell>
-                  <TableCell>{formatted.entryDateFormatted}</TableCell>
-                  <TableCell>{formatted.closeDateFormatted}</TableCell>
-                  <TableCell>{formatted.pnlFormatted}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedTradeForView(trade)
-                          setIsDetailViewOpen(true)
-                        }}
-                      >
-                        View
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedTradeForEdit(trade)
-                          setIsEnhancedEditOpen(true)
-                        }}
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit
-                      </Button>
+            {paginatedTrades.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={11} className="h-[400px] text-center">
+                  <div className="flex flex-col items-center justify-center space-y-4">
+                    <div className="rounded-full bg-muted/30 p-6">
+                      {activeFiltersCount > 0 ? (
+                        <Filter className="h-10 w-10 text-muted-foreground" />
+                      ) : (
+                        <TrendingUp className="h-10 w-10 text-muted-foreground" />
+                      )}
                     </div>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
+                    <div className="space-y-1">
+                      <h3 className="font-semibold text-lg tracking-tight">
+                        {activeFiltersCount > 0 ? "No matching trades" : "No trades yet"}
+                      </h3>
+                      <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                        {activeFiltersCount > 0
+                          ? "Try adjusting your filters or search terms to find what you're looking for."
+                          : "Import your trading history to start analyzing your performance."}
+                      </p>
+                    </div>
+                    {activeFiltersCount > 0 && (
+                      <Button variant="outline" onClick={clearAllFilters} className="mt-2">
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedTrades.map((trade) => {
+                const formatted = formatTradeData(trade)
+                return (
+                  <TableRow key={trade.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedTrades.has(trade.id)}
+                        onCheckedChange={() => toggleTradeSelection(trade.id)}
+                      />
+                    </TableCell>
+                    <TableCell>{formatted.instrument}</TableCell>
+                    <TableCell>{formatted.accountNumber}</TableCell>
+                    <TableCell>{formatted.side}</TableCell>
+                    <TableCell>{formatted.quantity}</TableCell>
+                    <TableCell>{formatted.entryPrice}</TableCell>
+                    <TableCell>{formatted.closePrice}</TableCell>
+                    <TableCell>{formatted.entryDateFormatted}</TableCell>
+                    <TableCell>{formatted.closeDateFormatted}</TableCell>
+                    <TableCell>{formatted.pnlFormatted}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTradeForView(trade)
+                            setIsDetailViewOpen(true)
+                          }}
+                        >
+                          View
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTradeForEdit(trade)
+                            setIsEnhancedEditOpen(true)
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
+            )}
           </TableBody>
         </Table>
       </div>
@@ -621,7 +652,7 @@ export default function TradeTable() {
           setIsEnhancedEditOpen(false)
           setSelectedTradeForEdit(null)
         }}
-        trade={selectedTradeForEdit}
+        trade={selectedTradeForEdit ? ensureExtendedTrade(selectedTradeForEdit) : null}
         onSave={handleSaveTrade}
       />
     </div>

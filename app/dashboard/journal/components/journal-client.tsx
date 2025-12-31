@@ -55,7 +55,7 @@ import { groupTradesByExecution, formatCurrency, BREAK_EVEN_THRESHOLD } from '@/
 import Fuse from 'fuse.js'
 import { getAssetSearchTerms } from '@/lib/asset-aliases'
 import { useTags } from '@/context/tags-provider'
-import { cn } from '@/lib/utils'
+import { cn, ensureExtendedTrade } from '@/lib/utils'
 
 const ITEMS_PER_PAGE = 21
 
@@ -762,7 +762,7 @@ export function JournalClient() {
           setIsEditDialogOpen(false)
           setSelectedTrade(null)
         }}
-        trade={selectedTrade}
+        trade={selectedTrade ? ensureExtendedTrade(selectedTrade) : null}
         onSave={handleSaveTrade}
       />
 
