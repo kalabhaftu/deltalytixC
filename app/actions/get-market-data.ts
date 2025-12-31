@@ -48,20 +48,20 @@ export async function getMarketData(
         const now = new Date()
         const diffDays = (now.getTime() - (startDate?.getTime() || now.getTime())) / (1000 * 60 * 60 * 24)
 
-        let intervalsToTry: ('1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d')[] = ['5m', '15m', '30m', '1h', '4h', '1d']
+        let intervalsToTry: ('1m' | '5m' | '15m' | '30m' | '1h' | '1d')[] = ['5m', '15m', '30m', '1h', '1d']
 
         if (diffDays < 7) {
-            intervalsToTry = ['1m', '5m', '15m', '30m', '1h', '4h', '1d']
+            intervalsToTry = ['1m', '5m', '15m', '30m', '1h', '1d']
         } else if (diffDays >= 60) {
             // After 60 days, try 15m or higher
-            intervalsToTry = ['15m', '30m', '1h', '4h', '1d']
+            intervalsToTry = ['15m', '30m', '1h', '1d']
         }
 
         let lastError = ''
         for (const queryInterval of intervalsToTry) {
             try {
                 let period1 = startDate ? new Date(startDate.getTime() - 24 * 60 * 60 * 1000) : new Date('2024-01-01')
-                if (queryInterval === '1h' || queryInterval === '4h' || queryInterval === '1d') {
+                if (queryInterval === '1h' || queryInterval === '1d') {
                     period1 = startDate ? new Date(startDate.getTime() - 30 * 24 * 60 * 60 * 1000) : period1
                 }
 
