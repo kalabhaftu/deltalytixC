@@ -1,71 +1,14 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useEffect } from 'react'
 import confetti from 'canvas-confetti'
+import { usePathname } from 'next/navigation'
 
 export function Fireworks() {
-    const triggerFireworks = useCallback(() => {
-        const duration = 15 * 1000
-        const animationEnd = Date.now() + duration
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 50 }
+    const pathname = usePathname()
 
-        const randomInRange = (min: number, max: number) => {
-            return Math.random() * (max - min) + min
-        }
-
-        const interval: any = setInterval(function () {
-            const timeLeft = animationEnd - Date.now()
-
-            if (timeLeft <= 0) {
-                return clearInterval(interval)
-            }
-
-            const particleCount = 50 * (timeLeft / duration)
-
-            // Since particles fall down, start a bit higher than random
-            confetti({
-                ...defaults,
-                particleCount,
-                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-            })
-            confetti({
-                ...defaults,
-                particleCount,
-                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-            })
-        }, 250)
-    }, [])
-
-    // Realistic Fireworks Effect
-    const realisticFireworks = useCallback(() => {
-        const duration = 15 * 1000
-        const animationEnd = Date.now() + duration
-
-        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min
-
-        const interval: any = setInterval(function () {
-            const timeLeft = animationEnd - Date.now()
-
-            if (timeLeft <= 0) {
-                return clearInterval(interval)
-            }
-
-            const particleCount = 50 * (timeLeft / duration)
-
-            // Random bursts
-            confetti({
-                startVelocity: 30,
-                spread: 360,
-                ticks: 60,
-                zIndex: 50,
-                particleCount: Math.floor(particleCount * 0.5),
-                origin: { x: randomInRange(0.1, 0.9), y: Math.random() - 0.2 },
-                colors: ['#ff0000', '#ffa500', '#ffff00', '#008000', '#0000ff', '#4b0082', '#ee82ee']
-            })
-        }, 800) // Slower bursts
-
-        return () => clearInterval(interval)
-    }, [])
+    // Only run on the main dashboard page to avoid annoyance
+    const isDashboard = pathname === '/dashboard'
 
     // High-quality "Real" look from docs
     const fireOne = () => {
@@ -108,16 +51,15 @@ export function Fireworks() {
     }
 
     useEffect(() => {
-        // Fire a burst on mount
-        fireOne();
+        if (!isDashboard) return
 
-        // Then occasional random bursts
-        const i = setInterval(() => {
-            if (Math.random() > 0.7) fireOne();
-        }, 3000)
+        // Fire a single burst on mount after a slight delay
+        const t = setTimeout(() => {
+            fireOne();
+        }, 500)
 
-        return () => clearInterval(i)
-    }, [])
+        return () => clearTimeout(t)
+    }, [isDashboard])
 
     return null
 }

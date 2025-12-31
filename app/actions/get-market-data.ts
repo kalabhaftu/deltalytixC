@@ -90,7 +90,17 @@ export async function getMarketData(
                 }
             } catch (e: any) {
                 console.error(`Error fetching ${queryInterval} for ${querySymbol}:`, e.message)
+
+                // If Rate Limited, don't hammer the API
+                if (e.message.includes('Too Many Requests') || e.message.includes('429')) {
+                    console.error('Aborting retries due to Rate Limit')
+                    lastError = 'Rate Limit Exceeded. Please try again later.'
+                    break
+                }
+
                 lastError = e.message
+                // Add a small delay before next retry to be polite
+                await new Promise(resolve => setTimeout(resolve, 1000))
                 continue
             }
         }
