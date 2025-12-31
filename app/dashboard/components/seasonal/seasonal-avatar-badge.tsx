@@ -16,42 +16,72 @@ export function SeasonalAvatarBadge({ children, className }: SeasonalAvatarBadge
         return <>{children}</>
     }
 
+    // Configuration for different themes
+    const config = {
+        NEW_YEAR: {
+            gradient: "from-yellow-400 via-amber-500 to-yellow-600",
+            badge: "✨",
+            shadow: "shadow-amber-500/20",
+            animationDuration: 3
+        },
+        CHRISTMAS: {
+            gradient: "from-red-500 via-green-500 to-red-600",
+            badge: "🎄",
+            shadow: "shadow-green-500/20",
+            animationDuration: 4
+        },
+        HALLOWEEN: {
+            gradient: "from-orange-500 via-purple-600 to-orange-500",
+            badge: "🎃",
+            shadow: "shadow-orange-500/20",
+            animationDuration: 3
+        },
+        VALENTINES: {
+            gradient: "from-pink-500 via-red-500 to-pink-500",
+            badge: "❤️",
+            shadow: "shadow-pink-500/20",
+            animationDuration: 3
+        }
+    }
+
+    const currentConfig = config[theme as keyof typeof config]
+
+    if (!currentConfig) return <>{children}</>
+
     return (
         <div className={cn("relative inline-block", className)}>
-            {theme === 'NEW_YEAR' && (
-                <motion.div
-                    className="absolute -top-4 -right-1 z-20 pointer-events-none"
-                    initial={{ rotate: -10, y: -5 }}
-                    animate={{ rotate: 0, y: 0 }}
-                    transition={{ duration: 0.5, type: 'spring' }}
-                >
-                    {/* Party Hat SVG */}
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-md">
-                        <path d="M12 2L2 22H22L12 2Z" fill="#F59E0B" />
-                        <circle cx="12" cy="2" r="2" fill="#EF4444" />
-                        <path d="M6 14L4 18H8L6 14Z" fill="#3B82F6" />
-                        <path d="M18 14L16 18H20L18 14Z" fill="#10B981" />
-                        <path d="M12 12L10 16H14L12 12Z" fill="#EF4444" />
-                    </svg>
-                </motion.div>
-            )}
+            {/* Animated Gradient Ring */}
+            <motion.div
+                className={cn(
+                    "absolute -inset-[2px] rounded-full bg-gradient-to-r opacity-75 blur-[1px]",
+                    currentConfig.gradient,
+                    currentConfig.shadow
+                )}
+                animate={{
+                    backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                }}
+                transition={{
+                    duration: currentConfig.animationDuration,
+                    repeat: Infinity,
+                    ease: "linear"
+                }}
+                style={{ backgroundSize: "200% 200%" }}
+            />
 
-            {theme === 'CHRISTMAS' && (
-                <motion.div
-                    className="absolute -top-3 -right-2 z-20 pointer-events-none"
-                    initial={{ rotate: 10, y: -5 }}
-                    animate={{ rotate: 0, y: 0 }}
-                >
-                    {/* Santa Hat SVG */}
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-md">
-                        <path d="M12 4C8 4 5 8 5 12V16H19V12C19 8 16 4 12 4Z" fill="#EF4444" />
-                        <rect x="4" y="16" width="16" height="4" rx="2" fill="white" />
-                        <circle cx="12" cy="2" r="2" fill="white" />
-                    </svg>
-                </motion.div>
-            )}
+            {/* The Avatar itself */}
+            <div className="relative">
+                {children}
+            </div>
 
-            {children}
+            {/* Status Badge */}
+            <motion.div
+                className="absolute -bottom-1 -right-1 h-5 w-5 bg-background rounded-full flex items-center justify-center text-[10px] border-[1.5px] border-background shadow-sm z-10"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+                <span role="img" aria-label={theme}>{currentConfig.badge}</span>
+            </motion.div>
         </div>
     )
 }
