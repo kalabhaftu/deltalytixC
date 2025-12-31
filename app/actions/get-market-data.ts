@@ -75,7 +75,7 @@ export async function getMarketData(
                 // @ts-ignore - yahoo-finance2 types might not be perfectly aligned with chart result
                 const result = await yahooFinance.chart(querySymbol, queryOptions) as unknown as import('@/types/yahoo-finance').YahooFinanceResult
 
-                if (result && result.quotes && result.quotes.length > 2) {
+                if (result && result.quotes && result.quotes.length > 0) {
                     const candles = result.quotes.map((q: YahooFinanceQuote) => ({
                         time: Math.floor(new Date(q.date).getTime() / 1000),
                         open: q.open,
@@ -85,8 +85,11 @@ export async function getMarketData(
                     })).filter((c: { open: number | null, close: number | null }) => c.open != null && c.close != null)
 
                     return { data: candles }
+                } else {
+                    console.warn(`Empty result for ${queryInterval} on ${querySymbol}`)
                 }
             } catch (e: any) {
+                console.error(`Error fetching ${queryInterval} for ${querySymbol}:`, e.message)
                 lastError = e.message
                 continue
             }
