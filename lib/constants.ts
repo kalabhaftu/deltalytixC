@@ -131,8 +131,8 @@ export const TIMEFRAME_OPTIONS = [
 ] as const
 
 export const MARKET_BIAS_OPTIONS = [
-  { value: 'BULLISH', label: 'Bullish', activeClass: 'bg-green-500/10 border-green-500/50 text-green-700 dark:text-green-400' },
-  { value: 'BEARISH', label: 'Bearish', activeClass: 'bg-red-500/10 border-red-500/50 text-red-700 dark:text-red-400' },
+  { value: 'BULLISH', label: 'Bullish', activeClass: 'bg-long/10 border-long/20 text-long' },
+  { value: 'BEARISH', label: 'Bearish', activeClass: 'bg-short/10 border-short/20 text-short' },
   { value: 'UNDECIDED', label: 'Neutral', activeClass: 'bg-muted border-primary/50 text-foreground' }
 ] as const
 
@@ -149,8 +149,8 @@ export const YAHOO_FINANCE_SYMBOL_MAP: Record<string, string> = {
 export const FOREX_PAIRS = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD']
 
 export const CHART_COLORS = {
-  UP: '#22c55e',   // green-500
-  DOWN: '#ef4444', // red-500
+  UP: '#059669',   // Matches --success
+  DOWN: '#dc2626', // Matches --destructive
   BG: '#ffffff',
   TEXT: '#333333',
   GRID: '#f0f0f0',

@@ -111,9 +111,9 @@ export function TransactionDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {watchedType === 'DEPOSIT' ? (
-              <Plus className="w-5 h-5 text-green-600" />
+              <Plus className="w-5 h-5 text-long" />
             ) : (
-              <Minus className="w-5 h-5 text-red-600" />
+              <Minus className="w-5 h-5 text-short" />
             )}
             {watchedType === 'DEPOSIT' ? 'Deposit Funds' : 'Withdraw Funds'}
           </DialogTitle>
@@ -132,13 +132,13 @@ export function TransactionDialog({
               <SelectContent>
                 <SelectItem value="DEPOSIT">
                   <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-green-600" />
+                    <Plus className="w-4 h-4 text-long" />
                     Deposit
                   </div>
                 </SelectItem>
                 <SelectItem value="WITHDRAWAL">
                   <div className="flex items-center gap-2">
-                    <Minus className="w-4 h-4 text-red-600" />
+                    <Minus className="w-4 h-4 text-short" />
                     Withdrawal
                   </div>
                 </SelectItem>
@@ -161,13 +161,13 @@ export function TransactionDialog({
               />
             </div>
             <p className="text-sm text-muted-foreground">
-              {watchedType === 'DEPOSIT' 
-                ? 'Minimum deposit: $5.00' 
+              {watchedType === 'DEPOSIT'
+                ? 'Minimum deposit: $5.00'
                 : `Minimum withdrawal: $10.00 (Current balance: $${currentBalance.toFixed(2)})`
               }
             </p>
             {form.formState.errors.amount && (
-              <p className="text-sm text-red-600">{form.formState.errors.amount.message}</p>
+              <p className="text-sm text-short">{form.formState.errors.amount.message}</p>
             )}
           </div>
 
@@ -192,7 +192,7 @@ export function TransactionDialog({
             <Button
               type="submit"
               disabled={isLoading}
-              className={watchedType === 'DEPOSIT' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+              className={watchedType === 'DEPOSIT' ? 'bg-long hover:bg-long/90 text-long-foreground' : 'bg-short hover:bg-short/90 text-short-foreground'}
             >
               {isLoading ? 'Processing...' : `${watchedType === 'DEPOSIT' ? 'Deposit' : 'Withdraw'}`}
             </Button>

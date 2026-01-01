@@ -208,8 +208,8 @@ export function CalendarModal({
                                 <span className={cn(
                                   'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
                                   trade.side === 'BUY'
-                                    ? 'bg-emerald-500/10 text-emerald-500'
-                                    : 'bg-red-500/10 text-red-500'
+                                    ? 'bg-long/10 text-long'
+                                    : 'bg-short/10 text-short'
                                 )}>
                                   {trade.side || 'UNKNOWN'}
                                 </span>

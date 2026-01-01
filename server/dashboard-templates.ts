@@ -28,27 +28,29 @@ export interface DashboardTemplate {
 // Global default layout - immutable, always fresh
 // Cannot export non-function from 'use server' file, so keep internal
 const DEFAULT_LAYOUT: WidgetLayout[] = [
-  // Row 1: KPI Widgets (5 slots) - Only 5 KPI widgets shown by default
+  // Row 0: KPI Widgets (5 slots) - Move to the very top
   { i: 'kpi-1', type: 'accountBalancePnl', size: 'kpi', x: 0, y: 0, w: 1, h: 1 },
   { i: 'kpi-2', type: 'tradeWinRate', size: 'kpi', x: 1, y: 0, w: 1, h: 1 },
   { i: 'kpi-3', type: 'dayWinRate', size: 'kpi', x: 2, y: 0, w: 1, h: 1 },
   { i: 'kpi-4', type: 'profitFactor', size: 'kpi', x: 3, y: 0, w: 1, h: 1 },
   { i: 'kpi-5', type: 'avgWinLoss', size: 'kpi', x: 4, y: 0, w: 1, h: 1 },
-  // Row 2: Recent Trades (left, smaller) and Mini Calendar (right, larger)
-  { i: 'recent-trades', type: 'recentTrades', size: 'small', x: 0, y: 1, w: 4, h: 2 },
-  { i: 'mini-calendar', type: 'calendarMini', size: 'large', x: 4, y: 1, w: 8, h: 2 },
-  // Row 3: 3 Chart Widgets (equal columns - 4 columns each in 12-column grid)
-  { i: 'net-daily-pnl', type: 'netDailyPnL', size: 'small-long', x: 0, y: 3, w: 4, h: 2 },
-  { i: 'daily-cumulative-pnl', type: 'dailyCumulativePnL', size: 'small-long', x: 4, y: 3, w: 4, h: 2 },
-  { i: 'account-balance', type: 'accountBalanceChart', size: 'small-long', x: 8, y: 3, w: 4, h: 2 },
-  // Row 4: 3 Standard Height Chart Widgets (equal columns - 4 columns each in 12-column grid)
-  { i: 'weekday-pnl', type: 'weekdayPnL', size: 'small-long', x: 0, y: 5, w: 4, h: 2 },
-  { i: 'trade-duration', type: 'tradeDurationPerformance', size: 'small-long', x: 4, y: 5, w: 4, h: 2 },
-  { i: 'pnl-by-strategy', type: 'pnlByStrategy', size: 'small-long', x: 8, y: 5, w: 4, h: 2 },
-  // Row 5: 3 Taller Performance/Analysis Widgets (equal columns - 4 columns each, TALLER height)
-  { i: 'performance-score', type: 'performanceScore', size: 'small-long', x: 0, y: 7, w: 4, h: 3 },
-  { i: 'pnl-by-instrument', type: 'pnlByInstrument', size: 'small-long', x: 4, y: 7, w: 4, h: 3 },
-  { i: 'win-rate-by-strategy', type: 'winRateByStrategy', size: 'small-long', x: 8, y: 7, w: 4, h: 3 },
+  // Row 1: Recent Trades (left, smaller) and Mini Calendar (right, larger)
+  { i: 'recent-trades', type: 'recentTrades', size: 'small', x: 0, y: 1, w: 4, h: 3 },
+  { i: 'mini-calendar', type: 'calendarMini', size: 'large', x: 4, y: 1, w: 8, h: 3 },
+  // Row 2: 3 Chart Widgets
+  { i: 'net-daily-pnl', type: 'netDailyPnL', size: 'small-long', x: 0, y: 4, w: 4, h: 3 },
+  { i: 'daily-cumulative-pnl', type: 'dailyCumulativePnL', size: 'small-long', x: 4, y: 4, w: 4, h: 3 },
+  { i: 'account-balance', type: 'accountBalanceChart', size: 'small-long', x: 8, y: 4, w: 4, h: 3 },
+  // Row 3: 3 More Charts
+  { i: 'weekday-pnl', type: 'weekdayPnL', size: 'small-long', x: 0, y: 7, w: 4, h: 3 },
+  { i: 'trade-duration', type: 'tradeDurationPerformance', size: 'small-long', x: 4, y: 7, w: 4, h: 3 },
+  { i: 'pnl-by-strategy', type: 'pnlByStrategy', size: 'small-long', x: 8, y: 7, w: 4, h: 3 },
+  // Row 4: 3 Performance/Analysis Widgets
+  { i: 'performance-score', type: 'performanceScore', size: 'small-long', x: 0, y: 10, w: 4, h: 3 },
+  { i: 'pnl-by-instrument', type: 'pnlByInstrument', size: 'small-long', x: 4, y: 10, w: 4, h: 3 },
+  { i: 'win-rate-by-strategy', type: 'winRateByStrategy', size: 'small-long', x: 8, y: 10, w: 4, h: 3 },
+  // Row 5: Full Calendar at the bottom (full width)
+  { i: 'calendar-advanced', type: 'calendarAdvanced', size: 'extra-large', x: 0, y: 13, w: 12, h: 4 },
 ]
 
 /**

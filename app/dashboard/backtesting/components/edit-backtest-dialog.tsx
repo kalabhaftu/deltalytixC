@@ -80,11 +80,11 @@ export function EditBacktestDialog({
       })
       setImages(backtest.images || [])
       setCardPreview(backtest.cardPreviewImage || '')
-      
+
       // CRITICAL FIX: Reset fullscreen image state when dialog opens
       setFullscreenImage(null)
     }
-    
+
     // Cleanup when dialog closes
     if (!isOpen) {
       setFullscreenImage(null)
@@ -183,13 +183,13 @@ export function EditBacktestDialog({
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">Outcome</Label>
-                <p className={`font-bold ${backtest.outcome === 'WIN' ? 'text-green-600 dark:text-green-400' : backtest.outcome === 'LOSS' ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                <p className={`font-bold ${backtest.outcome === 'WIN' ? 'text-long' : backtest.outcome === 'LOSS' ? 'text-short' : 'text-muted-foreground'}`}>
                   {backtest.outcome}
                 </p>
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground">Points/Pips</Label>
-                <p className={`font-bold ${backtest.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                <p className={`font-bold ${backtest.pnl >= 0 ? 'text-long' : 'text-short'}`}>
                   {backtest.pnl >= 0 ? '+' : ''}{backtest.pnl.toFixed(2)}
                 </p>
               </div>
@@ -370,7 +370,7 @@ export function EditBacktestDialog({
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {Array.from({ length: 6 }).map((_, idx) => {
                       const hasImage = images[idx]
-                      
+
                       return (
                         <div key={idx} className="space-y-2">
                           <Label className="text-xs">Screenshot {idx + 1}</Label>

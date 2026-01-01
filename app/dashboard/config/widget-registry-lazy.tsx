@@ -16,8 +16,7 @@ const DayWinRate = lazy(() => import('../components/kpi/day-win-rate'))
 const ProfitFactor = lazy(() => import('../components/kpi/profit-factor'))
 const AvgWinLoss = lazy(() => import('../components/kpi/avg-win-loss'))
 const CurrentStreak = lazy(() => import('../components/kpi/current-streak'))
-const GoalsProgress = lazy(() => import('../components/kpi/goals-progress'))
-const RiskMetrics = lazy(() => import('../components/kpi/risk-metrics'))
+const GoalsRiskCommandCenter = lazy(() => import('../components/kpi/goals-risk-command-center'))
 const SessionAnalysis = lazy(() => import('../components/kpi/session-analysis'))
 
 // Chart components (lazy loaded)
@@ -360,25 +359,15 @@ export const WIDGET_REGISTRY_LAZY: Record<WidgetType, WidgetConfig> = {
     getComponent: ({ size }) => <LazyWidget Component={WinRateByStrategy} size={size} type="winRateByStrategy" />,
     getPreview: () => CreateChartPreview('Win Rate by Strategy')
   },
-  goalsProgress: {
-    type: 'goalsProgress',
-    defaultSize: 'medium',
-    allowedSizes: ['small', 'medium', 'large'],
+  goalsRiskCommandCenter: {
+    type: 'goalsRiskCommandCenter',
+    defaultSize: 'large',
+    allowedSizes: ['medium', 'large', 'extra-large'],
     category: 'statistics',
-    description: 'Track your trading goals and targets',
+    description: 'Combined goals tracker and risk metrics command center',
     previewHeight: 200,
-    getComponent: ({ size }) => <LazyWidget Component={GoalsProgress} size={size} type="goalsProgress" />,
-    getPreview: () => CreateKpiPreview('Goals & Targets')
-  },
-  riskMetrics: {
-    type: 'riskMetrics',
-    defaultSize: 'medium',
-    allowedSizes: ['small', 'medium', 'large'],
-    category: 'statistics',
-    description: 'Monitor your risk exposure and drawdown',
-    previewHeight: 200,
-    getComponent: ({ size }) => <LazyWidget Component={RiskMetrics} size={size} type="riskMetrics" />,
-    getPreview: () => CreateKpiPreview('Risk Metrics')
+    getComponent: ({ size }) => <LazyWidget Component={GoalsRiskCommandCenter} size={size} type="goalsRiskCommandCenter" />,
+    getPreview: () => CreateKpiPreview('Command Center')
   },
   sessionAnalysis: {
     type: 'sessionAnalysis',

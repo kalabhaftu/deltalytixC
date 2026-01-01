@@ -1,26 +1,32 @@
 "use client"
 
 import * as React from "react"
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartConfig, ChartContainer } from "@/components/ui/chart"
-import { useData } from "@/context/data-provider"
-import { cn, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
-import { WidgetSize } from '@/app/dashboard/types/dashboard'
-import { Info, TrendingUp, TrendingDown } from 'lucide-react'
 import {
-  Tooltip as UITooltip,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Cell,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  ReferenceLine
+} from "recharts"
+import { Info } from 'lucide-react'
+import {
+  Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useData } from "@/context/data-provider"
+import { cn, formatNumber, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
+import { WidgetSize } from '@/app/dashboard/types/dashboard'
+import { getWidgetStyles } from '@/app/dashboard/config/widget-dimensions'
 
-const chartConfig = {
-  pnl: {
-    label: "P/L by Instrument",
-    color: "hsl(var(--chart-1))",
-  },
-} satisfies ChartConfig
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface PnLByInstrumentProps {
   size?: WidgetSize
@@ -35,7 +41,96 @@ interface InstrumentData {
   winRate: number
 }
 
-const getNiceStep = (value: number) => {
+// ============================================================================
+// CONSTANTS - Tradezella Premium Styling
+// ============================================================================
+
+const COLORS = {
+  profit: 'hsl(142 76% 36%)',
+  loss: 'hsl(0 84% 60%)',
+  grid: 'hsl(var(--border))',
+  axis: 'hsl(var(--muted-foreground))'
+} as const
+
+const CHART_CONFIG = {
+  gridOpacity: 0.25,
+  barRadius: [4, 4, 0, 0] as [number, number, number, number],
+  referenceLineOpacity: 0.4
+} as const
+
+// ============================================================================
+// TOOLTIP COMPONENT - Glassmorphism Style
+// ============================================================================
+
+function ChartTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null
+
+  const data = payload[0].payload as InstrumentData
+  const isProfit = data.pnl >= 0
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value)
+  }
+
+  return (
+    <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl min-w-[180px]">
+      {/* Instrument Header */}
+      <p className="text-sm font-bold mb-2">{data.instrument}</p>
+
+      {/* P/L - Large & Bold */}
+      <p className={cn(
+        "text-2xl font-bold tracking-tight",
+        isProfit ? "text-emerald-500" : "text-red-500"
+      )}>
+        {formatCurrency(data.pnl)}
+      </p>
+
+      {/* Stats */}
+      <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Trades</span>
+          <span className="font-semibold">{data.trades}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Win Rate</span>
+          <span className="font-semibold">{data.winRate.toFixed(0)}%</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 pt-2">
+          <div className="text-center p-2 bg-emerald-500/10 rounded-lg">
+            <p className="text-sm font-bold text-emerald-500">{data.wins}</p>
+            <p className="text-[10px] text-muted-foreground">Wins</p>
+          </div>
+          <div className="text-center p-2 bg-red-500/10 rounded-lg">
+            <p className="text-sm font-bold text-red-500">{data.losses}</p>
+            <p className="text-[10px] text-muted-foreground">Losses</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+function formatAxisValue(value: number): string {
+  const absValue = Math.abs(value)
+  if (absValue >= 1000000) {
+    return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000000, 1)}M`
+  }
+  if (absValue >= 1000) {
+    return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000, 1)}k`
+  }
+  return `${value < 0 ? '-' : ''}$${formatNumber(absValue, 0)}`
+}
+
+function getNiceStep(value: number): number {
   if (!isFinite(value) || value <= 0) return 25
   const exponent = Math.floor(Math.log10(value))
   const base = Math.pow(10, exponent)
@@ -48,15 +143,23 @@ const getNiceStep = (value: number) => {
   return 10 * base
 }
 
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
 export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrumentProps) {
+  // ---------------------------------------------------------------------------
+  // DATA HOOKS (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const { formattedTrades } = useData()
 
+  // ---------------------------------------------------------------------------
+  // DATA PROCESSING (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const chartData = React.useMemo(() => {
-    // CRITICAL FIX: Group trades first to handle partial closes correctly
     const { groupTradesByExecution } = require('@/lib/utils')
     const groupedTrades = groupTradesByExecution(formattedTrades)
 
-    // Group trades by instrument
     const instrumentMap: Record<string, { pnl: number; trades: number; wins: number; losses: number }> = {}
 
     groupedTrades.forEach((trade: any) => {
@@ -77,8 +180,7 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
       }
     })
 
-    // Convert to array and calculate win rate
-    const data: InstrumentData[] = Object.entries(instrumentMap).map(([instrument, stats]: [string, { pnl: number; trades: number; wins: number; losses: number }]) => ({
+    const data: InstrumentData[] = Object.entries(instrumentMap).map(([instrument, stats]) => ({
       instrument,
       pnl: stats.pnl,
       trades: stats.trades,
@@ -87,19 +189,12 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
       winRate: stats.trades > 0 ? (stats.wins / stats.trades) * 100 : 0,
     }))
 
-    // Sort by PnL (highest first)
-    return data.sort((a: InstrumentData, b: InstrumentData) => b.pnl - a.pnl)
+    return data.sort((a, b) => b.pnl - a.pnl)
   }, [formattedTrades])
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value)
-  }
-
+  // ---------------------------------------------------------------------------
+  // Y-AXIS DOMAIN CALCULATION (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const { yDomain, yTicks } = React.useMemo(() => {
     if (!chartData.length) {
       return {
@@ -112,7 +207,6 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
     const minValue = Math.min(...pnls)
     const maxValue = Math.max(...pnls)
 
-    // All positive
     if (minValue >= 0) {
       const step = getNiceStep(maxValue / 4 || 1)
       const niceMax = step * 4
@@ -122,7 +216,6 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
       }
     }
 
-    // All negative
     if (maxValue <= 0) {
       const step = getNiceStep(Math.abs(minValue) / 4 || 1)
       const niceMin = step * 4
@@ -141,191 +234,107 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
     return { yDomain: domain, yTicks: ticks }
   }, [chartData])
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload as InstrumentData
-      return (
-        <div className="rounded-lg border bg-background p-3 shadow-lg">
-          <div className="grid gap-2">
-            <div className="font-semibold text-sm">{data.instrument}</div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-              <span className="text-muted-foreground">P&L:</span>
-              <span className={cn("font-medium", data.pnl >= 0 ? "text-green-600" : "text-red-600")}>
-                {formatCurrency(data.pnl)}
-              </span>
-              <span className="text-muted-foreground">Trades:</span>
-              <span className="font-medium">{data.trades} ({data.wins}W/{data.losses}L)</span>
-              <span className="text-muted-foreground">Win Rate:</span>
-              <span className="font-medium">{data.winRate.toFixed(1)}%</span>
-            </div>
-          </div>
-        </div>
-      )
-    }
-    return null
-  }
+  // ---------------------------------------------------------------------------
+  // SIZE-RESPONSIVE VALUES
+  // ---------------------------------------------------------------------------
+  const isCompact = size === 'small' || size === 'small-long'
+  const widgetStyles = getWidgetStyles(size || 'small-long')
 
-  const totalPnl = chartData.reduce((sum: number, item: InstrumentData) => sum + item.pnl, 0)
-  const bestInstrument = chartData.length > 0 ? chartData[0] : null
-  const worstInstrument = chartData.length > 0 ? chartData[chartData.length - 1] : null
-
-  const showAngledTicks = chartData.length > 6
-
+  // ---------------------------------------------------------------------------
+  // RENDER
+  // ---------------------------------------------------------------------------
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader
-        className={cn(
-          "flex flex-row items-center justify-between space-y-0 border-b shrink-0",
-          size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
-        )}
-      >
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-1.5">
-            <CardTitle
-              className={cn(
-                "line-clamp-1",
-                size === 'small-long' ? "text-sm" : "text-base"
-              )}
-            >
-              P&L by Instrument
-            </CardTitle>
-            <TooltipProvider delayDuration={100}>
-              <UITooltip>
-                <TooltipTrigger asChild>
-                  <Info className={cn(
-                    "text-muted-foreground hover:text-foreground transition-colors cursor-help",
-                    size === 'small-long' ? "h-3.5 w-3.5" : "h-4 w-4"
-                  )} />
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[220px]">
-                  <p className="text-xs">Profit & Loss breakdown by trading instrument/pair. Shows total P&L, trade count, and win rate for each instrument.</p>
-                </TooltipContent>
-              </UITooltip>
-            </TooltipProvider>
-          </div>
-
-          {/* Summary Badge */}
-          <div className={cn("flex items-center gap-2", totalPnl >= 0 ? "text-green-600" : "text-red-600")}>
-            {totalPnl >= 0 ? (
-              <TrendingUp className={cn("h-4 w-4", size === 'small-long' && "h-3 w-3")} />
-            ) : (
-              <TrendingDown className={cn("h-4 w-4", size === 'small-long' && "h-3 w-3")} />
-            )}
-            <span className={cn("font-bold", size === 'small-long' ? "text-sm" : "text-base")}>
-              {formatCurrency(totalPnl)}
-            </span>
-          </div>
+    <Card className="flex flex-col bg-card" style={{ height: widgetStyles.height }}>
+      {/* Header */}
+      <CardHeader className="flex flex-row items-center justify-between shrink-0 border-b border-border/50 h-12 px-5">
+        <div className="flex items-center gap-2">
+          <CardTitle className={cn(
+            "font-semibold tracking-tight",
+            isCompact ? "text-sm" : "text-base"
+          )}>
+            P/L by Instrument
+          </CardTitle>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Profit and Loss breakdown by trading instrument</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </CardHeader>
 
-      <CardContent
-        className={cn(
-          "flex-1 min-h-[280px]",
-          size === 'small' ? "p-1" : "p-2 sm:p-4"
-        )}
-      >
-        {chartData.length > 0 ? (
-          <div className="w-full h-full">
-            <ChartContainer config={chartConfig} className="w-full h-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  margin={
-                    size === 'small' || size === 'small-long'
-                      ? { left: -10, right: -10, top: 0, bottom: showAngledTicks ? 30 : 10 }
-                      : { left: -20, right: -10, top: 5, bottom: showAngledTicks ? 40 : 15 }
-                  }
-                  barGap={0}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="hsl(var(--border))"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="instrument"
-                    tickLine={false}
-                    axisLine={false}
-                    height={size === 'small' || size === 'small-long' ? 20 : 24}
-                    tickMargin={showAngledTicks ? 12 : size === 'small' || size === 'small-long' ? 4 : 8}
-                    tick={{
-                      fontSize: size === 'small' || size === 'small-long' ? 9 : 11,
-                      fill: 'currentColor'
-                    }}
-                    interval={0}
-                    angle={showAngledTicks ? -30 : 0}
-                    textAnchor={showAngledTicks ? "end" : "middle"}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    width={60}
-                    tickMargin={4}
-                    tick={{
-                      fontSize: size === 'small' || size === 'small-long' ? 9 : 11,
-                      fill: 'currentColor'
-                    }}
-                    domain={yDomain}
-                    ticks={yTicks}
-                    tickFormatter={(value) => formatCurrency(value)}
-                  />
-                  <ReferenceLine
-                    y={0}
-                    stroke="hsl(var(--muted-foreground))"
-                    strokeDasharray="3 3"
-                    strokeOpacity={0.5}
-                  />
-                  <Tooltip
-                    content={<CustomTooltip />}
-                    wrapperStyle={{
-                      fontSize: size === 'small' || size === 'small-long' ? '10px' : '12px',
-                      zIndex: 1000
-                    }}
-                  />
-                  <Bar
-                    dataKey="pnl"
-                    radius={[3, 3, 0, 0]}
-                    maxBarSize={size === 'small' || size === 'small-long' ? 40 : 60}
-                  >
-                    {chartData.map((entry: InstrumentData, index: number) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.pnl >= 0 ? 'hsl(var(--chart-profit))' : 'hsl(var(--chart-loss))'}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center min-h-[280px]">
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">No instrument data available</p>
-              <p className="text-xs text-muted-foreground">Import trades to see P&L by instrument</p>
-            </div>
-          </div>
-        )}
+      {/* Chart Container */}
+      <CardContent className="flex-1 p-0 relative min-h-[100px]">
+        <div className="absolute inset-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
+              barGap={4}
+            >
+              {/* Subtle Grid - Horizontal Only */}
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={COLORS.grid}
+                strokeOpacity={CHART_CONFIG.gridOpacity}
+                vertical={false}
+              />
 
-        {/* Summary Stats - Only show when there's data */}
-        {chartData.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t">
-            {bestInstrument && (
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Best Performer</p>
-                <p className="text-sm font-semibold truncate">{bestInstrument.instrument}</p>
-                <p className="text-xs text-green-600 font-medium">{formatCurrency(bestInstrument.pnl)}</p>
-              </div>
-            )}
-            {worstInstrument && worstInstrument.pnl < 0 && (
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Worst Performer</p>
-                <p className="text-sm font-semibold truncate">{worstInstrument.instrument}</p>
-                <p className="text-xs text-red-600 font-medium">{formatCurrency(worstInstrument.pnl)}</p>
-              </div>
-            )}
-          </div>
-        )}
+              {/* X Axis - Instruments */}
+              <XAxis
+                dataKey="instrument"
+                stroke={COLORS.axis}
+                fontSize={isCompact ? 9 : 10}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tickFormatter={(value) => value.length > 8 ? value.substring(0, 6) + '..' : value}
+              />
+
+              {/* Y Axis - Currency */}
+              <YAxis
+                tickFormatter={formatAxisValue}
+                stroke={COLORS.axis}
+                fontSize={isCompact ? 10 : 11}
+                tickLine={false}
+                axisLine={false}
+                width={50}
+                domain={yDomain}
+                ticks={yTicks}
+              />
+
+              {/* Zero Reference Line */}
+              <ReferenceLine
+                y={0}
+                stroke={COLORS.axis}
+                strokeDasharray="3 3"
+                strokeOpacity={CHART_CONFIG.referenceLineOpacity}
+              />
+
+              {/* Tooltip */}
+              <RechartsTooltip
+                content={<ChartTooltip />}
+                cursor={{ fill: 'hsl(var(--muted)/0.3)' }}
+              />
+
+              {/* Bars with Rounded Tops */}
+              <Bar
+                dataKey="pnl"
+                radius={CHART_CONFIG.barRadius}
+                maxBarSize={50}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.pnl >= 0 ? COLORS.profit : COLORS.loss}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   )

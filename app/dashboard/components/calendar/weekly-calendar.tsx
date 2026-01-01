@@ -117,8 +117,8 @@ export default function WeeklyCalendarPnl({ calendarData, year }: WeeklyCalendar
               <div className={cn(
                 "text-xs font-bold px-2 py-0.5 rounded-full",
                 monthlyPnl === 0 && "text-muted-foreground bg-muted/50",
-                monthlyPnl !== 0 && isPositive && "text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/50",
-                monthlyPnl !== 0 && !isPositive && "text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-950/50",
+                monthlyPnl !== 0 && isPositive && "text-long bg-long/10",
+                monthlyPnl !== 0 && !isPositive && "text-short bg-short/10",
               )}>
                 {formatCompact(monthlyPnl)}
               </div>

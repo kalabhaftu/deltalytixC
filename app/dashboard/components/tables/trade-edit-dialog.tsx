@@ -58,10 +58,15 @@ const editTradeSchema = z.object({
 
 type EditTradeFormData = z.infer<typeof editTradeSchema>
 
+interface Rule {
+  text: string
+  category: 'entry' | 'exit' | 'risk' | 'general'
+}
+
 interface TradingModel {
   id: string
   name: string
-  rules: string[]
+  rules: (string | Rule)[]
   notes?: string | null
 }
 

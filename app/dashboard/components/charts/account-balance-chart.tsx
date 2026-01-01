@@ -2,21 +2,33 @@
 
 import * as React from "react"
 const { memo } = React
-import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip, Dot } from "recharts"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartConfig, ChartContainer } from "@/components/ui/chart"
-import { useData } from "@/context/data-provider"
-import { useUserStore } from "@/store/user-store"
-import { cn } from "@/lib/utils"
-import { WidgetSize } from '@/app/dashboard/types/dashboard'
+import {
+  Line,
+  LineChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  Dot
+} from "recharts"
 import { Info } from 'lucide-react'
 import {
-  Tooltip as UITooltip,
+  Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useData } from "@/context/data-provider"
+import { useUserStore } from "@/store/user-store"
+import { cn, formatCurrency, formatNumber, formatPercent } from "@/lib/utils"
+import { WidgetSize } from '@/app/dashboard/types/dashboard'
+import { getWidgetStyles } from '@/app/dashboard/config/widget-dimensions'
 import { calculateTotalStartingBalance } from '@/lib/utils/balance-calculator'
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface AccountBalanceChartProps {
   size?: WidgetSize
@@ -33,23 +45,116 @@ interface ChartDataPoint {
   hasActivity: boolean
 }
 
-interface TooltipProps {
-  active?: boolean
-  payload?: Array<{
-    payload: ChartDataPoint
-  }>
+// ============================================================================
+// CONSTANTS - Tradezella Premium Styling
+// ============================================================================
+
+const COLORS = {
+  profit: 'hsl(142 76% 36%)',
+  loss: 'hsl(0 84% 60%)',
+  grid: 'hsl(var(--border))',
+  axis: 'hsl(var(--muted-foreground))',
+  line: 'hsl(142 76% 36%)'
+} as const
+
+const CHART_CONFIG = {
+  gridOpacity: 0.25,
+  strokeWidth: 2.5,
+  dotRadius: 4
+} as const
+
+// ============================================================================
+// TOOLTIP COMPONENT - Glassmorphism Style
+// ============================================================================
+
+function ChartTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null
+
+  const data = payload[0].payload as ChartDataPoint
+  const date = new Date(data.date + 'T00:00:00Z')
+  const isProfit = data.change >= 0
+
+  return (
+    <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl min-w-[220px]">
+      {/* Date Header */}
+      <p className="text-xs font-medium text-muted-foreground mb-2">
+        {date.toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          timeZone: 'UTC'
+        })}
+      </p>
+
+      {/* Balance - Large & Bold */}
+      <div className="mb-3">
+        <span className="text-xs text-muted-foreground">Balance</span>
+        <p className="text-2xl font-bold tracking-tight">
+          {formatCurrency(data.balance)}
+        </p>
+      </div>
+
+      {/* Change */}
+      <div className={cn(
+        "flex items-center justify-between py-2 px-3 rounded-lg",
+        isProfit ? "bg-emerald-500/10" : "bg-red-500/10"
+      )}>
+        <span className="text-xs text-muted-foreground">Change</span>
+        <span className={cn(
+          "text-sm font-bold",
+          isProfit ? "text-emerald-500" : "text-red-500"
+        )}>
+          {isProfit ? "+" : ""}{formatCurrency(data.change)} ({isProfit ? "+" : ""}{formatPercent(data.changePercent)})
+        </span>
+      </div>
+
+      {/* Trade Stats */}
+      {data.trades > 0 && (
+        <div className="mt-3 pt-3 border-t border-border/30 grid grid-cols-3 gap-2 text-center">
+          <div>
+            <p className="text-lg font-bold">{data.trades}</p>
+            <p className="text-[10px] text-muted-foreground">Trades</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-emerald-500">{data.wins}</p>
+            <p className="text-[10px] text-muted-foreground">Wins</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-red-500">{data.losses}</p>
+            <p className="text-[10px] text-muted-foreground">Losses</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
-const chartConfig = {
-  balance: {
-    label: "Account Balance",
-    color: "hsl(var(--chart-2))",
-  },
-} satisfies ChartConfig
+// ============================================================================
+// CUSTOM DOT COMPONENT
+// ============================================================================
 
-import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils'
+function CustomDot(props: any) {
+  const { cx, cy, payload } = props
+  if (!payload.hasActivity) return null
 
-const formatCurrencyValue = (value: number) => {
+  return (
+    <Dot
+      cx={cx}
+      cy={cy}
+      r={CHART_CONFIG.dotRadius}
+      fill={COLORS.profit}
+      stroke="hsl(var(--background))"
+      strokeWidth={2}
+    />
+  )
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+function formatAxisValue(value: number): string {
   const absValue = Math.abs(value)
   if (absValue >= 1000000) {
     return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000000, 1)}M`
@@ -60,90 +165,41 @@ const formatCurrencyValue = (value: number) => {
   return `${value < 0 ? '-' : ''}$${formatNumber(absValue, 0)}`
 }
 
-const CustomTooltip = ({ active, payload }: TooltipProps) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload
-    const date = new Date(data.date + 'T00:00:00Z')
-    
-    return (
-      <div className="bg-background p-3 border rounded shadow-sm min-w-[200px]">
-        <p className="font-semibold text-sm mb-2">
-          {date.toLocaleDateString("en-US", { 
-            month: "short", 
-            day: "numeric", 
-            year: "numeric",
-            timeZone: 'UTC'
-          })}
-        </p>
-        <div className="space-y-1">
-          <p className="font-bold text-base">
-            Balance: {formatCurrency(data.balance)}
-          </p>
-          <p className={cn(
-            "text-sm font-medium",
-            data.change >= 0 ? 'text-green-600' : 'text-red-600'
-          )}>
-            Change: {data.change >= 0 ? '+' : ''}{formatCurrency(data.change)} ({data.changePercent >= 0 ? '+' : ''}{formatPercent(data.changePercent)})
-          </p>
-          <div className="text-xs text-muted-foreground mt-2 pt-2 border-t space-y-0.5">
-            <p>Trades Executed: {data.trades}</p>
-            <p className="text-green-600">Wins: {data.wins}</p>
-            <p className="text-red-600">Losses: {data.losses}</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-  return null
-}
-
-// Custom dot to show on activity days
-const CustomDot = (props: any) => {
-  const { cx, cy, payload } = props
-  if (!payload.hasActivity) return null
-  
-  return (
-    <Dot 
-      cx={cx} 
-      cy={cy} 
-      r={3} 
-      fill="hsl(var(--chart-2))" 
-      stroke="hsl(var(--background))"
-      strokeWidth={1.5}
-    />
-  )
-}
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
 function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) {
+  // ---------------------------------------------------------------------------
+  // DATA HOOKS (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const { calendarData, formattedTrades, accountNumbers } = useData()
   const allAccounts = useUserStore(state => state.accounts)
-  
-  // ✅ FILTER to selected accounts only
+
+  // ---------------------------------------------------------------------------
+  // ACCOUNT FILTERING (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const accounts = React.useMemo(() => {
     if (!allAccounts || allAccounts.length === 0) return []
-    
-    // If no accounts selected (or explicit "all accounts" mode where accountNumbers is empty/null), return ALL accounts
     if (!accountNumbers || accountNumbers.length === 0) {
       return allAccounts
     }
-    
     return allAccounts.filter(acc => accountNumbers.includes(acc.number))
   }, [allAccounts, accountNumbers])
 
+  // ---------------------------------------------------------------------------
+  // DATA PROCESSING (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const chartData = React.useMemo(() => {
-    // ✅ USE UNIFIED CALCULATOR - Handles prop firm phase deduplication
     const initialBalance = calculateTotalStartingBalance(accounts)
-    
-    // If no accounts selected, return empty
+
     if (accounts.length === 0 || initialBalance === 0) {
       return []
     }
-    
-    // CRITICAL FIX: Group trades first to handle partial closes
+
     const { groupTradesByExecution } = require('@/lib/utils')
     const groupedTrades = groupTradesByExecution(formattedTrades)
-    
-    // Group trades by date and calculate wins/losses
+
     const tradesByDate = groupedTrades.reduce((acc: Record<string, { wins: number; losses: number; trades: number }>, trade: any) => {
       const date = trade.entryDate.split('T')[0]
       if (!acc[date]) {
@@ -159,7 +215,6 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
       return acc
     }, {})
 
-    // Get all dates and sort them
     const sortedData = Object.entries(calendarData)
       .map(([date, values]) => ({
         date,
@@ -170,21 +225,17 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
-    // Filter to only days with trades (activity)
     const daysWithActivity = sortedData.filter(item => item.trades > 0)
-    
+
     if (daysWithActivity.length === 0) {
       return []
     }
 
-    // ✅ FIX: ADD INITIAL BALANCE AS FIRST DATA POINT
-    // This ensures the chart starts from the actual account starting balance
     const firstTradeDate = daysWithActivity[0].date
     const dayBeforeFirstTrade = new Date(firstTradeDate + 'T00:00:00Z')
     dayBeforeFirstTrade.setDate(dayBeforeFirstTrade.getDate() - 1)
     const startingPointDate = dayBeforeFirstTrade.toISOString().split('T')[0]
-    
-    // Create starting point with initial balance
+
     const result: ChartDataPoint[] = [{
       date: startingPointDate,
       balance: initialBalance,
@@ -196,15 +247,14 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
       hasActivity: false,
     }]
 
-    // Calculate cumulative balance starting from initial balance
     let runningBalance = initialBalance
     let previousBalance = initialBalance
 
-    const activityPoints = daysWithActivity.map((item, index) => {
+    const activityPoints = daysWithActivity.map((item) => {
       runningBalance += item.dailyPnL
       const change = runningBalance - previousBalance
       const changePercent = previousBalance !== 0 ? (change / Math.abs(previousBalance)) * 100 : 0
-      
+
       const point = {
         date: item.date,
         balance: runningBalance,
@@ -215,133 +265,133 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
         losses: item.losses,
         hasActivity: true,
       }
-      
+
       previousBalance = runningBalance
       return point
     })
-    
+
     return [...result, ...activityPoints]
   }, [calendarData, formattedTrades, accounts])
 
-  // Determine line color based on current balance vs initial balance
-  // ✅ USE UNIFIED CALCULATOR - Same deduplication logic as chart data
+  // ---------------------------------------------------------------------------
+  // LINE COLOR DETERMINATION (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const initialBalance = React.useMemo(() => calculateTotalStartingBalance(accounts), [accounts])
   const currentBalance = chartData.length > 0 ? chartData[chartData.length - 1].balance : initialBalance
   const isPositive = currentBalance >= initialBalance
 
+  // ---------------------------------------------------------------------------
+  // SIZE-RESPONSIVE VALUES
+  // ---------------------------------------------------------------------------
+  const isCompact = size === 'small' || size === 'small-long'
+  const widgetStyles = getWidgetStyles(size || 'small-long')
+
+  // ---------------------------------------------------------------------------
+  // RENDER
+  // ---------------------------------------------------------------------------
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader 
-        className={cn(
-          "flex flex-col items-stretch space-y-0 border-b shrink-0",
-          size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
-        )}
-      >
-        <div className="flex items-center justify-between h-full">
-          <div className="flex items-center gap-1.5">
-            <CardTitle 
-              className={cn(
-                "line-clamp-1",
-                size === 'small-long' ? "text-sm" : "text-base"
-              )}
-            >
-              Account Balance
-            </CardTitle>
-            <TooltipProvider delayDuration={100}>
-              <UITooltip>
-                <TooltipTrigger asChild>
-                  <Info className={cn(
-                    "text-muted-foreground hover:text-foreground transition-colors cursor-help",
-                    size === 'small-long' ? "h-3.5 w-3.5" : "h-4 w-4"
-                  )} />
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[200px]">
-                  <p className="text-xs">Account balance progression over time. Only shows days with trading activity.</p>
-                </TooltipContent>
-              </UITooltip>
-            </TooltipProvider>
-          </div>
+    <Card className="flex flex-col bg-card" style={{ height: widgetStyles.height }}>
+      {/* Header */}
+      <CardHeader className="flex flex-row items-center justify-between shrink-0 border-b border-border/50 h-12 px-5">
+        <div className="flex items-center gap-2">
+          <CardTitle className={cn(
+            "font-semibold tracking-tight",
+            isCompact ? "text-sm" : "text-base"
+          )}>
+            Account Balance
+          </CardTitle>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Account balance progression over time</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
-      </CardHeader>
-      <CardContent 
-        className={cn(
-          "flex-1",
-          size === 'small' ? "p-1" : "p-2 sm:p-4"
+
+        {/* Current Balance Badge */}
+        {chartData.length > 0 && (
+          <div className={cn(
+            "text-xs font-bold px-2 py-1 rounded-md",
+            isPositive ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+          )}>
+            {formatCurrency(currentBalance)}
+          </div>
         )}
-      >
-        <div className="w-full h-[280px]">
-          <ChartContainer config={chartConfig} className="w-full h-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={chartData}
-                margin={
-                  size === 'small'
-                    ? { left: -10, right: 0, top: 0, bottom: 0 }
-                    : { left: -15, right: 0, top: 5, bottom: 5 }
-                }
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="hsl(var(--border))"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  tickLine={false}
-                  axisLine={false}
-                  height={size === 'small' ? 20 : 24}
-                  tickMargin={size === 'small' ? 4 : 8}
-                  tick={{ 
-                    fontSize: size === 'small' ? 9 : 11,
-                    fill: 'currentColor'
-                  }}
-                  minTickGap={size === 'small' ? 30 : 50}
-                  tickFormatter={(value) => {
-                    const date = new Date(value + 'T00:00:00Z')
-                    return date.toLocaleDateString("en-US", {
-                      day: "numeric",
-                      month: "short",
-                      timeZone: 'UTC'
-                    })
-                  }}
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  width={60}
-                  tickMargin={4}
-                  tick={{ 
-                    fontSize: size === 'small' ? 9 : 11,
-                    fill: 'currentColor'
-                  }}
-                  tickFormatter={formatCurrencyValue}
-                  tickCount={6}
-                  domain={['auto', 'auto']}
-                />
-                <Tooltip 
-                  content={<CustomTooltip />}
-                  wrapperStyle={{ 
-                    fontSize: size === 'small' ? '10px' : '12px',
-                    zIndex: 1000
-                  }} 
-                />
-                <Line
-                  type="monotone"
-                  dataKey="balance"
-                  stroke={isPositive ? "hsl(var(--chart-2))" : "hsl(var(--chart-1))"}
-                  strokeWidth={2}
-                  dot={<CustomDot />}
-                  activeDot={{ r: 5 }}
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+      </CardHeader>
+
+      {/* Chart Container */}
+      <CardContent className="flex-1 p-0 relative min-h-[100px]">
+        <div className="absolute inset-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={chartData}
+              margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
+            >
+              {/* Subtle Grid - Horizontal Only */}
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={COLORS.grid}
+                strokeOpacity={CHART_CONFIG.gridOpacity}
+                vertical={false}
+              />
+
+              {/* X Axis - Dates */}
+              <XAxis
+                dataKey="date"
+                tickFormatter={(value) => {
+                  const date = new Date(value + 'T00:00:00Z')
+                  return date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    timeZone: 'UTC'
+                  })
+                }}
+                stroke={COLORS.axis}
+                fontSize={isCompact ? 10 : 11}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={40}
+              />
+
+              {/* Y Axis - Currency */}
+              <YAxis
+                tickFormatter={formatAxisValue}
+                stroke={COLORS.axis}
+                fontSize={isCompact ? 10 : 11}
+                tickLine={false}
+                axisLine={false}
+                width={55}
+                domain={['auto', 'auto']}
+              />
+
+              {/* Tooltip */}
+              <RechartsTooltip
+                content={<ChartTooltip />}
+                cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeDasharray: '3 3' }}
+              />
+
+              {/* Line */}
+              <Line
+                type="monotone"
+                dataKey="balance"
+                stroke={isPositive ? COLORS.profit : COLORS.loss}
+                strokeWidth={CHART_CONFIG.strokeWidth}
+                dot={<CustomDot />}
+                activeDot={{
+                  r: 6,
+                  strokeWidth: 2,
+                  stroke: 'hsl(var(--background))'
+                }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>
   )
 }
 
-// Memoize chart to prevent unnecessary re-renders
 export default memo(AccountBalanceChart)

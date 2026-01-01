@@ -35,11 +35,11 @@ const manualBacktestSchema = z.object({
   session: z.enum(['NEW_YORK', 'ASIAN', 'LONDON']),
   model: z.enum(['ICT_2022', 'MSNR', 'TTFM', 'PRICE_ACTION', 'SUPPLY_DEMAND', 'SMART_MONEY', 'CUSTOM']),
   customModel: z.string().optional(),
-  
+
   entryPrice: z.string().min(1, 'Entry price is required'),
   stopLoss: z.string().min(1, 'Stop loss is required'),
   exitPrice: z.string().min(1, 'Exit price is required'),
-  
+
   outcome: z.enum(['WIN', 'LOSS', 'BREAKEVEN']),
   notes: z.string().optional(),
   tags: z.string().optional(),
@@ -52,11 +52,11 @@ const simpleBacktestSchema = z.object({
   session: z.enum(['NEW_YORK', 'ASIAN', 'LONDON']),
   model: z.enum(['ICT_2022', 'MSNR', 'TTFM', 'PRICE_ACTION', 'SUPPLY_DEMAND', 'SMART_MONEY', 'CUSTOM']),
   customModel: z.string().optional(),
-  
+
   riskRewardRatio: z.string().min(1, 'R:R ratio is required'),
   riskPoints: z.string().min(1, 'Risk is required'),
   rewardPoints: z.string().min(1, 'Reward is required'),
-  
+
   outcome: z.enum(['WIN', 'LOSS', 'BREAKEVEN']),
   notes: z.string().optional(),
   tags: z.string().optional(),
@@ -80,12 +80,12 @@ const COMMON_INSTRUMENTS = [
   { symbol: 'AUD/USD', category: 'Forex', placeholder: '0.65500' },
   { symbol: 'USD/CAD', category: 'Forex', placeholder: '1.34200' },
   { symbol: 'NZD/USD', category: 'Forex', placeholder: '0.60500' },
-  
+
   // Forex Crosses
   { symbol: 'EUR/GBP', category: 'Forex', placeholder: '0.85500' },
   { symbol: 'EUR/JPY', category: 'Forex', placeholder: '161.500' },
   { symbol: 'GBP/JPY', category: 'Forex', placeholder: '188.500' },
-  
+
   // Indices
   { symbol: 'NAS100', category: 'Indices', placeholder: '16250.50' },
   { symbol: 'US30', category: 'Indices', placeholder: '38500.00' },
@@ -93,7 +93,7 @@ const COMMON_INSTRUMENTS = [
   { symbol: 'US100', category: 'Indices', placeholder: '16250.50' },
   { symbol: 'GER40', category: 'Indices', placeholder: '17200.00' },
   { symbol: 'UK100', category: 'Indices', placeholder: '7650.00' },
-  
+
   // Commodities
   { symbol: 'GOLD', category: 'Commodities', placeholder: '2025.50' },
   { symbol: 'XAU/USD', category: 'Commodities', placeholder: '2025.50' },
@@ -101,7 +101,7 @@ const COMMON_INSTRUMENTS = [
   { symbol: 'XAG/USD', category: 'Commodities', placeholder: '23.50' },
   { symbol: 'WTI', category: 'Commodities', placeholder: '78.50' },
   { symbol: 'BRENT', category: 'Commodities', placeholder: '82.50' },
-  
+
   // Crypto
   { symbol: 'BTC/USD', category: 'Crypto', placeholder: '42500.00' },
   { symbol: 'ETH/USD', category: 'Crypto', placeholder: '2250.00' },
@@ -156,7 +156,7 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
   // Filter instruments based on input
   const handlePairInputChange = (value: string) => {
     setValue('pair', value)
-    
+
     if (value.length > 0) {
       const filtered = COMMON_INSTRUMENTS.filter(inst =>
         inst.symbol.toLowerCase().includes(value.toLowerCase()) ||
@@ -211,11 +211,11 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
   useEffect(() => {
     const currentPnL = calculatePnL()
     const currentOutcome = watch('outcome')
-    
+
     if (inputMode === 'manual' && currentPnL !== 0) {
       // In manual mode, auto-detect outcome from P&L
       const detectedOutcome = currentPnL > 0 ? 'WIN' : currentPnL < 0 ? 'LOSS' : 'BREAKEVEN'
-      
+
       if (currentOutcome !== detectedOutcome) {
         setValue('outcome', detectedOutcome)
       }
@@ -223,11 +223,11 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
       // In simple mode, validate that outcome matches the risk/reward logic
       const risk = parseFloat(watch('riskPoints') || '0')
       const reward = parseFloat(watch('rewardPoints') || '0')
-      
+
       if (risk > 0 && reward > 0) {
         // Ensure P&L calculation matches outcome
         const expectedPnL = calculatePnL()
-        
+
         if (currentOutcome === 'WIN' && expectedPnL <= 0) {
           toast.warning('Outcome set to WIN but P&L will be negative')
         } else if (currentOutcome === 'LOSS' && expectedPnL >= 0) {
@@ -284,9 +284,9 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
 
     const entry = parseFloat(watch('entryPrice') || '0')
     const sl = parseFloat(watch('stopLoss') || '0')
-    
+
     if (!entry || !sl) return 0
-    
+
     // Risk is always the absolute distance from entry to stop loss
     return Math.abs(entry - sl)
   }
@@ -299,9 +299,9 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
 
     const entry = parseFloat(watch('entryPrice') || '0')
     const exit = parseFloat(watch('exitPrice') || '0')
-    
+
     if (!entry || !exit) return 0
-    
+
     // Reward is always the absolute distance from entry to exit
     return Math.abs(entry - exit)
   }
@@ -315,9 +315,9 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
 
     const risk = calculateRisk()
     const reward = calculateReward()
-    
+
     if (risk <= 0) return 0
-    
+
     // R:R ratio is reward divided by risk
     return reward / risk
   }
@@ -326,14 +326,14 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
   const calculatePnL = () => {
     const outcome = watch('outcome')
     const direction = watch('direction')
-    
+
     if (inputMode === 'simple') {
       // In simple mode, calculate P&L from risk/reward and outcome
       const risk = parseFloat(watch('riskPoints') || '0')
       const reward = parseFloat(watch('rewardPoints') || '0')
-      
+
       if (!risk || !reward) return 0
-      
+
       // If WIN, P&L = +reward; if LOSS, P&L = -risk; if BREAKEVEN, P&L = 0
       if (outcome === 'WIN') return reward
       if (outcome === 'LOSS') return -risk
@@ -354,7 +354,7 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
       // Short: P&L = Entry Price - Exit Price
       pnl = entry - exit
     }
-    
+
     return pnl
   }
 
@@ -365,7 +365,7 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
       const pnl = calculatePnL()
       const risk = calculateRisk()
       const reward = calculateReward()
-      
+
       // Final validation: Check P&L vs Outcome consistency
       if (pnl !== 0) {
         const expectedOutcome = pnl > 0 ? 'WIN' : pnl < 0 ? 'LOSS' : 'BREAKEVEN'
@@ -377,10 +377,10 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
           return
         }
       }
-      
+
       // For simple mode, use placeholder values for prices since we don't collect them
       let entryPrice, exitPrice, stopLoss, takeProfit
-      
+
       if (inputMode === 'simple') {
         // Use placeholder values - these won't be displayed in simple mode
         entryPrice = '0'
@@ -459,10 +459,10 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
               {errors.pair && (
                 <p className="text-xs text-destructive">{String(errors.pair.message)}</p>
               )}
-              
+
               {/* Suggestions Dropdown */}
               {showSuggestions && filteredInstruments.length > 0 && (
-                <div 
+                <div
                   ref={suggestionsRef}
                   className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-y-auto"
                 >
@@ -473,7 +473,7 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
                         inst => inst.category === category
                       )
                       if (categoryItems.length === 0) return null
-                      
+
                       return (
                         <div key={category} className="mb-2">
                           <p className="text-xs font-semibold text-muted-foreground px-2 py-1">
@@ -736,7 +736,7 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
               <div>
                 <p className="text-sm text-muted-foreground mb-1">P&L (Points)</p>
                 <div className="flex items-center gap-2">
-                  <p className={`text-lg font-bold ${calculatePnL() >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <p className={`text-lg font-bold ${calculatePnL() >= 0 ? 'text-long' : 'text-short'}`}>
                     {calculatePnL() >= 0 ? '+' : ''}{calculatePnL().toFixed(2)}
                   </p>
                   {calculatePnL() !== 0 && (
@@ -760,7 +760,7 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Calculated P&L</p>
                 <div className="flex items-center gap-2">
-                  <p className={`text-lg font-bold ${calculatePnL() >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <p className={`text-lg font-bold ${calculatePnL() >= 0 ? 'text-long' : 'text-short'}`}>
                     {calculatePnL() >= 0 ? '+' : ''}{calculatePnL().toFixed(2)}
                   </p>
                   {calculatePnL() !== 0 && (

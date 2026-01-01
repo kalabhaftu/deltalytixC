@@ -84,76 +84,62 @@ function JournalStats({ trades }: { trades: Trade[] }) {
   if (!stats) return null
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-      <Card>
-        <CardContent className="p-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <Card className="h-24">
+        <CardContent className="px-6 py-4 h-full flex flex-col justify-center gap-1">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Total Trades</p>
-              <p className="text-xl font-bold">{stats.totalTrades}</p>
-            </div>
-            <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </div>
+            <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
+              Total Trades
+            </span>
+            <BarChart3 className="h-3.5 w-3.5 text-muted-foreground/50" />
           </div>
+          <p className="text-2xl font-bold tracking-tight">{stats.totalTrades}</p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-4">
+      <Card className="h-24">
+        <CardContent className="px-6 py-4 h-full flex flex-col justify-center gap-1">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Win Rate</p>
-              <p className="text-xl font-bold">{stats.winRate.toFixed(1)}%</p>
-            </div>
-            <div className={cn(
-              "h-8 w-8 rounded-lg flex items-center justify-center",
-              stats.winRate >= 50 ? "bg-long/10" : "bg-short/10"
-            )}>
-              {stats.winRate >= 50 ? (
-                <TrendingUp className="h-4 w-4 text-long" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-short" />
-              )}
-            </div>
+            <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
+              Win Rate
+            </span>
+            {stats.winRate >= 50 ? (
+              <TrendingUp className="h-3.5 w-3.5 text-green-500/50" />
+            ) : (
+              <TrendingDown className="h-3.5 w-3.5 text-red-500/50" />
+            )}
           </div>
+          <p className="text-2xl font-bold tracking-tight">{stats.winRate.toFixed(1)}%</p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-4">
+      <Card className="h-24">
+        <CardContent className="px-6 py-4 h-full flex flex-col justify-center gap-1">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Total P&L</p>
-              <p className={cn("text-xl font-bold", stats.totalPnl >= 0 ? "text-long" : "text-short")}>
-                {stats.totalPnl >= 0 ? '+' : ''}{formatCurrency(stats.totalPnl)}
-              </p>
-            </div>
-            <div className={cn(
-              "h-8 w-8 rounded-lg flex items-center justify-center",
-              stats.totalPnl >= 0 ? "bg-long/10" : "bg-short/10"
-            )}>
-              {stats.totalPnl >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-long" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-short" />
-              )}
-            </div>
+            <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
+              Total P&L
+            </span>
+            {stats.totalPnl >= 0 ? (
+              <TrendingUp className="h-3.5 w-3.5 text-green-500/50" />
+            ) : (
+              <TrendingDown className="h-3.5 w-3.5 text-red-500/50" />
+            )}
           </div>
+          <p className={cn("text-2xl font-bold tracking-tight", stats.totalPnl >= 0 ? "text-green-500" : "text-red-500")}>
+            {stats.totalPnl >= 0 ? '+' : ''}{formatCurrency(stats.totalPnl)}
+          </p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-4">
+      <Card className="h-24">
+        <CardContent className="px-6 py-4 h-full flex flex-col justify-center gap-1">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Avg Duration</p>
-              <p className="text-xl font-bold">{stats.avgDuration}m</p>
-            </div>
-            <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </div>
+            <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
+              Avg Duration
+            </span>
+            <Clock className="h-3.5 w-3.5 text-muted-foreground/50" />
           </div>
+          <p className="text-2xl font-bold tracking-tight">{stats.avgDuration}m</p>
         </CardContent>
       </Card>
     </div>

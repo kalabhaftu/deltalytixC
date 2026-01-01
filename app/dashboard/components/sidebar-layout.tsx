@@ -31,7 +31,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
     if (pathname?.startsWith('/dashboard/accounts')) return 'accounts'
     if (pathname?.startsWith('/dashboard/journal')) return 'journal'
     if (pathname?.startsWith('/dashboard/backtesting')) return 'backtesting'
-    if (pathname?.startsWith('/dashboard/menu')) return 'menu'
+    if (pathname?.startsWith('/dashboard/playbook')) return 'playbook'
     if (pathname?.startsWith('/dashboard/reports')) return 'reports'
 
     // For other routes (settings, data, prop-firm), return null to show no active tab
@@ -48,7 +48,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       'accounts': '/dashboard/accounts',
       'journal': '/dashboard/journal',
       'backtesting': '/dashboard/backtesting',
-      'menu': '/dashboard/menu',
+      'playbook': '/dashboard/playbook',
       'reports': '/dashboard/reports'
     }
 

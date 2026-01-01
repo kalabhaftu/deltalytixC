@@ -1,21 +1,34 @@
 "use client"
 
 import * as React from "react"
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartConfig, ChartContainer } from "@/components/ui/chart"
-import { useData } from "@/context/data-provider"
-import { cn, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
-import { WidgetSize } from '@/app/dashboard/types/dashboard'
-import { Info } from 'lucide-react'
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
 import {
-  Tooltip as UITooltip,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Cell,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  ReferenceLine
+} from "recharts"
+import { Info } from 'lucide-react'
+import {
+  Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useData } from "@/context/data-provider"
+import { cn, formatCurrency, formatNumber, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
+import { WidgetSize } from '@/app/dashboard/types/dashboard'
+import { getWidgetStyles } from '@/app/dashboard/config/widget-dimensions'
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface WeekdayPnLProps {
   size?: WidgetSize
@@ -31,24 +44,76 @@ interface WeekdayData {
   winRate: number
 }
 
-interface TooltipProps {
-  active?: boolean
-  payload?: Array<{
-    payload: WeekdayData
-  }>
-  label?: string
+// ============================================================================
+// CONSTANTS - Tradezella Premium Styling
+// ============================================================================
+
+const COLORS = {
+  profit: 'hsl(var(--chart-profit))',
+  loss: 'hsl(var(--chart-loss))',
+  grid: 'hsl(var(--border))',
+  axis: 'hsl(var(--muted-foreground))'
+} as const
+
+const CHART_CONFIG = {
+  gridOpacity: 0.25,
+  barRadius: [4, 4, 0, 0] as [number, number, number, number],
+  referenceLineOpacity: 0.4
+} as const
+
+// ============================================================================
+// TOOLTIP COMPONENT - Glassmorphism Style
+// ============================================================================
+
+function ChartTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null
+
+  const data = payload[0].payload as WeekdayData
+  const isProfit = data.pnl >= 0
+
+  return (
+    <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl min-w-[180px]">
+      {/* Day Header */}
+      <p className="text-sm font-bold mb-2">{data.dayName}</p>
+
+      {/* P/L - Large & Bold */}
+      <p className={cn(
+        "text-2xl font-bold tracking-tight",
+        isProfit ? "text-long" : "text-short"
+      )}>
+        {formatCurrency(data.pnl)}
+      </p>
+
+      {/* Stats */}
+      <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Trades</span>
+          <span className="font-semibold">{data.trades}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Win Rate</span>
+          <span className="font-semibold">{data.winRate.toFixed(0)}%</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 pt-2">
+          <div className="text-center p-2 bg-long/10 rounded-lg">
+            <p className="text-sm font-bold text-long">{data.wins}</p>
+            <p className="text-[10px] text-muted-foreground">Wins</p>
+          </div>
+          <div className="text-center p-2 bg-short/10 rounded-lg">
+            <p className="text-sm font-bold text-short">{data.losses}</p>
+            <p className="text-[10px] text-muted-foreground">Losses</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
-const chartConfig = {
-  pnl: {
-    label: "P/L by Weekday",
-    color: "hsl(var(--chart-1))",
-  },
-} satisfies ChartConfig
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
 
-import { formatCurrency, formatNumber } from '@/lib/utils'
-
-const formatCurrencyValue = (value: number) => {
+function formatAxisValue(value: number): string {
   const absValue = Math.abs(value)
   if (absValue >= 1000000) {
     return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000000, 1)}M`
@@ -59,47 +124,30 @@ const formatCurrencyValue = (value: number) => {
   return `${value < 0 ? '-' : ''}$${formatNumber(absValue, 0)}`
 }
 
-const positiveColor = "hsl(var(--chart-2))" // Green color
-const negativeColor = "hsl(var(--chart-1))" // Red/Orange color
-
-const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload
-    return (
-      <div className="bg-background p-2 border rounded shadow-sm">
-        <p className="font-semibold text-sm">{data.dayName}</p>
-        <p className={`font-bold ${data.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          P/L: {formatCurrency(data.pnl)}
-        </p>
-        <div className="text-xs text-muted-foreground mt-1">
-          <p>Trades: {data.trades} ({data.losses} losses)</p>
-          <p className="text-green-600">Wins: {data.wins}</p>
-          <p className="text-red-600">Losses: {data.losses}</p>
-          <p>Win Rate: {data.winRate.toFixed(1)}%</p>
-        </div>
-      </div>
-    )
-  }
-  return null
-}
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
 const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: WeekdayPnLProps) {
+  // ---------------------------------------------------------------------------
+  // DATA HOOKS (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const { formattedTrades } = useData()
   const [showAverage, setShowAverage] = React.useState(false)
 
+  // ---------------------------------------------------------------------------
+  // DATA PROCESSING (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const chartData = React.useMemo(() => {
-    // CRITICAL FIX: Group trades first to handle partial closes
     const { groupTradesByExecution } = require('@/lib/utils')
     const groupedTrades = groupTradesByExecution(formattedTrades)
 
-    // Group trades by weekday (0=Sunday, 1=Monday, ..., 6=Saturday)
     const weekdayMap: Record<number, { pnl: number; trades: number; wins: number; losses: number }> = {}
 
     groupedTrades.forEach((trade: any) => {
       const date = new Date(trade.entryDate)
       const dayOfWeek = date.getDay()
 
-      // Only include Monday-Friday (1-5)
       if (dayOfWeek >= 1 && dayOfWeek <= 5) {
         if (!weekdayMap[dayOfWeek]) {
           weekdayMap[dayOfWeek] = { pnl: 0, trades: 0, wins: 0, losses: 0 }
@@ -117,7 +165,6 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
       }
     })
 
-    // Create chart data for Mon-Fri
     const weekdays = [
       { day: '1', dayName: 'Monday' },
       { day: '2', dayName: 'Tuesday' },
@@ -129,16 +176,12 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
     return weekdays.map(({ day, dayName }) => {
       const dayNum = parseInt(day)
       const data = weekdayMap[dayNum] || { pnl: 0, trades: 0, wins: 0, losses: 0 }
-
-      // Calculate win rate
       const winRate = data.trades > 0 ? (data.wins / data.trades) * 100 : 0
-
-      // Apply average if toggle is on
       const displayPnl = showAverage && data.trades > 0 ? data.pnl / data.trades : data.pnl
 
       return {
         day,
-        dayName: dayName.substring(0, 3), // Short name for chart
+        dayName,
         pnl: displayPnl,
         trades: data.trades,
         wins: data.wins,
@@ -148,126 +191,120 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
     })
   }, [formattedTrades, showAverage])
 
-  return (
-    <Card className="h-full flex flex-col">
-      <CardHeader
-        className={cn(
-          "flex flex-col items-stretch space-y-0 border-b shrink-0",
-          size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
-        )}
-      >
-        <div className="flex items-center justify-between h-full">
-          <div className="flex items-center gap-1.5">
-            <CardTitle
-              className={cn(
-                "line-clamp-1",
-                size === 'small-long' ? "text-sm" : "text-base"
-              )}
-            >
-              Weekday P/L
-            </CardTitle>
-            <TooltipProvider delayDuration={100}>
-              <UITooltip>
-                <TooltipTrigger asChild>
-                  <Info className={cn(
-                    "text-muted-foreground hover:text-foreground transition-colors cursor-help",
-                    size === 'small-long' ? "h-3.5 w-3.5" : "h-4 w-4"
-                  )} />
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[180px]">
-                  <p className="text-xs">P&L breakdown by weekday (Mon-Fri). Toggle to show average P&L per trade.</p>
-                </TooltipContent>
-              </UITooltip>
-            </TooltipProvider>
-          </div>
+  // ---------------------------------------------------------------------------
+  // SIZE-RESPONSIVE VALUES
+  // ---------------------------------------------------------------------------
+  const isCompact = size === 'small' || size === 'small-long'
+  const widgetStyles = getWidgetStyles(size || 'small-long')
 
-          {/* Average Toggle */}
-          <div className="flex items-center gap-2">
-            <Label htmlFor="average-toggle" className="text-xs text-muted-foreground cursor-pointer">
-              Average
-            </Label>
-            <Switch
-              id="average-toggle"
-              checked={showAverage}
-              onCheckedChange={setShowAverage}
-              className="scale-75"
-            />
-          </div>
+  // ---------------------------------------------------------------------------
+  // RENDER
+  // ---------------------------------------------------------------------------
+  return (
+    <Card className="flex flex-col bg-card" style={{ height: widgetStyles.height }}>
+      {/* Header */}
+      <CardHeader className="flex flex-row items-center justify-between shrink-0 border-b border-border/50 h-12 px-5">
+        <div className="flex items-center gap-2">
+          <CardTitle className={cn(
+            "font-semibold tracking-tight",
+            isCompact ? "text-sm" : "text-base"
+          )}>
+            Weekday P/L
+          </CardTitle>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Profit and Loss performance by day of the week</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Average Toggle */}
+        <div className="flex items-center gap-2">
+          <Label
+            htmlFor="weekday-average"
+            className="text-xs text-muted-foreground cursor-pointer"
+          >
+            Avg
+          </Label>
+          <Switch
+            id="weekday-average"
+            checked={showAverage}
+            onCheckedChange={setShowAverage}
+            className="scale-75"
+          />
         </div>
       </CardHeader>
-      <CardContent
-        className={cn(
-          "flex-1 min-h-[280px]",
-          size === 'small' || size === 'small-long' ? "p-1" : "p-2 sm:p-4"
-        )}
-      >
-        <div className="w-full h-full">
-          <ChartContainer config={chartConfig} className="w-full h-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={chartData}
-                margin={
-                  size === 'small'
-                    ? { left: -10, right: -10, top: 0, bottom: 5 }
-                    : { left: -20, right: -10, top: 5, bottom: 10 }
-                }
-                barGap={0}
+
+      {/* Chart Container */}
+      <CardContent className="flex-1 p-0 relative min-h-[100px]">
+        <div className="absolute inset-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
+              barGap={4}
+            >
+              {/* Subtle Grid - Horizontal Only */}
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={COLORS.grid}
+                strokeOpacity={CHART_CONFIG.gridOpacity}
+                vertical={false}
+              />
+
+              {/* X Axis - Days */}
+              <XAxis
+                dataKey="dayName"
+                tickFormatter={(value) => value.substring(0, 3)}
+                stroke={COLORS.axis}
+                fontSize={isCompact ? 10 : 11}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+
+              {/* Y Axis - Currency */}
+              <YAxis
+                tickFormatter={formatAxisValue}
+                stroke={COLORS.axis}
+                fontSize={isCompact ? 10 : 11}
+                tickLine={false}
+                axisLine={false}
+                width={50}
+              />
+
+              {/* Zero Reference Line */}
+              <ReferenceLine
+                y={0}
+                stroke={COLORS.axis}
+                strokeDasharray="3 3"
+                strokeOpacity={CHART_CONFIG.referenceLineOpacity}
+              />
+
+              {/* Tooltip */}
+              <RechartsTooltip
+                content={<ChartTooltip />}
+                cursor={{ fill: 'hsl(var(--muted)/0.3)' }}
+              />
+
+              {/* Bars with Rounded Tops */}
+              <Bar
+                dataKey="pnl"
+                radius={CHART_CONFIG.barRadius}
+                maxBarSize={60}
               >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="hsl(var(--border))"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="dayName"
-                  tickLine={false}
-                  axisLine={false}
-                  height={size === 'small' ? 20 : 24}
-                  tickMargin={size === 'small' ? 4 : 8}
-                  tick={{
-                    fontSize: size === 'small' ? 9 : 11,
-                    fill: 'currentColor'
-                  }}
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  width={60}
-                  tickMargin={4}
-                  tick={{
-                    fontSize: size === 'small' ? 9 : 11,
-                    fill: 'currentColor'
-                  }}
-                  tickFormatter={formatCurrencyValue}
-                />
-                <ReferenceLine
-                  y={0}
-                  stroke="hsl(var(--muted-foreground))"
-                  strokeDasharray="3 3"
-                  strokeOpacity={0.5}
-                />
-                <Tooltip
-                  content={<CustomTooltip />}
-                  wrapperStyle={{
-                    fontSize: size === 'small' ? '10px' : '12px',
-                    zIndex: 1000
-                  }}
-                />
-                <Bar
-                  dataKey="pnl"
-                  radius={[3, 3, 0, 0]}
-                  maxBarSize={size === 'small' ? 40 : 60}
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.pnl >= 0 ? positiveColor : negativeColor}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.pnl >= 0 ? COLORS.profit : COLORS.loss}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>

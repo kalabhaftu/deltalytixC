@@ -17,7 +17,7 @@ import { TradeDetailView } from '@/app/dashboard/components/tables/trade-detail-
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
-import { formatQuantity, formatTradeData, BREAK_EVEN_THRESHOLD, ensureExtendedTrade } from '@/lib/utils'
+import { formatQuantity, formatTradeData, BREAK_EVEN_THRESHOLD, ensureExtendedTrade, cn } from '@/lib/utils'
 
 type SortConfig = {
   key: keyof Trade
@@ -284,7 +284,7 @@ export default function TradeTable() {
               variant={pnlFilter === 'wins' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setPnlFilter('wins')}
-              className="h-7 px-3 text-green-600"
+              className="h-7 px-3 text-long"
             >
               <TrendingUp className="h-3 w-3 mr-1" />
               Wins
@@ -293,7 +293,7 @@ export default function TradeTable() {
               variant={pnlFilter === 'losses' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setPnlFilter('losses')}
-              className="h-7 px-3 text-red-600"
+              className="h-7 px-3 text-short"
             >
               <TrendingDown className="h-3 w-3 mr-1" />
               Losses
@@ -546,7 +546,19 @@ export default function TradeTable() {
                     </TableCell>
                     <TableCell>{formatted.instrument}</TableCell>
                     <TableCell>{formatted.accountNumber}</TableCell>
-                    <TableCell>{formatted.side}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5",
+                          formatted.side === 'BUY' || formatted.side === 'LONG' || formatted.side === 'B'
+                            ? "bg-long/10 text-long border-long/20"
+                            : "bg-short/10 text-short border-short/20"
+                        )}
+                      >
+                        {formatted.side}
+                      </Badge>
+                    </TableCell>
                     <TableCell>{formatted.quantity}</TableCell>
                     <TableCell>{formatted.entryPrice}</TableCell>
                     <TableCell>{formatted.closePrice}</TableCell>
@@ -588,11 +600,11 @@ export default function TradeTable() {
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Showing {((currentPage - 1) * tradesPerPage) + 1} to {Math.min(currentPage * tradesPerPage, filteredAndSortedTrades.length)} of {filteredAndSortedTrades.length} trades
           </p>
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-500">Show:</span>
+            <span className="text-sm text-muted-foreground">Show:</span>
             <select
               value={tradesPerPage}
               onChange={(e) => {

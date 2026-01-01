@@ -42,13 +42,13 @@ function StatCard({ icon: Icon, label, value, subtext, trend = 'neutral', classN
       <div className={cn(
         STAT_CARD_STYLES.iconWrapper,
         "!mb-0 shrink-0",
-        trend === 'positive' && 'bg-emerald-500/10',
-        trend === 'negative' && 'bg-red-500/10',
+        trend === 'positive' && 'bg-long/10',
+        trend === 'negative' && 'bg-short/10',
       )}>
         <Icon className={cn(
           "h-4 w-4",
-          trend === 'positive' && 'text-emerald-500',
-          trend === 'negative' && 'text-red-500',
+          trend === 'positive' && 'text-long',
+          trend === 'negative' && 'text-short',
           trend === 'neutral' && 'text-muted-foreground',
         )} />
       </div>

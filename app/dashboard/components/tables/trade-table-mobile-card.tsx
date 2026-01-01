@@ -82,7 +82,15 @@ export function TradeTableMobileCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-base">{trade.instrument}</span>
-              <Badge variant={trade.side === 'BUY' ? 'default' : 'destructive'} className="text-xs">
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5",
+                  trade.side === 'BUY' || trade.side === 'LONG' || trade.side === 'B'
+                    ? "bg-long/10 text-long border-long/20"
+                    : "bg-short/10 text-short border-short/20"
+                )}
+              >
                 {trade.side}
               </Badge>
             </div>
@@ -92,7 +100,7 @@ export function TradeTableMobileCard({
         <div className="text-right">
           <div className={cn(
             "font-bold text-lg",
-            isProfitable ? "text-green-600" : "text-red-600"
+            isProfitable ? "text-long" : "text-short"
           )}>
             {formatCurrency(trade.pnl)}
           </div>
@@ -178,7 +186,7 @@ export function TradeTableMobileCard({
                 <span>{childTrade.instrument}</span>
                 <span className={cn(
                   "font-semibold",
-                  childTrade.pnl >= 0 ? "text-green-600" : "text-red-600"
+                  childTrade.pnl >= 0 ? "text-long" : "text-short"
                 )}>
                   {formatCurrency(childTrade.pnl)}
                 </span>

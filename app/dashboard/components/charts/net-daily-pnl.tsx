@@ -5,24 +5,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useData } from "@/context/data-provider"
 import { cn, formatCurrency, formatNumber } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
-import { Info } from 'lucide-react'
-import {
-  Tooltip as UITooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { getWidgetStyles } from '@/app/dashboard/config/widget-dimensions'
 import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   Cell,
   ReferenceLine
 } from 'recharts'
+import { Info } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface NetDailyPnLProps {
   size?: WidgetSize
@@ -37,28 +41,124 @@ interface ChartDataPoint {
   losses: number
 }
 
+// ============================================================================
+// CONSTANTS - Tradezella Premium Styling
+// ============================================================================
+
+const COLORS = {
+  profit: 'hsl(var(--chart-profit))',      // Emerald green
+  loss: 'hsl(var(--chart-loss))',          // Red
+  grid: 'hsl(var(--border))',
+  axis: 'hsl(var(--muted-foreground))',
+  reference: 'hsl(var(--muted-foreground))'
+} as const
+
+const CHART_CONFIG = {
+  gridOpacity: 0.25, // Increased from 0.1 for better visibility
+  barRadius: [4, 4, 0, 0] as [number, number, number, number],
+  referenceLineOpacity: 0.4
+} as const
+
+// ============================================================================
+// TOOLTIP COMPONENT - Glassmorphism Style
+// ============================================================================
+
+function ChartTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null
+
+  const data = payload[0].payload as ChartDataPoint
+  const date = new Date(data.date + 'T00:00:00Z')
+  const isProfit = data.pnl >= 0
+
+  return (
+    <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl">
+      {/* Date Header */}
+      <p className="text-xs font-medium text-muted-foreground mb-1">
+        {date.toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          timeZone: 'UTC'
+        })}
+      </p>
+
+      {/* P/L Value - Large & Bold */}
+      <p className={cn(
+        "text-2xl font-bold tracking-tight",
+        isProfit ? "text-long" : "text-short"
+      )}>
+        {formatCurrency(data.pnl)}
+      </p>
+
+      {/* Stats Grid */}
+      <div className="mt-3 pt-3 border-t border-border/30 grid grid-cols-2 gap-x-6 gap-y-1">
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Trades</span>
+          <span className="font-semibold">{data.longNumber + data.shortNumber}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Long/Short</span>
+          <span className="font-semibold">{data.longNumber}/{data.shortNumber}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Wins</span>
+          <span className="font-semibold text-long">{data.wins}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Losses</span>
+          <span className="font-semibold text-short">{data.losses}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+function getNiceStep(value: number): number {
+  if (!isFinite(value) || value <= 0) return 25
+  const exponent = Math.floor(Math.log10(value))
+  const base = Math.pow(10, exponent)
+  const fraction = value / base
+
+  if (fraction <= 1) return 1 * base
+  if (fraction <= 2) return 2 * base
+  if (fraction <= 2.5) return 2.5 * base
+  if (fraction <= 5) return 5 * base
+  return 10 * base
+}
+
+function formatAxisValue(value: number): string {
+  const absValue = Math.abs(value)
+  if (absValue >= 1000000) {
+    return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000000, 1)}M`
+  }
+  if (absValue >= 1000) {
+    return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000, 1)}k`
+  }
+  return `${value < 0 ? '-' : ''}$${formatNumber(absValue, 0)}`
+}
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
 export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
+  // ---------------------------------------------------------------------------
+  // DATA HOOKS (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const { calendarData, formattedTrades } = useData()
 
-  const getNiceStep = (value: number) => {
-    if (!isFinite(value) || value <= 0) return 25
-    const exponent = Math.floor(Math.log10(value))
-    const base = Math.pow(10, exponent)
-    const fraction = value / base
-
-    if (fraction <= 1) return 1 * base
-    if (fraction <= 2) return 2 * base
-    if (fraction <= 2.5) return 2.5 * base
-    if (fraction <= 5) return 5 * base
-    return 10 * base
-  }
-
+  // ---------------------------------------------------------------------------
+  // DATA PROCESSING (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const chartData = React.useMemo(() => {
-    // CRITICAL FIX: Group trades first to handle partial closes
     const { groupTradesByExecution } = require('@/lib/utils')
     const groupedTrades = groupTradesByExecution(formattedTrades)
 
-    // Group trades by date to calculate wins/losses
     const tradesByDate = groupedTrades.reduce((acc: Record<string, { wins: number; losses: number }>, trade: any) => {
       const date = trade.entryDate.split('T')[0]
       if (!acc[date]) {
@@ -85,6 +185,9 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   }, [calendarData, formattedTrades])
 
+  // ---------------------------------------------------------------------------
+  // Y-AXIS DOMAIN CALCULATION (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const { yDomain, yTicks } = React.useMemo(() => {
     if (!chartData.length) {
       return {
@@ -113,138 +216,114 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
     return { yDomain: domain, yTicks: ticks }
   }, [chartData])
 
-  const formatCurrencyValue = (value: number) => {
-    const absValue = Math.abs(value)
-    if (absValue >= 1000000) {
-      return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000000, 1)}M`
-    }
-    if (absValue >= 1000) {
-      return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000, 1)}k`
-    }
-    return `${value < 0 ? '-' : ''}$${formatNumber(absValue, 0)}`
-  }
+  // ---------------------------------------------------------------------------
+  // SIZE-RESPONSIVE VALUES
+  // ---------------------------------------------------------------------------
+  const isCompact = size === 'small' || size === 'small-long'
+  const widgetStyles = getWidgetStyles(size || 'small-long')
 
-  // Custom tooltip component
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload
-      const date = new Date(data.date + 'T00:00:00Z')
-
-      return (
-        <div className="bg-card p-3 border rounded-lg shadow-lg">
-          <p className="font-semibold text-sm mb-1">
-            {date.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              timeZone: 'UTC'
-            })}
-          </p>
-          <p className={cn(
-            "font-bold text-base mb-2",
-            data.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-          )}>
-            Net P/L: {formatCurrency(data.pnl)}
-          </p>
-          <div className="text-xs text-muted-foreground space-y-0.5">
-            <p>Trades: {data.longNumber + data.shortNumber}</p>
-            <p>Long: {data.longNumber} | Short: {data.shortNumber}</p>
-            <p className="text-green-600 dark:text-green-400">Wins: {data.wins}</p>
-            <p className="text-red-600 dark:text-red-400">Losses: {data.losses}</p>
-          </div>
-        </div>
-      )
-    }
-    return null
-  }
-
+  // ---------------------------------------------------------------------------
+  // RENDER
+  // ---------------------------------------------------------------------------
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader
-        className={cn(
-          "flex flex-col items-stretch space-y-0 border-b shrink-0",
-          size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
-        )}
-      >
-        <div className="flex items-center justify-between h-full">
-          <div className="flex items-center gap-1.5">
-            <CardTitle
-              className={cn(
-                "line-clamp-1",
-                size === 'small-long' ? "text-sm" : "text-base"
-              )}
-            >
-              Net Daily P/L
-            </CardTitle>
-            <TooltipProvider delayDuration={100}>
-              <UITooltip>
-                <TooltipTrigger asChild>
-                  <Info className={cn(
-                    "text-muted-foreground hover:text-foreground transition-colors cursor-help",
-                    size === 'small-long' ? "h-3.5 w-3.5" : "h-4 w-4"
-                  )} />
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[200px]">
-                  <p className="text-xs">Daily profit and loss with trade details. Green bars = profitable days, red bars = losing days.</p>
-                </TooltipContent>
-              </UITooltip>
-            </TooltipProvider>
-          </div>
+    <Card className="flex flex-col bg-card" style={{ height: widgetStyles.height }}>
+      {/* Header */}
+      <CardHeader className="flex flex-row items-center justify-between shrink-0 border-b border-border/50 h-12 px-5">
+        <div className="flex items-center gap-2">
+          <CardTitle className={cn(
+            "font-semibold tracking-tight",
+            isCompact ? "text-sm" : "text-base"
+          )}>
+            Net Daily P/L
+          </CardTitle>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Daily net profit/loss including commissions</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </CardHeader>
-      <CardContent
-        className={cn(
-          "flex-1 pb-6",
-          size === 'small' ? "p-1 pb-6" : "p-2 sm:p-4 pb-6"
-        )}
-      >
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart
-            data={chartData}
-            margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
-            barCategoryGap="30%"
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="hsl(var(--border))"
-              vertical={false}
-            />
-            <XAxis
-              dataKey="date"
-              tickFormatter={(value) => {
-                const date = new Date(value + 'T00:00:00Z')
-                return date.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  timeZone: 'UTC'
-                })
-              }}
-              stroke="hsl(var(--muted-foreground))"
-              fontSize={size === 'small' ? 10 : 11}
-              tickLine={false}
-              axisLine={false}
-            />
-            <YAxis
-              tickFormatter={formatCurrencyValue}
-              stroke="hsl(var(--muted-foreground))"
-              fontSize={size === 'small' ? 9 : 11}
-              tickLine={false}
-              axisLine={false}
-              domain={yDomain}
-              ticks={yTicks}
-            />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))' }} />
-            <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" opacity={0.5} />
-            <Bar dataKey="pnl" radius={[3, 3, 0, 0]}>
-              {chartData.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={entry.pnl >= 0 ? 'hsl(var(--chart-profit))' : 'hsl(var(--chart-loss))'}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+
+      {/* Chart Container */}
+      <CardContent className="flex-1 p-0 relative min-h-[100px]">
+        <div className="absolute inset-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
+              barCategoryGap="25%"
+            >
+              {/* Subtle Grid - Horizontal Only */}
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={COLORS.grid}
+                strokeOpacity={CHART_CONFIG.gridOpacity}
+                vertical={false}
+              />
+
+              {/* X Axis - Dates */}
+              <XAxis
+                dataKey="date"
+                tickFormatter={(value) => {
+                  const date = new Date(value + 'T00:00:00Z')
+                  return date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    timeZone: 'UTC'
+                  })
+                }}
+                stroke={COLORS.axis}
+                fontSize={isCompact ? 10 : 11}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+
+              {/* Y Axis - Currency */}
+              <YAxis
+                tickFormatter={formatAxisValue}
+                stroke={COLORS.axis}
+                fontSize={isCompact ? 10 : 11}
+                tickLine={false}
+                axisLine={false}
+                domain={yDomain}
+                ticks={yTicks}
+                width={50}
+              />
+
+              {/* Tooltip */}
+              <RechartsTooltip
+                content={<ChartTooltip />}
+                cursor={{ fill: 'hsl(var(--muted)/0.3)' }}
+              />
+
+              {/* Zero Reference Line */}
+              <ReferenceLine
+                y={0}
+                stroke={COLORS.reference}
+                strokeDasharray="3 3"
+                strokeOpacity={CHART_CONFIG.referenceLineOpacity}
+              />
+
+              {/* Bars with Rounded Tops */}
+              <Bar
+                dataKey="pnl"
+                radius={CHART_CONFIG.barRadius}
+                maxBarSize={60}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.pnl >= 0 ? COLORS.profit : COLORS.loss}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   )

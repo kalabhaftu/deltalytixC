@@ -25,7 +25,7 @@ const SESSIONS = {
     asia: { start: 0, end: 8, name: 'Asia', icon: Moon, color: 'text-purple-500' },
     london: { start: 8, end: 14, name: 'London', icon: Sunrise, color: 'text-blue-500' },
     newYork: { start: 14, end: 21, name: 'New York', icon: Sun, color: 'text-amber-500' },
-    overlap: { start: 13, end: 17, name: 'Overlap', icon: Globe, color: 'text-green-500' }
+    overlap: { start: 13, end: 17, name: 'Overlap', icon: Globe, color: 'text-long' }
 }
 
 function getSession(hour: number): keyof typeof SESSIONS | null {
@@ -109,7 +109,7 @@ export default function SessionAnalysis({ size }: SessionAnalysisProps) {
                     Session Analysis
                 </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className={cn("space-y-3", size === 'small' && "space-y-2 p-3")}>
                 {sessions.map(session => {
                     const Icon = session.icon
                     const winRate = session.trades > 0 ? (session.wins / session.trades * 100).toFixed(0) : 0
@@ -121,7 +121,7 @@ export default function SessionAnalysis({ size }: SessionAnalysisProps) {
                             key={session.key}
                             className={cn(
                                 "flex items-center justify-between p-3 rounded-lg border",
-                                isBest ? "bg-green-500/10 border-green-500/30" : "bg-muted/30 border-border/50"
+                                isBest ? "bg-long/10 border-long/30" : "bg-muted/30 border-border/50"
                             )}
                         >
                             <div className="flex items-center gap-3">
@@ -135,7 +135,7 @@ export default function SessionAnalysis({ size }: SessionAnalysisProps) {
                             </div>
                             <div className={cn(
                                 "text-right font-semibold",
-                                isPositive ? "text-green-500" : "text-red-500"
+                                isPositive ? "text-long" : "text-short"
                             )}>
                                 {isPositive ? '+' : ''}${session.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>

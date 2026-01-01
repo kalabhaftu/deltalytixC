@@ -420,11 +420,11 @@ code > [data-line]::before {
 
 @layer components {
   /* Midnight Ocean theme color overrides for profit/loss */
-  .midnight-ocean .text-green-600 {
+  .midnight-ocean .text-profit {
     color: rgb(74 222 128) !important; /* green-400 */
   }
   
-  .midnight-ocean .text-red-600 {
+  .midnight-ocean .text-loss {
     color: rgb(248 113 113) !important; /* red-400 */
   }
 

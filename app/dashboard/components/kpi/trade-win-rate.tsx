@@ -4,7 +4,7 @@ import React from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { CircularProgress } from '@/components/ui/circular-progress'
 import { useTradeStatistics } from '@/hooks/use-trade-statistics'
-import { HelpCircle } from 'lucide-react'
+import { Info } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -29,17 +29,17 @@ const TradeWinRate = React.memo(function TradeWinRate({ size }: TradeWinRateProp
 
   return (
     <Card className="w-full h-24">
-      <CardContent className="p-5 h-full flex items-center justify-between">
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs text-muted-foreground font-medium">
+      <CardContent className="px-6 py-4 h-full flex items-center justify-between">
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
               Trade Win %
             </span>
             <TooltipProvider delayDuration={100}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="w-3 h-3 rounded-full bg-muted flex items-center justify-center cursor-help">
-                    <HelpCircle className="h-2 w-2 text-muted-foreground" />
+                    <Info className="h-3 w-3 text-muted-foreground" />
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" sideOffset={5} className="max-w-[220px]">
@@ -48,7 +48,7 @@ const TradeWinRate = React.memo(function TradeWinRate({ size }: TradeWinRateProp
               </Tooltip>
             </TooltipProvider>
           </div>
-          <span className="text-xl font-bold text-foreground">
+          <span className="text-2xl font-bold text-foreground tracking-tight">
             {winRate.toFixed(1)}%
           </span>
         </div>
@@ -56,8 +56,8 @@ const TradeWinRate = React.memo(function TradeWinRate({ size }: TradeWinRateProp
         <div className="flex-shrink-0">
           <CircularProgress
             value={winRate}
-            size={56}
-            strokeWidth={6}
+            size={48}
+            strokeWidth={5}
             color={color}
             showPercentage={false}
           />

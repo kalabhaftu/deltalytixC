@@ -16,8 +16,7 @@ import DayWinRate from '../components/kpi/day-win-rate'
 import ProfitFactor from '../components/kpi/profit-factor'
 import AvgWinLoss from '../components/kpi/avg-win-loss'
 import CurrentStreak from '../components/kpi/current-streak'
-import GoalsProgress from '../components/kpi/goals-progress'
-import RiskMetrics from '../components/kpi/risk-metrics'
+import GoalsRiskCommandCenter from '../components/kpi/goals-risk-command-center'
 import SessionAnalysis from '../components/kpi/session-analysis'
 
 // Chart components
@@ -504,45 +503,28 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
       </Card>
     )
   },
-  goalsProgress: {
-    type: 'goalsProgress',
-    defaultSize: 'small-long',
-    allowedSizes: ['small-long', 'medium', 'large'],
+  goalsRiskCommandCenter: {
+    type: 'goalsRiskCommandCenter',
+    defaultSize: 'large',
+    allowedSizes: ['medium', 'large', 'extra-large'],
     category: 'statistics',
-    description: 'Track your trading goals and targets',
+    description: 'Combined goals tracker and risk metrics command center',
     previewHeight: 200,
-    getComponent: ({ size }) => <GoalsProgress size={size as any} />,
+    getComponent: ({ size }) => <GoalsRiskCommandCenter size={size} />,
     getPreview: () => (
       <Card className="w-full h-full">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Goals & Targets</CardTitle>
+          <CardTitle className="text-sm">Command Center</CardTitle>
         </CardHeader>
         <CardContent className="p-2">
-          <div className="space-y-2">
-            <div className="h-2 bg-muted rounded-full overflow-hidden"><div className="h-full w-3/4 bg-green-500 rounded-full" /></div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden"><div className="h-full w-1/2 bg-primary rounded-full" /></div>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  },
-  riskMetrics: {
-    type: 'riskMetrics',
-    defaultSize: 'small-long',
-    allowedSizes: ['small-long', 'medium', 'large'],
-    category: 'statistics',
-    description: 'Monitor your risk exposure and drawdown',
-    previewHeight: 200,
-    getComponent: ({ size }) => <RiskMetrics size={size as any} />,
-    getPreview: () => (
-      <Card className="w-full h-full">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Risk Metrics</CardTitle>
-        </CardHeader>
-        <CardContent className="p-2">
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="p-2 bg-red-500/10 rounded"><span>Max DD</span></div>
-            <div className="p-2 bg-amber-500/10 rounded"><span>Loss Streak</span></div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full border-4 border-emerald-500 border-t-transparent"></div>
+            </div>
+            <div className="space-y-1">
+              <div className="p-1.5 bg-red-500/10 rounded text-xs">Max DD</div>
+              <div className="p-1.5 bg-emerald-500/10 rounded text-xs">Streak</div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -551,7 +533,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
   sessionAnalysis: {
     type: 'sessionAnalysis',
     defaultSize: 'small-long',
-    allowedSizes: ['small-long', 'medium', 'large'],
+    allowedSizes: ['small', 'small-long', 'medium', 'large'],
     category: 'statistics',
     description: 'Performance breakdown by trading session',
     previewHeight: 200,

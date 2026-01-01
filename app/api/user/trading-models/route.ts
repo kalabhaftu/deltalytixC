@@ -5,9 +5,14 @@ import { z } from 'zod'
 import { randomUUID } from 'crypto'
 import { BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 
+const ruleSchema = z.object({
+  text: z.string(),
+  category: z.enum(['entry', 'exit', 'risk', 'general'])
+})
+
 const tradingModelSchema = z.object({
   name: z.string().min(1, 'Model name is required').max(100),
-  rules: z.array(z.string()).default([]),
+  rules: z.array(z.union([z.string(), ruleSchema])).default([]),
   notes: z.string().optional(),
 })
 
@@ -26,7 +31,8 @@ export async function GET(request: NextRequest) {
         Trade: {
           select: {
             pnl: true,
-            commission: true
+            commission: true,
+            selectedRules: true
           }
         }
       }
@@ -36,6 +42,19 @@ export async function GET(request: NextRequest) {
     const formattedModels = models.map(model => {
       const trades = model.Trade || []
       const tradeCount = trades.length
+
+      const modelRules = typeof model.rules === 'string'
+        ? JSON.parse(model.rules)
+        : Array.isArray(model.rules)
+          ? model.rules
+          : []
+
+      // Initialize rule adherence map
+      const ruleAdherence: Record<string, { followed: number; total: number }> = {}
+      modelRules.forEach((rule: any) => {
+        const text = typeof rule === 'string' ? rule : rule.text
+        ruleAdherence[text] = { followed: 0, total: 0 }
+      })
 
       let totalPnL = 0
       let winCount = 0
@@ -53,35 +72,53 @@ export async function GET(request: NextRequest) {
         } else {
           breakEvenCount++
         }
+
+        // Track rule adherence
+        const selectedRules = Array.isArray(trade.selectedRules) ? trade.selectedRules : []
+        modelRules.forEach((rule: any) => {
+          const text = typeof rule === 'string' ? rule : rule.text
+          ruleAdherence[text].total++
+          if (selectedRules.includes(text)) {
+            ruleAdherence[text].followed++
+          }
+        })
       })
 
       // Calculate win rate (excluding break-even from denominator)
       const tradableCount = winCount + lossCount
       const winRate = tradableCount > 0 ? (winCount / tradableCount) * 100 : 0
 
+      // Overall adherence rate
+      let totalMet = 0
+      let totalPossible = 0
+      Object.values(ruleAdherence).forEach(stat => {
+        totalMet += stat.followed
+        totalPossible += stat.total
+      })
+      const avgAdherence = totalPossible > 0 ? (totalMet / totalPossible) * 100 : 0
+
       // Remove Trade array from response to keep it light
       const { Trade, ...modelData } = model
 
       return {
         ...modelData,
-        rules: typeof model.rules === 'string'
-          ? JSON.parse(model.rules)
-          : Array.isArray(model.rules)
-            ? model.rules
-            : [],
+        rules: modelRules,
         stats: {
           tradeCount,
           totalPnL,
           winRate,
           winCount,
           lossCount,
-          breakEvenCount
+          breakEvenCount,
+          avgAdherence,
+          ruleAdherence
         }
       }
     })
 
     return NextResponse.json({ success: true, models: formattedModels })
   } catch (error) {
+    console.error('Error fetching trading models:', error)
     return NextResponse.json(
       { error: 'Failed to fetch models' },
       { status: 500 }

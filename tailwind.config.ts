@@ -77,7 +77,17 @@ const config: Config = {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				long: {
+					DEFAULT: 'hsl(var(--success))',
+					foreground: 'hsl(var(--success-foreground))'
+				},
+				short: {
+					DEFAULT: 'hsl(var(--destructive))',
+					foreground: 'hsl(var(--destructive-foreground))'
+				},
+				profit: 'hsl(var(--chart-profit))',
+				loss: 'hsl(var(--chart-loss))'
 			},
 			keyframes: {
 				'accordion-down': {

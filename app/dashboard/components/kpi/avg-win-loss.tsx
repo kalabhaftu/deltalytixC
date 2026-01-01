@@ -4,7 +4,7 @@ import React from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { useTradeStatistics } from '@/hooks/use-trade-statistics'
 import { cn } from '@/lib/utils'
-import { HelpCircle } from 'lucide-react'
+import { Info } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -44,57 +44,50 @@ const AvgWinLoss = React.memo(function AvgWinLoss({ size }: AvgWinLossProps) {
 
   return (
     <Card className="w-full h-24">
-      <CardContent className="p-5 h-full flex flex-col justify-center">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs text-muted-foreground font-medium">
-            Avg win/loss trade
-          </span>
-          <TooltipProvider delayDuration={100}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="w-3 h-3 rounded-full bg-muted flex items-center justify-center cursor-help">
-                  <HelpCircle className="h-2 w-2 text-muted-foreground" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={5} className="max-w-[200px]">
-                <p className="text-xs">Average profit on winning trades vs average loss on losing trades. Higher ratios indicate better risk/reward management.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xl font-bold text-foreground">
+      <CardContent className="px-6 py-4 h-full flex flex-col justify-between">
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
+              Avg win/loss trade
+            </span>
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="w-3 h-3 rounded-full bg-muted flex items-center justify-center cursor-help">
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" sideOffset={5} className="max-w-[200px]">
+                  <p className="text-xs">Average profit on winning trades vs average loss on losing trades. Higher ratios indicate better risk/reward management.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <span className="text-2xl font-bold text-foreground tracking-tight">
             {riskRewardRatio.toFixed(2)}
           </span>
         </div>
 
-        {/* Horizontal Progress Bar */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 relative">
-            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-green-500 rounded-full transition-all duration-500"
-                style={{ width: `${winPercentage}%` }}
-              />
-              <div
-                className="h-full bg-red-500 rounded-full transition-all duration-500 -mt-2"
-                style={{ width: `${100 - winPercentage}%`, marginLeft: `${winPercentage}%` }}
-              />
-            </div>
+        {/* Horizontal Progress Bar & Stats */}
+        <div className="space-y-1.5">
+          <div className="w-full h-1 bg-muted rounded-full overflow-hidden flex">
+            <div
+              className="h-full bg-long transition-all duration-500"
+              style={{ width: `${winPercentage}%` }}
+            />
+            <div
+              className="h-full bg-short transition-all duration-500"
+              style={{ width: `${100 - winPercentage}%` }}
+            />
           </div>
 
-          <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-1">
-              <span className="text-green-600 font-medium">
-                {formatCurrency(avgWin)}
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-red-600 font-medium">
-                -{formatCurrency(avgLoss)}
-              </span>
-            </div>
+          <div className="flex items-center justify-between text-[11px] font-semibold">
+            <span className="text-long flex items-center gap-1">
+              {formatCurrency(avgWin)}
+            </span>
+            <span className="text-short flex items-center gap-1">
+              -{formatCurrency(avgLoss)}
+            </span>
           </div>
         </div>
       </CardContent>

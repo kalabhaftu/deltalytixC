@@ -40,7 +40,8 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null)
   const [newTemplateName, setNewTemplateName] = useState('')
-  
+  const [isCreating, setIsCreating] = useState(false)
+
   const { templates, activeTemplate, switchTemplate, createTemplate, deleteTemplate } = useTemplates()
   const { enterEditMode } = useTemplateEditStore()
 
@@ -54,8 +55,9 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
 
   // Handle create template
   const handleCreateTemplate = async () => {
-    if (!newTemplateName.trim()) return
-    
+    if (!newTemplateName.trim() || isCreating) return
+
+    setIsCreating(true)
     try {
       await createTemplate(newTemplateName.trim())
       setNewTemplateName('')
@@ -63,13 +65,15 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
       setIsOpen(false)
     } catch (error) {
       // Error already shown by hook via toast
+    } finally {
+      setIsCreating(false)
     }
   }
 
   // Handle delete template
   const handleDeleteTemplate = async () => {
     if (!templateToDelete) return
-    
+
     try {
       await deleteTemplate(templateToDelete)
       setTemplateToDelete(null)
@@ -87,7 +91,7 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
 
   const handleEditTemplate = (template: typeof templates[0], e: React.MouseEvent) => {
     e.stopPropagation()
-    
+
     // Don't allow editing temporary/fallback template or default template
     if (template.id === 'default-temp' || template.id === 'fallback' || template.isDefault) {
       if (template.isDefault) {
@@ -100,7 +104,7 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
       }
       return
     }
-    
+
     if (template.layout) {
       enterEditMode(template.layout)
       setIsOpen(false)
@@ -108,7 +112,7 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
   }
 
   return (
-    <div 
+    <div
       className={cn("absolute -top-1 right-0 z-40 flex items-center justify-end px-6 py-1", className)}
     >
       <div className="flex items-center gap-2">
@@ -117,12 +121,12 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
             Template updated
           </span>
         )}
-        
+
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="h-8 px-3 hover:bg-muted/50 transition-all duration-200 border-border/50 bg-card/50"
               title="Template options"
             >
@@ -130,8 +134,8 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
               <span className="sr-only">Template options</span>
             </Button>
           </PopoverTrigger>
-          <PopoverContent 
-            className="w-[300px] p-4 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl" 
+          <PopoverContent
+            className="w-[300px] p-4 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl"
             align="end"
           >
             <div className="space-y-4">
@@ -146,7 +150,7 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               <div className="space-y-1">
                 {templates.map((template) => (
                   <div
@@ -170,7 +174,7 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
                         </span>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center gap-1">
                       {!template.isDefault && (
                         <Button
@@ -184,7 +188,7 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
                           <Pencil className="h-3 w-3 text-muted-foreground" />
                         </Button>
                       )}
-                      
+
                       {!template.isDefault && (
                         <Button
                           variant="ghost"
@@ -213,7 +217,7 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
               Create a new dashboard template. It will be initialized with the default layout.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="template-name">Template Name</Label>
@@ -231,13 +235,13 @@ export default function TemplateSelector({ className }: TemplateSelectorProps) {
               />
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateTemplate} disabled={!newTemplateName.trim()}>
-              Create Template
+            <Button onClick={handleCreateTemplate} disabled={!newTemplateName.trim() || isCreating}>
+              {isCreating ? 'Creating...' : 'Create Template'}
             </Button>
           </DialogFooter>
         </DialogContent>

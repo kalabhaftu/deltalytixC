@@ -113,10 +113,8 @@ const packWidgets = (widgets: WidgetLayout[], startingRow = 1): WidgetLayout[] =
 
 const rebuildLayout = (widgets: WidgetLayout[], kpiSlotCount: number): WidgetLayout[] => {
   const kpiWidgets = normalizeKpiWidgets(widgets.filter(isKpiRowWidget), kpiSlotCount)
-  const otherWidgets = packWidgets(
-    orderWidgetsByPosition(widgets.filter(widget => !isKpiRowWidget(widget))),
-    1
-  )
+  const otherWidgets = orderWidgetsByPosition(widgets.filter(widget => !isKpiRowWidget(widget)))
+  // STOP packing by default - respect the user's manual placement and gaps
   return [...kpiWidgets, ...otherWidgets]
 }
 
@@ -165,9 +163,9 @@ function SortableWidget({
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
       )}
-      
+
       {children}
-      
+
       {/* Remove Button */}
       {isEditMode && (
         <Button
@@ -203,14 +201,14 @@ export default function WidgetCanvasWithDrag() {
     }),
     [isDesktop]
   )
-  
+
   // Clear targetSlot when dialogs close to prevent stale state
   React.useEffect(() => {
     if (!showWidgetLibrary && !showKpiSelector) {
       setTargetSlot(null)
     }
   }, [showWidgetLibrary, showKpiSelector])
-  
+
   // Setup sensors for drag and drop
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -218,25 +216,25 @@ export default function WidgetCanvasWithDrag() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
-  
+
   // Show loading skeleton while fetching user's template - uses static skeleton (no animation)
   const renderLoadingSkeleton = () => <MainDashboardSkeleton />
-  
+
   // Use current layout if in edit mode, otherwise use active template
   const layout = isEditMode && currentLayout ? currentLayout : activeTemplate?.layout || []
-  
+
   // KPI widgets are the first 5 slots (always present)
   const kpiSlots = 5
   const kpiWidgets = layout
     .filter(isKpiRowWidget)
     .sort((a, b) => a.x - b.x)
     .slice(0, kpiSlots)
-  
+
   // Fill empty KPI slots
   const kpiLayout: (WidgetLayout | null)[] = Array(kpiSlots).fill(null).map((_, index) => {
     return kpiWidgets.find(w => w.x === index) || null
   })
-  
+
   // Other widgets
   const otherWidgets = layout.filter(w => !isKpiRowWidget(w))
   const orderedOtherWidgets = useMemo(() => orderWidgetsByPosition(otherWidgets), [otherWidgets])
@@ -244,18 +242,18 @@ export default function WidgetCanvasWithDrag() {
   if (isLoading || !activeTemplate) {
     return renderLoadingSkeleton()
   }
-  
+
   // Handle widget removal
   const handleRemoveWidget = (widgetId: string) => {
     if (!currentLayout) return
     const updatedLayout = currentLayout.filter(w => w.i !== widgetId)
     updateLayout(rebuildLayout(updatedLayout, kpiSlots))
   }
-  
+
   // Handle add widget placeholder click
   const handleAddWidget = (slotInfo?: { slotIndex?: number; x?: number; y?: number; width?: number }) => {
     setTargetSlot(slotInfo || null)
-    
+
     // If it's a KPI slot (slotIndex 0-4), show KPI selector, otherwise show general library
     if (slotInfo?.slotIndex !== undefined && slotInfo.slotIndex < 5) {
       setShowKpiSelector(true)
@@ -267,19 +265,19 @@ export default function WidgetCanvasWithDrag() {
   // Handle widget insertion from library
   const handleInsertWidget = (widgetType: string) => {
     if (!currentLayout) return
-    
+
     const config = WIDGET_REGISTRY[widgetType as keyof typeof WIDGET_REGISTRY]
     if (!config) return
-    
+
     // Capture targetSlot immediately to avoid race conditions
     const slotToUse = targetSlot
-    
+
     // Get grid dimensions from widget size
     const { w, h } = getGridDimensionsFromSize(config.defaultSize)
-    
+
     // Determine position
     let x = 0, y = 1
-    
+
     if (config.kpiRowOnly && slotToUse?.slotIndex !== undefined) {
       // KPI-row-only widget - use target slot in row 0
       x = slotToUse.slotIndex
@@ -291,30 +289,25 @@ export default function WidgetCanvasWithDrag() {
         const widgetCols = WIDGET_DIMENSIONS[config.defaultSize].colSpan
         setTimeout(() => {
           toast.error('Widget doesn\'t fit in this slot', {
-            description: `This slot can fit ${slotToUse.width} columns (${slotDesc}), but this widget needs ${widgetCols} columns. Please choose a smaller widget.`,
+            description: `This slot is too narrow for this widget. Slot: ${slotToUse.width} columns (${slotDesc}), Widget: ${widgetCols} columns.`,
             duration: 5000,
           })
         }, 0)
         return
       }
-      
       // Widget fits - place at slot position
       x = slotToUse.x
       y = slotToUse.y
     } else {
-      // No specific slot - find next available position
-      const position = getNextAvailablePosition(currentLayout, config.defaultSize)
-      if (position) {
-        x = position.x
-        y = position.y
-      } else {
-        // Fallback to bottom
-        const maxY = currentLayout.reduce((max, widget) => Math.max(max, widget.y + widget.h), 1)
-        y = maxY
-        x = 0
-      }
+      // No specific slot (Add button at bottom) - Always place at the bottom to avoid "jumping to top"
+      const maxY = currentLayout.reduce((max, widget) => {
+        if (isKpiRowWidget(widget)) return max
+        return Math.max(max, widget.y + widget.h)
+      }, 1)
+      y = maxY
+      x = 0
     }
-    
+
     const newWidget: WidgetLayout = {
       i: generateWidgetId(),
       type: widgetType,
@@ -324,24 +317,24 @@ export default function WidgetCanvasWithDrag() {
       w,
       h,
     }
-    
+
     // If placed in a specific slot, don't reflow - keep it where user wants it
     // Only reflow if added without a specific slot (to fill gaps automatically)
     // NOTE: Must use === undefined to handle x=0 case correctly
     const shouldReflow = !slotToUse || (slotToUse.x === undefined && slotToUse.slotIndex === undefined)
     const baseLayout = [...currentLayout, newWidget]
-    const updatedLayout = shouldReflow 
+    const updatedLayout = shouldReflow
       ? rebuildLayout(baseLayout, kpiSlots)
       : baseLayout
-    
+
     updateLayout(updatedLayout)
     setTargetSlot(null)
-    
+
     setTimeout(() => {
       toast.success('Widget added successfully', { duration: 2000 })
     }, 0)
   }
-  
+
   // Handle KPI widget selection
   const handleSelectKpiWidget = (widgetType: string) => {
     handleInsertWidget(widgetType)
@@ -359,19 +352,19 @@ export default function WidgetCanvasWithDrag() {
     if (oldIndex === -1 || newIndex === -1) return
 
     const reorderedKpi = arrayMove(kpiWidgets, oldIndex, newIndex)
-    
+
     // Update x positions based on new order
     const updatedKpi = reorderedKpi.map((widget, index) => ({
       ...widget,
       x: index,
     }))
-    
+
     // Replace KPI widgets in layout
     const newLayout = [
       ...updatedKpi,
       ...otherWidgets,
     ]
-    
+
     updateLayout(newLayout)
   }
 
@@ -392,23 +385,23 @@ export default function WidgetCanvasWithDrag() {
 
     updateLayout([...normalizedKpis, ...packedOthers])
   }
-  
+
   // Show empty state ONLY if:
   // 1. Not in edit mode
   // 2. Main data has finished loading
   // 3. No accounts are currently selected
   // 4. NO saved selections exist in settings (this prevents flash while useEffect runs)
   // 5. Accounts exist (so we know data is loaded)
-  const showEmptyState = !isEditMode && 
-                         !isLoading &&  // ✅ WAIT for main data to load
-                         accountNumbers.length === 0 && 
-                         (!accountFilterSettings?.selectedPhaseAccountIds || accountFilterSettings.selectedPhaseAccountIds.length === 0) &&  // ✅ Check if settings have saved selections
-                         accounts && accounts.length > 0
-  
+  const showEmptyState = !isEditMode &&
+    !isLoading &&  // ✅ WAIT for main data to load
+    accountNumbers.length === 0 &&
+    (!accountFilterSettings?.selectedPhaseAccountIds || accountFilterSettings.selectedPhaseAccountIds.length === 0) &&  // ✅ Check if settings have saved selections
+    accounts && accounts.length > 0
+
   if (showEmptyState) {
     return <EmptyAccountState />
   }
-  
+
   return (
     <div className="space-y-4">
       {/* Upper Section - KPI Widgets Row */}
@@ -479,18 +472,18 @@ export default function WidgetCanvasWithDrag() {
                 // Group widgets by row
                 const rowMap = groupWidgetsByRow(otherWidgets)
                 const sortedRows = Array.from(rowMap.keys()).sort((a, b) => a - b)
-                
+
                 return sortedRows.map((rowY) => {
                   const rowWidgets = rowMap.get(rowY) || []
                   const availableSlots = calculateRowSlots(otherWidgets, rowY)
-                  
+
                   return (
                     <div key={`row-${rowY}`} className="grid grid-cols-1 md:grid-cols-12 gap-3">
                       {/* Render widgets and slots in order */}
                       {(() => {
                         const items: React.ReactElement[] = []
                         let currentX = 0
-                        
+
                         rowWidgets.forEach((widget, widgetIndex) => {
                           // Add empty slot before widget if there's a gap
                           if (isEditMode && currentX < widget.x) {
@@ -515,7 +508,7 @@ export default function WidgetCanvasWithDrag() {
                               </div>
                             )
                           }
-                          
+
                           // Add the widget
                           items.push(
                             <div
@@ -532,10 +525,10 @@ export default function WidgetCanvasWithDrag() {
                               </SortableWidget>
                             </div>
                           )
-                          
+
                           currentX = widget.x + widget.w
                         })
-                        
+
                         // Add slot at end of row if there's remaining space
                         if (isEditMode && currentX < 12) {
                           const slotWidth = 12 - currentX
@@ -559,7 +552,7 @@ export default function WidgetCanvasWithDrag() {
                             </div>
                           )
                         }
-                        
+
                         return items
                       })()}
                     </div>
@@ -569,7 +562,7 @@ export default function WidgetCanvasWithDrag() {
             </div>
           </SortableContext>
         </DndContext>
-        
+
         {/* Add new row at bottom in edit mode */}
         {isEditMode && (
           <Card
@@ -593,7 +586,7 @@ export default function WidgetCanvasWithDrag() {
         currentLayout={currentLayout || []}
         onInsertWidget={handleInsertWidget}
       />
-      
+
       {/* KPI Widget Selector - For KPI slots only */}
       <KpiWidgetSelector
         open={showKpiSelector}

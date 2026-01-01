@@ -394,7 +394,7 @@ const useTradeTableColumns = ({
       enableHiding: false,
       size: 100,
     },
-  ], [timezone, onRowSelectionChange, onViewDetails, onEditTrade, onViewChart])
+  ], [timezone, onRowSelectionChange, onViewDetails, onEditTrade])
 }
 
 export function TradeTableReview() {

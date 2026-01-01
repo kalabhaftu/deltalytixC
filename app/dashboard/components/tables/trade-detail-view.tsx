@@ -168,7 +168,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Net P&L</Label>
-                    <p className={cn("text-xl font-mono font-bold", isWin ? "text-green-600" : isLoss ? "text-red-600" : "text-muted-foreground")}>
+                    <p className={cn("text-xl font-mono font-bold", isWin ? "text-long" : isLoss ? "text-short" : "text-muted-foreground")}>
                       {formatCurrency(netPnL)}
                     </p>
                   </div>
@@ -250,8 +250,8 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                         <Label className="text-muted-foreground">Market Sentiment</Label>
                         <Badge variant="outline" className={cn(
                           "capitalize font-medium border-border/50 bg-background/50",
-                          tradeData.marketBias === 'BULLISH' && "text-green-600 border-green-500/30 bg-green-50/50",
-                          tradeData.marketBias === 'BEARISH' && "text-red-600 border-red-500/30 bg-red-50/50",
+                          tradeData.marketBias === 'BULLISH' && "text-long border-long/30 bg-long/5",
+                          tradeData.marketBias === 'BEARISH' && "text-short border-short/30 bg-short/5",
                         )}>
                           {tradeData.marketBias.toLowerCase()}
                         </Badge>

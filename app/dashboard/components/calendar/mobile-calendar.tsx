@@ -88,8 +88,8 @@ function MobileCalendarPnl({ calendarData }: { calendarData: CalendarData }) {
           <div className={cn(
             "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold",
             isPositive
-              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400"
-              : "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400"
+              ? "bg-long/10 text-long"
+              : "bg-short/10 text-short"
           )}>
             {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
             ${formatCurrency(monthlyTotal)}
@@ -143,8 +143,8 @@ function MobileCalendarPnl({ calendarData }: { calendarData: CalendarData }) {
                   isTodayDate && TODAY_STYLES.cell,
                   hasTrades && !isTodayDate && (
                     isProfit
-                      ? "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200/50 dark:border-emerald-800/30"
-                      : "bg-red-50/80 dark:bg-red-950/40 border-red-200/50 dark:border-red-800/30"
+                      ? "bg-long/5 border-long/20"
+                      : "bg-short/5 border-short/20"
                   ),
                   !hasTrades && !isTodayDate && "border-border/30 bg-card/50"
                 )}

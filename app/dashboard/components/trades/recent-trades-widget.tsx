@@ -81,8 +81,8 @@ export default function RecentTradesWidget() {
                       className={cn(
                         'col-span-3 text-right font-semibold',
                         isProfitable
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-red-600 dark:text-red-400'
+                          ? 'text-long'
+                          : 'text-short'
                       )}
                     >
                       {formatCurrency(netPnL)}

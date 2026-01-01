@@ -1,26 +1,32 @@
 "use client"
 
 import * as React from "react"
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartConfig, ChartContainer } from "@/components/ui/chart"
-import { useData } from "@/context/data-provider"
-import { cn, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
-import { WidgetSize } from '@/app/dashboard/types/dashboard'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Cell,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  ReferenceLine
+} from "recharts"
 import { Info } from 'lucide-react'
 import {
-  Tooltip as UITooltip,
+  Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useData } from "@/context/data-provider"
+import { cn, formatNumber, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
+import { WidgetSize } from '@/app/dashboard/types/dashboard'
+import { getWidgetStyles } from '@/app/dashboard/config/widget-dimensions'
 
-const chartConfig = {
-  pnl: {
-    label: "P&L by Strategy",
-    color: "hsl(var(--chart-1))",
-  },
-} satisfies ChartConfig
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface PnLByStrategyProps {
   size?: WidgetSize
@@ -37,15 +43,127 @@ interface StrategyData {
   profitFactor: number
 }
 
+// ============================================================================
+// CONSTANTS - Tradezella Premium Styling
+// ============================================================================
+
+const COLORS = {
+  profit: 'hsl(142 76% 36%)',
+  loss: 'hsl(0 84% 60%)',
+  grid: 'hsl(var(--border))',
+  axis: 'hsl(var(--muted-foreground))'
+} as const
+
+const CHART_CONFIG = {
+  gridOpacity: 0.25,
+  barRadius: [4, 4, 0, 0] as [number, number, number, number],
+  referenceLineOpacity: 0.4
+} as const
+
+// ============================================================================
+// TOOLTIP COMPONENT - Glassmorphism Style
+// ============================================================================
+
+function ChartTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null
+
+  const data = payload[0].payload as StrategyData
+  const isProfit = data.pnl >= 0
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value)
+  }
+
+  return (
+    <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl min-w-[200px]">
+      {/* Strategy Header */}
+      <p className="text-sm font-bold mb-2 truncate max-w-[180px]">{data.strategy}</p>
+
+      {/* P/L - Large & Bold */}
+      <p className={cn(
+        "text-2xl font-bold tracking-tight",
+        isProfit ? "text-emerald-500" : "text-red-500"
+      )}>
+        {formatCurrency(data.pnl)}
+      </p>
+
+      {/* Stats Grid */}
+      <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Trades</span>
+            <span className="font-semibold">{data.trades}</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Win Rate</span>
+            <span className="font-semibold">{data.winRate.toFixed(0)}%</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Avg P/L</span>
+            <span className={cn(
+              "font-semibold",
+              data.avgPnl >= 0 ? "text-emerald-500" : "text-red-500"
+            )}>
+              {formatCurrency(data.avgPnl)}
+            </span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">PF</span>
+            <span className="font-semibold">{data.profitFactor.toFixed(2)}</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 pt-2">
+          <div className="text-center p-2 bg-emerald-500/10 rounded-lg">
+            <p className="text-sm font-bold text-emerald-500">{data.wins}</p>
+            <p className="text-[10px] text-muted-foreground">Wins</p>
+          </div>
+          <div className="text-center p-2 bg-red-500/10 rounded-lg">
+            <p className="text-sm font-bold text-red-500">{data.losses}</p>
+            <p className="text-[10px] text-muted-foreground">Losses</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+function formatAxisValue(value: number): string {
+  const absValue = Math.abs(value)
+  if (absValue >= 1000000) {
+    return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000000, 1)}M`
+  }
+  if (absValue >= 1000) {
+    return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000, 1)}k`
+  }
+  return `${value < 0 ? '-' : ''}$${formatNumber(absValue, 0)}`
+}
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
 export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProps) {
+  // ---------------------------------------------------------------------------
+  // DATA HOOKS (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const { formattedTrades } = useData()
 
+  // ---------------------------------------------------------------------------
+  // DATA PROCESSING (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const chartData = React.useMemo(() => {
-    // CRITICAL FIX: Group trades first to handle partial closes
     const { groupTradesByExecution } = require('@/lib/utils')
     const groupedTrades = groupTradesByExecution(formattedTrades)
 
-    // Group trades by strategy (both tradingModel and custom strategy)
     const strategyMap: Record<string, { pnl: number; trades: number; wins: number; losses: number; grossWin: number; grossLoss: number }> = {}
 
     groupedTrades.forEach((trade: any) => {
@@ -68,9 +186,7 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
       }
     })
 
-    // Convert to array and calculate metrics
     const data: StrategyData[] = Object.entries(strategyMap).map(([strategy, stats]) => {
-      // CRITICAL FIX: Exclude break-even trades from win rate denominator
       const tradableCount = stats.wins + stats.losses
       const winRate = tradableCount > 0 ? (stats.wins / tradableCount) * 100 : 0
       const avgPnl = stats.trades > 0 ? stats.pnl / stats.trades : 0
@@ -88,177 +204,112 @@ export default function PnLByStrategy({ size = 'small-long' }: PnLByStrategyProp
       }
     })
 
-    // Sort by PnL (highest first)
     return data.sort((a, b) => b.pnl - a.pnl)
   }, [formattedTrades])
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value)
-  }
+  // ---------------------------------------------------------------------------
+  // SIZE-RESPONSIVE VALUES
+  // ---------------------------------------------------------------------------
+  const isCompact = size === 'small' || size === 'small-long'
+  const widgetStyles = getWidgetStyles(size || 'small-long')
 
-  const formatYAxis = (value: number) => {
-    const absValue = Math.abs(value)
-    if (absValue >= 1000) {
-      return `$${(value / 1000).toFixed(1)}k`
-    }
-    return `$${value.toFixed(0)}`
-  }
-
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload
-
-      return (
-        <div className="rounded-lg border bg-card p-3 shadow-lg">
-          <div className="grid gap-2">
-            <div className="font-semibold text-sm">{data.strategy}</div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-              <span className="text-muted-foreground">Total P&L:</span>
-              <span className={cn(
-                "font-medium",
-                data.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-              )}>
-                {formatCurrency(data.pnl)}
-              </span>
-              <span className="text-muted-foreground">Trades:</span>
-              <span className="font-medium">{data.trades} ({data.wins}W/{data.losses}L)</span>
-              <span className="text-muted-foreground">Win Rate:</span>
-              <span className="font-medium">{data.winRate.toFixed(1)}%</span>
-              <span className="text-muted-foreground">Profit Factor:</span>
-              <span className="font-medium">{data.profitFactor.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-      )
-    }
-    return null
-  }
-
+  // ---------------------------------------------------------------------------
+  // RENDER
+  // ---------------------------------------------------------------------------
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader
-        className={cn(
-          "flex flex-col items-stretch space-y-0 border-b shrink-0",
-          size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
-        )}
-      >
-        <div className="flex items-center justify-between h-full">
-          <div className="flex items-center gap-1.5">
-            <CardTitle
-              className={cn(
-                "line-clamp-1",
-                size === 'small-long' ? "text-sm" : "text-base"
-              )}
-            >
-              PnL by Trading Model
-            </CardTitle>
-            <TooltipProvider delayDuration={100}>
-              <UITooltip>
-                <TooltipTrigger asChild>
-                  <Info className={cn(
-                    "text-muted-foreground hover:text-foreground transition-colors cursor-help",
-                    size === 'small-long' ? "h-3.5 w-3.5" : "h-4 w-4"
-                  )} />
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[200px]">
-                  <p className="text-xs">Performance breakdown by trading model. Shows total P&L, win/loss ratio, and profit factor.</p>
-                </TooltipContent>
-              </UITooltip>
-            </TooltipProvider>
-          </div>
+    <Card className="flex flex-col bg-card" style={{ height: widgetStyles.height }}>
+      {/* Header */}
+      <CardHeader className="flex flex-row items-center justify-between shrink-0 border-b border-border/50 h-12 px-5">
+        <div className="flex items-center gap-2">
+          <CardTitle className={cn(
+            "font-semibold tracking-tight",
+            isCompact ? "text-sm" : "text-base"
+          )}>
+            P/L by Strategy
+          </CardTitle>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Profit and Loss broken down by trading strategy</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </CardHeader>
 
-      <CardContent
-        className={cn(
-          "flex-1 min-h-[28u 0px]",
-          size === 'small' || size === 'small-long' ? "p-1" : "p-2 sm:p-4"
-        )}
-      >
-        {chartData.length > 0 ? (
-          <div className="w-full h-full">
-            <ChartContainer config={chartConfig} className="w-full h-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  margin={
-                    size === 'small' || size === 'small-long'
-                      ? { left: -5, right: -10, top: 0, bottom: 5 }
-                      : { left: -15, right: -10, top: 5, bottom: 10 }
-                  }
-                  barGap={0}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="hsl(var(--border))"
-                    vertical={false}
+      {/* Chart Container */}
+
+      <CardContent className="flex-1 p-0 relative min-h-[100px]">
+        <div className="absolute inset-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              layout="vertical"
+              margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
+              barGap={4}
+            >
+              {/* Subtle Grid - Vertical Only (since horizontal chart) */}
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={COLORS.grid}
+                strokeOpacity={CHART_CONFIG.gridOpacity}
+                horizontal={false}
+              />
+
+              {/* X Axis - Currency Values */}
+              <XAxis
+                type="number"
+                tickFormatter={formatAxisValue}
+                stroke={COLORS.axis}
+                fontSize={isCompact ? 10 : 11}
+                tickLine={false}
+                axisLine={false}
+              />
+
+              {/* Y Axis - Strategy Names */}
+              <YAxis
+                type="category"
+                dataKey="strategy"
+                stroke={COLORS.axis}
+                fontSize={isCompact ? 9 : 10}
+                tickLine={false}
+                axisLine={false}
+                width={80}
+                tickFormatter={(value) => value.length > 12 ? value.substring(0, 10) + '...' : value}
+              />
+
+              {/* Zero Reference Line */}
+              <ReferenceLine
+                x={0}
+                stroke={COLORS.axis}
+                strokeDasharray="3 3"
+                strokeOpacity={CHART_CONFIG.referenceLineOpacity}
+              />
+
+              {/* Tooltip */}
+              <RechartsTooltip
+                content={<ChartTooltip />}
+                cursor={{ fill: 'hsl(var(--muted)/0.3)' }}
+              />
+
+              {/* Bars with Rounded Ends */}
+              <Bar
+                dataKey="pnl"
+                radius={[0, 4, 4, 0]}
+                maxBarSize={40}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.pnl >= 0 ? COLORS.profit : COLORS.loss}
                   />
-                  <XAxis
-                    dataKey="strategy"
-                    tickLine={false}
-                    axisLine={false}
-                    height={size === 'small' || size === 'small-long' ? 20 : 24}
-                    tickMargin={size === 'small' || size === 'small-long' ? 4 : 8}
-                    tick={{
-                      fontSize: size === 'small' || size === 'small-long' ? 9 : 11,
-                      fill: 'currentColor'
-                    }}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    width={60}
-                    tickMargin={4}
-                    tick={{
-                      fontSize: size === 'small' || size === 'small-long' ? 9 : 11,
-                      fill: 'currentColor'
-                    }}
-                    tickFormatter={formatYAxis}
-                  />
-                  <ReferenceLine
-                    y={0}
-                    stroke="hsl(var(--muted-foreground))"
-                    strokeDasharray="3 3"
-                    strokeOpacity={0.5}
-                  />
-                  <Tooltip
-                    content={<CustomTooltip />}
-                    wrapperStyle={{
-                      fontSize: size === 'small' || size === 'small-long' ? '10px' : '12px',
-                      zIndex: 1000
-                    }}
-                  />
-                  <Bar
-                    dataKey="pnl"
-                    radius={[3, 3, 0, 0]}
-                    maxBarSize={size === 'small' || size === 'small-long' ? 40 : 60}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.pnl >= 0 ? 'hsl(var(--chart-profit))' : 'hsl(var(--chart-loss))'}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </div>
-        ) : (
-          <div className="w-full flex items-center justify-center min-h-[280px]">
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">No strategy data available</p>
-              <p className="text-xs text-muted-foreground">Assign strategies to your trades to see performance</p>
-            </div>
-          </div>
-        )}
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
-    </Card>
+    </Card >
   )
 }

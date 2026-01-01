@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { inter } from "@/lib/fonts";
 import "./globals.css";
 import { SafeToaster } from "@/components/safe-toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
 // Removed Vercel Analytics and Speed Insights to comply with essential-only cookie policy
 import { AuthProvider } from "@/context/auth-provider";
 import { ConsentBanner } from "@/components/consent-banner";
@@ -257,11 +258,13 @@ export default async function RootLayout({
           <ThemeProvider>
             <ConsoleFilterWrapper>
               <AuthProvider>
-                <DeploymentMonitor />
-                <ConsentBanner />
-                <SafeToaster />
-                <SeasonalManager />
-                {children}
+                <TooltipProvider>
+                  <DeploymentMonitor />
+                  <ConsentBanner />
+                  <SafeToaster />
+                  <SeasonalManager />
+                  {children}
+                </TooltipProvider>
               </AuthProvider>
             </ConsoleFilterWrapper>
           </ThemeProvider>

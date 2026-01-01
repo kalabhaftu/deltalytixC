@@ -66,7 +66,7 @@ const navigationItems: NavigationItem[] = [
     icon: Table
   },
   {
-    id: 'menu',
+    id: 'playbook',
     label: 'Playbook',
     icon: MenuSquare
   },

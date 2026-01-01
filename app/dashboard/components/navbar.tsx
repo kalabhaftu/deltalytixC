@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useData } from "@/context/data-provider"
-import { Database, LogOut, LayoutDashboard, RefreshCw, Home, Moon, Sun, Laptop, Settings, Pencil, Plus, Waves, BookOpen, LayoutTemplate, Trash2 } from "lucide-react"
+import { Database, LogOut, LayoutDashboard, RefreshCw, Home, Moon, Sun, Laptop, Settings, Pencil, Plus, Waves, BookOpen, LayoutTemplate, Trash2, Users, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -355,9 +355,7 @@ export default function Navbar() {
             <Popover open={accountPopoverOpen} onOpenChange={setAccountPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-muted/50 transition-all duration-200 border border-border/50 bg-card/50">
-                  <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                  </svg>
+                  <Users className="mr-2 h-4 w-4" />
                   <span className="text-sm">{getAccountButtonText()}</span>
                   {accountNumbers.length > 0 && (
                     <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
@@ -522,9 +520,7 @@ export default function Navbar() {
                   {/* Mobile-only quick actions */}
                   <div className="md:hidden">
                     <DropdownMenuItem onClick={() => setAccountPopoverOpen(true)} className="hover:bg-muted/50 transition-colors duration-200">
-                      <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                      </svg>
+                      <Users className="mr-2 h-4 w-4" />
                       <span>{getAccountButtonText()}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
@@ -534,9 +530,7 @@ export default function Navbar() {
                       }}
                       className="hover:bg-muted/50 transition-colors duration-200"
                     >
-                      <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
-                      </svg>
+                      <Filter className="mr-2 h-4 w-4" />
                       <span>Filters</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -612,7 +606,7 @@ export default function Navbar() {
           </div>
         </div>
       </motion.nav>
-      <div className="h-[48px]" />
+      <div className="h-12" />
 
       {/* Hidden components for programmatic triggering */}
       <div className="hidden">

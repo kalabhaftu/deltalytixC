@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Trash2, Save } from 'lucide-react'
+import { Trash2, Save, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { updateTradeCommentAction } from '@/server/database'
 import {
@@ -38,11 +38,11 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
     try {
       // Update local state immediately
       const newComment = localComment || null
-      
+
       // Update all trades in the list
       await updateTrades(tradeIds, { comment: newComment })
 
-      
+
       setShowSuccess(true)
       setTimeout(() => {
         setShowSuccess(false)
@@ -61,10 +61,10 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
     try {
       // Update local state immediately
       setLocalComment("")
-      
+
       // Update all trades in the list
       await updateTrades(tradeIds, { comment: null })
-      
+
       setShowSuccess(true)
       setTimeout(() => {
         setShowSuccess(false)
@@ -82,8 +82,8 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <div>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className={cn(
                 "h-8 w-full justify-start px-2 gap-2 truncate",
                 !localComment && "text-muted-foreground font-normal"
@@ -108,20 +108,8 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
                 </div>
               )}
               {showSuccess && !isUpdating && (
-                <div className="flex items-center gap-2 text-sm text-green-600 animate-in fade-in zoom-in duration-300">
-                  <svg
-                    className="h-3 w-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
+                <div className="flex items-center gap-2 text-sm text-long animate-in fade-in zoom-in duration-300">
+                  <Check className="h-3 w-3" />
                   Saved
                 </div>
               )}

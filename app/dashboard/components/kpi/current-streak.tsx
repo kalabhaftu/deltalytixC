@@ -99,53 +99,39 @@ export default function CurrentStreak({ size }: CurrentStreakProps) {
   const { currentStreak, isWinning, longestWinStreak, longestLoseStreak } = streakData
 
   return (
-    <Card className="h-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
-        {isWinning ? (
-          <Flame className="h-4 w-4 text-orange-500" />
-        ) : (
-          <Snowflake className="h-4 w-4 text-blue-500" />
-        )}
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-baseline gap-2">
-          <div className={cn(
-            "text-2xl font-bold",
-            isWinning ? "text-green-500" : "text-red-500"
-          )}>
-            {currentStreak}
+    <Card className="h-24">
+      <CardContent className="px-6 py-4 h-full flex flex-col justify-between">
+        <div className="flex justify-between items-start">
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
+                Current Streak
+              </span>
+            </div>
+            <div className={cn(
+              "text-2xl font-bold tracking-tight",
+              isWinning ? "text-long" : "text-short"
+            )}>
+              {currentStreak}
+            </div>
           </div>
-          <span className="text-sm text-muted-foreground">
-            {isWinning ? 'wins' : 'losses'} in a row
-          </span>
+          {isWinning ? (
+            <Flame className="h-6 w-6 text-orange-500 opacity-80" />
+          ) : (
+            <Snowflake className="h-6 w-6 text-blue-500 opacity-80" />
+          )}
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-3 w-3 text-green-500" />
-            <span className="text-muted-foreground">Best:</span>
-            <span className="font-medium">{longestWinStreak}</span>
+        <div className="flex items-center gap-4 text-[10px] font-medium text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <TrendingUp className="h-3 w-3 text-long" />
+            <span>Best: {longestWinStreak}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <TrendingDown className="h-3 w-3 text-red-500" />
-            <span className="text-muted-foreground">Worst:</span>
-            <span className="font-medium">{longestLoseStreak}</span>
+          <div className="flex items-center gap-1.5">
+            <TrendingDown className="h-3 w-3 text-short" />
+            <span>Worst: {longestLoseStreak}</span>
           </div>
         </div>
-
-        {currentStreak >= 3 && isWinning && (
-          <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
-            <Flame className="h-3 w-3 text-orange-500" />
-            You're on fire! Keep it up!
-          </p>
-        )}
-        {currentStreak >= 3 && !isWinning && (
-          <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
-            <TrendingUp className="h-3 w-3 text-blue-500" />
-            Hang in there, the market gives back!
-          </p>
-        )}
       </CardContent>
     </Card>
   )

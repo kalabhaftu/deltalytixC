@@ -1,11 +1,11 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
-import { 
-  getUserTemplates, 
-  getActiveTemplate, 
-  createTemplate as createTemplateAction, 
-  deleteTemplate as deleteTemplateAction, 
+import {
+  getUserTemplates,
+  getActiveTemplate,
+  createTemplate as createTemplateAction,
+  deleteTemplate as deleteTemplateAction,
   switchTemplate as switchTemplateAction,
   updateTemplateLayout as updateTemplateLayoutAction,
   type DashboardTemplate,
@@ -34,13 +34,11 @@ const DEFAULT_LAYOUT = [
   { i: 'kpi-3', type: 'dayWinRate', size: 'kpi', x: 2, y: 0, w: 1, h: 1 },
   { i: 'kpi-4', type: 'profitFactor', size: 'kpi', x: 3, y: 0, w: 1, h: 1 },
   { i: 'kpi-5', type: 'avgWinLoss', size: 'kpi', x: 4, y: 0, w: 1, h: 1 },
-  // Row 2: Current Streak (full width)
-  { i: 'current-streak', type: 'currentStreak', size: 'kpi', x: 0, y: 1, w: 5, h: 1 },
-  // Row 3: 3 Chart Widgets (3 equal columns - independent layout)
-  { i: 'net-daily-pnl', type: 'netDailyPnL', size: 'small-long', x: 0, y: 2, w: 3, h: 2 },
-  { i: 'daily-cumulative-pnl', type: 'dailyCumulativePnL', size: 'small-long', x: 3, y: 2, w: 3, h: 2 },
-  { i: 'account-balance', type: 'accountBalanceChart', size: 'small-long', x: 6, y: 2, w: 3, h: 2 },
-  // Row 4: Calendar (full width)
+  // Row 2: 3 Chart Widgets
+  { i: 'net-daily-pnl', type: 'netDailyPnL', size: 'small-long', x: 0, y: 1, w: 4, h: 3 },
+  { i: 'daily-cumulative-pnl', type: 'dailyCumulativePnL', size: 'small-long', x: 4, y: 1, w: 4, h: 3 },
+  { i: 'account-balance', type: 'accountBalanceChart', size: 'small-long', x: 8, y: 1, w: 4, h: 3 },
+  // Row 3: Calendar (full width)
   { i: 'advanced-calendar', type: 'calendarAdvanced', size: 'extra-large', x: 0, y: 4, w: 12, h: 12 },
 ]
 
@@ -58,17 +56,17 @@ export function TemplateProvider({ children }: { children: React.ReactNode }) {
     if (hasLoadedRef.current || isLoadingRef.current) {
       return
     }
-    
+
     isLoadingRef.current = true
     hasLoadedRef.current = true
-    
+
     try {
       // Try to load user's saved template first
       const [allTemplates, active] = await Promise.all([
         getUserTemplates(),
         getActiveTemplate(),
       ])
-      
+
       // If we got templates, use them immediately
       if (allTemplates.length > 0 && active) {
         setTemplates(allTemplates)
@@ -76,17 +74,17 @@ export function TemplateProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false)
         return
       }
-      
+
       // No templates yet - create default for new users
       const { ensureDefaultTemplate } = await import('@/server/seed-default-template')
       await ensureDefaultTemplate()
-      
+
       // Reload after creating default
       const [newTemplates, newActive] = await Promise.all([
         getUserTemplates(),
         getActiveTemplate(),
       ])
-      
+
       if (newTemplates.length > 0 && newActive) {
         setTemplates(newTemplates)
         setActiveTemplate(newActive)
@@ -106,7 +104,7 @@ export function TemplateProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       // Failed to load templates
       setTimeout(() => toast.error('Failed to load templates'), 0)
-      
+
       // Use fallback on error
       setActiveTemplate({
         id: 'fallback',
@@ -118,7 +116,7 @@ export function TemplateProvider({ children }: { children: React.ReactNode }) {
         createdAt: new Date(),
         updatedAt: new Date(),
       })
-      
+
       hasLoadedRef.current = false // Allow retry on error
     } finally {
       setIsLoading(false)
@@ -129,14 +127,14 @@ export function TemplateProvider({ children }: { children: React.ReactNode }) {
   // Load on mount - only once
   useEffect(() => {
     let mounted = true
-    
+
     const load = async () => {
       if (!mounted) return
       await loadTemplates()
     }
-    
+
     load()
-    
+
     return () => {
       mounted = false
     }
@@ -162,13 +160,13 @@ export function TemplateProvider({ children }: { children: React.ReactNode }) {
     try {
       await deleteTemplateAction(templateId)
       setTemplates(prev => prev.filter(t => t.id !== templateId))
-      
+
       // If deleted template was active, reload to get new active template
       if (activeTemplate?.id === templateId) {
         hasLoadedRef.current = false
         await loadTemplates()
       }
-      
+
       setTimeout(() => toast.success('Template deleted successfully'), 0)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete template'

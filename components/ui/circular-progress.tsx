@@ -20,13 +20,13 @@ export function CircularProgress({
   strokeWidth = 8,
   className,
   showPercentage = true,
-  color = '#22c55e', // green-500
-  backgroundColor = '#e5e7eb', // gray-200
+  color = 'hsl(var(--primary))',
+  backgroundColor = 'hsl(var(--muted))',
   type = 'gauge' // Default to gauge
 }: CircularProgressProps) {
   const radius = (size - strokeWidth) / 2
   const isGauge = type === 'gauge'
-  
+
   // For gauge: semi-circle (180 degrees)
   // For circle: full circle (360 degrees)
   const circumference = isGauge ? radius * Math.PI : radius * 2 * Math.PI
@@ -42,7 +42,7 @@ export function CircularProgress({
       >
         {/* Background arc/circle */}
         <path
-          d={isGauge 
+          d={isGauge
             ? `M ${strokeWidth / 2} ${size / 2} A ${radius} ${radius} 0 0 1 ${size - strokeWidth / 2} ${size / 2}`
             : `M ${size / 2} ${strokeWidth / 2} A ${radius} ${radius} 0 1 1 ${size / 2} ${size - strokeWidth / 2} A ${radius} ${radius} 0 1 1 ${size / 2} ${strokeWidth / 2}`
           }
@@ -53,7 +53,7 @@ export function CircularProgress({
         />
         {/* Progress arc/circle */}
         <path
-          d={isGauge 
+          d={isGauge
             ? `M ${strokeWidth / 2} ${size / 2} A ${radius} ${radius} 0 0 1 ${size - strokeWidth / 2} ${size / 2}`
             : `M ${size / 2} ${strokeWidth / 2} A ${radius} ${radius} 0 1 1 ${size / 2} ${size - strokeWidth / 2} A ${radius} ${radius} 0 1 1 ${size / 2} ${strokeWidth / 2}`
           }

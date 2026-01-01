@@ -4,20 +4,21 @@ import { prisma } from '@/lib/prisma'
 import { getUserId } from './auth-utils'
 
 const DEFAULT_LAYOUT = [
-  // Row 1: KPI Widgets (5 columns)
+  // Row 0: KPI Widgets (5 slots)
   { i: 'kpi-1', type: 'accountBalancePnl', size: 'kpi', x: 0, y: 0, w: 1, h: 1 },
   { i: 'kpi-2', type: 'tradeWinRate', size: 'kpi', x: 1, y: 0, w: 1, h: 1 },
   { i: 'kpi-3', type: 'dayWinRate', size: 'kpi', x: 2, y: 0, w: 1, h: 1 },
   { i: 'kpi-4', type: 'profitFactor', size: 'kpi', x: 3, y: 0, w: 1, h: 1 },
   { i: 'kpi-5', type: 'avgWinLoss', size: 'kpi', x: 4, y: 0, w: 1, h: 1 },
-  // Row 2: Current Streak (full width)
-  { i: 'current-streak', type: 'currentStreak', size: 'kpi', x: 0, y: 1, w: 5, h: 1 },
-  // Row 3: 3 Chart Widgets (3 equal columns - independent layout)
-  { i: 'net-daily-pnl', type: 'netDailyPnL', size: 'small-long', x: 0, y: 2, w: 3, h: 2 },
-  { i: 'daily-cumulative-pnl', type: 'dailyCumulativePnL', size: 'small-long', x: 3, y: 2, w: 3, h: 2 },
-  { i: 'account-balance', type: 'accountBalanceChart', size: 'small-long', x: 6, y: 2, w: 3, h: 2 },
-  // Row 4: Calendar (full width)
-  { i: 'advanced-calendar', type: 'calendarAdvanced', size: 'extra-large', x: 0, y: 4, w: 12, h: 12 },
+  // Row 1: Recent Trades (left, smaller) and Mini Calendar (right, larger)
+  { i: 'recent-trades', type: 'recentTrades', size: 'small', x: 0, y: 1, w: 4, h: 3 },
+  { i: 'mini-calendar', type: 'calendarMini', size: 'large', x: 4, y: 1, w: 8, h: 3 },
+  // Row 2: 3 Chart Widgets
+  { i: 'net-daily-pnl', type: 'netDailyPnL', size: 'small-long', x: 0, y: 4, w: 4, h: 3 },
+  { i: 'daily-cumulative-pnl', type: 'dailyCumulativePnL', size: 'small-long', x: 4, y: 4, w: 4, h: 3 },
+  { i: 'account-balance', type: 'accountBalanceChart', size: 'small-long', x: 8, y: 4, w: 4, h: 3 },
+  // Row 3: Calendar (full width)
+  { i: 'advanced-calendar', type: 'calendarAdvanced', size: 'extra-large', x: 0, y: 7, w: 12, h: 4 },
 ]
 
 /**

@@ -1,19 +1,31 @@
 "use client"
 
 import * as React from "react"
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from "recharts"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartConfig, ChartContainer } from "@/components/ui/chart"
-import { useData } from "@/context/data-provider"
-import { cn } from "@/lib/utils"
-import { WidgetSize } from '@/app/dashboard/types/dashboard'
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  ReferenceLine,
+  Tooltip as RechartsTooltip
+} from "recharts"
 import { Info } from 'lucide-react'
 import {
-  Tooltip as UITooltip,
+  Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useData } from "@/context/data-provider"
+import { cn, formatCurrency, formatNumber } from "@/lib/utils"
+import { WidgetSize } from '@/app/dashboard/types/dashboard'
+import { getWidgetStyles } from '@/app/dashboard/config/widget-dimensions'
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface DailyCumulativePnLProps {
   size?: WidgetSize
@@ -26,23 +38,84 @@ interface ChartDataPoint {
   trades: number
 }
 
-interface TooltipProps {
-  active?: boolean
-  payload?: Array<{
-    payload: ChartDataPoint
-  }>
+// ============================================================================
+// CONSTANTS - Tradezella Premium Styling
+// ============================================================================
+
+const COLORS = {
+  profit: 'hsl(var(--chart-profit))',
+  loss: 'hsl(var(--chart-loss))',
+  grid: 'hsl(var(--border))',
+  axis: 'hsl(var(--muted-foreground))'
+} as const
+
+const CHART_CONFIG = {
+  gridOpacity: 0.25,
+  referenceLineOpacity: 0.4,
+  strokeWidth: 2.5
+} as const
+
+// ============================================================================
+// TOOLTIP COMPONENT - Glassmorphism Style
+// ============================================================================
+
+function ChartTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null
+
+  const data = payload[0].payload as ChartDataPoint
+  const date = new Date(data.date + 'T00:00:00Z')
+  const isCumulativeProfit = data.cumulativePnL >= 0
+  const isDailyProfit = data.dailyPnL >= 0
+
+  return (
+    <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl">
+      {/* Date Header */}
+      <p className="text-xs font-medium text-muted-foreground mb-1">
+        {date.toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          timeZone: 'UTC'
+        })}
+      </p>
+
+      {/* Cumulative P/L - Large & Bold */}
+      <div className="mb-2">
+        <span className="text-xs text-muted-foreground">Cumulative</span>
+        <p className={cn(
+          "text-2xl font-bold tracking-tight",
+          isCumulativeProfit ? "text-long" : "text-short"
+        )}>
+          {formatCurrency(data.cumulativePnL)}
+        </p>
+      </div>
+
+      {/* Daily P/L */}
+      <div className="pt-2 border-t border-border/30">
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-muted-foreground">Today's P/L</span>
+          <span className={cn(
+            "text-sm font-semibold",
+            isDailyProfit ? "text-long" : "text-short"
+          )}>
+            {isDailyProfit ? "+" : ""}{formatCurrency(data.dailyPnL)}
+          </span>
+        </div>
+        <div className="flex justify-between items-center mt-1">
+          <span className="text-xs text-muted-foreground">Trades</span>
+          <span className="text-sm font-semibold">{data.trades}</span>
+        </div>
+      </div>
+    </div>
+  )
 }
 
-const chartConfig = {
-  cumulativePnL: {
-    label: "Cumulative P/L",
-    color: "hsl(var(--chart-2))",
-  },
-} satisfies ChartConfig
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
 
-import { formatCurrency, formatNumber } from '@/lib/utils'
-
-const formatCurrencyValue = (value: number) => {
+function formatAxisValue(value: number): string {
   const absValue = Math.abs(value)
   if (absValue >= 1000000) {
     return `${value < 0 ? '-' : ''}$${formatNumber(absValue / 1000000, 1)}M`
@@ -53,38 +126,19 @@ const formatCurrencyValue = (value: number) => {
   return `${value < 0 ? '-' : ''}$${formatNumber(absValue, 0)}`
 }
 
-const CustomTooltip = ({ active, payload }: TooltipProps) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload
-    const date = new Date(data.date + 'T00:00:00Z')
-    return (
-      <div className="bg-background p-2 border rounded shadow-sm">
-        <p className="font-semibold text-sm">
-          {date.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            timeZone: 'UTC'
-          })}
-        </p>
-        <p className={`font-bold ${data.cumulativePnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          Cumulative: {formatCurrency(data.cumulativePnL)}
-        </p>
-        <div className="text-xs text-muted-foreground mt-1">
-          <p className={data.dailyPnL >= 0 ? 'text-green-600' : 'text-red-600'}>
-            Daily: {formatCurrency(data.dailyPnL)}
-          </p>
-          <p>Trades: {data.trades}</p>
-        </div>
-      </div>
-    )
-  }
-  return null
-}
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
 export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulativePnLProps) {
+  // ---------------------------------------------------------------------------
+  // DATA HOOKS (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const { calendarData } = useData()
 
+  // ---------------------------------------------------------------------------
+  // DATA PROCESSING (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const chartData = React.useMemo(() => {
     const sortedData = Object.entries(calendarData)
       .map(([date, values]) => ({
@@ -108,145 +162,144 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
     return result
   }, [calendarData])
 
+  // ---------------------------------------------------------------------------
+  // GRADIENT OFFSET CALCULATION (PRESERVED - DO NOT MODIFY)
+  // ---------------------------------------------------------------------------
   const gradientOffset = React.useMemo(() => {
     if (chartData.length === 0) return 0
 
     const dataMax = Math.max(...chartData.map((i) => i.cumulativePnL))
     const dataMin = Math.min(...chartData.map((i) => i.cumulativePnL))
 
-    if (dataMax <= 0) {
-      return 0
-    }
-    if (dataMin >= 0) {
-      return 1
-    }
+    if (dataMax <= 0) return 0
+    if (dataMin >= 0) return 1
 
     return dataMax / (dataMax - dataMin)
   }, [chartData])
 
+  // ---------------------------------------------------------------------------
+  // SIZE-RESPONSIVE VALUES
+  // ---------------------------------------------------------------------------
+  const isCompact = size === 'small' || size === 'small-long'
+  const widgetStyles = getWidgetStyles(size || 'small-long')
+
+  // ---------------------------------------------------------------------------
+  // RENDER
+  // ---------------------------------------------------------------------------
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader
-        className={cn(
-          "flex flex-col items-stretch space-y-0 border-b shrink-0",
-          size === 'small-long' ? "p-2 h-[40px]" : size === 'small' ? "p-2 h-[48px]" : "p-3 sm:p-4 h-[56px]"
-        )}
-      >
-        <div className="flex items-center justify-between h-full">
-          <div className="flex items-center gap-1.5">
-            <CardTitle
-              className={cn(
-                "line-clamp-1",
-                size === 'small-long' ? "text-sm" : "text-base"
-              )}
-            >
-              Daily Net Cumulative P/L
-            </CardTitle>
-            <TooltipProvider delayDuration={100}>
-              <UITooltip>
-                <TooltipTrigger asChild>
-                  <Info className={cn(
-                    "text-muted-foreground hover:text-foreground transition-colors cursor-help",
-                    size === 'small-long' ? "h-3.5 w-3.5" : "h-4 w-4"
-                  )} />
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[200px]">
-                  <p className="text-xs">Running total of profit/loss over time. Shows how your account balance changes day by day.</p>
-                </TooltipContent>
-              </UITooltip>
-            </TooltipProvider>
-          </div>
+    <Card className="flex flex-col bg-card" style={{ height: widgetStyles.height }}>
+      {/* Header */}
+      <CardHeader className="flex flex-row items-center justify-between shrink-0 border-b border-border/50 h-12 px-5">
+        <div className="flex items-center gap-2">
+          <CardTitle className={cn(
+            "font-semibold tracking-tight",
+            isCompact ? "text-sm" : "text-base"
+          )}>
+            Cumulative P/L
+          </CardTitle>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Running total of daily profit/loss over time</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </CardHeader>
-      <CardContent
-        className={cn(
-          "flex-1",
-          size === 'small' ? "p-1" : "p-2 sm:p-4"
-        )}
-      >
-        <div className="w-full h-[280px]">
-          <ChartContainer config={chartConfig} className="w-full h-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={chartData}
-                margin={
-                  size === 'small'
-                    ? { left: -10, right: 0, top: 0, bottom: 0 }
-                    : { left: -15, right: 0, top: 5, bottom: 5 }
-                }
-              >
-                <defs>
-                  <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset={gradientOffset} stopColor="hsl(var(--chart-profit))" stopOpacity={0.4} />
-                    <stop offset={gradientOffset} stopColor="hsl(var(--chart-loss))" stopOpacity={0.4} />
-                  </linearGradient>
-                  <linearGradient id="splitStroke" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset={gradientOffset} stopColor="hsl(var(--chart-profit))" stopOpacity={1} />
-                    <stop offset={gradientOffset} stopColor="hsl(var(--chart-loss))" stopOpacity={1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="hsl(var(--border))"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  tickLine={false}
-                  axisLine={false}
-                  height={size === 'small' ? 20 : 24}
-                  tickMargin={size === 'small' ? 4 : 8}
-                  tick={{
-                    fontSize: size === 'small' ? 9 : 11,
-                    fill: 'currentColor'
-                  }}
-                  minTickGap={size === 'small' ? 30 : 50}
-                  tickFormatter={(value) => {
-                    const date = new Date(value + 'T00:00:00Z')
-                    return date.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      timeZone: 'UTC'
-                    })
-                  }}
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  width={60}
-                  tickMargin={4}
-                  tick={{
-                    fontSize: size === 'small' ? 9 : 11,
-                    fill: 'currentColor'
-                  }}
-                  tickFormatter={formatCurrencyValue}
-                />
-                <ReferenceLine
-                  y={0}
-                  stroke="hsl(var(--muted-foreground))"
-                  strokeDasharray="3 3"
-                  strokeOpacity={0.5}
-                />
-                <Tooltip
-                  content={<CustomTooltip />}
-                  wrapperStyle={{
-                    fontSize: size === 'small' ? '10px' : '12px',
-                    zIndex: 1000
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="cumulativePnL"
-                  stroke="url(#splitStroke)"
-                  strokeWidth={2}
-                  fill="url(#splitColor)"
-                  isAnimationActive={false}
-                  dot={false}
-                  activeDot={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+
+      {/* Chart Container */}
+      <CardContent className="flex-1 p-0 relative min-h-[100px]">
+        <div className="absolute inset-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={chartData}
+              margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
+            >
+              {/* Gradient Definitions */}
+              <defs>
+                {/* Split gradient for area fill */}
+                <linearGradient id="cumulativeFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={COLORS.profit} stopOpacity={0.5} />
+                  <stop offset={`${gradientOffset * 100}%`} stopColor={COLORS.profit} stopOpacity={0.1} />
+                  <stop offset={`${gradientOffset * 100}%`} stopColor={COLORS.loss} stopOpacity={0.1} />
+                  <stop offset="100%" stopColor={COLORS.loss} stopOpacity={0.5} />
+                </linearGradient>
+
+                {/* Split gradient for stroke */}
+                <linearGradient id="cumulativeStroke" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset={`${gradientOffset * 100}%`} stopColor={COLORS.profit} />
+                  <stop offset={`${gradientOffset * 100}%`} stopColor={COLORS.loss} />
+                </linearGradient>
+              </defs>
+
+              {/* Subtle Grid - Horizontal Only */}
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={COLORS.grid}
+                strokeOpacity={CHART_CONFIG.gridOpacity}
+                vertical={false}
+              />
+
+              {/* X Axis - Dates */}
+              <XAxis
+                dataKey="date"
+                tickFormatter={(value) => {
+                  const date = new Date(value + 'T00:00:00Z')
+                  return date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    timeZone: 'UTC'
+                  })
+                }}
+                stroke={COLORS.axis}
+                fontSize={isCompact ? 10 : 11}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={40}
+              />
+
+              {/* Y Axis - Currency */}
+              <YAxis
+                tickFormatter={formatAxisValue}
+                stroke={COLORS.axis}
+                fontSize={isCompact ? 10 : 11}
+                tickLine={false}
+                axisLine={false}
+                width={55}
+              />
+
+              {/* Zero Reference Line */}
+              <ReferenceLine
+                y={0}
+                stroke={COLORS.axis}
+                strokeDasharray="3 3"
+                strokeOpacity={CHART_CONFIG.referenceLineOpacity}
+              />
+
+              {/* Tooltip */}
+              <RechartsTooltip
+                content={<ChartTooltip />}
+                cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeDasharray: '3 3' }}
+              />
+
+              {/* Area with Gradient Fill */}
+              <Area
+                type="monotone"
+                dataKey="cumulativePnL"
+                stroke="url(#cumulativeStroke)"
+                strokeWidth={CHART_CONFIG.strokeWidth}
+                fill="url(#cumulativeFill)"
+                dot={false}
+                activeDot={{
+                  r: 4,
+                  strokeWidth: 2,
+                  stroke: 'hsl(var(--background))'
+                }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>

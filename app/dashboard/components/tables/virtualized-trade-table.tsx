@@ -26,10 +26,10 @@ const TradeRow = memo(({ trade, isSelected, onTradeClick, onTradeSelect }: {
   onTradeSelect?: (tradeId: string) => void
 }) => {
   const timezone = useUserStore((state) => state.timezone)
-  const pnlColor = trade.pnl > 0 ? 'text-green-600 dark:text-green-400' : 
-                   trade.pnl < 0 ? 'text-red-600 dark:text-red-400' : 
-                   'text-muted-foreground'
-  
+  const pnlColor = trade.pnl > 0 ? 'text-long' :
+    trade.pnl < 0 ? 'text-short' :
+      'text-muted-foreground'
+
   const Icon = trade.pnl > 0 ? TrendingUp : TrendingDown
 
   return (
@@ -53,7 +53,7 @@ const TradeRow = memo(({ trade, isSelected, onTradeClick, onTradeSelect }: {
           <input
             type="checkbox"
             checked={isSelected}
-            onChange={() => {}}
+            onChange={() => { }}
             className="h-4 w-4 cursor-pointer"
           />
         </div>
@@ -69,8 +69,13 @@ const TradeRow = memo(({ trade, isSelected, onTradeClick, onTradeSelect }: {
       {/* Side */}
       <div className="flex-shrink-0 w-16">
         <Badge
-          variant={trade.side?.toLowerCase() === 'buy' ? 'default' : 'secondary'}
-          className="text-xs"
+          variant="outline"
+          className={cn(
+            "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5",
+            trade.side?.toLowerCase() === 'buy' || trade.side?.toLowerCase() === 'long'
+              ? "bg-long/10 text-long border-long/20"
+              : "bg-short/10 text-short border-short/20"
+          )}
         >
           {trade.side || 'N/A'}
         </Badge>
@@ -110,8 +115,8 @@ const TradeRow = memo(({ trade, isSelected, onTradeClick, onTradeSelect }: {
   )
 }, (prev, next) => {
   // Only re-render if trade data or selection changed
-  return prev.trade.id === next.trade.id && 
-         prev.isSelected === next.isSelected
+  return prev.trade.id === next.trade.id &&
+    prev.isSelected === next.isSelected
 })
 
 TradeRow.displayName = 'TradeRow'
@@ -122,7 +127,7 @@ export const VirtualizedTradeTable = memo(function VirtualizedTradeTable({
   selectedTrades = new Set(),
   onTradeSelect
 }: VirtualizedTradeTableProps) {
-  
+
   // Calculate container height (max 800px or viewport height - 200px)
   const containerHeight = Math.min(800, typeof window !== 'undefined' ? window.innerHeight - 200 : 800)
 

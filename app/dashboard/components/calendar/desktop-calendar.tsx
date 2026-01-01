@@ -14,6 +14,7 @@ import { cn, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { CalendarModal } from "./daily-modal"
 import { WeeklyModal } from "./weekly-modal"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useCalendarViewStore } from "@/store/calendar-view"
 import { useCalendarNotes } from "@/app/dashboard/hooks/use-calendar-notes"
 import { useJournalData } from "@/app/dashboard/hooks/use-journal-data"
@@ -78,7 +79,7 @@ function RenewalBadge({ renewals }: { renewals: Account[] }) {
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          <Calendar className="h-2.5 w-2.5" />
+          <Calendar className="h-3 w-3" />
           {renewals.length}
         </Badge>
       </PopoverTrigger>
@@ -139,7 +140,7 @@ const DayCell = memo(function DayCell({
     <div
       className={cn(
         DAY_CELL_STYLES.base,
-        "min-h-[90px] flex flex-col p-2",
+        "min-h-[75px] flex flex-col p-1.5",
         hasTrades
           ? isProfit
             ? DAY_CELL_STYLES.profit
@@ -205,7 +206,7 @@ const WeeklySummaryCell = memo(function WeeklySummaryCell({
     <div
       className={cn(
         WEEKLY_CELL_STYLES.base,
-        "min-h-[90px] flex flex-col items-center justify-center p-2",
+        "min-h-[75px] flex flex-col items-center justify-center p-1.5",
         state === 'profit' && WEEKLY_CELL_STYLES.profit,
         state === 'loss' && WEEKLY_CELL_STYLES.loss,
         state === 'flat' && WEEKLY_CELL_STYLES.flat,
@@ -385,13 +386,23 @@ const CalendarPnl = memo(function CalendarPnl({ calendarData }: CalendarPnlProps
   return (
     <Card ref={calendarRef} className="h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b shrink-0 px-4 py-3 bg-gradient-to-r from-card to-muted/5">
-        <div className="flex items-center gap-4">
-          <CardTitle className="text-lg font-bold tracking-tight capitalize">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b shrink-0 h-12 px-5 bg-gradient-to-r from-card to-muted/5">
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-base font-semibold tracking-tight capitalize">
             {viewMode === 'daily'
               ? formatInTimeZone(currentDate, timezone, 'MMMM yyyy', { locale: dateLocale })
               : formatInTimeZone(currentDate, timezone, 'yyyy', { locale: dateLocale })}
           </CardTitle>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="cursor-help">
+                <BookOpen className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Review daily P&L, trade counts, and journal entries</p>
+            </TooltipContent>
+          </Tooltip>
 
           {/* Total Pill */}
           <div className={cn(

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
+import {
   ArrowLeft,
   RefreshCw,
   Settings,
@@ -66,14 +66,14 @@ export default function LiveAccountDetailPage() {
       if (!response.ok) {
         throw new Error('Failed to fetch account')
       }
-      
+
       const data = await response.json()
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch account data')
       }
 
       const accountData = data.data
-      
+
       if (!accountData || accountData.accountType !== 'live') {
         router.push('/dashboard/accounts')
         return
@@ -90,7 +90,7 @@ export default function LiveAccountDetailPage() {
   // Listen to store updates for this account
   useEffect(() => {
     if (!storeAccounts || !accountId) return
-    
+
     const storeAccount = storeAccounts.find(acc => acc.id === accountId)
     if (storeAccount && storeAccount.accountType === 'live') {
       // Update account data from store
@@ -159,7 +159,7 @@ export default function LiveAccountDetailPage() {
               <div className="h-4 bg-muted rounded w-32 mt-2 animate-pulse"></div>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[...Array(3)].map((_, i) => (
               <Card key={i} className="animate-pulse">
@@ -208,8 +208,8 @@ export default function LiveAccountDetailPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={
                 account.status === 'active' ? 'outline' :
-                account.status === 'funded' ? 'default' :
-                account.status === 'failed' ? 'destructive' : 'secondary'
+                  account.status === 'funded' ? 'default' :
+                    account.status === 'failed' ? 'destructive' : 'secondary'
               } className="text-xs">
                 {account.status?.toUpperCase()}
               </Badge>
@@ -276,7 +276,7 @@ export default function LiveAccountDetailPage() {
             <CardContent>
               <div className={cn(
                 "text-2xl font-bold",
-                (account.currentEquity || 0) >= account.startingBalance ? "text-green-600" : "text-red-600"
+                (account.currentEquity || 0) >= account.startingBalance ? "text-long" : "text-short"
               )}>
                 {formatCurrency(account.currentEquity || account.startingBalance)}
               </div>
@@ -301,7 +301,7 @@ export default function LiveAccountDetailPage() {
             <CardContent>
               <div className={cn(
                 "text-2xl font-bold",
-                (account.profitLoss || 0) >= 0 ? "text-green-600" : "text-red-600"
+                (account.profitLoss || 0) >= 0 ? "text-long" : "text-short"
               )}>
                 {formatCurrency(account.profitLoss || 0)}
               </div>
@@ -343,8 +343,8 @@ export default function LiveAccountDetailPage() {
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Last Trade</label>
                       <p className="text-sm font-semibold">
-                        {account.lastTradeDate ? 
-                          new Date(account.lastTradeDate).toLocaleDateString() : 
+                        {account.lastTradeDate ?
+                          new Date(account.lastTradeDate).toLocaleDateString() :
                           'No trades yet'
                         }
                       </p>
@@ -371,7 +371,7 @@ export default function LiveAccountDetailPage() {
                         setRefreshKey(prev => prev + 1)
                       }}
                     >
-                      <Button className="w-full bg-green-600 hover:bg-green-700">
+                      <Button className="w-full bg-long hover:bg-long/90 text-long-foreground">
                         <Plus className="w-4 h-4 mr-2" />
                         Deposit
                       </Button>
@@ -386,13 +386,13 @@ export default function LiveAccountDetailPage() {
                         setRefreshKey(prev => prev + 1)
                       }}
                     >
-                      <Button variant="outline" className="w-full border-red-200 text-red-600 hover:bg-red-50">
+                      <Button variant="outline" className="w-full border-short/20 text-short hover:bg-short/10">
                         <Minus className="w-4 h-4 mr-2" />
                         Withdraw
                       </Button>
                     </TransactionDialog>
                   </div>
-                  
+
                   <div className="pt-4 border-t">
                     <p className="text-sm text-muted-foreground">
                       <strong>Deposit:</strong> Minimum $5.00<br />

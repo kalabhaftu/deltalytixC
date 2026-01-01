@@ -19,24 +19,35 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
+interface Rule {
+  text: string
+  category: 'entry' | 'exit' | 'risk' | 'general'
+}
+
 interface TradingModel {
   id: string
   name: string
-  rules: string[]
+  rules: (Rule | string)[]
   notes?: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 interface AddEditModelModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: { name: string; rules: string[]; notes?: string }) => Promise<void>
+  onSave: (data: { name: string; rules: Rule[]; notes?: string }) => Promise<void>
   model?: TradingModel | null
   mode: 'add' | 'edit'
 }
 
 export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddEditModelModalProps) {
   const [name, setName] = useState('')
-  const [rules, setRules] = useState<string[]>(['', '', ''])
+  const [rules, setRules] = useState<Rule[]>([
+    { text: '', category: 'entry' },
+    { text: '', category: 'exit' },
+    { text: '', category: 'risk' }
+  ])
   const [notes, setNotes] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false)
@@ -47,11 +58,25 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
     if (isOpen) {
       if (mode === 'edit' && model) {
         setName(model.name)
-        setRules(model.rules.length > 0 ? [...model.rules] : ['', '', ''])
+        // Handle migration from string[] to Rule[]
+        const modelRules = Array.isArray(model.rules) ? model.rules : []
+        const formattedRules = modelRules.map((r: any) => {
+          if (typeof r === 'string') return { text: r, category: 'general' as const }
+          return r as Rule
+        })
+        setRules(formattedRules.length > 0 ? formattedRules : [
+          { text: '', category: 'entry' },
+          { text: '', category: 'exit' },
+          { text: '', category: 'risk' }
+        ])
         setNotes(model.notes || '')
       } else {
         setName('')
-        setRules(['', '', ''])
+        setRules([
+          { text: '', category: 'entry' },
+          { text: '', category: 'exit' },
+          { text: '', category: 'risk' }
+        ])
         setNotes('')
       }
       setHasChanges(false)
@@ -64,27 +89,27 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
 
     if (mode === 'edit' && model) {
       const nameChanged = name !== model.name
-      const rulesChanged = JSON.stringify(rules.filter(r => r.trim())) !== JSON.stringify(model.rules)
+      const rulesChanged = JSON.stringify(rules.filter(r => r.text.trim())) !== JSON.stringify(model.rules)
       const notesChanged = notes !== (model.notes || '')
       setHasChanges(nameChanged || rulesChanged || notesChanged)
     } else {
-      setHasChanges(name.trim() !== '' || rules.some(r => r.trim() !== '') || notes.trim() !== '')
+      setHasChanges(name.trim() !== '' || rules.some(r => r.text.trim() !== '') || notes.trim() !== '')
     }
   }, [name, rules, notes, model, mode, isOpen])
 
   const handleAddRule = () => {
-    setRules([...rules, ''])
+    setRules([...rules, { text: '', category: 'general' }])
   }
 
   const handleRemoveRule = (index: number) => {
-    if (rules.length > 3) {
+    if (rules.length > 1) {
       setRules(rules.filter((_, i) => i !== index))
     }
   }
 
-  const handleRuleChange = (index: number, value: string) => {
+  const handleRuleChange = (index: number, field: keyof Rule, value: string) => {
     const newRules = [...rules]
-    newRules[index] = value
+    newRules[index] = { ...newRules[index], [field]: value }
     setRules(newRules)
   }
 
@@ -104,7 +129,7 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
 
     setIsSaving(true)
     try {
-      const filteredRules = rules.filter(rule => rule.trim() !== '')
+      const filteredRules = rules.filter(rule => rule.text.trim() !== '')
       await onSave({
         name: name.trim(),
         rules: filteredRules,
@@ -122,25 +147,28 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{mode === 'add' ? 'Add Trading Model' : 'Edit Trading Model'}</DialogTitle>
-            <DialogDescription>
-              {mode === 'add' 
-                ? 'Create a new trading model with optional rules and notes'
-                : 'Update your trading model details'}
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-2xl border-border/40">
+          <DialogHeader className="mb-8">
+            <DialogTitle className="text-2xl font-black tracking-tighter uppercase">
+              {mode === 'add' ? 'INITIALIZE STRATEGY' : 'REFINE STRATEGY'}
+            </DialogTitle>
+            <DialogDescription className="text-xs font-bold uppercase tracking-widest opacity-60">
+              {mode === 'add'
+                ? 'Building a systematic framework for risk and execution'
+                : `Updating protocol: ${model?.name}`}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
+          <div className="space-y-8 py-4">
             {/* Model Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium">
-                Model Name <span className="text-destructive">*</span>
+            <div className="space-y-3">
+              <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+                Strategy Designation <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="name"
-                placeholder="e.g., ICT 2022, Smart Money Concepts"
+                placeholder="e.g., HTF EQUILIBRIUM, SMART MONEY CONCEPTS"
+                className="font-bold tracking-tight h-11 bg-muted/10 border-border/40 focus:border-primary/50 transition-all uppercase"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={100}
@@ -148,45 +176,54 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
             </div>
 
             {/* Rules */}
-            <div className="space-y-2">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Rules (Optional)</Label>
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">Execution Protocol (Rules)</Label>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleAddRule}
-                  className="h-8"
+                  className="h-8 px-3 font-black uppercase tracking-tighter text-[10px]"
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Rule
+                  <Plus className="h-3 w-3 mr-1.5" />
+                  Append Rule
                 </Button>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {rules.map((rule, index) => (
-                  <div key={index} className="flex items-center gap-2">
+                  <div key={index} className="flex items-center gap-3">
+                    <select
+                      className="h-10 px-3 rounded-lg bg-muted/40 border border-border/40 text-[10px] font-black uppercase tracking-tighter focus:outline-none focus:ring-1 focus:ring-primary/50"
+                      value={rule.category}
+                      onChange={(e) => handleRuleChange(index, 'category', e.target.value as any)}
+                    >
+                      <option value="entry">Entry</option>
+                      <option value="exit">Exit</option>
+                      <option value="risk">Risk</option>
+                      <option value="general">Gen</option>
+                    </select>
                     <Input
-                      placeholder={`Rule ${index + 1} (e.g., Bias, Session, Kill Zone)`}
-                      value={rule}
-                      onChange={(e) => handleRuleChange(index, e.target.value)}
+                      placeholder="Define specific condition..."
+                      className="font-medium text-sm h-10 bg-muted/10 border-border/40"
+                      value={rule.text}
+                      onChange={(e) => handleRuleChange(index, 'text', e.target.value)}
                       maxLength={100}
                     />
-                    {rules.length > 3 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveRule(index)}
-                        className="h-10 w-10 shrink-0"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveRule(index)}
+                      className="h-10 w-10 shrink-0 opacity-40 hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Add rules that define this trading model. You can check which rules were used when editing trades.
+              <p className="text-[10px] text-muted-foreground/50 font-medium italic">
+                Structured protocols ensure consistency. Define criteria for entry, exit, and risk management.
               </p>
             </div>
 

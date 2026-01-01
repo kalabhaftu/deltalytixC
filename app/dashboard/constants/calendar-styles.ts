@@ -10,8 +10,8 @@ export const TODAY_STYLES = {
 // Day cell base styles - cleaner, less gradient
 export const DAY_CELL_STYLES = {
   base: "relative overflow-hidden rounded-lg border transition-all duration-150 cursor-pointer hover:shadow-md hover:border-border",
-  profit: "bg-emerald-500/10 border-emerald-500/30",
-  loss: "bg-red-500/10 border-red-500/30",
+  profit: "bg-long/10 border-long/30",
+  loss: "bg-short/10 border-short/30",
   empty: "bg-card/30 border-border/40 hover:bg-muted/20",
   notCurrentMonth: "opacity-40",
 } as const
@@ -19,15 +19,15 @@ export const DAY_CELL_STYLES = {
 // Weekly summary cell styles - minimal
 export const WEEKLY_CELL_STYLES = {
   base: "rounded-lg border transition-all duration-150 cursor-pointer hover:shadow-sm",
-  profit: "bg-emerald-500/10 border-emerald-500/20",
-  loss: "bg-red-500/10 border-red-500/20",
+  profit: "bg-long/10 border-long/20",
+  loss: "bg-short/10 border-short/20",
   flat: "bg-muted/10 border-dashed border-border/40",
 } as const
 
 // Text color utilities
 export const PNL_TEXT_STYLES = {
-  profit: "text-emerald-500",
-  loss: "text-red-500",
+  profit: "text-long",
+  loss: "text-short",
   neutral: "text-muted-foreground",
 } as const
 
@@ -52,8 +52,8 @@ export const MODAL_STYLES = {
 // Chart styling - cleaner
 export const CHART_STYLES = {
   gradient: {
-    profit: { start: "hsl(160, 84%, 39%)", end: "hsl(160, 84%, 39%, 0)" },
-    loss: { start: "hsl(0, 84%, 60%)", end: "hsl(0, 84%, 60%, 0)" },
+    profit: { start: "hsl(var(--chart-profit))", end: "hsl(var(--chart-profit) / 0)" },
+    loss: { start: "hsl(var(--chart-loss))", end: "hsl(var(--chart-loss) / 0)" },
     primary: { start: "hsl(var(--primary))", end: "hsl(var(--primary) / 0)" },
   },
   tooltip: "rounded-lg border bg-popover p-3 shadow-lg",
@@ -63,8 +63,8 @@ export const CHART_STYLES = {
 // Metric pill styles (for header totals) - simpler
 export const METRIC_PILL_STYLES = {
   base: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-semibold",
-  profit: "bg-emerald-500/15 text-emerald-500",
-  loss: "bg-red-500/15 text-red-500",
+  profit: "bg-long/15 text-long",
+  loss: "bg-short/15 text-short",
 } as const
 
 // Animation classes - subtle

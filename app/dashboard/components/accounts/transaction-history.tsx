@@ -28,7 +28,7 @@ export function TransactionHistory({ accountId }: TransactionHistoryProps) {
     try {
       setIsLoading(true)
       setError(null)
-      
+
       const response = await fetch(`/api/live-accounts/${accountId}/transactions`)
       const result = await response.json()
 
@@ -88,11 +88,11 @@ export function TransactionHistory({ accountId }: TransactionHistoryProps) {
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-red-600 mb-2">Error loading transactions</p>
+            <p className="text-short mb-2">Error loading transactions</p>
             <p className="text-sm text-muted-foreground">{error}</p>
             <button
               onClick={fetchTransactions}
-              className="mt-4 text-sm text-blue-600 hover:text-blue-800"
+              className="mt-4 text-sm text-accent hover:underline"
             >
               Try again
             </button>
@@ -140,11 +140,10 @@ export function TransactionHistory({ accountId }: TransactionHistoryProps) {
               className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  transaction.type === 'DEPOSIT' 
-                    ? 'bg-green-100 text-green-600' 
-                    : 'bg-red-100 text-red-600'
-                }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${transaction.type === 'DEPOSIT'
+                  ? 'bg-long/10 text-long'
+                  : 'bg-short/10 text-short'
+                  }`}>
                   {transaction.type === 'DEPOSIT' ? (
                     <Plus className="w-4 h-4" />
                   ) : (
@@ -156,7 +155,7 @@ export function TransactionHistory({ accountId }: TransactionHistoryProps) {
                     <span className="font-medium">
                       {transaction.type === 'DEPOSIT' ? 'Deposit' : 'Withdrawal'}
                     </span>
-                    <Badge variant={transaction.type === 'DEPOSIT' ? 'default' : 'destructive'}>
+                    <Badge variant={transaction.type === 'DEPOSIT' ? 'success' : 'destructive'}>
                       {transaction.type}
                     </Badge>
                   </div>
@@ -172,9 +171,8 @@ export function TransactionHistory({ accountId }: TransactionHistoryProps) {
                 </div>
               </div>
               <div className="text-right">
-                <div className={`font-semibold ${
-                  transaction.type === 'DEPOSIT' ? 'text-green-600' : 'text-red-600'
-                }`}>
+                <div className={`font-semibold ${transaction.type === 'DEPOSIT' ? 'text-long' : 'text-short'
+                  }`}>
                   {transaction.type === 'DEPOSIT' ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}
                 </div>
               </div>

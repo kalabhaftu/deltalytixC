@@ -6,7 +6,7 @@ import { useData } from '@/context/data-provider'
 import { useAccounts } from '@/hooks/use-accounts'
 import { useTradeStatistics } from '@/hooks/use-trade-statistics'
 import { cn } from '@/lib/utils'
-import { HelpCircle } from 'lucide-react'
+import { Info } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -71,14 +71,14 @@ const AccountBalancePnl = React.memo(function AccountBalancePnl({ size }: Accoun
     <Card className="w-full h-24 overflow-hidden">
       <CardContent className="p-5 h-full flex flex-col justify-center gap-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-muted-foreground font-medium whitespace-nowrap">
+          <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80 whitespace-nowrap">
             Account Balance & P&L
           </span>
           <TooltipProvider delayDuration={100}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="w-3 h-3 rounded-full bg-muted flex items-center justify-center cursor-help flex-shrink-0">
-                  <HelpCircle className="h-2 w-2 text-muted-foreground" />
+                  <Info className="h-3 w-3 text-muted-foreground" />
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom" sideOffset={5} className="max-w-[200px]">
@@ -92,7 +92,7 @@ const AccountBalancePnl = React.memo(function AccountBalancePnl({ size }: Accoun
           </TooltipProvider>
         </div>
 
-        <div className="text-xl font-bold text-foreground">
+        <div className="text-2xl font-bold text-foreground tracking-tight">
           {formatCompactCurrency(totalBalance)}
         </div>
 
@@ -101,15 +101,15 @@ const AccountBalancePnl = React.memo(function AccountBalancePnl({ size }: Accoun
             <div className="flex items-center gap-1">
               <span className="text-muted-foreground">P&L:</span>
               <span className={cn(
-                "font-medium",
-                grossPnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                "font-semibold",
+                grossPnl >= 0 ? "text-long" : "text-short"
               )}>
                 {formatCompactCurrency(grossPnl)}
               </span>
             </div>
             <div className="flex items-center gap-1">
               <span className="text-muted-foreground">Fees:</span>
-              <span className="font-medium text-orange-600 dark:text-orange-400">
+              <span className="font-semibold text-amber-500">
                 -{formatCompactCurrency(totalCommissions)}
               </span>
             </div>
@@ -117,8 +117,8 @@ const AccountBalancePnl = React.memo(function AccountBalancePnl({ size }: Accoun
           <div className="flex items-center gap-1 text-[10px]">
             <span className="text-muted-foreground">Net:</span>
             <span className={cn(
-              "font-medium",
-              netPnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+              "font-semibold",
+              netPnl >= 0 ? "text-long" : "text-short"
             )}>
               {formatCompactCurrency(netPnl)}
             </span>

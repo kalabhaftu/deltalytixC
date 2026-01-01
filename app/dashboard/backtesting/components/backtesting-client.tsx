@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 interface BacktestingClientProps {
   initialBacktests: BacktestTrade[]
@@ -41,17 +42,17 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
       // Add timeout to prevent hanging requests
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
-      
+
       const response = await fetch('/api/backtesting', {
         signal: controller.signal,
         cache: 'no-cache'
       })
-      
+
       clearTimeout(timeoutId)
-      
+
       if (!response.ok) throw new Error('Failed to fetch backtests')
       const data = await response.json()
-      
+
       const transformedBacktests: BacktestTrade[] = data.backtests.map((bt: any) => ({
         id: bt.id,
         pair: bt.pair,
@@ -104,7 +105,7 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
     const averageRR = backtests.filter(b => b.riskRewardRatio).length > 0
       ? backtests.filter(b => b.riskRewardRatio).reduce((sum, b) => sum + (b.riskRewardRatio || 0), 0) / backtests.filter(b => b.riskRewardRatio).length
       : 0
-    
+
     const pnls = backtests.map(b => b.pnl || 0)
     const bestTrade = pnls.length > 0 ? Math.max(...pnls) : 0
     const worstTrade = pnls.length > 0 ? Math.min(...pnls) : 0
@@ -130,7 +131,7 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
         backtest.customModel?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         backtest.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
 
-      const matchesFilter = 
+      const matchesFilter =
         filterBy === 'all' ||
         (filterBy === 'wins' && backtest.outcome === 'WIN') ||
         (filterBy === 'losses' && backtest.outcome === 'LOSS') ||
@@ -172,7 +173,7 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">Backtesting</h1>
-            <p className="text-muted-foreground mt-1 text-sm sm:text-base truncate">
+            <p className="text-muted-foreground mt-1 text-sm truncate">
               Track and analyze your paper trades
             </p>
           </div>
@@ -235,31 +236,62 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold">{stats.totalBacktests}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="h-24">
+              <CardContent className="px-5 py-4 h-full flex flex-col justify-center gap-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
+                    Total
+                  </span>
+                  <BarChart3 className="h-3.5 w-3.5 text-muted-foreground/50" />
+                </div>
+                <p className="text-2xl font-bold tracking-tight">{stats.totalBacktests}</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-sm text-muted-foreground">Win Rate</p>
-                <p className="text-2xl font-bold">{stats.winRate}%</p>
+
+            <Card className="h-24">
+              <CardContent className="px-5 py-4 h-full flex flex-col justify-center gap-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
+                    Win Rate
+                  </span>
+                  {stats.winRate >= 50 ? (
+                    <TrendingUp className="h-3.5 w-3.5 text-long/50" />
+                  ) : (
+                    <TrendingUp className="h-3.5 w-3.5 text-short/50 rotate-180" />
+                  )}
+                </div>
+                <p className="text-2xl font-bold tracking-tight">{stats.winRate}%</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-sm text-muted-foreground">Total Points/Pips</p>
-                <p className={`text-2xl font-bold ${stats.totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+
+            <Card className="h-24">
+              <CardContent className="px-5 py-4 h-full flex flex-col justify-center gap-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
+                    Points/Pips
+                  </span>
+                  {stats.totalPnL >= 0 ? (
+                    <TrendingUp className="h-3.5 w-3.5 text-long/50" />
+                  ) : (
+                    <TrendingUp className="h-3.5 w-3.5 text-short/50 rotate-180" />
+                  )}
+                </div>
+                <p className={cn("text-2xl font-bold tracking-tight", stats.totalPnL >= 0 ? "text-long" : "text-short")}>
                   {stats.totalPnL >= 0 ? '+' : ''}{stats.totalPnL.toFixed(2)}
                 </p>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-sm text-muted-foreground">Avg R:R</p>
-                <p className="text-2xl font-bold">1:{stats.averageRR.toFixed(2)}</p>
+
+            <Card className="h-24">
+              <CardContent className="px-5 py-4 h-full flex flex-col justify-center gap-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
+                    Avg R:R
+                  </span>
+                  <TrendingUp className="h-3.5 w-3.5 text-muted-foreground/50" />
+                </div>
+                <p className="text-2xl font-bold tracking-tight">1:{stats.averageRR.toFixed(2)}</p>
               </CardContent>
             </Card>
           </div>
@@ -270,8 +302,8 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
                 <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No backtests found</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  {searchTerm || filterBy !== 'all' 
-                    ? 'Try adjusting your search or filters' 
+                  {searchTerm || filterBy !== 'all'
+                    ? 'Try adjusting your search or filters'
                     : 'Get started by adding your first backtest'}
                 </p>
                 {!searchTerm && filterBy === 'all' && (
@@ -326,10 +358,10 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
 
             // Close dialog immediately after successful POST
             setIsAddDialogOpen(false)
-            
+
             // Show success toast
             toast.success('Backtest added successfully')
-            
+
             // Refresh in background with small delay to ensure UI is smooth
             setTimeout(async () => {
               await refreshBacktests()

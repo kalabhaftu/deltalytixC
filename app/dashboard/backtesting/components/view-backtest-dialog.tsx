@@ -31,7 +31,7 @@ export function ViewBacktestDialog({ isOpen, onClose, backtest }: ViewBacktestDi
   const allImages = [...(backtest.images || []), backtest.cardPreviewImage].filter(Boolean) as string[]
 
   const formatSession = (session: string) => {
-    return session.split('_').map(word => 
+    return session.split('_').map(word =>
       word.charAt(0) + word.slice(1).toLowerCase()
     ).join(' ')
   }
@@ -90,9 +90,9 @@ export function ViewBacktestDialog({ isOpen, onClose, backtest }: ViewBacktestDi
                   <div>
                     <Label className="text-sm text-muted-foreground">Outcome</Label>
                     <Badge variant={
-                      backtest.outcome === 'WIN' ? 'default' : 
-                      backtest.outcome === 'LOSS' ? 'destructive' : 
-                      'outline'
+                      backtest.outcome === 'WIN' ? 'default' :
+                        backtest.outcome === 'LOSS' ? 'destructive' :
+                          'outline'
                     }>
                       {backtest.outcome}
                     </Badge>
@@ -109,7 +109,7 @@ export function ViewBacktestDialog({ isOpen, onClose, backtest }: ViewBacktestDi
                     <Label className="text-sm text-muted-foreground">P&L</Label>
                     <p className={cn(
                       "font-bold text-lg",
-                      backtest.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                      backtest.pnl >= 0 ? 'text-long' : 'text-short'
                     )}>
                       ${backtest.pnl.toFixed(2)}
                     </p>
@@ -260,9 +260,9 @@ export function ViewBacktestDialog({ isOpen, onClose, backtest }: ViewBacktestDi
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Win/Loss</span>
                     <Badge variant={
-                      backtest.outcome === 'WIN' ? 'default' : 
-                      backtest.outcome === 'LOSS' ? 'destructive' : 
-                      'outline'
+                      backtest.outcome === 'WIN' ? 'default' :
+                        backtest.outcome === 'LOSS' ? 'destructive' :
+                          'outline'
                     }>
                       {backtest.outcome}
                     </Badge>
@@ -271,7 +271,7 @@ export function ViewBacktestDialog({ isOpen, onClose, backtest }: ViewBacktestDi
                     <span className="text-sm text-muted-foreground">Points/Pips</span>
                     <span className={cn(
                       "font-medium",
-                      backtest.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                      backtest.pnl >= 0 ? 'text-long' : 'text-short'
                     )}>
                       {backtest.pnl >= 0 ? '+' : ''}{backtest.pnl.toFixed(2)}
                     </span>
@@ -292,7 +292,7 @@ export function ViewBacktestDialog({ isOpen, onClose, backtest }: ViewBacktestDi
                     <span className="text-sm text-muted-foreground">% Move</span>
                     <span className={cn(
                       "font-medium",
-                      backtest.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                      backtest.pnl >= 0 ? 'text-long' : 'text-short'
                     )}>
                       {((backtest.exitPrice - backtest.entryPrice) / backtest.entryPrice * 100).toFixed(2)}%
                     </span>

@@ -15,14 +15,14 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  Plus, 
+import {
+  Plus,
   Search,
   RefreshCw,
-  TrendingUp, 
+  TrendingUp,
   TrendingDown,
-  Building2, 
-  User, 
+  Building2,
+  User,
   DollarSign,
   Activity,
   MoreHorizontal,
@@ -131,8 +131,8 @@ function getStatusDisplayName(status?: string): string {
 
 function formatCurrency(amount: number): string {
   if (!isFinite(amount) || isNaN(amount)) return '$0.00'
-  return new Intl.NumberFormat('en-US', { 
-    style: 'currency', 
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
@@ -159,20 +159,20 @@ export default function AccountsPage() {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const userStore = useUserStore(state => state.user)
   const { refreshTrades } = useData()
-  
+
   // State
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<FilterType>('all')
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
-  
-  const { accounts, isLoading, refetch: refetchAccounts } = useAccounts({ 
+
+  const { accounts, isLoading, refetch: refetchAccounts } = useAccounts({
     includeArchived: filterStatus === 'archived',
     includeFailed: filterStatus === 'failed'
   })
   const { formattedTrades } = useData()
   const allTrades = useTradesStore(state => state.trades)
   const { transactions } = useLiveAccountTransactions()
-  
+
   // Subscribe to realtime account changes for instant UI updates
   // Using "Signal → Fetch" pattern: Realtime signals change, then we fetch fresh data
   // This ensures data integrity (handles DB triggers, joins, computed fields)
@@ -195,7 +195,7 @@ export default function AccountsPage() {
       }
     }
   })
-  
+
   // Dialog states
   const [createLiveDialogOpen, setCreateLiveDialogOpen] = useState(false)
   const [createPropFirmDialogOpen, setCreatePropFirmDialogOpen] = useState(false)
@@ -244,15 +244,15 @@ export default function AccountsPage() {
       const matchesType = filterType === 'all' || account.accountType === filterType
       const isPassedAccount = account.status === 'passed'
       const shouldHideByDefault = account.status === 'failed' || account.status === 'pending'
-      
+
       if (isPassedAccount) return false
-      
+
       if (filterStatus === 'archived') {
         return matchesSearch && matchesType && account.isArchived === true
       }
-      
+
       if (account.isArchived === true) return false
-      
+
       const matchesStatus = filterStatus === 'all'
         ? !shouldHideByDefault
         : account.status === filterStatus
@@ -278,23 +278,23 @@ export default function AccountsPage() {
   const accountStats = useMemo(() => {
     const totalEquity = accountsWithRealEquity.reduce((sum, account) => sum + account.calculatedEquity, 0)
     const pnl = totalEquity - accountsWithRealEquity.reduce((sum, acc) => sum + (acc.startingBalance || 0), 0)
-    
+
     // Calculate total trades with aggregation for failed accounts (same logic as AccountCard)
     const totalTrades = filteredAccounts.reduce((sum, account) => {
       // For failed prop firm accounts, sum all phases' tradeCounts from the same master account
       if (account.status === 'failed' && account.accountType === 'prop-firm' && account.currentPhaseDetails?.masterAccountId) {
         const masterId = account.currentPhaseDetails.masterAccountId
-        const allPhases = accounts.filter(acc => 
-          acc.accountType === 'prop-firm' && 
+        const allPhases = accounts.filter(acc =>
+          acc.accountType === 'prop-firm' &&
           acc.currentPhaseDetails?.masterAccountId === masterId
         )
         // Only count this once per master account (use the first failed phase we encounter)
-        const isFirstFailedPhase = filteredAccounts.findIndex(a => 
-          a.status === 'failed' && 
-          a.accountType === 'prop-firm' && 
+        const isFirstFailedPhase = filteredAccounts.findIndex(a =>
+          a.status === 'failed' &&
+          a.accountType === 'prop-firm' &&
           a.currentPhaseDetails?.masterAccountId === masterId
         ) === filteredAccounts.indexOf(account)
-        
+
         if (isFirstFailedPhase) {
           return sum + allPhases.reduce((phaseSum, phase) => phaseSum + (phase.tradeCount || 0), 0)
         }
@@ -303,7 +303,7 @@ export default function AccountsPage() {
       // For non-failed accounts, use individual count
       return sum + (account.tradeCount || 0)
     }, 0)
-    
+
     return {
       total: filteredAccounts.length,
       live: filteredAccounts.filter(a => a.accountType === 'live').length,
@@ -377,7 +377,7 @@ export default function AccountsPage() {
     if (!deletingAccount) return
 
     const accountName = deletingAccount.displayName || deletingAccount.name || deletingAccount.number
-    
+
     if (deleteConfirmText !== accountName) {
       toast.error("Please type the account name exactly to confirm")
       return
@@ -387,7 +387,7 @@ export default function AccountsPage() {
       const accountId = deletingAccount.accountType === 'prop-firm'
         ? (deletingAccount.currentPhaseDetails?.masterAccountId || deletingAccount.id)
         : deletingAccount.id
-        
+
       const endpoint = deletingAccount.accountType === 'prop-firm'
         ? `/api/prop-firm/accounts/${accountId}`
         : `/api/accounts/${accountId}`
@@ -410,12 +410,12 @@ export default function AccountsPage() {
   const handleArchiveAccount = useCallback(async (account: Account) => {
     const accountName = account.displayName || account.name || account.number
     const isArchived = account.isArchived || false
-    
+
     try {
       const accountId = account.accountType === 'prop-firm'
         ? (account.currentPhaseDetails?.masterAccountId || account.id)
         : account.id
-        
+
       const endpoint = account.accountType === 'prop-firm'
         ? `/api/prop-firm/accounts/${accountId}`
         : `/api/accounts/${accountId}`
@@ -446,7 +446,7 @@ export default function AccountsPage() {
     <TooltipProvider>
       <div className="min-h-screen bg-background">
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-          
+
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -455,14 +455,14 @@ export default function AccountsPage() {
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                   Accounts
                 </h1>
-                <p className="text-muted-foreground text-sm mt-1">
+                <p className="text-muted-foreground mt-1 text-sm truncate">
                   Manage and monitor your trading accounts
                 </p>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -478,7 +478,7 @@ export default function AccountsPage() {
                   </TooltipTrigger>
                   <TooltipContent>Refresh accounts</TooltipContent>
                 </Tooltip>
-                
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button className="h-9 gap-2">
@@ -673,7 +673,7 @@ export default function AccountsPage() {
                 </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
-            
+
             <div className="space-y-2 py-2">
               <Label className="text-sm">
                 Type <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">
@@ -735,15 +735,15 @@ export default function AccountsPage() {
 }
 
 // Stat Card Component
-function StatCard({ 
-  label, 
-  value, 
-  icon, 
-  trend, 
+function StatCard({
+  label,
+  value,
+  icon,
+  trend,
   trendValue,
   subtext,
-  highlight 
-}: { 
+  highlight
+}: {
   label: string
   value: string | number
   icon: React.ReactNode
@@ -754,36 +754,37 @@ function StatCard({
 }) {
   return (
     <Card className={cn(
-      "relative overflow-hidden transition-all",
+      "h-24 flex flex-col justify-center relative overflow-hidden transition-all",
       highlight && "ring-1 ring-primary/20 bg-primary/5"
     )}>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">{label}</p>
-            <p className="text-xl lg:text-2xl font-bold tracking-tight">{value}</p>
-            {(trend && trendValue) && (
-              <div className={cn(
-                "flex items-center gap-1 text-xs font-medium",
-                trend === 'up' ? "text-long" : "text-short"
-              )}>
-                {trend === 'up' ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                {trendValue}
-              </div>
-            )}
-            {subtext && (
-              <p className="text-xs text-muted-foreground">{subtext}</p>
-            )}
-          </div>
+      <CardContent className="px-5 py-4 h-full flex flex-col justify-center gap-1">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
+            {label}
+          </span>
           <div className={cn(
-            "h-9 w-9 rounded-lg flex items-center justify-center",
-            highlight ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+            "h-3.5 w-3.5 opacity-50",
+            highlight ? "text-primary" : "text-muted-foreground"
           )}>
             {icon}
           </div>
         </div>
+        <div className="flex flex-col">
+          <p className="text-2xl font-bold tracking-tight truncate">{value}</p>
+          {(trend && trendValue) ? (
+            <div className={cn(
+              "flex items-center gap-1 text-[10px] font-bold",
+              trend === 'up' ? "text-long" : "text-short"
+            )}>
+              {trend === 'up' ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
+              {trendValue}
+            </div>
+          ) : subtext ? (
+            <p className="text-[10px] text-muted-foreground/60 font-medium truncate">{subtext}</p>
+          ) : null}
+        </div>
         {highlight && (
-          <Sparkles className="absolute -right-2 -bottom-2 h-16 w-16 text-primary/10" />
+          <Sparkles className="absolute -right-1 -bottom-1 h-12 w-12 text-primary/5 pointer-events-none" />
         )}
       </CardContent>
     </Card>
@@ -791,14 +792,14 @@ function StatCard({
 }
 
 // Account Card Component
-function AccountCard({ 
-  account, 
+function AccountCard({
+  account,
   allAccounts,
-  onView, 
-  onEdit, 
+  onView,
+  onEdit,
   onDelete,
   onArchive
-}: { 
+}: {
   account: Account & { calculatedEquity?: number }
   allAccounts: (Account & { calculatedEquity?: number })[]
   onView: () => void
@@ -815,14 +816,14 @@ function AccountCard({
   const startingBalance = account.startingBalance || 0
   const pnl = equity - startingBalance
   const pnlPercent = startingBalance > 0 ? (pnl / startingBalance) * 100 : 0
-  
+
   // For failed phases, calculate sum of all phases' tradeCounts from the same master account
   // But keep the account's own tradeCount unchanged (for balance/PnL calculations)
   const displayTradeCount = useMemo(() => {
     if (isFailed && isPropFirm && account.currentPhaseDetails?.masterAccountId) {
       const masterId = account.currentPhaseDetails.masterAccountId
-      const allPhases = allAccounts.filter(acc => 
-        acc.accountType === 'prop-firm' && 
+      const allPhases = allAccounts.filter(acc =>
+        acc.accountType === 'prop-firm' &&
         acc.currentPhaseDetails?.masterAccountId === masterId
       )
       // Sum all phases' tradeCounts
@@ -831,14 +832,14 @@ function AccountCard({
     // For non-failed accounts, show individual count
     return account.tradeCount || 0
   }, [isFailed, isPropFirm, account.currentPhaseDetails?.masterAccountId, account.tradeCount, allAccounts])
-  
+
   const isAtRisk = isPropFirm && !isFailed && (
     (account.dailyDrawdownRemaining && account.dailyDrawdownRemaining < 500) ||
     (account.maxDrawdownRemaining && account.maxDrawdownRemaining < 1000)
   )
 
   return (
-    <Card 
+    <Card
       className={cn(
         "group relative overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer",
         isFailed && "opacity-75 border-destructive/30",
@@ -852,9 +853,9 @@ function AccountCard({
       <div className={cn(
         "absolute top-0 left-0 right-0 h-1",
         isFailed ? "bg-destructive" :
-        isFunded ? "bg-primary" :
-        isPropFirm ? "bg-primary/70" :
-        "bg-muted-foreground/50"
+          isFunded ? "bg-primary" :
+            isPropFirm ? "bg-primary/70" :
+              "bg-muted-foreground/50"
       )} />
 
       <CardContent className="p-4 pt-5">
@@ -864,8 +865,8 @@ function AccountCard({
             <div className={cn(
               "h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0",
               isFailed ? "bg-destructive/10" :
-              isFunded ? "bg-primary/10" :
-              "bg-muted"
+                isFunded ? "bg-primary/10" :
+                  "bg-muted"
             )}>
               {isFailed ? (
                 <XCircle className="h-4 w-4 text-destructive" />
@@ -882,7 +883,7 @@ function AccountCard({
                 {account.displayName || account.name || account.number}
               </h3>
               <p className="text-xs text-muted-foreground truncate">
-                {isPropFirm 
+                {isPropFirm
                   ? getStatusDisplayName(account.status)
                   : account.broker || 'Live Account'
                 }
@@ -892,8 +893,8 @@ function AccountCard({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="icon"
                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
               >
@@ -923,7 +924,7 @@ function AccountCard({
                   </>
                 )}
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={(e) => { e.stopPropagation(); onDelete() }}
                 className="text-destructive focus:text-destructive"
               >
@@ -969,8 +970,8 @@ function AccountCard({
                 <motion.div
                   className={cn(
                     "h-full rounded-full",
-                    account.profitTargetProgress >= 100 
-                      ? "bg-long" 
+                    account.profitTargetProgress >= 100
+                      ? "bg-long"
                       : "bg-primary"
                   )}
                   initial={{ width: 0 }}
@@ -1003,13 +1004,13 @@ function AccountCard({
 }
 
 // Empty State Component
-function EmptyState({ 
-  hasAccounts, 
+function EmptyState({
+  hasAccounts,
   searchQuery,
-  onCreateLive, 
+  onCreateLive,
   onCreatePropFirm,
   onClearSearch
-}: { 
+}: {
   hasAccounts: boolean
   searchQuery: string
   onCreateLive: () => void
@@ -1025,7 +1026,7 @@ function EmptyState({
           </div>
           <h3 className="font-semibold mb-1">No accounts found</h3>
           <p className="text-sm text-muted-foreground text-center max-w-sm">
-            {searchQuery 
+            {searchQuery
               ? `No accounts match "${searchQuery}"`
               : "Try adjusting your filters"
             }

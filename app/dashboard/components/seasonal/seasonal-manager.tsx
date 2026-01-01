@@ -13,10 +13,5 @@ export function SeasonalManager() {
 
     if (theme === 'NONE') return null
 
-    return (
-        <>
-            {theme === 'NEW_YEAR' && <Fireworks />}
-            {theme === 'CHRISTMAS' && <Snow />}
-        </>
-    )
+    return null
 }

@@ -8,8 +8,7 @@ export type WidgetType =
   | 'profitFactor'
   | 'avgWinLoss'
   | 'currentStreak'
-  | 'goalsProgress'
-  | 'riskMetrics'
+  | 'goalsRiskCommandCenter'
   | 'sessionAnalysis'
   | 'netDailyPnL'
   | 'dailyCumulativePnL'
@@ -21,6 +20,7 @@ export type WidgetType =
   | 'pnlByStrategy'
   | 'winRateByStrategy'
 export type WidgetSize = 'tiny' | 'small' | 'small-long' | 'medium' | 'large' | 'extra-large' | 'kpi'
+
 
 export interface LayoutItem {
   i: string
