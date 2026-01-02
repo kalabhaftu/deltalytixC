@@ -94,6 +94,10 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
     from: subDays(new Date(), 30),
     to: new Date()
   })
+  const [tempDateRange, setTempDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined
+  })
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false)
@@ -105,7 +109,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true)
-    
+
     try {
       const params = new URLSearchParams({
         startDate: format(dateRange.from, 'yyyy-MM-dd'),
@@ -117,7 +121,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
       }
 
       const response = await fetch(`/api/journal/ai-analysis?${params}`)
-      
+
       if (!response.ok) {
         throw new Error('Failed to generate analysis')
       }
@@ -154,7 +158,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
             {/* Date Range Selection */}
             <div className="space-y-3">
               <label className="text-sm font-medium">Select Date Range</label>
-              
+
               {/* Templates */}
               <div className="flex flex-wrap gap-2">
                 {dateRangeTemplates.map((template) => (
@@ -168,8 +172,16 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                     {template.label}
                   </Button>
                 ))}
-                
-                <Popover open={showCustomDatePicker} onOpenChange={setShowCustomDatePicker}>
+
+                <Popover
+                  open={showCustomDatePicker}
+                  onOpenChange={(open) => {
+                    setShowCustomDatePicker(open)
+                    if (open) {
+                      setTempDateRange(dateRange)
+                    }
+                  }}
+                >
                   <PopoverTrigger asChild>
                     <Button variant="outline" size="sm" className="text-xs gap-2">
                       <CalendarIcon className="h-3 w-3" />
@@ -178,8 +190,15 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <CustomDateRangePicker
-                      selected={{ from: dateRange.from, to: dateRange.to }}
+                      selected={tempDateRange}
                       onSelect={(range) => {
+                        // Always update the temp range to show progress
+                        setTempDateRange({
+                          from: range?.from,
+                          to: range?.to
+                        })
+
+                        // Only commit and close if we have a full range
                         if (range?.from && range?.to) {
                           setDateRange({ from: range.from, to: range.to })
                           setAnalysis(null)
