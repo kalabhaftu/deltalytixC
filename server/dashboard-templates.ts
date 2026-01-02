@@ -78,42 +78,47 @@ export async function getUserTemplates(): Promise<DashboardTemplate[]> {
     [] // Return empty array if database is unavailable
   )
 
-  return (templates || []).map(t => ({
+  return (templates || []).map(t => JSON.parse(JSON.stringify({
     ...t,
     layout: t.layout as unknown as WidgetLayout[],
-  }))
+  })))
 }
 
 /**
  * Get the active template for the current user
- * If the active template is "Default", return the global DEFAULT_LAYOUT
  */
 export async function getActiveTemplate(): Promise<DashboardTemplate | null> {
-  const userId = await getUserId()
+  try {
+    const userId = await getUserId()
+    if (!userId) return null
 
-  const template = await safeDbOperation(
-    () => prisma.dashboardTemplate.findFirst({
-      where: {
-        userId,
-        isActive: true,
-      },
-    }),
-    null // Return null if database is unavailable
-  )
+    const template = await safeDbOperation(
+      () => prisma.dashboardTemplate.findFirst({
+        where: {
+          userId,
+          isActive: true,
+        },
+      }),
+      null
+    )
 
-  if (!template) return null
+    if (!template) return null
 
-  // If it's the default template, always return the global DEFAULT_LAYOUT
-  if (template.isDefault) {
-    return {
-      ...template,
-      layout: (await getDefaultLayout()) as any, // Always use fresh global layout
+    // If it's the default template, always return the global DEFAULT_LAYOUT
+    if (template.isDefault) {
+      return JSON.parse(JSON.stringify({
+        ...template,
+        layout: DEFAULT_LAYOUT,
+      }))
     }
-  }
 
-  return {
-    ...template,
-    layout: template.layout as unknown as WidgetLayout[],
+    return JSON.parse(JSON.stringify({
+      ...template,
+      layout: template.layout as unknown as WidgetLayout[],
+    }))
+  } catch (error) {
+    console.error('getActiveTemplate failed:', error)
+    return null
   }
 }
 
@@ -167,204 +172,200 @@ export async function initializeDefaultTemplate(userId: string): Promise<Dashboa
 }
 
 /**
- * Create a new template
+ * Create a new template for the current user
  */
 export async function createTemplate(name: string): Promise<DashboardTemplate> {
-  const userId = await getUserId()
+  try {
+    const userId = await getUserId()
+    if (!userId) throw new Error('Authentication required')
 
-  // Check if name already exists
-  const existing = await safeDbOperation(
-    () => prisma.dashboardTemplate.findUnique({
-      where: {
-        userId_name: {
+    // Check if name already exists for this user
+    const existing = await safeDbOperation(
+      () => prisma.dashboardTemplate.findFirst({
+        where: {
+          userId,
+          name: {
+            equals: name,
+            mode: 'insensitive'
+          }
+        },
+      }),
+      null
+    )
+
+    if (existing) {
+      throw new Error(`A template with the name "${name}" already exists.`)
+    }
+
+    // Deactivate current active template
+    await safeDbOperation(() =>
+      prisma.dashboardTemplate.updateMany({
+        where: { userId, isActive: true },
+        data: { isActive: false },
+      })
+    )
+
+    // Create new template
+    const template = await safeDbOperation(() =>
+      prisma.dashboardTemplate.create({
+        data: {
+          id: crypto.randomUUID(),
+          updatedAt: new Date(),
           userId,
           name,
+          isActive: true,
+          isDefault: false,
+          layout: DEFAULT_LAYOUT as any,
         },
-      },
-    }),
-    null
-  )
+      })
+    )
 
-  if (existing) {
-    throw new Error(`A template with the name "${name}" already exists. Please use a different name or delete the existing template.`)
-  }
+    if (!template) {
+      throw new Error('Failed to create template record')
+    }
 
-  // Always copy from the global DEFAULT_LAYOUT (not from user's default template)
-  // This ensures new templates always start with the latest default layout
-  const layout = await getDefaultLayout()
+    revalidatePath('/dashboard')
 
-  const template = await safeDbOperation(
-    () => prisma.dashboardTemplate.create({
-      data: {
-        id: crypto.randomUUID(),
-        updatedAt: new Date(),
-        userId,
-        name,
-        isDefault: false,
-        isActive: false,
-        layout: layout as any,
-      },
-    }),
-    null
-  )
-
-  if (!template) {
-    throw new Error('Failed to create template')
-  }
-
-  revalidatePath('/dashboard')
-
-  return {
-    ...template,
-    layout: template.layout as unknown as WidgetLayout[],
+    // Explicitly serialize to plain object for Vercel stability
+    return JSON.parse(JSON.stringify({
+      ...template,
+      layout: template.layout as unknown as WidgetLayout[],
+    }))
+  } catch (error) {
+    console.error('createTemplate failed:', error)
+    throw error // Re-throw for client-side catch
   }
 }
 
 /**
- * Delete a template (cannot delete default template)
+ * Delete a template
  */
-export async function deleteTemplate(templateId: string): Promise<void> {
-  const userId = await getUserId()
+export async function deleteTemplate(id: string): Promise<void> {
+  try {
+    const userId = await getUserId()
+    if (!userId) throw new Error('Authentication required')
 
-  const template = await safeDbOperation(
-    () => prisma.dashboardTemplate.findUnique({
-      where: { id: templateId },
-    }),
-    null
-  )
-
-  if (!template) {
-    throw new Error('Template not found')
-  }
-
-  if (template.userId !== userId) {
-    throw new Error('Unauthorized')
-  }
-
-  if (template.isDefault) {
-    throw new Error('Cannot delete the default template')
-  }
-
-  // If deleting active template, switch to default
-  if (template.isActive) {
-    await safeDbOperation(
-      () => prisma.dashboardTemplate.updateMany({
-        where: {
-          userId,
-          isDefault: true,
-        },
-        data: {
-          isActive: true,
-        },
+    const template = await safeDbOperation(() =>
+      prisma.dashboardTemplate.findUnique({
+        where: { id },
       })
     )
+
+    if (!template || template.userId !== userId) {
+      throw new Error('Template not found')
+    }
+
+    if (template.isDefault) {
+      throw new Error('Cannot delete default template')
+    }
+
+    // If deleting active template, make default active
+    if (template.isActive) {
+      await safeDbOperation(() =>
+        prisma.dashboardTemplate.updateMany({
+          where: { userId, isDefault: true },
+          data: { isActive: true },
+        })
+      )
+    }
+
+    await safeDbOperation(() =>
+      prisma.dashboardTemplate.delete({
+        where: { id },
+      })
+    )
+
+    revalidatePath('/dashboard')
+  } catch (error) {
+    console.error('deleteTemplate failed:', error)
+    throw error
   }
-
-  await safeDbOperation(
-    () => prisma.dashboardTemplate.delete({
-      where: { id: templateId },
-    })
-  )
-
-  revalidatePath('/dashboard')
 }
 
 /**
  * Switch to a different template
  */
-export async function switchTemplate(templateId: string): Promise<DashboardTemplate> {
-  const userId = await getUserId()
+export async function switchTemplate(id: string): Promise<DashboardTemplate> {
+  try {
+    const userId = await getUserId()
+    if (!userId) throw new Error('Authentication required')
 
-  const template = await safeDbOperation(
-    () => prisma.dashboardTemplate.findUnique({
-      where: { id: templateId },
-    }),
-    null
-  )
+    // Deactivate all
+    await safeDbOperation(() =>
+      prisma.dashboardTemplate.updateMany({
+        where: { userId, isActive: true },
+        data: { isActive: false },
+      })
+    )
 
-  if (!template || template.userId !== userId) {
-    throw new Error('Template not found')
-  }
+    // Activate the selected one
+    const template = await safeDbOperation(() =>
+      prisma.dashboardTemplate.update({
+        where: { id },
+        data: { isActive: true },
+      })
+    )
 
-  // Deactivate all templates
-  await safeDbOperation(
-    () => prisma.dashboardTemplate.updateMany({
-      where: { userId },
-      data: { isActive: false },
-    })
-  )
-
-  // Activate selected template
-  const updated = await safeDbOperation(
-    () => prisma.dashboardTemplate.update({
-      where: { id: templateId },
-      data: { isActive: true },
-    }),
-    null
-  )
-
-  if (!updated) {
-    throw new Error('Failed to update template')
-  }
-
-  revalidatePath('/dashboard')
-
-  // If it's the default template, always return the global DEFAULT_LAYOUT
-  if (updated.isDefault) {
-    return {
-      ...updated,
-      layout: (await getDefaultLayout()) as any,
+    if (!template) {
+      throw new Error('Template not found')
     }
-  }
 
-  return {
-    ...updated,
-    layout: updated.layout as unknown as WidgetLayout[],
+    revalidatePath('/dashboard')
+
+    return JSON.parse(JSON.stringify({
+      ...template,
+      layout: template.isDefault ? DEFAULT_LAYOUT : (template.layout as unknown as WidgetLayout[]),
+    }))
+  } catch (error) {
+    console.error('switchTemplate failed:', error)
+    throw error
   }
 }
 
 /**
- * Update template layout
- * Cannot update default template - it's immutable
+ * Update the layout of a template
  */
-export async function updateTemplateLayout(
-  templateId: string,
-  layout: WidgetLayout[]
-): Promise<DashboardTemplate> {
-  const userId = await getUserId()
+export async function updateTemplateLayout(id: string, layout: WidgetLayout[]): Promise<DashboardTemplate> {
+  try {
+    const userId = await getUserId()
+    if (!userId) throw new Error('Authentication required')
 
-  const template = await safeDbOperation(
-    () => prisma.dashboardTemplate.findUnique({
-      where: { id: templateId },
-    }),
-    null
-  )
+    const template = await safeDbOperation(() =>
+      prisma.dashboardTemplate.findUnique({
+        where: { id },
+      })
+    )
 
-  if (!template || template.userId !== userId) {
-    throw new Error('Template not found')
-  }
+    if (!template || template.userId !== userId) {
+      throw new Error('Template not found')
+    }
 
-  // Cannot update default template - it's immutable
-  if (template.isDefault) {
-    throw new Error('Cannot modify default template. Please create a new template to customize your layout.')
-  }
+    if (template.isDefault) {
+      throw new Error('Cannot modify default template layout')
+    }
 
-  const updated = await safeDbOperation(
-    () => prisma.dashboardTemplate.update({
-      where: { id: templateId },
-      data: { layout: layout as any },
-    }),
-    null
-  )
+    const updated = await safeDbOperation(() =>
+      prisma.dashboardTemplate.update({
+        where: { id },
+        data: {
+          layout: layout as any,
+          updatedAt: new Date()
+        },
+      })
+    )
 
-  if (!updated) {
-    throw new Error('Failed to update template layout')
-  }
+    if (!updated) {
+      throw new Error('Failed to update template layout')
+    }
 
-  revalidatePath('/dashboard')
+    revalidatePath('/dashboard')
 
-  return {
-    ...updated,
-    layout: updated.layout as unknown as WidgetLayout[],
+    return JSON.parse(JSON.stringify({
+      ...updated,
+      layout: updated.layout as unknown as WidgetLayout[],
+    }))
+  } catch (error) {
+    console.error('updateTemplateLayout failed:', error)
+    throw error
   }
 }

@@ -74,10 +74,10 @@ export async function fetchGroupedTradesAction(userId: string): Promise<FetchTra
     return acc
   }, {})
 
-  return {
+  return JSON.parse(JSON.stringify({
     groupedTrades,
     flattenedTrades: serializedTrades
-  }
+  }))
 }
 
 export async function removeAccountsFromTradesAction(accountNumbers: string[]): Promise<void> {
@@ -436,8 +436,8 @@ export async function getAccountsAction(options?: { includeArchived?: boolean })
       // If a master account has no phases, it won't be shown (correct behavior)
     })
 
-    // Combine both account types
-    return [...transformedAccounts, ...transformedMasterAccounts]
+    // Combine both account types and ensure strict serialization
+    return JSON.parse(JSON.stringify([...transformedAccounts, ...transformedMasterAccounts]))
   } catch (error) {
     // Return empty array instead of throwing error to prevent frontend crashes
     return []

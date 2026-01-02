@@ -11,6 +11,7 @@ import {
   type DashboardTemplate,
   type WidgetLayout
 } from '@/server/dashboard-templates'
+import { ensureDefaultTemplate } from '@/server/seed-default-template'
 import { toast } from 'sonner'
 
 interface TemplateContextType {
@@ -26,20 +27,31 @@ interface TemplateContextType {
 
 const TemplateContext = createContext<TemplateContextType | null>(null)
 
-// Default layout for instant rendering
-const DEFAULT_LAYOUT = [
-  // Row 1: KPI Widgets (5 columns)
+// Default layout for instant rendering - synchronized with server/dashboard-templates.ts
+const DEFAULT_LAYOUT: WidgetLayout[] = [
+  // Row 0: KPI Widgets (5 slots) - Move to the very top
   { i: 'kpi-1', type: 'accountBalancePnl', size: 'kpi', x: 0, y: 0, w: 1, h: 1 },
   { i: 'kpi-2', type: 'tradeWinRate', size: 'kpi', x: 1, y: 0, w: 1, h: 1 },
   { i: 'kpi-3', type: 'dayWinRate', size: 'kpi', x: 2, y: 0, w: 1, h: 1 },
   { i: 'kpi-4', type: 'profitFactor', size: 'kpi', x: 3, y: 0, w: 1, h: 1 },
   { i: 'kpi-5', type: 'avgWinLoss', size: 'kpi', x: 4, y: 0, w: 1, h: 1 },
+  // Row 1: Recent Trades (left, smaller) and Mini Calendar (right, larger)
+  { i: 'recent-trades', type: 'recentTrades', size: 'small', x: 0, y: 1, w: 4, h: 3 },
+  { i: 'mini-calendar', type: 'calendarMini', size: 'large', x: 4, y: 1, w: 8, h: 3 },
   // Row 2: 3 Chart Widgets
-  { i: 'net-daily-pnl', type: 'netDailyPnL', size: 'small-long', x: 0, y: 1, w: 4, h: 3 },
-  { i: 'daily-cumulative-pnl', type: 'dailyCumulativePnL', size: 'small-long', x: 4, y: 1, w: 4, h: 3 },
-  { i: 'account-balance', type: 'accountBalanceChart', size: 'small-long', x: 8, y: 1, w: 4, h: 3 },
-  // Row 3: Calendar (full width)
-  { i: 'advanced-calendar', type: 'calendarAdvanced', size: 'extra-large', x: 0, y: 4, w: 12, h: 12 },
+  { i: 'net-daily-pnl', type: 'netDailyPnL', size: 'small-long', x: 0, y: 4, w: 4, h: 3 },
+  { i: 'daily-cumulative-pnl', type: 'dailyCumulativePnL', size: 'small-long', x: 4, y: 4, w: 4, h: 3 },
+  { i: 'account-balance', type: 'accountBalanceChart', size: 'small-long', x: 8, y: 4, w: 4, h: 3 },
+  // Row 3: 3 More Charts
+  { i: 'weekday-pnl', type: 'weekdayPnL', size: 'small-long', x: 0, y: 7, w: 4, h: 3 },
+  { i: 'trade-duration', type: 'tradeDurationPerformance', size: 'small-long', x: 4, y: 7, w: 4, h: 3 },
+  { i: 'pnl-by-strategy', type: 'pnlByStrategy', size: 'small-long', x: 8, y: 7, w: 4, h: 3 },
+  // Row 4: 3 Performance/Analysis Widgets
+  { i: 'performance-score', type: 'performanceScore', size: 'small-long', x: 0, y: 10, w: 4, h: 3 },
+  { i: 'pnl-by-instrument', type: 'pnlByInstrument', size: 'small-long', x: 4, y: 10, w: 4, h: 3 },
+  { i: 'win-rate-by-strategy', type: 'winRateByStrategy', size: 'small-long', x: 8, y: 10, w: 4, h: 3 },
+  // Row 5: Full Calendar at the bottom (full width)
+  { i: 'calendar-advanced', type: 'calendarAdvanced', size: 'extra-large', x: 0, y: 13, w: 12, h: 4 },
 ]
 
 export function TemplateProvider({ children }: { children: React.ReactNode }) {
@@ -76,7 +88,6 @@ export function TemplateProvider({ children }: { children: React.ReactNode }) {
       }
 
       // No templates yet - create default for new users
-      const { ensureDefaultTemplate } = await import('@/server/seed-default-template')
       await ensureDefaultTemplate()
 
       // Reload after creating default

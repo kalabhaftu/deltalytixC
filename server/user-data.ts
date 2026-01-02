@@ -3,7 +3,7 @@
 import { User, Trade } from '@prisma/client'
 // Groups removed - no longer used
 // import { GroupWithAccounts } from './groups'
-import { prisma } from '@/lib/prisma'
+import { prisma, safeDbOperation } from '@/lib/prisma'
 import { createClient, getUserId, getUserIdSafe } from './auth'
 import { Account } from '@/context/data-provider'
 import { revalidateTag, unstable_cache } from 'next/cache'
@@ -108,7 +108,7 @@ export async function getUserData(): Promise<{
         })()
       ])
 
-      return { userData, accounts, groups, calendarNotes }
+      return JSON.parse(JSON.stringify({ userData, accounts, groups, calendarNotes }))
     } catch (error) {
       return {
         userData: null,
@@ -140,15 +140,19 @@ export async function updateIsFirstConnectionAction(isFirstConnection: boolean) 
       throw new Error('User not authenticated')
     }
 
-    await prisma.user.update({
-      where: { auth_user_id: userId },
-      data: { isFirstConnection }
-    })
+    await safeDbOperation(
+      () => prisma.user.update({
+        where: { auth_user_id: userId },
+        data: { isFirstConnection }
+      }),
+      null
+    )
 
     revalidateTag(`user-data-${userId}`)
 
     return { success: true }
   } catch (error) {
+    console.error('updateIsFirstConnectionAction failed:', error)
     throw new Error('Failed to update onboarding status')
   }
 }

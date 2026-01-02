@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getUserId } from './auth-utils'
 
 const DEFAULT_LAYOUT = [
-  // Row 0: KPI Widgets (5 slots)
+  // Row 0: KPI Widgets (5 slots) - Move to the very top
   { i: 'kpi-1', type: 'accountBalancePnl', size: 'kpi', x: 0, y: 0, w: 1, h: 1 },
   { i: 'kpi-2', type: 'tradeWinRate', size: 'kpi', x: 1, y: 0, w: 1, h: 1 },
   { i: 'kpi-3', type: 'dayWinRate', size: 'kpi', x: 2, y: 0, w: 1, h: 1 },
@@ -17,8 +17,16 @@ const DEFAULT_LAYOUT = [
   { i: 'net-daily-pnl', type: 'netDailyPnL', size: 'small-long', x: 0, y: 4, w: 4, h: 3 },
   { i: 'daily-cumulative-pnl', type: 'dailyCumulativePnL', size: 'small-long', x: 4, y: 4, w: 4, h: 3 },
   { i: 'account-balance', type: 'accountBalanceChart', size: 'small-long', x: 8, y: 4, w: 4, h: 3 },
-  // Row 3: Calendar (full width)
-  { i: 'advanced-calendar', type: 'calendarAdvanced', size: 'extra-large', x: 0, y: 7, w: 12, h: 4 },
+  // Row 3: 3 More Charts
+  { i: 'weekday-pnl', type: 'weekdayPnL', size: 'small-long', x: 0, y: 7, w: 4, h: 3 },
+  { i: 'trade-duration', type: 'tradeDurationPerformance', size: 'small-long', x: 4, y: 7, w: 4, h: 3 },
+  { i: 'pnl-by-strategy', type: 'pnlByStrategy', size: 'small-long', x: 8, y: 7, w: 4, h: 3 },
+  // Row 4: 3 Performance/Analysis Widgets
+  { i: 'performance-score', type: 'performanceScore', size: 'small-long', x: 0, y: 10, w: 4, h: 3 },
+  { i: 'pnl-by-instrument', type: 'pnlByInstrument', size: 'small-long', x: 4, y: 10, w: 4, h: 3 },
+  { i: 'win-rate-by-strategy', type: 'winRateByStrategy', size: 'small-long', x: 8, y: 10, w: 4, h: 3 },
+  // Row 5: Full Calendar at the bottom (full width)
+  { i: 'calendar-advanced', type: 'calendarAdvanced', size: 'extra-large', x: 0, y: 13, w: 12, h: 4 },
 ]
 
 /**

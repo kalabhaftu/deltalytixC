@@ -2,7 +2,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { prisma, safeDbOperation } from '@/lib/prisma'
 import { headers } from "next/headers"
 // Removed locales import - using plain English strings
 
@@ -126,19 +126,13 @@ export async function signInWithEmail(email: string, next: string | null = null)
   const supabase = await createClient()
   const websiteURL = await getWebsiteURL()
 
-  // Check Prisma database first (doesn't consume rate-limited requests)
-  let dbUserExists = false
-  try {
-    const existingUser = await prisma.user.findUnique({
+  const existingUser = await safeDbOperation(
+    () => prisma.user.findUnique({
       where: { email: email }
-    })
-    dbUserExists = !!existingUser
-  } catch (dbError) {
-    // Database unavailable, continue with Supabase auth
-  }
-
-  // User is existing if they exist in Prisma database
-  const isExistingUser = dbUserExists
+    }),
+    null
+  )
+  const isExistingUser = !!existingUser
 
   if (isExistingUser) {
     // For existing users in Prisma DB, send magic link (not OTP)
@@ -233,45 +227,47 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
   }
 
   try {
-    // First try to find user by auth_user_id with error handling
-    let existingUserByAuthId;
-    try {
-      existingUserByAuthId = await prisma.user.findUnique({
+    const existingUserByAuthId = await safeDbOperation(
+      () => prisma.user.findUnique({
         where: { auth_user_id: user.id },
-      });
-    } catch (dbError) {
-      // Return false to allow graceful degradation
-      return false
-    }
+      }),
+      null
+    )
 
     // If user exists by auth_user_id, update email if needed
     if (existingUserByAuthId) {
       // If email is different, update it
       if (existingUserByAuthId.email !== user.email) {
         try {
-          const updatedUser = await prisma.user.update({
-            where: {
-              auth_user_id: user.id // Always use auth_user_id as the unique identifier
-            },
-            data: {
-              email: user.email || existingUserByAuthId.email
-            },
-          });
+          const updatedUser = await safeDbOperation(
+            () => prisma.user.update({
+              where: {
+                auth_user_id: user.id // Always use auth_user_id as the unique identifier
+              },
+              data: {
+                email: user.email || existingUserByAuthId.email
+              },
+            }),
+            existingUserByAuthId
+          );
           // User updated successfully
-          return updatedUser;
+          return JSON.parse(JSON.stringify(updatedUser));
         } catch (updateError) {
           throw new Error('Failed to update user email address.');
         }
       }
       // Existing user found, no update needed
-      return existingUserByAuthId;
+      return JSON.parse(JSON.stringify(existingUserByAuthId));
     }
 
     // If user doesn't exist by auth_user_id, check if email exists
     if (user.email) {
-      const existingUserByEmail = await prisma.user.findUnique({
-        where: { email: user.email },
-      });
+      const existingUserByEmail = await safeDbOperation(
+        () => prisma.user.findUnique({
+          where: { email: user.email! },
+        }),
+        null
+      )
 
       if (existingUserByEmail && existingUserByEmail.auth_user_id !== user.id) {
         await signOut();
@@ -281,13 +277,20 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
 
     // Create new user if no existing user found
     try {
-      const newUser = await prisma.user.create({
-        data: {
-          auth_user_id: user.id,
-          email: user.email || '',
-          id: user.id
-        },
-      });
+      const newUser = await safeDbOperation(
+        () => prisma.user.create({
+          data: {
+            auth_user_id: user.id,
+            email: user.email || '',
+            id: user.id
+          },
+        }),
+        null
+      );
+
+      if (!newUser) {
+        throw new Error('Failed to create user record in database');
+      }
 
       // Create default dashboard template for new user (non-blocking)
       try {
@@ -297,7 +300,7 @@ export async function ensureUserInDatabase(user: SupabaseUser, locale?: string) 
         // Don't block user creation if template fails
       }
 
-      return newUser;
+      return JSON.parse(JSON.stringify(newUser));
     } catch (createError) {
       if (createError instanceof Error &&
         createError.message.includes('Unique constraint failed')) {
@@ -397,16 +400,23 @@ export async function verifyOtp(email: string, token: string, type: 'email' | 's
       // After successful OTP verification, ensure user exists in database (if DB is available)
       try {
         // Check if user already exists in our database with this email
-        const existingUser = await prisma.user.findUnique({
-          where: { email: email }
-        })
+        const existingUser = await safeDbOperation(
+          () => prisma.user.findUnique({
+            where: { email: email }
+          }),
+          null
+        )
 
         if (existingUser && existingUser.auth_user_id !== data.user.id) {
           // User exists with different auth ID - update the auth_user_id instead of creating conflict
-          await prisma.user.update({
-            where: { email: email },
-            data: { auth_user_id: data.user.id }
-          })
+          const newAuthId = data.user.id
+          await safeDbOperation(
+            () => prisma.user.update({
+              where: { email: email },
+              data: { auth_user_id: newAuthId }
+            }),
+            null
+          )
         } else if (!existingUser) {
           // New user, create in database
           const locale = 'en' // Default locale
