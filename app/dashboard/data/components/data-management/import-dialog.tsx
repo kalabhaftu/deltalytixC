@@ -168,9 +168,9 @@ export function ImportDialog() { // Kept name for compatibility
           {/* Import Results */}
           {importResults && (
             <div className="space-y-4">
-              <Alert className="border-green-200 bg-green-50 dark:bg-green-950/20">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800 dark:text-green-200">
+              <Alert className="border-long/20 bg-long/5">
+                <CheckCircle2 className="h-4 w-4 text-long" />
+                <AlertDescription className="text-long">
                   <strong>Restore operation completed successfully.</strong>
                 </AlertDescription>
               </Alert>
@@ -178,7 +178,7 @@ export function ImportDialog() { // Kept name for compatibility
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-card">
                   <span className="text-sm font-medium text-muted-foreground">Imported</span>
-                  <span className="text-2xl font-bold text-green-600">
+                  <span className="text-2xl font-bold text-long">
                     {importResults.imported || 0}
                   </span>
                 </div>

@@ -47,8 +47,8 @@ interface StrategyWinRate {
 // ============================================================================
 
 const COLORS = {
-  profit: 'hsl(142 76% 36%)',
-  loss: 'hsl(0 84% 60%)',
+  profit: 'hsl(var(--chart-profit))',
+  loss: 'hsl(var(--chart-loss))',
   grid: 'hsl(var(--border))',
   axis: 'hsl(var(--muted-foreground))',
   reference: 'hsl(45 93% 47%)'  // 50% reference line in amber
@@ -78,7 +78,7 @@ function ChartTooltip({ active, payload }: any) {
       {/* Win Rate - Large & Bold */}
       <p className={cn(
         "text-2xl font-bold tracking-tight",
-        isWinning ? "text-emerald-500" : "text-red-500"
+        isWinning ? "text-long" : "text-short"
       )}>
         {data.winRate.toFixed(1)}%
       </p>
@@ -98,12 +98,12 @@ function ChartTooltip({ active, payload }: any) {
           <span className="font-semibold">{data.consistency.toFixed(0)}%</span>
         </div>
         <div className="grid grid-cols-2 gap-2 pt-2">
-          <div className="text-center p-2 bg-emerald-500/10 rounded-lg">
-            <p className="text-sm font-bold text-emerald-500">{data.wins}</p>
+          <div className="text-center p-2 bg-long/10 rounded-lg">
+            <p className="text-sm font-bold text-long">{data.wins}</p>
             <p className="text-[10px] text-muted-foreground">Wins</p>
           </div>
-          <div className="text-center p-2 bg-red-500/10 rounded-lg">
-            <p className="text-sm font-bold text-red-500">{data.losses}</p>
+          <div className="text-center p-2 bg-short/10 rounded-lg">
+            <p className="text-sm font-bold text-short">{data.losses}</p>
             <p className="text-[10px] text-muted-foreground">Losses</p>
           </div>
         </div>
@@ -217,7 +217,7 @@ export default function WinRateByStrategy({ size = 'small-long' }: WinRateByStra
         {chartData.length > 0 && (
           <div className={cn(
             "text-xs font-bold px-2 py-1 rounded-md",
-            avgWinRate >= 50 ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+            avgWinRate >= 50 ? "bg-long/10 text-long" : "bg-short/10 text-short"
           )}>
             Avg: {avgWinRate.toFixed(0)}%
           </div>

@@ -131,7 +131,7 @@ function StatCard({ metric }: { metric: RiskMetric }) {
 
     const statusStyles = {
         danger: 'border-short/30 bg-short/5',
-        warning: 'border-amber-500/30 bg-amber-500/5',
+        warning: 'border-yellow-500/30 bg-yellow-500/5',
         safe: 'border-long/30 bg-long/5',
         neutral: 'border-border bg-muted/30'
     }
@@ -381,8 +381,8 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
             {/* Header */}
             <CardHeader className="flex flex-row items-center justify-between shrink-0 border-b border-border/50 px-6 py-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-amber-500/10 rounded-lg">
-                        <Trophy className="h-5 w-5 text-amber-500" />
+                    <div className="p-2 bg-yellow-500/10 rounded-lg">
+                        <Trophy className="h-5 w-5 text-yellow-500" />
                     </div>
                     <div>
                         <CardTitle className="text-lg font-bold tracking-tight">Command Center</CardTitle>

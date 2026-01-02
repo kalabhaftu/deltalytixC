@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useData } from "@/context/data-provider"
-import { cn, formatCurrency, formatNumber } from "@/lib/utils"
+import { cn, formatCurrency, formatNumber, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
 import { getWidgetStyles } from '@/app/dashboard/config/widget-dimensions'
 
@@ -64,8 +64,10 @@ function ChartTooltip({ active, payload }: any) {
 
   const data = payload[0].payload as ChartDataPoint
   const date = new Date(data.date + 'T00:00:00Z')
-  const isCumulativeProfit = data.cumulativePnL >= 0
-  const isDailyProfit = data.dailyPnL >= 0
+  const isCumulativeProfit = data.cumulativePnL > BREAK_EVEN_THRESHOLD
+  const isCumulativeLoss = data.cumulativePnL < -BREAK_EVEN_THRESHOLD
+  const isDailyProfit = data.dailyPnL > BREAK_EVEN_THRESHOLD
+  const isDailyLoss = data.dailyPnL < -BREAK_EVEN_THRESHOLD
 
   return (
     <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl">
@@ -85,7 +87,7 @@ function ChartTooltip({ active, payload }: any) {
         <span className="text-xs text-muted-foreground">Cumulative</span>
         <p className={cn(
           "text-2xl font-bold tracking-tight",
-          isCumulativeProfit ? "text-long" : "text-short"
+          isCumulativeProfit ? "text-long" : isCumulativeLoss ? "text-short" : "text-muted-foreground"
         )}>
           {formatCurrency(data.cumulativePnL)}
         </p>
@@ -97,7 +99,7 @@ function ChartTooltip({ active, payload }: any) {
           <span className="text-xs text-muted-foreground">Today's P/L</span>
           <span className={cn(
             "text-sm font-semibold",
-            isDailyProfit ? "text-long" : "text-short"
+            isDailyProfit ? "text-long" : isDailyLoss ? "text-short" : "text-muted-foreground"
           )}>
             {isDailyProfit ? "+" : ""}{formatCurrency(data.dailyPnL)}
           </span>

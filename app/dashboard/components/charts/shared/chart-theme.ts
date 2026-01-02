@@ -43,8 +43,8 @@ export const TOOLTIP_STYLE = {
     title: "font-semibold text-sm mb-2",
     value: "font-bold text-base",
     subtitle: "text-xs text-muted-foreground",
-    positive: "text-emerald-500 dark:text-emerald-400",
-    negative: "text-red-500 dark:text-red-400",
+    positive: "text-long",
+    negative: "text-short",
 } as const
 
 // Bar chart styling

@@ -2,12 +2,13 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from "@/lib/utils"
-import { 
-  LayoutDashboard, 
-  Table, 
-  Users, 
-  BookOpen, 
-  MoreHorizontal,
+import {
+  LayoutDashboard,
+  Table,
+  Users,
+  BookOpen,
+  BarChart3,
+  MenuSquare,
   FlaskConical
 } from "lucide-react"
 
@@ -26,28 +27,28 @@ const mobileNavItems: MobileNavItem[] = [
     href: '/dashboard'
   },
   {
+    id: 'reports',
+    label: 'Reports',
+    icon: BarChart3,
+    href: '/dashboard/reports'
+  },
+  {
     id: 'table',
     label: 'Trades',
     icon: Table,
     href: '/dashboard/table'
   },
   {
+    id: 'playbook',
+    label: 'Playbook',
+    icon: MenuSquare,
+    href: '/dashboard/playbook'
+  },
+  {
     id: 'accounts',
     label: 'Accounts',
     icon: Users,
     href: '/dashboard/accounts'
-  },
-  {
-    id: 'journal',
-    label: 'Journal',
-    icon: BookOpen,
-    href: '/dashboard/journal'
-  },
-  {
-    id: 'more',
-    label: 'More',
-    icon: MoreHorizontal,
-    href: '/dashboard/menu'
   }
 ]
 
@@ -57,34 +58,31 @@ export function MobileBottomNav() {
 
   const getActiveTab = () => {
     if (pathname === '/dashboard') return 'widgets'
+    if (pathname?.startsWith('/dashboard/reports')) return 'reports'
     if (pathname?.startsWith('/dashboard/table')) return 'table'
-    if (pathname?.startsWith('/dashboard/accounts')) return 'accounts'
     if (pathname?.startsWith('/dashboard/journal')) return 'journal'
-    if (pathname?.startsWith('/dashboard/menu')) return 'more'
-    if (pathname?.startsWith('/dashboard/backtesting')) return 'more'
-    if (pathname?.startsWith('/dashboard/prop-firm')) return 'more'
-    if (pathname?.startsWith('/dashboard/data')) return 'more'
-    if (pathname?.startsWith('/dashboard/settings')) return 'more'
+    if (pathname?.startsWith('/dashboard/playbook')) return 'playbook'
+    if (pathname?.startsWith('/dashboard/accounts')) return 'accounts'
     return null
   }
 
   const activeTab = getActiveTab()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background/95 backdrop-blur-xl border-t border-border/50 safe-area-inset-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-background/95 backdrop-blur-xl border-t border-border/50 safe-area-inset-bottom">
       <div className="flex items-center justify-around h-16 px-2">
         {mobileNavItems.map((item) => {
           const Icon = item.icon
           const isActive = activeTab === item.id
-          
+
           return (
             <button
               key={item.id}
               onClick={() => router.push(item.href)}
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full py-1 px-1 rounded-lg transition-all duration-200",
-                isActive 
-                  ? "text-primary" 
+                isActive
+                  ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -117,7 +115,7 @@ export function MobileNavPadding({ children }: { children: React.ReactNode }) {
     <>
       {children}
       {/* Padding for mobile bottom nav */}
-      <div className="h-20 md:hidden" />
+      <div className="h-20 lg:hidden" />
     </>
   )
 }

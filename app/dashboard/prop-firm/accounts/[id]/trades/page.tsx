@@ -328,7 +328,7 @@ export default function AccountTradesPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={cn("text-2xl font-bold", totalPnl >= 0 ? "text-green-600" : "text-red-600")}>
+            <div className={cn("text-2xl font-bold", totalPnl >= 0 ? "text-long" : "text-short")}>
               {formatCurrency(totalPnl)}
             </div>
           </CardContent>
@@ -431,7 +431,7 @@ export default function AccountTradesPage() {
 
                           <div>
                             <p className="text-xs text-muted-foreground">P&L</p>
-                            <p className={cn("font-medium", trade.pnl >= 0 ? "text-green-600" : "text-red-600")}>
+                            <p className={cn("font-medium", trade.pnl >= 0 ? "text-long" : "text-short")}>
                               {formatCurrency(trade.pnl)}
                             </p>
                           </div>
@@ -516,7 +516,7 @@ export default function AccountTradesPage() {
 
                             <div>
                               <p className="text-xs text-muted-foreground">Unrealized P&L</p>
-                              <p className={cn("font-medium", trade.pnl >= 0 ? "text-green-600" : "text-red-600")}>
+                              <p className={cn("font-medium", trade.pnl >= 0 ? "text-long" : "text-short")}>
                                 {formatCurrency(trade.pnl)}
                               </p>
                             </div>
@@ -598,7 +598,7 @@ export default function AccountTradesPage() {
 
                             <div>
                               <p className="text-xs text-muted-foreground">P&L</p>
-                              <p className={cn("font-medium", trade.pnl >= 0 ? "text-green-600" : "text-red-600")}>
+                              <p className={cn("font-medium", trade.pnl >= 0 ? "text-long" : "text-short")}>
                                 {formatCurrency(trade.pnl)}
                               </p>
                             </div>

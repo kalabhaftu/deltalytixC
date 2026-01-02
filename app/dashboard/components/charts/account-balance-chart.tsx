@@ -21,7 +21,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useData } from "@/context/data-provider"
 import { useUserStore } from "@/store/user-store"
-import { cn, formatCurrency, formatNumber, formatPercent } from "@/lib/utils"
+import { cn, formatCurrency, formatNumber, formatPercent, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
 import { getWidgetStyles } from '@/app/dashboard/config/widget-dimensions'
 import { calculateTotalStartingBalance } from '@/lib/utils/balance-calculator'
@@ -50,11 +50,11 @@ interface ChartDataPoint {
 // ============================================================================
 
 const COLORS = {
-  profit: 'hsl(142 76% 36%)',
-  loss: 'hsl(0 84% 60%)',
+  profit: 'hsl(var(--chart-profit))',
+  loss: 'hsl(var(--chart-loss))',
   grid: 'hsl(var(--border))',
   axis: 'hsl(var(--muted-foreground))',
-  line: 'hsl(142 76% 36%)'
+  line: 'hsl(var(--chart-profit))'
 } as const
 
 const CHART_CONFIG = {
@@ -72,7 +72,8 @@ function ChartTooltip({ active, payload }: any) {
 
   const data = payload[0].payload as ChartDataPoint
   const date = new Date(data.date + 'T00:00:00Z')
-  const isProfit = data.change >= 0
+  const isProfit = data.change > BREAK_EVEN_THRESHOLD
+  const isLoss = data.change < -BREAK_EVEN_THRESHOLD
 
   return (
     <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl min-w-[220px]">
@@ -98,14 +99,14 @@ function ChartTooltip({ active, payload }: any) {
       {/* Change */}
       <div className={cn(
         "flex items-center justify-between py-2 px-3 rounded-lg",
-        isProfit ? "bg-emerald-500/10" : "bg-red-500/10"
+        isProfit ? "bg-long/10" : isLoss ? "bg-short/10" : "bg-muted/10"
       )}>
         <span className="text-xs text-muted-foreground">Change</span>
         <span className={cn(
           "text-sm font-bold",
-          isProfit ? "text-emerald-500" : "text-red-500"
+          isProfit ? "text-long" : isLoss ? "text-short" : "text-muted-foreground"
         )}>
-          {isProfit ? "+" : ""}{formatCurrency(data.change)} ({isProfit ? "+" : ""}{formatPercent(data.changePercent)})
+          {isProfit || isLoss ? (isProfit ? "+" : "") + formatCurrency(data.change) : "$0.00"} ({isProfit || isLoss ? (isProfit ? "+" : "") + formatPercent(data.changePercent) : "0%"})
         </span>
       </div>
 
@@ -117,11 +118,11 @@ function ChartTooltip({ active, payload }: any) {
             <p className="text-[10px] text-muted-foreground">Trades</p>
           </div>
           <div>
-            <p className="text-lg font-bold text-emerald-500">{data.wins}</p>
+            <p className="text-lg font-bold text-long">{data.wins}</p>
             <p className="text-[10px] text-muted-foreground">Wins</p>
           </div>
           <div>
-            <p className="text-lg font-bold text-red-500">{data.losses}</p>
+            <p className="text-lg font-bold text-short">{data.losses}</p>
             <p className="text-[10px] text-muted-foreground">Losses</p>
           </div>
         </div>
@@ -207,9 +208,9 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
       }
       acc[date].trades++
       const netPnL = trade.pnl - (trade.commission || 0)
-      if (netPnL > 0) {
+      if (netPnL > BREAK_EVEN_THRESHOLD) {
         acc[date].wins++
-      } else if (netPnL < 0) {
+      } else if (netPnL < -BREAK_EVEN_THRESHOLD) {
         acc[date].losses++
       }
       return acc
@@ -314,7 +315,7 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
         {chartData.length > 0 && (
           <div className={cn(
             "text-xs font-bold px-2 py-1 rounded-md",
-            isPositive ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+            isPositive ? "bg-long/10 text-long" : "bg-short/10 text-short"
           )}>
             {formatCurrency(currentBalance)}
           </div>

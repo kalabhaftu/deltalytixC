@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { AddEditModelModal } from './components/add-edit-model-modal'
 import { Skeleton } from '@/components/ui/skeleton'
-import { cn } from '@/lib/utils' // Assuming cn utility is imported from here
+import { cn, BREAK_EVEN_THRESHOLD } from '@/lib/utils' // Assuming cn utility is imported from here
 
 interface TradingModel {
   id: string
@@ -61,7 +61,8 @@ function StrategyBlock({
 }) {
   const winRate = model.stats?.winRate || 0
   const pnl = model.stats?.totalPnL || 0
-  const isProfit = pnl >= 0
+  const isProfit = pnl > BREAK_EVEN_THRESHOLD
+  const isLoss = pnl < -BREAK_EVEN_THRESHOLD
 
   return (
     <div className="flex flex-col p-5 bg-muted/20 border border-border/50 rounded-xl hover:bg-muted/30 transition-all group relative">
@@ -115,9 +116,9 @@ function StrategyBlock({
           <span className="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground/60 block mb-1">Total P/L</span>
           <span className={cn(
             "text-xl font-bold tracking-tight",
-            isProfit && pnl > 0 ? "text-long" : !isProfit ? "text-short" : "text-muted-foreground"
+            isProfit ? "text-long" : isLoss ? "text-short" : "text-muted-foreground"
           )}>
-            {isProfit && pnl > 0 ? '+' : ''}${pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {isProfit ? '+' : ''}${pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
         <div className="col-span-2 md:col-span-1 border-t md:border-t-0 pt-4 md:pt-0">
@@ -318,7 +319,7 @@ export default function PlaybookPage() {
                 <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Total Profitability</span>
                 <span className={cn(
                   "text-sm font-bold",
-                  (viewModel?.stats?.totalPnL || 0) >= 0 ? "text-long" : "text-short"
+                  (viewModel?.stats?.totalPnL || 0) > BREAK_EVEN_THRESHOLD ? "text-long" : (viewModel?.stats?.totalPnL || 0) < -BREAK_EVEN_THRESHOLD ? "text-short" : "text-muted-foreground"
                 )}>
                   ${viewModel?.stats?.totalPnL?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                 </span>

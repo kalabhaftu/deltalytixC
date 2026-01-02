@@ -4,8 +4,42 @@ import YahooFinance from 'yahoo-finance2'
 import { YAHOO_FINANCE_SYMBOL_MAP, FOREX_PAIRS } from '@/lib/constants'
 import { YahooFinanceQuote } from '@/types/yahoo-finance'
 import { getUserId } from '@/server/auth'
+import { getCached, setCached, CachePrefix, CacheTTL } from '@/lib/cache/unified-cache'
 
 const yahooFinance = new YahooFinance()
+
+/**
+ * Manual fetch wrapper to bypass IP blocks/rate limits by spoofing browser headers.
+ */
+async function fetchMarketDataManual(symbol: string, options: any): Promise<any> {
+    const { period1, period2, interval } = options;
+    const p1 = Math.floor(new Date(period1).getTime() / 1000);
+    const p2 = Math.floor(new Date(period2).getTime() / 1000);
+    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?useYfid=true&interval=${interval}&includePrePost=true&events=div%7Csplit%7Cearn&lang=en-US&period1=${p1}&period2=${p2}`;
+
+    console.log(`[MANUAL_FETCH] Requesting: ${url}`);
+
+    const response = await fetch(url, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+        },
+        next: { revalidate: 300 } // Cache for 5 mins at Next.js level
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+    }
+
+    return await response.json();
+}
+
+// Global map to join concurrent identical requests in the same process
+const inFlightRequests = new Map<string, Promise<{ data: CandleData[], error?: string }>>()
 
 export interface CandleData {
     time: number
@@ -15,100 +49,190 @@ export interface CandleData {
     close: number
 }
 
+/**
+ * Supported Yahoo Finance Intervals:
+ * Intraday: 1m (7d limit), 2m, 5m, 15m, 30m, 60m, 90m (60d limit)
+ * Hour: 1h (730d limit)
+ * Daily+: 1d, 5d, 1wk, 1mo, 3mo
+ */
+
 export async function getMarketData(
     symbol: string,
-    interval: '1m' | '5m' | '15m' | '1d' = '5m',
+    interval: '1m' | '2m' | '5m' | '15m' | '30m' | '1h' | '1d' = '5m',
     startDate?: Date,
-    endDate?: Date
+    endDate?: Date,
+    tradeId?: string,
+    forceRefresh: boolean = false
 ): Promise<{ data: CandleData[], error?: string }> {
-    try {
-        await getUserId()
-        console.log(`Fetching data for ${symbol}...`)
+    const startStr = startDate ? startDate.toISOString().split('T')[0] : 'default'
+    const endStr = endDate ? endDate.toISOString().split('T')[0] : 'now'
+    const requestKey = `${symbol}:${startStr}:${endStr}:${interval}`
 
-        // Map common symbols to Yahoo Finance tickers
-        let querySymbol = symbol.toUpperCase()
-
-        if (YAHOO_FINANCE_SYMBOL_MAP[querySymbol]) {
-            querySymbol = YAHOO_FINANCE_SYMBOL_MAP[querySymbol]
-        }
-
-        // Forex
-        if (querySymbol.length === 6 && FOREX_PAIRS.includes(querySymbol)) {
-            querySymbol = `${querySymbol}=X`
-        }
-
-        // Crypto
-        if (querySymbol.endsWith('USDT')) querySymbol = `${querySymbol.replace('USDT', '-USD')}`
-        else if (querySymbol === 'BTC') querySymbol = 'BTC-USD'
-        else if (querySymbol === 'ETH') querySymbol = 'ETH-USD'
-
-
-        // SMART INTERVAL LOGIC
-        // Yahoo Limits: 1m: 7d, 5m: 60d.
-        const now = new Date()
-        const diffDays = (now.getTime() - (startDate?.getTime() || now.getTime())) / (1000 * 60 * 60 * 24)
-
-        let intervalsToTry: ('1m' | '5m' | '15m' | '30m' | '1h' | '1d')[] = ['5m', '15m', '30m', '1h', '1d']
-
-        if (diffDays < 7) {
-            intervalsToTry = ['1m', '5m', '15m', '30m', '1h', '1d']
-        } else if (diffDays >= 60) {
-            // After 60 days, try 15m or higher
-            intervalsToTry = ['15m', '30m', '1h', '1d']
-        }
-
-        let lastError = ''
-        for (const queryInterval of intervalsToTry) {
-            try {
-                let period1 = startDate ? new Date(startDate.getTime() - 24 * 60 * 60 * 1000) : new Date('2024-01-01')
-                if (queryInterval === '1h' || queryInterval === '1d') {
-                    period1 = startDate ? new Date(startDate.getTime() - 30 * 24 * 60 * 60 * 1000) : period1
-                }
-
-                const queryOptions = {
-                    period1,
-                    period2: endDate ? new Date(endDate.getTime() + 24 * 60 * 60 * 1000) : new Date(),
-                    interval: queryInterval
-                }
-
-                console.log(`Trying interval: ${queryInterval} for ${querySymbol}`)
-                // @ts-ignore - yahoo-finance2 types might not be perfectly aligned with chart result
-                const result = await yahooFinance.chart(querySymbol, queryOptions) as unknown as import('@/types/yahoo-finance').YahooFinanceResult
-
-                if (result && result.quotes && result.quotes.length > 0) {
-                    const candles = result.quotes.map((q: YahooFinanceQuote) => ({
-                        time: Math.floor(new Date(q.date).getTime() / 1000),
-                        open: q.open,
-                        high: q.high,
-                        low: q.low,
-                        close: q.close,
-                    })).filter((c: { open: number | null, close: number | null }) => c.open != null && c.close != null)
-
-                    return { data: candles }
-                } else {
-                    console.warn(`Empty result for ${queryInterval} on ${querySymbol}`)
-                }
-            } catch (e: any) {
-                console.error(`Error fetching ${queryInterval} for ${querySymbol}:`, e.message)
-
-                // If Rate Limited, don't hammer the API
-                if (e.message.includes('Too Many Requests') || e.message.includes('429')) {
-                    console.error('Aborting retries due to Rate Limit')
-                    lastError = 'Rate Limit Exceeded. Please try again later.'
-                    break
-                }
-
-                lastError = e.message
-                // Add a small delay before next retry to be polite
-                await new Promise(resolve => setTimeout(resolve, 1000))
-                continue
-            }
-        }
-
-        return { data: [], error: lastError || 'No market data found' }
-
-    } catch (e: any) {
-        console.error('Yahoo Finance API Error:', e)
-        return { data: [], error: e.message || 'Failed to fetch market data' }
+    // JOIN CONCURRENT REQUESTS
+    if (inFlightRequests.has(requestKey) && !forceRefresh) {
+        console.log(`[JOIN_REQUEST] Already fetching ${symbol} for ${startStr}. Joining promise...`)
+        return inFlightRequests.get(requestKey)!
     }
+
+    const fetchPromise = (async () => {
+        try {
+            // DB Connectivity Check wrap to prevent hard crashes if Supabase is down
+            try {
+                await getUserId()
+            } catch (dbError: any) {
+                console.error(`[DB_CHECK_FAILED] ${dbError.message}`);
+                if (dbError.message?.includes('P1001') || dbError.message?.includes('Can\'t reach database')) {
+                    console.warn('Proceeding with market data fetch despite potential DB connection issue...');
+                } else {
+                    throw dbError;
+                }
+            }
+
+            console.log(`[SV_ACTION_ENTRY] symbol: ${symbol}, startDate: ${startDate?.toISOString()}, tradeId: ${tradeId || 'N/A'}${forceRefresh ? ' [FORCE_REFRESH]' : ''}`)
+
+            // Map common symbols to Yahoo Finance tickers
+            let querySymbol = symbol.toUpperCase()
+
+            if (YAHOO_FINANCE_SYMBOL_MAP[querySymbol]) {
+                querySymbol = YAHOO_FINANCE_SYMBOL_MAP[querySymbol]
+            }
+
+            // Forex
+            if (querySymbol.length === 6 && FOREX_PAIRS.includes(querySymbol)) {
+                querySymbol = `${querySymbol}=X`
+            }
+
+            // Crypto
+            if (querySymbol.endsWith('USDT')) querySymbol = `${querySymbol.replace('USDT', '-USD')}`
+            else if (querySymbol === 'BTC') querySymbol = 'BTC-USD'
+            else if (querySymbol === 'ETH') querySymbol = 'ETH-USD'
+
+            // TIMEFRAME LIMITS & FALLBACKS
+            const now = new Date()
+            const diffDays = (now.getTime() - (startDate?.getTime() || now.getTime())) / (1000 * 60 * 60 * 24)
+
+            // Dynamic intervals based on user requested list and Yahoo limits
+            let intervalsToTry: string[] = []
+
+            if (diffDays <= 7) {
+                intervalsToTry = ['1m', '2m', '5m', '15m', '30m', '1h', '1d']
+            } else if (diffDays <= 60) {
+                // Yahoo says 1m is 7d, but sometimes 2m works up to 60d
+                intervalsToTry = ['2m', '5m', '15m', '30m', '1h', '1d']
+            } else if (diffDays <= 730) {
+                intervalsToTry = ['1h', '1d']
+            } else {
+                intervalsToTry = ['1d']
+            }
+
+            // Ensure requested interval is first if valid
+            if (intervalsToTry.includes(interval) && intervalsToTry[0] !== interval) {
+                intervalsToTry = [interval, ...intervalsToTry.filter(i => i !== interval)]
+            }
+
+            // Cache lookup (base key for symbol/date range)
+            const baseCacheKey = `${CachePrefix.MARKET_DATA}${querySymbol}:${startStr}:${endStr}`
+            try {
+                const cachedData = await getCached<CandleData[]>(baseCacheKey)
+                if (cachedData && cachedData.length > 0) {
+                    console.log(`[CACHE_HIT] ${querySymbol} (${startStr})`)
+                    return { data: cachedData }
+                }
+            } catch (cacheError) {
+                console.warn('Cache lookup failed:', cacheError)
+            }
+
+            let lastError = ''
+            for (const queryInterval of intervalsToTry) {
+                try {
+                    let period1 = startDate ? new Date(startDate.getTime() - 24 * 60 * 60 * 1000) : new Date('2024-01-01')
+                    if (queryInterval === '1h' || queryInterval === '1d') {
+                        period1 = startDate ? new Date(startDate.getTime() - 30 * 24 * 60 * 60 * 1000) : period1
+                    }
+
+                    const queryOptions = {
+                        period1,
+                        period2: endDate ? new Date(endDate.getTime() + 24 * 60 * 60 * 1000) : new Date(),
+                        interval: queryInterval as any
+                    }
+
+                    console.log(`[YAHOO_FETCH] Trying ${queryInterval} for ${querySymbol} (Range: ${diffDays.toFixed(1)} days)`)
+
+                    let result: any;
+                    try {
+                        result = await yahooFinance.chart(querySymbol, queryOptions);
+                    } catch (libError: any) {
+                        // If rate limited by lib, try manual fetch with spoofed headers
+                        if (libError.message?.toLowerCase().includes('429') || libError.message?.toLowerCase().includes('too many requests')) {
+                            console.warn(`[LIB_RATE_LIMIT] Switching to manual fetch for ${querySymbol} at ${queryInterval}...`);
+                            result = await fetchMarketDataManual(querySymbol, queryOptions);
+                        } else {
+                            throw libError;
+                        }
+                    }
+
+                    // Process Results (Support both lib and manual format)
+                    let sourceQuotes = result?.quotes;
+                    if (!sourceQuotes && result?.chart?.result?.[0]) {
+                        console.log(`[DATA_FORMAT] Detected manual fetch structure`);
+                        const res = result.chart.result[0];
+                        sourceQuotes = res.timestamp?.map((t: number, i: number) => ({
+                            date: new Date(t * 1000),
+                            open: res.indicators.quote[0].open?.[i],
+                            high: res.indicators.quote[0].high?.[i],
+                            low: res.indicators.quote[0].low?.[i],
+                            close: res.indicators.quote[0].close?.[i],
+                        })).filter((q: any) => q.open != null && q.close != null);
+                    }
+
+                    if (sourceQuotes && sourceQuotes.length > 0) {
+                        const candles = sourceQuotes
+                            .filter((q: any) => q.open != null && q.close != null && q.date != null)
+                            .map((q: any) => ({
+                                time: Math.floor(new Date(q.date).getTime() / 1000),
+                                open: q.open,
+                                high: q.high,
+                                low: q.low,
+                                close: q.close,
+                            }));
+
+                        if (candles.length > 0) {
+                            const ttl = diffDays > 1 ? CacheTTL.EXTRA_LONG : CacheTTL.MEDIUM
+                            await setCached(baseCacheKey, candles, ttl)
+
+                            console.log(`[FETCH_SUCCESS] ${querySymbol} - ${candles.length} candles (First: ${new Date(candles[0].time * 1000).toISOString()})`)
+                            return { data: candles }
+                        }
+                    }
+
+                    console.warn(`[FETCH_EMPTY] ${queryInterval} on ${querySymbol}`)
+                } catch (e: any) {
+                    console.error(`[FETCH_ERROR] ${queryInterval} for ${querySymbol}:`, e.message)
+
+                    if (e.message.includes('Too Many Requests') || e.message.includes('429')) {
+                        console.warn(`[RATE_LIMIT] Yahoo is throttling both lib and manual. Cooling down for 3s...`)
+                        await new Promise(resolve => setTimeout(resolve, 3000))
+                        lastError = 'Rate Limit Exceeded. Waiting for fallback...'
+                        continue
+                    }
+
+                    lastError = e.message
+                    await new Promise(resolve => setTimeout(resolve, 1000))
+                    continue
+                }
+            }
+
+            return { data: [], error: lastError || 'No market data found' }
+
+        } catch (e: any) {
+            console.error('Yahoo Finance API Error:', e)
+            return { data: [], error: e.message || 'Failed to fetch market data' }
+        } finally {
+            // Clean up in-flight request after completion
+            inFlightRequests.delete(requestKey)
+        }
+    })()
+
+    inFlightRequests.set(requestKey, fetchPromise)
+    return fetchPromise
 }

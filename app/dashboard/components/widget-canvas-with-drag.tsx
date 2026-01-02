@@ -194,7 +194,7 @@ export default function WidgetCanvasWithDrag() {
     y?: number
     width?: number
   } | null>(null)
-  const isDesktop = useMediaQuery('(min-width: 768px)')
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
   const getGridColumnStyle = React.useCallback(
     (span: number) => ({
       gridColumn: `span ${isDesktop ? Math.min(span, GRID_COLUMNS) : GRID_COLUMNS}`,

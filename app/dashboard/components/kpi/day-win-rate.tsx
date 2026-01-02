@@ -4,6 +4,7 @@ import React from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { CircularProgress } from '@/components/ui/circular-progress'
 import { useData } from '@/context/data-provider'
+import { BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 import { Info } from 'lucide-react'
 import {
   Tooltip,
@@ -23,7 +24,7 @@ const DayWinRate = React.memo(function DayWinRate({ size }: DayWinRateProps) {
   const { dayWinRate, winningDays, totalDays } = React.useMemo(() => {
     const dayEntries = Object.entries(calendarData)
     const total = dayEntries.length
-    const winning = dayEntries.filter(([_, data]) => data.pnl > 0).length
+    const winning = dayEntries.filter(([_, data]) => data.pnl > BREAK_EVEN_THRESHOLD).length
     const rate = total > 0 ? Math.round((winning / total) * 1000) / 10 : 0
 
     return {

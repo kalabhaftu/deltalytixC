@@ -82,9 +82,10 @@ export function QuickAddFAB({ className }: QuickAddFABProps) {
                 <Button
                     size="icon"
                     className={cn(
-                        "fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50",
-                        "bg-primary hover:bg-primary/90",
-                        "md:hidden", // Only show on mobile
+                        "fixed bottom-28 right-6 h-14 w-14 rounded-full shadow-lg z-[60]",
+                        "bg-primary hover:bg-primary/90 text-primary-foreground",
+                        "lg:hidden", // Match bottom nav breakpoint
+                        "shadow-[0_0_20px_-5px_hsl(var(--primary)/0.5)]", // Subtle glow
                         className
                     )}
                 >

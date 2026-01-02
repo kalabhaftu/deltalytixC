@@ -176,8 +176,8 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
   }
 
   // Theme-aware colors
-  const profitColor = isDarkMode ? 'hsl(160, 84%, 40%)' : 'hsl(160, 84%, 35%)'
-  const lossColor = isDarkMode ? 'hsl(0, 84%, 55%)' : 'hsl(0, 72%, 51%)'
+  const profitColor = 'hsl(var(--chart-profit))'
+  const lossColor = 'hsl(var(--chart-loss))'
   const primaryColor = 'hsl(var(--primary))'
   const mutedColor = 'hsl(var(--muted-foreground))'
 

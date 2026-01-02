@@ -11,7 +11,7 @@ import {
     TrendingUp,
     TrendingDown
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, classifyTrade } from '@/lib/utils'
 import { parseISO, getHours, format } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
 import { useUserStore } from '@/store/user-store'
@@ -61,7 +61,7 @@ export default function SessionAnalysis({ size }: SessionAnalysisProps) {
                 if (session && stats[session]) {
                     stats[session].trades++
                     stats[session].pnl += trade.pnl || 0
-                    if ((trade.pnl || 0) > 0) {
+                    if (classifyTrade(trade.pnl || 0) === 'win') {
                         stats[session].wins++
                     }
                 }

@@ -12,7 +12,7 @@ import {
     Loader2,
     AlertCircle
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 import { format, parseISO } from 'date-fns'
 import { createChart, ColorType, IChartApi, ISeriesApi, Time, CandlestickSeries, createSeriesMarkers } from 'lightweight-charts'
 import { getMarketData } from '@/app/actions/get-market-data'
@@ -41,144 +41,161 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
     const chartRef = useRef<IChartApi | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const hasFetchedRef = useRef<boolean>(false)
+    const lastFetchIdRef = useRef<string>('')
 
     const isLong = trade.side?.toLowerCase() === 'long' || trade.side?.toLowerCase() === 'buy'
-    const isProfit = trade.pnl > 0
+    const isProfit = trade.pnl > BREAK_EVEN_THRESHOLD
+    const isLoss = trade.pnl < -BREAK_EVEN_THRESHOLD
     const formattedDate = trade.entryDate ? format(parseISO(trade.entryDate), 'MMM d, yyyy') : 'Unknown'
     const formattedTime = trade.entryDate ? format(parseISO(trade.entryDate), 'h:mm a') : ''
 
-    useEffect(() => {
-        let isMounted = true
+    const initChart = async (force: boolean = false) => {
+        if (!chartContainerRef.current) return
 
-        const initChart = async () => {
-            if (!chartContainerRef.current) return
+        // Prevent redundant fetches for the same trade in the same mount cycle
+        if (!force && hasFetchedRef.current && lastFetchIdRef.current === trade.id) {
+            console.log(`TradeReplay: Skipping redundant fetch for ${trade.id}`)
+            return
+        }
 
-            setIsLoading(true)
-            setError(null)
+        setIsLoading(true)
+        setError(null)
 
-            try {
-                // Fetch Real Data
-                const { data, error: fetchError } = await getMarketData(
-                    trade.instrument,
-                    '5m',
-                    trade.entryDate ? new Date(trade.entryDate) : undefined,
-                    trade.closeDate ? new Date(trade.closeDate) : undefined
-                )
+        console.count(`TradeReplay_Effect_Run_${trade.id}`)
+        console.log(`[CLIENT_TRACE] initChart for ${trade.instrument} ${trade.entryDate} (ID: ${trade.id})${force ? ' [FORCE]' : ''}`)
 
-                if (fetchError || !data || data.length === 0) {
-                    if (isMounted) setError(fetchError || 'No market data available for this period')
-                    setIsLoading(false)
-                    return
+        lastFetchIdRef.current = trade.id
+        hasFetchedRef.current = true
+
+        try {
+            // Fetch Real Data
+            const { data, error: fetchError } = await getMarketData(
+                trade.instrument,
+                '5m',
+                trade.entryDate ? new Date(trade.entryDate) : undefined,
+                trade.closeDate ? new Date(trade.closeDate) : undefined,
+                trade.id,
+                force
+            )
+
+            if (fetchError || !data || data.length === 0) {
+                setError(fetchError || 'No market data available for this period')
+                setIsLoading(false)
+                return
+            }
+
+            // Timezone adjustment for New York
+            const nyTimezone = 'America/New_York'
+            const adjustedData = data.map((d: any) => {
+                const date = new Date(d.time * 1000)
+                const offset = getTimezoneOffset(nyTimezone, date)
+                return {
+                    ...d,
+                    time: (d.time + (offset / 1000)) as Time
                 }
+            })
 
-                if (!isMounted) return
+            console.log(`[CLIENT] Chart Data: ${adjustedData.length} bars. Range: ${new Date((adjustedData[0].time as number) * 1000).toISOString()} to ${new Date((adjustedData[adjustedData.length - 1].time as number) * 1000).toISOString()}`)
 
-                // Timezone adjustment for New York
-                // we shift the timestamps by the offset to "trick" lightweight charts into showing NY time
-                const nyTimezone = 'America/New_York'
-                const adjustedData = data.map((d: any) => {
-                    const date = new Date(d.time * 1000)
-                    // Get offset in milliseconds
-                    const offset = getTimezoneOffset(nyTimezone, date)
-                    return {
-                        ...d,
-                        time: (d.time + (offset / 1000)) as Time
-                    }
-                })
-
-                // Create Chart
-                const chart = createChart(chartContainerRef.current, {
-                    layout: {
-                        background: { type: ColorType.Solid, color: 'transparent' },
-                        textColor: '#9ca3af',
+            // Create Chart
+            const chart = createChart(chartContainerRef.current, {
+                layout: {
+                    background: { type: ColorType.Solid, color: 'white' },
+                    textColor: 'black',
+                },
+                grid: {
+                    vertLines: { color: 'rgba(42, 46, 57, 0.03)' },
+                    horzLines: { color: 'rgba(42, 46, 57, 0.03)' },
+                },
+                width: chartContainerRef.current.clientWidth,
+                height: chartContainerRef.current.clientHeight,
+                handleScale: true,
+                handleScroll: true,
+                timeScale: {
+                    timeVisible: true,
+                    secondsVisible: false,
+                    borderColor: 'rgba(42, 46, 57, 0.1)',
+                },
+                rightPriceScale: {
+                    borderColor: 'rgba(42, 46, 57, 0.1)',
+                    scaleMargins: {
+                        top: 0.1,
+                        bottom: 0.1,
                     },
-                    grid: {
-                        vertLines: { color: 'rgba(42, 46, 57, 0.05)' },
-                        horzLines: { color: 'rgba(42, 46, 57, 0.05)' },
-                    },
-                    width: chartContainerRef.current.clientWidth,
-                    height: chartContainerRef.current.clientHeight,
-                    handleScale: true,
-                    handleScroll: true,
-                    timeScale: {
-                        timeVisible: true,
-                        secondsVisible: false,
-                        borderColor: 'rgba(42, 46, 57, 0.2)',
-                    },
-                    rightPriceScale: {
-                        borderColor: 'rgba(42, 46, 57, 0.2)',
-                        scaleMargins: {
-                            top: 0.1,
-                            bottom: 0.1,
-                        },
-                    }
-                })
-
-                const candleSeries = chart.addSeries(CandlestickSeries, {
-                    upColor: CHART_COLORS.UP,
-                    downColor: CHART_COLORS.DOWN,
-                    borderVisible: false,
-                    wickUpColor: CHART_COLORS.UP,
-                    wickDownColor: CHART_COLORS.DOWN,
-                })
-
-                candleSeries.setData(adjustedData as any)
-
-                // Plot Markers
-                const markers: any[] = []
-
-                // Need to find nearest candle time for entry/exit to place marker on top of it
-                // Lightweight charts requires marker time to match a candle time exactly
-                const findNearestTime = (targetTimeStr: string) => {
-                    const target = new Date(targetTimeStr).getTime() / 1000
-                    // Find candle with smallest time difference
-                    return data.reduce((prev: any, curr: any) =>
-                        Math.abs(curr.time - target) < Math.abs(prev.time - target) ? curr : prev
-                    ).time
                 }
+            })
 
-                if (trade.entryDate) {
-                    const entryTime = findNearestTime(trade.entryDate)
+            const candleSeries = chart.addSeries(CandlestickSeries, {
+                upColor: '#83b885',
+                downColor: 'black',
+                borderVisible: true,
+                borderColor: 'black',
+                wickVisible: true,
+                wickUpColor: 'black',
+                wickDownColor: 'black',
+                borderUpColor: '#83b885',
+                borderDownColor: 'black',
+            })
+
+            candleSeries.setData(adjustedData as any)
+
+            // Plot Markers - CRITICAL: Use adjustedData to find times
+            const markers: any[] = []
+
+            const findNearestAdjustedTime = (targetTimeStr: string) => {
+                const targetDate = new Date(targetTimeStr)
+                const targetUnix = targetDate.getTime() / 1000
+                const offset = getTimezoneOffset(nyTimezone, targetDate)
+                const targetAdjusted = targetUnix + (offset / 1000)
+
+                return adjustedData.reduce((prev: any, curr: any) =>
+                    Math.abs(Number(curr.time) - targetAdjusted) < Math.abs(Number(prev.time) - targetAdjusted) ? curr : prev
+                ).time
+            }
+
+            if (trade.entryDate) {
+                try {
+                    const entryTime = findNearestAdjustedTime(trade.entryDate)
                     markers.push({
                         time: entryTime,
                         position: isLong ? 'belowBar' : 'aboveBar',
-                        color: isLong ? CHART_COLORS.UP : CHART_COLORS.DOWN,
+                        color: '#2962FF', // Entry: TV Blue
                         shape: isLong ? 'arrowUp' : 'arrowDown',
-                        text: `ENTRY $${Number(trade.entryPrice).toFixed(2)}`,
-                        size: 2
+                        text: `$${Number(trade.entryPrice).toFixed(2)}`,
+                        size: 1
                     })
-                }
+                } catch (e) { console.warn('Failed to place entry marker', e) }
+            }
 
-                if (trade.closeDate && trade.closePrice) {
-                    const exitTime = findNearestTime(trade.closeDate)
-                    // Ensure exit marker doesn't overwrite entry if same candle (rare for 5m but possible)
-                    // If same, we might barely offset or just accept overlap priority
-
+            if (trade.closeDate && trade.closePrice) {
+                try {
+                    const exitTime = findNearestAdjustedTime(trade.closeDate)
                     markers.push({
                         time: exitTime,
                         position: isLong ? 'aboveBar' : 'belowBar',
-                        color: isLong ? CHART_COLORS.DOWN : CHART_COLORS.UP, // Exit color opposite
+                        color: '#F44336', // Exit: TV Red
                         shape: isLong ? 'arrowDown' : 'arrowUp',
-                        text: `EXIT $${Number(trade.closePrice).toFixed(2)}`,
-                        size: 2
+                        text: `$${Number(trade.closePrice).toFixed(2)}`,
+                        size: 1
                     })
-                }
-
-                // @ts-ignore
-                createSeriesMarkers(candleSeries, markers)
-
-                chart.timeScale().fitContent()
-
-                chartRef.current = chart
-                setIsLoading(false)
-
-            } catch (err) {
-                console.error(err)
-                if (isMounted) setError('Failed to load chart')
-                setIsLoading(false)
+                } catch (e) { console.warn('Failed to place exit marker', e) }
             }
-        }
 
+            // @ts-ignore
+            createSeriesMarkers(candleSeries, markers)
+            chart.timeScale().fitContent()
+            chartRef.current = chart
+            setIsLoading(false)
+
+        } catch (err) {
+            console.error(err)
+            setError('Failed to load chart')
+            setIsLoading(false)
+        }
+    }
+
+    useEffect(() => {
         initChart()
 
         // Robust ResizeObserver that handles exact container dimensions
@@ -196,14 +213,13 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
         }
 
         return () => {
-            isMounted = false
-            resizeObserver.disconnect()
             if (chartRef.current) {
                 chartRef.current.remove()
                 chartRef.current = null
             }
+            resizeObserver.disconnect()
         }
-    }, [trade, isLong])
+    }, [trade.id, trade.instrument, trade.entryDate, trade.closeDate, isLong])
 
 
     return (
@@ -222,8 +238,18 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
             {error && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/95 z-20 p-6 text-center">
                     <AlertCircle className="h-10 w-10 text-destructive mb-4" />
-                    <h3 className="text-sm font-semibold mb-2">Error</h3>
-                    <p className="text-xs text-muted-foreground">{error}</p>
+                    <h3 className="text-sm font-semibold mb-2">Market Data Error</h3>
+                    <p className="text-xs text-muted-foreground mb-4">{error}</p>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            hasFetchedRef.current = false;
+                            initChart(true);
+                        }}
+                    >
+                        Try Force Refresh
+                    </Button>
                 </div>
             )}
         </div>

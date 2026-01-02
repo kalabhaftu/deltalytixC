@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { 
+import {
   ArrowLeft,
   RefreshCw,
   DollarSign,
@@ -56,10 +56,10 @@ export default function PayoutDetailPage() {
       if (!accountsData.success) {
         throw new Error('Failed to fetch accounts')
       }
-      
+
       // Find the payout in all accounts' payout history
       let foundPayout = null
-      
+
       for (const account of accountsData.data) {
         const payoutsResponse = await fetch(`/api/prop-firm/accounts/${account.id}/payouts`)
         if (payoutsResponse.ok) {
@@ -73,7 +73,7 @@ export default function PayoutDetailPage() {
           }
         }
       }
-      
+
       if (!foundPayout) {
         throw new Error('Payout not found')
       }
@@ -99,8 +99,8 @@ export default function PayoutDetailPage() {
     switch (status) {
       case 'pending': return 'bg-yellow-500'
       case 'approved': return 'bg-foreground'
-      case 'paid': return 'bg-green-500'
-      case 'rejected': return 'bg-red-500'
+      case 'paid': return 'bg-long'
+      case 'rejected': return 'bg-short'
       default: return 'bg-gray-500'
     }
   }
@@ -183,7 +183,7 @@ export default function PayoutDetailPage() {
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
-          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+          <Button variant="outline" size="sm" className="text-short hover:text-short/80">
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
           </Button>
@@ -209,12 +209,12 @@ export default function PayoutDetailPage() {
                 </div>
               </Badge>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Account</span>
               <span className="font-medium">{payout.accountNumber}</span>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Requested Amount</span>
               <div className="flex items-center gap-1">
@@ -222,7 +222,7 @@ export default function PayoutDetailPage() {
                 <span className="font-medium">{formatCurrency(payout.amountRequested)}</span>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Paid Amount</span>
               <div className="flex items-center gap-1">
@@ -230,7 +230,7 @@ export default function PayoutDetailPage() {
                 <span className="font-medium">{formatCurrency(payout.amountPaid)}</span>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Requested Date</span>
               <div className="flex items-center gap-1">
@@ -238,7 +238,7 @@ export default function PayoutDetailPage() {
                 <span className="font-medium">{formatDate(payout.requestedAt)}</span>
               </div>
             </div>
-            
+
             {payout.paidAt && (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Paid Date</span>
@@ -266,14 +266,14 @@ export default function PayoutDetailPage() {
                 <p className="text-muted-foreground">No additional information available</p>
               </div>
             )}
-            
+
             <div className="pt-4 border-t">
               <h4 className="text-sm font-medium text-muted-foreground mb-2">Actions</h4>
               <div className="flex flex-wrap gap-2">
                 {payout.status === 'pending' && (
                   <>
                     <Button size="sm">Approve</Button>
-                    <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
+                    <Button size="sm" variant="outline" className="text-short hover:text-short/80">
                       Reject
                     </Button>
                   </>

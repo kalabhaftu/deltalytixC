@@ -104,9 +104,9 @@ function JournalStats({ trades }: { trades: Trade[] }) {
               Win Rate
             </span>
             {stats.winRate >= 50 ? (
-              <TrendingUp className="h-3.5 w-3.5 text-green-500/50" />
+              <TrendingUp className="h-3.5 w-3.5 text-long/50" />
             ) : (
-              <TrendingDown className="h-3.5 w-3.5 text-red-500/50" />
+              <TrendingDown className="h-3.5 w-3.5 text-short/50" />
             )}
           </div>
           <p className="text-2xl font-bold tracking-tight">{stats.winRate.toFixed(1)}%</p>
@@ -120,12 +120,12 @@ function JournalStats({ trades }: { trades: Trade[] }) {
               Total P&L
             </span>
             {stats.totalPnl >= 0 ? (
-              <TrendingUp className="h-3.5 w-3.5 text-green-500/50" />
+              <TrendingUp className="h-3.5 w-3.5 text-long/50" />
             ) : (
-              <TrendingDown className="h-3.5 w-3.5 text-red-500/50" />
+              <TrendingDown className="h-3.5 w-3.5 text-short/50" />
             )}
           </div>
-          <p className={cn("text-2xl font-bold tracking-tight", stats.totalPnl >= 0 ? "text-green-500" : "text-red-500")}>
+          <p className={cn("text-2xl font-bold tracking-tight", stats.totalPnl >= 0 ? "text-long" : "text-short")}>
             {stats.totalPnl >= 0 ? '+' : ''}{formatCurrency(stats.totalPnl)}
           </p>
         </CardContent>

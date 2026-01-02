@@ -68,7 +68,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
   // Check if mobile and load sidebar state
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
+      setIsMobile(window.innerWidth < 1024)
     }
 
     checkMobile()

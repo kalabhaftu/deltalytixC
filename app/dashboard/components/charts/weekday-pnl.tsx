@@ -69,7 +69,8 @@ function ChartTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null
 
   const data = payload[0].payload as WeekdayData
-  const isProfit = data.pnl >= 0
+  const isProfit = data.pnl > BREAK_EVEN_THRESHOLD
+  const isLoss = data.pnl < -BREAK_EVEN_THRESHOLD
 
   return (
     <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl min-w-[180px]">
@@ -79,7 +80,7 @@ function ChartTooltip({ active, payload }: any) {
       {/* P/L - Large & Bold */}
       <p className={cn(
         "text-2xl font-bold tracking-tight",
-        isProfit ? "text-long" : "text-short"
+        isProfit ? "text-long" : isLoss ? "text-short" : "text-muted-foreground"
       )}>
         {formatCurrency(data.pnl)}
       </p>
@@ -299,7 +300,7 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
                 {chartData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={entry.pnl >= 0 ? COLORS.profit : COLORS.loss}
+                    fill={entry.pnl > BREAK_EVEN_THRESHOLD ? COLORS.profit : entry.pnl < -BREAK_EVEN_THRESHOLD ? COLORS.loss : 'hsl(var(--muted-foreground)/0.4)'}
                   />
                 ))}
               </Bar>

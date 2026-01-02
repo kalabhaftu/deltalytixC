@@ -105,7 +105,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
   // Check if mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
+      setIsMobile(window.innerWidth < 1024)
     }
 
     checkMobile()

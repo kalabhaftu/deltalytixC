@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Trade } from '@prisma/client'
 import { TrendingUp, TrendingDown, Calendar, Clock, Target, DollarSign, MoreHorizontal, Eye, Edit, Trash2, AlertTriangle } from 'lucide-react'
-import { cn, formatCurrency, formatQuantity, formatTradeData, formatPrice, BREAK_EVEN_THRESHOLD } from '@/lib/utils'
+import { cn, formatCurrency, formatQuantity, formatTradeData, formatPrice, BREAK_EVEN_THRESHOLD, classifyTrade } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -40,7 +40,10 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
   const { getTagsByIds } = useTags()
   const timezone = useUserStore((state) => state.timezone)
 
-  const isWin = trade.pnl > BREAK_EVEN_THRESHOLD
+  const outcome = classifyTrade(trade.pnl)
+  const isWin = outcome === 'win'
+  const isLoss = outcome === 'loss'
+  const isBreakEven = outcome === 'breakeven'
   const hasPreviewImage = !!(trade as any).cardPreviewImage && String((trade as any).cardPreviewImage).trim() !== ''
 
   // Parse trade tags - tags is now an array
@@ -160,7 +163,7 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
             <div className="flex items-center gap-2 mb-1.5">
               <div className={cn(
                 "w-2 h-2 rounded-full flex-shrink-0",
-                isWin ? "bg-long" : "bg-short"
+                isWin ? "bg-long" : isLoss ? "bg-short" : "bg-muted-foreground"
               )} />
               <h3 className="font-semibold text-foreground truncate text-base">
                 {trade.instrument}
@@ -181,10 +184,10 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
               variant={getStatusVariant(trade.pnl)}
               className={cn(
                 "text-xs font-medium px-2",
-                isWin ? "bg-long/10 text-long border-long/20" : "bg-short/10 text-short border-short/20"
+                isWin ? "bg-long/10 text-long border-long/20" : isLoss ? "bg-short/10 text-short border-short/20" : "bg-muted/10 text-muted-foreground border-border"
               )}
             >
-              {isWin ? 'WIN' : 'LOSS'}
+              {isWin ? 'WIN' : isLoss ? 'LOSS' : 'BE'}
             </Badge>
             {(trade as any).tradingModel && (
               <Badge variant="secondary" className="text-[10px] whitespace-nowrap hidden sm:inline-flex px-1.5">
@@ -252,8 +255,11 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground mb-1">P&L</p>
             <div className="flex items-center gap-1">
-              {isWin ? <TrendingUp className="h-3 w-3 text-long flex-shrink-0" /> : <TrendingDown className="h-3 w-3 text-short flex-shrink-0" />}
-              <p className={`font-semibold truncate ${isWin ? 'text-long' : 'text-short'}`}>
+              {isWin ? <TrendingUp className="h-3 w-3 text-long flex-shrink-0" /> : isLoss ? <TrendingDown className="h-3 w-3 text-short flex-shrink-0" /> : <div className="h-3 w-3 rounded-full border border-muted-foreground flex-shrink-0" />}
+              <p className={cn(
+                "font-semibold truncate",
+                isWin ? 'text-long' : isLoss ? 'text-short' : 'text-muted-foreground'
+              )}>
                 {formatCurrency(trade.pnl)}
               </p>
             </div>

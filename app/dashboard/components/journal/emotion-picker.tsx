@@ -23,7 +23,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 
-export type EmotionType = 
+export type EmotionType =
   | 'confident'
   | 'anxious'
   | 'focused'
@@ -50,22 +50,22 @@ export interface Emotion {
 }
 
 export const emotions: Emotion[] = [
-  { id: 'confident', label: 'Confident', icon: TrendingUp, color: 'text-green-600 dark:text-green-400' },
+  { id: 'confident', label: 'Confident', icon: TrendingUp, color: 'text-long' },
   { id: 'anxious', label: 'Anxious', icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400' },
   { id: 'focused', label: 'Focused', icon: Brain, color: 'text-blue-600 dark:text-blue-400' },
   { id: 'energetic', label: 'Energetic', icon: Zap, color: 'text-yellow-600 dark:text-yellow-400' },
   { id: 'calm', label: 'Calm', icon: Sun, color: 'text-sky-600 dark:text-sky-400' },
   { id: 'frustrated', label: 'Frustrated', icon: CloudRain, color: 'text-gray-600 dark:text-gray-400' },
-  { id: 'optimistic', label: 'Optimistic', icon: ThumbsUp, color: 'text-emerald-600 dark:text-emerald-400' },
-  { id: 'pessimistic', label: 'Pessimistic', icon: ThumbsDown, color: 'text-red-600 dark:text-red-400' },
+  { id: 'optimistic', label: 'Optimistic', icon: ThumbsUp, color: 'text-long' },
+  { id: 'pessimistic', label: 'Pessimistic', icon: ThumbsDown, color: 'text-short' },
   { id: 'disciplined', label: 'Disciplined', icon: Target, color: 'text-purple-600 dark:text-purple-400' },
   { id: 'impulsive', label: 'Impulsive', icon: Flame, color: 'text-rose-600 dark:text-rose-400' },
-  { id: 'happy', label: 'Happy', icon: Smile, color: 'text-green-600 dark:text-green-400' },
+  { id: 'happy', label: 'Happy', icon: Smile, color: 'text-long' },
   { id: 'sad', label: 'Sad', icon: Frown, color: 'text-blue-600 dark:text-blue-400' },
   { id: 'neutral', label: 'Neutral', icon: Meh, color: 'text-gray-600 dark:text-gray-400' },
   { id: 'tired', label: 'Tired', icon: Coffee, color: 'text-amber-600 dark:text-amber-400' },
   { id: 'excited', label: 'Excited', icon: Heart, color: 'text-pink-600 dark:text-pink-400' },
-  { id: 'stressed', label: 'Stressed', icon: TrendingDown, color: 'text-red-600 dark:text-red-400' },
+  { id: 'stressed', label: 'Stressed', icon: TrendingDown, color: 'text-short' },
   { id: 'relaxed', label: 'Relaxed', icon: Heart, color: 'text-teal-600 dark:text-teal-400' },
 ]
 
@@ -98,12 +98,12 @@ export function EmotionPicker({ selectedEmotion, onChange, className }: EmotionP
           </Button>
         )}
       </div>
-      
+
       <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
         {displayedEmotions.map((emotion) => {
           const Icon = emotion.icon
           const isSelected = selectedEmotion === emotion.id
-          
+
           return (
             <Button
               key={emotion.id}

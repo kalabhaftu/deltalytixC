@@ -46,8 +46,8 @@ interface InstrumentData {
 // ============================================================================
 
 const COLORS = {
-  profit: 'hsl(142 76% 36%)',
-  loss: 'hsl(0 84% 60%)',
+  profit: 'hsl(var(--chart-profit))',
+  loss: 'hsl(var(--chart-loss))',
   grid: 'hsl(var(--border))',
   axis: 'hsl(var(--muted-foreground))'
 } as const
@@ -66,7 +66,8 @@ function ChartTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null
 
   const data = payload[0].payload as InstrumentData
-  const isProfit = data.pnl >= 0
+  const isProfit = data.pnl > BREAK_EVEN_THRESHOLD
+  const isLoss = data.pnl < -BREAK_EVEN_THRESHOLD
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -85,7 +86,7 @@ function ChartTooltip({ active, payload }: any) {
       {/* P/L - Large & Bold */}
       <p className={cn(
         "text-2xl font-bold tracking-tight",
-        isProfit ? "text-emerald-500" : "text-red-500"
+        isProfit ? "text-long" : isLoss ? "text-short" : "text-muted-foreground"
       )}>
         {formatCurrency(data.pnl)}
       </p>
@@ -101,12 +102,12 @@ function ChartTooltip({ active, payload }: any) {
           <span className="font-semibold">{data.winRate.toFixed(0)}%</span>
         </div>
         <div className="grid grid-cols-2 gap-2 pt-2">
-          <div className="text-center p-2 bg-emerald-500/10 rounded-lg">
-            <p className="text-sm font-bold text-emerald-500">{data.wins}</p>
+          <div className="text-center p-2 bg-long/10 rounded-lg">
+            <p className="text-sm font-bold text-long">{data.wins}</p>
             <p className="text-[10px] text-muted-foreground">Wins</p>
           </div>
-          <div className="text-center p-2 bg-red-500/10 rounded-lg">
-            <p className="text-sm font-bold text-red-500">{data.losses}</p>
+          <div className="text-center p-2 bg-short/10 rounded-lg">
+            <p className="text-sm font-bold text-short">{data.losses}</p>
             <p className="text-[10px] text-muted-foreground">Losses</p>
           </div>
         </div>
@@ -328,7 +329,7 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
                 {chartData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={entry.pnl >= 0 ? COLORS.profit : COLORS.loss}
+                    fill={entry.pnl > BREAK_EVEN_THRESHOLD ? COLORS.profit : entry.pnl < -BREAK_EVEN_THRESHOLD ? COLORS.loss : 'hsl(var(--muted-foreground)/0.4)'}
                   />
                 ))}
               </Bar>

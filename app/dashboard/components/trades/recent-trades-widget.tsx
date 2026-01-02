@@ -3,7 +3,7 @@
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useData } from '@/context/data-provider'
-import { cn } from '@/lib/utils'
+import { cn, BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 
 export default function RecentTradesWidget() {
   const { formattedTrades } = useData()
@@ -64,7 +64,8 @@ export default function RecentTradesWidget() {
             ) : (
               recentTrades.map((trade: any, index: number) => {
                 const netPnL = (trade.pnl || 0) - (trade.commission || 0)
-                const isProfitable = netPnL > 0
+                const isProfitable = netPnL > BREAK_EVEN_THRESHOLD
+                const isLoss = netPnL < -BREAK_EVEN_THRESHOLD
 
                 return (
                   <div
@@ -82,7 +83,9 @@ export default function RecentTradesWidget() {
                         'col-span-3 text-right font-semibold',
                         isProfitable
                           ? 'text-long'
-                          : 'text-short'
+                          : isLoss
+                            ? 'text-short'
+                            : 'text-muted-foreground'
                       )}
                     >
                       {formatCurrency(netPnL)}

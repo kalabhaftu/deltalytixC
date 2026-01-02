@@ -19,6 +19,7 @@ export const CachePrefix = {
   ACCOUNT_LIST: 'account:list:',
   TRADE_LIST: 'trade:list:',
   CALENDAR_DATA: 'calendar:data:',
+  MARKET_DATA: 'market:data:',
 } as const
 
 // Cache TTLs (Time To Live) in seconds
@@ -27,6 +28,7 @@ export const CacheTTL = {
   MEDIUM: 300,      // 5 minutes
   LONG: 1800,       // 30 minutes
   VERY_LONG: 3600,  // 1 hour
+  EXTRA_LONG: 86400, // 24 hours
 } as const
 
 /**
@@ -126,10 +128,10 @@ export async function getOrSet<T>(
 
   // Cache miss - fetch fresh data
   const data = await fetcher()
-  
+
   // Store in cache for next time
   await setInCache(key, data, ttl)
-  
+
   return data
 }
 

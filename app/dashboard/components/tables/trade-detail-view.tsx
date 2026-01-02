@@ -15,7 +15,7 @@ import {
   BarChart3, Newspaper, AlertCircle, Zap, ShoppingCart, Tag as TagIcon, Play
 } from 'lucide-react'
 import Link from 'next/link'
-import { cn, formatCurrency } from '@/lib/utils'
+import { cn, formatCurrency, BREAK_EVEN_THRESHOLD, classifyTrade } from '@/lib/utils'
 import Image from 'next/image'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { toast } from 'sonner'
@@ -66,8 +66,9 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   // Parse trade data
   const tradeData = trade as any
   const netPnL = trade.pnl - (trade.commission || 0)
-  const isWin = netPnL > 0
-  const isLoss = netPnL < 0
+  const outcome = classifyTrade(netPnL)
+  const isWin = outcome === 'win'
+  const isLoss = outcome === 'loss'
 
   // Format timeframe for display
   const formatTimeframe = (tf: string) => {

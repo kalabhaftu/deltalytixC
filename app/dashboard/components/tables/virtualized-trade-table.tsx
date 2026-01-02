@@ -4,7 +4,7 @@ import { memo, useMemo } from 'react'
 import { Trade } from '@prisma/client'
 import { TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { cn, formatQuantity, formatPrice } from "@/lib/utils"
+import { cn, formatQuantity, formatPrice, classifyTrade } from "@/lib/utils"
 import { TrendingUp, TrendingDown } from "lucide-react"
 import { formatTimeInZone } from '@/lib/time-utils'
 import { useUserStore } from '@/store/user-store'
@@ -26,11 +26,12 @@ const TradeRow = memo(({ trade, isSelected, onTradeClick, onTradeSelect }: {
   onTradeSelect?: (tradeId: string) => void
 }) => {
   const timezone = useUserStore((state) => state.timezone)
-  const pnlColor = trade.pnl > 0 ? 'text-long' :
-    trade.pnl < 0 ? 'text-short' :
+  const outcome = classifyTrade(trade.pnl)
+  const pnlColor = outcome === 'win' ? 'text-long' :
+    outcome === 'loss' ? 'text-short' :
       'text-muted-foreground'
 
-  const Icon = trade.pnl > 0 ? TrendingUp : TrendingDown
+  const Icon = outcome === 'win' ? TrendingUp : TrendingDown
 
   return (
     <div

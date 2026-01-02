@@ -38,12 +38,12 @@ export default function RequestPayoutPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
-  
+
   const [account, setAccount] = useState<AccountData | null>(null)
   const [eligibility, setEligibility] = useState<EligibilityData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   // Form state
   const [amount, setAmount] = useState('')
   const [notes, setNotes] = useState('')
@@ -57,7 +57,7 @@ export default function RequestPayoutPage() {
     const fetchData = async () => {
       try {
         setIsLoading(true)
-        
+
         // Fetch account and eligibility in parallel
         const [accountRes, payoutsRes] = await Promise.all([
           fetch(`/api/prop-firm/accounts/${accountId}`),
@@ -200,7 +200,7 @@ export default function RequestPayoutPage() {
         <Card className="border-green-500">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
+              <CheckCircle className="h-5 w-5 text-long" />
               <CardTitle>Eligible for Payout</CardTitle>
             </div>
           </CardHeader>
@@ -220,7 +220,7 @@ export default function RequestPayoutPage() {
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">Available Balance</div>
-                <div className="text-2xl font-bold text-green-500">
+                <div className="text-2xl font-bold text-long">
                   ${eligibility.profitSplitAmount.toFixed(2)}
                 </div>
               </div>

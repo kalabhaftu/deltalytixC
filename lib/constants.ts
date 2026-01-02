@@ -149,10 +149,10 @@ export const YAHOO_FINANCE_SYMBOL_MAP: Record<string, string> = {
 export const FOREX_PAIRS = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD']
 
 export const CHART_COLORS = {
-  UP: '#059669',   // Matches --success
-  DOWN: '#dc2626', // Matches --destructive
-  BG: '#ffffff',
-  TEXT: '#333333',
-  GRID: '#f0f0f0',
-  CROSSHAIR: '#2962FF',
+  UP: 'hsl(var(--chart-profit))',
+  DOWN: 'hsl(var(--chart-loss))',
+  BG: 'transparent',
+  TEXT: 'hsl(var(--muted-foreground))',
+  GRID: 'hsl(var(--border) / 0.1)',
+  CROSSHAIR: 'hsl(var(--primary))',
 }

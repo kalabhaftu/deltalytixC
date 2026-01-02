@@ -23,6 +23,8 @@ import html2canvas from 'html2canvas'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useData } from '@/context/data-provider'
+import { useTradesStore } from '@/store/trades-store'
+import { BREAK_EVEN_THRESHOLD, classifyTrade } from '@/lib/utils'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -119,7 +121,9 @@ function SessionBlock({
     pnl: number
 }) {
     const winRate = trades > 0 ? (wins / trades * 100).toFixed(0) : '0'
-    const isProfit = pnl >= 0
+    const isProfit = pnl > BREAK_EVEN_THRESHOLD
+    const isLoss = pnl < -BREAK_EVEN_THRESHOLD
+    const isBreakEven = !isProfit && !isLoss
 
     return (
         <div className="flex flex-col p-4 bg-muted/10 border border-border/40 rounded-lg">
@@ -140,8 +144,11 @@ function SessionBlock({
                 </div>
                 <div className="flex justify-between text-[11px] pt-1 border-t border-border/40 mt-1">
                     <span className="text-muted-foreground font-bold">P/L:</span>
-                    <span className={cn("font-bold", isProfit ? "text-long" : "text-short")}>
-                        {isProfit ? '+' : ''}${pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <span className={cn(
+                        "font-bold",
+                        isProfit ? "text-long" : isLoss ? "text-short" : "text-muted-foreground"
+                    )}>
+                        {isProfit ? '+' : isLoss ? '' : ''}${pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                 </div>
             </div>
@@ -150,7 +157,8 @@ function SessionBlock({
 }
 
 export default function ReportsPage() {
-    const { formattedTrades, accounts } = useData()
+    const { trades: allTrades } = useTradesStore()
+    const { accounts } = useData()
     const [selectedPeriod, setSelectedPeriod] = useState<string>('this-year')
     const [isExporting, setIsExporting] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
@@ -203,13 +211,14 @@ export default function ReportsPage() {
     }, [selectedPeriod])
 
     const filteredTrades = useMemo(() => {
-        if (!formattedTrades) return []
-        return formattedTrades.filter(trade => {
-            const tradeDate = trade.entryDate ? parseISO(trade.entryDate) : null
+        if (!allTrades) return []
+        return allTrades.filter(trade => {
+            if (!trade.entryDate) return false
+            const tradeDate = parseISO(trade.entryDate)
             if (!tradeDate) return false
             return tradeDate >= dateRange.from && tradeDate <= dateRange.to
         })
-    }, [formattedTrades, dateRange])
+    }, [allTrades, dateRange])
 
     const tradingActivity = useMemo(() => {
         if (filteredTrades.length === 0) return null
@@ -219,9 +228,11 @@ export default function ReportsPage() {
         const uniqueDays = new Set(tradeDates)
         const monthsInRange = Math.max(1, Math.ceil(differenceInDays(dateRange.to, dateRange.from) / 30))
 
-        // Use Net PnL (including commission)
-        const wins = filteredTrades.filter(t => ((t.pnl || 0) + (t.commission || 0)) > 0).length
-        const winRate = filteredTrades.length > 0 ? (wins / filteredTrades.length) * 100 : 0
+        // Use standardized win rate
+        const wins = filteredTrades.filter(t => classifyTrade((t.pnl || 0) + (t.commission || 0)) === 'win').length
+        const losses = filteredTrades.filter(t => classifyTrade((t.pnl || 0) + (t.commission || 0)) === 'loss').length
+        const tradableCount = wins + losses
+        const winRate = tradableCount > 0 ? (wins / tradableCount) * 100 : 0
 
         return {
             totalTrades: filteredTrades.length,
@@ -239,10 +250,44 @@ export default function ReportsPage() {
             return dateA - dateB
         })
 
-        let maxWinStreak = 0; let maxLoseStreak = 0; let tempStreak = 0; let lastWasWin: boolean | null = null
+        let cumulativePnL = 0; let maxDD = 0; let peakEquity = 0
+
+        // First pass: Calculate cumulative metrics needed for expectancy and others
         sorted.forEach(trade => {
-            // Net PnL
-            const isWin = ((trade.pnl || 0) + (trade.commission || 0)) > 0
+            cumulativePnL += ((trade.pnl || 0) + (trade.commission || 0))
+            if (cumulativePnL > peakEquity) peakEquity = cumulativePnL
+            const dd = peakEquity - cumulativePnL
+            if (dd > maxDD) maxDD = dd
+        })
+
+        const wins = sorted.filter(t => classifyTrade((t.pnl || 0) + (t.commission || 0)) === 'win')
+        const losses = sorted.filter(t => classifyTrade((t.pnl || 0) + (t.commission || 0)) === 'loss')
+
+        const totalGrossProfit = wins.reduce((sum, t) => sum + ((t.pnl || 0) + (t.commission || 0)), 0)
+        const totalGrossLoss = Math.abs(losses.reduce((sum, t) => sum + ((t.pnl || 0) + (t.commission || 0)), 0))
+
+        const avgWin = wins.length > 0 ? totalGrossProfit / wins.length : 0
+        const avgLoss = losses.length > 0 ? totalGrossLoss / losses.length : 0
+
+        // Expectancy: Average PnL per trade (Total Net PnL / Total Trades)
+        const expectancy = sorted.length > 0 ? cumulativePnL / sorted.length : 0
+
+        const profitFactor = totalGrossLoss > 0 ? totalGrossProfit / totalGrossLoss : totalGrossProfit > 0 ? 99 : 0
+
+        let maxWinStreak = 0; let maxLoseStreak = 0; let tempStreak = 0; let lastWasWin: boolean | null = null
+
+        sorted.forEach(trade => {
+            const outcome = classifyTrade((trade.pnl || 0) + (trade.commission || 0))
+            if (outcome === 'breakeven') {
+                if (lastWasWin !== null) {
+                    if (lastWasWin) maxWinStreak = Math.max(maxWinStreak, tempStreak)
+                    else maxLoseStreak = Math.max(maxLoseStreak, tempStreak)
+                }
+                tempStreak = 0
+                lastWasWin = null
+                return
+            }
+            const isWin = outcome === 'win'
             if (lastWasWin === null) { tempStreak = 1; lastWasWin = isWin }
             else if (isWin === lastWasWin) { tempStreak++ }
             else {
@@ -251,40 +296,27 @@ export default function ReportsPage() {
                 tempStreak = 1; lastWasWin = isWin
             }
         })
-        if (lastWasWin) { maxWinStreak = Math.max(maxWinStreak, tempStreak) }
-        else { maxLoseStreak = Math.max(maxLoseStreak, tempStreak) }
+        if (lastWasWin !== null) {
+            if (lastWasWin) { maxWinStreak = Math.max(maxWinStreak, tempStreak) }
+            else { maxLoseStreak = Math.max(maxLoseStreak, tempStreak) }
+        }
 
-        const wins = sorted.filter(t => ((t.pnl || 0) + (t.commission || 0)) > 0)
-        const losses = sorted.filter(t => ((t.pnl || 0) + (t.commission || 0)) < 0)
-
-        const totalGrossProfit = wins.reduce((sum, t) => sum + ((t.pnl || 0) + (t.commission || 0)), 0)
-        const totalGrossLoss = Math.abs(losses.reduce((sum, t) => sum + ((t.pnl || 0) + (t.commission || 0)), 0))
-
-        const avgWin = wins.length > 0 ? totalGrossProfit / wins.length : 0
-        const avgLoss = losses.length > 0 ? totalGrossLoss / losses.length : 0
-        const winRate = sorted.length > 0 ? wins.length / sorted.length : 0
-        const lossRate = 1 - winRate
-        const expectancy = (winRate * avgWin) - (lossRate * avgLoss)
-        const profitFactor = totalGrossLoss > 0 ? totalGrossProfit / totalGrossLoss : totalGrossProfit > 0 ? 99 : 0
-
-        let totalHoldingTimeMs = 0; let tradesWithDuration = 0
+        // Calculate average holding time
+        let totalHoldingTimeMs = 0
+        let tradesWithDuration = 0
         sorted.forEach(trade => {
             if (trade.entryDate && trade.closeDate) {
-                const entry = new Date(trade.entryDate).getTime(); const close = new Date(trade.closeDate).getTime()
-                if (close > entry) { totalHoldingTimeMs += (close - entry); tradesWithDuration++ }
+                const entryTime = parseISO(trade.entryDate).getTime()
+                const exitTime = parseISO(trade.closeDate).getTime()
+                if (!isNaN(entryTime) && !isNaN(exitTime) && exitTime > entryTime) {
+                    totalHoldingTimeMs += (exitTime - entryTime)
+                    tradesWithDuration++
+                }
             }
         })
         const avgHoldingTimeMs = tradesWithDuration > 0 ? totalHoldingTimeMs / tradesWithDuration : 0
         const hours = Math.floor(avgHoldingTimeMs / (1000 * 60 * 60))
         const minutes = Math.floor((avgHoldingTimeMs % (1000 * 60 * 60)) / (1000 * 60))
-
-        let cumulativePnL = 0; let maxDD = 0; let peakEquity = 0
-        sorted.forEach(trade => {
-            cumulativePnL += ((trade.pnl || 0) + (trade.commission || 0))
-            if (cumulativePnL > peakEquity) peakEquity = cumulativePnL
-            const dd = peakEquity - cumulativePnL
-            if (dd > maxDD) maxDD = dd
-        })
 
         return {
             longestWinStreak: maxWinStreak,
@@ -311,12 +343,15 @@ export default function ReportsPage() {
         }
         filteredTrades.forEach(trade => {
             if (!trade.entryDate) return
-            const date = parseISO(trade.entryDate); const hour = date.getHours(); const isWin = (trade.pnl || 0) > 0
-            if (hour >= 0 && hour < 12) { sessions.asian.trades++; if (isWin) sessions.asian.wins++; sessions.asian.pnl += (trade.pnl || 0) }
-            if (hour >= 11 && hour < 19) { sessions.london.trades++; if (isWin) sessions.london.wins++; sessions.london.pnl += (trade.pnl || 0) }
-            if (hour >= 16 || hour < 1) { sessions.newyork.trades++; if (isWin) sessions.newyork.wins++; sessions.newyork.pnl += (trade.pnl || 0) }
-            if (hour >= 11 && hour < 12) { sessions.asianLondon.trades++; if (isWin) sessions.asianLondon.wins++; sessions.asianLondon.pnl += (trade.pnl || 0) }
-            if (hour >= 16 && hour < 19) { sessions.londonNY.trades++; if (isWin) sessions.londonNY.wins++; sessions.londonNY.pnl += (trade.pnl || 0) }
+            const date = parseISO(trade.entryDate);
+            const hour = date.getHours();
+            const outcome = classifyTrade((trade.pnl || 0) + (trade.commission || 0))
+
+            if (hour >= 0 && hour < 12) { sessions.asian.trades++; if (outcome === 'win') sessions.asian.wins++; sessions.asian.pnl += (trade.pnl || 0) }
+            if (hour >= 11 && hour < 19) { sessions.london.trades++; if (outcome === 'win') sessions.london.wins++; sessions.london.pnl += (trade.pnl || 0) }
+            if (hour >= 16 || hour < 1) { sessions.newyork.trades++; if (outcome === 'win') sessions.newyork.wins++; sessions.newyork.pnl += (trade.pnl || 0) }
+            if (hour >= 11 && hour < 12) { sessions.asianLondon.trades++; if (outcome === 'win') sessions.asianLondon.wins++; sessions.asianLondon.pnl += (trade.pnl || 0) }
+            if (hour >= 16 && hour < 19) { sessions.londonNY.trades++; if (outcome === 'win') sessions.londonNY.wins++; sessions.londonNY.pnl += (trade.pnl || 0) }
         })
         return sessions
     }, [filteredTrades])
@@ -398,7 +433,7 @@ export default function ReportsPage() {
                 </div>
 
                 {isLoading ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
                             <Skeleton key={i} className="h-28 rounded-lg bg-muted/20" />
                         ))}
@@ -451,16 +486,16 @@ export default function ReportsPage() {
                                 <Target className="h-4 w-4 text-primary" />
                                 <h2 className="text-[11px] uppercase tracking-[0.2em] font-black text-muted-foreground">SL/TP Metrics</h2>
                             </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-muted/10 p-4 border border-border/40 rounded-xl">
-                                <div className="text-center md:border-r border-border/40 last:border-0">
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 bg-muted/10 p-4 border border-border/40 rounded-xl">
+                                <div className="text-center lg:border-r border-border/40 last:border-0">
                                     <p className="text-[9px] uppercase font-black text-muted-foreground/60 mb-1">Long Trades</p>
                                     <p className="font-mono font-bold">{filteredTrades.filter(t => t.side?.toLowerCase() === 'long' || t.side?.toLowerCase() === 'buy').length}</p>
                                 </div>
-                                <div className="text-center md:border-r border-border/40 last:border-0">
+                                <div className="text-center lg:border-r border-border/40 last:border-0">
                                     <p className="text-[9px] uppercase font-black text-muted-foreground/60 mb-1">Short Trades</p>
                                     <p className="font-mono font-bold">{filteredTrades.filter(t => t.side?.toLowerCase() === 'short' || t.side?.toLowerCase() === 'sell').length}</p>
                                 </div>
-                                <div className="text-center md:border-r border-border/40 last:border-0">
+                                <div className="text-center lg:border-r border-border/40 last:border-0">
                                     <p className="text-[9px] uppercase font-black text-muted-foreground/60 mb-1">Avg Win/Loss Ratio</p>
                                     <p className="font-mono font-bold">1:{(Math.abs(parseFloat(psychMetrics.avgWin)) / Math.max(1, Math.abs(parseFloat(psychMetrics.avgLoss)))).toFixed(2)}</p>
                                 </div>

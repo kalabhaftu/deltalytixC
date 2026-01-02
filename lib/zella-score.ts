@@ -1,4 +1,4 @@
-import { groupTradesByExecution } from '@/lib/utils'
+import { groupTradesByExecution, BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 
 /**
  * Performance Score Calculation
@@ -222,12 +222,12 @@ export function calculateMetricsFromTrades(trades: Trade[]): ZellaScoreMetrics |
   // Calculate wins and losses using NET P&L (commission is negative)
   const wins = groupedTrades.filter((t: any) => {
     const netPnL = t.pnl + (t.commission || 0)
-    return netPnL > 0
+    return netPnL > BREAK_EVEN_THRESHOLD
   })
 
   const losses = groupedTrades.filter((t: any) => {
     const netPnL = t.pnl + (t.commission || 0)
-    return netPnL < 0
+    return netPnL < -BREAK_EVEN_THRESHOLD
   })
 
   // Gross win/loss amounts

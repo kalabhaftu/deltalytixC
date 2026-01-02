@@ -7,7 +7,7 @@ import TradeReplay from '../components/trades/trade-replay'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { Suspense } from 'react'
-import { cn } from '@/lib/utils'
+import { cn, classifyTrade } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 
 // Lazy load the trade table component
@@ -29,7 +29,9 @@ function TableView() {
 
     if (trade) {
       const isLong = trade.side?.toLowerCase() === 'long' || trade.side?.toLowerCase() === 'buy'
-      const isProfit = trade.pnl > 0
+      const outcome = classifyTrade(trade.pnl)
+      const isProfit = outcome === 'win'
+      const isLoss = outcome === 'loss'
 
       return (
         <div className="flex flex-col h-[calc(100vh-120px)] bg-background border border-border/40 rounded-xl overflow-hidden shadow-sm">
@@ -55,6 +57,10 @@ function TableView() {
 
             <div className="flex items-center gap-6">
               <div className="flex flex-col items-end">
+                <span className="text-[9px] uppercase font-bold text-muted-foreground leading-none mb-1">Timeframe</span>
+                <span className="text-[11px] font-mono font-medium leading-none">5m</span>
+              </div>
+              <div className="flex flex-col items-end">
                 <span className="text-[9px] uppercase font-bold text-muted-foreground leading-none mb-1">Entry / Exit</span>
                 <span className="text-[11px] font-mono font-medium leading-none">
                   ${Number(trade.entryPrice).toFixed(2)} → ${trade.closePrice ? Number(trade.closePrice).toFixed(2) : 'OPEN'}
@@ -75,7 +81,7 @@ function TableView() {
               </div>
             </div>
           </div>
-          <div className="flex-1 overflow-hidden relative bg-card">
+          <div className="flex-1 overflow-hidden relative bg-white">
             <TradeReplay trade={trade} />
           </div>
         </div>

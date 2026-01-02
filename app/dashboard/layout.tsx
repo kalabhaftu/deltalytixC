@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: ReactElement }) {
                   <Suspense fallback={<div className="flex flex-1" />}>
                     <SidebarLayout>
                       {/* Add bottom padding on mobile for nav */}
-                      <div className="pb-20 md:pb-0">
+                      <div className="pb-24 lg:pb-0">
                         {children}
                       </div>
                     </SidebarLayout>

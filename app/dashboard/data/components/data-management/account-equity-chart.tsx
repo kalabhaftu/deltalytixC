@@ -281,7 +281,7 @@ export function AccountEquityChart({
                       {format(safeParseDate(data.date) || new Date(), 'MMM dd, yyyy')}
                     </p>
                     <p className="text-sm">Balance: ${data.balance.toLocaleString()}</p>
-                    <p className="text-sm text-red-600">
+                    <p className="text-sm text-short">
                       Drawdown Level: ${data.drawdownLevel.toLocaleString()}
                     </p>
                     {data.isPayout && data.payoutStatus && (
@@ -290,8 +290,8 @@ export function AccountEquityChart({
                         {
                           "text-gray-500": data.payoutStatus === 'PENDING',
                           "text-orange-500": data.payoutStatus === 'VALIDATED',
-                          "text-red-500": data.payoutStatus === 'REFUSED',
-                          "text-green-500": data.payoutStatus === 'PAID',
+                          "text-short": data.payoutStatus === 'REFUSED',
+                          "text-long": data.payoutStatus === 'PAID',
                         }
                       )}>
                         Payout ({data.payoutStatus.toLowerCase()})

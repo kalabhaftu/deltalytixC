@@ -8,7 +8,7 @@ import { Account } from "@/context/data-provider"
 import { ExtendedTrade, MarketBias } from "@/types/trade-extended"
 
 // Threshold for considering a trade break-even (e.g. +/- $5.00)
-export const BREAK_EVEN_THRESHOLD = 5.0;
+export const BREAK_EVEN_THRESHOLD = 10.0;
 
 export function ensureExtendedTrade(trade: Trade): ExtendedTrade {
   return {

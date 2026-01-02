@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useData } from "@/context/data-provider"
-import { cn, formatCurrency, formatNumber } from "@/lib/utils"
+import { cn, formatCurrency, formatNumber, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
 import { getWidgetStyles } from '@/app/dashboard/config/widget-dimensions'
 import {
@@ -68,7 +68,8 @@ function ChartTooltip({ active, payload }: any) {
 
   const data = payload[0].payload as ChartDataPoint
   const date = new Date(data.date + 'T00:00:00Z')
-  const isProfit = data.pnl >= 0
+  const isProfit = data.pnl > BREAK_EVEN_THRESHOLD
+  const isLoss = data.pnl < -BREAK_EVEN_THRESHOLD
 
   return (
     <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl">
@@ -86,7 +87,7 @@ function ChartTooltip({ active, payload }: any) {
       {/* P/L Value - Large & Bold */}
       <p className={cn(
         "text-2xl font-bold tracking-tight",
-        isProfit ? "text-long" : "text-short"
+        isProfit ? "text-long" : isLoss ? "text-short" : "text-muted-foreground"
       )}>
         {formatCurrency(data.pnl)}
       </p>
@@ -165,9 +166,9 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
         acc[date] = { wins: 0, losses: 0 }
       }
       const netPnL = trade.pnl - (trade.commission || 0)
-      if (netPnL > 0) {
+      if (netPnL > BREAK_EVEN_THRESHOLD) {
         acc[date].wins++
-      } else if (netPnL < 0) {
+      } else if (netPnL < -BREAK_EVEN_THRESHOLD) {
         acc[date].losses++
       }
       return acc
@@ -317,7 +318,7 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
                 {chartData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={entry.pnl >= 0 ? COLORS.profit : COLORS.loss}
+                    fill={entry.pnl > BREAK_EVEN_THRESHOLD ? COLORS.profit : entry.pnl < -BREAK_EVEN_THRESHOLD ? COLORS.loss : 'hsl(var(--muted-foreground)/0.4)'}
                   />
                 ))}
               </Bar>
