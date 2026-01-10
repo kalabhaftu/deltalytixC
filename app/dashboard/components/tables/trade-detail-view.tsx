@@ -121,7 +121,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
         }}
       >
         <DialogContent
-          className="max-w-6xl h-[90vh] flex flex-col p-0"
+          className="w-full max-w-[95vw] sm:max-w-6xl h-[95vh] sm:h-[90vh] flex flex-col p-0 transition-all"
           onInteractOutside={(e) => {
             // Prevent closing when image viewer is open
             if (imageDialogOpenRef.current) {
@@ -129,47 +129,47 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
             }
           }}
         >
-          <DialogHeader className="px-6 py-4 border-b shrink-0">
-            <DialogTitle className="flex items-center gap-3">
-              <span className="text-2xl font-bold">{trade.instrument}</span>
-              <Badge variant={trade.side === 'BUY' ? 'default' : 'destructive'} className="text-sm">
+          <DialogHeader className="px-4 sm:px-6 py-4 border-b shrink-0">
+            <DialogTitle className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <span className="text-xl sm:text-2xl font-bold truncate max-w-[150px] sm:max-w-none">{trade.instrument}</span>
+              <Badge variant={trade.side === 'BUY' ? 'default' : 'destructive'} className="text-xs sm:text-sm">
                 {trade.side}
               </Badge>
-              <Badge variant={isWin ? 'default' : isLoss ? 'destructive' : 'secondary'} className="text-sm">
+              <Badge variant={isWin ? 'default' : isLoss ? 'destructive' : 'secondary'} className="text-xs sm:text-sm">
                 {formatCurrency(netPnL)}
               </Badge>
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">
               Comprehensive view of trade execution, analysis, and supporting materials
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto px-8 py-6">
-            <div className="max-w-4xl mx-auto space-y-12">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-4 sm:py-6">
+            <div className="max-w-4xl mx-auto space-y-8 sm:space-y-12">
               {/* Execution Summary */}
-              <section className="space-y-6">
+              <section className="space-y-4 sm:space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <h3 className="text-lg font-semibold text-foreground">Execution Details</h3>
-                    <p className="text-sm text-muted-foreground">Key metrics and transaction data.</p>
+                    <h3 className="text-base sm:text-lg font-semibold text-foreground">Execution Details</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Key metrics and transaction data.</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-                  <div className="space-y-1.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8">
+                  <div className="space-y-1.5 text-center sm:text-left">
                     <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Entry Price</Label>
-                    <p className="text-xl font-mono">{trade.entryPrice}</p>
+                    <p className="text-lg sm:text-xl font-mono">{trade.entryPrice}</p>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 text-center sm:text-left">
                     <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Exit Price</Label>
-                    <p className="text-xl font-mono">{trade.closePrice}</p>
+                    <p className="text-lg sm:text-xl font-mono">{trade.closePrice}</p>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 text-center sm:text-left">
                     <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Quantity</Label>
-                    <p className="text-xl font-mono">{trade.quantity} <span className="text-sm font-normal text-muted-foreground">lots</span></p>
+                    <p className="text-lg sm:text-xl font-mono">{trade.quantity} <span className="text-sm font-normal text-muted-foreground">lots</span></p>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 text-center sm:text-left">
                     <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Net P&L</Label>
-                    <p className={cn("text-xl font-mono font-bold", isWin ? "text-long" : isLoss ? "text-short" : "text-muted-foreground")}>
+                    <p className={cn("text-lg sm:text-xl font-mono font-bold", isWin ? "text-long" : isLoss ? "text-short" : "text-muted-foreground")}>
                       {formatCurrency(netPnL)}
                     </p>
                   </div>
@@ -178,62 +178,62 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
 
               {/* Multi-Timeframe Analysis */}
               {(tradeData.biasTimeframe || tradeData.narrativeTimeframe || tradeData.entryTimeframe || tradeData.structureTimeframe) && (
-                <section className="space-y-6 pt-8 border-t border-border/40">
+                <section className="space-y-4 sm:space-y-6 pt-6 sm:pt-8 border-t border-border/40">
                   <div className="space-y-1">
-                    <h3 className="text-lg font-semibold text-foreground">Multi-Timeframe Analysis</h3>
-                    <p className="text-sm text-muted-foreground">Analysis stages from bias to execution.</p>
+                    <h3 className="text-base sm:text-lg font-semibold text-foreground">Multi-Timeframe Analysis</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Analysis stages from bias to execution.</p>
                   </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     {tradeData.biasTimeframe && (
-                      <div className="flex flex-col gap-2 p-4 rounded-xl bg-muted/20 border border-border/40 transition-colors hover:bg-muted/30">
+                      <div className="flex flex-col gap-2 p-3 sm:p-4 rounded-xl bg-muted/20 border border-border/40 transition-colors hover:bg-muted/30">
                         <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Bias</Label>
-                        <span className="text-base font-semibold font-mono">{formatTimeframe(tradeData.biasTimeframe)}</span>
+                        <span className="text-sm sm:text-base font-semibold font-mono">{formatTimeframe(tradeData.biasTimeframe)}</span>
                       </div>
                     )}
                     {tradeData.structureTimeframe && (
-                      <div className="flex flex-col gap-2 p-4 rounded-xl bg-muted/20 border border-border/40 transition-colors hover:bg-muted/30">
+                      <div className="flex flex-col gap-2 p-3 sm:p-4 rounded-xl bg-muted/20 border border-border/40 transition-colors hover:bg-muted/30">
                         <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Structure</Label>
-                        <span className="text-base font-semibold font-mono">{formatTimeframe(tradeData.structureTimeframe)}</span>
+                        <span className="text-sm sm:text-base font-semibold font-mono">{formatTimeframe(tradeData.structureTimeframe)}</span>
                       </div>
                     )}
                     {tradeData.narrativeTimeframe && (
-                      <div className="flex flex-col gap-2 p-4 rounded-xl bg-muted/20 border border-border/40 transition-colors hover:bg-muted/30">
+                      <div className="flex flex-col gap-2 p-3 sm:p-4 rounded-xl bg-muted/20 border border-border/40 transition-colors hover:bg-muted/30">
                         <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Narrative</Label>
-                        <span className="text-base font-semibold font-mono">{formatTimeframe(tradeData.narrativeTimeframe)}</span>
+                        <span className="text-sm sm:text-base font-semibold font-mono">{formatTimeframe(tradeData.narrativeTimeframe)}</span>
                       </div>
                     )}
                     {tradeData.entryTimeframe && (
-                      <div className="flex flex-col gap-2 p-4 rounded-xl bg-primary/10 border border-primary/20 transition-colors hover:bg-primary/[0.15]">
+                      <div className="flex flex-col gap-2 p-3 sm:p-4 rounded-xl bg-primary/10 border border-primary/20 transition-colors hover:bg-primary/[0.15]">
                         <Label className="text-[10px] uppercase font-bold tracking-wider text-primary">Entry</Label>
-                        <span className="text-base font-semibold font-mono text-primary">{formatTimeframe(tradeData.entryTimeframe)}</span>
+                        <span className="text-sm sm:text-base font-semibold font-mono text-primary">{formatTimeframe(tradeData.entryTimeframe)}</span>
                       </div>
                     )}
                   </div>
                 </section>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-8 border-t border-border/40">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 pt-6 sm:pt-8 border-t border-border/40">
                 {/* Timing & Session */}
-                <section className="space-y-6">
+                <section className="space-y-4 sm:space-y-6">
                   <div className="space-y-1">
                     <h3 className="text-base font-semibold">Timing & Context</h3>
                   </div>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center py-2 border-b border-border/30">
-                      <Label className="text-muted-foreground">Entry Time</Label>
+                      <Label className="text-muted-foreground text-sm">Entry Time</Label>
                       <span className="text-sm font-medium">{formatTimeInZone(trade.entryDate, 'MMM dd, HH:mm', timezone)}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-border/30">
-                      <Label className="text-muted-foreground">Exit Time</Label>
+                      <Label className="text-muted-foreground text-sm">Exit Time</Label>
                       <span className="text-sm font-medium">{formatTimeInZone(trade.closeDate, 'MMM dd, HH:mm', timezone)}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-border/30">
-                      <Label className="text-muted-foreground">Duration</Label>
+                      <Label className="text-muted-foreground text-sm">Duration</Label>
                       <span className="text-sm font-medium">{Math.floor(trade.timeInPosition / 60)}m {Math.floor(trade.timeInPosition % 60)}s</span>
                     </div>
                     {session && (
                       <div className="flex justify-between items-center py-2">
-                        <Label className="text-muted-foreground">Market Session</Label>
+                        <Label className="text-muted-foreground text-sm">Market Session</Label>
                         <Badge variant="secondary" className="bg-muted/50 font-medium px-2.5 py-0.5">{session}</Badge>
                       </div>
                     )}
@@ -241,14 +241,14 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                 </section>
 
                 {/* Strategy Details */}
-                <section className="space-y-6">
+                <section className="space-y-4 sm:space-y-6">
                   <div className="space-y-1">
                     <h3 className="text-base font-semibold">Strategy & Tags</h3>
                   </div>
                   <div className="space-y-4">
                     {tradeData.marketBias && (
                       <div className="flex justify-between items-center py-2 border-b border-border/30">
-                        <Label className="text-muted-foreground">Market Sentiment</Label>
+                        <Label className="text-muted-foreground text-sm">Market Sentiment</Label>
                         <Badge variant="outline" className={cn(
                           "capitalize font-medium border-border/50 bg-background/50",
                           tradeData.marketBias === 'BULLISH' && "text-long border-long/30 bg-long/5",
@@ -260,13 +260,13 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                     )}
                     {tradeData.orderType && (
                       <div className="flex justify-between items-center py-2 border-b border-border/30">
-                        <Label className="text-muted-foreground">Execution Model</Label>
+                        <Label className="text-muted-foreground text-sm">Execution Model</Label>
                         <span className="text-sm font-medium capitalize">{tradeData.orderType} Order</span>
                       </div>
                     )}
                     {tradeTags.length > 0 && (
                       <div className="py-2">
-                        <Label className="text-muted-foreground block mb-3">Active Tags</Label>
+                        <Label className="text-muted-foreground text-sm block mb-3">Active Tags</Label>
                         <div className="flex flex-wrap gap-2">
                           {tradeTags.map((tag: any) => (
                             <div key={tag.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all" style={{ backgroundColor: tag.color + '15', borderColor: tag.color + '30', color: tag.color }}>
@@ -283,10 +283,10 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
 
               {/* Chart Links & News */}
               {(chartLinks.length > 0 || tradeData.newsDay) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-8 border-t border-border/40">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 pt-6 sm:pt-8 border-t border-border/40">
                   {/* Chart Analysis */}
                   {chartLinks.length > 0 && (
-                    <section className="space-y-6">
+                    <section className="space-y-4 sm:space-y-6">
                       <div className="space-y-1">
                         <h3 className="text-base font-semibold">Analysis Links</h3>
                         <p className="text-xs text-muted-foreground">{chartLinks.length} active chart link{chartLinks.length > 1 ? 's' : ''}</p>
@@ -311,7 +311,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
 
                   {/* News Context */}
                   {tradeData.newsDay && (
-                    <section className="space-y-6">
+                    <section className="space-y-4 sm:space-y-6">
                       <div className="space-y-1">
                         <h3 className="text-base font-semibold">Economic Context</h3>
                       </div>
@@ -346,13 +346,13 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
               )}
 
               {/* Trade Notes & Screenshots */}
-              <div className="space-y-12 pt-8 border-t border-border/40">
+              <div className="space-y-8 sm:space-y-12 pt-6 sm:pt-8 border-t border-border/40">
                 {trade.comment && (
-                  <section className="space-y-6">
+                  <section className="space-y-4 sm:space-y-6">
                     <div className="space-y-1">
-                      <h3 className="text-lg font-semibold text-foreground">Trade Journal</h3>
+                      <h3 className="text-base sm:text-lg font-semibold text-foreground">Trade Journal</h3>
                     </div>
-                    <div className="relative p-6 rounded-2xl bg-muted/10 border border-border/40">
+                    <div className="relative p-4 sm:p-6 rounded-2xl bg-muted/10 border border-border/40">
                       <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
                         {trade.comment}
                       </p>
@@ -361,12 +361,12 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                 )}
 
                 {images.length > 0 && (
-                  <section className="space-y-6 pb-12">
+                  <section className="space-y-4 sm:space-y-6 pb-6 sm:pb-12">
                     <div className="space-y-1">
-                      <h3 className="text-lg font-semibold text-foreground">Visual Evidence</h3>
-                      <p className="text-sm text-muted-foreground">{images.length} supporting images captured.</p>
+                      <h3 className="text-base sm:text-lg font-semibold text-foreground">Visual Evidence</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground">{images.length} supporting images captured.</p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                       {images.map((img, index) => (
                         <div key={index} className="group relative aspect-video rounded-2xl overflow-hidden border border-border/40 bg-muted/30 cursor-pointer shadow-sm hover:shadow-md transition-all active:scale-[0.98]" onClick={() => {
                           imageDialogOpenRef.current = true
@@ -398,17 +398,17 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
             </div>
           </div>
 
-          <div className="flex justify-between items-center px-8 py-5 border-t border-border/40 bg-muted/5 shrink-0">
-            <Link href={`/dashboard/table?view=replay&tradeId=${trade.id}`}>
+          <div className="flex flex-col-reverse sm:flex-row justify-between items-center px-4 sm:px-8 py-4 sm:py-5 border-t border-border/40 bg-muted/5 shrink-0 gap-3 sm:gap-0">
+            <Link href={`/dashboard/table?view=replay&tradeId=${trade.id}`} className="w-full sm:w-auto">
               <Button
                 variant="default"
-                className="gap-2.5 h-11 px-6 rounded-xl shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all font-semibold"
+                className="gap-2.5 h-10 sm:h-11 px-6 rounded-xl shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all font-semibold w-full sm:w-auto"
               >
                 <Play className="h-4 w-4 fill-current" />
                 Launch Trade Replay
               </Button>
             </Link>
-            <Button variant="ghost" onClick={onClose} className="h-11 px-6 rounded-xl text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" onClick={onClose} className="h-10 sm:h-11 px-6 rounded-xl text-muted-foreground hover:text-foreground w-full sm:w-auto">
               Close View
             </Button>
           </div>

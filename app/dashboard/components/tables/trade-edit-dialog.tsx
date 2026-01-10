@@ -332,30 +332,32 @@ export default function TradeEditDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-5xl h-[95vh] sm:h-[90vh] flex flex-col p-0 transition-all">
         {/* Header */}
-        <DialogHeader className="px-6 py-4 border-b shrink-0">
-          <DialogTitle>
+        <DialogHeader className="px-4 sm:px-6 py-4 border-b shrink-0">
+          <DialogTitle className="text-lg sm:text-xl truncate pr-8">
             Edit Trade - {trade.instrument} {trade.side}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             Enhance your trade with notes, screenshots, strategy, and market context
           </DialogDescription>
         </DialogHeader>
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="mx-6 mt-4 shrink-0">
-            <TabsTrigger value="details">Notes & Images</TabsTrigger>
-            <TabsTrigger value="strategy">Strategy & Context</TabsTrigger>
-            <TabsTrigger value="news">News Events</TabsTrigger>
-            <TabsTrigger value="timeframes">Timeframes</TabsTrigger>
-          </TabsList>
+          <div className="px-4 sm:px-6 mt-4 shrink-0 overflow-x-auto pb-2 sm:pb-0">
+            <TabsList className="w-full sm:w-auto overflow-x-auto justify-start flex-nowrap sm:grid sm:grid-cols-4 h-auto p-1 gap-1 bg-muted/50">
+              <TabsTrigger value="details" className="text-xs sm:text-sm px-3 py-1.5 h-auto">Notes & Images</TabsTrigger>
+              <TabsTrigger value="strategy" className="text-xs sm:text-sm px-3 py-1.5 h-auto">Strategy</TabsTrigger>
+              <TabsTrigger value="news" className="text-xs sm:text-sm px-3 py-1.5 h-auto">News</TabsTrigger>
+              <TabsTrigger value="timeframes" className="text-xs sm:text-sm px-3 py-1.5 h-auto">Timeframes</TabsTrigger>
+            </TabsList>
+          </div>
 
-          <div className="flex-1 overflow-y-auto px-6">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6">
             <div className="py-4">
               {/* Tab 1: Notes & Images */}
-              <TabsContent value="details" className="mt-0 space-y-8 px-1">
+              <TabsContent value="details" className="mt-0 space-y-6 sm:space-y-8 px-1">
                 <TradeNotesTab
                   control={control}
                   cardPreviewImage={watchedValues.cardPreviewImage || null}
@@ -392,7 +394,6 @@ export default function TradeEditDialog({
                   selectedModelId={watchedValues.modelId || null}
                   setModelId={(id) => {
                     setValue('modelId', id)
-                    // Additional logic handled in component or effect if needed
                     const model = tradingModels.find(m => m.id === id)
                     setSelectedModel(model || null)
                     if (id !== watchedValues.modelId) setSelectedRules([])
@@ -429,7 +430,7 @@ export default function TradeEditDialog({
               </TabsContent>
 
               {/* Tab 4: Timeframes */}
-              <TabsContent value="timeframes" className="mt-0 space-y-8 px-1">
+              <TabsContent value="timeframes" className="mt-0 space-y-6 sm:space-y-8 px-1">
                 <TradeTimeframesTab
                   biasTimeframe={biasTimeframe}
                   setBiasTimeframe={setBiasTimeframe}
@@ -448,11 +449,11 @@ export default function TradeEditDialog({
         </Tabs >
 
         {/* Footer */}
-        < DialogFooter className="px-6 py-4 border-t shrink-0" >
-          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+        < DialogFooter className="px-4 sm:px-6 py-4 border-t shrink-0 flex-col-reverse sm:flex-row gap-2 sm:gap-0" >
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
+          <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="w-full sm:w-auto">
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
