@@ -54,7 +54,7 @@ export function ViewBacktestDialog({ isOpen, onClose, backtest }: ViewBacktestDi
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="w-[95vw] max-w-6xl h-[90vh] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-5xl h-[90vh] max-h-[90vh] overflow-y-auto p-4 sm:p-6 bg-background border-border shadow-lg duration-200 flex flex-col gap-0">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
               <Eye className="w-4 h-4 sm:w-5 sm:h-5" />

@@ -83,7 +83,7 @@ interface LiveAccountDialogProps {
 export function CreateLiveAccountDialog({ open, onOpenChange, onSuccess }: LiveAccountDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
-  
+
   // Register dialog to pause auto-refresh while open
   useRegisterDialog(open)
 
@@ -185,7 +185,7 @@ export function CreateLiveAccountDialog({ open, onOpenChange, onSuccess }: LiveA
       </AlertDialog>
 
       <Dialog open={open} onOpenChange={handleDialogClose}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-full max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
@@ -196,8 +196,8 @@ export function CreateLiveAccountDialog({ open, onOpenChange, onSuccess }: LiveA
             </DialogDescription>
           </DialogHeader>
 
-          <form 
-            onSubmit={handleSubmit(onSubmit)} 
+          <form
+            onSubmit={handleSubmit(onSubmit)}
             onKeyDown={(e) => {
               // Prevent Enter key from submitting the form when in input fields
               if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {

@@ -45,7 +45,7 @@ export default function WidgetLibraryDialog({
       if (config.kpiRowOnly) {
         return false
       }
-      
+
       const nameMatch = type.toLowerCase().includes(query)
       const categoryMatch = config.category?.toLowerCase().includes(query)
       return nameMatch || categoryMatch
@@ -55,7 +55,7 @@ export default function WidgetLibraryDialog({
   // Group by category
   const widgetsByCategory = useMemo(() => {
     const grouped: Record<string, Array<[string, typeof WIDGET_REGISTRY[keyof typeof WIDGET_REGISTRY]]>> = {}
-    
+
     filteredWidgets.forEach(([type, config]) => {
       const category = config.category || 'other'
       if (!grouped[category]) {
@@ -63,7 +63,7 @@ export default function WidgetLibraryDialog({
       }
       grouped[category].push([type, config])
     })
-    
+
     return grouped
   }, [filteredWidgets])
 
@@ -83,10 +83,10 @@ export default function WidgetLibraryDialog({
   const formatWidgetSize = (type: string) => {
     const config = WIDGET_REGISTRY[type as keyof typeof WIDGET_REGISTRY]
     if (!config) return ''
-    
+
     const dims = WIDGET_DIMENSIONS[config.defaultSize]
     const cols = dims.colSpan
-    
+
     if (cols === 12) return 'Full Width (12 cols)'
     if (cols === 8) return 'Large (8 cols)'
     if (cols === 6) return 'Medium (6 cols)'
@@ -97,7 +97,7 @@ export default function WidgetLibraryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Chart Library</DialogTitle>
           <DialogDescription>
@@ -138,11 +138,11 @@ export default function WidgetLibraryDialog({
                 <h3 className="text-sm font-semibold capitalize sticky top-0 bg-background py-2">
                   {category}
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {widgets.map(([type, config]) => {
                     const isUsed = usedWidgetTypes.has(type)
-                    
+
                     return (
                       <Card
                         key={type}
@@ -165,7 +165,7 @@ export default function WidgetLibraryDialog({
                               </p>
                             </div>
                           </div>
-                          
+
                           <Button
                             size="sm"
                             className="w-full"

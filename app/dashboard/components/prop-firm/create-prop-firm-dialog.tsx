@@ -44,7 +44,7 @@ const propFirmSchema = z.object({
   accountSize: z.number().min(1000, 'Minimum $1,000'),
   evaluationType: z.enum(['One Step', 'Two Step', 'Instant']),
   phase1AccountId: z.string().min(1, 'Phase 1 ID is required'),
-  
+
   // Phase 1 Rules
   phase1ProfitTargetPercent: z.number().min(0).max(100),
   phase1DailyDrawdownPercent: z.number().min(1).max(100),
@@ -52,7 +52,7 @@ const propFirmSchema = z.object({
   phase1MaxDrawdownType: z.enum(['static', 'trailing']),
   phase1MinTradingDays: z.number().min(0),
   phase1TimeLimitDays: z.number().min(0).nullable(),
-  
+
   // Phase 2 Rules (conditional)
   phase2ProfitTargetPercent: z.number().min(0).max(100).optional(),
   phase2DailyDrawdownPercent: z.number().min(0).max(100).optional(),
@@ -60,7 +60,7 @@ const propFirmSchema = z.object({
   phase2MaxDrawdownType: z.enum(['static', 'trailing']).optional(),
   phase2MinTradingDays: z.number().min(0).optional(),
   phase2TimeLimitDays: z.number().min(0).nullable().optional(),
-  
+
   // Funded Rules
   fundedDailyDrawdownPercent: z.number().min(1).max(100),
   fundedMaxDrawdownPercent: z.number().min(1).max(100),
@@ -83,10 +83,10 @@ export function CreatePropFirmDialog({ open, onOpenChange, onSuccess }: PropFirm
   const [templates, setTemplates] = useState<any>({})
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const [isEditingRules, setIsEditingRules] = useState(false)
-  
+
   // Register dialog to pause auto-refresh while open
   useRegisterDialog(open)
-  
+
   const {
     register,
     control,
@@ -193,9 +193,9 @@ export function CreatePropFirmDialog({ open, onOpenChange, onSuccess }: PropFirm
       if (!response.ok) {
         // Handle field-specific errors
         if (result.field === 'accountName') {
-          setError('accountName', { 
-            type: 'manual', 
-            message: result.error || 'Account name already exists' 
+          setError('accountName', {
+            type: 'manual',
+            message: result.error || 'Account name already exists'
           })
         }
         throw new Error(result.error || 'Failed to create account')
@@ -258,7 +258,7 @@ export function CreatePropFirmDialog({ open, onOpenChange, onSuccess }: PropFirm
       </AlertDialog>
 
       <Dialog open={open} onOpenChange={handleDialogClose}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
@@ -269,8 +269,8 @@ export function CreatePropFirmDialog({ open, onOpenChange, onSuccess }: PropFirm
             </DialogDescription>
           </DialogHeader>
 
-          <form 
-            onSubmit={handleSubmit(onSubmit)} 
+          <form
+            onSubmit={handleSubmit(onSubmit)}
             onKeyDown={(e) => {
               // Prevent Enter key from submitting the form when in input fields
               // This avoids accidental form submission while editing numbers

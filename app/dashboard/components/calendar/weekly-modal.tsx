@@ -428,7 +428,7 @@ export function WeeklyModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl w-full h-[90vh] p-0 flex flex-col overflow-hidden">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-6xl h-[90vh] p-0 flex flex-col overflow-hidden bg-background border-border shadow-2xl">
         <DialogTitle className="sr-only">Weekly Review for {dateRange}</DialogTitle>
 
         {/* Hidden file input for replacement */}

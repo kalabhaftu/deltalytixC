@@ -168,7 +168,7 @@ export function AdvancedExportDialog() {
           <Database className="mr-2 h-4 w-4" /> System Backup
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="w-full max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>System Data Export</DialogTitle>
           <DialogDescription>

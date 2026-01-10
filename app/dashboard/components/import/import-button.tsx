@@ -527,7 +527,7 @@ export default function ImportButton() {
         if (!open) resetImportState()
       }}>
         <DialogContent
-          className="flex flex-col w-[95vw] max-w-5xl h-[85vh] p-0 bg-background border border-border shadow-2xl overflow-hidden gap-0"
+          className="flex flex-col w-full max-w-[95vw] sm:max-w-4xl h-[85vh] p-0 bg-background border border-border shadow-2xl overflow-hidden gap-0 duration-200 sm:rounded-lg rounded-none"
           onOpenAutoFocus={(e) => {
             // Prevent auto-focus on mobile devices to avoid keyboard popup
             if (typeof window !== 'undefined' && window.innerWidth < 768) {
