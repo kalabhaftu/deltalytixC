@@ -185,6 +185,33 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
             // @ts-ignore
             createSeriesMarkers(candleSeries, markers)
             chart.timeScale().fitContent()
+
+            // Dynamic Sizing Logic - NOT TO BE PUSHED
+            const updateMarkerSize = () => {
+                const range = chart.timeScale().getVisibleRange();
+                if (!range || !range.from || !range.to) return;
+
+                // Estimate visible bars by looking at adjustedData
+                const visibleBars = adjustedData.filter(d =>
+                    (d.time as number) >= (range.from as number) &&
+                    (d.time as number) <= (range.to as number)
+                ).length;
+
+                // User Request: Smaller when zoomed in, Bigger when zoomed out
+                // map visibleBars (e.g. 10 to 500) to size (0 to 4)
+                let newSize = 1;
+                if (visibleBars > 300) newSize = 4;
+                else if (visibleBars > 150) newSize = 3;
+                else if (visibleBars > 50) newSize = 2;
+                else newSize = 1;
+
+                const updatedMarkers = markers.map(m => ({ ...m, size: newSize }));
+                // @ts-ignore
+                createSeriesMarkers(candleSeries, updatedMarkers);
+            };
+
+            chart.timeScale().subscribeVisibleTimeRangeChange(updateMarkerSize);
+
             chartRef.current = chart
             setIsLoading(false)
 

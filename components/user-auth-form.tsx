@@ -18,7 +18,7 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form"
-import { Mail, Hash, Shield, Copy, Check } from "lucide-react"
+import { Mail, Hash, Shield, Copy, Check, ArrowLeft, RefreshCw } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/input-otp"
 
 const formSchema = z.object({
-    email: z.string().email(),
+    email: z.string().email("Please enter a valid email address"),
 })
 
 const otpFormSchema = z.object({
@@ -37,7 +37,7 @@ const otpFormSchema = z.object({
 })
 
 
-interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> { }
 
 type AuthMethod = 'email' | 'discord' | 'google' | null
 
@@ -48,9 +48,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
     const [authMethod, setAuthMethod] = React.useState<AuthMethod>(null)
     const [showOtpInput, setShowOtpInput] = React.useState<boolean>(false)
     const [nextUrl, setNextUrl] = React.useState<string | null>(null)
-    const [isExistingUser, setIsExistingUser] = React.useState<boolean>(false)
     const [otpError, setOtpError] = React.useState<boolean>(false)
-    const [showPasteButton, setShowPasteButton] = React.useState<boolean>(false)
     const router = useRouter()
 
     React.useEffect(() => {
@@ -80,239 +78,112 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         },
     })
 
-    // Handle paste functionality
-    const handlePaste = async () => {
-        try {
-            const text = await navigator.clipboard.readText()
-            const cleanText = text.replace(/\D/g, '') // Remove non-digits
-            if (cleanText.length === 6) {
-                otpForm.setValue('otp', cleanText)
-                setShowPasteButton(false)
-            } else {
-                toast.error("Invalid code", {
-                    description: "Please copy a 6-digit verification code"
-                })
-            }
-        } catch (error) {
-            toast.error("Paste failed", {
-                description: "Could not read from clipboard"
-            })
-        }
-    }
-
-    // Track verification attempts to prevent spam and rate limiting
+    // Track verification attempts
     const [isVerifying, setIsVerifying] = React.useState(false)
     const [failedAttempts, setFailedAttempts] = React.useState(0)
     const [isRateLimited, setIsRateLimited] = React.useState(false)
     const verificationTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
-    const rateLimitTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
     // OTP submission function
     const onSubmitOtp = React.useCallback(async (values: z.infer<typeof otpFormSchema>) => {
-        // Prevent multiple simultaneous verification attempts
-        if (isVerifying || isLoading) {
-            return
-        }
-
-        // Client-side rate limiting: max 5 attempts, then 30 second cooldown
-        if (isRateLimited) {
-            toast.error("Rate Limited", {
-                description: "Too many attempts. Please wait 30 seconds before trying again.",
-            })
-            return
-        }
-
-        // After 5 failed attempts, enforce rate limit
-        if (failedAttempts >= 5) {
-            setIsRateLimited(true)
-            setOtpError(true)
-            otpForm.setValue('otp', '')
-            toast.error("Too Many Failed Attempts", {
-                description: "Please wait 30 seconds before trying again.",
-            })
-            
-            // Reset after 30 seconds
-            if (rateLimitTimeoutRef.current) {
-                clearTimeout(rateLimitTimeoutRef.current)
-            }
-            rateLimitTimeoutRef.current = setTimeout(() => {
-                setIsRateLimited(false)
-                setFailedAttempts(0)
-                toast.info("Ready to Try Again", {
-                    description: "You can now attempt verification again.",
-                })
-            }, 30000) // 30 seconds
-            return
-        }
+        if (isVerifying || isLoading || isRateLimited) return
 
         setIsVerifying(true)
         setIsLoading(true)
         setOtpError(false)
-        
+
         try {
             const email = form.getValues('email')
             await verifyOtp(email, values.otp)
-            
-            // Reset failed attempts on success
+
             setFailedAttempts(0)
             setIsRateLimited(false)
-            
-            toast.success("Success", {
-                description: "Successfully verified. Redirecting...",
+
+            toast.success("Verified successfully", {
+                description: "Redirecting you to the dashboard...",
             })
             router.refresh()
             router.push(nextUrl || '/dashboard')
         } catch (error) {
-            // Increment failed attempts
             setFailedAttempts(prev => prev + 1)
-            
-            // Better error handling based on error type
+            setOtpError(true)
+            otpForm.setValue('otp', '')
+
             const errorMessage = error instanceof Error ? error.message : "Verification failed"
-            
-            // Handle rate limiting from server
-            if (errorMessage.includes('Too many') || errorMessage.includes('rate limit')) {
+
+            if (errorMessage.includes('rate limit')) {
                 setIsRateLimited(true)
-                setOtpError(true)
-                otpForm.setValue('otp', '')
-                toast.error("Too Many Attempts", {
-                    description: "Please wait 30 seconds before trying again.",
-                })
-                
-                // Reset after 30 seconds
-                if (rateLimitTimeoutRef.current) {
-                    clearTimeout(rateLimitTimeoutRef.current)
-                }
-                rateLimitTimeoutRef.current = setTimeout(() => {
-                    setIsRateLimited(false)
-                    setFailedAttempts(0)
-                }, 30000)
-            }
-            // Handle all authentication failures - wrong codes, expired, invalid
-            else {
-                // Always show error and clear input for any verification failure
-                setOtpError(true)
-                otpForm.setValue('otp', '')
-                
-                // Determine the specific error message
-                let errorTitle = "Invalid Code"
-                let errorDescription = `Incorrect verification code. ${5 - failedAttempts - 1} attempts remaining.`
-                
-                if (errorMessage.includes('expired') || errorMessage.includes('Token has expired')) {
-                    errorTitle = "Code Expired"
-                    errorDescription = "This verification code has expired. Please request a new one."
-                } else if (errorMessage.includes('Authentication failed')) {
-                    errorTitle = "Verification Failed"
-                    errorDescription = "Unable to verify the code. Please try again."
-                }
-                
-                toast.error(errorTitle, {
-                    description: errorDescription,
-                })
+                toast.error("Too Many Attempts", { description: "Please wait before trying again." })
+                setTimeout(() => setIsRateLimited(false), 30000)
+            } else {
+                toast.error("Verification Failed", { description: "Invalid code. Please try again." })
             }
         } finally {
             setIsLoading(false)
             setIsVerifying(false)
         }
-    }, [form, otpForm, router, nextUrl, isVerifying, isLoading, failedAttempts, isRateLimited])
+    }, [form, otpForm, router, nextUrl, isVerifying, isLoading, isRateLimited])
 
-    // Auto-verify when OTP is complete - REBUILT FROM SCRATCH using industry best practices
-    // Reference: https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/input_event
-    // Pattern: Only trigger on actual user input completion, not on every keystroke
+    // Auto-verify on 6 digits
     React.useEffect(() => {
-        // Get current form subscription to OTP field changes
         const subscription = otpForm.watch((value, { name }) => {
-            // Only proceed if the OTP field changed
             if (name !== 'otp') return
-            
             const otpValue = value.otp
-            
-            // Validate: Must be exactly 6 digits, no partial completion
-            if (!otpValue || otpValue.length !== 6) {
-                // Clear any pending verification if user is still typing
-                if (verificationTimeoutRef.current) {
-                    clearTimeout(verificationTimeoutRef.current)
-                    verificationTimeoutRef.current = null
-                }
-                return
+
+            if (otpValue?.length === 6 && !isLoading && !isVerifying && !isRateLimited) {
+                if (verificationTimeoutRef.current) clearTimeout(verificationTimeoutRef.current)
+                verificationTimeoutRef.current = setTimeout(() => {
+                    onSubmitOtp({ otp: otpValue })
+                }, 300)
             }
-            
-            // Guard: Prevent verification if already in progress or rate limited
-            if (isLoading || isVerifying || isRateLimited) {
-                return
-            }
-            
-            // Clear any previous errors when user completes OTP entry
-            setOtpError(false)
-            
-            // Cancel any pending verification from previous input
-            if (verificationTimeoutRef.current) {
-                clearTimeout(verificationTimeoutRef.current)
-            }
-            
-            // Immediate verification on completion (no artificial delay)
-            // Using requestAnimationFrame ensures DOM updates complete before verification
-            verificationTimeoutRef.current = setTimeout(() => {
-                requestAnimationFrame(() => {
-                    // Final safety check before verification
-                    const finalValue = otpForm.getValues('otp')
-                    if (finalValue === otpValue && finalValue.length === 6 && !isLoading && !isVerifying && !isRateLimited) {
-                        onSubmitOtp({ otp: finalValue })
-                    }
-                })
-            }, 0) // Zero delay - immediate execution after render cycle
         })
-        
-        // Cleanup: Unsubscribe and clear timeouts on unmount or dependency change
-        return () => {
-            subscription.unsubscribe()
-            if (verificationTimeoutRef.current) {
-                clearTimeout(verificationTimeoutRef.current)
-                verificationTimeoutRef.current = null
-            }
-            if (rateLimitTimeoutRef.current) {
-                clearTimeout(rateLimitTimeoutRef.current)
-                rateLimitTimeoutRef.current = null
-            }
-        }
+        return () => subscription.unsubscribe()
     }, [otpForm, isLoading, isVerifying, isRateLimited, onSubmitOtp])
 
 
     async function onSubmitEmail(values: z.infer<typeof formSchema>) {
         if (countdown > 0) return
-        
+
         setIsLoading(true)
         setAuthMethod('email')
         try {
             const result = await signInWithEmail(values.email, nextUrl)
-            
-            // Handle the response from signInWithEmail
-            if (result && typeof result === 'object' && 'isExistingUser' in result) {
-                setIsExistingUser(result.isExistingUser)
-                setIsEmailSent(result.emailSent)
-                
-                // Only show OTP input for NEW users, existing users get magic links
-                setShowOtpInput(!result.isExistingUser)
-                setCountdown(15)
-            } else {
-                // Fallback for backward compatibility - assume existing user
-                setIsExistingUser(true)
-                setIsEmailSent(true)
-                setShowOtpInput(false)
-                setCountdown(15)
+
+            if (result.error) {
+                toast.error("Error", { description: result.error })
+                return
             }
+
+            // Success - Move to OTP step
+            setIsEmailSent(true)
+            setShowOtpInput(true)
+            setCountdown(30)
+            toast.success("Code sent!", { description: "Check your email for the verification code." })
+
         } catch (error) {
-            setAuthMethod(null)
+            toast.error("Error", { description: "Failed to send verification code. Please try again." })
         } finally {
             setIsLoading(false)
+            setAuthMethod(null)
         }
     }
 
+    const handleResend = async () => {
+        if (countdown > 0) return
+        form.handleSubmit(onSubmitEmail)()
+    }
+
+    const handleBack = () => {
+        setIsEmailSent(false)
+        setShowOtpInput(false)
+        otpForm.reset()
+        setOtpError(false)
+    }
 
     async function onSubmitDiscord(event: React.SyntheticEvent) {
         event.preventDefault()
         setIsLoading(true)
         setAuthMethod('discord')
-
         try {
             await signInWithDiscord(nextUrl)
         } catch (error) {
@@ -325,7 +196,6 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         event.preventDefault()
         setIsLoading(true)
         setAuthMethod('google')
-
         try {
             await signInWithGoogle(nextUrl)
         } catch (error) {
@@ -334,344 +204,176 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         }
     }
 
-    function openMailClient() {
-        const email = form.getValues('email')
-        
-        // Check if user is on mobile device
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-        
-        // On mobile, always use mailto: to open native mail app
-        if (isMobile) {
-            window.location.href = `mailto:`
-            return
-        }
-
-        // On desktop, open known email providers in web browser
-        const domain = email.split('@')[1]?.toLowerCase()
-
-        if (domain?.includes('gmail.com')) {
-            window.open('https://mail.google.com', '_blank', 'noopener,noreferrer')
-        } else if (
-            domain?.includes('outlook.com') || 
-            domain?.includes('hotmail.com') || 
-            domain?.includes('live.com') ||
-            domain?.includes('msn.com') ||
-            domain?.includes('office365.com')
-        ) {
-            window.open('https://outlook.live.com', '_blank', 'noopener,noreferrer')
-        } else if (
-            domain?.includes('proton.me') || 
-            domain?.includes('protonmail.com') || 
-            domain?.includes('pm.me')
-        ) {
-            window.open('https://mail.proton.me', '_blank', 'noopener,noreferrer')
-        } else if (
-            domain?.includes('icloud.com') || 
-            domain?.includes('me.com') || 
-            domain?.includes('mac.com')
-        ) {
-            window.open('https://www.icloud.com/mail', '_blank', 'noopener,noreferrer')
-        } else if (domain?.includes('yahoo.com')) {
-            window.open('https://mail.yahoo.com', '_blank', 'noopener,noreferrer')
-        } else if (domain?.includes('aol.com')) {
-            window.open('https://mail.aol.com', '_blank', 'noopener,noreferrer')
-        } else if (domain?.includes('zoho.com')) {
-            window.open('https://mail.zoho.com', '_blank', 'noopener,noreferrer')
-        } else {
-            // Default to mailto: for unknown domains
-            window.location.href = `mailto:`
-        }
-    }
-
-    return (
-        <div className={cn("grid gap-6", className)} {...props}>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmitEmail)} className="grid gap-2">
-                    <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="sr-only">Email</FormLabel>
-                                <FormControl>
-                                    <Input
-                                        id="email"
-                                        placeholder="name@example.com"
-                                        type="email"
-                                        autoCapitalize="none"
-                                        autoComplete="email"
-                                        autoCorrect="off"
-                                        disabled={isLoading || isEmailSent || authMethod === 'discord' || authMethod === 'google'}
-                                        className="h-12 transition-all duration-200 focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                        {...field}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    {!isEmailSent ? (
-                        <Button
-                            disabled={isLoading || countdown > 0 || authMethod === 'discord' || authMethod === 'google'}
-                            type="submit"
-                            variant="outline"
-                            className="h-12 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] hover:bg-muted/50"
-                        >
-                            {isLoading && authMethod === 'email' && (
-                                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                            )}
-                            Sign In with Email
-                        </Button>
-                    ) : (
-                        <div className="space-y-2">
-                            <div className="text-center space-y-2 mb-4 p-4 border rounded-lg bg-muted/50 dark:bg-muted/20 transition-all duration-200">
-                                <h3 className="font-semibold text-sm flex items-center justify-center gap-2">
-                                    {isExistingUser ? (
-                                        <>
-                                            <Mail className="h-4 w-4" />
-                                            Magic Link Sent!
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Shield className="h-4 w-4" />
-                                            Verification Code Sent!
-                                        </>
-                                    )}
-                                </h3>
-                                <p className="text-xs text-muted-foreground">
-                                    {isExistingUser
-                                        ? 'Check your email and click the magic link to sign in. The link will redirect you to your dashboard.'
-                                        : 'A 6-digit verification code has been sent to your email. Enter it below to complete registration.'
-                                    }
-                                </p>
-                            </div>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="w-full transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
-                                onClick={openMailClient}
-                                disabled={authMethod === 'discord' || authMethod === 'google'}
-                            >
-                                <Icons.envelope className="mr-2 h-4 w-4" />
-                                Open Mailbox
-                            </Button>
-                            <Button
-                                type="submit"
-                                variant="ghost"
-                                className="w-full transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
-                                disabled={countdown > 0 || authMethod === 'discord' || authMethod === 'google'}
-                            >
-                                {countdown > 0 ? (
-                                    `Resend in ${countdown}s`
-                                ) : (
-                                    'Resend Email'
-                                )}
-                            </Button>
-                        </div>
-                    )}
-                </form>
-            </Form>
-
-            {showOtpInput && !isExistingUser && (
-                <Form {...otpForm}>
-                    <form onSubmit={otpForm.handleSubmit(onSubmitOtp)} className="space-y-4">
+    // STATE 1: EMAIL ENTRY
+    if (!showOtpInput) {
+        return (
+            <div className={cn("grid gap-6", className)} {...props}>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmitEmail)} className="grid gap-4">
                         <FormField
-                            control={otpForm.control}
-                            name="otp"
+                            control={form.control}
+                            name="email"
                             render={({ field }) => (
-                                <FormItem className="space-y-3">
-                                    <FormLabel className="text-center block text-sm font-medium">
-                                        Enter Verification Code
-                                    </FormLabel>
+                                <FormItem>
                                     <FormControl>
-                                        <div className="flex flex-col items-center space-y-3">
-                                            {/* Paste Button Tooltip */}
-                                            {showPasteButton && (
-                                                <div className="relative">
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={handlePaste}
-                                                        className="text-xs px-3 py-1 h-auto bg-background/80 backdrop-blur-sm border-border/50"
-                                                    >
-                                                        <Copy className="h-3 w-3 mr-1" />
-                                                        Paste Code
-                                                    </Button>
-                                                </div>
-                                            )}
-                                            
-                                            {/* OTP Input */}
-                                            <div className="relative">
-                                                <InputOTP
-                                                    maxLength={6}
-                                                    value={field.value}
-                                                    onChange={(value) => {
-                                                        field.onChange(value)
-                                                        setOtpError(false)
-                                                        // Show paste button when first input is focused and empty
-                                                        if (value.length === 0) {
-                                                            setShowPasteButton(true)
-                                                        } else {
-                                                            setShowPasteButton(false)
-                                                        }
-                                                    }}
-                                                    onFocus={() => {
-                                                        if (field.value.length === 0) {
-                                                            setShowPasteButton(true)
-                                                        }
-                                                    }}
-                                                    onBlur={() => {
-                                                        setTimeout(() => setShowPasteButton(false), 200)
-                                                    }}
-                                                    className={`gap-2 transition-all duration-200 ${
-                                                        otpError ? 'animate-pulse' : ''
-                                                    }`}
-                                                >
-                                                    <InputOTPGroup>
-                                                        <InputOTPSlot 
-                                                            index={0} 
-                                                            className={`transition-all duration-200 ${
-                                                                otpError ? 'border-destructive bg-destructive/10' : ''
-                                                            }`}
-                                                        />
-                                                        <InputOTPSlot 
-                                                            index={1}
-                                                            className={`transition-all duration-200 ${
-                                                                otpError ? 'border-destructive bg-destructive/10' : ''
-                                                            }`}
-                                                        />
-                                                        <InputOTPSlot 
-                                                            index={2}
-                                                            className={`transition-all duration-200 ${
-                                                                otpError ? 'border-destructive bg-destructive/10' : ''
-                                                            }`}
-                                                        />
-                                                    </InputOTPGroup>
-                                                    <InputOTPSeparator />
-                                                    <InputOTPGroup>
-                                                        <InputOTPSlot 
-                                                            index={3}
-                                                            className={`transition-all duration-200 ${
-                                                                otpError ? 'border-destructive bg-destructive/10' : ''
-                                                            }`}
-                                                        />
-                                                        <InputOTPSlot 
-                                                            index={4}
-                                                            className={`transition-all duration-200 ${
-                                                                otpError ? 'border-destructive bg-destructive/10' : ''
-                                                            }`}
-                                                        />
-                                                        <InputOTPSlot 
-                                                            index={5}
-                                                            className={`transition-all duration-200 ${
-                                                                otpError ? 'border-destructive bg-destructive/10' : ''
-                                                            }`}
-                                                        />
-                                                    </InputOTPGroup>
-                                                </InputOTP>
-                                                
-                                                {/* Auto-verification indicator */}
-                                                {field.value.length === 6 && isLoading && (
-                                                    <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2">
-                                                        <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-                                                            <Icons.spinner className="h-3 w-3 animate-spin" />
-                                                            <span>Verifying...</span>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            
-                                            {/* Error message */}
-                                            {otpError && (
-                                                <div className="text-center space-y-2">
-                                                    <p className="text-xs text-destructive animate-in fade-in-0">
-                                                        Invalid or expired code. Please try again.
-                                                    </p>
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            setOtpError(false)
-                                                            otpForm.setValue('otp', '')
-                                                            // Trigger resend email
-                                                            form.handleSubmit(onSubmitEmail)()
-                                                        }}
-                                                        className="text-xs px-3 py-1 h-auto"
-                                                    >
-                                                        Request New Code
-                                                    </Button>
-                                                </div>
-                                            )}
-                                        </div>
+                                        <Input
+                                            id="email"
+                                            placeholder="name@example.com"
+                                            type="email"
+                                            autoCapitalize="none"
+                                            autoComplete="email"
+                                            autoCorrect="off"
+                                            disabled={isLoading}
+                                            className="h-11 bg-background/50 border-input/50 focus:bg-background transition-all"
+                                            {...field}
+                                        />
                                     </FormControl>
-                                    <FormMessage className="text-center" />
+                                    <FormMessage />
                                 </FormItem>
                             )}
                         />
+                        <Button disabled={isLoading} className="h-11 w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all">
+                            {isLoading && authMethod === 'email' && (
+                                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                            )}
+                            Send Verification Code
+                        </Button>
                     </form>
                 </Form>
-            )}
 
-            {/* COMMENTED OUT - Verification Link Approach (kept for future reference)
-            {isEmailSent && (
-                <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                    <div className="text-center space-y-2">
-                        <h3 className="font-semibold text-lg">Check Your Email</h3>
-                        <p className="text-sm text-muted-foreground">
-                            A 6-digit verification code has been sent to your email. Please enter it below.
-                        </p>
+                <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-border/40" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">
+                            Or continue with
+                        </span>
                     </div>
                 </div>
-            )}
-            */}
 
-            {/* Only show Google/Discord options when not in OTP mode */}
-            {!showOtpInput && (
-                <>
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">
-                                Or continue with
-                            </span>
+                <div className="grid grid-cols-2 gap-3">
+                    <Button
+                        variant="outline"
+                        type="button"
+                        disabled={isLoading}
+                        onClick={onSubmitGoogle}
+                        className="h-11 bg-background/50 border-input/50 hover:bg-muted/50 transition-all hover:scale-[1.02]"
+                    >
+                        {isLoading && authMethod === 'google' ? (
+                            <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Icons.google className="mr-2 h-4 w-4" />
+                        )}
+                        Google
+                    </Button>
+                    <Button
+                        variant="outline"
+                        type="button"
+                        disabled={isLoading}
+                        onClick={onSubmitDiscord}
+                        className="h-11 bg-background/50 border-input/50 hover:bg-muted/50 transition-all hover:scale-[1.02]"
+                    >
+                        {isLoading && authMethod === 'discord' ? (
+                            <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Icons.discord className="mr-2 h-4 w-4" />
+                        )}
+                        Discord
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+
+    // STATE 2: OTP ENTRY
+    return (
+        <div className={cn("space-y-6", className)} {...props}>
+            <div className="space-y-2 text-center">
+                <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                    <Mail className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold tracking-tight">Check your email</h3>
+                <p className="text-sm text-muted-foreground max-w-[280px] mx-auto">
+                    We sent a verification code to <span className="font-medium text-foreground">{form.getValues('email')}</span>
+                </p>
+            </div>
+
+            <Form {...otpForm}>
+                <form onSubmit={otpForm.handleSubmit(onSubmitOtp)} className="space-y-6">
+                    <FormField
+                        control={otpForm.control}
+                        name="otp"
+                        render={({ field }) => (
+                            <FormItem className="flex justify-center">
+                                <FormControl>
+                                    <InputOTP
+                                        maxLength={6}
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        disabled={isLoading || isVerifying}
+                                        className={cn(otpError && "animate-shake")}
+                                    >
+                                        <InputOTPGroup className="gap-2">
+                                            <InputOTPSlot index={0} className="h-12 w-10 text-lg border border-input/60 rounded-md" />
+                                            <InputOTPSlot index={1} className="h-12 w-10 text-lg border border-input/60 rounded-md" />
+                                            <InputOTPSlot index={2} className="h-12 w-10 text-lg border border-input/60 rounded-md" />
+                                            <InputOTPSlot index={3} className="h-12 w-10 text-lg border border-input/60 rounded-md" />
+                                            <InputOTPSlot index={4} className="h-12 w-10 text-lg border border-input/60 rounded-md" />
+                                            <InputOTPSlot index={5} className="h-12 w-10 text-lg border border-input/60 rounded-md" />
+                                        </InputOTPGroup>
+                                    </InputOTP>
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    <div className="flex flex-col gap-2">
+                        <Button
+                            type="submit"
+                            disabled={isLoading || isVerifying || otpForm.getValues('otp').length !== 6}
+                            className="w-full h-11"
+                        >
+                            {isLoading || isVerifying ? (
+                                <>
+                                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                                    Verifying...
+                                </>
+                            ) : "Verify Code"}
+                        </Button>
+
+                        <div className="flex items-center justify-between text-sm pt-2">
+                            <button
+                                type="button"
+                                onClick={handleBack}
+                                className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                <ArrowLeft className="h-3 w-3 mr-1" />
+                                Change Email
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleResend}
+                                disabled={countdown > 0}
+                                className={cn(
+                                    "flex items-center transition-colors",
+                                    countdown > 0 ? "text-muted-foreground cursor-not-allowed" : "text-primary hover:text-primary/80"
+                                )}
+                            >
+                                {countdown > 0 ? (
+                                    <>Resend in {countdown}s</>
+                                ) : (
+                                    <>
+                                        <RefreshCw className="h-3 w-3 mr-1" />
+                                        Resend Code
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
-                    <div className="space-y-3">
-                        <Button
-                            variant="outline"
-                            type="button"
-                            disabled={isLoading || authMethod === 'email'}
-                            onClick={onSubmitGoogle}
-                            className="w-full h-12 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] hover:bg-muted/50"
-                        >
-                            {isLoading && authMethod === 'google' ? (
-                                <Icons.spinner className="mr-3 h-5 w-5 animate-spin" />
-                            ) : (
-                                <Icons.google className="mr-3 h-5 w-5" />
-                            )}
-                            Continue with Google
-                        </Button>
-                        <Button
-                            variant="outline"
-                            type="button"
-                            disabled={isLoading || authMethod === 'email'}
-                            onClick={onSubmitDiscord}
-                            className="w-full h-12 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] hover:bg-discord/5 hover:border-discord/20"
-                        >
-                            {isLoading && authMethod === 'discord' ? (
-                                <Icons.spinner className="mr-3 h-5 w-5 animate-spin" />
-                            ) : (
-                                <Icons.discord className="mr-3 h-5 w-5" />
-                            )}
-                            Continue with Discord
-                        </Button>
-                    </div>
-                </>
-            )}
+                </form>
+            </Form>
         </div>
     )
 }

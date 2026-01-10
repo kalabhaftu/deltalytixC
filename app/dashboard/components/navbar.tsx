@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useData } from "@/context/data-provider"
+import { useAuth } from "@/context/auth-provider"
 import { Database, LogOut, LayoutDashboard, RefreshCw, Home, Moon, Sun, Laptop, Settings, Pencil, Plus, Waves, BookOpen, LayoutTemplate, Trash2, Users, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -101,6 +102,7 @@ function getPhaseDisplayName(evaluationType: string | undefined, phaseNumber: nu
 
 export default function Navbar() {
   const user = useUserStore(state => state.supabaseUser)
+  const { forceClearAuth } = useAuth()
   const [mounted, setMounted] = useState(false)
 
   const { theme, setTheme } = useTheme()
@@ -592,6 +594,9 @@ export default function Navbar() {
                     // Clear all local storage
                     localStorage.clear()
                     sessionStorage.clear()
+
+                    // Force clear auth context state
+                    forceClearAuth()
 
                     // Sign out from Supabase and redirect
                     await signOut()

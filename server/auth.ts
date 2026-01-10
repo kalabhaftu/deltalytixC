@@ -135,11 +135,11 @@ export async function signInWithEmail(email: string, next: string | null = null)
   const isExistingUser = !!existingUser
 
   if (isExistingUser) {
-    // For existing users in Prisma DB, send magic link (not OTP)
+    // For existing users in Prisma DB, send OTP (code) instead of magic link
     const { error } = await supabase.auth.signInWithOtp({
       email: email,
       options: {
-        emailRedirectTo: `${websiteURL}api/auth/callback${next ? `?next=${encodeURIComponent(next)}` : '?next=/dashboard'}`,
+        emailRedirectTo: undefined, // Providing undefined forces OTP code
       }
     })
 

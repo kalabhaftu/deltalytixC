@@ -119,7 +119,7 @@ export default function ArchitectureDocs() {
                     <span className="text-primary mt-1">•</span>
                     <div>
                       <strong className="text-foreground">Supabase Auth</strong>
-                      <p className="text-muted-foreground">OAuth, magic links, and password authentication</p>
+                      <p className="text-muted-foreground">OAuth, OTP, and password authentication</p>
                     </div>
                   </li>
                 </ul>
@@ -215,7 +215,7 @@ export default function ArchitectureDocs() {
               <CardContent>
                 <div className="space-y-4">
                   <pre className="bg-accent/50 border p-4 rounded-lg text-sm overflow-x-auto">
-{`User → Supabase Auth (OAuth/Magic Link) 
+                    {`User → Supabase Auth (OAuth/OTP) 
      → Middleware intercepts request
      → Validates session token
      → Sets x-user-id header
@@ -223,7 +223,7 @@ export default function ArchitectureDocs() {
      → Prisma queries filtered by userId`}
                   </pre>
                   <p className="text-sm text-muted-foreground">
-                    Authentication is stateless. Every request validates the session cookie. 
+                    Authentication is stateless. Every request validates the session cookie.
                     User ID is extracted in middleware and made available to all server-side code.
                   </p>
                 </div>
@@ -240,7 +240,7 @@ export default function ArchitectureDocs() {
               <CardContent>
                 <div className="space-y-4">
                   <pre className="bg-accent/50 border p-4 rounded-lg text-sm overflow-x-auto">
-{`Server Component (async) 
+                    {`Server Component (async) 
   → Extract userId from headers
   → Call Prisma query (e.g., prisma.trade.findMany)
   → PostgreSQL executes with indexes
@@ -249,13 +249,13 @@ export default function ArchitectureDocs() {
   → Client Component hydrates with data`}
                   </pre>
                   <p className="text-sm text-muted-foreground">
-                    No client-side fetching for initial data. Server Components fetch directly 
+                    No client-side fetching for initial data. Server Components fetch directly
                     from the database, leveraging Next.js caching (force-cache, revalidate: 60).
                   </p>
                   <div className="bg-accent/30 border rounded-lg p-3 mt-3">
                     <p className="text-sm font-mono text-foreground">Example:</p>
                     <pre className="text-xs mt-2 overflow-x-auto">
-{`// app/dashboard/page.tsx
+                      {`// app/dashboard/page.tsx
 export default async function DashboardPage() {
   const userId = headers().get('x-user-id')
   const trades = await prisma.trade.findMany({
@@ -280,7 +280,7 @@ export default async function DashboardPage() {
               <CardContent>
                 <div className="space-y-4">
                   <pre className="bg-accent/50 border p-4 rounded-lg text-sm overflow-x-auto">
-{`Client Component → calls Server Action or API Route
+                    {`Client Component → calls Server Action or API Route
                  → Validates input with Zod schema
                  → Checks rate limit
                  → Prisma write operation (create/update/delete)
@@ -289,13 +289,13 @@ export default async function DashboardPage() {
                  → Client updates UI optimistically or refetches`}
                   </pre>
                   <p className="text-sm text-muted-foreground">
-                    Server Actions are preferred for mutations. They provide automatic CSRF protection, 
+                    Server Actions are preferred for mutations. They provide automatic CSRF protection,
                     type safety, and progressive enhancement.
                   </p>
                   <div className="bg-accent/30 border rounded-lg p-3 mt-3">
                     <p className="text-sm font-mono text-foreground">Example Server Action:</p>
                     <pre className="text-xs mt-2 overflow-x-auto">
-{`'use server'
+                      {`'use server'
 import { revalidatePath } from 'next/cache'
 
 export async function deleteTrade(tradeId: string) {
@@ -327,7 +327,7 @@ export async function deleteTrade(tradeId: string) {
           <Card>
             <CardContent className="pt-6">
               <pre className="bg-accent/50 border p-6 rounded-lg text-sm font-mono overflow-x-auto">
-{`deltalytixC/
+                {`deltalytixC/
 ├── app/
 │   ├── dashboard/
 │   │   ├── components/          # Dashboard-specific UI
@@ -462,12 +462,12 @@ export async function deleteTrade(tradeId: string) {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Entry and exit prices are stored as <code>Decimal(20,10)</code> instead of <code>Float</code> 
+                  Entry and exit prices are stored as <code>Decimal(20,10)</code> instead of <code>Float</code>
                   to preserve exact precision from CSV imports and avoid floating-point rounding errors.
                 </p>
                 <div className="bg-accent/30 border rounded-lg p-3">
                   <pre className="text-xs overflow-x-auto">
-{`model Trade {
+                    {`model Trade {
   entryPrice Decimal @db.Decimal(20, 10)
   closePrice Decimal @db.Decimal(20, 10)
   // ...
@@ -475,7 +475,7 @@ export async function deleteTrade(tradeId: string) {
                   </pre>
                 </div>
                 <p className="text-sm text-muted-foreground mt-3">
-                  This ensures sorting and filtering by price work correctly, which is critical for 
+                  This ensures sorting and filtering by price work correctly, which is critical for
                   trade analysis and reporting.
                 </p>
               </CardContent>
@@ -487,12 +487,12 @@ export async function deleteTrade(tradeId: string) {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Partial closes (scaling out) are grouped by <code>entryId</code> to ensure accurate 
+                  Partial closes (scaling out) are grouped by <code>entryId</code> to ensure accurate
                   win rate calculations. A single entry with 3 partial closes counts as 1 trade, not 3.
                 </p>
                 <div className="bg-accent/30 border rounded-lg p-3">
                   <pre className="text-xs overflow-x-auto">
-{`// lib/utils.ts - groupTradesByExecution
+                    {`// lib/utils.ts - groupTradesByExecution
 export function groupTradesByExecution(trades: Trade[]) {
   const groups = new Map()
   
@@ -564,7 +564,7 @@ export function groupTradesByExecution(trades: Trade[]) {
                   <div className="space-y-2">
                     <h4 className="font-semibold text-foreground">Server Components</h4>
                     <p className="text-sm text-muted-foreground">
-                      Data-heavy pages use Server Components to fetch directly from DB. 
+                      Data-heavy pages use Server Components to fetch directly from DB.
                       Zero client-side JS for initial render, faster Time to Interactive.
                     </p>
                   </div>
@@ -581,7 +581,7 @@ export function groupTradesByExecution(trades: Trade[]) {
                   <div className="space-y-2">
                     <h4 className="font-semibold text-foreground">Dynamic Imports</h4>
                     <p className="text-sm text-muted-foreground">
-                      Charts and heavy dependencies are lazy-loaded with <code>next/dynamic</code>. 
+                      Charts and heavy dependencies are lazy-loaded with <code>next/dynamic</code>.
                       Widget registry uses code splitting per widget.
                     </p>
                   </div>
@@ -598,7 +598,7 @@ export function groupTradesByExecution(trades: Trade[]) {
                   <div className="space-y-2">
                     <h4 className="font-semibold text-foreground">Rate Limiting</h4>
                     <p className="text-sm text-muted-foreground">
-                      10 req/min for auth endpoints, 100/min for data. 
+                      10 req/min for auth endpoints, 100/min for data.
                       Prevents abuse and DoS attacks. Uses in-memory cache with TTL.
                     </p>
                   </div>
@@ -615,7 +615,7 @@ export function groupTradesByExecution(trades: Trade[]) {
                   <div className="space-y-2">
                     <h4 className="font-semibold text-foreground">Database Indexes</h4>
                     <p className="text-sm text-muted-foreground">
-                      Composite indexes on <code>(userId, entryTime)</code> for dashboard queries. 
+                      Composite indexes on <code>(userId, entryTime)</code> for dashboard queries.
                       Index on <code>entryId</code> for grouping. Sub-100ms query times.
                     </p>
                   </div>
@@ -632,7 +632,7 @@ export function groupTradesByExecution(trades: Trade[]) {
                   <div className="space-y-2">
                     <h4 className="font-semibold text-foreground">ISR Caching</h4>
                     <p className="text-sm text-muted-foreground">
-                      Static pages revalidate every 60s. Dashboard data cached per-user. 
+                      Static pages revalidate every 60s. Dashboard data cached per-user.
                       <code>revalidatePath()</code> busts cache on mutations.
                     </p>
                   </div>
@@ -649,7 +649,7 @@ export function groupTradesByExecution(trades: Trade[]) {
                   <div className="space-y-2">
                     <h4 className="font-semibold text-foreground">Structured Logging</h4>
                     <p className="text-sm text-muted-foreground">
-                      JSON logs in production for easy parsing. 
+                      JSON logs in production for easy parsing.
                       Log levels (info, warn, error) sent to Sentry for monitoring.
                     </p>
                   </div>
@@ -686,7 +686,7 @@ export function groupTradesByExecution(trades: Trade[]) {
                     <div className="space-y-1">
                       <p className="font-semibold text-foreground text-sm">Row Level Security</p>
                       <p className="text-sm text-muted-foreground">
-                        Supabase RLS policies enforce userId checks at the database level. 
+                        Supabase RLS policies enforce userId checks at the database level.
                         Even if Prisma query is misconfigured, DB rejects unauthorized access.
                       </p>
                     </div>
@@ -697,7 +697,7 @@ export function groupTradesByExecution(trades: Trade[]) {
                     <div className="space-y-1">
                       <p className="font-semibold text-foreground text-sm">Input Validation</p>
                       <p className="text-sm text-muted-foreground">
-                        All API inputs validated with Zod schemas. Type coercion, regex checks, 
+                        All API inputs validated with Zod schemas. Type coercion, regex checks,
                         min/max constraints prevent injection and malformed data.
                       </p>
                     </div>
@@ -708,7 +708,7 @@ export function groupTradesByExecution(trades: Trade[]) {
                     <div className="space-y-1">
                       <p className="font-semibold text-foreground text-sm">Environment Variable Validation</p>
                       <p className="text-sm text-muted-foreground">
-                        Critical env vars (DB_URL, SUPABASE keys) validated at build time. 
+                        Critical env vars (DB_URL, SUPABASE keys) validated at build time.
                         Missing/invalid values cause immediate fail-fast errors.
                       </p>
                     </div>
@@ -719,7 +719,7 @@ export function groupTradesByExecution(trades: Trade[]) {
                     <div className="space-y-1">
                       <p className="font-semibold text-foreground text-sm">Content Security Policy</p>
                       <p className="text-sm text-muted-foreground">
-                        Restrictive CSP headers block inline scripts and unauthorized origins. 
+                        Restrictive CSP headers block inline scripts and unauthorized origins.
                         Mitigates XSS attacks.
                       </p>
                     </div>
@@ -761,7 +761,7 @@ export function groupTradesByExecution(trades: Trade[]) {
                 </ul>
                 <div className="bg-accent/30 border rounded-lg p-3 mt-3">
                   <pre className="text-xs overflow-x-auto">
-{`# Run unit tests
+                    {`# Run unit tests
 npm run test
 
 # Run E2E tests

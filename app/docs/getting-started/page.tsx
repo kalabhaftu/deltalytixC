@@ -22,7 +22,7 @@ export default function GettingStarted() {
             </div>
             <h2>Prerequisites</h2>
           </div>
-          
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">What you'll need</CardTitle>
@@ -43,7 +43,7 @@ export default function GettingStarted() {
                   <div>
                     <p className="font-medium text-foreground">Trading History (Optional)</p>
                     <p className="text-sm text-muted-foreground">
-                      CSV export from your broker (MT4/MT5, Exness, Match Trader, TradeZella, or custom format). 
+                      CSV export from your broker (MT4/MT5, Exness, Match Trader, TradeZella, or custom format).
                       You can also enter trades manually later.
                     </p>
                   </div>
@@ -95,7 +95,7 @@ export default function GettingStarted() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-primary" />
-                    <strong>Email Magic Link</strong> - Passwordless login via email
+                    <strong>Email OTP</strong> - Secure login via 6-digit code
                   </li>
                 </ul>
               </li>
@@ -103,7 +103,7 @@ export default function GettingStarted() {
               <li className="space-y-2">
                 <p className="font-medium text-foreground">Authorize the application</p>
                 <p className="text-sm text-muted-foreground">
-                  Follow the OAuth flow or check your email for the magic link. 
+                  Follow the OAuth flow or check your email for the verification code.
                   Deltalytix only requests basic profile information (email, name, avatar).
                 </p>
               </li>
@@ -111,7 +111,7 @@ export default function GettingStarted() {
               <li className="space-y-2">
                 <p className="font-medium text-foreground">Welcome to your dashboard</p>
                 <p className="text-sm text-muted-foreground">
-                  After successful authentication, you'll be redirected to your personalized dashboard. 
+                  After successful authentication, you'll be redirected to your personalized dashboard.
                   First-time users will see a default template with essential widgets.
                 </p>
               </li>
@@ -124,8 +124,8 @@ export default function GettingStarted() {
                   <div className="space-y-2">
                     <p className="font-medium text-foreground">Security Note</p>
                     <p className="text-sm text-muted-foreground">
-                      All authentication is handled by Supabase with industry-standard security. 
-                      We never store your OAuth tokens or passwords. Rate limiting is enabled 
+                      All authentication is handled by Supabase with industry-standard security.
+                      We never store your OAuth tokens or passwords. Rate limiting is enabled
                       (10 requests per minute for auth endpoints) to prevent abuse.
                     </p>
                   </div>
@@ -341,8 +341,8 @@ export default function GettingStarted() {
                   <div className="space-y-2">
                     <p className="font-medium text-foreground">Pro Tip: Use Filters</p>
                     <p className="text-sm text-muted-foreground">
-                      Click the filter icon in the navbar to narrow your analysis by date range, 
-                      accounts, instruments, P&L range, weekday, or hour of day. This helps you 
+                      Click the filter icon in the navbar to narrow your analysis by date range,
+                      accounts, instruments, P&L range, weekday, or hour of day. This helps you
                       identify patterns and optimize specific aspects of your trading.
                     </p>
                   </div>
@@ -381,7 +381,7 @@ export default function GettingStarted() {
                 <div className="space-y-2">
                   <p className="font-medium text-foreground">Drag to Reposition</p>
                   <p className="text-muted-foreground">
-                    Click and hold any widget, then drag it to a new location. 
+                    Click and hold any widget, then drag it to a new location.
                     Other widgets will automatically adjust to accommodate the move.
                   </p>
                 </div>
@@ -392,7 +392,7 @@ export default function GettingStarted() {
                 <div className="space-y-2">
                   <p className="font-medium text-foreground">Resize Widgets</p>
                   <p className="text-muted-foreground">
-                    Grab the bottom-right corner of any widget and drag to resize. 
+                    Grab the bottom-right corner of any widget and drag to resize.
                     Widgets snap to the grid for clean alignment.
                   </p>
                 </div>
@@ -403,7 +403,7 @@ export default function GettingStarted() {
                 <div className="space-y-2">
                   <p className="font-medium text-foreground">Add New Widgets</p>
                   <p className="text-muted-foreground">
-                    Click the + button to open the widget gallery. Choose from 20+ available widgets 
+                    Click the + button to open the widget gallery. Choose from 20+ available widgets
                     including charts, tables, KPIs, and more.
                   </p>
                 </div>
@@ -414,7 +414,7 @@ export default function GettingStarted() {
                 <div className="space-y-2">
                   <p className="font-medium text-foreground">Save Your Layout</p>
                   <p className="text-muted-foreground">
-                    Click "Save Changes" to persist your layout. You can create multiple templates 
+                    Click "Save Changes" to persist your layout. You can create multiple templates
                     for different trading strategies or analysis views.
                   </p>
                 </div>
@@ -446,8 +446,8 @@ export default function GettingStarted() {
                     <div className="space-y-2">
                       <h4 className="font-semibold text-foreground">Set Up Prop Firm Accounts</h4>
                       <p className="text-sm text-muted-foreground">
-                        If you're in a prop firm evaluation, create a master account to track 
-                        phases, drawdowns, and profit targets. Get real-time breach detection 
+                        If you're in a prop firm evaluation, create a master account to track
+                        phases, drawdowns, and profit targets. Get real-time breach detection
                         and automated phase progression.
                       </p>
                       <p className="text-sm">
@@ -469,7 +469,7 @@ export default function GettingStarted() {
                     <div className="space-y-2">
                       <h4 className="font-semibold text-foreground">Start a Trading Journal</h4>
                       <p className="text-sm text-muted-foreground">
-                        Document your trading psychology with daily notes, emotions, and screenshots. 
+                        Document your trading psychology with daily notes, emotions, and screenshots.
                         Use AI analysis to identify patterns between your mental state and P&L performance.
                       </p>
                     </div>
@@ -486,7 +486,7 @@ export default function GettingStarted() {
                     <div className="space-y-2">
                       <h4 className="font-semibold text-foreground">Add Tags for Strategy Tracking</h4>
                       <p className="text-sm text-muted-foreground">
-                        Categorize trades with custom tags (e.g., "Breakout", "Support/Resistance"). 
+                        Categorize trades with custom tags (e.g., "Breakout", "Support/Resistance").
                         Use the "P&L by Strategy" widget to compare performance across different approaches.
                       </p>
                     </div>
@@ -503,7 +503,7 @@ export default function GettingStarted() {
                     <div className="space-y-2">
                       <h4 className="font-semibold text-foreground">Use Advanced Export</h4>
                       <p className="text-sm text-muted-foreground">
-                        Export filtered trade data to CSV for external analysis or tax reporting. 
+                        Export filtered trade data to CSV for external analysis or tax reporting.
                         Supports custom column selection and date range filtering.
                       </p>
                     </div>

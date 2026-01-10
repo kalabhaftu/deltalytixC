@@ -17,18 +17,18 @@ export default function DocsHome() {
               v2.0 Release
             </Badge>
           </div>
-          
+
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
             Deltalytix
             <span className="text-primary"> Documentation</span>
           </h1>
-          
+
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl leading-relaxed">
-            A comprehensive trading analytics platform designed for professional traders. 
-            Track performance, analyze patterns, and optimize your strategy with advanced metrics 
+            A comprehensive trading analytics platform designed for professional traders.
+            Track performance, analyze patterns, and optimize your strategy with advanced metrics
             and real-time insights.
           </p>
-          
+
           <div className="flex flex-wrap gap-4 pt-4">
             <Button asChild size="lg" className="h-12 px-8 font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
               <Link href="/docs/getting-started">
@@ -59,7 +59,7 @@ export default function DocsHome() {
             View all <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
-        
+
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Link href="/docs/features/importing" className="group">
             <Card className="h-full border-2 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
@@ -70,7 +70,7 @@ export default function DocsHome() {
                 <div>
                   <CardTitle className="text-xl group-hover:text-primary transition-colors">Trade Import</CardTitle>
                   <CardDescription className="mt-2 leading-relaxed">
-                    Import trades from CSV files with intelligent AI-powered field mapping. 
+                    Import trades from CSV files with intelligent AI-powered field mapping.
                     Supports major brokers and custom formats.
                   </CardDescription>
                 </div>
@@ -101,7 +101,7 @@ export default function DocsHome() {
                 <div>
                   <CardTitle className="text-xl group-hover:text-primary transition-colors">Dashboard Analytics</CardTitle>
                   <CardDescription className="mt-2 leading-relaxed">
-                    Fully customizable drag-and-drop dashboard with 20+ widgets. 
+                    Fully customizable drag-and-drop dashboard with 20+ widgets.
                     Track KPIs and visualize performance in real-time.
                   </CardDescription>
                 </div>
@@ -132,7 +132,7 @@ export default function DocsHome() {
                 <div>
                   <CardTitle className="text-xl group-hover:text-primary transition-colors">Prop Firm Tracking</CardTitle>
                   <CardDescription className="mt-2 leading-relaxed">
-                    Comprehensive prop firm evaluation monitoring with automated breach 
+                    Comprehensive prop firm evaluation monitoring with automated breach
                     detection and phase progression tracking.
                   </CardDescription>
                 </div>
@@ -165,7 +165,7 @@ export default function DocsHome() {
             Modern architecture designed for speed, security, and scalability.
           </p>
         </div>
-        
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[
             {
@@ -224,12 +224,12 @@ export default function DocsHome() {
             Modern, production-ready technologies powering Deltalytix.
           </p>
         </div>
-        
+
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {[
             { icon: FileCode, title: 'Frontend', primary: 'Next.js 15, React 19', secondary: 'TypeScript 5.7, Tailwind CSS' },
             { icon: Database, title: 'Database', primary: 'PostgreSQL 16', secondary: 'Prisma ORM 6.2' },
-            { icon: Lock, title: 'Authentication', primary: 'Supabase Auth', secondary: 'OAuth, Magic Links' },
+            { icon: Lock, title: 'Authentication', primary: 'Supabase Auth', secondary: 'OAuth, OTP' },
             { icon: BarChart3, title: 'Charts', primary: 'Recharts', secondary: 'Lightweight Charts' },
             { icon: GitBranch, title: 'State', primary: 'Zustand', secondary: 'React Query (TanStack)' },
             { icon: Activity, title: 'Monitoring', primary: 'Sentry', secondary: 'Error tracking' },

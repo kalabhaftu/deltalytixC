@@ -79,29 +79,25 @@ export default function RootPage() {
   // --- RENDERING ---
 
   // 1. Authenticated State - "WOW" Dashboard Portal
-  if (isAuthenticated && !isLoading && !isProcessingLogout) {
+  // Also check if we are in the process of logging out (via URL param)
+  const isLogoutFlow = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('logout') === 'true'
+
+  if (isAuthenticated && !isLoading && !isProcessingLogout && !isLogoutFlow) {
     return (
       <div className="min-h-screen bg-background overflow-hidden relative selection:bg-primary/20">
 
-        {/* Background Gradients */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] translate-y-1/3 -translate-x-1/3 pointer-events-none" />
-
         {/* Top Navigation Bar */}
-        <nav className="relative z-50 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto w-full">
+        <nav className="relative z-50 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto w-full border-b border-border/40">
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-all duration-300 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 blur-md rounded-full group-hover:bg-primary/40 transition-colors" />
-              <Logo className="w-10 h-10 fill-foreground relative z-10" />
-            </div>
-            <span className="text-foreground font-bold text-xl tracking-tight">Deltalytix</span>
+            <Logo className="w-8 h-8 fill-foreground relative z-10" />
+            <span className="text-foreground font-semibold text-lg tracking-tight">Deltalytix</span>
           </Link>
 
           <div className="flex items-center gap-4">
             {/* Theme Toggle */}
             <Popover open={themeOpen} onOpenChange={setThemeOpen}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" className="h-10 w-10 p-0 rounded-full bg-background/50 backdrop-blur-md border border-border/50 hover:bg-background hover:border-border transition-all">
+                <Button variant="ghost" className="h-9 w-9 p-0 rounded-md hover:bg-muted transition-all">
                   {getThemeIcon()}
                 </Button>
               </PopoverTrigger>
@@ -121,8 +117,8 @@ export default function RootPage() {
 
             <Button
               onClick={handleLogout}
-              variant="ghost"
-              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors gap-2"
+              variant="outline"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 gap-2 h-9 border-border/50"
             >
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Sign Out</span>
@@ -215,15 +211,13 @@ export default function RootPage() {
 
   // 2. Unauthenticated State - Login Form
   return (
-    <div className="min-h-screen bg-background overflow-hidden relative">
-      {/* Background Gradients for Login */}
-      <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] -translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+    <div className="min-h-screen bg-background overflow-hidden relative flex flex-col items-center justify-center">
 
       {/* Theme Switcher */}
-      <div className="fixed top-4 right-4 z-50">
+      <div className="fixed top-6 right-6 z-50">
         <Popover open={themeOpen} onOpenChange={setThemeOpen}>
           <PopoverTrigger asChild>
-            <Button variant="ghost" className="h-9 w-9 px-0 bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-background/90">
+            <Button variant="ghost" className="h-9 w-9 px-0 hover:bg-muted transition-all rounded-md">
               {getThemeIcon()}
               <span className="sr-only">Toggle theme</span>
             </Button>
@@ -243,39 +237,41 @@ export default function RootPage() {
         </Popover>
       </div>
 
-      <div className="flex min-h-screen flex-col items-center justify-center p-4">
-        {/* Logo at top */}
-        <div className="absolute top-8 left-8">
-          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <Logo className="w-10 h-10 fill-foreground" />
-            <span className="text-foreground font-semibold text-lg">Deltalytix</span>
+      {/* Main Content */}
+      <div className="w-full max-w-md space-y-8 relative z-10 px-6">
+        <div className="flex flex-col items-center justify-center mb-8">
+          <Link href="/" className="group">
+            <div className="p-3 mb-6 transition-transform duration-300">
+              <Logo className="w-12 h-12 fill-foreground" />
+            </div>
           </Link>
-        </div>
-
-        {/* Centered Authentication Form */}
-        <div className="w-full max-w-md space-y-8 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col space-y-2 text-center"
-          >
-            <h1 className="text-4xl font-bold tracking-tight">
-              Start Your Journey
-            </h1>
-            <p className="text-muted-foreground text-base">
-              Enter your email to access your personalized trading dashboard
-            </p>
-          </motion.div>
-
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
+            transition={{ duration: 0.5 }}
+            className="text-center space-y-2"
           >
-            <UserAuthForm />
+            <h1 className="text-3xl font-bold tracking-tight">
+              Welcome Back
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Sign in to access your analytics
+            </p>
           </motion.div>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.5 }}
+          className="bg-card border border-border rounded-xl p-6"
+        >
+          <UserAuthForm />
+        </motion.div>
+
+        <p className="text-center text-xs text-muted-foreground/50">
+          &copy; {new Date().getFullYear()} Deltalytix. All rights reserved.
+        </p>
       </div>
     </div>
   )
