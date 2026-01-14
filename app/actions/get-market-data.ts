@@ -57,13 +57,39 @@ export interface CandleData {
  */
 
 export async function getMarketData(
-    symbol: string,
+    rawSymbol: string,
     interval: '1m' | '2m' | '5m' | '15m' | '30m' | '1h' | '1d' = '5m',
     startDate?: Date,
     endDate?: Date,
     tradeId?: string,
     forceRefresh: boolean = false
 ): Promise<{ data: CandleData[], error?: string }> {
+    // NORMALIZE SYMBOL: Strip broker suffixes (e.g. XAUUSDm -> XAUUSD, NAS100.x -> NAS100)
+    // 1. Remove trailing lowercase letters (often broker suffixes like 'm', 'c', 'pro')
+    // 2. Remove anything after a dot or underscore if it looks like a suffix
+    let symbol = rawSymbol.trim();
+
+    // If it's not a pair that is naturally mixed case or lowercase (crypto/forex are usually uppercase)
+    // We assume the base symbol should be uppercase.
+
+    // Regex to capture the base symbol:
+    // ^([A-Z0-9]+) -> Starts with uppercase alphanumerics
+    // (?:[._][a-zA-Z0-9]+)? -> Optional suffix starting with . or _
+    // [a-z]*$ -> Optional trailing lowercase letters directly attached
+
+    // Simple heuristic: If it ends with lowercase letters, strip them.
+    // E.g. XAUUSDm -> XAUUSD
+    if (/[A-Z]+[a-z]+$/.test(symbol)) {
+        symbol = symbol.replace(/[a-z]+$/, '');
+    }
+
+    // Handle dot/underscore suffixes (e.g. NAS100.x, US30_pro)
+    if (symbol.includes('.') || symbol.includes('_')) {
+        symbol = symbol.split(/[._]/)[0];
+    }
+
+    symbol = symbol.toUpperCase();
+
     const startStr = startDate ? startDate.toISOString().split('T')[0] : 'default'
     const endStr = endDate ? endDate.toISOString().split('T')[0] : 'now'
     const requestKey = `${symbol}:${startStr}:${endStr}:${interval}`

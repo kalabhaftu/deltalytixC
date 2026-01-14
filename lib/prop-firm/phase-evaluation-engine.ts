@@ -147,9 +147,7 @@ export class PhaseEvaluationEngine {
     )
 
     if (historicalBreachCheck.isBreached) {
-      // Historical breach detected
-
-      // Return immediate failure
+      // Historical daily drawdown breach detected
       return {
         drawdown: {
           currentEquity,
@@ -167,6 +165,49 @@ export class PhaseEvaluationEngine {
           breachType: 'daily_drawdown',
           breachAmount: historicalBreachCheck.breachAmount,
           breachTime: historicalBreachCheck.breachTime
+        },
+        progress: this.calculateProgress(phaseAccount, currentPnL, trades),
+        isFailed: true,
+        isPassed: false,
+        canAdvance: false,
+        nextAction: 'fail'
+      }
+    }
+
+    // CRITICAL FIX: Check historical MAX DRAWDOWN for ALL trades chronologically
+    // This catches breaches where the balance dipped below the limit but recovered
+    const historicalMaxDDCheck = this.checkHistoricalMaxDrawdown(
+      trades,
+      masterAccount.accountSize,
+      phaseAccount.maxDrawdownPercent,
+      phaseAccount.maxDrawdownType
+    )
+
+    if (historicalMaxDDCheck.isBreached) {
+      // Historical max drawdown breach detected
+      this.log(`[EVAL] ⚠️ Historical MAX DRAWDOWN breach detected`, {
+        lowestBalance: historicalMaxDDCheck.lowestBalance,
+        minAllowed: historicalMaxDDCheck.minAllowedBalance,
+        breachAmount: historicalMaxDDCheck.breachAmount
+      })
+
+      return {
+        drawdown: {
+          currentEquity,
+          dailyStartBalance: masterAccount.accountSize,
+          highWaterMark,
+          dailyDrawdownUsed: 0,
+          dailyDrawdownLimit: masterAccount.accountSize * (phaseAccount.dailyDrawdownPercent / 100),
+          dailyDrawdownRemaining: masterAccount.accountSize * (phaseAccount.dailyDrawdownPercent / 100),
+          dailyDrawdownPercent: 0,
+          maxDrawdownUsed: historicalMaxDDCheck.maxDrawdownUsed,
+          maxDrawdownLimit: historicalMaxDDCheck.maxDrawdownLimit,
+          maxDrawdownRemaining: 0,
+          maxDrawdownPercent: (historicalMaxDDCheck.maxDrawdownUsed / masterAccount.accountSize) * 100,
+          isBreached: true,
+          breachType: 'max_drawdown',
+          breachAmount: historicalMaxDDCheck.breachAmount,
+          breachTime: historicalMaxDDCheck.breachTime
         },
         progress: this.calculateProgress(phaseAccount, currentPnL, trades),
         isFailed: true,
@@ -423,6 +464,110 @@ export class PhaseEvaluationEngine {
       dayEndBalance: runningBalance,
       dayLoss: 0,
       dailyLimit: dailyDrawdownLimit
+    }
+  }
+
+  /**
+   * CRITICAL METHOD: Check historical MAX DRAWDOWN for ALL trades chronologically.
+   * This catches breaches where the balance dipped below the limit but recovered.
+   * For STATIC drawdown: check if balance ever went below (accountSize - maxDrawdownLimit)
+   * For TRAILING drawdown: check if balance ever went below (highWaterMark - maxDrawdownLimit)
+   */
+  private static checkHistoricalMaxDrawdown(
+    trades: any[],
+    accountSize: number,
+    maxDrawdownPercent: number,
+    maxDrawdownType: string
+  ): {
+    isBreached: boolean
+    lowestBalance: number
+    minAllowedBalance: number
+    maxDrawdownUsed: number
+    maxDrawdownLimit: number
+    breachAmount?: number
+    breachTime?: Date
+  } {
+
+    if (trades.length === 0) {
+      const maxDrawdownLimit = accountSize * (maxDrawdownPercent / 100)
+      return {
+        isBreached: false,
+        lowestBalance: accountSize,
+        minAllowedBalance: accountSize - maxDrawdownLimit,
+        maxDrawdownUsed: 0,
+        maxDrawdownLimit
+      }
+    }
+
+    let runningBalance = accountSize
+    let lowestBalance = accountSize
+    let highWaterMark = accountSize
+    let breachTime: Date | undefined = undefined
+
+    // Sort trades by exitTime to process chronologically
+    const sortedTrades = [...trades].sort((a, b) => {
+      const aTime = a.exitTime ? new Date(a.exitTime).getTime() : 0
+      const bTime = b.exitTime ? new Date(b.exitTime).getTime() : 0
+      return aTime - bTime
+    })
+
+    for (const trade of sortedTrades) {
+      const netPnl = (trade.pnl || 0) + (trade.commission || 0)
+      runningBalance += netPnl
+
+      // Update high-water mark for trailing drawdown
+      if (runningBalance > highWaterMark) {
+        highWaterMark = runningBalance
+      }
+
+      // Track lowest point
+      if (runningBalance < lowestBalance) {
+        lowestBalance = runningBalance
+        breachTime = trade.exitTime ? new Date(trade.exitTime) : new Date(trade.createdAt)
+      }
+    }
+
+    // Determine the drawdown base and limit
+    let drawdownBase: number
+    if (maxDrawdownType === 'trailing') {
+      drawdownBase = highWaterMark
+    } else {
+      drawdownBase = accountSize
+    }
+
+    const maxDrawdownLimit = drawdownBase * (maxDrawdownPercent / 100)
+    const minAllowedBalance = drawdownBase - maxDrawdownLimit
+    const maxDrawdownUsed = accountSize - lowestBalance
+
+    // Check if breach occurred
+    if (lowestBalance < minAllowedBalance) {
+      const breachAmount = minAllowedBalance - lowestBalance
+
+      this.log(`[HIST_MAX_DD] Breach detected`, {
+        lowestBalance,
+        minAllowedBalance,
+        breachAmount,
+        drawdownBase,
+        maxDrawdownType
+      })
+
+      return {
+        isBreached: true,
+        lowestBalance,
+        minAllowedBalance,
+        maxDrawdownUsed,
+        maxDrawdownLimit,
+        breachAmount,
+        breachTime
+      }
+    }
+
+    return {
+      isBreached: false,
+      lowestBalance,
+      minAllowedBalance,
+      maxDrawdownUsed,
+      maxDrawdownLimit
     }
   }
 

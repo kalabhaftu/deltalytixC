@@ -50,23 +50,55 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
     const formattedDate = trade.entryDate ? format(parseISO(trade.entryDate), 'MMM d, yyyy') : 'Unknown'
     const formattedTime = trade.entryDate ? format(parseISO(trade.entryDate), 'h:mm a') : ''
 
+    useEffect(() => {
+        // Prevent race conditions with strict mode/fast unmounts
+        let isMounted = true;
+
+        const runInit = async () => {
+            if (!chartContainerRef.current) return;
+
+            // Cleanup existing chart if any
+            if (chartRef.current) {
+                chartRef.current.remove();
+                chartRef.current = null;
+            }
+
+            await initChart();
+        };
+
+        runInit();
+
+        // Robust ResizeObserver that handles exact container dimensions
+        const resizeObserver = new ResizeObserver((entries) => {
+            if (!isMounted || !entries[0].contentRect || !chartRef.current) return
+            const { width, height } = entries[0].contentRect
+            // Only resize if dimensions are valid and changed
+            if (width > 0 && height > 0) {
+                chartRef.current.applyOptions({ width, height })
+            }
+        })
+
+        if (chartContainerRef.current) {
+            resizeObserver.observe(chartContainerRef.current)
+        }
+
+        return () => {
+            isMounted = false;
+            resizeObserver.disconnect()
+            if (chartRef.current) {
+                chartRef.current.remove()
+                chartRef.current = null
+            }
+        }
+    }, [trade.id, trade.instrument, trade.entryDate, trade.closeDate, isLong])
+
     const initChart = async (force: boolean = false) => {
         if (!chartContainerRef.current) return
-
-        // Prevent redundant fetches for the same trade in the same mount cycle
-        if (!force && hasFetchedRef.current && lastFetchIdRef.current === trade.id) {
-            console.log(`TradeReplay: Skipping redundant fetch for ${trade.id}`)
-            return
-        }
 
         setIsLoading(true)
         setError(null)
 
-        console.count(`TradeReplay_Effect_Run_${trade.id}`)
         console.log(`[CLIENT_TRACE] initChart for ${trade.instrument} ${trade.entryDate} (ID: ${trade.id})${force ? ' [FORCE]' : ''}`)
-
-        lastFetchIdRef.current = trade.id
-        hasFetchedRef.current = true
 
         try {
             // Fetch Real Data
@@ -96,9 +128,12 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
                 }
             })
 
-            console.log(`[CLIENT] Chart Data: ${adjustedData.length} bars. Range: ${new Date((adjustedData[0].time as number) * 1000).toISOString()} to ${new Date((adjustedData[adjustedData.length - 1].time as number) * 1000).toISOString()}`)
-
             // Create Chart
+            if (chartRef.current) {
+                chartRef.current.remove();
+                chartRef.current = null;
+            }
+
             const chart = createChart(chartContainerRef.current, {
                 layout: {
                     background: { type: ColorType.Solid, color: 'white' },
@@ -162,8 +197,8 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
                         position: isLong ? 'belowBar' : 'aboveBar',
                         color: '#2962FF', // Entry: TV Blue
                         shape: isLong ? 'arrowUp' : 'arrowDown',
-                        text: `$${Number(trade.entryPrice).toFixed(2)}`,
-                        size: 1
+                        text: `Entry: ${Number(trade.entryPrice).toFixed(2)}`,
+                        size: 2
                     })
                 } catch (e) { console.warn('Failed to place entry marker', e) }
             }
@@ -176,8 +211,8 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
                         position: isLong ? 'aboveBar' : 'belowBar',
                         color: '#F44336', // Exit: TV Red
                         shape: isLong ? 'arrowDown' : 'arrowUp',
-                        text: `$${Number(trade.closePrice).toFixed(2)}`,
-                        size: 1
+                        text: `Exit: ${Number(trade.closePrice).toFixed(2)}`,
+                        size: 2
                     })
                 } catch (e) { console.warn('Failed to place exit marker', e) }
             }
@@ -185,32 +220,6 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
             // @ts-ignore
             createSeriesMarkers(candleSeries, markers)
             chart.timeScale().fitContent()
-
-            // Dynamic Sizing Logic - NOT TO BE PUSHED
-            const updateMarkerSize = () => {
-                const range = chart.timeScale().getVisibleRange();
-                if (!range || !range.from || !range.to) return;
-
-                // Estimate visible bars by looking at adjustedData
-                const visibleBars = adjustedData.filter(d =>
-                    (d.time as number) >= (range.from as number) &&
-                    (d.time as number) <= (range.to as number)
-                ).length;
-
-                // User Request: Smaller when zoomed in, Bigger when zoomed out
-                // map visibleBars (e.g. 10 to 500) to size (0 to 4)
-                let newSize = 1;
-                if (visibleBars > 300) newSize = 4;
-                else if (visibleBars > 150) newSize = 3;
-                else if (visibleBars > 50) newSize = 2;
-                else newSize = 1;
-
-                const updatedMarkers = markers.map(m => ({ ...m, size: newSize }));
-                // @ts-ignore
-                createSeriesMarkers(candleSeries, updatedMarkers);
-            };
-
-            chart.timeScale().subscribeVisibleTimeRangeChange(updateMarkerSize);
 
             chartRef.current = chart
             setIsLoading(false)
@@ -221,32 +230,6 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
             setIsLoading(false)
         }
     }
-
-    useEffect(() => {
-        initChart()
-
-        // Robust ResizeObserver that handles exact container dimensions
-        const resizeObserver = new ResizeObserver((entries) => {
-            if (!entries[0].contentRect || !chartRef.current) return
-            const { width, height } = entries[0].contentRect
-            // Only resize if dimensions are valid and changed
-            if (width > 0 && height > 0) {
-                chartRef.current.applyOptions({ width, height })
-            }
-        })
-
-        if (chartContainerRef.current) {
-            resizeObserver.observe(chartContainerRef.current)
-        }
-
-        return () => {
-            if (chartRef.current) {
-                chartRef.current.remove()
-                chartRef.current = null
-            }
-            resizeObserver.disconnect()
-        }
-    }, [trade.id, trade.instrument, trade.entryDate, trade.closeDate, isLong])
 
 
     return (
