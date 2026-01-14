@@ -35,7 +35,8 @@ function TableView() {
 
       return (
         <div className="flex flex-col h-[calc(100vh-120px)] bg-background border border-border/40 rounded-xl overflow-hidden shadow-sm">
-          <div className="flex items-center justify-between px-3 py-2 border-b shrink-0 bg-muted/30 backdrop-blur">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between px-3 py-2 border-b shrink-0 bg-muted/30 backdrop-blur gap-2">
+            {/* Left: Back + Symbol */}
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
@@ -44,9 +45,9 @@ function TableView() {
                 className="h-8 px-2 text-xs hover:bg-accent/50"
               >
                 <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
-                Back
+                <span className="hidden sm:inline">Back</span>
               </Button>
-              <div className="h-4 w-px bg-border/60" />
+              <div className="h-4 w-px bg-border/60 hidden sm:block" />
               <h1 className="text-xs font-bold tracking-tight uppercase text-muted-foreground mr-2">
                 {trade.instrument}
               </h1>
@@ -55,25 +56,22 @@ function TableView() {
               </Badge>
             </div>
 
-            <div className="flex items-center gap-6">
-              <div className="flex flex-col items-end">
-                <span className="text-[9px] uppercase font-bold text-muted-foreground leading-none mb-1">Timeframe</span>
-                <span className="text-[11px] font-mono font-medium leading-none">5m</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-[9px] uppercase font-bold text-muted-foreground leading-none mb-1">Entry / Exit</span>
-                <span className="text-[11px] font-mono font-medium leading-none">
+            {/* Right: Trade Info - Responsive grid on mobile */}
+            <div className="flex items-center gap-3 sm:gap-6 text-[10px] sm:text-xs overflow-x-auto">
+              <div className="flex flex-col items-start sm:items-end shrink-0">
+                <span className="text-[9px] uppercase font-bold text-muted-foreground leading-none mb-0.5">Entry/Exit</span>
+                <span className="font-mono font-medium leading-none">
                   ${Number(trade.entryPrice).toFixed(2)} → ${trade.closePrice ? Number(trade.closePrice).toFixed(2) : 'OPEN'}
                 </span>
               </div>
-              <div className="flex flex-col items-end">
-                <span className="text-[9px] uppercase font-bold text-muted-foreground leading-none mb-1">Size</span>
-                <span className="text-[11px] font-mono font-medium leading-none">{trade.quantity}</span>
+              <div className="flex flex-col items-start sm:items-end shrink-0 hidden xs:flex">
+                <span className="text-[9px] uppercase font-bold text-muted-foreground leading-none mb-0.5">Size</span>
+                <span className="font-mono font-medium leading-none">{trade.quantity}</span>
               </div>
-              <div className="flex flex-col items-end">
-                <span className="text-[9px] uppercase font-bold text-muted-foreground leading-none mb-1">P&L</span>
+              <div className="flex flex-col items-start sm:items-end shrink-0">
+                <span className="text-[9px] uppercase font-bold text-muted-foreground leading-none mb-0.5">P&L</span>
                 <span className={cn(
-                  "text-[11px] font-mono font-bold leading-none",
+                  "font-mono font-bold leading-none",
                   isProfit ? "text-green-500" : "text-red-500"
                 )}>
                   {isProfit ? '+' : ''}${trade.pnl.toFixed(2)}
