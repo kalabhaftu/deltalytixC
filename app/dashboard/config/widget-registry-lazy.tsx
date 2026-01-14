@@ -66,6 +66,7 @@ export interface WidgetConfig {
   getPreview: () => React.ReactElement
 }
 
+// Calendar Preview
 function CreateCalendarPreview() {
   const weekdays = [
     'Sun',
@@ -93,7 +94,7 @@ function CreateCalendarPreview() {
             {Array.from({ length: 35 }, (_, i) => (
               <div
                 key={i}
-                className="aspect-square text-xs flex items-center justify-center rounded hover:bg-muted"
+                className="aspect-square text-xs flex items-center justify-center rounded hover:bg-muted/50"
               >
                 {i % 7 === 0 ? Math.floor(i / 7) + 1 : ''}
               </div>
@@ -114,10 +115,10 @@ function CreateKpiPreview(title: string) {
       <CardContent className="p-4">
         <div className="flex items-start justify-between h-full">
           <div className="space-y-2 flex-1">
-            <div className="h-3 w-20 bg-muted-foreground/20 rounded animate-pulse" />
-            <div className="h-6 w-24 bg-muted-foreground/30 rounded animate-pulse" />
+            <div className="h-3 w-20 bg-muted-foreground/10 rounded animate-pulse" />
+            <div className="h-6 w-24 bg-muted-foreground/20 rounded animate-pulse" />
           </div>
-          <div className="h-12 w-12 rounded-full bg-muted-foreground/20 animate-pulse" />
+          <div className="h-12 w-12 rounded-full bg-muted-foreground/10 animate-pulse" />
         </div>
       </CardContent>
     </Card>
@@ -132,14 +133,14 @@ function CreateChartPreview(title: string) {
       </CardHeader>
       <CardContent className="p-4">
         <div className="space-y-4 h-full">
-          <div className="flex-1 bg-muted-foreground/10 rounded-lg animate-pulse flex items-end p-4">
+          <div className="flex-1 bg-muted-foreground/5 rounded-lg animate-pulse flex items-end p-4">
             <div className="flex items-end gap-1 w-full h-20">
               {Array(6).fill(0).map((_, j) => {
                 const height = Math.random() * 60 + 20
                 return (
                   <div
                     key={j}
-                    className="flex-1 bg-muted-foreground/20 rounded-t animate-pulse"
+                    className="flex-1 bg-muted-foreground/10 rounded-t animate-pulse"
                     style={{
                       height: `${height}%`,
                       animationDelay: `${j * 50}ms`
@@ -166,10 +167,10 @@ function CreateTablePreview(title: string) {
           {Array(3).fill(0).map((_, i) => (
             <div key={i} className="flex justify-between items-center py-2 border-b border-muted/30">
               <div className="flex items-center space-x-3">
-                <div className="h-4 w-12 bg-muted-foreground/20 rounded animate-pulse" />
-                <div className="h-4 w-16 bg-muted-foreground/20 rounded animate-pulse" />
+                <div className="h-4 w-12 bg-muted-foreground/10 rounded animate-pulse" />
+                <div className="h-4 w-16 bg-muted-foreground/10 rounded animate-pulse" />
               </div>
-              <div className="h-4 w-20 bg-muted-foreground/30 rounded animate-pulse" />
+              <div className="h-4 w-20 bg-muted-foreground/20 rounded animate-pulse" />
             </div>
           ))}
         </div>

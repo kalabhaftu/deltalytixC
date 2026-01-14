@@ -155,19 +155,19 @@ export default function LiveAccountDetailPage() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
-              <div className="h-8 bg-muted rounded w-64 animate-pulse"></div>
-              <div className="h-4 bg-muted rounded w-32 mt-2 animate-pulse"></div>
+              <div className="h-8 bg-muted/40 rounded w-64 animate-pulse"></div>
+              <div className="h-4 bg-muted/30 rounded w-32 mt-2 animate-pulse"></div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[...Array(3)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
+              <Card key={i} className="animate-pulse bg-card/50 border-border/40">
                 <CardHeader>
-                  <div className="h-6 bg-muted rounded w-3/4"></div>
+                  <div className="h-6 bg-muted/40 rounded w-3/4"></div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-8 bg-muted rounded"></div>
+                  <div className="h-8 bg-muted/30 rounded"></div>
                 </CardContent>
               </Card>
             ))}

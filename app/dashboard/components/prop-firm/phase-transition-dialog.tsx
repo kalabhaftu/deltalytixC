@@ -15,9 +15,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { 
-  TrendingUp, 
-  Target, 
+import {
+  TrendingUp,
+  Target,
   DollarSign,
   ArrowRight,
   AlertCircle,
@@ -115,10 +115,10 @@ export function PhaseTransitionDialog({
         description: `You've successfully advanced to ${getPhaseDisplayName(nextPhaseNumber)}! Importing trades to the new phase...`,
         icon: <CheckCircle className="h-4 w-4" />
       })
-      
+
       // Close dialog FIRST to prevent re-triggering
       onClose()
-      
+
       // Reset form
       setNextPhaseId('')
 
@@ -166,15 +166,15 @@ export function PhaseTransitionDialog({
           {/* Animated Icon */}
           <div className="mx-auto relative">
             <div className="relative p-4 bg-muted/30 rounded-2xl">
-              <div className="absolute inset-0 bg-muted/50 rounded-2xl animate-pulse" />
+              <div className="absolute inset-0 bg-muted/40 rounded-2xl animate-pulse" />
               <div className="relative text-foreground">
                 {getTransitionIcon()}
               </div>
             </div>
             {/* Decorative rings */}
-            <div className="absolute -inset-2 bg-muted/20 rounded-2xl blur-xl opacity-50 animate-pulse" />
+            <div className="absolute -inset-2 bg-muted/10 rounded-2xl blur-xl opacity-50 animate-pulse" />
           </div>
-          
+
           <div className="space-y-2">
             <DialogTitle className="text-2xl font-bold text-foreground">
               {getTransitionTitle()}
@@ -193,7 +193,7 @@ export function PhaseTransitionDialog({
                 <span className="text-sm font-medium">{accountName}</span>
                 <Badge variant="secondary" className="font-medium">{propFirmName}</Badge>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Current Phase</span>
                 <span className="font-semibold">{getPhaseDisplayName(currentPhase.phaseNumber)}</span>
@@ -230,12 +230,12 @@ export function PhaseTransitionDialog({
               <span className="text-sm font-medium">{getPhaseDisplayName(currentPhase.phaseNumber)}</span>
               <div className="text-xs text-muted-foreground">Completed</div>
             </div>
-            
+
             <ArrowRight className="h-6 w-6 text-muted-foreground animate-pulse" />
-            
+
             <div className="text-center">
               <div className="relative w-14 h-14 bg-muted/30 rounded-xl flex items-center justify-center mb-2 transition-all hover:scale-105">
-                <div className="absolute inset-0 bg-muted/50 rounded-xl animate-pulse" />
+                <div className="absolute inset-0 bg-muted/40 rounded-xl animate-pulse" />
                 <Rocket className="h-6 w-6 text-foreground relative z-10" />
               </div>
               <span className="text-sm font-medium">{getPhaseDisplayName(nextPhaseNumber)}</span>
