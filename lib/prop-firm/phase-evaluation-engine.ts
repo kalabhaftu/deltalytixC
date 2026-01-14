@@ -148,6 +148,25 @@ export class PhaseEvaluationEngine {
 
     if (historicalBreachCheck.isBreached) {
       // Historical daily drawdown breach detected
+      // Create BreachRecord with descriptive notes
+      try {
+        await prisma.breachRecord.create({
+          data: {
+            id: crypto.randomUUID(),
+            phaseAccountId,
+            breachType: 'daily_drawdown',
+            breachAmount: historicalBreachCheck.breachAmount || 0,
+            currentEquity: historicalBreachCheck.dayEndBalance,
+            accountSize: masterAccount.accountSize,
+            dailyStartBalance: historicalBreachCheck.dayStartBalance,
+            notes: `Daily drawdown breach on ${historicalBreachCheck.breachDate}. Lost $${historicalBreachCheck.dayLoss.toFixed(2)} on this day, exceeding the $${historicalBreachCheck.dailyLimit.toFixed(2)} daily limit by $${(historicalBreachCheck.breachAmount || 0).toFixed(2)}.`
+          }
+        })
+        this.log(`[EVAL] BreachRecord created for daily drawdown breach`)
+      } catch (e) {
+        this.logError('Failed to create BreachRecord', e)
+      }
+
       return {
         drawdown: {
           currentEquity,
@@ -190,6 +209,25 @@ export class PhaseEvaluationEngine {
         minAllowed: historicalMaxDDCheck.minAllowedBalance,
         breachAmount: historicalMaxDDCheck.breachAmount
       })
+
+      // Create BreachRecord with descriptive notes
+      try {
+        await prisma.breachRecord.create({
+          data: {
+            id: crypto.randomUUID(),
+            phaseAccountId,
+            breachType: 'max_drawdown',
+            breachAmount: historicalMaxDDCheck.breachAmount || 0,
+            currentEquity: historicalMaxDDCheck.lowestBalance,
+            accountSize: masterAccount.accountSize,
+            highWaterMark,
+            notes: `Historical max drawdown breach detected. Balance dipped to $${historicalMaxDDCheck.lowestBalance.toFixed(2)}, below the $${historicalMaxDDCheck.minAllowedBalance.toFixed(2)} limit by $${(historicalMaxDDCheck.breachAmount || 0).toFixed(2)}.`
+          }
+        })
+        this.log(`[EVAL] BreachRecord created for max drawdown breach`)
+      } catch (e) {
+        this.logError('Failed to create BreachRecord', e)
+      }
 
       return {
         drawdown: {
