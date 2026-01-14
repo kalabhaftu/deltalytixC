@@ -655,7 +655,17 @@ export function TradeTableReview() {
                 )
               })
             ) : (
-              <div className="text-center py-12 text-muted-foreground">No trades found</div>
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+                <div className="p-4 bg-muted/30 rounded-full">
+                  <BarChart3 className="h-8 w-8 opacity-40" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold">No trades found</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1 max-w-[200px]">
+                    Adjust your filters or import trades to see them here
+                  </p>
+                </div>
+              </div>
             )}
           </div>
         ) : (

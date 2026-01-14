@@ -58,8 +58,27 @@ export default function RecentTradesWidget() {
           {/* Trades List */}
           <div className="space-y-0.5 flex-1 overflow-hidden">
             {recentTrades.length === 0 ? (
-              <div className="text-center py-8 text-sm text-muted-foreground">
-                No trades yet
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+                <div className="p-3 bg-muted/30 rounded-full mb-1">
+                  {/* Simplified icon representation using a div if icon not available, but we can likely use Lucide */}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="opacity-50"
+                  >
+                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium">No recent trades</p>
+                <p className="text-xs text-muted-foreground/60">Trades you take will appear here</p>
               </div>
             ) : (
               recentTrades.map((trade: any, index: number) => {

@@ -90,13 +90,36 @@ function TableView() {
   return <TradeTableReview />
 }
 
+function TableLoadingSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div className="h-8 w-48 bg-muted/40 rounded" />
+        <div className="h-8 w-64 bg-muted/40 rounded" />
+      </div>
+      <div className="border border-border/40 rounded-3xl overflow-hidden bg-background">
+        <div className="h-12 border-b border-border/40 bg-muted/20" />
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-16 border-b border-border/30 px-4 py-3 flex items-center justify-between">
+            <div className="space-y-2">
+              <div className="h-4 w-32 bg-muted/30 rounded" />
+              <div className="h-3 w-20 bg-muted/20 rounded" />
+            </div>
+            <div className="h-8 w-24 bg-muted/30 rounded" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function TablePage() {
   const searchParams = useSearchParams()
   const isReplay = searchParams.get('view') === 'replay'
 
   return (
     <div className="w-full px-3 sm:px-4 md:px-6 py-4">
-      <Suspense fallback={<div className="flex items-center justify-center h-64 text-muted-foreground font-medium">Synchronizing Data...</div>}>
+      <Suspense fallback={<TableLoadingSkeleton />}>
         <TableView />
       </Suspense>
     </div>
