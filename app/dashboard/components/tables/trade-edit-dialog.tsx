@@ -8,6 +8,16 @@ import { z } from 'zod'
 import { ExtendedTrade } from '@/types/trade-extended'
 import { ExtendedTrade as Trade, MarketBias } from '@/types/trade-extended'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2 } from 'lucide-react'
@@ -103,7 +113,7 @@ export default function TradeEditDialog({
   const { tags } = useTags()
 
   // Form
-  const { control, handleSubmit, setValue, watch, reset } = useForm<EditTradeFormData>({
+  const { control, handleSubmit, setValue, watch, reset, formState: { isDirty } } = useForm<EditTradeFormData>({
     resolver: zodResolver(editTradeSchema),
     defaultValues: {
       comment: '',
@@ -274,7 +284,7 @@ export default function TradeEditDialog({
         throw new Error(result.error || 'Upload failed')
       }
 
-      setValue(field, result.url)
+      setValue(field, result.url, { shouldDirty: true })
       setImageErrors(prev => {
         const newErrors = { ...prev }
         delete newErrors[field]
@@ -328,144 +338,182 @@ export default function TradeEditDialog({
     }
   }
 
+  // Safe Close Logic
+  const [showUnsavedAlert, setShowUnsavedAlert] = useState(false)
+
+  const handleCloseAttempt = (open: boolean) => {
+    if (!open) {
+      if (isDirty) {
+        setShowUnsavedAlert(true)
+      } else {
+        onClose()
+      }
+    }
+  }
+
   if (!trade) return null
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-5xl h-[95vh] sm:h-[90vh] flex flex-col p-0 transition-all">
-        {/* Header */}
-        <DialogHeader className="px-4 sm:px-6 py-4 border-b shrink-0">
-          <DialogTitle className="text-lg sm:text-xl truncate pr-8">
-            Edit Trade - {trade.instrument} {trade.side}
-          </DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">
-            Enhance your trade with notes, screenshots, strategy, and market context
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={handleCloseAttempt}>
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-5xl h-[95vh] sm:h-[90vh] flex flex-col p-0 transition-all">
+          {/* Header */}
+          <DialogHeader className="px-4 sm:px-6 py-4 border-b shrink-0">
+            <DialogTitle className="text-lg sm:text-xl truncate pr-8">
+              Edit Trade - {trade.instrument} {trade.side}
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
+              Enhance your trade with notes, screenshots, strategy, and market context
+            </DialogDescription>
+          </DialogHeader>
 
-        {/* Tabs Navigation */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <div className="px-4 sm:px-6 mt-4 shrink-0 overflow-x-auto pb-2 sm:pb-0">
-            <TabsList className="w-full sm:w-auto overflow-x-auto justify-start flex-nowrap sm:grid sm:grid-cols-4 h-auto p-1 gap-1 bg-muted/50">
-              <TabsTrigger value="details" className="text-xs sm:text-sm px-3 py-1.5 h-auto">Notes & Images</TabsTrigger>
-              <TabsTrigger value="strategy" className="text-xs sm:text-sm px-3 py-1.5 h-auto">Strategy</TabsTrigger>
-              <TabsTrigger value="news" className="text-xs sm:text-sm px-3 py-1.5 h-auto">News</TabsTrigger>
-              <TabsTrigger value="timeframes" className="text-xs sm:text-sm px-3 py-1.5 h-auto">Timeframes</TabsTrigger>
-            </TabsList>
-          </div>
+          {/* Tabs Navigation */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+            <div className="px-4 sm:px-6 mt-4 shrink-0 overflow-x-auto pb-2 sm:pb-0">
+              <TabsList className="w-full sm:w-auto overflow-x-auto justify-start flex-nowrap sm:grid sm:grid-cols-4 h-auto p-1 gap-1 bg-muted/50">
+                <TabsTrigger value="details" className="text-xs sm:text-sm px-3 py-1.5 h-auto">Notes & Images</TabsTrigger>
+                <TabsTrigger value="strategy" className="text-xs sm:text-sm px-3 py-1.5 h-auto">Strategy</TabsTrigger>
+                <TabsTrigger value="news" className="text-xs sm:text-sm px-3 py-1.5 h-auto">News</TabsTrigger>
+                <TabsTrigger value="timeframes" className="text-xs sm:text-sm px-3 py-1.5 h-auto">Timeframes</TabsTrigger>
+              </TabsList>
+            </div>
 
-          <div className="flex-1 overflow-y-auto px-4 sm:px-6">
-            <div className="py-4">
-              {/* Tab 1: Notes & Images */}
-              <TabsContent value="details" className="mt-0 space-y-6 sm:space-y-8 px-1">
-                <TradeNotesTab
-                  control={control}
-                  cardPreviewImage={watchedValues.cardPreviewImage || null}
-                  images={{
-                    imageOne: watchedValues.imageOne || null,
-                    imageTwo: watchedValues.imageTwo || null,
-                    imageThree: watchedValues.imageThree || null,
-                    imageFour: watchedValues.imageFour || null,
-                    imageFive: watchedValues.imageFive || null,
-                    imageSix: watchedValues.imageSix || null,
-                  }}
-                  onUpload={(field, file) => handleImageUpload(field as 'cardPreviewImage' | 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix', file)}
-                  onRemove={(field) => {
-                    setValue(field as 'cardPreviewImage' | 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix', '')
-                    setImageErrors(prev => {
-                      const newErrors = { ...prev }
-                      delete newErrors[field]
-                      return newErrors
-                    })
-                  }}
-                  imageErrors={imageErrors}
-                  setImageError={(field, hasError) => setImageErrors(prev => ({ ...prev, [field]: hasError }))}
-                  uploadingField={uploadingField}
-                />
-              </TabsContent>
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6">
+              <div className="py-4">
+                {/* Tab 1: Notes & Images */}
+                <TabsContent value="details" className="mt-0 space-y-6 sm:space-y-8 px-1">
+                  <TradeNotesTab
+                    control={control}
+                    cardPreviewImage={watchedValues.cardPreviewImage || null}
+                    images={{
+                      imageOne: watchedValues.imageOne || null,
+                      imageTwo: watchedValues.imageTwo || null,
+                      imageThree: watchedValues.imageThree || null,
+                      imageFour: watchedValues.imageFour || null,
+                      imageFive: watchedValues.imageFive || null,
+                      imageSix: watchedValues.imageSix || null,
+                    }}
+                    onUpload={(field, file) => handleImageUpload(field as 'cardPreviewImage' | 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix', file)}
+                    onRemove={(field) => {
+                      setValue(field as 'cardPreviewImage' | 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix', '', { shouldDirty: true })
+                      setImageErrors(prev => {
+                        const newErrors = { ...prev }
+                        delete newErrors[field]
+                        return newErrors
+                      })
+                    }}
+                    imageErrors={imageErrors}
+                    setImageError={(field, hasError) => setImageErrors(prev => ({ ...prev, [field]: hasError }))}
+                    uploadingField={uploadingField}
+                  />
+                </TabsContent>
 
-              {/* Tab 2: Strategy & Context */}
-              <TabsContent value="strategy" className="mt-0 space-y-6 px-1">
-                <TradeStrategyTab
-                  marketBias={marketBias}
-                  setMarketBias={setMarketBias}
-                  orderType={orderType}
-                  setOrderType={setOrderType}
-                  selectedModelId={watchedValues.modelId || null}
-                  setModelId={(id) => {
-                    setValue('modelId', id)
-                    const model = tradingModels.find(m => m.id === id)
-                    setSelectedModel(model || null)
-                    if (id !== watchedValues.modelId) setSelectedRules([])
-                  }}
-                  tradingModels={tradingModels}
-                  selectedModel={selectedModel}
-                  setSelectedModel={setSelectedModel}
-                  selectedRules={selectedRules}
-                  setSelectedRules={setSelectedRules}
-                  selectedTags={selectedTags}
-                  setSelectedTags={setSelectedTags}
-                />
-              </TabsContent>
+                {/* Tab 2: Strategy & Context */}
+                <TabsContent value="strategy" className="mt-0 space-y-6 px-1">
+                  <TradeStrategyTab
+                    marketBias={marketBias}
+                    setMarketBias={setMarketBias}
+                    orderType={orderType}
+                    setOrderType={setOrderType}
+                    selectedModelId={watchedValues.modelId || null}
+                    setModelId={(id) => {
+                      setValue('modelId', id, { shouldDirty: true })
+                      const model = tradingModels.find(m => m.id === id)
+                      setSelectedModel(model || null)
+                      if (id !== watchedValues.modelId) setSelectedRules([])
+                    }}
+                    tradingModels={tradingModels}
+                    selectedModel={selectedModel}
+                    setSelectedModel={setSelectedModel}
+                    selectedRules={selectedRules}
+                    setSelectedRules={setSelectedRules}
+                    selectedTags={selectedTags}
+                    setSelectedTags={setSelectedTags}
+                  />
+                </TabsContent>
 
-              {/* Tab 3: News Events */}
-              <TabsContent value="news" className="mt-0 space-y-6 px-1">
-                <TradeNewsTab
-                  isNewsDay={isNewsDay}
-                  setIsNewsDay={(val) => {
-                    setIsNewsDay(val)
-                    if (!val) {
-                      setSelectedNewsEvents([])
-                      setNewsTraded(false)
-                    }
-                  }}
-                  newsSearchQuery={newsSearchQuery}
-                  setNewsSearchQuery={setNewsSearchQuery}
-                  filteredNewsEvents={filteredNewsEvents}
-                  selectedNewsEvents={selectedNewsEvents}
-                  setSelectedNewsEvents={setSelectedNewsEvents}
-                  newsTraded={newsTraded}
-                  setNewsTraded={setNewsTraded}
-                />
-              </TabsContent>
+                {/* Tab 3: News Events */}
+                <TabsContent value="news" className="mt-0 space-y-6 px-1">
+                  <TradeNewsTab
+                    isNewsDay={isNewsDay}
+                    setIsNewsDay={(val) => {
+                      setIsNewsDay(val)
+                      if (!val) {
+                        setSelectedNewsEvents([])
+                        setNewsTraded(false)
+                      }
+                    }}
+                    newsSearchQuery={newsSearchQuery}
+                    setNewsSearchQuery={setNewsSearchQuery}
+                    filteredNewsEvents={filteredNewsEvents}
+                    selectedNewsEvents={selectedNewsEvents}
+                    setSelectedNewsEvents={setSelectedNewsEvents}
+                    newsTraded={newsTraded}
+                    setNewsTraded={setNewsTraded}
+                  />
+                </TabsContent>
 
-              {/* Tab 4: Timeframes */}
-              <TabsContent value="timeframes" className="mt-0 space-y-6 sm:space-y-8 px-1">
-                <TradeTimeframesTab
-                  biasTimeframe={biasTimeframe}
-                  setBiasTimeframe={setBiasTimeframe}
-                  structureTimeframe={structureTimeframe}
-                  setStructureTimeframe={setStructureTimeframe}
-                  narrativeTimeframe={narrativeTimeframe}
-                  setNarrativeTimeframe={setNarrativeTimeframe}
-                  entryTimeframe={entryTimeframe}
-                  setEntryTimeframe={setEntryTimeframe}
-                  chartLinks={chartLinks}
-                  setChartLinks={setChartLinks}
-                />
-              </TabsContent>
+                {/* Tab 4: Timeframes */}
+                <TabsContent value="timeframes" className="mt-0 space-y-6 sm:space-y-8 px-1">
+                  <TradeTimeframesTab
+                    biasTimeframe={biasTimeframe}
+                    setBiasTimeframe={setBiasTimeframe}
+                    structureTimeframe={structureTimeframe}
+                    setStructureTimeframe={setStructureTimeframe}
+                    narrativeTimeframe={narrativeTimeframe}
+                    setNarrativeTimeframe={setNarrativeTimeframe}
+                    entryTimeframe={entryTimeframe}
+                    setEntryTimeframe={setEntryTimeframe}
+                    chartLinks={chartLinks}
+                    setChartLinks={setChartLinks}
+                  />
+                </TabsContent>
+              </div >
             </div >
-          </div >
-        </Tabs >
+          </Tabs >
 
-        {/* Footer */}
-        < DialogFooter className="px-4 sm:px-6 py-4 border-t shrink-0 flex-col-reverse sm:flex-row gap-2 sm:gap-0" >
-          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="w-full sm:w-auto">
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              'Save Changes'
-            )}
-          </Button>
-        </DialogFooter >
-      </DialogContent >
-    </Dialog >
+          {/* Footer */}
+          < DialogFooter className="px-4 sm:px-6 py-4 border-t shrink-0 flex-col-reverse sm:flex-row gap-2 sm:gap-0" >
+            <Button type="button" variant="outline" onClick={() => handleCloseAttempt(false)} disabled={isSubmitting} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="w-full sm:w-auto">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
+          </DialogFooter >
+        </DialogContent >
+      </Dialog >
+
+      <AlertDialog open={showUnsavedAlert} onOpenChange={setShowUnsavedAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes in your trade journal. Are you sure you want to discard them?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Editing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowUnsavedAlert(false)
+                onClose()
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
 

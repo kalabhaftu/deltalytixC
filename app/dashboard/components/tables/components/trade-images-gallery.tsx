@@ -2,7 +2,7 @@
 import React from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash2, Plus, X, Loader2 } from 'lucide-react'
+import { Pencil, Trash2, Plus, X, Loader2, Upload } from 'lucide-react'
 import { FileDropzone } from '@/components/ui/file-dropzone'
 
 export type ImageField = 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix'
@@ -83,7 +83,8 @@ export function TradeImagesGallery({
                                     }}
                                     accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'] }}
                                     className="h-full w-full bg-muted/10 hover:bg-muted/30 border-dashed"
-                                    icon={<Plus className="h-5 w-5 text-muted-foreground/30" />}
+                                    icon={<Upload className="h-4 w-4 text-muted-foreground/40 mb-1" />}
+                                    description="Drag or Click"
                                     disabled={uploadingField === field}
                                 />
                             )}

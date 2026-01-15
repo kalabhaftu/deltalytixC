@@ -5,6 +5,7 @@ import { Control, Controller } from 'react-hook-form'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Pencil, Trash2, Plus, X, Loader2 } from 'lucide-react'
+import { FileDropzone } from '@/components/ui/file-dropzone'
 import { TradeImagesGallery, ImageField } from './trade-images-gallery'
 
 interface TradeNotesTabProps {
@@ -108,20 +109,18 @@ export function TradeNotesTab({
                                 </div>
                             </>
                         ) : (
-                            <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-muted/50 transition-colors">
-                                <Plus className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                                <span className="text-xs text-muted-foreground">Upload preview</span>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) => {
-                                        const file = e.target.files?.[0]
-                                        if (file) onUpload('cardPreviewImage', file)
-                                    }}
-                                    disabled={uploadingField === 'cardPreviewImage'}
-                                />
-                            </label>
+                            <FileDropzone
+                                variant="default"
+                                onDrop={(files) => {
+                                    const file = files[0]
+                                    if (file) onUpload('cardPreviewImage', file)
+                                }}
+                                accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'] }}
+                                className="h-full border-none bg-transparent hover:bg-muted/10"
+                                description="Drag & drop or click to upload preview"
+                                icon={<Plus className="h-8 w-8 text-muted-foreground/40 mb-2" />}
+                                disabled={uploadingField === 'cardPreviewImage'}
+                            />
                         )}
                         {uploadingField === 'cardPreviewImage' && (
                             <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] flex items-center justify-center">
