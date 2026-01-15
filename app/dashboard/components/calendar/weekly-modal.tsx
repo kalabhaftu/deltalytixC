@@ -4,6 +4,16 @@ import React, { useState, useEffect, useMemo, useRef } from "react"
 import { format, startOfWeek, endOfWeek, parseISO } from "date-fns"
 import { enUS } from 'date-fns/locale'
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { CalendarData } from "@/app/dashboard/types/calendar"
 import { groupTradesByExecution, BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 import { Button } from "@/components/ui/button"
@@ -369,6 +379,50 @@ export function WeeklyModal({
     }
   }, [isOpen, imagePreview, setFiles])
 
+  // Safe Close Logic
+  const [showUnsavedAlert, setShowUnsavedAlert] = useState(false)
+  // Track the exact data state as confirmed by the server (initially or after save)
+  const lastSavedReviewData = useRef<any>(null)
+
+  // Update baseline when data is loaded (only if we haven't tracked it yet to avoid resetting on re-renders)
+  useEffect(() => {
+    if (reviewData && !isLoadingReview && !lastSavedReviewData.current) {
+      lastSavedReviewData.current = JSON.parse(JSON.stringify(reviewData))
+    }
+  }, [reviewData, isLoadingReview])
+
+  const handleCloseAttempt = (open: boolean) => {
+    if (!open) {
+      if (!reviewData) {
+        onOpenChange(false)
+        return
+      }
+
+      // Check for unsaved changes by comparing current state with last saved baseline
+      // We only care about user-editable fields
+      const current = reviewData
+      const saved = lastSavedReviewData.current || {}
+
+      const hasChanges =
+        (current.notes || '') !== (saved.notes || '') ||
+        (current.actualOutcome || '') !== (saved.actualOutcome || '') ||
+        (current.isCorrect !== saved.isCorrect) ||
+        // Check image: logic handles both URL strings (saved) and nulls
+        (current.calendarImage !== saved.calendarImage)
+
+      // Note: Expectation is auto-saved, so we don't block on it (refer to auto-save logic)
+
+      if (hasChanges) {
+        setShowUnsavedAlert(true)
+      } else {
+        onOpenChange(false)
+      }
+    } else {
+      onOpenChange(true)
+    }
+  }
+
+  // Update handleSave to update baseline
   const handleSave = async () => {
     if (!selectedDate) return
     setIsSaving(true)
@@ -398,6 +452,9 @@ export function WeeklyModal({
 
       if (result.success) {
         setReviewData(result.data)
+        // CRITICAL: Update baseline after successful save
+        lastSavedReviewData.current = JSON.parse(JSON.stringify(result.data))
+
         toast.success("Weekly review saved")
 
         // Clear upload state after successful save
@@ -420,6 +477,9 @@ export function WeeklyModal({
     }
   }
 
+  // Also need to update baseline when Expectation auto-saves
+  // We can modify the auto-save logic in the RadioGroup onValueChange
+
   if (!selectedDate || !isOpen) return null;
 
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 })
@@ -427,618 +487,654 @@ export function WeeklyModal({
   const dateRange = `${format(weekStart, 'MMM d', { locale: dateLocale })} - ${format(weekEnd, 'MMM d, yyyy', { locale: dateLocale })}`
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-6xl h-[90vh] p-0 flex flex-col overflow-hidden bg-background border-border shadow-2xl">
-        <DialogTitle className="sr-only">Weekly Review for {dateRange}</DialogTitle>
+    <>
+      <Dialog open={isOpen} onOpenChange={handleCloseAttempt}>
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-6xl h-[90vh] p-0 flex flex-col overflow-hidden bg-background border-border shadow-2xl">
+          <DialogTitle className="sr-only">Weekly Review for {dateRange}</DialogTitle>
 
-        {/* Hidden file input for replacement */}
-        <input
-          id="weekly-calendar-upload"
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleImageUpload}
-        />
+          {/* Hidden file input for replacement */}
+          <input
+            id="weekly-calendar-upload"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageUpload}
+          />
 
-        {/* Header */}
-        <div className="px-6 py-4 border-b shrink-0 bg-card">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <CalendarIcon className="h-5 w-5 text-primary" />
+          {/* Header */}
+          <div className="px-6 py-4 border-b shrink-0 bg-card">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <CalendarIcon className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold">{dateRange}</h2>
+                  <p className="text-sm text-muted-foreground">Weekly Performance Review</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-semibold">{dateRange}</h2>
-                <p className="text-sm text-muted-foreground">Weekly Performance Review</p>
-              </div>
+              <Button onClick={handleSave} disabled={isSaving || isUploading}>
+                {isSaving || isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Save Review
+              </Button>
             </div>
-            <Button onClick={handleSave} disabled={isSaving || isUploading}>
-              {isSaving || isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Save Review
-            </Button>
-          </div>
-        </div>
-
-        {/* Tabs Navigation */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <div className="px-6 border-b bg-muted/30">
-            <TabsList className="h-12 bg-transparent border-0 p-0 gap-6">
-              <TabsTrigger
-                value="overview"
-                className="h-12 px-1 border-0 bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-              >
-                Overview
-              </TabsTrigger>
-              <TabsTrigger
-                value="analysis"
-                className="h-12 px-1 border-0 bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-              >
-                Analysis
-              </TabsTrigger>
-              <TabsTrigger
-                value="calendar"
-                className="h-12 px-1 border-0 bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-              >
-                Calendar Image
-              </TabsTrigger>
-              <TabsTrigger
-                value="notes"
-                className="h-12 px-1 border-0 bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-              >
-                Notes
-              </TabsTrigger>
-            </TabsList>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-            {/* Overview Tab */}
-            <TabsContent value="overview" className="m-0 p-6 space-y-6">
-              {/* Key Metrics Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <MetricCard
-                  icon={BarChart3}
-                  label="Total P&L"
-                  value={`$${weeklyData.pnl.toFixed(2)}`}
-                  trend={weeklyData.pnl > 0 ? 'up' : weeklyData.pnl < 0 ? 'down' : 'neutral'}
-                />
-                <MetricCard
-                  icon={Target}
-                  label="Trades"
-                  value={weeklyData.tradeNumber}
-                  subValue={`${weeklyData.longNumber}L / ${weeklyData.shortNumber}S`}
-                />
-                <MetricCard
-                  icon={Percent}
-                  label="Win Rate"
-                  value={`${weeklyData.winRate.toFixed(1)}%`}
-                  subValue={`${weeklyData.winningTrades}W / ${weeklyData.losingTrades}L`}
-                  trend={weeklyData.winRate >= 50 ? 'up' : 'down'}
-                />
-                <MetricCard
-                  icon={TrendingUp}
-                  label="Avg Win"
-                  value={`$${weeklyData.avgWin.toFixed(2)}`}
-                  trend="up"
-                />
-                <MetricCard
-                  icon={TrendingDown}
-                  label="Avg Loss"
-                  value={`$${weeklyData.avgLoss.toFixed(2)}`}
-                  trend="down"
-                />
-                <MetricCard
-                  icon={Activity}
-                  label="Profit Factor"
-                  value={stats?.profitFactor === Infinity ? '∞' : stats?.profitFactor?.toFixed(2) || '0.00'}
-                  trend={stats && stats.profitFactor >= 1 ? 'up' : 'down'}
-                />
-              </div>
+          {/* Tabs Navigation */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+            <div className="px-6 border-b bg-muted/30">
+              <TabsList className="h-12 bg-transparent border-0 p-0 gap-6">
+                <TabsTrigger
+                  value="overview"
+                  className="h-12 px-1 border-0 bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                >
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger
+                  value="analysis"
+                  className="h-12 px-1 border-0 bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                >
+                  Analysis
+                </TabsTrigger>
+                <TabsTrigger
+                  value="calendar"
+                  className="h-12 px-1 border-0 bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                >
+                  Calendar Image
+                </TabsTrigger>
+                <TabsTrigger
+                  value="notes"
+                  className="h-12 px-1 border-0 bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                >
+                  Notes
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-              {/* Chart Section */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-primary" />
-                    Cumulative P&L
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 10, bottom: 5 }}>
-                        <defs>
-                          <linearGradient id="colorPnl" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} vertical={false} />
-                        <XAxis
-                          dataKey="label"
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                        />
-                        <YAxis
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                          tickFormatter={(value) => `$${value >= 1000 || value <= -1000 ? (value / 1000).toFixed(1) + 'k' : value.toFixed(0)}`}
-                          width={50}
-                        />
-                        <Tooltip
-                          content={({ active, payload }: any) => {
-                            if (active && payload && payload.length) {
-                              const data = payload[0].payload
-                              return (
-                                <div className="rounded-lg border bg-background p-3 shadow-lg">
-                                  <div className="text-xs text-muted-foreground mb-1">
-                                    {format(new Date(data.date + 'T00:00:00Z'), 'EEEE, MMM d', { locale: enUS })}
-                                  </div>
-                                  <div className="flex flex-col gap-1">
-                                    <div className="text-sm">
-                                      <span className="text-muted-foreground">Daily: </span>
-                                      <span className={cn("font-semibold", data.daily >= 0 ? 'text-long' : 'text-short')}>
-                                        ${data.daily?.toFixed(2)}
-                                      </span>
+            <div className="flex-1 overflow-y-auto">
+              {/* Overview Tab */}
+              <TabsContent value="overview" className="m-0 p-6 space-y-6">
+                {/* Key Metrics Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  <MetricCard
+                    icon={BarChart3}
+                    label="Total P&L"
+                    value={`$${weeklyData.pnl.toFixed(2)}`}
+                    trend={weeklyData.pnl > 0 ? 'up' : weeklyData.pnl < 0 ? 'down' : 'neutral'}
+                  />
+                  <MetricCard
+                    icon={Target}
+                    label="Trades"
+                    value={weeklyData.tradeNumber}
+                    subValue={`${weeklyData.longNumber}L / ${weeklyData.shortNumber}S`}
+                  />
+                  <MetricCard
+                    icon={Percent}
+                    label="Win Rate"
+                    value={`${weeklyData.winRate.toFixed(1)}%`}
+                    subValue={`${weeklyData.winningTrades}W / ${weeklyData.losingTrades}L`}
+                    trend={weeklyData.winRate >= 50 ? 'up' : 'down'}
+                  />
+                  <MetricCard
+                    icon={TrendingUp}
+                    label="Avg Win"
+                    value={`$${weeklyData.avgWin.toFixed(2)}`}
+                    trend="up"
+                  />
+                  <MetricCard
+                    icon={TrendingDown}
+                    label="Avg Loss"
+                    value={`$${weeklyData.avgLoss.toFixed(2)}`}
+                    trend="down"
+                  />
+                  <MetricCard
+                    icon={Activity}
+                    label="Profit Factor"
+                    value={stats?.profitFactor === Infinity ? '∞' : stats?.profitFactor?.toFixed(2) || '0.00'}
+                    trend={stats && stats.profitFactor >= 1 ? 'up' : 'down'}
+                  />
+                </div>
+
+                {/* Chart Section */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-primary" />
+                      Cumulative P&L
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[200px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 10, bottom: 5 }}>
+                          <defs>
+                            <linearGradient id="colorPnl" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} vertical={false} />
+                          <XAxis
+                            dataKey="label"
+                            tickLine={false}
+                            axisLine={false}
+                            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                          />
+                          <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                            tickFormatter={(value) => `$${value >= 1000 || value <= -1000 ? (value / 1000).toFixed(1) + 'k' : value.toFixed(0)}`}
+                            width={50}
+                          />
+                          <Tooltip
+                            content={({ active, payload }: any) => {
+                              if (active && payload && payload.length) {
+                                const data = payload[0].payload
+                                return (
+                                  <div className="rounded-lg border bg-background p-3 shadow-lg">
+                                    <div className="text-xs text-muted-foreground mb-1">
+                                      {format(new Date(data.date + 'T00:00:00Z'), 'EEEE, MMM d', { locale: enUS })}
                                     </div>
-                                    <div className="text-sm">
-                                      <span className="text-muted-foreground">Cumulative: </span>
-                                      <span className={cn("font-semibold", data.balance >= 0 ? 'text-long' : 'text-short')}>
-                                        ${data.balance?.toFixed(2)}
-                                      </span>
+                                    <div className="flex flex-col gap-1">
+                                      <div className="text-sm">
+                                        <span className="text-muted-foreground">Daily: </span>
+                                        <span className={cn("font-semibold", data.daily >= 0 ? 'text-long' : 'text-short')}>
+                                          ${data.daily?.toFixed(2)}
+                                        </span>
+                                      </div>
+                                      <div className="text-sm">
+                                        <span className="text-muted-foreground">Cumulative: </span>
+                                        <span className={cn("font-semibold", data.balance >= 0 ? 'text-long' : 'text-short')}>
+                                          ${data.balance?.toFixed(2)}
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              )
-                            }
-                            return null
-                          }}
-                        />
-                        <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" opacity={0.5} />
-                        <Area
-                          type="monotone"
-                          dataKey="balance"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth={2}
-                          fill="url(#colorPnl)"
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                                )
+                              }
+                              return null
+                            }}
+                          />
+                          <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" opacity={0.5} />
+                          <Area
+                            type="monotone"
+                            dataKey="balance"
+                            stroke="hsl(var(--primary))"
+                            strokeWidth={2}
+                            fill="url(#colorPnl)"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Quick Stats */}
+                {stats && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="h-4 w-4 text-long" />
+                        <span className="text-sm font-medium">Best Day</span>
+                      </div>
+                      <div className="text-lg font-bold">{stats.bestDay ? stats.bestDay[0] : 'N/A'}</div>
+                      <div className="text-sm text-long">
+                        {stats.bestDay ? `+$${stats.bestDay[1].pnl.toFixed(2)}` : '$0.00'}
+                      </div>
+                    </Card>
+
+                    <Card className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingDown className="h-4 w-4 text-short" />
+                        <span className="text-sm font-medium">Worst Day</span>
+                      </div>
+                      <div className="text-lg font-bold">{stats.worstDay ? stats.worstDay[0] : 'N/A'}</div>
+                      <div className="text-sm text-short">
+                        {stats.worstDay ? `$${stats.worstDay[1].pnl.toFixed(2)}` : '$0.00'}
+                      </div>
+                    </Card>
+
+                    <Card className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Target className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">Top Instrument</span>
+                      </div>
+                      <div className="text-lg font-bold">{stats.bestPair ? stats.bestPair[0] : 'N/A'}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {stats.bestPair ? `$${stats.bestPair[1].pnl.toFixed(2)} (${stats.bestPair[1].trades} trades)` : '0 trades'}
+                      </div>
+                    </Card>
+
+                    <Card className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Clock className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">Best Session</span>
+                      </div>
+                      <div className="text-lg font-bold">{stats.bestSession ? stats.bestSession[0] : 'N/A'}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {stats.bestSession ? `$${stats.bestSession[1].pnl.toFixed(2)} (${stats.bestSession[1].trades} trades)` : '0 trades'}
+                      </div>
+                    </Card>
                   </div>
-                </CardContent>
-              </Card>
+                )}
+              </TabsContent>
 
-              {/* Quick Stats */}
-              {stats && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <Card className="p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <TrendingUp className="h-4 w-4 text-long" />
-                      <span className="text-sm font-medium">Best Day</span>
-                    </div>
-                    <div className="text-lg font-bold">{stats.bestDay ? stats.bestDay[0] : 'N/A'}</div>
-                    <div className="text-sm text-long">
-                      {stats.bestDay ? `+$${stats.bestDay[1].pnl.toFixed(2)}` : '$0.00'}
-                    </div>
+              {/* Analysis Tab */}
+              <TabsContent value="analysis" className="m-0 p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Weekly Expectation */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-primary" />
+                        Weekly Expectation
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <RadioGroup
+                        value={reviewData?.expectation || ''}
+                        onValueChange={(val) => {
+                          if (!selectedDate) return
+
+                          // Create updated review data object with new expectation
+                          // This ensures we use the latest values, not stale closure values
+                          const updatedReviewData = {
+                            ...(reviewData || {}),
+                            expectation: val as WeeklyExpectation
+                          }
+
+                          // Update local state immediately for instant feedback
+                          setReviewData(updatedReviewData)
+
+                          // Auto-save expectation immediately for better UX
+                          // Use a request counter to prevent race conditions
+                          const currentRequest = ++saveRequestRef.current
+                          const savedExpectation = val as WeeklyExpectation
+                          const saveExpectation = async () => {
+                            try {
+                              // Read latest state from ref to avoid stale values from rapid changes
+                              // This ensures we always save the most current state, not the state at change time
+                              const latestReviewData = reviewDataRef.current
+
+                              const result = await saveWeeklyReview({
+                                startDate: startOfWeek(selectedDate),
+                                endDate: endOfWeek(selectedDate),
+                                expectation: savedExpectation, // Use the saved expectation value
+                                actualOutcome: latestReviewData?.actualOutcome,
+                                isCorrect: latestReviewData?.isCorrect,
+                                notes: latestReviewData?.notes,
+                                calendarImage: latestReviewData?.calendarImage
+                              })
+
+                              // Only update state if this is still the latest request
+                              // This prevents older saves from overwriting newer selections
+                              if (result.success && result.data && currentRequest === saveRequestRef.current) {
+                                const savedData = result.data
+
+                                // CRITICAL: Update baseline since we successfully auto-saved
+                                // This ensures checking for dirty state later works correctly
+                                if (lastSavedReviewData.current) {
+                                  lastSavedReviewData.current = JSON.parse(JSON.stringify(savedData))
+                                }
+
+                                // Merge server response with current state to preserve concurrent local changes
+                                // Only update the field that was auto-saved (expectation), preserve other local changes
+                                setReviewData((prev: any) => {
+                                  if (!prev) {
+                                    // If no previous state, use server response
+                                    return { ...savedData, expectation: savedExpectation }
+                                  }
+
+                                  // Merge: use server data as base, but preserve local changes for non-saved fields
+                                  // Check if property exists in prev (not just truthy) to preserve falsy values
+                                  return {
+                                    ...savedData,
+                                    expectation: savedExpectation, // Always use the saved value
+                                    // Preserve local changes if they exist in prev (including falsy values)
+                                    actualOutcome: 'actualOutcome' in prev ? prev.actualOutcome : (savedData?.actualOutcome ?? undefined),
+                                    isCorrect: 'isCorrect' in prev ? prev.isCorrect : (savedData?.isCorrect ?? undefined),
+                                    notes: 'notes' in prev ? prev.notes : (savedData?.notes ?? undefined),
+                                    calendarImage: 'calendarImage' in prev ? prev.calendarImage : (savedData?.calendarImage ?? undefined)
+                                  }
+                                })
+                              }
+                            } catch (error) {
+                              // Silent fail - will be saved when user clicks save button
+                              console.error('Failed to auto-save expectation:', error)
+                            }
+                          }
+                          saveExpectation()
+                        }}
+                        className="space-y-3"
+                      >
+                        <label className={cn(
+                          "relative flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                          reviewData?.expectation === 'BULLISH_EXPANSION'
+                            ? "border-long bg-long/10 shadow-md ring-2 ring-long/20"
+                            : "border-border hover:border-long/50 hover:bg-muted/30"
+                        )}>
+                          <RadioGroupItem value="BULLISH_EXPANSION" id="bullish" className="sr-only" />
+                          <div className={cn(
+                            "p-2 rounded-lg transition-all",
+                            reviewData?.expectation === 'BULLISH_EXPANSION'
+                              ? "bg-long/20"
+                              : "bg-long/10"
+                          )}>
+                            <TrendingUp className="h-4 w-4 text-long" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium">Bullish Expansion</div>
+                            <div className="text-xs text-muted-foreground">Expecting upward price movement</div>
+                          </div>
+                          {reviewData?.expectation === 'BULLISH_EXPANSION' && (
+                            <CheckCircle2 className="h-5 w-5 text-long" />
+                          )}
+                        </label>
+
+                        <label className={cn(
+                          "relative flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                          reviewData?.expectation === 'BEARISH_EXPANSION'
+                            ? "border-short bg-short/10 shadow-md ring-2 ring-short/20"
+                            : "border-border hover:border-short/50 hover:bg-muted/30"
+                        )}>
+                          <RadioGroupItem value="BEARISH_EXPANSION" id="bearish" className="sr-only" />
+                          <div className={cn(
+                            "p-2 rounded-lg transition-all",
+                            reviewData?.expectation === 'BEARISH_EXPANSION'
+                              ? "bg-short/20"
+                              : "bg-short/10"
+                          )}>
+                            <TrendingDown className="h-4 w-4 text-short" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium">Bearish Expansion</div>
+                            <div className="text-xs text-muted-foreground">Expecting downward price movement</div>
+                          </div>
+                          {reviewData?.expectation === 'BEARISH_EXPANSION' && (
+                            <CheckCircle2 className="h-5 w-5 text-short" />
+                          )}
+                        </label>
+
+                        <label className={cn(
+                          "relative flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                          reviewData?.expectation === 'CONSOLIDATION'
+                            ? "border-primary bg-primary/10 shadow-md ring-2 ring-primary/20"
+                            : "border-border hover:border-primary/50 hover:bg-muted/30"
+                        )}>
+                          <RadioGroupItem value="CONSOLIDATION" id="consolidation" className="sr-only" />
+                          <div className={cn(
+                            "p-2 rounded-lg transition-all",
+                            reviewData?.expectation === 'CONSOLIDATION'
+                              ? "bg-primary/20"
+                              : "bg-primary/10"
+                          )}>
+                            <Activity className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium">Consolidation</div>
+                            <div className="text-xs text-muted-foreground">Expecting range-bound movement</div>
+                          </div>
+                          {reviewData?.expectation === 'CONSOLIDATION' && (
+                            <CheckCircle2 className="h-5 w-5 text-primary" />
+                          )}
+                        </label>
+                      </RadioGroup>
+                    </CardContent>
                   </Card>
 
-                  <Card className="p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <TrendingDown className="h-4 w-4 text-short" />
-                      <span className="text-sm font-medium">Worst Day</span>
-                    </div>
-                    <div className="text-lg font-bold">{stats.worstDay ? stats.worstDay[0] : 'N/A'}</div>
-                    <div className="text-sm text-short">
-                      {stats.worstDay ? `$${stats.worstDay[1].pnl.toFixed(2)}` : '$0.00'}
-                    </div>
-                  </Card>
+                  {/* Actual Outcome */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Target className="h-4 w-4 text-primary" />
+                        Actual Outcome
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Was expectation correct?</Label>
+                        <div className="flex gap-3">
+                          <Button
+                            type="button"
+                            variant={reviewData?.isCorrect === true ? "default" : "outline"}
+                            className={cn(
+                              "flex-1 h-12",
+                              reviewData?.isCorrect === true && "bg-long hover:bg-long/90 border-long"
+                            )}
+                            onClick={() => setReviewData({ ...reviewData, isCorrect: true })}
+                          >
+                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                            Correct
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={reviewData?.isCorrect === false ? "destructive" : "outline"}
+                            className="flex-1 h-12"
+                            onClick={() => setReviewData({ ...reviewData, isCorrect: false })}
+                          >
+                            <XCircle className="mr-2 h-4 w-4" />
+                            Incorrect
+                          </Button>
+                        </div>
+                      </div>
 
-                  <Card className="p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Target className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Top Instrument</span>
-                    </div>
-                    <div className="text-lg font-bold">{stats.bestPair ? stats.bestPair[0] : 'N/A'}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {stats.bestPair ? `$${stats.bestPair[1].pnl.toFixed(2)} (${stats.bestPair[1].trades} trades)` : '0 trades'}
-                    </div>
-                  </Card>
+                      <Separator />
 
-                  <Card className="p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Clock className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Best Session</span>
-                    </div>
-                    <div className="text-lg font-bold">{stats.bestSession ? stats.bestSession[0] : 'N/A'}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {stats.bestSession ? `$${stats.bestSession[1].pnl.toFixed(2)} (${stats.bestSession[1].trades} trades)` : '0 trades'}
-                    </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Actual Market Behavior</Label>
+                        <Select
+                          value={reviewData?.actualOutcome || ''}
+                          onValueChange={(val) => setReviewData({ ...reviewData, actualOutcome: val })}
+                        >
+                          <SelectTrigger className="h-12">
+                            <SelectValue placeholder="Select actual outcome" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="BULLISH_EXPANSION">
+                              <div className="flex items-center gap-2">
+                                <TrendingUp className="h-4 w-4 text-long" />
+                                Bullish Expansion
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="BEARISH_EXPANSION">
+                              <div className="flex items-center gap-2">
+                                <TrendingDown className="h-4 w-4 text-short" />
+                                Bearish Expansion
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="CONSOLIDATION">
+                              <div className="flex items-center gap-2">
+                                <Activity className="h-4 w-4 text-primary" />
+                                Consolidation
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
                   </Card>
                 </div>
-              )}
-            </TabsContent>
 
-            {/* Analysis Tab */}
-            <TabsContent value="analysis" className="m-0 p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Weekly Expectation */}
+                {/* Instrument Breakdown */}
+                {stats && stats.pairStats.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Instrument Breakdown</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {stats.pairStats.map(([pair, data]) => (
+                          <div key={pair} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                            <div className="flex items-center gap-3">
+                              <div className="font-medium">{pair}</div>
+                              <Badge variant="secondary" className="text-xs">
+                                {data.trades} trades
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <span className="text-xs text-muted-foreground">
+                                {((data.wins / data.trades) * 100).toFixed(0)}% WR
+                              </span>
+                              <span className={cn(
+                                "font-semibold",
+                                data.pnl >= 0 ? 'text-long' : 'text-short'
+                              )}>
+                                {data.pnl >= 0 ? '+' : ''}${data.pnl.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              {/* Calendar Image Tab */}
+              <TabsContent value="calendar" className="m-0 p-6">
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-primary" />
-                      Weekly Expectation
+                    <CardTitle className="text-sm font-medium flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4 text-primary" />
+                        Economic Calendar Screenshot
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {(reviewData?.calendarImage || imagePreview) && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={handleRemoveImage}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-3"
+                              onClick={handleReplaceImage}
+                            >
+                              <Upload className="h-4 w-4 mr-1" />
+                              Replace
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <RadioGroup
-                      value={reviewData?.expectation || ''}
-                      onValueChange={(val) => {
-                        if (!selectedDate) return
-
-                        // Create updated review data object with new expectation
-                        // This ensures we use the latest values, not stale closure values
-                        const updatedReviewData = {
-                          ...(reviewData || {}),
-                          expectation: val as WeeklyExpectation
-                        }
-
-                        // Update local state immediately for instant feedback
-                        setReviewData(updatedReviewData)
-
-                        // Auto-save expectation immediately for better UX
-                        // Use a request counter to prevent race conditions
-                        const currentRequest = ++saveRequestRef.current
-                        const savedExpectation = val as WeeklyExpectation
-                        const saveExpectation = async () => {
-                          try {
-                            // Read latest state from ref to avoid stale values from rapid changes
-                            // This ensures we always save the most current state, not the state at change time
-                            const latestReviewData = reviewDataRef.current
-
-                            const result = await saveWeeklyReview({
-                              startDate: startOfWeek(selectedDate),
-                              endDate: endOfWeek(selectedDate),
-                              expectation: savedExpectation, // Use the saved expectation value
-                              actualOutcome: latestReviewData?.actualOutcome,
-                              isCorrect: latestReviewData?.isCorrect,
-                              notes: latestReviewData?.notes,
-                              calendarImage: latestReviewData?.calendarImage
-                            })
-
-                            // Only update state if this is still the latest request
-                            // This prevents older saves from overwriting newer selections
-                            if (result.success && result.data && currentRequest === saveRequestRef.current) {
-                              const savedData = result.data
-                              // Merge server response with current state to preserve concurrent local changes
-                              // Only update the field that was auto-saved (expectation), preserve other local changes
-                              setReviewData((prev: any) => {
-                                if (!prev) {
-                                  // If no previous state, use server response
-                                  return { ...savedData, expectation: savedExpectation }
-                                }
-
-                                // Merge: use server data as base, but preserve local changes for non-saved fields
-                                // Check if property exists in prev (not just truthy) to preserve falsy values
-                                return {
-                                  ...savedData,
-                                  expectation: savedExpectation, // Always use the saved value
-                                  // Preserve local changes if they exist in prev (including falsy values)
-                                  actualOutcome: 'actualOutcome' in prev ? prev.actualOutcome : (savedData?.actualOutcome ?? undefined),
-                                  isCorrect: 'isCorrect' in prev ? prev.isCorrect : (savedData?.isCorrect ?? undefined),
-                                  notes: 'notes' in prev ? prev.notes : (savedData?.notes ?? undefined),
-                                  calendarImage: 'calendarImage' in prev ? prev.calendarImage : (savedData?.calendarImage ?? undefined)
-                                }
-                              })
-                            }
-                          } catch (error) {
-                            // Silent fail - will be saved when user clicks save button
-                            console.error('Failed to auto-save expectation:', error)
-                          }
-                        }
-                        saveExpectation()
-                      }}
-                      className="space-y-3"
-                    >
-                      <label className={cn(
-                        "relative flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                        reviewData?.expectation === 'BULLISH_EXPANSION'
-                          ? "border-long bg-long/10 shadow-md ring-2 ring-long/20"
-                          : "border-border hover:border-long/50 hover:bg-muted/30"
-                      )}>
-                        <RadioGroupItem value="BULLISH_EXPANSION" id="bullish" className="sr-only" />
-                        <div className={cn(
-                          "p-2 rounded-lg transition-all",
-                          reviewData?.expectation === 'BULLISH_EXPANSION'
-                            ? "bg-long/20"
-                            : "bg-long/10"
-                        )}>
-                          <TrendingUp className="h-4 w-4 text-long" />
+                  <CardContent className="p-0">
+                    <div className="bg-muted/30 relative min-h-[400px] flex items-center justify-center">
+                      {(imagePreview || reviewData?.calendarImage) && !imageLoadError ? (
+                        <div className="relative w-full h-full flex items-center justify-center p-4">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={imagePreview || reviewData?.calendarImage}
+                            alt="Economic Calendar"
+                            className="w-full h-full object-contain max-h-[500px] rounded-md"
+                            onError={(e) => {
+                              setImageLoadError(true)
+                              toast.error("Failed to load saved image. Please upload a new one.")
+                            }}
+                          />
+                          {imagePreview && (
+                            <div className="absolute top-6 left-6">
+                              <Badge className="bg-primary text-primary-foreground">
+                                New Upload (Click Save)
+                              </Badge>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex-1">
-                          <div className="font-medium">Bullish Expansion</div>
-                          <div className="text-xs text-muted-foreground">Expecting upward price movement</div>
+                      ) : imageLoadError ? (
+                        <div className="flex flex-col items-center justify-center text-muted-foreground py-12">
+                          <XCircle className="h-12 w-12 text-destructive mb-4" />
+                          <p className="text-sm font-medium mb-2">Failed to load saved image</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setImageLoadError(false)
+                              setReviewData({ ...reviewData, calendarImage: null })
+                              document.getElementById('weekly-calendar-upload')?.click()
+                            }}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload New Image
+                          </Button>
                         </div>
-                        {reviewData?.expectation === 'BULLISH_EXPANSION' && (
-                          <CheckCircle2 className="h-5 w-5 text-long" />
-                        )}
-                      </label>
-
-                      <label className={cn(
-                        "relative flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                        reviewData?.expectation === 'BEARISH_EXPANSION'
-                          ? "border-short bg-short/10 shadow-md ring-2 ring-short/20"
-                          : "border-border hover:border-short/50 hover:bg-muted/30"
-                      )}>
-                        <RadioGroupItem value="BEARISH_EXPANSION" id="bearish" className="sr-only" />
-                        <div className={cn(
-                          "p-2 rounded-lg transition-all",
-                          reviewData?.expectation === 'BEARISH_EXPANSION'
-                            ? "bg-short/20"
-                            : "bg-short/10"
-                        )}>
-                          <TrendingDown className="h-4 w-4 text-short" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium">Bearish Expansion</div>
-                          <div className="text-xs text-muted-foreground">Expecting downward price movement</div>
-                        </div>
-                        {reviewData?.expectation === 'BEARISH_EXPANSION' && (
-                          <CheckCircle2 className="h-5 w-5 text-short" />
-                        )}
-                      </label>
-
-                      <label className={cn(
-                        "relative flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                        reviewData?.expectation === 'CONSOLIDATION'
-                          ? "border-primary bg-primary/10 shadow-md ring-2 ring-primary/20"
-                          : "border-border hover:border-primary/50 hover:bg-muted/30"
-                      )}>
-                        <RadioGroupItem value="CONSOLIDATION" id="consolidation" className="sr-only" />
-                        <div className={cn(
-                          "p-2 rounded-lg transition-all",
-                          reviewData?.expectation === 'CONSOLIDATION'
-                            ? "bg-primary/20"
-                            : "bg-primary/10"
-                        )}>
-                          <Activity className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium">Consolidation</div>
-                          <div className="text-xs text-muted-foreground">Expecting range-bound movement</div>
-                        </div>
-                        {reviewData?.expectation === 'CONSOLIDATION' && (
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                        )}
-                      </label>
-                    </RadioGroup>
+                      ) : (
+                        <label
+                          htmlFor="weekly-calendar-upload"
+                          className="flex flex-col items-center justify-center text-muted-foreground py-16 cursor-pointer hover:bg-muted/50 transition-colors w-full h-full"
+                        >
+                          <div className="p-4 rounded-full bg-muted mb-4">
+                            <ImageIcon className="h-8 w-8 opacity-50" />
+                          </div>
+                          <span className="text-sm font-medium mb-1">Upload weekly calendar screenshot</span>
+                          <span className="text-xs opacity-70">Click to browse or drag and drop</span>
+                          <span className="text-xs opacity-50 mt-2">Supports: JPG, PNG, WebP (Max 1MB)</span>
+                        </label>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
 
-                {/* Actual Outcome */}
+              {/* Notes Tab */}
+              <TabsContent value="notes" className="m-0 p-6">
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium flex items-center gap-2">
                       <Target className="h-4 w-4 text-primary" />
-                      Actual Outcome
+                      Weekly Notes
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Was expectation correct?</Label>
-                      <div className="flex gap-3">
-                        <Button
-                          type="button"
-                          variant={reviewData?.isCorrect === true ? "default" : "outline"}
-                          className={cn(
-                            "flex-1 h-12",
-                            reviewData?.isCorrect === true && "bg-long hover:bg-long/90 border-long"
-                          )}
-                          onClick={() => setReviewData({ ...reviewData, isCorrect: true })}
-                        >
-                          <CheckCircle2 className="mr-2 h-4 w-4" />
-                          Correct
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={reviewData?.isCorrect === false ? "destructive" : "outline"}
-                          className="flex-1 h-12"
-                          onClick={() => setReviewData({ ...reviewData, isCorrect: false })}
-                        >
-                          <XCircle className="mr-2 h-4 w-4" />
-                          Incorrect
-                        </Button>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Actual Market Behavior</Label>
-                      <Select
-                        value={reviewData?.actualOutcome || ''}
-                        onValueChange={(val) => setReviewData({ ...reviewData, actualOutcome: val })}
-                      >
-                        <SelectTrigger className="h-12">
-                          <SelectValue placeholder="Select actual outcome" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="BULLISH_EXPANSION">
-                            <div className="flex items-center gap-2">
-                              <TrendingUp className="h-4 w-4 text-long" />
-                              Bullish Expansion
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="BEARISH_EXPANSION">
-                            <div className="flex items-center gap-2">
-                              <TrendingDown className="h-4 w-4 text-short" />
-                              Bearish Expansion
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="CONSOLIDATION">
-                            <div className="flex items-center gap-2">
-                              <Activity className="h-4 w-4 text-primary" />
-                              Consolidation
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Instrument Breakdown */}
-              {stats && stats.pairStats.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Instrument Breakdown</CardTitle>
-                  </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
-                      {stats.pairStats.map(([pair, data]) => (
-                        <div key={pair} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                          <div className="flex items-center gap-3">
-                            <div className="font-medium">{pair}</div>
-                            <Badge variant="secondary" className="text-xs">
-                              {data.trades} trades
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <span className="text-xs text-muted-foreground">
-                              {((data.wins / data.trades) * 100).toFixed(0)}% WR
-                            </span>
-                            <span className={cn(
-                              "font-semibold",
-                              data.pnl >= 0 ? 'text-long' : 'text-short'
-                            )}>
-                              {data.pnl >= 0 ? '+' : ''}${data.pnl.toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <Textarea
+                      placeholder="Write your weekly notes, observations, lessons learned..."
+                      className="min-h-[300px] resize-none"
+                      value={reviewData?.notes || ''}
+                      onChange={(e) => setReviewData({ ...reviewData, notes: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Document key takeaways, mistakes to avoid, and strategies that worked well this week.
+                    </p>
                   </CardContent>
                 </Card>
-              )}
-            </TabsContent>
+              </TabsContent>
+            </div>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
 
-            {/* Calendar Image Tab */}
-            <TabsContent value="calendar" className="m-0 p-6">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <ImageIcon className="h-4 w-4 text-primary" />
-                      Economic Calendar Screenshot
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {(reviewData?.calendarImage || imagePreview) && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={handleRemoveImage}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-3"
-                            onClick={handleReplaceImage}
-                          >
-                            <Upload className="h-4 w-4 mr-1" />
-                            Replace
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="bg-muted/30 relative min-h-[400px] flex items-center justify-center">
-                    {(imagePreview || reviewData?.calendarImage) && !imageLoadError ? (
-                      <div className="relative w-full h-full flex items-center justify-center p-4">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={imagePreview || reviewData?.calendarImage}
-                          alt="Economic Calendar"
-                          className="w-full h-full object-contain max-h-[500px] rounded-md"
-                          onError={(e) => {
-                            setImageLoadError(true)
-                            toast.error("Failed to load saved image. Please upload a new one.")
-                          }}
-                        />
-                        {imagePreview && (
-                          <div className="absolute top-6 left-6">
-                            <Badge className="bg-primary text-primary-foreground">
-                              New Upload (Click Save)
-                            </Badge>
-                          </div>
-                        )}
-                      </div>
-                    ) : imageLoadError ? (
-                      <div className="flex flex-col items-center justify-center text-muted-foreground py-12">
-                        <XCircle className="h-12 w-12 text-destructive mb-4" />
-                        <p className="text-sm font-medium mb-2">Failed to load saved image</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setImageLoadError(false)
-                            setReviewData({ ...reviewData, calendarImage: null })
-                            document.getElementById('weekly-calendar-upload')?.click()
-                          }}
-                        >
-                          <Upload className="h-4 w-4 mr-2" />
-                          Upload New Image
-                        </Button>
-                      </div>
-                    ) : (
-                      <label
-                        htmlFor="weekly-calendar-upload"
-                        className="flex flex-col items-center justify-center text-muted-foreground py-16 cursor-pointer hover:bg-muted/50 transition-colors w-full h-full"
-                      >
-                        <div className="p-4 rounded-full bg-muted mb-4">
-                          <ImageIcon className="h-8 w-8 opacity-50" />
-                        </div>
-                        <span className="text-sm font-medium mb-1">Upload weekly calendar screenshot</span>
-                        <span className="text-xs opacity-70">Click to browse or drag and drop</span>
-                        <span className="text-xs opacity-50 mt-2">Supports: JPG, PNG, WebP (Max 1MB)</span>
-                      </label>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Notes Tab */}
-            <TabsContent value="notes" className="m-0 p-6">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Target className="h-4 w-4 text-primary" />
-                    Weekly Notes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Textarea
-                    placeholder="Write your weekly notes, observations, lessons learned..."
-                    className="min-h-[300px] resize-none"
-                    value={reviewData?.notes || ''}
-                    onChange={(e) => setReviewData({ ...reviewData, notes: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Document key takeaways, mistakes to avoid, and strategies that worked well this week.
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </div>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+      <AlertDialog open={showUnsavedAlert} onOpenChange={setShowUnsavedAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes in your weekly review. Are you sure you want to discard them?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Editing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowUnsavedAlert(false)
+                // Reset to baseline derived from lastSavedReviewData
+                if (lastSavedReviewData.current) {
+                  setReviewData(JSON.parse(JSON.stringify(lastSavedReviewData.current)))
+                }
+                onOpenChange(false)
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

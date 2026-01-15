@@ -18,6 +18,16 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -145,16 +155,68 @@ export function EditBacktestDialog({
     }
   }
 
-  const handleClose = () => {
-    reset()
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+
+  const handleCloseAttempt = (openState: boolean) => {
+    if (!openState) {
+      // Check if dirty
+      // Note: react-hook-form's isDirty isn't always reliable with complex objects or if fields are touched but value is same
+      // But we can use it as a base. 
+      // Also check if image count changed or preview changed
+      // Simplified: we'll trust useForm's isDirty + check local state
+
+      const hasUnsavedChanges = Object.keys(errors).length > 0 || // If errors, maybe they tried to submit changed data
+        JSON.stringify(watch()) !== JSON.stringify({
+          notes: backtest!.notes || '',
+          tags: backtest!.tags?.join(', ') || '',
+          model: backtest!.model,
+          customModel: backtest!.customModel || '',
+        }) ||
+        images.length !== (backtest!.images?.length || 0) ||
+        cardPreview !== (backtest!.cardPreviewImage || '')
+
+      if (hasUnsavedChanges && !isSubmitting) {
+        setShowCloseConfirm(true)
+        return
+      }
+    }
+
+    // Normal close
     onClose()
+    reset()
+    setFullscreenImage(null)
+  }
+
+  const handleConfirmClose = () => {
+    setShowCloseConfirm(false)
+    onClose()
+    reset()
+    setFullscreenImage(null) // Ensure this is cleared
   }
 
   if (!backtest) return null
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={handleClose}>
+
+      <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes in your backtest editing. Are you sure you want to discard them?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Editing</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmClose} className="bg-destructive hover:bg-destructive/90">
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={isOpen} onOpenChange={handleCloseAttempt}>
         <DialogContent className="w-full max-w-[95vw] sm:max-w-5xl h-[90vh] max-h-[90vh] overflow-y-auto z-[10000] p-4 sm:p-6 bg-background border-border shadow-lg duration-200 flex flex-col gap-0">
           <DialogHeader>
             <DialogTitle className="flex items-center text-base sm:text-lg">
@@ -437,7 +499,7 @@ export function EditBacktestDialog({
 
             {/* Form Actions */}
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={handleClose}>
+              <Button type="button" variant="outline" onClick={() => handleCloseAttempt(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>

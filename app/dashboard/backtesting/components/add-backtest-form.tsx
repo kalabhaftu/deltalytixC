@@ -68,6 +68,7 @@ type BacktestFormValues = ManualBacktestFormValues | SimpleBacktestFormValues
 
 interface AddBacktestFormProps {
   onAdd?: (backtest: any) => void
+  onDirtyChange?: (isDirty: boolean) => void
 }
 
 // Common trading instruments with their typical price ranges
@@ -107,7 +108,7 @@ const COMMON_INSTRUMENTS = [
   { symbol: 'ETH/USD', category: 'Crypto', placeholder: '2250.00' },
 ]
 
-export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
+export function AddBacktestForm({ onAdd, onDirtyChange }: AddBacktestFormProps) {
   const [images, setImages] = useState<string[]>([])
   const [cardPreview, setCardPreview] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -123,7 +124,7 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
     watch,
     setValue,
     reset,
-    formState: { errors }
+    formState: { errors, isDirty }
   } = useForm<any>({
     resolver: zodResolver(inputMode === 'manual' ? manualBacktestSchema : simpleBacktestSchema),
     defaultValues: {
@@ -133,6 +134,14 @@ export function AddBacktestForm({ onAdd }: AddBacktestFormProps) {
       outcome: 'WIN',
     }
   })
+
+  // Propagate dirty state to parent
+  useEffect(() => {
+    if (onDirtyChange) {
+      const hasImages = images.length > 0 || !!cardPreview
+      onDirtyChange(isDirty || hasImages)
+    }
+  }, [isDirty, images, cardPreview, onDirtyChange])
 
   const watchedModel = watch('model')
   const watchedDirection = watch('direction')

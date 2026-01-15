@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "react"
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, getYear } from "date-fns"
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, getYear, startOfWeek, endOfWeek } from "date-fns"
 import { formatInTimeZone } from 'date-fns-tz'
 import { enUS } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Camera, TrendingUp, TrendingDown, Image as ImageIcon } from "lucide-react"
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CalendarModal } from "./daily-modal"
+import { WeeklyModal } from "./weekly-modal"
 import { useCalendarViewStore } from "@/store/calendar-view"
 import { useCalendarNotes } from "@/app/dashboard/hooks/use-calendar-notes"
 import { useUserStore } from "@/store/user-store"
@@ -20,7 +21,7 @@ import { CalendarData } from "@/app/dashboard/types/calendar"
 // New Components
 import MonthlyView from "./monthly-view"
 import YearlyView from "./yearly-view"
-import { StatsFilter } from "./stats-filter"
+import { CalendarSettings } from "./calendar-settings"
 
 const formatCompact = (value: number) => {
   if (Math.abs(value) >= 1000) return `$${(value / 1000).toFixed(1)}k`
@@ -41,6 +42,10 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
   const calendarRef = useRef<HTMLDivElement>(null)
 
   const { refetchNotes } = useCalendarNotes()
+
+  // View Store
+  const { viewMode, setViewMode, selectedDate, setSelectedDate, selectedWeekDate, setSelectedWeekDate, screenshotWithGradient, setScreenshotWithGradient } = useCalendarViewStore()
+  const [showWeeklyModal, setShowWeeklyModal] = useState(false)
 
   useEffect(() => {
     const handleNotesSaved = () => refetchNotes()
@@ -85,8 +90,6 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
     return data
   }, [formattedTrades])
 
-  // View Store
-  const { viewMode, setViewMode, selectedDate, setSelectedDate, screenshotWithGradient, setScreenshotWithGradient } = useCalendarViewStore()
 
   const handleScreenshot = useCallback(async () => {
     if (!calendarRef.current) return
@@ -232,9 +235,7 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-            {/* Stats Filter (Only for Monthly View) */}
-            {viewMode === 'daily' && <StatsFilter />}
-
+            {/* Snapshot Controls */}
             <div className="flex items-center gap-1 bg-muted/20 rounded-lg p-0.5 border border-border/40">
               <Button
                 variant="ghost"
@@ -262,7 +263,7 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
 
             <div className="w-px h-4 bg-border/40 mx-1" />
 
-            {/* Combined View Switcher & Today - SWAPPED */}
+            {/* View Switcher */}
             <div className="flex items-center gap-2">
               <div className="flex items-center p-1 bg-muted/40 border border-border/40 rounded-lg">
                 <button
@@ -300,6 +301,14 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
                 <span className="hidden sm:inline">Today</span>
               </Button>
             </div>
+
+            {/* Settings Menu (Stats + Review) - Moved to far right */}
+            {viewMode === 'daily' && (
+              <>
+                <div className="w-px h-4 bg-border/40 mx-1" />
+                <CalendarSettings />
+              </>
+            )}
           </div>
         </CardHeader>
 
@@ -309,6 +318,10 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
               currentDate={currentDate}
               calendarData={localCalendarData}
               onSelectDate={setSelectedDate}
+              onReviewWeek={(date) => {
+                setSelectedWeekDate(date)
+                setShowWeeklyModal(true)
+              }}
             />
           ) : (
             <YearlyView
@@ -326,6 +339,14 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
           isLoading={isLoading}
         />
       </Card>
+
+      <WeeklyModal
+        isOpen={showWeeklyModal}
+        onOpenChange={setShowWeeklyModal}
+        selectedDate={selectedWeekDate || new Date()}
+        calendarData={localCalendarData}
+        isLoading={isLoading}
+      />
     </div>
   )
 })

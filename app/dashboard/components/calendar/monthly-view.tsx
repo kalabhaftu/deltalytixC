@@ -2,7 +2,7 @@
 'use client'
 
 import React, { memo, useMemo } from "react"
-import { format, isSameMonth, isToday, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, addDays, getDay, isSameDay } from "date-fns"
+import { format, isSameMonth, isToday, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, addDays, getDay, isSameDay, getISOWeek } from "date-fns"
 import { formatInTimeZone } from 'date-fns-tz'
 import { cn, formatCurrency } from "@/lib/utils"
 import { Notebook } from "lucide-react"
@@ -15,6 +15,7 @@ import {
     DAY_CELL_STYLES,
     TODAY_STYLES,
     WEEKDAYS_FULL,
+    WEEKDAYS_SHORT,
     PNL_TEXT_STYLES
 } from "@/app/dashboard/constants/calendar-styles"
 
@@ -137,59 +138,97 @@ const DayCell = memo(function DayCell({
     )
 })
 
+
+
 export default function MonthlyView({
     currentDate,
     calendarData,
-    onSelectDate
+    onSelectDate,
+    onReviewWeek
 }: {
     currentDate: Date
     calendarData: CalendarData
     onSelectDate: (date: Date) => void
+    onReviewWeek?: (weekDate: Date) => void
 }) {
     const timezone = useUserStore(state => state.timezone)
     const { notes } = useCalendarNotes()
+    const { showWeekNumbers } = useCalendarViewStore()
 
-    // Memoize calendar grid generation
-    const calendarDays = useMemo(() => {
-        const start = startOfWeek(startOfMonth(currentDate))
-        const end = endOfWeek(endOfMonth(currentDate))
-        return eachDayOfInterval({ start, end })
+    // Memoize calendar weeks generation
+    const weeks = useMemo(() => {
+        // ISO Calendar Grid: Always force Monday Start
+        const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 })
+        const end = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 })
+        const days = eachDayOfInterval({ start, end })
+
+        // Chunk into weeks (arrays of 7 days)
+        const weeksArray = []
+        for (let i = 0; i < days.length; i += 7) {
+            weeksArray.push(days.slice(i, i + 7))
+        }
+        return weeksArray
     }, [currentDate])
 
     return (
         <div className="flex flex-col h-full bg-card/30">
-            {/* Weekday Headers */}
-            <div className="grid grid-cols-7 gap-1 md:gap-3 mb-2 px-2 md:px-4 pt-4">
+            {/* Weekday Headers - Shifts if Week Num is shown */}
+            <div className={cn(
+                "grid gap-1 md:gap-3 mb-2 px-2 md:px-4 pt-4",
+                showWeekNumbers ? "grid-cols-[repeat(7,1fr)_20px] md:grid-cols-[repeat(7,1fr)_30px]" : "grid-cols-7"
+            )}>
                 {WEEKDAYS_FULL.map((day, i) => (
                     <div key={day} className="text-center text-[9px] md:text-[10px] font-bold text-muted-foreground tracking-widest uppercase opacity-60">
                         <span className="hidden md:inline">{day}</span>
                         <span className="md:hidden">
-                            {['S', 'M', 'T', 'W', 'T', 'F', 'S'][i]}
+                            {WEEKDAYS_SHORT[i]}
                         </span>
                     </div>
                 ))}
+
+                {/* Empty corner cell for week number column */}
+                {showWeekNumbers && <div />}
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-7 gap-1 md:gap-3 flex-1 p-2 md:p-4 pt-0 overflow-y-auto min-h-0">
-                {calendarDays.map((date) => {
-                    const dateKey = format(date, 'yyyy-MM-dd')
-                    const dayData = calendarData[dateKey]
-                    const isCurrentMonth = isSameMonth(date, currentDate)
-                    const hasNotes = !!notes[dateKey]
+            <div className={cn(
+                "grid gap-1 md:gap-3 flex-1 p-2 md:p-4 pt-0 overflow-y-auto min-h-0",
+                showWeekNumbers ? "grid-cols-[repeat(7,1fr)_20px] md:grid-cols-[repeat(7,1fr)_30px]" : "grid-cols-7"
+            )}>
+                {weeks.map((week, weekIndex) => (
+                    <React.Fragment key={weekIndex}>
+                        {/* Days First */}
+                        {week.map((date) => {
+                            const dateKey = format(date, 'yyyy-MM-dd')
+                            const dayData = calendarData[dateKey]
+                            const isCurrentMonth = isSameMonth(date, currentDate)
+                            const hasNotes = !!notes[dateKey]
 
-                    return (
-                        <DayCell
-                            key={date.toISOString()}
-                            date={date}
-                            dayData={dayData}
-                            hasNotes={hasNotes}
-                            isCurrentMonth={isCurrentMonth}
-                            timezone={timezone}
-                            onClick={() => onSelectDate(date)}
-                        />
-                    )
-                })}
+                            return (
+                                <DayCell
+                                    key={date.toISOString()}
+                                    date={date}
+                                    dayData={dayData}
+                                    hasNotes={hasNotes}
+                                    isCurrentMonth={isCurrentMonth}
+                                    timezone={timezone}
+                                    onClick={() => onSelectDate(date)}
+                                />
+                            )
+                        })}
+
+                        {/* Week Number Cell Last */}
+                        {showWeekNumbers && (
+                            <div
+                                className="flex items-center justify-center text-[9px] font-bold text-muted-foreground/40 hover:text-primary hover:bg-primary/5 rounded cursor-pointer transition-colors"
+                                onClick={() => onReviewWeek?.(week[0])}
+                                title="Review this week"
+                            >
+                                <span className="rotate-90">W{getISOWeek(week[0])}</span>
+                            </div>
+                        )}
+                    </React.Fragment>
+                ))}
             </div>
         </div>
     )

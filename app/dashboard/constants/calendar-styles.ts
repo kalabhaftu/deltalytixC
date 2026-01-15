@@ -74,10 +74,10 @@ export const ANIMATION_CLASSES = {
   scaleIn: "animate-in zoom-in-95 duration-150",
 } as const
 
-// Weekday headers
-export const WEEKDAYS_FULL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
+// Weekday headers - ISO Standard (Monday Start)
+export const WEEKDAYS_FULL = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
 export const WEEKDAYS_WEEKDAYS_ONLY = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const
-export const WEEKDAYS_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const
+export const WEEKDAYS_SHORT = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const
 
 // View modes
 export type CalendarViewMode = 'daily' | 'weekly'
