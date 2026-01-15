@@ -3,6 +3,7 @@ import React from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Pencil, Trash2, Plus, X, Loader2 } from 'lucide-react'
+import { FileDropzone } from '@/components/ui/file-dropzone'
 
 export type ImageField = 'imageOne' | 'imageTwo' | 'imageThree' | 'imageFour' | 'imageFive' | 'imageSix'
 
@@ -74,19 +75,17 @@ export function TradeImagesGallery({
                                     </div>
                                 </>
                             ) : (
-                                <label className="flex items-center justify-center w-full h-full cursor-pointer hover:bg-muted/50 transition-colors">
-                                    <Plus className="h-5 w-5 text-muted-foreground/30" />
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0]
-                                            if (file) onUpload(field, file)
-                                        }}
-                                        disabled={uploadingField === field}
-                                    />
-                                </label>
+                                <FileDropzone
+                                    variant="mini"
+                                    onDrop={(files) => {
+                                        const file = files[0]
+                                        if (file) onUpload(field, file)
+                                    }}
+                                    accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'] }}
+                                    className="h-full w-full bg-muted/10 hover:bg-muted/30 border-dashed"
+                                    icon={<Plus className="h-5 w-5 text-muted-foreground/30" />}
+                                    disabled={uploadingField === field}
+                                />
                             )}
                             {uploadingField === field && (
                                 <div className="absolute inset-0 bg-background/40 flex items-center justify-center">
