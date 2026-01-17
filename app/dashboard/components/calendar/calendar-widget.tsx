@@ -209,8 +209,8 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
               <div className="px-2 min-w-[100px] text-center">
                 <span className="text-sm font-bold capitalize tracking-tight">
                   {viewMode === 'daily'
-                    ? formatInTimeZone(currentDate, timezone, 'MMM yyyy', { locale: dateLocale })
-                    : formatInTimeZone(currentDate, timezone, 'yyyy', { locale: dateLocale })
+                    ? format(currentDate, 'MMM yyyy')
+                    : format(currentDate, 'yyyy')
                   }
                 </span>
               </div>

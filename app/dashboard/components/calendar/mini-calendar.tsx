@@ -135,10 +135,10 @@ function MiniCalendar({ calendarData }: MiniCalendarProps) {
     return weekDays.reduce((total, day) => {
       const dayOfWeek = getDay(day)
       if (dayOfWeek === 0 || dayOfWeek === 6) return total
-      const dayData = calendarData[formatInTimeZone(day, timezone, 'yyyy-MM-dd')]
+      const dayData = calendarData[format(day, 'yyyy-MM-dd')]
       return total + (dayData ? dayData.pnl : 0)
     }, 0)
-  }, [timezone])
+  }, [])
 
   const isProfitTotal = monthlyTotal > BREAK_EVEN_THRESHOLD
   const isLossTotal = monthlyTotal < -BREAK_EVEN_THRESHOLD

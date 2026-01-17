@@ -8,7 +8,6 @@ import { cn, formatCurrency, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { CalendarData } from "@/app/dashboard/types/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useUserStore } from "@/store/user-store"
-import { formatInTimeZone } from "date-fns-tz"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // Mini Month Component
