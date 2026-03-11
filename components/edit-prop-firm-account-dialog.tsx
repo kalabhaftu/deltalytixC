@@ -261,8 +261,8 @@ export function EditPropFirmAccountDialog({
             </div>
 
             {hasUnsavedChanges && isDirty && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                <p className="text-sm text-amber-800 dark:text-amber-200">
+              <div className="bg-amber-900/20 border border-amber-800 rounded-lg p-3">
+                <p className="text-sm text-amber-200">
                   You have unsaved changes. They will be lost if you close without saving.
                 </p>
               </div>

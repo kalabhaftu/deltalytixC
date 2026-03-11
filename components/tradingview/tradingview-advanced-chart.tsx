@@ -148,7 +148,7 @@ export function TradingViewAdvancedChart({
 
   if (error) {
     return (
-      <div className={`w-full flex items-center justify-center bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-200 ${className}`} style={{ height }}>
+      <div className={`w-full flex items-center justify-center bg-red-950 text-red-200 ${className}`} style={{ height }}>
         <div className="text-center">
           <p className="font-semibold">Chart Error</p>
           <p className="text-sm">{error}</p>

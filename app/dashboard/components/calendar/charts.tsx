@@ -95,7 +95,7 @@ function DistributionTooltip({ active, payload, totalPnL }: any) {
 
 export function Charts({ dayData, isWeekly = false }: ChartsProps) {
   const { effectiveTheme } = useTheme()
-  const isDarkMode = effectiveTheme === 'dark' || effectiveTheme === 'midnight-ocean'
+  const isDarkMode = effectiveTheme === 'dark'
   const locale = 'en'
 
   const chartData = React.useMemo(() => {

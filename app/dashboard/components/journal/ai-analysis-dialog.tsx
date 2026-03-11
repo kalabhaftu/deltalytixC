@@ -241,13 +241,13 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                   <Card>
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                        <TrendingUp className="h-5 w-5 text-blue-400 mt-0.5" />
                         <div className="space-y-2 flex-1">
                           <h3 className="font-semibold text-sm">Emotional Patterns</h3>
                           <ul className="space-y-2">
                             {analysis.emotionalPatterns.map((pattern, index) => (
                               <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                                <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
+                                <span className="text-blue-400 mt-0.5">•</span>
                                 <span className="flex-1">{pattern}</span>
                               </li>
                             ))}
@@ -263,13 +263,13 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                   <Card>
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <Target className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
+                        <Target className="h-5 w-5 text-green-400 mt-0.5" />
                         <div className="space-y-2 flex-1">
                           <h3 className="font-semibold text-sm">Performance Insights</h3>
                           <ul className="space-y-2">
                             {analysis.performanceInsights.map((insight, index) => (
                               <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                                <span className="text-green-600 dark:text-green-400 mt-0.5">•</span>
+                                <span className="text-green-400 mt-0.5">•</span>
                                 <span className="flex-1">{insight}</span>
                               </li>
                             ))}
@@ -292,7 +292,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                           <ul className="space-y-1.5">
                             {analysis.strengths.map((strength, index) => (
                               <li key={index} className="text-xs text-muted-foreground flex items-start gap-2">
-                                <span className="text-green-600 dark:text-green-400">✓</span>
+                                <span className="text-green-400">✓</span>
                                 <span className="flex-1">{strength}</span>
                               </li>
                             ))}
@@ -312,7 +312,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                           <ul className="space-y-1.5">
                             {analysis.weaknesses.map((weakness, index) => (
                               <li key={index} className="text-xs text-muted-foreground flex items-start gap-2">
-                                <AlertTriangle className="h-3 w-3 text-orange-600 dark:text-orange-400 mt-0.5" />
+                                <AlertTriangle className="h-3 w-3 text-orange-400 mt-0.5" />
                                 <span className="flex-1">{weakness}</span>
                               </li>
                             ))}
@@ -328,13 +328,13 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                   <Card>
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <Lightbulb className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                        <Lightbulb className="h-5 w-5 text-yellow-400 mt-0.5" />
                         <div className="space-y-2 flex-1">
                           <h3 className="font-semibold text-sm">Recommendations</h3>
                           <ul className="space-y-2">
                             {analysis.recommendations.map((rec, index) => (
                               <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                                <span className="text-yellow-600 dark:text-yellow-400 mt-0.5">→</span>
+                                <span className="text-yellow-400 mt-0.5">→</span>
                                 <span className="flex-1">{rec}</span>
                               </li>
                             ))}

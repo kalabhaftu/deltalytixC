@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useData } from "@/context/data-provider"
 import { useAuth } from "@/context/auth-provider"
-import { Database, LogOut, LayoutDashboard, RefreshCw, Home, Moon, Sun, Laptop, Settings, Pencil, Plus, Waves, BookOpen, LayoutTemplate, Trash2, Users, Filter } from "lucide-react"
+import { Database, LogOut, LayoutDashboard, RefreshCw, Home, Moon, Sun, Laptop, Settings, Pencil, Plus, BookOpen, LayoutTemplate, Trash2, Users, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -110,7 +110,7 @@ export default function Navbar() {
   const [isLogoPopoverOpen, setIsLogoPopoverOpen] = useState(false)
   const [accountPopoverOpen, setAccountPopoverOpen] = useState(false)
   const [mobileTemplateDialogOpen, setMobileTemplateDialogOpen] = useState(false)
-  const [mobileThemeDialogOpen, setMobileThemeDialogOpen] = useState(false)
+
   const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false)
   const [filtersPopoverOpen, setFiltersPopoverOpen] = useState(false)
   const [createTemplateDialogOpen, setCreateTemplateDialogOpen] = useState(false)
@@ -199,26 +199,12 @@ export default function Navbar() {
   useKeyboardShortcuts()
 
   const handleThemeChange = (value: string) => {
-    setTheme(value as "light" | "dark" | "midnight-ocean" | "system")
+    setTheme(value as "dark" | "system")
     setIsLogoPopoverOpen(false)
   }
 
   const getThemeIcon = () => {
-    // Prevent hydration mismatch - always return the same icon until mounted
-    if (!mounted) {
-      return <Laptop className="h-4 w-4" />;
-    }
-
-    if (theme === 'light') return <Sun className="h-4 w-4" />;
-    if (theme === 'dark') return <Moon className="h-4 w-4" />;
-    if (theme === 'midnight-ocean') return <Waves className="h-4 w-4" />;
-    // For 'system' theme, check the actual applied theme after mounting
-    if (theme === 'system') {
-      const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      return isDarkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />;
-    }
-    // Fallback to Laptop icon
-    return <Laptop className="h-4 w-4" />;
+    return <Moon className="h-4 w-4" />;
   }
 
   // Count unique master accounts (prop-firm grouped by masterAccountId, live counted individually)
@@ -415,7 +401,7 @@ export default function Navbar() {
                             </span>
                           )}
                           {template.isActive && (
-                            <span className="text-xxs px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400">
+                            <span className="text-xxs px-1.5 py-0.5 rounded bg-green-900/20 text-green-400">
                               Active
                             </span>
                           )}
@@ -456,39 +442,11 @@ export default function Navbar() {
             {/* Notification Center - Always visible */}
             <NotificationCenter />
 
-            {/* Theme Switcher - Hidden on small mobile */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="hidden sm:flex h-9 w-9 hover:bg-muted/50 transition-all duration-200 hover:scale-105 hover:shadow-md">
-                  {getThemeIcon()}
-                  <span className="sr-only">Toggle theme</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[200px] p-0 bg-card border-border shadow-2xl" align="end" sideOffset={8}>
-                <Command>
-                  <CommandList>
-                    <CommandGroup>
-                      <CommandItem onSelect={() => handleThemeChange("light")} className="hover:bg-muted/50 transition-colors duration-200">
-                        <Sun className="mr-2 h-4 w-4" />
-                        <span>Light mode</span>
-                      </CommandItem>
-                      <CommandItem onSelect={() => handleThemeChange("dark")} className="hover:bg-muted/50 transition-colors duration-200">
-                        <Moon className="mr-2 h-4 w-4" />
-                        <span>Dark mode</span>
-                      </CommandItem>
-                      <CommandItem onSelect={() => handleThemeChange("midnight-ocean")} className="hover:bg-muted/50 transition-colors duration-200">
-                        <Waves className="mr-2 h-4 w-4" />
-                        <span>Midnight Ocean</span>
-                      </CommandItem>
-                      <CommandItem onSelect={() => handleThemeChange("system")} className="hover:bg-muted/50 transition-colors duration-200">
-                        <Laptop className="mr-2 h-4 w-4" />
-                        <span>System theme</span>
-                      </CommandItem>
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            {/* Theme Indicator - Dark only */}
+            <Button variant="ghost" size="icon" className="hidden sm:flex h-9 w-9 hover:bg-muted/50 transition-all duration-200 hover:scale-105 hover:shadow-md" disabled title="Dark theme active">
+              <Moon className="h-4 w-4" />
+              <span className="sr-only">Dark theme</span>
+            </Button>
             <div className="relative">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -535,14 +493,6 @@ export default function Navbar() {
                       {activeTemplate && (
                         <span className="ml-auto text-xs text-muted-foreground">{activeTemplate.name}</span>
                       )}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setMobileThemeDialogOpen(true)}
-                      className="hover:bg-muted/50 transition-colors duration-200"
-                    >
-                      {getThemeIcon()}
-                      <span className="ml-2">Theme</span>
-                      <span className="ml-auto text-xs text-muted-foreground capitalize">{theme}</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </div>
@@ -639,7 +589,7 @@ export default function Navbar() {
                     </span>
                   )}
                   {template.isActive && (
-                    <span className="text-xxs px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400">
+                    <span className="text-xxs px-1.5 py-0.5 rounded bg-green-900/20 text-green-400">
                       Active
                     </span>
                   )}
@@ -650,71 +600,7 @@ export default function Navbar() {
         </DialogContent>
       </Dialog>
 
-      {/* Mobile Theme Selector Dialog */}
-      <Dialog open={mobileThemeDialogOpen} onOpenChange={setMobileThemeDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Select Theme</DialogTitle>
-            <DialogDescription>
-              Choose your preferred color theme
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 py-4">
-            <div
-              className={cn(
-                "flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer",
-                theme === 'light' && "bg-muted"
-              )}
-              onClick={() => {
-                handleThemeChange("light")
-                setMobileThemeDialogOpen(false)
-              }}
-            >
-              <Sun className="h-5 w-5" />
-              <span className="text-sm font-medium">Light mode</span>
-            </div>
-            <div
-              className={cn(
-                "flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer",
-                theme === 'dark' && "bg-muted"
-              )}
-              onClick={() => {
-                handleThemeChange("dark")
-                setMobileThemeDialogOpen(false)
-              }}
-            >
-              <Moon className="h-5 w-5" />
-              <span className="text-sm font-medium">Dark mode</span>
-            </div>
-            <div
-              className={cn(
-                "flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer",
-                theme === 'midnight-ocean' && "bg-muted"
-              )}
-              onClick={() => {
-                handleThemeChange("midnight-ocean")
-                setMobileThemeDialogOpen(false)
-              }}
-            >
-              <Waves className="h-5 w-5" />
-              <span className="text-sm font-medium">Midnight Ocean</span>
-            </div>
-            <div
-              className={cn(
-                "flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors cursor-pointer",
-                theme === 'system' && "bg-muted"
-              )}
-              onClick={() => {
-                handleThemeChange("system")
-                setMobileThemeDialogOpen(false)
-              }}
-            >
-              <Laptop className="h-5 w-5" />
-              <span className="text-sm font-medium">System theme</span>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+
 
       {/* Create Template Dialog */}
       <Dialog

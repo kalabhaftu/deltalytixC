@@ -180,7 +180,7 @@ export default function PlaybookPage() {
     setIsModalOpen(true)
   }
 
-  const handleSaveModel = async (data: { name: string; rules: any[]; notes?: string }) => {
+  const handleSaveModel = async (data: { name: string; rules: any[]; notes?: string | null }) => {
     const url = modalMode === 'add'
       ? '/api/user/trading-models'
       : `/api/user/trading-models/${selectedModel?.id}`

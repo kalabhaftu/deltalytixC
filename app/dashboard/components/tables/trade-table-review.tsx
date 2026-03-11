@@ -632,7 +632,7 @@ export function TradeTableReview() {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-border/60 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/50 shadow-sm dark:shadow-[0_20px_70px_hsl(var(--background)/0.35)]">
+      <div className="rounded-3xl border border-border/60 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/50 shadow-[0_20px_70px_hsl(var(--background)/0.35)]">
         {isMobile ? (
           <div className="p-4 space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto">
             {table.getRowModel().rows.length > 0 ? (

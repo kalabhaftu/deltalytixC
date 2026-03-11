@@ -15,7 +15,6 @@ import {
   Settings,
   Shield,
   Moon,
-  Sun,
   Laptop,
   Clock,
   Database,
@@ -124,7 +123,7 @@ export default function SettingsPage() {
 
 
   const handleThemeChange = (value: string) => {
-    setTheme(value as "light" | "dark" | "system")
+    setTheme(value as "dark" | "system")
     toast.success("Theme updated", {
       description: `Theme changed to ${value === 'system' ? 'system default' : value} mode.`,
       duration: 2000
@@ -242,7 +241,6 @@ export default function SettingsPage() {
   const isDeleteConfirmed = deleteConfirmText === 'Delete my account'
 
   const getThemeDisplay = () => {
-    if (theme === 'light') return { icon: Sun, label: 'Light' }
     if (theme === 'dark') return { icon: Moon, label: 'Dark' }
     return { icon: Laptop, label: 'System' }
   }
@@ -370,11 +368,6 @@ export default function SettingsPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleThemeChange("light")}>
-                      <Sun className="mr-2 h-4 w-4" />
-                      Light
-                      {theme === 'light' && <Check className="ml-auto h-4 w-4" />}
-                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleThemeChange("dark")}>
                       <Moon className="mr-2 h-4 w-4" />
                       Dark

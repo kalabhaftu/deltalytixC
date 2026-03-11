@@ -69,8 +69,8 @@ export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutori
         )}
       </div>
           {selectedPlatform.videoUrl ? (
-      <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 transition-transform duration-300 hover:scale-[1.02]">
-        <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+      <div className="aspect-video rounded-lg overflow-hidden bg-gray-800 transition-transform duration-300 hover:scale-[1.02]">
+        <div className="aspect-video rounded-lg overflow-hidden bg-gray-800">
             <video
               ref={videoRef}
               height="600"
@@ -80,7 +80,7 @@ export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutori
               muted
               controls
               playsInline
-              className="rounded-lg border border-gray-200 dark:border-gray-800 shadow-lg w-full h-full object-cover"
+              className="rounded-lg border border-gray-800 shadow-lg w-full h-full object-cover"
             >
               <source src={selectedPlatform.videoUrl} type="video/mp4" />
               <track
@@ -116,14 +116,14 @@ export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutori
               alt="Trading Platform by Rithmic"
               width={120}
               height={40}
-              className="dark:hidden"
+              className="hidden"
             />
             <Image 
               src="/RithmicArtwork/TradingPlatformByRithmic-Green.png"
               alt="Trading Platform by Rithmic"
               width={120}
               height={40}
-              className="hidden dark:block"
+              className="block"
             />
             <Image 
               src="/RithmicArtwork/Powered_by_Omne.png"

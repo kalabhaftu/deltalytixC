@@ -5,30 +5,23 @@ import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Moon, Sun, Laptop, Waves, LogOut, ArrowRight, LayoutDashboard, LineChart, ShieldCheck } from "lucide-react"
+import { Moon, LogOut, ArrowRight, LayoutDashboard, LineChart, ShieldCheck } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/logo"
 import { useAuth } from "@/context/auth-provider"
-import { useTheme } from "@/context/theme-provider"
 import { signOut } from "@/server/auth"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
 import { UserAuthForm } from "@/components/user-auth-form"
 
 export default function RootPage() {
   const { isAuthenticated, isLoading, forceClearAuth } = useAuth()
-  const { theme, setTheme, effectiveTheme } = useTheme()
   const router = useRouter()
   const [isProcessingLogout, setIsProcessingLogout] = useState(false)
   const [isClient, setIsClient] = useState(false)
-  const [mounted, setMounted] = useState(false)
-  const [themeOpen, setThemeOpen] = useState(false)
   const [hoveredCard, setHoveredCard] = useState<string | null>(null)
 
   useEffect(() => {
     setIsClient(true)
-    setMounted(true)
   }, [])
 
   // Handle errors in URL hash
@@ -62,19 +55,7 @@ export default function RootPage() {
     }
   }
 
-  const handleThemeChange = (value: string) => {
-    setTheme(value as "light" | "dark" | "midnight-ocean" | "system")
-    setThemeOpen(false)
-  }
 
-  const getThemeIcon = () => {
-    if (!mounted) return <Laptop className="h-4 w-4" />
-    if (theme === 'light') return <Sun className="h-4 w-4" />
-    if (theme === 'midnight-ocean') return <Waves className="h-4 w-4" />
-    if (theme === 'dark') return <Moon className="h-4 w-4" />
-    if (theme === 'system') return effectiveTheme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />
-    return <Sun className="h-4 w-4" />
-  }
 
   // --- RENDERING ---
 
@@ -152,10 +133,10 @@ export default function RootPage() {
                 variant="ghost" 
                 size="sm" 
                 className="text-muted-foreground hover:text-foreground transition-colors h-8 text-[11px] uppercase tracking-widest font-medium"
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                disabled
               >
-                {theme === 'dark' ? <Sun className="h-3 w-3 mr-2" /> : <Moon className="h-3 w-3 mr-2" />}
-                Theme
+                <Moon className="h-3 w-3 mr-2" />
+                Dark
              </Button>
           </div>
           <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.2em] font-medium">

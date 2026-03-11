@@ -76,7 +76,7 @@ export default function EditModeControls() {
         <div className="px-3 py-1.5 text-sm text-muted-foreground">
           Edit Mode
           {hasUnsavedChanges && (
-            <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
+            <span className="ml-2 text-xs text-amber-400">
               • Unsaved changes
             </span>
           )}

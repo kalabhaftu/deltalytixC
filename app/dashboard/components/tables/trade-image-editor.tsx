@@ -357,7 +357,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                         </div>
                       </TransformComponent>
 
-                      <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 rounded-lg bg-white/50 dark:bg-black/50 backdrop-blur-sm z-50">
+                      <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 rounded-lg bg-black/50 backdrop-blur-sm z-50">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -365,9 +365,9 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                           onClick={() => zoomOut()}
                           disabled={scale <= 0.5}
                         >
-                          <ZoomOut className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-300" />
+                          <ZoomOut className="h-3 w-3 sm:h-4 sm:w-4 text-gray-300" />
                         </Button>
-                        <span className="min-w-[2.5rem] sm:min-w-[3rem] text-center text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <span className="min-w-[2.5rem] sm:min-w-[3rem] text-center text-xs sm:text-sm font-medium text-gray-300">
                           {Math.round(scale * 100)}%
                         </span>
                         <Button
@@ -377,7 +377,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                           onClick={() => zoomIn()}
                           disabled={scale >= 3}
                         >
-                          <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-300" />
+                          <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4 text-gray-300" />
                         </Button>
                       </div>
                     </>

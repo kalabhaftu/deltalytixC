@@ -139,7 +139,7 @@ export default function DocsLayout({ children }: { children: ReactNode }) {
           {/* Main Content */}
           <main className="relative lg:gap-10">
             <div className="mx-auto w-full min-w-0">
-              <div className="prose prose-slate dark:prose-invert max-w-none
+              <div className="prose prose-invert max-w-none
                 prose-headings:scroll-mt-20
                 prose-headings:font-bold
                 prose-h1:text-4xl

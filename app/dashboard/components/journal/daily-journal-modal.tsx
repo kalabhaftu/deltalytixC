@@ -239,13 +239,13 @@ export function DailyJournalModal({
                         </div>
                         <div className="text-center p-2 rounded-md bg-green-500/10">
                           <div className="text-muted-foreground">Winners</div>
-                          <div className="text-lg font-semibold mt-1 text-green-600 dark:text-green-400">
+                          <div className="text-lg font-semibold mt-1 text-green-400">
                             {winningTrades}
                           </div>
                         </div>
                         <div className="text-center p-2 rounded-md bg-red-500/10">
                           <div className="text-muted-foreground">Losers</div>
-                          <div className="text-lg font-semibold mt-1 text-red-600 dark:text-red-400">
+                          <div className="text-lg font-semibold mt-1 text-red-400">
                             {losingTrades}
                           </div>
                         </div>
@@ -266,8 +266,8 @@ export function DailyJournalModal({
                             <span className={cn(
                               "font-semibold",
                               trade.pnl >= 0
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-red-600 dark:text-red-400"
+                                ? "text-green-400"
+                                : "text-red-400"
                             )}>
                               {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
                             </span>
@@ -302,7 +302,7 @@ export function DailyJournalModal({
                     {note.length} characters
                   </span>
                   {hasChanges && (
-                    <span className="text-orange-600 dark:text-orange-400">
+                    <span className="text-orange-400">
                       • Unsaved changes
                     </span>
                   )}
