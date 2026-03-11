@@ -91,7 +91,11 @@ const config: Config = {
 					foreground: 'hsl(var(--destructive-foreground))'
 				},
 				profit: 'hsl(var(--chart-profit))',
-				loss: 'hsl(var(--chart-loss))'
+				loss: 'hsl(var(--chart-loss))',
+				warning: {
+					DEFAULT: 'hsl(var(--warning))',
+					foreground: 'hsl(var(--warning-foreground))'
+				}
 			},
 			keyframes: {
 				'accordion-down': {

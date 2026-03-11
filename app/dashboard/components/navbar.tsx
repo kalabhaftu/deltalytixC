@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { format } from 'date-fns'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useData } from "@/context/data-provider"
 import { useAuth } from "@/context/auth-provider"
-import { Database, LogOut, LayoutDashboard, RefreshCw, Home, Moon, Sun, Laptop, Settings, Pencil, Plus, BookOpen, LayoutTemplate, Trash2, Users, Filter } from "lucide-react"
+import { Database, LogOut, LayoutDashboard, RefreshCw, Moon, Settings, Pencil, Plus, BookOpen, LayoutTemplate, Trash2, Users, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -37,7 +36,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import {
   Dialog,
   DialogContent,
@@ -59,11 +57,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useTheme } from '@/context/theme-provider'
-import { Slider } from "@/components/ui/slider"
-import { Separator } from "@/components/ui/separator"
 import { useUserStore } from '@/store/user-store'
 import { useDashboardEditStore } from '@/store/dashboard-edit-store'
-import { WidgetType, WidgetSize } from '../types/dashboard'
 
 import { toast } from 'sonner'
 import { useTemplates } from '@/context/template-provider'
@@ -401,7 +396,7 @@ export default function Navbar() {
                             </span>
                           )}
                           {template.isActive && (
-                            <span className="text-xxs px-1.5 py-0.5 rounded bg-green-900/20 text-green-400">
+                            <span className="text-xxs px-1.5 py-0.5 rounded bg-long/10 text-profit">
                               Active
                             </span>
                           )}
@@ -442,11 +437,10 @@ export default function Navbar() {
             {/* Notification Center - Always visible */}
             <NotificationCenter />
 
-            {/* Theme Indicator - Dark only */}
-            <Button variant="ghost" size="icon" className="hidden sm:flex h-9 w-9 hover:bg-muted/50 transition-all duration-200 hover:scale-105 hover:shadow-md" disabled title="Dark theme active">
-              <Moon className="h-4 w-4" />
-              <span className="sr-only">Dark theme</span>
-            </Button>
+            {/* Theme Switcher */}
+            <div className="hidden sm:block">
+              <ThemeSwitcher />
+            </div>
             <div className="relative">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -589,7 +583,7 @@ export default function Navbar() {
                     </span>
                   )}
                   {template.isActive && (
-                    <span className="text-xxs px-1.5 py-0.5 rounded bg-green-900/20 text-green-400">
+                    <span className="text-xxs px-1.5 py-0.5 rounded bg-long/10 text-profit">
                       Active
                     </span>
                   )}

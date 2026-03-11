@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { 
+import {
   ArrowLeft,
   RefreshCw,
   DollarSign,
@@ -83,8 +83,8 @@ export default function PayoutsPage() {
     switch (status) {
       case 'pending': return 'bg-yellow-500'
       case 'approved': return 'bg-foreground'
-      case 'paid': return 'bg-green-500'
-      case 'rejected': return 'bg-red-500'
+      case 'paid': return 'bg-long'
+      case 'rejected': return 'bg-short'
       default: return 'bg-gray-500'
     }
   }

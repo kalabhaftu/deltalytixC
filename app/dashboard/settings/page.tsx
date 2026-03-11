@@ -15,6 +15,7 @@ import {
   Settings,
   Shield,
   Moon,
+  Sun,
   Laptop,
   Clock,
   Database,
@@ -123,7 +124,7 @@ export default function SettingsPage() {
 
 
   const handleThemeChange = (value: string) => {
-    setTheme(value as "dark" | "system")
+    setTheme(value as "light" | "dark" | "system")
     toast.success("Theme updated", {
       description: `Theme changed to ${value === 'system' ? 'system default' : value} mode.`,
       duration: 2000
@@ -242,6 +243,7 @@ export default function SettingsPage() {
 
   const getThemeDisplay = () => {
     if (theme === 'dark') return { icon: Moon, label: 'Dark' }
+    if (theme === 'light') return { icon: Sun, label: 'Light' }
     return { icon: Laptop, label: 'System' }
   }
 
@@ -372,6 +374,11 @@ export default function SettingsPage() {
                       <Moon className="mr-2 h-4 w-4" />
                       Dark
                       {theme === 'dark' && <Check className="ml-auto h-4 w-4" />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleThemeChange("light")}>
+                      <Sun className="mr-2 h-4 w-4" />
+                      Light
+                      {theme === 'light' && <Check className="ml-auto h-4 w-4" />}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleThemeChange("system")}>
                       <Laptop className="mr-2 h-4 w-4" />

@@ -1,17 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Plus, MoreVertical, Eye, Pencil, Trash2, FileText } from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,10 +11,21 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Skeleton } from '@/components/ui/skeleton'
+import { BREAK_EVEN_THRESHOLD, cn } from '@/lib/utils'; // Assuming cn utility is imported from here
+import { motion } from 'framer-motion'
+import { Eye, FileText, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { AddEditModelModal } from './components/add-edit-model-modal'
-import { Skeleton } from '@/components/ui/skeleton'
-import { cn, BREAK_EVEN_THRESHOLD } from '@/lib/utils' // Assuming cn utility is imported from here
 
 interface TradingModel {
   id: string

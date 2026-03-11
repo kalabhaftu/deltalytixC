@@ -2,11 +2,11 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
 
-type Theme = 'dark' | 'system'
+type Theme = 'light' | 'dark' | 'system'
 
 type ThemeContextType = {
   theme: Theme
-  effectiveTheme: 'dark'
+  effectiveTheme: 'light' | 'dark'
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
 }
@@ -20,35 +20,52 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const useTheme = () => useContext(ThemeContext)
 
+function getSystemTheme(): 'light' | 'dark' {
+  if (typeof window === 'undefined') return 'dark'
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('dark')
   const [mounted, setMounted] = useState(false)
 
-  const applyTheme = () => {
+  const resolveEffective = (t: Theme): 'light' | 'dark' => {
+    if (t === 'system') return getSystemTheme()
+    return t
+  }
+
+  const applyTheme = (t: Theme) => {
     if (typeof window === 'undefined') return
+    const effective = resolveEffective(t)
     const root = window.document.documentElement
-    root.classList.remove('light', 'midnight-ocean')
-    root.classList.add('dark')
-    root.style.colorScheme = 'dark'
+    root.classList.remove('light', 'dark')
+    root.classList.add(effective)
+    root.style.colorScheme = effective
   }
 
   useEffect(() => {
     setMounted(true)
-    applyTheme()
 
     const savedTheme = localStorage.getItem('theme') as Theme | null
-    if (savedTheme === 'dark' || savedTheme === 'system') {
-      setThemeState(savedTheme)
-    } else {
-      // Migrate any old theme value to dark
-      setThemeState('dark')
-      localStorage.setItem('theme', 'dark')
+    const validThemes: Theme[] = ['light', 'dark', 'system']
+    const resolved = savedTheme && validThemes.includes(savedTheme) ? savedTheme : 'dark'
+
+    setThemeState(resolved)
+    applyTheme(resolved)
+
+    // Listen for system preference changes when in system mode
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = () => {
+      const current = localStorage.getItem('theme') as Theme | null
+      if (current === 'system') applyTheme('system')
     }
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
   }, [])
 
   useEffect(() => {
     if (mounted) {
-      applyTheme()
+      applyTheme(theme)
       localStorage.setItem('theme', theme)
     }
   }, [theme, mounted])
@@ -58,12 +75,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }
 
   const toggleTheme = () => {
-    // Only dark theme for now — no-op toggle
+    setThemeState(prev => (resolveEffective(prev) === 'dark' ? 'light' : 'dark'))
   }
 
   const value = {
     theme,
-    effectiveTheme: 'dark' as const,
+    effectiveTheme: resolveEffective(theme),
     setTheme,
     toggleTheme,
   }

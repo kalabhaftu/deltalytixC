@@ -125,9 +125,9 @@ export default function AccountSettingsPage() {
   const getStatusColor = (status: AccountStatus) => {
     switch (status) {
       case 'active': return 'bg-foreground'
-      case 'funded': return 'bg-green-500'
-      case 'failed': return 'bg-red-500'
-      case 'passed': return 'bg-purple-500'
+      case 'funded': return 'bg-long'
+      case 'failed': return 'bg-short'
+      case 'passed': return 'bg-chart-1'
       default: return 'bg-gray-500'
     }
   }
@@ -135,8 +135,8 @@ export default function AccountSettingsPage() {
   const getPhaseStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-foreground'
-      case 'passed': return 'bg-green-500'
-      case 'failed': return 'bg-red-500'
+      case 'passed': return 'bg-long'
+      case 'failed': return 'bg-short'
       default: return 'bg-gray-500'
     }
   }

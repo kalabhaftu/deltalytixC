@@ -403,11 +403,11 @@ export default function ReportsPage() {
                                     Share Intelligence
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-2xl bg-zinc-950/95 backdrop-blur-3xl border border-white/5 p-0 overflow-hidden rounded-[32px]">
+                            <DialogContent className="sm:max-w-2xl bg-card/95 backdrop-blur-3xl border border-border/10 p-0 overflow-hidden rounded-[32px]">
                                 <div className="p-8">
                                     <DialogHeader className="mb-6">
                                         <DialogTitle className="text-xl font-black tracking-tighter uppercase">Generate Performance Asset</DialogTitle>
-                                        <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-white/30">Render high-fidelity performance card for your network</DialogDescription>
+                                        <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Render high-fidelity performance card for your network</DialogDescription>
                                     </DialogHeader>
                                     {tradingActivity && psychMetrics && (
                                         <div className="flex justify-center">

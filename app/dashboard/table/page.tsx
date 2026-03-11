@@ -72,14 +72,14 @@ function TableView() {
                 <span className="text-[9px] uppercase font-bold text-muted-foreground leading-none mb-0.5">P&L</span>
                 <span className={cn(
                   "font-mono font-bold leading-none",
-                  isProfit ? "text-green-500" : "text-red-500"
+                  isProfit ? "text-profit" : "text-loss"
                 )}>
                   {isProfit ? '+' : ''}${trade.pnl.toFixed(2)}
                 </span>
               </div>
             </div>
           </div>
-          <div className="flex-1 overflow-hidden relative bg-white">
+          <div className="flex-1 overflow-hidden relative bg-card">
             <TradeReplay trade={trade} />
           </div>
         </div>

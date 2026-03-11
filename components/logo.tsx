@@ -1,5 +1,3 @@
-import React from "react";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export function Logo({ className }: { className?: string }) {
@@ -14,7 +12,7 @@ export function Logo({ className }: { className?: string }) {
 
 export function LogoText() {
     return (
-        <svg width="64" height="64" viewBox="0 0 619 371" fill="none" xmlns="http://www.w3.org/2000/svg" className="fill-white">
+        <svg width="64" height="64" viewBox="0 0 619 371" fill="none" xmlns="http://www.w3.org/2000/svg" className="fill-foreground">
             <path d="M24 170L163 24L24 24L24 170Z" />
             <path d="M112 170L251 316H112L112 170Z" />
             <path d="M112.273 170V76.9091H168.455V86.9091H123.545V118.364H165.545V128.364H123.545V160H169.182V170H112.273ZM188.773 170V76.9091H200.045V160H243.318V170H188.773ZM243.307 86.9091V76.9091H313.125V86.9091H283.852V170H272.58V86.9091H243.307ZM323.466 170H311.648L345.83 76.9091H357.466L391.648 170H379.83L352.011 91.6363H351.284L323.466 170ZM327.83 133.636H375.466V143.636H327.83V133.636Z" />

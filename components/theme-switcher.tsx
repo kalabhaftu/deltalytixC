@@ -1,18 +1,24 @@
 'use client'
 
-import { Moon } from 'lucide-react'
-import { Button } from './ui/button'
+import { Moon, Sun } from 'lucide-react'
+import { useTheme } from '@/context/theme-provider'
+import { Button } from '@/components/ui/button'
 
-/**
- * Theme Switcher - Currently dark-only.
- * Light theme will be added later.
- * For now, this renders a static dark-mode indicator.
- */
 export function ThemeSwitcher() {
+  const { effectiveTheme, toggleTheme } = useTheme()
+
   return (
-    <Button variant="ghost" size="icon" disabled title="Dark theme active">
-      <Moon className="h-[1.2rem] w-[1.2rem]" />
-      <span className="sr-only">Dark theme</span>
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={toggleTheme}
+      aria-label={effectiveTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+    >
+      {effectiveTheme === 'dark' ? (
+        <Moon className="h-4 w-4 text-muted-foreground" />
+      ) : (
+        <Sun className="h-4 w-4 text-muted-foreground" />
+      )}
     </Button>
   )
 }

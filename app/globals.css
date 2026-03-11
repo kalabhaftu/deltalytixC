@@ -66,67 +66,138 @@
 }
 
 @layer base {
+  /* ═══════════════════════════════════════════════════════
+     LIGHT THEME (Base / :root)
+     ═══════════════════════════════════════════════════════ */
   :root {
+    /* 1. LAYER 1: NEUTRALS & CONTRAST */
+    --background: 228 22% 96%;           /* #F4F5F8 */
+    --foreground: 215 28% 17%;           /* #1E293B - body text */
+    --heading-text: 222 33% 6%;          /* #0A0D14 - page titles, KPI values */
+
+    --card: 0 0% 100%;                   /* #FFFFFF */
+    --card-foreground: 215 28% 17%;      /* #1E293B */
+    --popover: 0 0% 100%;               /* #FFFFFF */
+    --popover-foreground: 215 28% 17%;
+
+    --border: 214 32% 91%;              /* #E2E8F0 */
+    --input: 214 32% 91%;               /* #E2E8F0 */
+
+    --muted: 210 40% 96%;               /* #F1F5F9 - slate-100 */
+    --muted-foreground: 215 16% 47%;    /* #64748B */
+
+    /* 2. LAYER 2: ACCENTS & INTERACTIVE STATES */
+    --primary: 222 33% 6%;              /* #0A0D14 */
+    --primary-foreground: 0 0% 100%;    /* #FFFFFF */
+    --primary-hover: 215 28% 17%;       /* #1E293B */
+    --primary-press: 0 0% 0%;           /* #000000 */
+    --primary-disabled: 215 20% 65%;    /* #94A3B8 */
+
+    --secondary: 210 40% 96%;           /* #F1F5F9 - match muted */
+    --secondary-foreground: 215 28% 17%;
+
+    --accent: 210 40% 96%;              /* #F1F5F9 */
+    --accent-foreground: 215 28% 17%;
+
+    --destructive: 0 72% 51%;           /* #DC2626 */
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 160 84% 31%;             /* #059669 */
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;               /* #F59E0B - amber-500 */
+    --warning-foreground: 0 0% 100%;
+
+    --ring: 222 33% 6%;                 /* Match primary */
+    --radius: 0.75rem;
+
+    /* 3. LAYER 3: SEMANTICS & CHARTS */
+    --chart-profit: 160 84% 31%;        /* #059669 */
+    --chart-loss: 0 72% 51%;            /* #DC2626 */
+
+    --chart-1: 217 91% 53%;             /* #2563EB - Blue */
+    --chart-2: 263 70% 58%;             /* #7C3AED - Purple */
+    --chart-3: 333 71% 51%;             /* #DB2777 - Pink */
+    --chart-4: 21 90% 48%;              /* #EA580C - Orange */
+    --chart-5: 45 97% 40%;              /* #CA8A04 - Yellow */
+
+    /* Sidebar */
+    --sidebar-background: 228 22% 96%;  /* #F4F5F8 */
+    --sidebar-foreground: 215 28% 17%;
+    --sidebar-primary: 222 33% 6%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 214 32% 91%;      /* #E2E8F0 */
+    --sidebar-accent-foreground: 215 28% 17%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 222 33% 6%;
+
+    --discord: 235 86% 65%;
+    --google: 217 89% 61%;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     DARK THEME (.dark class applied by default via init script)
+     ═══════════════════════════════════════════════════════ */
+  .dark {
     /* 1. LAYER 1: NEUTRALS & CONTRAST */
     --background: 222 33% 6%;           /* #0A0D14 */
     --foreground: 213 27% 84%;          /* #CBD5E1 - body text */
     --heading-text: 0 0% 100%;          /* #FFFFFF - headings, active state, KPI values */
-    
+
     --card: 219 25% 11%;                /* #151A23 */
     --card-foreground: 213 27% 84%;     /* #CBD5E1 */
     --popover: 219 25% 11%;             /* #151A23 */
     --popover-foreground: 213 27% 84%;
-    
+
     --border: 215 24% 18%;              /* #222B38 */
     --input: 215 24% 18%;               /* #222B38 */
-    
+
     --muted: 215 24% 18%;               /* Match border/slight offset */
     --muted-foreground: 216 16% 60%;    /* #8A96A8 */
-    
+
     /* 2. LAYER 2: ACCENTS & INTERACTIVE STATES */
     --primary: 210 40% 98%;             /* #F8FAFC */
     --primary-foreground: 222 33% 6%;   /* #0A0D14 */
     --primary-hover: 0 0% 100%;         /* #FFFFFF */
     --primary-press: 214 32% 91%;       /* #E2E8F0 */
     --primary-disabled: 215 25% 27%;    /* #334155 */
-    
+
     --secondary: 219 25% 11%;           /* Match card */
     --secondary-foreground: 213 27% 84%;
-    
+
     --accent: 219 25% 11%;              /* Match card */
     --accent-foreground: 213 27% 84%;
-    
+
     --destructive: 0 84% 60%;           /* #EF4444 */
     --destructive-foreground: 0 0% 100%;/* #FFFFFF */
-    
+
     --success: 160 84% 39%;             /* #10B981 */
     --success-foreground: 0 0% 100%;    /* #FFFFFF */
-    
+
+    --warning: 38 92% 50%;               /* #F59E0B - amber-500 */
+    --warning-foreground: 0 0% 100%;     /* #FFFFFF */
+
     --ring: 210 40% 98%;                /* Match primary */
-    --radius: 0.75rem;
 
     /* 3. LAYER 3: SEMANTICS & CHARTS */
     --chart-profit: 160 84% 39%;        /* #10B981 */
     --chart-loss: 0 84% 60%;            /* #EF4444 */
-    
+
     --chart-1: 213 97% 68%;             /* #60A5FA - Blue */
     --chart-2: 255 92% 76%;             /* #A78BFA - Purple */
     --chart-3: 329 86% 70%;             /* #F472B6 - Pink */
     --chart-4: 27 96% 61%;              /* #FB923C - Orange */
     --chart-5: 43 96% 56%;              /* #FBBF24 - Yellow */
-    
+
     /* Sidebar */
     --sidebar-background: 222 33% 6%;   /* #0A0D14 */
-    --sidebar-foreground: 213 27% 84%;  
+    --sidebar-foreground: 213 27% 84%;
     --sidebar-primary: 210 40% 98%;
     --sidebar-primary-foreground: 222 33% 6%;
     --sidebar-accent: 219 25% 11%;      /* Match card */
     --sidebar-accent-foreground: 213 27% 84%;
     --sidebar-border: 215 24% 18%;      /* Match border */
     --sidebar-ring: 210 40% 98%;
-
-    --discord: 235 86% 65%;
-    --google: 217 89% 61%;
   }
 }
 
@@ -159,15 +230,11 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  
   /* Improved focus indicators for accessibility */
   *:focus-visible {
-    @apply outline-2 outline-offset-2 outline-blue-500 dark:outline-blue-400;
+    @apply outline-2 outline-offset-2 outline-ring;
   }
-  
+
   /* High contrast focus for interactive elements */
   button:focus-visible,
   [role="button"]:focus-visible,
@@ -175,29 +242,28 @@
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible {
-    @apply outline-2 outline-offset-2 outline-blue-600 dark:outline-blue-400;
+    @apply outline-2 outline-offset-2 outline-ring;
   }
-  
+
   body {
     @apply bg-background text-foreground;
-    /* Ensure consistent background */
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
-  
+
   /* High contrast mode support */
   @media (prefers-contrast: high) {
     :root {
       --muted-foreground: 0 0% 20%;
       --border: 0 0% 70%;
     }
-    
+
     .dark {
       --muted-foreground: 0 0% 80%;
       --border: 0 0% 30%;
     }
   }
-  
+
   /* Reduced motion support */
   @media (prefers-reduced-motion: reduce) {
     *,

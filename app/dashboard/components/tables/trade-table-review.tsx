@@ -350,7 +350,7 @@ const useTradeTableColumns = ({
         const value = row.original.pnl
         return (
           <div className="text-right font-bold font-mono">
-            <span className={cn(value >= 0 ? 'text-green-500' : 'text-red-500')}>
+            <span className={cn(value >= 0 ? 'text-profit' : 'text-loss')}>
               {value >= 0 ? '+' : ''}{formatCurrency(value)}
             </span>
           </div>

@@ -79,7 +79,7 @@ export function ConsentBanner() {
         }}
         className="fixed bottom-0 left-0 right-0 z-[9999] pointer-events-auto"
         style={{
-          filter: 'drop-shadow(0 -4px 6px rgb(0 0 0 / 0.1))',
+          filter: 'drop-shadow(0 -4px 6px hsl(var(--background) / 0.1))',
         }}
       >
         <div className="bg-background/80 backdrop-blur-lg border-t border-border/50 p-4 shadow-lg">
@@ -93,7 +93,7 @@ export function ConsentBanner() {
               <div className="flex gap-3 shrink-0">
                 <Button 
                   size="sm"
-                  className="bg-black text-white hover:bg-black/90"
+                  className="bg-primary text-primary-foreground hover:bg-primary-hover"
                   onClick={handleAcceptEssential}
                 >
                   Accept Essential Cookies

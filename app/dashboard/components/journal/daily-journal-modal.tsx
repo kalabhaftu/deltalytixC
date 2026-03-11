@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import {
   Dialog,
@@ -25,7 +25,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { EmotionPicker, EmotionType, getEmotionIcon } from './emotion-picker'
 import { toast } from 'sonner'
 import { Loader2, BookOpen, Save, X } from 'lucide-react'
-import { cn, formatCurrency, BREAK_EVEN_THRESHOLD } from '@/lib/utils'
+import { cn, BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
@@ -237,15 +237,15 @@ export function DailyJournalModal({
                           <div className="text-muted-foreground">Total Trades</div>
                           <div className="text-lg font-semibold mt-1">{trades.length}</div>
                         </div>
-                        <div className="text-center p-2 rounded-md bg-green-500/10">
+                        <div className="text-center p-2 rounded-md bg-long/10">
                           <div className="text-muted-foreground">Winners</div>
-                          <div className="text-lg font-semibold mt-1 text-green-400">
+                          <div className="text-lg font-semibold mt-1 text-profit">
                             {winningTrades}
                           </div>
                         </div>
-                        <div className="text-center p-2 rounded-md bg-red-500/10">
+                        <div className="text-center p-2 rounded-md bg-short/10">
                           <div className="text-muted-foreground">Losers</div>
-                          <div className="text-lg font-semibold mt-1 text-red-400">
+                          <div className="text-lg font-semibold mt-1 text-loss">
                             {losingTrades}
                           </div>
                         </div>
@@ -266,8 +266,8 @@ export function DailyJournalModal({
                             <span className={cn(
                               "font-semibold",
                               trade.pnl >= 0
-                                ? "text-green-400"
-                                : "text-red-400"
+                                ? "text-profit"
+                                : "text-loss"
                             )}>
                               {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
                             </span>

@@ -24,7 +24,7 @@ export default function NotFound() {
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background relative overflow-hidden">
       {/* Background gradients */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl opacity-30 animate-pulse" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl opacity-30 animate-pulse delay-1000" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-chart-1/20 rounded-full blur-3xl opacity-30 animate-pulse delay-1000" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}

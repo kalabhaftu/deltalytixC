@@ -49,15 +49,22 @@ export default async function RootLayout({
         <meta name="googlebot" content="notranslate" />
         <meta name="googlebot-news" content="notranslate" />
 
-        {/* Prevent theme flash - improved version */}
         <Script id="theme-script" strategy="beforeInteractive">
           {`
             (function() {
               try {
+                var saved = localStorage.getItem('theme') || 'dark';
+                var effective = saved;
+                if (saved === 'system') {
+                  effective = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                if (effective !== 'light' && effective !== 'dark') effective = 'dark';
+                document.documentElement.classList.remove('light', 'dark');
+                document.documentElement.classList.add(effective);
+                document.documentElement.style.colorScheme = effective;
+              } catch (e) {
                 document.documentElement.classList.add('dark');
                 document.documentElement.style.colorScheme = 'dark';
-              } catch (e) {
-                // Silent fail - dark theme applied by default
               }
             })();
           `}

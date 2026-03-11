@@ -123,7 +123,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="flex justify-between p-2 hover:bg-muted rounded">
                 <span>AAPL</span>
-                <span className="text-green-600">+$125.50</span>
+                <span className="text-profit">+$125.50</span>
               </div>
             ))}
           </div>
@@ -220,7 +220,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
                   key={i}
                   className={cn(
                     "flex-1 rounded-t",
-                    isPositive ? "bg-green-500" : "bg-red-500"
+                    isPositive ? "bg-long" : "bg-short"
                   )}
                   style={{ height: `${height}%` }}
                 />
@@ -321,7 +321,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
                   <div
                     className={cn(
                       "w-full rounded-t",
-                      isPositive ? "bg-green-500" : "bg-red-500"
+                      isPositive ? "bg-long" : "bg-short"
                     )}
                     style={{ height: `${height}%` }}
                   />
@@ -357,7 +357,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
                   key={i}
                   className={cn(
                     "flex-1 rounded-t",
-                    isPositive ? "bg-green-500" : "bg-red-500"
+                    isPositive ? "bg-long" : "bg-short"
                   )}
                   style={{ height: `${height}%` }}
                 />
@@ -424,15 +424,15 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span>NAS100</span>
-              <span className="text-green-600 font-medium">$1,240</span>
+              <span className="text-profit font-medium">$1,240</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span>EURUSD</span>
-              <span className="text-red-600 font-medium">-$320</span>
+              <span className="text-loss font-medium">-$320</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span>GOLD</span>
-              <span className="text-green-600 font-medium">$890</span>
+              <span className="text-profit font-medium">$890</span>
             </div>
           </div>
         </CardContent>
@@ -456,15 +456,15 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span>ICT 2022</span>
-              <span className="text-green-600 font-medium">$2,140</span>
+              <span className="text-profit font-medium">$2,140</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span>MSNR</span>
-              <span className="text-green-600 font-medium">$780</span>
+              <span className="text-profit font-medium">$780</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span>Price Action</span>
-              <span className="text-red-600 font-medium">-$420</span>
+              <span className="text-loss font-medium">-$420</span>
             </div>
           </div>
         </CardContent>
@@ -488,15 +488,15 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span>ICT 2022</span>
-              <span className="text-green-600 font-medium">72%</span>
+              <span className="text-profit font-medium">72%</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span>MSNR</span>
-              <span className="text-green-600 font-medium">68%</span>
+              <span className="text-profit font-medium">68%</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span>Price Action</span>
-              <span className="text-yellow-600 font-medium">45%</span>
+              <span className="text-muted-foreground font-medium">45%</span>
             </div>
           </div>
         </CardContent>
@@ -519,11 +519,11 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
         <CardContent className="p-2">
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center justify-center">
-              <div className="w-10 h-10 rounded-full border-4 border-emerald-500 border-t-transparent"></div>
+              <div className="w-10 h-10 rounded-full border-4 border-long border-t-transparent"></div>
             </div>
             <div className="space-y-1">
-              <div className="p-1.5 bg-red-500/10 rounded text-xs">Max DD</div>
-              <div className="p-1.5 bg-emerald-500/10 rounded text-xs">Streak</div>
+              <div className="p-1.5 bg-short/10 rounded text-xs">Max DD</div>
+              <div className="p-1.5 bg-long/10 rounded text-xs">Streak</div>
             </div>
           </div>
         </CardContent>
@@ -545,8 +545,8 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
         </CardHeader>
         <CardContent className="p-2">
           <div className="space-y-2 text-xs">
-            <div className="p-2 bg-purple-500/10 rounded"><span>Asia</span></div>
-            <div className="p-2 bg-amber-500/10 rounded"><span>New York</span></div>
+            <div className="p-2 bg-chart-1/10 rounded"><span>Asia</span></div>
+            <div className="p-2 bg-warning/10 rounded"><span>New York</span></div>
           </div>
         </CardContent>
       </Card>

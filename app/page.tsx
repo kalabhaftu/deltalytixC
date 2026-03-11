@@ -116,7 +116,7 @@ export default function RootPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
-          className="bg-card/80 backdrop-blur-xl border border-white/5 rounded-2xl p-8 shadow-2xl"
+          className="bg-card/80 backdrop-blur-xl border border-border/10 rounded-2xl p-8 shadow-2xl"
         >
           <UserAuthForm />
         </motion.div>
