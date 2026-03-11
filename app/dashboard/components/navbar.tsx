@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useData } from "@/context/data-provider"
 import { useAuth } from "@/context/auth-provider"
-import { Database, LogOut, LayoutDashboard, RefreshCw, Moon, Settings, Pencil, Plus, BookOpen, LayoutTemplate, Trash2, Users, Filter } from "lucide-react"
+import { Database, LogOut, LayoutDashboard, RefreshCw, Sun, Moon, Settings, Pencil, Plus, BookOpen, LayoutTemplate, Trash2, Users, Filter } from "lucide-react"
+import { ThemeSwitcher } from "@/components/theme-switcher"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -194,7 +195,7 @@ export default function Navbar() {
   useKeyboardShortcuts()
 
   const handleThemeChange = (value: string) => {
-    setTheme(value as "dark" | "system")
+    setTheme(value as "dark" | "light" | "system")
     setIsLogoPopoverOpen(false)
   }
 
@@ -438,9 +439,7 @@ export default function Navbar() {
             <NotificationCenter />
 
             {/* Theme Switcher */}
-            <div className="hidden sm:block">
-              <ThemeSwitcher />
-            </div>
+            <ThemeSwitcher />
             <div className="relative">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

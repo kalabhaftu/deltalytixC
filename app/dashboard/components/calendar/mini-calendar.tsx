@@ -268,7 +268,7 @@ function MiniCalendar({ calendarData }: MiniCalendarProps) {
                     <div className="flex justify-between items-start mb-1">
                       <span className={cn(
                         "text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-md transition-colors",
-                        isTodayDate ? "border border-primary/50 text-primary" : "bg-zinc-800/80 text-zinc-300",
+                        isTodayDate ? "border border-primary/50 text-primary" : "bg-muted/80 text-muted-foreground",
                       )}>
                         {format(date, 'd')}
                       </span>
@@ -287,7 +287,7 @@ function MiniCalendar({ calendarData }: MiniCalendarProps) {
                     <div className="mt-auto hidden sm:block">
                       {hasTrades && (
                         <div className="flex flex-col gap-0">
-                          <div className="text-[9px] font-semibold text-zinc-300/80 flex items-center gap-0.5">
+                          <div className="text-[9px] font-semibold text-muted-foreground/80 flex items-center gap-0.5">
                             <span>{dayData.tradeNumber}</span>
                             <span className="opacity-50 font-medium scale-[0.9] origin-left">trades</span>
                           </div>

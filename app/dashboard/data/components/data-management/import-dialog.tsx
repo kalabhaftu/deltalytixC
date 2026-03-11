@@ -162,7 +162,7 @@ export function ImportDialog() { // Kept name for compatibility
                 </div>
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-card">
                   <span className="text-sm font-medium text-muted-foreground">Skipped (Duplicates)</span>
-                  <span className="text-2xl font-bold text-amber-600">
+                  <span className="text-2xl font-bold text-warning">
                     {importResults.skipped || 0}
                   </span>
                 </div>

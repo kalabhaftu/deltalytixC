@@ -234,7 +234,7 @@ export default function AccountSelection({
                       {account.accountType === 'prop-firm' ? (
                         <Building2 className="h-4 w-4 text-foreground" />
                       ) : (
-                        <User className="h-4 w-4 text-green-500" />
+                        <User className="h-4 w-4 text-long" />
                       )}
                       <p className="font-medium">{account.displayName}</p>
                     </div>

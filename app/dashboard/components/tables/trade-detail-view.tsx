@@ -328,8 +328,8 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                               </div>
                             ))}
                             {tradeData.newsTraded && (
-                              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-50 border border-orange-200 text-orange-700">
-                                <Zap className="h-4 w-4 fill-orange-500 text-orange-500" />
+                              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning/10 border border-warning/20 text-warning">
+                                <Zap className="h-4 w-4 fill-warning text-warning" />
                                 <span className="text-xs font-bold uppercase tracking-tight">Active News Trader</span>
                               </div>
                             )}

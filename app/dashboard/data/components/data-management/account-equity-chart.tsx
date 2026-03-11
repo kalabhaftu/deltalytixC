@@ -288,8 +288,8 @@ export function AccountEquityChart({
                       <p className={cn(
                         "text-sm font-medium",
                         {
-                          "text-gray-500": data.payoutStatus === 'PENDING',
-                          "text-orange-500": data.payoutStatus === 'VALIDATED',
+                          "text-muted-foreground": data.payoutStatus === 'PENDING',
+                          "text-chart-4": data.payoutStatus === 'VALIDATED',
                           "text-short": data.payoutStatus === 'REFUSED',
                           "text-long": data.payoutStatus === 'PAID',
                         }
@@ -298,7 +298,7 @@ export function AccountEquityChart({
                       </p>
                     )}
                     {data.isAfterReset && (
-                      <p className="text-sm font-medium text-purple-500">After Reset Date</p>
+                      <p className="text-sm font-medium text-chart-2">After Reset Date</p>
                     )}
                   </div>
                 )

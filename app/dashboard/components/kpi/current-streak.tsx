@@ -116,9 +116,9 @@ export default function CurrentStreak({ size }: CurrentStreakProps) {
             </div>
           </div>
           {isWinning ? (
-            <Flame className="h-6 w-6 text-orange-500 opacity-80" />
+            <Flame className="h-6 w-6 text-chart-4 opacity-80" />
           ) : (
-            <Snowflake className="h-6 w-6 text-blue-500 opacity-80" />
+            <Snowflake className="h-6 w-6 text-chart-1 opacity-80" />
           )}
         </div>
 

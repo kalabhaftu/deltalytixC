@@ -51,22 +51,22 @@ export interface Emotion {
 
 export const emotions: Emotion[] = [
   { id: 'confident', label: 'Confident', icon: TrendingUp, color: 'text-long' },
-  { id: 'anxious', label: 'Anxious', icon: AlertTriangle, color: 'text-orange-400' },
-  { id: 'focused', label: 'Focused', icon: Brain, color: 'text-blue-400' },
-  { id: 'energetic', label: 'Energetic', icon: Zap, color: 'text-yellow-400' },
+  { id: 'anxious', label: 'Anxious', icon: AlertTriangle, color: 'text-chart-4' },
+  { id: 'focused', label: 'Focused', icon: Brain, color: 'text-chart-1' },
+  { id: 'energetic', label: 'Energetic', icon: Zap, color: 'text-warning' },
   { id: 'calm', label: 'Calm', icon: Sun, color: 'text-sky-400' },
-  { id: 'frustrated', label: 'Frustrated', icon: CloudRain, color: 'text-gray-400' },
+  { id: 'frustrated', label: 'Frustrated', icon: CloudRain, color: 'text-muted-foreground' },
   { id: 'optimistic', label: 'Optimistic', icon: ThumbsUp, color: 'text-long' },
   { id: 'pessimistic', label: 'Pessimistic', icon: ThumbsDown, color: 'text-short' },
-  { id: 'disciplined', label: 'Disciplined', icon: Target, color: 'text-purple-400' },
+  { id: 'disciplined', label: 'Disciplined', icon: Target, color: 'text-chart-2' },
   { id: 'impulsive', label: 'Impulsive', icon: Flame, color: 'text-rose-400' },
   { id: 'happy', label: 'Happy', icon: Smile, color: 'text-long' },
-  { id: 'sad', label: 'Sad', icon: Frown, color: 'text-blue-400' },
-  { id: 'neutral', label: 'Neutral', icon: Meh, color: 'text-gray-400' },
-  { id: 'tired', label: 'Tired', icon: Coffee, color: 'text-amber-400' },
-  { id: 'excited', label: 'Excited', icon: Heart, color: 'text-pink-400' },
+  { id: 'sad', label: 'Sad', icon: Frown, color: 'text-chart-1' },
+  { id: 'neutral', label: 'Neutral', icon: Meh, color: 'text-muted-foreground' },
+  { id: 'tired', label: 'Tired', icon: Coffee, color: 'text-warning' },
+  { id: 'excited', label: 'Excited', icon: Heart, color: 'text-chart-3' },
   { id: 'stressed', label: 'Stressed', icon: TrendingDown, color: 'text-short' },
-  { id: 'relaxed', label: 'Relaxed', icon: Heart, color: 'text-teal-400' },
+  { id: 'relaxed', label: 'Relaxed', icon: Heart, color: 'text-chart-5' },
 ]
 
 interface EmotionPickerProps {

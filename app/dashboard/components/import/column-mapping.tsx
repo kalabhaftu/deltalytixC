@@ -113,12 +113,12 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
     <div className="h-full flex flex-col">
       <div className="mb-4">
         {getRemainingFieldsToMap().length > 0 && (
-          <div className="flex-none bg-yellow-900/20 border-l-4 border-yellow-600 text-yellow-200 p-4 rounded-r mb-4" role="alert">
+          <div className="flex-none bg-warning/10 border-l-4 border-warning text-warning-foreground p-4 rounded-r mb-4" role="alert">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <SparklesIcon className="h-6 w-6 text-yellow-400 animate-pulse" />
-                  <div className="absolute -inset-1 bg-yellow-800 rounded-full blur-sm opacity-50 animate-ping" />
+                  <SparklesIcon className="h-6 w-6 text-warning animate-pulse" />
+                  <div className="absolute -inset-1 bg-warning/30 rounded-full blur-sm opacity-50 animate-ping" />
                 </div>
                 <div>
                   <p className="font-bold">Unmapped Fields</p>
@@ -129,7 +129,7 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
                 variant="outline"
                 size="sm"
                 onClick={() => submit({ fieldColumns: headers, firstRows: csvData.slice(1, 6) })}
-                className="flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border-yellow-500/20 transition-colors"
+                className="flex items-center gap-2 bg-warning/10 hover:bg-warning/20 text-warning border-warning/20 transition-colors"
               >
                 <RefreshCwIcon className={cn("h-4 w-4", isLoading && "animate-spin")} />
                 Use AI for mapping
@@ -145,7 +145,7 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
-                      {columnConfig[field].required ? <AlertTriangleIcon className="h-4 w-4 ml-1 text-red-500 inline" /> : <InfoIcon className="h-4 w-4 ml-1 text-yellow-500 inline" />}
+                      {columnConfig[field].required ? <AlertTriangleIcon className="h-4 w-4 ml-1 text-destructive inline" /> : <InfoIcon className="h-4 w-4 ml-1 text-warning inline" />}
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>{columnConfig[field].required ? "Required field" : "Optional field"}</p>
@@ -204,7 +204,7 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
                            column === 'symbol' ? 'Symbol' :
                            column}
                           {columnConfig[column].required && (
-                            <span className="ml-1 text-yellow-500">*</span>
+                            <span className="ml-1 text-warning">*</span>
                           )}
                         </SelectItem>
                       ))}
@@ -227,7 +227,7 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
           </TableBody>
         </Table>
       </div>
-      {error && <p className="text-red-500 mt-2">{error}</p>}
+      {error && <p className="text-destructive mt-2">{error}</p>}
     </div>
   )
 }

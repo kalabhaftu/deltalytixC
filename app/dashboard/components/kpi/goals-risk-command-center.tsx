@@ -131,21 +131,21 @@ function StatCard({ metric }: { metric: RiskMetric }) {
 
     const statusStyles = {
         danger: 'border-short/30 bg-short/5',
-        warning: 'border-yellow-500/30 bg-yellow-500/5',
+        warning: 'border-warning/30 bg-warning/5',
         safe: 'border-long/30 bg-long/5',
         neutral: 'border-border bg-muted/30'
     }
 
     const iconStyles = {
         danger: 'text-short',
-        warning: 'text-amber-500',
+        warning: 'text-warning',
         safe: 'text-long',
         neutral: 'text-muted-foreground'
     }
 
     const valueStyles = {
         danger: 'text-short',
-        warning: 'text-amber-500',
+        warning: 'text-warning',
         safe: 'text-long',
         neutral: 'text-foreground'
     }
@@ -381,8 +381,8 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
             {/* Header */}
             <CardHeader className="flex flex-row items-center justify-between shrink-0 border-b border-border/50 px-6 py-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-yellow-500/10 rounded-lg">
-                        <Trophy className="h-5 w-5 text-yellow-500" />
+                    <div className="p-2 bg-warning/10 rounded-lg">
+                        <Trophy className="h-5 w-5 text-warning" />
                     </div>
                     <div>
                         <CardTitle className="text-lg font-bold tracking-tight">Command Center</CardTitle>
@@ -501,9 +501,9 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
 
                             {/* Warning Alert */}
                             {riskStats.lossStreak >= 3 && (
-                                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                                    <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
-                                    <p className="text-xs text-amber-500">
+                                <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
+                                    <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                                    <p className="text-xs text-warning">
                                         Consider taking a break - {riskStats.lossStreak} losses in a row
                                     </p>
                                 </div>

@@ -68,7 +68,7 @@ const DayCell = memo(function DayCell({
                 // Trading Day Styles (Refined TradeZella Palette)
                 hasTrades && stats.isProfit && "bg-long/10 border-long/30 hover:bg-long/20 hover:border-long/50",
                 hasTrades && stats.isLoss && "bg-short/10 border-short/30 hover:bg-short/20 hover:border-short/50",
-                hasTrades && stats.isBreakEven && "bg-zinc-800/40 border-zinc-700/30 hover:bg-zinc-800/60 hover:border-zinc-700/50",
+                hasTrades && stats.isBreakEven && "bg-muted/40 border-border/30 hover:bg-muted/60 hover:border-border/50",
 
                 // Not Current Month
                 !isCurrentMonth && "opacity-20 grayscale hover:opacity-40",
@@ -83,14 +83,14 @@ const DayCell = memo(function DayCell({
                 <div className="flex items-center gap-1.5 min-w-0">
                     <span className={cn(
                         "text-[11px] font-bold w-6 h-6 flex items-center justify-center rounded-md transition-colors",
-                        isTodayDate ? "border border-primary/50 text-primary" : "bg-zinc-800/80 text-zinc-300",
+                        isTodayDate ? "border border-primary/50 text-primary" : "bg-muted/80 text-muted-foreground",
                     )}>
                         {format(date, 'd')}
                     </span>
 
                     {/* Notebook Icon (Outlined - Matching Secondary Metrics) */}
                     {hasNotes && (
-                        <Notebook className="h-3.5 w-3.5 text-zinc-300" />
+                        <Notebook className="h-3.5 w-3.5 text-muted-foreground" />
                     )}
                 </div>
 
@@ -111,13 +111,13 @@ const DayCell = memo(function DayCell({
             {hasTrades && (
                 <div className="hidden md:flex flex-col gap-0.5 mt-auto">
                     {visibleStats.trades && (
-                        <div className="text-[10px] font-semibold text-zinc-300/90 flex items-center gap-1">
+                        <div className="text-[10px] font-semibold text-muted-foreground/90 flex items-center gap-1">
                             <span>{stats.tradeCount}</span>
                             <span className="opacity-60 font-medium">trades</span>
                         </div>
                     )}
 
-                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-300/90">
+                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground/90">
                         {visibleStats.rMultiple && (
                             <span>
                                 {stats.rMultiple.toFixed(2)}R

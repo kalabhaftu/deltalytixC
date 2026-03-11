@@ -128,7 +128,7 @@ export default function AccountSettingsPage() {
       case 'funded': return 'bg-long'
       case 'failed': return 'bg-short'
       case 'passed': return 'bg-chart-1'
-      default: return 'bg-gray-500'
+      default: return 'bg-muted-foreground'
     }
   }
 
@@ -137,7 +137,7 @@ export default function AccountSettingsPage() {
       case 'active': return 'bg-foreground'
       case 'passed': return 'bg-long'
       case 'failed': return 'bg-short'
-      default: return 'bg-gray-500'
+      default: return 'bg-muted-foreground'
     }
   }
 

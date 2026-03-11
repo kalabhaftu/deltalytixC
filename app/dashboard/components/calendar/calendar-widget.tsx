@@ -228,7 +228,7 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
               )}>
                 {formatCompact(displayTotal)}
               </div>
-              <div className="px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 border-dashed shadow-sm">
+              <div className="px-1.5 py-0.5 rounded bg-chart-2/10 border border-chart-2/20 text-chart-2 border-dashed shadow-sm">
                 {tradedDaysCount}d
               </div>
             </div>

@@ -22,8 +22,8 @@ export function RedirectToAccounts() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="max-w-md w-full">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 p-3 rounded-full bg-yellow-100 w-fit">
-            <AlertTriangle className="h-6 w-6 text-yellow-600" />
+          <div className="mx-auto mb-4 p-3 rounded-full bg-warning/10 w-fit">
+            <AlertTriangle className="h-6 w-6 text-warning" />
           </div>
           <CardTitle>Account Not Found</CardTitle>
         </CardHeader>

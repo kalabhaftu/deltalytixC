@@ -108,7 +108,7 @@ function ChartTooltip({ active, payload }: any) {
 function ScoreBadge({ score, hasData }: { score: number; hasData: boolean }) {
   const getScoreColor = (s: number) => {
     if (s >= 70) return 'text-long bg-long/10 border-long/30'
-    if (s >= 40) return 'text-amber-500 bg-amber-500/10 border-amber-500/30'
+    if (s >= 40) return 'text-warning bg-warning/10 border-warning/30'
     return 'text-short bg-short/10 border-short/30'
   }
 
@@ -240,7 +240,7 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
 
   const getScoreBarColor = (score: number) => {
     if (score >= 70) return 'bg-long'
-    if (score >= 40) return 'bg-amber-500'
+    if (score >= 40) return 'bg-warning'
     return 'bg-short'
   }
 

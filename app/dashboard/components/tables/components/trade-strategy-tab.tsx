@@ -127,7 +127,7 @@ export function TradeStrategyTab({
                         <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">Verification Protocol</Label>
                         <span className={cn(
                             "text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-full",
-                            compliance === 100 ? "bg-long/10 text-long" : compliance > 50 ? "bg-amber-500/10 text-amber-500" : "bg-short/10 text-short"
+                            compliance === 100 ? "bg-long/10 text-long" : compliance > 50 ? "bg-warning/10 text-warning" : "bg-short/10 text-short"
                         )}>
                             Compliance: {compliance.toFixed(0)}%
                         </span>

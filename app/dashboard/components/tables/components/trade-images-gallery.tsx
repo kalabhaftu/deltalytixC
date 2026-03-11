@@ -66,7 +66,7 @@ export function TradeImagesGallery({
                                             type="button"
                                             variant="destructive"
                                             size="icon"
-                                            className="h-8 w-8 rounded-full bg-red-500/40 border-red-500/20 hover:bg-red-500 transition-all scale-90 group-hover:scale-100"
+                                            className="h-8 w-8 rounded-full bg-destructive/40 border-destructive/20 hover:bg-destructive transition-all scale-90 group-hover:scale-100"
                                             title="Delete"
                                             onClick={() => onRemove(field)}
                                         >

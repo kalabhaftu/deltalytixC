@@ -342,13 +342,13 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
         <form id="manual-trade-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Phase Validation Error */}
         {phaseValidationError && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-3">
+          <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <AlertCircle className="h-4 w-4 text-red-400" />
+                <AlertCircle className="h-4 w-4 text-destructive" />
               </div>
               <div className="ml-3">
-                <p className="text-sm text-red-700">{phaseValidationError}</p>
+                <p className="text-sm text-destructive">{phaseValidationError}</p>
               </div>
             </div>
           </div>
@@ -386,7 +386,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
                 className="mt-2"
               />
               {errors.instrument && (
-                <p className="text-sm text-red-500">{errors.instrument.message}</p>
+                <p className="text-sm text-destructive">{errors.instrument.message}</p>
               )}
             </div>
 
@@ -411,7 +411,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
                 )}
               />
               {errors.accountNumber && (
-                <p className="text-sm text-red-500">{errors.accountNumber.message}</p>
+                <p className="text-sm text-destructive">{errors.accountNumber.message}</p>
               )}
               {existingAccounts.length === 0 && (
                 <p className="text-sm text-muted-foreground">
@@ -433,13 +433,13 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
                     <SelectContent>
                       <SelectItem value="LONG">
                         <div className="flex items-center">
-                          <TrendingUp className="w-4 h-4 mr-2 text-green-500" />
+                          <TrendingUp className="w-4 h-4 mr-2 text-long" />
                           Long
                         </div>
                       </SelectItem>
                       <SelectItem value="SHORT">
                         <div className="flex items-center">
-                          <TrendingDown className="w-4 h-4 mr-2 text-red-500" />
+                          <TrendingDown className="w-4 h-4 mr-2 text-short" />
                           Short
                         </div>
                       </SelectItem>
@@ -448,7 +448,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
                 )}
               />
               {errors.side && (
-                <p className="text-sm text-red-500">{errors.side.message}</p>
+                <p className="text-sm text-destructive">{errors.side.message}</p>
               )}
             </div>
 
@@ -461,7 +461,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
                 {...register('quantity', { valueAsNumber: true })}
               />
               {errors.quantity && (
-                <p className="text-sm text-red-500">{errors.quantity.message}</p>
+                <p className="text-sm text-destructive">{errors.quantity.message}</p>
               )}
             </div>
 
@@ -473,7 +473,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
                 {...register('entryPrice')}
               />
               {errors.entryPrice && (
-                <p className="text-sm text-red-500">{errors.entryPrice.message}</p>
+                <p className="text-sm text-destructive">{errors.entryPrice.message}</p>
               )}
             </div>
 
@@ -485,7 +485,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
                 {...register('closePrice')}
               />
               {errors.closePrice && (
-                <p className="text-sm text-red-500">{errors.closePrice.message}</p>
+                <p className="text-sm text-destructive">{errors.closePrice.message}</p>
               )}
             </div>
           </CardContent>
@@ -504,7 +504,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
                 {...register('entryDate')}
               />
               {errors.entryDate && (
-                <p className="text-sm text-red-500">{errors.entryDate.message}</p>
+                <p className="text-sm text-destructive">{errors.entryDate.message}</p>
               )}
             </div>
 
@@ -515,7 +515,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
                 {...register('entryTime')}
               />
               {errors.entryTime && (
-                <p className="text-sm text-red-500">{errors.entryTime.message}</p>
+                <p className="text-sm text-destructive">{errors.entryTime.message}</p>
               )}
             </div>
 
@@ -526,7 +526,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
                 {...register('closeDate')}
               />
               {errors.closeDate && (
-                <p className="text-sm text-red-500">{errors.closeDate.message}</p>
+                <p className="text-sm text-destructive">{errors.closeDate.message}</p>
               )}
             </div>
 
@@ -537,7 +537,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
                 {...register('closeTime')}
               />
               {errors.closeTime && (
-                <p className="text-sm text-red-500">{errors.closeTime.message}</p>
+                <p className="text-sm text-destructive">{errors.closeTime.message}</p>
               )}
             </div>
           </CardContent>
@@ -558,10 +558,10 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
                 type="number"
                 step="0.01"
                 {...register('pnl', { valueAsNumber: true })}
-                className={calculatedPnL !== null ? (calculatedPnL >= 0 ? 'border-green-500' : 'border-red-500') : ''}
+                className={calculatedPnL !== null ? (calculatedPnL >= 0 ? 'border-long' : 'border-short') : ''}
               />
               {calculatedPnL !== null && (
-                <p className={`text-sm ${calculatedPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <p className={`text-sm ${calculatedPnL >= 0 ? 'text-long' : 'text-short'}`}>
                   Auto-calculated: ${calculatedPnL.toFixed(2)}
                 </p>
               )}

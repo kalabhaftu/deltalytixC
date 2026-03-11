@@ -109,7 +109,7 @@ const AccountBalancePnl = React.memo(function AccountBalancePnl({ size }: Accoun
             </div>
             <div className="flex items-center gap-1">
               <span className="text-muted-foreground">Fees:</span>
-              <span className="font-semibold text-amber-500">
+              <span className="font-semibold text-warning">
                 -{formatCompactCurrency(totalCommissions)}
               </span>
             </div>

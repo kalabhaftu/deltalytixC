@@ -105,7 +105,7 @@ function StrategyBlock({
           <div className="flex items-baseline gap-1.5">
             <span className={cn(
               "text-xl font-bold tracking-tight",
-              winRate >= 50 ? "text-long" : winRate > 0 ? "text-amber-500" : "text-muted-foreground"
+              winRate >= 50 ? "text-long" : winRate > 0 ? "text-warning" : "text-muted-foreground"
             )}>
               {winRate.toFixed(1)}%
             </span>
@@ -124,7 +124,7 @@ function StrategyBlock({
           <span className="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground/60 block mb-1">Adherence</span>
           <span className={cn(
             "text-lg font-bold tracking-tight",
-            (model.stats?.avgAdherence || 0) >= 80 ? "text-primary" : (model.stats?.avgAdherence || 0) >= 50 ? "text-amber-500" : "text-short"
+            (model.stats?.avgAdherence || 0) >= 80 ? "text-primary" : (model.stats?.avgAdherence || 0) >= 50 ? "text-warning" : "text-short"
           )}>
             {model.stats?.avgAdherence?.toFixed(0) || '0'}%
           </span>
@@ -359,13 +359,13 @@ export default function PlaybookPage() {
                               <div className="flex items-center gap-2">
                                 <div className="h-1 w-12 bg-muted/40 rounded-full overflow-hidden">
                                   <div
-                                    className={cn("h-full transition-all duration-1000", rate >= 80 ? "bg-primary" : rate >= 50 ? "bg-amber-500" : "bg-short")}
+                                    className={cn("h-full transition-all duration-1000", rate >= 80 ? "bg-primary" : rate >= 50 ? "bg-warning" : "bg-short")}
                                     style={{ width: `${rate}%` }}
                                   />
                                 </div>
                                 <span className={cn(
                                   "text-[9px] font-black tabular-nums min-w-[24px] text-right",
-                                  rate >= 80 ? "text-primary" : rate >= 50 ? "text-amber-500" : "text-short"
+                                  rate >= 80 ? "text-primary" : rate >= 50 ? "text-warning" : "text-short"
                                 )}>
                                   {rate.toFixed(0)}%
                                 </span>

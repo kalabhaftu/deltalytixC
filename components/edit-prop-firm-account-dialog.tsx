@@ -244,7 +244,7 @@ export function EditPropFirmAccountDialog({
                 disabled={isSaving}
               />
               {errors.accountName && (
-                <p className="text-sm text-red-500">{errors.accountName.message}</p>
+                <p className="text-sm text-destructive">{errors.accountName.message}</p>
               )}
             </div>
 
@@ -261,8 +261,8 @@ export function EditPropFirmAccountDialog({
             </div>
 
             {hasUnsavedChanges && isDirty && (
-              <div className="bg-amber-900/20 border border-amber-800 rounded-lg p-3">
-                <p className="text-sm text-amber-200">
+              <div className="bg-warning/10 border border-warning/30 rounded-lg p-3">
+                <p className="text-sm text-warning">
                   You have unsaved changes. They will be lost if you close without saving.
                 </p>
               </div>

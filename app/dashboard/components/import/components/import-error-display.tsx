@@ -20,7 +20,7 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
         title: 'Duplicate Trades Detected',
         description: 'The trades you\'re trying to import have already been added to this account.',
         icon: AlertCircle,
-        color: 'text-amber-500'
+        color: 'text-warning'
       }
     }
     
@@ -29,7 +29,7 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
         title: 'No Active Phase',
         description: 'This account doesn\'t have an active phase set up. Please configure account phases first.',
         icon: AlertCircle,
-        color: 'text-orange-500'
+        color: 'text-chart-4'
       }
     }
     
@@ -38,7 +38,7 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
         title: 'Account Not Found',
         description: 'The selected account could not be found. It may have been deleted.',
         icon: AlertCircle,
-        color: 'text-red-500'
+        color: 'text-destructive'
       }
     }
     
@@ -47,7 +47,7 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
         title: 'Connection Error',
         description: 'Unable to connect to the server. Please check your internet connection.',
         icon: AlertCircle,
-        color: 'text-red-500'
+        color: 'text-destructive'
       }
     }
     
@@ -56,7 +56,7 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
         title: 'Authentication Error',
         description: 'Your session has expired. Please log in again.',
         icon: AlertCircle,
-        color: 'text-red-500'
+        color: 'text-destructive'
       }
     }
     
@@ -66,7 +66,7 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
         ? 'An unexpected error occurred. Please try again or contact support if the issue persists.'
         : errorMessage,
       icon: AlertCircle,
-      color: 'text-red-500'
+      color: 'text-destructive'
     }
   }
 
@@ -78,16 +78,16 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
       {/* Error Icon */}
       <div className="relative">
         <div className="absolute inset-0 blur-2xl opacity-30">
-          <div className="w-24 h-24 rounded-full bg-red-500" />
+          <div className="w-24 h-24 rounded-full bg-destructive" />
         </div>
-        <div className="relative z-10 w-24 h-24 rounded-full bg-red-500/10 backdrop-blur-sm border-2 border-red-500/30 flex items-center justify-center">
+        <div className="relative z-10 w-24 h-24 rounded-full bg-destructive/10 backdrop-blur-sm border-2 border-destructive/30 flex items-center justify-center">
           <Icon className={`w-12 h-12 ${errorInfo.color}`} />
         </div>
       </div>
 
       {/* Error Message */}
       <div className="max-w-md w-full space-y-4">
-        <Alert variant="destructive" className="border-red-500/50 bg-red-500/10">
+        <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle className="text-lg font-semibold">{errorInfo.title}</AlertTitle>
           <AlertDescription className="mt-2">

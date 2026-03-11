@@ -19,25 +19,25 @@ export function SeasonalAvatarBadge({ children, className }: SeasonalAvatarBadge
     // Configuration for different themes
     const config = {
         NEW_YEAR: {
-            gradient: "bg-amber-500",
+            gradient: "bg-chart-4",
             badge: "✨",
             shadow: "shadow-amber-500/20",
             animationDuration: 3
         },
         CHRISTMAS: {
-            gradient: "bg-green-500",
+            gradient: "bg-long",
             badge: "🎄",
             shadow: "shadow-green-500/20",
             animationDuration: 4
         },
         HALLOWEEN: {
-            gradient: "bg-purple-600",
+            gradient: "bg-chart-2",
             badge: "🎃",
             shadow: "shadow-orange-500/20",
             animationDuration: 3
         },
         VALENTINES: {
-            gradient: "bg-pink-500",
+            gradient: "bg-chart-3",
             badge: "❤️",
             shadow: "shadow-pink-500/20",
             animationDuration: 3

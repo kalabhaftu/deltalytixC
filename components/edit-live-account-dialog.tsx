@@ -141,7 +141,7 @@ export function EditLiveAccountDialog({
               disabled={isSaving}
             />
             {errors.name && (
-              <p className="text-sm text-red-500">{errors.name.message}</p>
+              <p className="text-sm text-destructive">{errors.name.message}</p>
             )}
           </div>
 
@@ -154,7 +154,7 @@ export function EditLiveAccountDialog({
               disabled={isSaving}
             />
             {errors.broker && (
-              <p className="text-sm text-red-500">{errors.broker.message}</p>
+              <p className="text-sm text-destructive">{errors.broker.message}</p>
             )}
           </div>
 

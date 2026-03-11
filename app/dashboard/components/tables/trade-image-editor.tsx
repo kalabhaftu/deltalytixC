@@ -365,9 +365,9 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                           onClick={() => zoomOut()}
                           disabled={scale <= 0.5}
                         >
-                          <ZoomOut className="h-3 w-3 sm:h-4 sm:w-4 text-gray-300" />
+                          <ZoomOut className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                         </Button>
-                        <span className="min-w-[2.5rem] sm:min-w-[3rem] text-center text-xs sm:text-sm font-medium text-gray-300">
+                        <span className="min-w-[2.5rem] sm:min-w-[3rem] text-center text-xs sm:text-sm font-medium text-muted-foreground">
                           {Math.round(scale * 100)}%
                         </span>
                         <Button
@@ -377,7 +377,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                           onClick={() => zoomIn()}
                           disabled={scale >= 3}
                         >
-                          <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4 text-gray-300" />
+                          <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                         </Button>
                       </div>
                     </>

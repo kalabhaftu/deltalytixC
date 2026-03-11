@@ -171,11 +171,11 @@ export default function AccountPayoutsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-500'
+      case 'pending': return 'bg-warning'
       case 'approved': return 'bg-foreground'
       case 'paid': return 'bg-long'
       case 'rejected': return 'bg-short'
-      default: return 'bg-gray-500'
+      default: return 'bg-muted-foreground'
     }
   }
 

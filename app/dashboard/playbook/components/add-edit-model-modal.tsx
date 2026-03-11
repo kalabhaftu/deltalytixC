@@ -269,7 +269,7 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <AlertTriangle className="h-5 w-5 text-warning" />
               Unsaved Changes
             </AlertDialogTitle>
             <AlertDialogDescription>

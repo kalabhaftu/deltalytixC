@@ -285,7 +285,7 @@ export function TagManager({ isOpen, onClose, onRefresh }: TagManagerProps) {
                             variant="ghost"
                             className="h-8 px-2"
                           >
-                            <Check className="h-4 w-4 text-green-600" />
+                            <Check className="h-4 w-4 text-profit" />
                           </Button>
                           <Button
                             onClick={handleCancelEdit}

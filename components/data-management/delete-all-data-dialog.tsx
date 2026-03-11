@@ -195,7 +195,7 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
                       </>
                     ) : backupDownloaded ? (
                       <>
-                        <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
+                        <CheckCircle2 className="h-4 w-4 mr-2 text-profit" />
                         Backup downloaded
                       </>
                     ) : (
@@ -248,7 +248,7 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
                     </p>
                   )}
                   {confirmText === 'DELETE ALL DATA' && (
-                    <p className="text-xs text-green-600 flex items-center gap-1">
+                    <p className="text-xs text-profit flex items-center gap-1">
                       <CheckCircle2 className="h-3 w-3" />
                       Confirmation matches
                     </p>

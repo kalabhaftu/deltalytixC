@@ -402,7 +402,7 @@ export function CreatePropFirmDialog({ open, onOpenChange, onSuccess }: PropFirm
                   className="h-8 w-8 p-0"
                 >
                   {isEditingRules ? (
-                    <Check className="h-4 w-4 text-green-600" />
+                    <Check className="h-4 w-4 text-profit" />
                   ) : (
                     <Edit2 className="h-4 w-4" />
                   )}

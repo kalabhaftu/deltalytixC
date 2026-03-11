@@ -172,10 +172,10 @@ export default function RequestPayoutPage() {
 
       {/* Eligibility Check */}
       {eligibility && !eligibility.isEligible && (
-        <Card className="border-yellow-500">
+        <Card className="border-warning">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-yellow-500" />
+              <AlertCircle className="h-5 w-5 text-warning" />
               <CardTitle>Payout Not Available</CardTitle>
             </div>
           </CardHeader>
@@ -186,7 +186,7 @@ export default function RequestPayoutPage() {
             <ul className="space-y-2">
               {eligibility.blockers.map((blocker, index) => (
                 <li key={index} className="flex items-center gap-2 text-sm">
-                  <div className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
+                  <div className="h-1.5 w-1.5 rounded-full bg-warning" />
                   {blocker}
                 </li>
               ))}
@@ -197,7 +197,7 @@ export default function RequestPayoutPage() {
 
       {/* Eligibility Confirmed */}
       {eligibility && eligibility.isEligible && (
-        <Card className="border-green-500">
+        <Card className="border-long">
           <CardHeader>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-long" />

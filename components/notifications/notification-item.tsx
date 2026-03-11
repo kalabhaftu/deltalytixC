@@ -41,19 +41,19 @@ const notificationIcons: Record<NotificationType, React.ReactNode> = {
   RISK_ALERT: <ShieldAlert className="h-4 w-4 text-destructive" />,
   IMPORT_STATUS: <Download className="h-4 w-4 text-primary" />,
   WEEKLY_PERFORMANCE: <BarChart className="h-4 w-4 text-long" />,
-  STRATEGY_DEVIATION: <Activity className="h-4 w-4 text-orange-500" />,
+  STRATEGY_DEVIATION: <Activity className="h-4 w-4 text-warning" />,
   SYSTEM_ANNOUNCEMENT: <Megaphone className="h-4 w-4 text-muted-foreground" />,
   TRADE_STATUS: <RefreshCw className="h-4 w-4 text-muted-foreground" />,
   // New granular risk alert types
-  RISK_DAILY_LOSS_80: <ShieldAlert className="h-4 w-4 text-orange-500" />,
+  RISK_DAILY_LOSS_80: <ShieldAlert className="h-4 w-4 text-warning" />,
   RISK_DAILY_LOSS_95: <ShieldAlert className="h-4 w-4 text-destructive" />,
-  RISK_MAX_DRAWDOWN_80: <ShieldAlert className="h-4 w-4 text-orange-500" />,
+  RISK_MAX_DRAWDOWN_80: <ShieldAlert className="h-4 w-4 text-warning" />,
   RISK_MAX_DRAWDOWN_95: <ShieldAlert className="h-4 w-4 text-destructive" />,
   // Import lifecycle types
   IMPORT_PROCESSING: <Download className="h-4 w-4 text-primary animate-pulse" />,
   IMPORT_COMPLETE: <Download className="h-4 w-4 text-long" />,
   // Strategy compliance
-  STRATEGY_SESSION_VIOLATION: <Activity className="h-4 w-4 text-orange-500" />
+  STRATEGY_SESSION_VIOLATION: <Activity className="h-4 w-4 text-warning" />
 }
 
 const notificationColors: Record<NotificationType, string> = {

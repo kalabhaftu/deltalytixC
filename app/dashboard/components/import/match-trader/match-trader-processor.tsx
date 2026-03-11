@@ -188,8 +188,8 @@ const MatchTraderProcessor = ({
   return (
     <div className="flex items-center justify-center h-full">
       <div className="text-center space-y-4 max-w-md">
-        <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
-          <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="w-16 h-16 rounded-full bg-long/10 flex items-center justify-center mx-auto">
+          <svg className="w-8 h-8 text-long" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>

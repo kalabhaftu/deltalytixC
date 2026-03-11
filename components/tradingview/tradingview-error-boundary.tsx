@@ -45,7 +45,7 @@ export class TradingViewErrorBoundary extends React.Component<
       return (
         <Card className="w-full">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-600">
+            <CardTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
               Chart Loading Error
             </CardTitle>

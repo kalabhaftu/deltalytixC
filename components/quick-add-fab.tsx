@@ -119,7 +119,7 @@ export function QuickAddFAB({ className }: QuickAddFABProps) {
                                 variant={formData.side === 'long' ? 'default' : 'outline'}
                                 className={cn(
                                     "flex-1 gap-2",
-                                    formData.side === 'long' && "bg-green-600 hover:bg-green-700"
+                                    formData.side === 'long' && "bg-long hover:bg-long/80"
                                 )}
                                 onClick={() => setFormData(prev => ({ ...prev, side: 'long' }))}
                             >
@@ -131,7 +131,7 @@ export function QuickAddFAB({ className }: QuickAddFABProps) {
                                 variant={formData.side === 'short' ? 'default' : 'outline'}
                                 className={cn(
                                     "flex-1 gap-2",
-                                    formData.side === 'short' && "bg-red-600 hover:bg-red-700"
+                                    formData.side === 'short' && "bg-short hover:bg-short/80"
                                 )}
                                 onClick={() => setFormData(prev => ({ ...prev, side: 'short' }))}
                             >
@@ -151,8 +151,8 @@ export function QuickAddFAB({ className }: QuickAddFABProps) {
                             value={formData.pnl}
                             onChange={(e) => setFormData(prev => ({ ...prev, pnl: e.target.value }))}
                             className={cn(
-                                pnlValue > 0 && "text-green-500 border-green-500/50",
-                                pnlValue < 0 && "text-red-500 border-red-500/50"
+                                pnlValue > 0 && "text-long border-long/50",
+                                pnlValue < 0 && "text-short border-short/50"
                             )}
                         />
                     </div>

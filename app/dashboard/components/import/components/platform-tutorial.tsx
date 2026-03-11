@@ -69,8 +69,8 @@ export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutori
         )}
       </div>
           {selectedPlatform.videoUrl ? (
-      <div className="aspect-video rounded-lg overflow-hidden bg-gray-800 transition-transform duration-300 hover:scale-[1.02]">
-        <div className="aspect-video rounded-lg overflow-hidden bg-gray-800">
+      <div className="aspect-video rounded-lg overflow-hidden bg-muted transition-transform duration-300 hover:scale-[1.02]">
+        <div className="aspect-video rounded-lg overflow-hidden bg-muted">
             <video
               ref={videoRef}
               height="600"
@@ -80,7 +80,7 @@ export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutori
               muted
               controls
               playsInline
-              className="rounded-lg border border-gray-800 shadow-lg w-full h-full object-cover"
+              className="rounded-lg border border-border shadow-lg w-full h-full object-cover"
             >
               <source src={selectedPlatform.videoUrl} type="video/mp4" />
               <track
@@ -103,7 +103,7 @@ export function PlatformTutorial({ selectedPlatform, setIsOpen }: PlatformTutori
 
       {selectedPlatform.details && (
         <div className="text-sm text-muted-foreground flex items-start gap-2 bg-muted/50 p-4 rounded-lg transition-all duration-300 hover:bg-muted/70 animate-in slide-in-from-bottom-4">
-          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-yellow-500 animate-pulse" />
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-warning animate-pulse" />
           <p>{selectedPlatform.details}</p>
         </div>
       )}
