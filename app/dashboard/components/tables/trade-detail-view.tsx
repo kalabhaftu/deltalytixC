@@ -58,7 +58,8 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   const timezone = useUserStore((state) => state.timezone)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
-  const imageDialogOpenRef = useRef(false)
+  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false)
+  const isImageViewerOpenRef = useRef(false)
   const [showReplay, setShowReplay] = useState(false)
 
   if (!trade) return null
@@ -114,8 +115,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
       <Dialog
         open={isOpen}
         onOpenChange={(open) => {
-          // Only close if image viewer is not open
-          if (!open && !imageDialogOpenRef.current) {
+          if (!open && !isImageViewerOpenRef.current) {
             onClose()
           }
         }}
@@ -124,7 +124,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
           className="w-full max-w-[95vw] sm:max-w-6xl h-[95vh] sm:h-[90vh] flex flex-col p-0 transition-all"
           onInteractOutside={(e) => {
             // Prevent closing when image viewer is open
-            if (imageDialogOpenRef.current) {
+            if (isImageViewerOpenRef.current) {
               e.preventDefault()
             }
           }}
@@ -368,8 +368,10 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                       {images.map((img, index) => (
-                        <div key={index} className="group relative aspect-video rounded-2xl overflow-hidden border border-border/40 bg-muted/30 cursor-pointer shadow-sm hover:shadow-md transition-all active:scale-[0.98]" onClick={() => {
-                          imageDialogOpenRef.current = true
+                        <div key={index} className="group relative aspect-video rounded-2xl overflow-hidden border border-border/40 bg-muted/30 cursor-pointer shadow-sm hover:shadow-md transition-all active:scale-[0.98]" onClick={(e) => {
+                          e.stopPropagation() // Prevent bubbling
+                          isImageViewerOpenRef.current = true
+                          setIsImageViewerOpen(true)
                           setSelectedImage(img)
                           setSelectedImageIndex(index + 1)
                         }}>
@@ -423,15 +425,20 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
           <Dialog
             open={!!selectedImage}
             onOpenChange={(open) => {
-              // Update ref to track image dialog state
-              imageDialogOpenRef.current = open
-              // Only handle inner dialog state, don't propagate to parent
-              if (!open) {
-                setSelectedImage(null)
-                // Small delay to ensure ref is updated before parent dialog checks it
+              // Capture open state for UI but leave ref alone if closing until timeout
+              setIsImageViewerOpen(open)
+              
+              if (open) {
+                isImageViewerOpenRef.current = true
+              } else {
+                // Extended delay for mobile to ensure parent doesn't catch the close event
                 setTimeout(() => {
-                  imageDialogOpenRef.current = false
-                }, 0)
+                  setSelectedImage(null)
+                  // Reset ref after a longer delay to safely bridge the event bubbling phase
+                  setTimeout(() => {
+                    isImageViewerOpenRef.current = false
+                  }, 250)
+                }, 150)
               }
             }}
             modal={true}

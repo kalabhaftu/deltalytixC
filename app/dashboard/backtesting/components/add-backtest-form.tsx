@@ -513,7 +513,7 @@ export function AddBacktestForm({ onAdd, onDirtyChange }: AddBacktestFormProps) 
                 value={watchedDirection}
                 onValueChange={(value) => setValue('direction', value as BacktestDirection)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="direction">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -530,7 +530,7 @@ export function AddBacktestForm({ onAdd, onDirtyChange }: AddBacktestFormProps) 
                 value={watch('session')}
                 onValueChange={(value) => setValue('session', value as BacktestSession)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="session">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -548,7 +548,7 @@ export function AddBacktestForm({ onAdd, onDirtyChange }: AddBacktestFormProps) 
                 value={watchedOutcome}
                 onValueChange={(value) => setValue('outcome', value as BacktestOutcome)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="outcome">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -567,7 +567,7 @@ export function AddBacktestForm({ onAdd, onDirtyChange }: AddBacktestFormProps) 
               value={watchedModel}
               onValueChange={(value) => setValue('model', value as BacktestModel)}
             >
-              <SelectTrigger>
+              <SelectTrigger id="model">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

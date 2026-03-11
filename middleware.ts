@@ -33,89 +33,90 @@ export default async function middleware(req: NextRequest) {
     pathname === route || pathname.startsWith(route + "/")
   )
 
-  // Allow authenticated users to see the root page with "Already Logged In" UI
-  // The page itself will show the logged-in state instead of redirecting immediately
-  // This provides better UX by showing the user they're logged in with a clear CTA
+  // Handle authentication logic
+  try {
+    const cookieStore = await cookies()
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // For protected routes, check authentication directly
-  if (isProtectedRoute) {
-    // Check if this might be a post-authentication request
-    const referrer = req.headers.get('referer')
-    const url = req.nextUrl
-    const isPostAuthRequest = referrer && (
-      referrer.includes('/api/auth/callback') ||
-      referrer.includes('/auth/callback') ||
-      url.searchParams.has('code') ||
-      url.searchParams.has('error')
-    )
-
-    // Skip auth check for post-authentication requests
-    if (isPostAuthRequest) {
-      return NextResponse.next()
-    }
-
-    try {
-      // Direct auth check instead of API call to avoid circular dependencies
-      const cookieStore = await cookies()
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-      if (!supabaseUrl || !supabaseKey) {
-        // Configuration error - redirect to login (don't allow through)
+    if (!supabaseUrl || !supabaseKey) {
+      if (isProtectedRoute) {
         const authUrl = new URL('/', req.url)
         authUrl.searchParams.set('error', 'config')
         return NextResponse.redirect(authUrl)
       }
+      return NextResponse.next()
+    }
 
-      const supabase = createServerClient(
-        supabaseUrl,
-        supabaseKey,
-        {
-          cookies: {
-            getAll() {
-              return cookieStore.getAll()
-            },
-            setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
-              try {
-                cookiesToSet.forEach(({ name, value, options }) =>
-                  cookieStore.set(name, value, options)
-                )
-              } catch {
-                // Ignore cookie setting errors in middleware context
-              }
-            },
+    const supabase = createServerClient(
+      supabaseUrl,
+      supabaseKey,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
           },
-        }
+          setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {
+              // Ignore cookie setting errors in middleware context
+            }
+          },
+        },
+      }
+    )
+
+    // Get user session
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const isAuthenticated = !!user && !authError
+
+    // 1. Redirect authenticated users away from public routes and specifically the login page
+    if (isAuthenticated && !isProtectedRoute && !pathname.startsWith('/api/auth') && pathname !== '/not-found') {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+
+    // 2. Redirect unauthenticated users away from protected routes
+    if (!isAuthenticated && isProtectedRoute) {
+      // Check if this might be a post-authentication request (to prevent loops during callback)
+      const referrer = req.headers.get('referer')
+      const url = req.nextUrl
+      const isPostAuthRequest = referrer && (
+        referrer.includes('/api/auth/callback') ||
+        referrer.includes('/auth/callback') ||
+        url.searchParams.has('code') ||
+        url.searchParams.has('error')
       )
 
-      // Get user session from Supabase
-      const { data: { user }, error } = await supabase.auth.getUser()
-
-      if (error || !user) {
-        // User not authenticated, redirect to authentication
+      if (!isPostAuthRequest) {
         const authUrl = new URL('/', req.url)
         authUrl.searchParams.set('next', pathname)
         return NextResponse.redirect(authUrl)
       }
+    }
 
-      // Add user info to headers for server components
-      const response = NextResponse.next()
+    // 3. Add user info to headers if authenticated
+    const response = NextResponse.next()
+    if (isAuthenticated) {
       response.headers.set('x-user-id', user.id)
       response.headers.set('x-user-authenticated', 'authenticated')
       if (user.email) {
         response.headers.set('x-user-email', user.email)
       }
-      return response
+    }
+    return response
 
-    } catch (middlewareError) {
-      // If middleware auth check fails, redirect to login (don't allow through)
+  } catch (err) {
+    console.error('Middleware error:', err)
+    if (isProtectedRoute) {
       const authUrl = new URL('/', req.url)
-      authUrl.searchParams.set('error', 'auth')
+      authUrl.searchParams.set('error', 'exception')
       return NextResponse.redirect(authUrl)
     }
+    return NextResponse.next()
   }
-
-  return NextResponse.next()
 }
 
 export const config = {

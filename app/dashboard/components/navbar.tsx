@@ -336,16 +336,6 @@ export default function Navbar() {
                         </div>
                         Dashboard
                       </Link>
-                      <Link
-                        href="/"
-                        className="flex items-center gap-2 text-sm hover:bg-muted/50 p-3 rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-md"
-                        onClick={() => setIsLogoPopoverOpen(false)}
-                      >
-                        <div className="flex-shrink-0 w-4 h-4">
-                          <Home className="h-full w-full" />
-                        </div>
-                        Home
-                      </Link>
                     </div>
                   </div>
                 </PopoverContent>

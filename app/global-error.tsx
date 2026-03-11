@@ -33,7 +33,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                         </p>
                     </div>
 
-                    <div className="p-4 rounded-lg border border-destructive/20 bg-destructive/5 text-left text-sm font-mono overflow-auto max-h-[200px] custom-scrollbar">
+                    <div className="p-4 rounded-lg border border-destructive/20 bg-destructive/5 text-left text-sm font-mono overflow-auto max-h-48 custom-scrollbar">
                         <p className="text-destructive font-semibold">Error Digest: {error.digest || 'Unknown'}</p>
                         <p className="mt-1 text-muted-foreground break-all">{error.message}</p>
                     </div>

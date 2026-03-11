@@ -36,7 +36,7 @@ interface TradingModel {
 interface AddEditModelModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: { name: string; rules: Rule[]; notes?: string }) => Promise<void>
+  onSave: (data: { name: string; rules: Rule[]; notes?: string | null }) => Promise<void>
   model?: TradingModel | null
   mode: 'add' | 'edit'
 }
@@ -64,7 +64,7 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
           if (typeof r === 'string') return { text: r, category: 'general' as const }
           return r as Rule
         })
-        setRules(formattedRules.length > 0 ? formattedRules : [
+        setRules(formattedRules.length > 0 ? [...formattedRules] : [
           { text: '', category: 'entry' },
           { text: '', category: 'exit' },
           { text: '', category: 'risk' }
@@ -89,7 +89,15 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
 
     if (mode === 'edit' && model) {
       const nameChanged = name !== model.name
-      const rulesChanged = JSON.stringify(rules.filter(r => r.text.trim())) !== JSON.stringify(model.rules)
+      
+      // Normalize both sides for comparison
+      const currentRules = rules.filter(r => r.text.trim())
+      const modelRules = (model.rules || []).map((r: any) => {
+        if (typeof r === 'string') return { text: r, category: 'general' }
+        return { text: r.text, category: r.category }
+      })
+
+      const rulesChanged = JSON.stringify(currentRules) !== JSON.stringify(modelRules)
       const notesChanged = notes !== (model.notes || '')
       setHasChanges(nameChanged || rulesChanged || notesChanged)
     } else {
@@ -102,9 +110,7 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
   }
 
   const handleRemoveRule = (index: number) => {
-    if (rules.length > 1) {
-      setRules(rules.filter((_, i) => i !== index))
-    }
+    setRules(rules.filter((_, i) => i !== index))
   }
 
   const handleRuleChange = (index: number, field: keyof Rule, value: string) => {
@@ -133,7 +139,7 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
       await onSave({
         name: name.trim(),
         rules: filteredRules,
-        notes: notes.trim() || undefined,
+        notes: notes.trim() || null,
       })
       toast.success(mode === 'add' ? 'Model created successfully' : 'Model updated successfully')
       onClose()
@@ -165,14 +171,15 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
               <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
                 Strategy Designation <span className="text-destructive">*</span>
               </Label>
-              <Input
-                id="name"
-                placeholder="e.g., HTF EQUILIBRIUM, SMART MONEY CONCEPTS"
-                className="font-bold tracking-tight h-11 bg-muted/10 border-border/40 focus:border-primary/50 transition-all uppercase"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={100}
-              />
+                <Input
+                  id="name"
+                  aria-label="Strategy Designation"
+                  placeholder="e.g., HTF EQUILIBRIUM, SMART MONEY CONCEPTS"
+                  className="font-bold tracking-tight h-11 bg-muted/10 border-border/40 focus:border-primary/50 transition-all uppercase"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  maxLength={100}
+                />
             </div>
 
             {/* Rules */}

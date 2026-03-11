@@ -3,10 +3,15 @@ import { getUserId } from '@/server/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
+const ruleSchema = z.object({
+  text: z.string(),
+  category: z.enum(['entry', 'exit', 'risk', 'general'])
+})
+
 const tradingModelSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  rules: z.array(z.string()).optional(),
-  notes: z.string().optional(),
+  rules: z.array(ruleSchema).optional(),
+  notes: z.string().nullable().optional(),
 })
 
 // PATCH - Update trading model
@@ -59,7 +64,7 @@ export async function PATCH(
       where: { id: params.id },
       data: {
         ...(validated.name && { name: validated.name }),
-        ...(validated.rules && { rules: validated.rules }),
+        ...(validated.rules !== undefined && { rules: validated.rules }),
         ...(validated.notes !== undefined && { notes: validated.notes }),
       },
     })

@@ -12,8 +12,8 @@ const ruleSchema = z.object({
 
 const tradingModelSchema = z.object({
   name: z.string().min(1, 'Model name is required').max(100),
-  rules: z.array(z.union([z.string(), ruleSchema])).default([]),
-  notes: z.string().optional(),
+  rules: z.array(ruleSchema).default([]),
+  notes: z.string().nullable().optional(),
 })
 
 // GET - List all trading models for user

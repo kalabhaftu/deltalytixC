@@ -7,7 +7,10 @@ import { motion } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { Home, ArrowLeft } from "lucide-react"
 
+import { useAuth } from "@/context/auth-provider"
+
 export default function NotFound() {
+  const { isAuthenticated } = useAuth()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
 
@@ -63,9 +66,9 @@ export default function NotFound() {
           className="flex flex-col sm:flex-row gap-4 justify-center"
         >
           <Button asChild size="lg" className="gap-2">
-            <Link href="/">
+            <Link href={isAuthenticated ? "/dashboard" : "/"}>
               <Home className="w-4 h-4" />
-              Back Home
+              {isAuthenticated ? "Back to Dashboard" : "Back Home"}
             </Link>
           </Button>
           <Button
