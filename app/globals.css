@@ -58,19 +58,6 @@
   unicode-range: U+0000-00FF;
 }
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-}
 
 @layer utilities {
   .text-balance {
@@ -80,152 +67,64 @@
 
 @layer base {
   :root {
-    /* Light Theme Colors - Rebuilt for better UX */
-    --background: 220 14% 96%;           /* #F3F4F6 - Softer gray background */
-    --foreground: 222 47% 15%;           /* #1A2332 - Slightly softer text */
-    --card: 0 0% 99%;                    /* #FCFCFC - Near white cards */
-    --card-foreground: 222 47% 15%;      /* #1A2332 - Card text */
-    --popover: 0 0% 99%;
-    --popover-foreground: 222 47% 15%;
-    --primary: 222 47% 11%;              /* #111827 - Primary (dark) */
-    --primary-foreground: 0 0% 98%;      /* #FAFAFA - Primary text */
-    --secondary: 220 14% 94%;            /* #EEEFF1 - Lighter gray */
-    --secondary-foreground: 222 47% 15%;
-    --muted: 220 14% 94%;                /* #EEEFF1 - Muted background */
-    --muted-foreground: 220 9% 50%;      /* #71788A - Darker for readability */
-    --accent: 220 70% 45%;               /* Dark blue accent */
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;            /* #DC2626 - Red for losses */
-    --destructive-foreground: 0 0% 98%;
-    --success: 160 84% 39%;              /* #059669 - Green for profits */
-    --success-foreground: 0 0% 98%;
-    --border: 220 13% 88%;               /* #DADDE3 - Softer borders */
-    --input: 220 13% 88%;
-    --ring: 220 70% 50%;                 /* Dark blue focus ring */
+    /* 1. LAYER 1: NEUTRALS & CONTRAST */
+    --background: 222 33% 6%;           /* #0A0D14 */
+    --foreground: 213 27% 84%;          /* #CBD5E1 - body text */
+    --heading-text: 0 0% 100%;          /* #FFFFFF - headings, active state, KPI values */
+    
+    --card: 219 25% 11%;                /* #151A23 */
+    --card-foreground: 213 27% 84%;     /* #CBD5E1 */
+    --popover: 219 25% 11%;             /* #151A23 */
+    --popover-foreground: 213 27% 84%;
+    
+    --border: 215 24% 18%;              /* #222B38 */
+    --input: 215 24% 18%;               /* #222B38 */
+    
+    --muted: 215 24% 18%;               /* Match border/slight offset */
+    --muted-foreground: 216 16% 60%;    /* #8A96A8 */
+    
+    /* 2. LAYER 2: ACCENTS & INTERACTIVE STATES */
+    --primary: 210 40% 98%;             /* #F8FAFC */
+    --primary-foreground: 222 33% 6%;   /* #0A0D14 */
+    --primary-hover: 0 0% 100%;         /* #FFFFFF */
+    --primary-press: 214 32% 91%;       /* #E2E8F0 */
+    --primary-disabled: 215 25% 27%;    /* #334155 */
+    
+    --secondary: 219 25% 11%;           /* Match card */
+    --secondary-foreground: 213 27% 84%;
+    
+    --accent: 219 25% 11%;              /* Match card */
+    --accent-foreground: 213 27% 84%;
+    
+    --destructive: 0 84% 60%;           /* #EF4444 */
+    --destructive-foreground: 0 0% 100%;/* #FFFFFF */
+    
+    --success: 160 84% 39%;             /* #10B981 */
+    --success-foreground: 0 0% 100%;    /* #FFFFFF */
+    
+    --ring: 210 40% 98%;                /* Match primary */
     --radius: 0.75rem;
-    
-    /* Chart colors (light theme) */
-    --chart-profit: 160 84% 39%;         /* #059669 - Profit green */
-    --chart-loss: 0 72% 51%;             /* #DC2626 - Loss red */
-    --chart-neutral: 220 9% 46%;         /* #6B7280 - Neutral gray */
-    --chart-1: 0 72% 51%;                /* Red */
-    --chart-2: 160 84% 39%;              /* Green */
-    --chart-3: 217 91% 60%;              /* Blue */
-    --chart-4: 174 72% 56%;              /* Teal */
-    --chart-5: 199 89% 48%;              /* Updated Teal/Cyan */
-    
-    --chart-profit: 160 84% 39%;         /* Green for profits */
-    --chart-loss: 0 72% 51%;             /* Red for losses */
-    
-    /* Sidebar */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 222 47% 11%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 220 14% 96%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 174 72% 56%;
-    
-    /* Brand colors */
-    --discord: 235 86% 65%;
-    --google: 217 89% 61%;
-  }
 
-  .dark {
-    /* TradeZella Dark Theme Colors - Darker */
-    --background: 220 30% 6%;            /* #0A0D14 - Even darker background */
-    --foreground: 0 0% 100%;             /* #FFFFFF - White text */
-    --card: 220 28% 8%;                  /* #101318 - Even darker cards */
-    --card-foreground: 0 0% 100%;        /* #FFFFFF - Card text */
-    --popover: 220 28% 8%;               /* Match card background */
-    --popover-foreground: 0 0% 100%;
-    --primary: 220 70% 50%;              /* Dark blue primary */
-    --primary-foreground: 0 0% 100%;     /* White text */
-    --secondary: 226 30% 23%;            /* #252B47 - Darker gray */
-    --secondary-foreground: 0 0% 100%;
-    --muted: 226 30% 23%;                /* #252B47 - Muted background */
-    --muted-foreground: 220 9% 46%;      /* #9CA3AF - Muted text */
-    --accent: 220 70% 45%;               /* Dark blue accent */
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;            /* #EF4444 - Bright red for losses */
-    --destructive-foreground: 0 0% 100%;
-    --success: 160 84% 35%;              /* Softer green for profits (reduced eye strain) */
-    --success-foreground: 0 0% 100%;
-    --border: 220 20% 18%;               /* Darker subtle borders */
-    --input: 0 0% 100% / 0.1;
-    --ring: 220 70% 50%;                 /* Dark blue focus ring */
+    /* 3. LAYER 3: SEMANTICS & CHARTS */
+    --chart-profit: 160 84% 39%;        /* #10B981 */
+    --chart-loss: 0 84% 60%;            /* #EF4444 */
     
-    /* Chart colors (dark theme) */
-    --chart-profit: 160 84% 35%;         /* Softer profit green (eye-friendly) */
-    --chart-loss: 0 84% 60%;             /* #EF4444 - Loss red */
-    --chart-neutral: 220 9% 46%;         /* #6B7280 - Neutral gray */
-    --chart-1: 0 84% 60%;                /* Bright red */
-    --chart-2: 160 84% 35%;              /* Softer green */
-    --chart-3: 217 91% 60%;              /* Blue */
-    --chart-4: 174 72% 56%;              /* Teal */
-    --chart-5: 199 89% 48%;              /* Updated Teal/Cyan */
+    --chart-1: 213 97% 68%;             /* #60A5FA - Blue */
+    --chart-2: 255 92% 76%;             /* #A78BFA - Purple */
+    --chart-3: 329 86% 70%;             /* #F472B6 - Pink */
+    --chart-4: 27 96% 61%;              /* #FB923C - Orange */
+    --chart-5: 43 96% 56%;              /* #FBBF24 - Yellow */
     
     /* Sidebar */
-    --sidebar-background: 225 26% 18%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent: 226 30% 23%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 100% / 0.1;
-    --sidebar-ring: 174 72% 56%;
-    
-    /* Brand colors - same in dark mode */
-    --discord: 235 86% 65%;
-    --google: 217 89% 61%;
-  }
+    --sidebar-background: 222 33% 6%;   /* #0A0D14 */
+    --sidebar-foreground: 213 27% 84%;  
+    --sidebar-primary: 210 40% 98%;
+    --sidebar-primary-foreground: 222 33% 6%;
+    --sidebar-accent: 219 25% 11%;      /* Match card */
+    --sidebar-accent-foreground: 213 27% 84%;
+    --sidebar-border: 215 24% 18%;      /* Match border */
+    --sidebar-ring: 210 40% 98%;
 
-  .midnight-ocean {
-    /* Midnight Ocean Theme - Deep blue professional palette */
-    --background: 207 40% 10%;           /* #111a22 - Deep ocean background */
-    --foreground: 0 0% 100%;             /* #ffffff - White text */
-    --card: 207 32% 17%;                 /* #243647 - Surface cards */
-    --card-foreground: 0 0% 100%;        /* #ffffff - Card text */
-    --popover: 207 32% 17%;              /* #243647 - Match card */
-    --popover-foreground: 0 0% 100%;
-    --primary: 207 40% 50%;              /* Ocean blue primary */
-    --primary-foreground: 0 0% 100%;     /* White text */
-    --secondary: 207 32% 22%;            /* #1a2632 - Table header */
-    --secondary-foreground: 0 0% 100%;
-    --muted: 207 32% 22%;                /* #1a2632 - Muted background */
-    --muted-foreground: 207 23% 68%;     /* #93adc8 - Subtext */
-    --accent: 207 40% 50%;               /* Ocean blue accent */
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 55%;            /* Adjusted red for ocean theme */
-    --destructive-foreground: 0 0% 100%;
-    --success: 160 70% 40%;              /* Adjusted green for ocean theme */
-    --success-foreground: 0 0% 100%;
-    --border: 207 32% 30%;               /* #344d65 - Subtle borders */
-    --input: 0 0% 100% / 0.1;
-    --ring: 207 40% 50%;                 /* Ocean blue focus ring */
-    
-    /* Chart colors (midnight ocean theme) - adjusted for ocean vibe */
-    --chart-profit: 160 70% 40%;         /* Ocean-friendly profit green */
-    --chart-loss: 0 72% 55%;             /* Ocean-friendly loss red */
-    --chart-neutral: 207 23% 68%;        /* #93adc8 - Neutral */
-    --chart-1: 0 72% 55%;                /* Red */
-    --chart-2: 160 70% 40%;              /* Green */
-    --chart-3: 207 70% 55%;              /* Ocean blue */
-    --chart-4: 174 72% 56%;              /* Teal */
-    --chart-5: 199 89% 48%;              /* Updated Teal/Cyan */
-    
-    /* Sidebar */
-    --sidebar-background: 207 32% 17%;   /* #243647 */
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 207 40% 10%;
-    --sidebar-accent: 207 32% 22%;       /* #1a2632 */
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 207 32% 30%;       /* #344d65 */
-    --sidebar-ring: 207 40% 50%;
-    
-    /* Brand colors */
     --discord: 235 86% 65%;
     --google: 217 89% 61%;
   }
@@ -322,7 +221,7 @@ pre [data-line] {
 }
 
 pre [data-highlighted-line] {
-  background: rgba(200, 200, 255, 0.1);
+  background: hsl(var(--primary) / 0.1);
   padding: 0 1rem;
   width: 100%;
   display: block;
@@ -340,7 +239,7 @@ pre [data-highlighted-line]::before {
 }
 
 pre [data-highlighted-chars] {
-  background: rgba(200, 200, 255, 0.1);
+  background: hsl(var(--primary) / 0.1);
   padding: 2px;
   border-radius: 2px;
 }
@@ -419,28 +318,7 @@ code > [data-line]::before {
 }
 
 @layer components {
-  /* Midnight Ocean theme color overrides for profit/loss */
-  .midnight-ocean .text-profit {
-    color: rgb(74 222 128) !important; /* green-400 */
-  }
-  
-  .midnight-ocean .text-loss {
-    color: rgb(248 113 113) !important; /* red-400 */
-  }
 
-  /* Midnight Ocean Calendar Backgrounds */
-  .midnight-ocean .bg-green-50\/80,
-  .midnight-ocean .bg-green-950\/40 {
-    background-color: hsl(var(--chart-profit) / 0.2) !important;
-    border-color: hsl(var(--chart-profit) / 0.3) !important;
-  }
-
-  .midnight-ocean .bg-red-50\/60,
-  .midnight-ocean .bg-red-950\/30 {
-    background-color: hsl(var(--chart-loss) / 0.2) !important;
-    border-color: hsl(var(--chart-loss) / 0.3) !important;
-  }
-  
   /* Calendar alignment fixes */
   .calendar-container .rdp {
     @apply w-full;

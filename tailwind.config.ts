@@ -30,6 +30,7 @@ const config: Config = {
 			colors: {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
+				'heading-text': 'hsl(var(--heading-text))',
 				card: {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
@@ -40,7 +41,10 @@ const config: Config = {
 				},
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					hover: 'hsl(var(--primary-hover))',
+					press: 'hsl(var(--primary-press))',
+					disabled: 'hsl(var(--primary-disabled))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',

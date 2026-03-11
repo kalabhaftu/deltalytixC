@@ -140,8 +140,8 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
                     textColor: 'black',
                 },
                 grid: {
-                    vertLines: { color: 'rgba(42, 46, 57, 0.03)' },
-                    horzLines: { color: 'rgba(42, 46, 57, 0.03)' },
+                    vertLines: { color: 'hsl(var(--muted)/0.03)' },
+                    horzLines: { color: 'hsl(var(--muted)/0.03)' },
                 },
                 width: chartContainerRef.current.clientWidth,
                 height: chartContainerRef.current.clientHeight,
@@ -150,10 +150,10 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
                 timeScale: {
                     timeVisible: true,
                     secondsVisible: false,
-                    borderColor: 'rgba(42, 46, 57, 0.1)',
+                    borderColor: 'hsl(var(--border)/0.5)',
                 },
                 rightPriceScale: {
-                    borderColor: 'rgba(42, 46, 57, 0.1)',
+                    borderColor: 'hsl(var(--border)/0.5)',
                     scaleMargins: {
                         top: 0.1,
                         bottom: 0.1,
@@ -162,14 +162,14 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
             })
 
             const candleSeries = chart.addSeries(CandlestickSeries, {
-                upColor: '#83b885',
+                upColor: 'hsl(var(--chart-profit))',
                 downColor: 'black',
                 borderVisible: true,
                 borderColor: 'black',
                 wickVisible: true,
                 wickUpColor: 'black',
                 wickDownColor: 'black',
-                borderUpColor: '#83b885',
+                borderUpColor: 'hsl(var(--chart-profit))',
                 borderDownColor: 'black',
             })
 
@@ -195,7 +195,7 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
                     markers.push({
                         time: entryTime,
                         position: isLong ? 'belowBar' : 'aboveBar',
-                        color: '#2962FF', // Entry: TV Blue
+                        color: 'hsl(var(--chart-1))', // Entry
                         shape: isLong ? 'arrowUp' : 'arrowDown',
                         text: `Entry: ${Number(trade.entryPrice).toFixed(2)}`,
                         size: 2
@@ -209,7 +209,7 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
                     markers.push({
                         time: exitTime,
                         position: isLong ? 'aboveBar' : 'belowBar',
-                        color: '#F44336', // Exit: TV Red
+                        color: 'hsl(var(--chart-loss))', // Exit
                         shape: isLong ? 'arrowDown' : 'arrowUp',
                         text: `Exit: ${Number(trade.closePrice).toFixed(2)}`,
                         size: 2

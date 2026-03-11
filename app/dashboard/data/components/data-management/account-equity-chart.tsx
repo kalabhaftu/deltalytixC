@@ -13,15 +13,15 @@ import { cn } from "@/lib/utils"
 const chartConfig = {
   balance: {
     label: "Balance",
-    color: "#2563eb",
+    color: "hsl(var(--chart-1))",
   },
   target: {
     label: "Profit Target",
-    color: "#16a34a",
+    color: "hsl(var(--chart-profit))",
   },
   drawdown: {
     label: "Drawdown Level",
-    color: "#dc2626",
+    color: "hsl(var(--chart-loss))",
   },
 } satisfies ChartConfig
 
@@ -217,11 +217,11 @@ export function AccountEquityChart({
 
     const getPayoutColor = (status: string) => {
       switch (status) {
-        case 'PENDING': return '#9CA3AF'
-        case 'VALIDATED': return '#F97316'
-        case 'REFUSED': return '#DC2626'
-        case 'PAID': return '#16A34A'
-        default: return '#9CA3AF'
+        case 'PENDING': return 'hsl(var(--muted-foreground))'
+        case 'VALIDATED': return 'hsl(var(--chart-4))'
+        case 'REFUSED': return 'hsl(var(--chart-loss))'
+        case 'PAID': return 'hsl(var(--chart-profit))'
+        default: return 'hsl(var(--muted-foreground))'
       }
     }
 
@@ -338,12 +338,12 @@ export function AccountEquityChart({
           {resetDate && (
             <ReferenceLine
               x={resetDate}
-              stroke="#FF8C00"
+              stroke="hsl(var(--chart-4))"
               strokeDasharray="3 3"
               label={{
                 value: "Reset Date",
                 position: "insideTopLeft",
-                fill: "#FF8C00",
+                fill: "hsl(var(--chart-4))",
                 fontSize: 12,
               }}
             />

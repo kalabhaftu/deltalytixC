@@ -96,12 +96,12 @@ export default function RootPage() {
 
   // 2. Unauthenticated State - Minimalist Login
   return (
-    <div className="min-h-screen bg-[#050B14] overflow-hidden relative flex flex-col items-center justify-center selection:bg-teal-500/30">
+    <div className="min-h-screen bg-background overflow-hidden relative flex flex-col items-center justify-center selection:bg-primary/30">
       
       {/* Subtle Background Prism/Aura */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-teal-500/5 rounded-full blur-[120px]" />
-        <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] bg-blue-500/5 rounded-full blur-[120px]" />
+        <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] bg-chart-1/5 rounded-full blur-[120px]" />
       </div>
 
       {/* Main Content */}
@@ -122,10 +122,10 @@ export default function RootPage() {
           </motion.div>
           
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-semibold tracking-tight text-white">
+            <h1 className="text-3xl font-semibold tracking-tight text-heading-text">
               Welcome Back
             </h1>
-            <p className="text-slate-400 text-sm">
+            <p className="text-muted-foreground text-sm">
               Sign in to your trading terminal
             </p>
           </div>
@@ -135,7 +135,7 @@ export default function RootPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
-          className="bg-[#0D1520]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-8 shadow-2xl"
+          className="bg-card/80 backdrop-blur-xl border border-white/5 rounded-2xl p-8 shadow-2xl"
         >
           <UserAuthForm />
         </motion.div>
@@ -151,14 +151,14 @@ export default function RootPage() {
              <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-slate-500 hover:text-slate-300 transition-colors h-8 text-[11px] uppercase tracking-widest font-medium"
+                className="text-muted-foreground hover:text-foreground transition-colors h-8 text-[11px] uppercase tracking-widest font-medium"
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               >
                 {theme === 'dark' ? <Sun className="h-3 w-3 mr-2" /> : <Moon className="h-3 w-3 mr-2" />}
                 Theme
              </Button>
           </div>
-          <p className="text-[10px] text-slate-600 uppercase tracking-[0.2em] font-medium">
+          <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.2em] font-medium">
             &copy; {new Date().getFullYear()} Deltalytix &bull; Secure Terminal
           </p>
         </motion.div>

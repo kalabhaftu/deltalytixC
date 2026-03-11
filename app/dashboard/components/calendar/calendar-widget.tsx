@@ -107,7 +107,7 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
             const wrapper = clonedDoc.getElementById('advanced-calendar-capture')
             if (wrapper) {
               wrapper.style.padding = '60px'
-              wrapper.style.background = 'linear-gradient(135deg, #1e1b4b 0%, #09090b 50%, #2e1065 100%)'
+              wrapper.style.background = 'hsl(var(--background))'
               wrapper.style.borderRadius = '0px'
               wrapper.style.display = 'flex'
               wrapper.style.alignItems = 'center'
@@ -118,9 +118,9 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
               const card = wrapper.querySelector('.rounded-xl') as HTMLElement
               if (card) {
                 card.style.width = '1200px'
-                card.style.boxShadow = '0 30px 60px -12px rgba(0, 0, 0, 0.7)'
-                card.style.border = '1px solid rgba(255,255,255,0.15)'
-                card.style.background = '#09090b'
+                card.style.boxShadow = '0 30px 60px -12px hsl(var(--background)/0.7)'
+                card.style.border = '1px solid hsl(var(--border)/0.5)'
+                card.style.background = 'hsl(var(--background))'
                 card.style.height = '700px' // Fix height for nice aspect ratio
               }
             }

@@ -21,12 +21,12 @@
 }
 
 .trade-table-scroll::-webkit-scrollbar-thumb {
-  background: #888;
+  background: hsl(var(--muted-foreground));
   border-radius: 4px;
 }
 
 .trade-table-scroll::-webkit-scrollbar-thumb:hover {
-  background: #666;
+  background: hsl(var(--muted-foreground) / 0.8);
 }
 
 .trade-table {
@@ -38,14 +38,14 @@
 .trade-table th,
 .trade-table td {
   padding: 0.75rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
 }
 
 .trade-table th {
   position: sticky;
   top: 0;
   z-index: 100;
-  border-bottom: 5px solid #e5e7eb;
+  border-bottom: 5px solid hsl(var(--border) / 0.5);
 }
 
 .trade-table tbody tr:hover {

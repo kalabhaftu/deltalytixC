@@ -78,7 +78,7 @@ function MiniCalendar({ calendarData }: MiniCalendarProps) {
     try {
       toast.info("Capturing screenshot...")
       const canvas = await html2canvas(calendarRef.current, {
-        backgroundColor: '#09090b',
+        backgroundColor: 'hsl(var(--background))',
         scale: 2,
         logging: false,
         useCORS: true,
@@ -88,7 +88,7 @@ function MiniCalendar({ calendarData }: MiniCalendarProps) {
           if (wrapper) {
             wrapper.style.width = '870px'
             wrapper.style.padding = '60px'
-            wrapper.style.background = 'linear-gradient(135deg, #1e1b4b 0%, #09090b 50%, #2e1065 100%)'
+            wrapper.style.background = 'hsl(var(--background))'
             wrapper.style.borderRadius = '0px'
             wrapper.style.display = 'flex'
             wrapper.style.justifyContent = 'center'
@@ -96,9 +96,9 @@ function MiniCalendar({ calendarData }: MiniCalendarProps) {
             const card = wrapper.querySelector('.rounded-xl') as HTMLElement
             if (card) {
               card.style.width = '750px'
-              card.style.boxShadow = '0 30px 60px -12px rgba(0, 0, 0, 0.7)'
-              card.style.border = '1px solid rgba(255,255,255,0.15)'
-              card.style.background = '#09090b'
+              card.style.boxShadow = '0 30px 60px -12px hsl(var(--background)/0.7)'
+              card.style.border = '1px solid hsl(var(--border)/0.5)'
+              card.style.background = 'hsl(var(--background))'
 
               // Ensure stats are visible in screenshot
               const statsGroup = card.querySelector('[data-stats-group]') as HTMLElement

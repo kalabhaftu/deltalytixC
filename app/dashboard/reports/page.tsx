@@ -171,13 +171,13 @@ export default function ReportsPage() {
         try {
             const canvas = await html2canvas(element, {
                 scale: 2,
-                backgroundColor: '#09090b', // Force the dark background color
+                backgroundColor: 'hsl(var(--background))', // Force the dark background color
                 useCORS: true,
                 onclone: (clonedDoc) => {
                     const clonedContent = clonedDoc.getElementById('report-content') as HTMLElement
                     if (clonedContent) {
                         clonedContent.style.padding = '40px'
-                        clonedContent.style.background = '#09090b'
+                        clonedContent.style.background = 'hsl(var(--background))'
                         clonedContent.style.borderRadius = '0px'
                     }
                 },

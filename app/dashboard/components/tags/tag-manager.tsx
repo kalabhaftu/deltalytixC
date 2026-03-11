@@ -30,16 +30,16 @@ interface TagManagerProps {
 }
 
 const DEFAULT_COLORS = [
-  '#3b82f6', // blue
-  '#10b981', // green
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // purple
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#84cc16', // lime
-  '#f97316', // orange
-  '#6366f1', // indigo
+  'hsl(var(--chart-1))', // blue
+  'hsl(var(--chart-profit))', // green
+  'hsl(var(--chart-4))', // amber
+  'hsl(var(--chart-loss))', // red
+  'hsl(var(--chart-2))', // purple
+  'hsl(var(--chart-3))', // pink
+  'hsl(var(--chart-5))', // cyan
+  'hsl(var(--primary))', // lime
+  'hsl(var(--muted-foreground))', // orange
+  'hsl(var(--ring))', // indigo
 ]
 
 export function TagManager({ isOpen, onClose, onRefresh }: TagManagerProps) {

@@ -383,7 +383,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                             unoptimized
                             loading={index === 0 ? "eager" : "lazy"}
                           />
-                          <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent translate-y-full group-hover:translate-y-0 transition-transform">
+                          <div className="absolute inset-x-0 bottom-0 p-4 bg-background/80 backdrop-blur-sm translate-y-full group-hover:translate-y-0 transition-transform">
                             <span className="text-[10px] text-white/90 font-bold uppercase tracking-widest">
                               {index === 0 ? 'Featured Preview' : `Supporting View #${index}`}
                             </span>

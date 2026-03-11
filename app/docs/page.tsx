@@ -9,7 +9,7 @@ export default function DocsHome() {
     <div className="space-y-16 pb-20">
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
+        <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
         <div className="relative space-y-6">
           <div className="flex items-center gap-3">
             <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
@@ -64,7 +64,7 @@ export default function DocsHome() {
           <Link href="/docs/features/importing" className="group">
             <Card className="h-full border-2 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
               <CardHeader className="space-y-4">
-                <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl w-fit group-hover:scale-110 transition-transform duration-300">
+                <div className="p-3 bg-primary/10 rounded-xl w-fit group-hover:scale-110 transition-transform duration-300">
                   <Upload className="h-6 w-6 text-primary" />
                 </div>
                 <div>
@@ -95,7 +95,7 @@ export default function DocsHome() {
           <Link href="/docs/features/dashboard" className="group">
             <Card className="h-full border-2 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
               <CardHeader className="space-y-4">
-                <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl w-fit group-hover:scale-110 transition-transform duration-300">
+                <div className="p-3 bg-primary/10 rounded-xl w-fit group-hover:scale-110 transition-transform duration-300">
                   <BarChart3 className="h-6 w-6 text-primary" />
                 </div>
                 <div>
@@ -126,7 +126,7 @@ export default function DocsHome() {
           <Link href="/docs/features/prop-firm" className="group">
             <Card className="h-full border-2 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
               <CardHeader className="space-y-4">
-                <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl w-fit group-hover:scale-110 transition-transform duration-300">
+                <div className="p-3 bg-primary/10 rounded-xl w-fit group-hover:scale-110 transition-transform duration-300">
                   <Building2 className="h-6 w-6 text-primary" />
                 </div>
                 <div>

@@ -51,7 +51,7 @@ const COLORS = {
   loss: 'hsl(var(--chart-loss))',
   grid: 'hsl(var(--border))',
   axis: 'hsl(var(--muted-foreground))',
-  reference: 'hsl(45 93% 47%)'  // 50% reference line in amber
+  reference: 'hsl(var(--chart-4))'  // 50% reference line
 } as const
 
 const CHART_CONFIG = {

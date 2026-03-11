@@ -181,9 +181,14 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
   const primaryColor = 'hsl(var(--primary))'
   const mutedColor = 'hsl(var(--muted-foreground))'
 
-  const distributionColors = isDarkMode
-    ? ['#8b5cf6', '#6366f1', '#3b82f6', '#0ea5e9', '#06b6d4', '#14b8a6']
-    : ['#a78bfa', '#818cf8', '#60a5fa', '#38bdf8', '#22d3ee', '#2dd4bf']
+  const distributionColors = [
+    'hsl(var(--chart-1))',
+    'hsl(var(--chart-2))',
+    'hsl(var(--chart-3))',
+    'hsl(var(--chart-4))',
+    'hsl(var(--chart-5))',
+    'hsl(var(--primary))',
+  ]
 
   return (
     <div className="space-y-5">

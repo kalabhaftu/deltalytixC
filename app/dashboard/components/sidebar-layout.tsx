@@ -90,7 +90,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
   }, [])
 
   return (
-    <div className="flex w-full min-h-screen bg-gradient-to-br from-background via-background to-background/95">
+    <div className="flex w-full min-h-screen bg-background">
       {/* Sidebar */}
       <DashboardSidebar
         activeTab={activeTab || 'widgets'}

@@ -361,7 +361,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="bg-gradient-to-r from-white/95 to-white/90 dark:from-black/95 dark:to-black/90 hover:from-white hover:to-white dark:hover:from-black dark:hover:to-black shadow-sm border border-gray-200 dark:border-gray-700 h-7 w-7 sm:h-8 sm:w-8"
+                          className="bg-background hover:bg-muted shadow-sm border border-border h-7 w-7 sm:h-8 sm:w-8"
                           onClick={() => zoomOut()}
                           disabled={scale <= 0.5}
                         >
@@ -373,7 +373,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="bg-gradient-to-r from-white/95 to-white/90 dark:from-black/95 dark:to-black/90 hover:from-white hover:to-white dark:hover:from-black dark:hover:to-black shadow-sm border border-gray-200 dark:border-gray-700 h-7 w-7 sm:h-8 sm:w-8"
+                          className="bg-background hover:bg-muted shadow-sm border border-border h-7 w-7 sm:h-8 sm:w-8"
                           onClick={() => zoomIn()}
                           disabled={scale >= 3}
                         >
