@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useData } from "@/context/data-provider"
 import { cn } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
-import { getWidgetStyles } from '@/app/dashboard/config/widget-dimensions'
+import { getWidgetStyles, getWidgetHeightClass } from '@/app/dashboard/config/widget-dimensions'
 import { TrendUp as TrendUp, TrendDown as TrendDown, Trophy, Info } from "@phosphor-icons/react"
 import { calculateZellaScore, calculateMetricsFromTrades } from "@/lib/zella-score"
 import {
@@ -71,7 +71,7 @@ function ChartTooltip({ active, payload }: any) {
   }
 
   return (
-    <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl min-w-[180px]">
+    <div className="bg-card border border-border/50 rounded-xl p-4 shadow-md min-w-[180px]">
       {/* Metric Header */}
       <p className="text-sm font-bold mb-2 border-b border-border/30 pb-2">{data.metric}</p>
 
@@ -116,7 +116,7 @@ function ScoreBadge({ score, hasData }: { score: number; hasData: boolean }) {
 
   if (!hasData) {
     return (
-      <div className="px-3 py-1 rounded-lg bg-muted/50 border border-border/50">
+      <div className="p-3 rounded-xl bg-muted/30 border border-border/50 transition-colors">
         <span className="text-sm font-bold text-muted-foreground">--</span>
       </div>
     )
@@ -256,7 +256,7 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
   // RENDER
   // ---------------------------------------------------------------------------
   return (
-    <Card className="flex flex-col bg-card" style={{ height: widgetStyles.height }}>
+    <Card className={cn("flex flex-col bg-card", getWidgetHeightClass(size))}>
       {/* Header */}
       <CardHeader className="flex flex-row items-center justify-between shrink-0 border-b border-border/50 h-12 px-5">
         <div className="flex items-center gap-2">
@@ -335,10 +335,10 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Progress</p>
+                  <p className="text-xxs text-muted-foreground uppercase tracking-wider">Progress</p>
                   <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className={cn("h-full transition-all duration-500 rounded-full", getScoreBarColor(overallScore))}
+                      className={cn("h-full transition-colors duration-500 rounded-full", getScoreBarColor(overallScore))}
                       style={{ width: `${Math.min(overallScore, 100)}%` }}
                     />
                   </div>

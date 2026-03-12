@@ -22,7 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useData } from "@/context/data-provider"
 import { cn, formatNumber, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
-import { getWidgetStyles } from '@/app/dashboard/config/widget-dimensions'
+import { getWidgetStyles, getWidgetHeightClass } from '@/app/dashboard/config/widget-dimensions'
 
 // ============================================================================
 // TYPES
@@ -81,7 +81,7 @@ function ChartTooltip({ active, payload }: any) {
   }
 
   return (
-    <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl min-w-[180px]">
+    <div className="bg-card border border-border/50 rounded-xl p-4 shadow-md min-w-[180px]">
       {/* Instrument Header */}
       <p className="text-sm font-bold mb-2">{data.instrument}</p>
 
@@ -106,11 +106,11 @@ function ChartTooltip({ active, payload }: any) {
         <div className="grid grid-cols-2 gap-2 pt-2">
           <div className="text-center p-2 bg-long/10 rounded-lg">
             <p className="text-sm font-bold text-long">{data.wins}</p>
-            <p className="text-[10px] text-muted-foreground">Wins</p>
+            <p className="text-xxs text-muted-foreground">Wins</p>
           </div>
           <div className="text-center p-2 bg-short/10 rounded-lg">
             <p className="text-sm font-bold text-short">{data.losses}</p>
-            <p className="text-[10px] text-muted-foreground">Losses</p>
+            <p className="text-xxs text-muted-foreground">Losses</p>
           </div>
         </div>
       </div>
@@ -247,7 +247,7 @@ export default function PnLByInstrument({ size = 'small-long' }: PnLByInstrument
   // RENDER
   // ---------------------------------------------------------------------------
   return (
-    <Card className="flex flex-col bg-card" style={{ height: widgetStyles.height }}>
+    <Card className={cn("flex flex-col bg-card", getWidgetHeightClass(size))}>
       {/* Header */}
       <CardHeader className="flex flex-row items-center justify-between shrink-0 border-b border-border/50 h-12 px-5">
         <div className="flex items-center gap-2">

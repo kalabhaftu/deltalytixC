@@ -1,17 +1,16 @@
 'use client'
 
-import Link from "next/link"
-import { motion } from "framer-motion"
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
 import { Moon } from "@phosphor-icons/react"
+import { motion } from "framer-motion"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
-import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/logo"
+import { Button } from "@/components/ui/button"
+import { UserAuthForm } from "@/components/user-auth-form"
 import { useAuth } from "@/context/auth-provider"
 import { signOut } from "@/server/auth"
-import { UserAuthForm } from "@/components/user-auth-form"
 
 export default function RootPage() {
   const { isAuthenticated, isLoading, forceClearAuth } = useAuth()
@@ -81,8 +80,8 @@ export default function RootPage() {
 
       {/* Subtle Background Prism/Aura */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[120px]" />
-        <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] bg-chart-1/5 rounded-full blur-[120px]" />
+        <div className="absolute top-[30%] -left-20 w-[600px] h-[600px] bg-primary/5 rounded-full" />
+        <div className="absolute bottom-[20%] -right-20 w-[500px] h-[500px] bg-chart-1/5 rounded-full" />
       </div>
 
       {/* Main Content */}
@@ -116,9 +115,10 @@ export default function RootPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
-          className="bg-card/80 backdrop-blur-xl border border-border/10 rounded-2xl p-8 shadow-2xl"
         >
-          <UserAuthForm />
+          <div className="relative z-10 w-full max-w-sm bg-card border border-border/50 rounded-2xl shadow-md p-8 sm:p-10">
+            <UserAuthForm />
+          </div>
         </motion.div>
 
         {/* Minimal Footer */}

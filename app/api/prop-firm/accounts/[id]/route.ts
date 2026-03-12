@@ -126,7 +126,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // CRITICAL: Fetch full trade data to enable grouping of partial closes
     const currentPhaseTradesFull = currentPhase ? await prisma.trade.findMany({
       where: {
-        phaseAccountId: currentPhase.id  // ✅ Only current phase trades
+        phaseAccountId: currentPhase.id  // Only current phase trades
       },
       select: {
         id: true,
@@ -334,13 +334,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           }
         })
       ),
-      currentPnL: currentPhasePnL,  // ✅ FIXED: Use current phase PnL, not total across all phases
+      currentPnL: currentPhasePnL,  // FIXED: Use current phase PnL, not total across all phases
       currentBalance: currentBalance,
       currentEquity: currentEquity,
       dailyDrawdownRemaining: drawdownData.dailyDrawdownRemaining,
       maxDrawdownRemaining: drawdownData.maxDrawdownRemaining,
       profitTargetProgress: currentPhase && currentPhase.profitTargetPercent > 0
-        ? Math.min(Math.round((currentPhasePnL / (masterAccount.accountSize * currentPhase.profitTargetPercent / 100)) * 1000) / 10, 100)  // ✅ FIXED: Use current phase PnL
+        ? Math.min(Math.round((currentPhasePnL / (masterAccount.accountSize * currentPhase.profitTargetPercent / 100)) * 1000) / 10, 100)  // FIXED: Use current phase PnL
         : 0,
       lastUpdated: new Date().toISOString()
     }
@@ -411,7 +411,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         currentPhaseTrades: currentPhaseStat?._count.id || 0,
         currentPhasePnL
       },
-      recentTrades: groupedTrades.slice(-20).reverse().map((trade: any) => ({  // ✅ FIXED: Show recent grouped trades from CURRENT PHASE only
+      recentTrades: groupedTrades.slice(-20).reverse().map((trade: any) => ({  // FIXED: Show recent grouped trades from CURRENT PHASE only
         id: trade.id,
         pnl: trade.pnl,
         commission: trade.commission,

@@ -17,11 +17,11 @@ function buildDatabaseUrl(): string {
   try {
     const url = new URL(baseUrl)
 
-    // Higher limits and timeouts to handle slow network/high latency
-    url.searchParams.set('connection_limit', '10')
-    url.searchParams.set('pool_timeout', '60') // Increased from 20 to 60
-    url.searchParams.set('connect_timeout', '30') // Increased from 10 to 30
-    url.searchParams.set('socket_timeout', '60') // Increased from 30 to 60
+    // Standard limits and timeouts
+    url.searchParams.set('connection_limit', '5')
+    url.searchParams.set('pool_timeout', '20') 
+    url.searchParams.set('connect_timeout', '10') 
+    url.searchParams.set('socket_timeout', '30') 
 
     // Enable prepared statements for better performance with pgbouncer
     // Required for Supabase Transaction mode (port 6543)

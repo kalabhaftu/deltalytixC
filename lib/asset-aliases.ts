@@ -4,16 +4,16 @@
  * Used for search functionality while preserving original imported names
  *
  * SEARCH ALIASES INCLUDED:
- * Indices: NQ, NAS, NASDAQ, NAS100, USTECH → US100
- *         DJ30, DOWJONES, WallSt30, YM → US30
- *         SP500, S&P500, SPX500, SPX, ES → US500
- *         DAX40, DE40, GER30, DAX, FDAX → GER40
- *         FTSE100, FTSE, UKX, Z → UK100
- *         Nikkei225, JPN225, NI225 → JP225
- * Commodities: XAU, GOLD, GC, XAU/USD → XAUUSD
- *             XAG, SILVER, SI → XAGUSD
- *             WTI, CL, OIL.WTI → USOIL
- *             BRENT, BRN, OIL.BRENT → UKOIL
+ * Indices: NQ, NAS, NASDAQ, NAS100, USTECH -> US100
+ *         DJ30, DOWJONES, WallSt30, YM -> US30
+ *         SP500, S&P500, SPX500, SPX, ES -> US500
+ *         DAX40, DE40, GER30, DAX, FDAX -> GER40
+ *         FTSE100, FTSE, UKX, Z -> UK100
+ *         Nikkei225, JPN225, NI225 -> JP225
+ * Commodities: XAU, GOLD, GC, XAU/USD -> XAUUSD
+ *             XAG, SILVER, SI -> XAGUSD
+ *             WTI, CL, OIL.WTI -> USOIL
+ *             BRENT, BRN, OIL.BRENT -> UKOIL
  * Forex: EUR/USD, GBP/USD, USD/JPY variations
  * Crypto: BTC/USD, XBTUSD, BTCUSDT, ETH/USD, ETHUSDT
  */

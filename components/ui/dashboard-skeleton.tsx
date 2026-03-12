@@ -32,7 +32,7 @@ export function DashboardSkeleton({
       return (
         <>
           {skeletons.map((i) => (
-            <Card key={i} className={cn("h-[120px]", className)}>
+            <Card key={i} className={cn("h-widget-kpi", className)}>
               <CardContent className="p-4 h-full flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <SkeletonBlock className="h-3 w-24" />
@@ -52,7 +52,7 @@ export function DashboardSkeleton({
       return (
         <>
           {skeletons.map((i) => (
-            <Card key={i} className={cn("h-[360px]", className)} style={height ? { height } : undefined}>
+            <Card key={i} className={cn("h-widget-small-long", className)} style={height ? { height } : undefined}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <SkeletonBlock className="h-5 w-32" />
@@ -218,7 +218,7 @@ export function MainDashboardSkeleton() {
         {/* KPI Row */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           {[0, 1, 2, 3, 4].map((i) => (
-            <Card key={`kpi-${i}`} className="min-h-[120px]">
+            <Card key={`kpi-${i}`} className="h-widget-kpi">
               <CardContent className="p-4 h-full flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <SkeletonBlock className="h-3 w-24" />

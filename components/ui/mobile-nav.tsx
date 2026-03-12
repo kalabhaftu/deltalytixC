@@ -1,15 +1,14 @@
 'use client'
 
-import { usePathname, useRouter } from 'next/navigation'
 import { cn } from "@/lib/utils"
 import {
-  SquaresFour,
-  Table,
-  Users,
   BookOpen,
   ChartBar,
-  Flask
+  SquaresFour,
+  Table,
+  Users
 } from "@phosphor-icons/react"
+import { usePathname, useRouter } from 'next/navigation'
 
 interface MobileNavItem {
   id: string
@@ -68,7 +67,7 @@ export function MobileBottomNav() {
   const activeTab = getActiveTab()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-background/95 backdrop-blur-xl border-t border-border/50 safe-area-inset-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-background border-t border-border/50 safe-area-inset-bottom">
       <div className="flex items-center justify-around h-16 px-2">
         {mobileNavItems.map((item) => {
           const Icon = item.icon
@@ -79,7 +78,7 @@ export function MobileBottomNav() {
               key={item.id}
               onClick={() => router.push(item.href)}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full py-1 px-1 rounded-lg transition-all duration-200",
+                "flex flex-col items-center justify-center flex-1 h-full py-1 px-1 rounded-lg transition-colors duration-200",
                 isActive
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"

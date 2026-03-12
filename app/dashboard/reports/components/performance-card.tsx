@@ -103,11 +103,11 @@ Verified via Deltalytix Intelligence`
             <div
                 ref={cardRef}
                 data-performance-card
-                className="relative overflow-hidden rounded-[32px] bg-card p-8 text-card-foreground shadow-[0_32px_64px_-16px_hsl(var(--background)/0.8)] border border-border w-full aspect-[4/5] sm:aspect-[1.91/1] max-w-2xl flex flex-col justify-between"
+                className="relative overflow-hidden rounded-3xl bg-card p-8 text-card-foreground shadow-md border border-border w-full aspect-[4/5] sm:aspect-[1.91/1] max-w-2xl flex flex-col justify-between"
             >
                 {/* Visual Texture & Glows */}
-                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
-                <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
+                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full pointer-events-none" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full pointer-events-none" />
 
                 {/* CSS Noise Overlay (Replaces external image) */}
                 <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
@@ -117,7 +117,7 @@ Verified via Deltalytix Intelligence`
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
                             <div className="h-6 w-1 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--primary),0.8)]" />
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Performance Intelligence</h3>
+                            <h3 className="text-xxs font-black uppercase tracking-[0.4em] text-muted-foreground">Performance Intelligence</h3>
                         </div>
                         <h2 className="text-2xl font-black tracking-tighter uppercase leading-none mt-1 text-heading-text">
                             {period} <span className="text-muted-foreground italic">Audit</span>
@@ -125,18 +125,18 @@ Verified via Deltalytix Intelligence`
                     </div>
 
                     <div className="flex flex-col items-end">
-                        <div className="flex items-center gap-2 bg-muted/50 backdrop-blur-md border border-border px-3 py-1.5 rounded-full shadow-inner">
+                        <div className="flex items-center gap-2 bg-muted/50 border border-border px-3 py-1.5 rounded-full">
                             <Shield weight="light" className="h-3 w-3 text-primary" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-foreground">Verified Account</span>
+                            <span className="text-xxs font-black uppercase tracking-widest text-foreground">Verified Account</span>
                         </div>
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-2">{userName || 'TRADER_X'}</span>
+                        <span className="text-xxs font-bold text-muted-foreground uppercase tracking-widest mt-2">{userName || 'TRADER_X'}</span>
                     </div>
                 </div>
 
                 {/* Main Metric Focus */}
                 <div className="relative z-10 py-8 flex flex-col items-center">
                     <div className="flex flex-col items-center">
-                        <span className="text-[9px] font-black uppercase tracking-[0.5em] text-muted-foreground mb-2">Net P&L Result</span>
+                        <span className="text-xxs font-black uppercase tracking-[0.5em] text-muted-foreground mb-2">Net P&L Result</span>
                         <div className="relative">
                             <div className={cn(
                                 "text-7xl font-black tracking-[calc(-0.05em)] leading-none",
@@ -156,22 +156,22 @@ Verified via Deltalytix Intelligence`
                 {/* High Density Grid */}
                 <div className="relative z-10 grid grid-cols-3 gap-3">
                     <div className="p-4 rounded-2xl bg-muted/20 border border-border backdrop-blur-sm flex flex-col justify-center items-center group hover:bg-muted/40 transition-colors">
-                        <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-1">Execution</span>
+                        <span className="text-xxxs font-black uppercase tracking-widest text-muted-foreground mb-1">Execution</span>
                         <div className="text-xl font-black tracking-tighter text-heading-text">{stats.totalTrades}</div>
-                        <span className="text-[8px] font-bold text-muted-foreground/60 uppercase">Total Trades</span>
+                        <span className="text-xxxs font-bold text-muted-foreground/60 uppercase">Total Trades</span>
                     </div>
                     <div className="p-4 rounded-2xl bg-muted/20 border border-border backdrop-blur-sm flex flex-col justify-center items-center">
-                        <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-1">Edge Accuracy</span>
+                        <span className="text-xxxs font-black uppercase tracking-widest text-muted-foreground mb-1">Edge Accuracy</span>
                         <div className={cn(
                             "text-xl font-black tracking-tighter",
                             parseFloat(stats.winRate) >= 50 ? "text-primary" : "text-chart-5"
                         )}>{stats.winRate}%</div>
-                        <span className="text-[8px] font-bold text-muted-foreground/60 uppercase">Win Rate</span>
+                        <span className="text-xxxs font-bold text-muted-foreground/60 uppercase">Win Rate</span>
                     </div>
                     <div className="p-4 rounded-2xl bg-muted/20 border border-border backdrop-blur-sm flex flex-col justify-center items-center">
-                         <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-1">Consistency</span>
+                         <span className="text-xxxs font-black uppercase tracking-widest text-muted-foreground mb-1">Consistency</span>
                         <div className="text-xl font-black tracking-tighter text-chart-1">{stats.longestWinStreak}</div>
-                        <span className="text-[8px] font-bold text-muted-foreground/60 uppercase">Max Streak</span>
+                        <span className="text-xxxs font-bold text-muted-foreground/60 uppercase">Max Streak</span>
                     </div>
                 </div>
 
@@ -179,21 +179,21 @@ Verified via Deltalytix Intelligence`
                 <div className="relative z-10 pt-6 flex items-center justify-between border-t border-border">
                     <div className="flex gap-4">
                         <div className="flex flex-col">
-                            <span className="text-[7px] font-black uppercase tracking-widest text-muted-foreground">Active Horizon</span>
-                            <span className="text-[10px] font-black text-foreground tracking-tighter">{stats.tradingDays} SESSIONS</span>
+                            <span className="text-xxxs font-black uppercase tracking-widest text-muted-foreground">Active Horizon</span>
+                            <span className="text-xxs font-black text-foreground tracking-tighter">{stats.tradingDays} SESSIONS</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[7px] font-black uppercase tracking-widest text-muted-foreground">Volume Index</span>
-                            <span className="text-[10px] font-black text-foreground tracking-tighter">{stats.avgTradesPerMonth} TRADES/MO</span>
+                            <span className="text-xxxs font-black uppercase tracking-widest text-muted-foreground">Volume Index</span>
+                            <span className="text-xxs font-black text-foreground tracking-tighter">{stats.avgTradesPerMonth} TRADES/MO</span>
                         </div>
                     </div>
 
                     <div className="flex flex-col items-end">
                         <div className="flex items-center gap-1.5 grayscale opacity-50">
-                            <div className="text-[10px] font-black tracking-tighter">DELTALYTIX</div>
+                            <div className="text-xxs font-black tracking-tighter">DELTALYTIX</div>
                             <div className="h-3 w-3 rounded-sm bg-primary" />
                         </div>
-                        <span className="text-[6px] font-bold text-muted-foreground/60 uppercase tracking-[0.3em] mt-1">High-Frequency Intelligence</span>
+                        <span className="text-nano font-bold text-muted-foreground/60 uppercase tracking-[0.3em] mt-1">High-Frequency Intelligence</span>
                     </div>
                 </div>
             </div>

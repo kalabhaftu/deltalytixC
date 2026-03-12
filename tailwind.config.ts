@@ -16,11 +16,22 @@ const config: Config = {
 				inter: ['var(--font-inter)', 'Inter', 'sans-serif'],
 			},
 			fontSize: {
-				xxs: '0.625rem', // 10px
+				'xxs': ['0.625rem', { lineHeight: '1rem' }], // 10px
+				'xxxs': ['0.5rem', { lineHeight: '1rem' }],   // 8px
+				'nano': ['0.375rem', { lineHeight: '1rem' }], // 6px
 			},
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-				'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))'
+				'gradient-conic': 'conic-gradient(at 50% 50%, var(--tw-gradient-stops))'
+			},
+			height: {
+				'widget-kpi': '140px',
+				'widget-tiny': '180px',
+				'widget-small': '580px',
+				'widget-small-long': '360px',
+				'widget-medium': '580px',
+				'widget-large': '580px',
+				'widget-extra-large': '800px',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

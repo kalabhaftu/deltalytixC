@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Snowflake } from "@phosphor-icons/react"
 
 export function Snow() {
     const [snowflakes, setSnowflakes] = useState<number[]>([])
@@ -23,7 +24,7 @@ export function Snow() {
                         fontSize: `${Math.random() * 10 + 10}px`,
                     }}
                 >
-                    ❄
+                    <Snowflake size={12} weight="fill" />
                 </div>
             ))}
             <style jsx>{`

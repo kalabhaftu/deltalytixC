@@ -174,7 +174,7 @@ export default function AccountsPage() {
   const { transactions } = useLiveAccountTransactions()
 
   // Subscribe to realtime account changes for instant UI updates
-  // Using "Signal → Fetch" pattern: Realtime signals change, then we fetch fresh data
+  // Using "Signal -> Fetch" pattern: Realtime signals change, then we fetch fresh data
   // This ensures data integrity (handles DB triggers, joins, computed fields)
   useDatabaseRealtime({
     userId: userStore?.id,
@@ -572,7 +572,7 @@ export default function AccountsPage() {
                 </Button>
               ) : (
                 <kbd className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                  <span className="text-xs">⌘</span>K
+                  <span className="text-xs">Cmd</span>K
                 </kbd>
               )}
             </div>

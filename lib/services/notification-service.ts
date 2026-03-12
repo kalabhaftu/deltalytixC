@@ -119,21 +119,21 @@ export async function createRiskAlert(
         if (currentPercentage >= 95) {
             type = NotificationType.RISK_DAILY_LOSS_95
             priority = NotificationPriority.CRITICAL
-            title = '🚨 CRITICAL: Daily Loss Limit at 95%'
+            title = 'CRITICAL: Daily Loss Limit at 95%'
         } else {
             type = NotificationType.RISK_DAILY_LOSS_80
             priority = NotificationPriority.HIGH
-            title = '⚠️ WARNING: Daily Loss Limit at 80%'
+            title = 'WARNING: Daily Loss Limit at 80%'
         }
     } else {
         if (currentPercentage >= 95) {
             type = NotificationType.RISK_MAX_DRAWDOWN_95
             priority = NotificationPriority.CRITICAL
-            title = '🚨 CRITICAL: Max Drawdown at 95%'
+            title = 'CRITICAL: Max Drawdown at 95%'
         } else {
             type = NotificationType.RISK_MAX_DRAWDOWN_80
             priority = NotificationPriority.HIGH
-            title = '⚠️ WARNING: Max Drawdown at 80%'
+            title = 'WARNING: Max Drawdown at 80%'
         }
     }
 
@@ -175,7 +175,7 @@ export async function createImportNotification(
     if (status === 'processing') {
         return await createOrUpdateNotification(userId, {
             type: NotificationType.IMPORT_PROCESSING,
-            title: '⏳ Import in Progress',
+            title: 'Import in Progress',
             message: 'Your trades are being imported. This may take a few moments...',
             priority: NotificationPriority.MEDIUM,
             invalidationKey: `import_${importId}`,
@@ -188,8 +188,8 @@ export async function createImportNotification(
     } else {
         const hasErrors = summary?.errors && summary.errors > 0
         const title = hasErrors
-            ? `✅ Import Complete (${summary.errors} errors)`
-            : '✅ Import Complete'
+            ? `Import Complete (${summary.errors} errors)`
+            : 'Import Complete'
 
         const message = summary
             ? `Successfully imported ${summary.tradesImported} trades in ${summary.duration}s. ${hasErrors ? `${summary.errors} errors found.` : ''}`
@@ -235,10 +235,10 @@ export async function createStrategyDeviation(
     let message: string
 
     if (deviationType === 'session_violation') {
-        title = '📊 Strategy Deviation: Session Violation'
+        title = 'Strategy Deviation: Session Violation'
         message = `Trade ${metadata.tradePair} executed outside allowed session. Expected: ${metadata.expectedSession}, Actual: ${metadata.actualSession}`
     } else {
-        title = '📊 Strategy Deviation: Rule Violation'
+        title = 'Strategy Deviation: Rule Violation'
         message = `Trade ${metadata.tradePair} violated rule: ${metadata.ruleViolated}`
     }
 

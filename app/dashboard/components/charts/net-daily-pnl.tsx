@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useData } from "@/context/data-provider"
 import { cn, formatCurrency, formatNumber, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
-import { getWidgetStyles } from '@/app/dashboard/config/widget-dimensions'
+import { getWidgetStyles, getWidgetHeightClass } from '@/app/dashboard/config/widget-dimensions'
 import {
   Bar,
   XAxis,
@@ -74,7 +74,7 @@ function ChartTooltip({ active, payload }: any) {
   const isLoss = data.pnl < -BREAK_EVEN_THRESHOLD
 
   return (
-    <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl">
+    <div className="bg-card border border-border/50 rounded-xl p-4 shadow-md">
       {/* Date Header */}
       <p className="text-xs font-medium text-muted-foreground mb-1">
         {date.toLocaleDateString("en-US", {
@@ -229,7 +229,7 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
   // RENDER
   // ---------------------------------------------------------------------------
   return (
-    <Card className="flex flex-col bg-card" style={{ height: widgetStyles.height }}>
+    <Card className={cn("flex flex-col bg-card", getWidgetHeightClass(size))}>
       {/* Header */}
       <CardHeader className="flex flex-row items-center justify-between shrink-0 border-b border-border/50 h-12 px-5">
         <div className="flex items-center gap-2">

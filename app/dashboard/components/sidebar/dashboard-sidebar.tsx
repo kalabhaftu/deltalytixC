@@ -129,7 +129,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
                     <Button
                       variant="ghost"
                       className={cn(
-                        "w-full justify-start transition-all duration-300 ease-out group",
+                        "w-full justify-start transition-colors duration-200 ease-out group",
                         isCollapsed && !isMobile ? "px-2" : "px-3",
                         isMobile ? "h-12 text-base" : "h-10",
                         isActive

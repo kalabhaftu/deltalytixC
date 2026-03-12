@@ -100,6 +100,13 @@ export function getGridColClass(size: WidgetSize): string {
 }
 
 /**
+ * Get Tailwind height class for a widget size
+ */
+export function getWidgetHeightClass(size: WidgetSize): string {
+  return `h-widget-${size}`
+}
+
+/**
  * Get inline styles for a widget (use sparingly, prefer Tailwind)
  */
 export function getWidgetStyles(size: WidgetSize): React.CSSProperties {

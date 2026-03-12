@@ -499,7 +499,7 @@ export default function ReportsPage() {
 
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-9 font-black uppercase tracking-tighter text-[10px] border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all">
+                                <Button variant="outline" size="sm" className="h-9 font-black uppercase tracking-tighter text-[10px] border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors duration-200">
                                     <ShareNetwork weight="light" className="h-3.5 w-3.5 mr-2" />
                                     Share Intelligence
                                 </Button>
@@ -666,7 +666,7 @@ export default function ReportsPage() {
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <span className="text-[8px] font-bold text-muted-foreground/60 whitespace-nowrap rotate-[-45deg] origin-top-left mt-1">
+                                                            <span className="text-[8px] font-bold text-muted-foreground/60 whitespace-nowrap -rotate-45 origin-top-left mt-1">
                                                                 {bucket}
                                                             </span>
                                                         </div>

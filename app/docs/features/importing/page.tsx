@@ -1,3 +1,5 @@
+import { Lock } from "@phosphor-icons/react/dist/ssr"
+
 export default function ImportingDocs() {
   return (
     <div className="space-y-6">
@@ -145,7 +147,10 @@ export default function ImportingDocs() {
         </section>
 
         <section className="bg-muted/50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">🔒 Data Privacy</h3>
+          <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+            <Lock className="h-5 w-5" />
+            Data Privacy
+          </h3>
           <p className="text-muted-foreground">
             All trade data is encrypted and stored securely. Only you can access your trades. CSV files are processed and discarded immediately after import.
           </p>

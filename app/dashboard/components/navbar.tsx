@@ -1,13 +1,10 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useData } from "@/context/data-provider"
-import { useAuth } from "@/context/auth-provider"
-import { Database, SignOut, SquaresFour, ArrowsClockwise, Moon, Gear as SettingsIcon, Pencil, Plus, BookOpen, Cards, Trash, Users, Funnel } from "@phosphor-icons/react"
+import { Logo } from '@/components/logo'
 import { ThemeSwitcher } from "@/components/theme-switcher"
-import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,34 +14,24 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { signOut } from "@/server/auth"
-import { Logo } from '@/components/logo'
-import Link from 'next/link'
+import { useAuth } from "@/context/auth-provider"
+import { useData } from "@/context/data-provider"
 import { cn } from '@/lib/utils'
+import { signOut } from "@/server/auth"
+import { ArrowsClockwise, BookOpen, Cards, Database, Funnel, Moon, Pencil, Plus, Gear as SettingsIcon, SignOut, SquaresFour, Trash, Users } from "@phosphor-icons/react"
+import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
 import ImportButton from './import/import-button'
 // import { AddWidgetSheet } from './add-widget-sheet'
-import { AccountSelector } from './navbar-filters/account-selector'
-import { CombinedFilters } from './navbar-filters/combined-filters'
-import { NotificationCenter } from '@/components/notifications/notification-center'
 import { SeasonalAvatarBadge } from '@/app/dashboard/components/seasonal/seasonal-avatar-badge'
-import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts'
-import { useDashboardLayout } from '../hooks/use-dashboard-layout'
+import { NotificationCenter } from '@/components/notifications/notification-center'
 import { Skeleton } from "@/components/ui/skeleton"
 import { motion } from 'framer-motion'
+import { useDashboardLayout } from '../hooks/use-dashboard-layout'
+import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts'
+import { AccountSelector } from './navbar-filters/account-selector'
+import { CombinedFilters } from './navbar-filters/combined-filters'
 
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,15 +42,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { useTheme } from '@/context/theme-provider'
-import { useUserStore } from '@/store/user-store'
 import { useDashboardEditStore } from '@/store/dashboard-edit-store'
+import { useUserStore } from '@/store/user-store'
 
-import { toast } from 'sonner'
 import { useTemplates } from '@/context/template-provider'
 import { useTemplateEditStore } from '@/store/template-edit-store'
+import { toast } from 'sonner'
 
 /**
  * Helper function to determine if a phase number represents the funded stage
@@ -290,7 +290,7 @@ export default function Navbar() {
   return (
     <>
       <motion.nav
-        className="fixed py-3 top-0 left-0 right-0 z-50 flex flex-col text-foreground bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-xl shadow-background/10 w-full transition-all duration-300 ease-out"
+        className="fixed py-3 top-0 left-0 right-0 z-50 flex flex-col text-foreground bg-background border-b border-border/50 shadow-md w-full transition-colors duration-200 ease-out"
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
@@ -300,17 +300,17 @@ export default function Navbar() {
             <div className="flex flex-col items-center">
               <Popover open={isLogoPopoverOpen} onOpenChange={setIsLogoPopoverOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="p-0 hover:bg-muted/50 transition-all duration-200 hover:scale-105 group" aria-label="App menu">
+                  <Button variant="ghost" size="icon" className="p-0 hover:bg-muted/50 transition-colors duration-200 hover:scale-105 group" aria-label="App menu">
                     <Logo className='h-7 w-7 transition-transform duration-200 group-hover:rotate-3' />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-48 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl" align="start">
+                <PopoverContent className="w-48 bg-background border border-border/50 shadow-md" align="start">
                   <div className="space-y-2">
                     <h4 className="font-medium leading-none mb-3">Navigation</h4>
                     <div className="grid gap-2">
                       <Link
                         href="/dashboard"
-                        className="flex items-center gap-2 text-sm hover:bg-muted/50 p-3 rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-md"
+                        className="flex items-center gap-2 text-sm hover:bg-muted/50 p-3 rounded-lg transition-colors duration-200 hover:scale-[1.02] hover:shadow-sm"
                         onClick={() => setIsLogoPopoverOpen(false)}
                       >
                         <div className="flex-shrink-0 w-4 h-4">
@@ -328,7 +328,7 @@ export default function Navbar() {
             {/* All Accounts Dropdown (moved here, dynamic name) - Hidden on mobile */}
             <Popover open={accountPopoverOpen} onOpenChange={setAccountPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-muted/50 transition-all duration-200 border border-border/50 bg-card/50">
+                <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-muted/50 transition-colors duration-200 border border-border/50 bg-card/50">
                   <Users weight="light" className="mr-2 h-4 w-4" />
                   <span className="text-sm">{getAccountButtonText()}</span>
                   {accountNumbers.length > 0 && (
@@ -359,14 +359,14 @@ export default function Navbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="hidden md:flex h-9 w-9 hover:bg-muted/50 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                  className="hidden md:flex h-9 w-9 hover:bg-muted/50 transition-colors duration-200 hover:scale-105 hover:shadow-md"
                   title="Templates"
                 >
                   <Cards weight="light" className="h-4 w-4" />
                   <span className="sr-only">Templates</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-4 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl" align="end" sideOffset={8}>
+              <PopoverContent className="w-80 p-4 bg-background border border-border/50 shadow-md" align="end" sideOffset={8}>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">Templates</h4>
@@ -445,7 +445,7 @@ export default function Navbar() {
                 <DropdownMenuTrigger asChild>
                   <div>
                     <SeasonalAvatarBadge>
-                      <Avatar className="cursor-pointer h-9 w-9 ring-2 ring-transparent hover:ring-border transition-all duration-200 hover:scale-105 hover:shadow-lg">
+                      <Avatar className="cursor-pointer h-9 w-9 ring-2 ring-transparent hover:ring-border transition-colors duration-200 hover:scale-105 hover:shadow-md">
                         <AvatarImage src={user?.user_metadata?.avatar_url} className="transition-transform duration-200" />
                         <AvatarFallback className="uppercase text-xs bg-muted text-foreground font-medium">
                           {user?.email?.[0] || 'U'}
@@ -454,7 +454,7 @@ export default function Navbar() {
                     </SeasonalAvatarBadge>
                   </div>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl">
+                <DropdownMenuContent className="w-56 bg-background border border-border/50 shadow-md">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <div className="px-2 py-1.5 text-sm text-muted-foreground">
                     {user?.email || <Skeleton className="h-4 w-32" />}

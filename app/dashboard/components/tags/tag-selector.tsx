@@ -72,9 +72,10 @@ export function TagSelector({ selectedTagIds, onChange, className }: TagSelector
           <Badge
             key={tag.id}
             style={{
-              backgroundColor: tag.color,
+              '--tag-bg': tag.color,
+              backgroundColor: 'var(--tag-bg)',
               color: 'white',
-            }}
+            } as React.CSSProperties}
             className="text-xs gap-1 pr-1"
           >
             {tag.name}
@@ -138,9 +139,10 @@ export function TagSelector({ selectedTagIds, onChange, className }: TagSelector
                         />
                         <Badge
                           style={{
-                            backgroundColor: tag.color,
+                            '--tag-bg': tag.color,
+                            backgroundColor: 'var(--tag-bg)',
                             color: 'white',
-                          }}
+                          } as React.CSSProperties}
                           className="text-xs"
                         >
                           {tag.name}

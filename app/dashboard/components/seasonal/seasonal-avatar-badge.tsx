@@ -3,6 +3,7 @@
 import { useSeasonalTheme } from '@/hooks/use-seasonal-theme'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
+import { Sparkle, TreeEvergreen, Ghost, Heart } from "@phosphor-icons/react"
 
 interface SeasonalAvatarBadgeProps {
     children: React.ReactNode
@@ -20,28 +21,28 @@ export function SeasonalAvatarBadge({ children, className }: SeasonalAvatarBadge
     const config = {
         NEW_YEAR: {
             gradient: "bg-chart-4",
-            badge: "✨",
+            badge: <Sparkle size={12} weight="fill" />,
             shadow: "shadow-amber-500/20",
             animationDuration: 3
         },
         CHRISTMAS: {
             gradient: "bg-long",
-            badge: "🎄",
+            badge: <TreeEvergreen size={12} weight="fill" />,
             shadow: "shadow-green-500/20",
             animationDuration: 4
         },
         HALLOWEEN: {
             gradient: "bg-chart-2",
-            badge: "🎃",
+            badge: <Ghost size={12} weight="fill" />,
             shadow: "shadow-orange-500/20",
             animationDuration: 3
         },
         VALENTINES: {
             gradient: "bg-chart-3",
-            badge: "❤️",
+            badge: <Heart size={12} weight="fill" />,
             shadow: "shadow-pink-500/20",
             animationDuration: 3
-        }
+        },
     }
 
     const currentConfig = config[theme as keyof typeof config]
@@ -80,7 +81,7 @@ export function SeasonalAvatarBadge({ children, className }: SeasonalAvatarBadge
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
-                <span role="img" aria-label={theme}>{currentConfig.badge}</span>
+                <div className="text-white">{currentConfig.badge}</div>
             </motion.div>
         </div>
     )
