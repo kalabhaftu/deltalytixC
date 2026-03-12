@@ -2,7 +2,8 @@
 import React from 'react'
 import Image from 'next/image'
 import { Control, Controller } from 'react-hook-form'
-import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import { Button } from '@/components/ui/button'
 import { Pencil, Trash, Plus, X, CircleNotch } from '@phosphor-icons/react'
 import { FileDropzone } from '@/components/ui/file-dropzone'
@@ -17,6 +18,8 @@ interface TradeNotesTabProps {
     imageErrors: Record<string, boolean>
     setImageError: (field: string, hasError: boolean) => void
     uploadingField: string | null
+    chartLinks: string[]
+    setChartLinks: (links: string[]) => void
 }
 
 export function TradeNotesTab({
@@ -27,24 +30,76 @@ export function TradeNotesTab({
     onRemove,
     imageErrors,
     setImageError,
-    uploadingField
+    uploadingField,
+    chartLinks,
+    setChartLinks
 }: TradeNotesTabProps) {
     return (
         <div className="space-y-8 px-1">
             {/* Trade Notes */}
             <div className="space-y-3">
-                <div className="space-y-1">
-                    <h3 className="text-sm font-semibold text-foreground">Trade Notes</h3>
-                    <p className="text-xs text-muted-foreground">Document your thoughts, market conditions, and key takeaways.</p>
+                <div className="flex items-start sm:items-center justify-between flex-col sm:flex-row gap-4 sm:gap-2">
+                    <div className="space-y-1">
+                        <h3 className="text-sm font-semibold text-foreground">Trade Notes</h3>
+                        <p className="text-xs text-muted-foreground">Document your thoughts, market conditions, and key takeaways.</p>
+                    </div>
+                    <Controller
+                        name="comment"
+                        control={control}
+                        render={({ field }) => (
+                            <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto shrink-0">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-[10px] uppercase font-bold tracking-tight bg-muted/20 shrink-0"
+                                    onClick={() => {
+                                        // Only override if empty to prevent accidental loss
+                                        if (!field.value || field.value === '<p></p>') {
+                                            field.onChange('<p><strong>What did I see?</strong></p><p></p><p><strong>What did I do?</strong></p><p></p><p><strong>What did I learn?</strong></p><p></p>')
+                                        }
+                                    }}
+                                >
+                                    Standard Review
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-[10px] uppercase font-bold tracking-tight bg-muted/20 shrink-0"
+                                    onClick={() => {
+                                        if (!field.value || field.value === '<p></p>') {
+                                            field.onChange('<p><strong>Emotional State:</strong></p><p></p><p><strong>Focus Level (1-10):</strong></p><p></p><p><strong>Mistakes Made:</strong></p><p></p>')
+                                        }
+                                    }}
+                                >
+                                    Mental Check-in
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-[10px] uppercase font-bold tracking-tight bg-muted/20 shrink-0"
+                                    onClick={() => {
+                                        if (!field.value || field.value === '<p></p>') {
+                                            field.onChange('<p><strong>Higher Timeframe Context:</strong></p><p></p><p><strong>Execution Trigger:</strong></p><p></p><p><strong>Trade Management:</strong></p><p></p>')
+                                        }
+                                    }}
+                                >
+                                    Technical Breakdown
+                                </Button>
+                            </div>
+                        )}
+                    />
                 </div>
                 <Controller
                     name="comment"
                     control={control}
                     render={({ field }) => (
-                        <Textarea
-                            {...field}
+                        <RichTextEditor
+                            value={field.value}
+                            onChange={field.onChange}
                             placeholder="What did you see? What did you learn?"
-                            className="min-h-[160px] resize-none bg-muted/20 border-border/50 focus:bg-background transition-all"
                         />
                     )}
                 />
@@ -139,6 +194,59 @@ export function TradeNotesTab({
                     setImageError={setImageError}
                     uploadingField={uploadingField}
                 />
+            </div>
+
+            {/* Chart Links */}
+            <div className="space-y-4 pt-4 border-t border-border/50">
+                <div className="space-y-1">
+                    <h3 className="text-sm font-semibold text-foreground">Chart Analysis Links</h3>
+                    <p className="text-xs text-muted-foreground">Add links to your TradingView chart analysis (up to 8)</p>
+                </div>
+                <div className="space-y-3 max-w-2xl">
+                    {chartLinks.map((link, index) => (
+                        <div key={index} className="flex items-center gap-2 group">
+                            <div className="flex-1">
+                                <Input
+                                    type="text"
+                                    placeholder="https://www.tradingview.com/x/..."
+                                    value={link}
+                                    onChange={(e) => {
+                                        const newLinks = [...chartLinks]
+                                        newLinks[index] = e.target.value
+                                        setChartLinks(newLinks)
+                                    }}
+                                    className="text-sm h-9 bg-muted/20 border-border/50 focus:bg-background transition-all"
+                                />
+                            </div>
+                            {index >= 4 && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-9 w-9 text-muted-foreground hover:text-destructive transition-colors"
+                                    onClick={() => {
+                                        const newLinks = chartLinks.filter((_, i) => i !== index)
+                                        setChartLinks(newLinks)
+                                    }}
+                                >
+                                    <X className="h-4 w-4" weight="light" />
+                                </Button>
+                            )}
+                        </div>
+                    ))}
+                    {chartLinks.length < 8 && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setChartLinks([...chartLinks, ''])}
+                            className="w-full h-9 border-dashed border-border/60 hover:border-primary/50 text-muted-foreground hover:text-primary transition-all"
+                        >
+                            <Plus className="h-4 w-4 mr-2" weight="light" />
+                            Add Analysis Link ({chartLinks.length}/8)
+                        </Button>
+                    )}
+                </div>
             </div>
         </div>
     )

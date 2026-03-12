@@ -2,7 +2,7 @@ import React from 'react'
 import { Label } from '@/components/ui/label'
 import { MARKET_BIAS_OPTIONS } from '@/lib/constants'
 import { TagSelector } from '@/app/dashboard/components/tags/tag-selector'
-import { MarketBias } from '@/types/trade-extended'
+import { MarketBias, TradeOutcome } from '@/types/trade-extended'
 import { cn } from '@/lib/utils'
 
 interface Rule {
@@ -31,6 +31,10 @@ interface TradeStrategyTabProps {
     setSelectedRules: (rules: string[]) => void
     selectedTags: string[]
     setSelectedTags: (tags: string[]) => void
+    tradeOutcome: TradeOutcome | null
+    setTradeOutcome: (outcome: TradeOutcome | null) => void
+    ruleBroken: boolean
+    setRuleBroken: (broken: boolean) => void
 }
 
 export function TradeStrategyTab({
@@ -46,7 +50,11 @@ export function TradeStrategyTab({
     selectedRules,
     setSelectedRules,
     selectedTags,
-    setSelectedTags
+    setSelectedTags,
+    tradeOutcome,
+    setTradeOutcome,
+    ruleBroken,
+    setRuleBroken
 }: TradeStrategyTabProps) {
     const compliance = selectedModel && selectedModel.rules.length > 0
         ? (selectedRules.length / selectedModel.rules.length) * 100
@@ -71,6 +79,37 @@ export function TradeStrategyTab({
                                 marketBias === value
                                     ? activeClass
                                     : 'bg-muted/10 hover:bg-muted/20 border-border/40 text-muted-foreground'
+                            )}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Trade Outcome */}
+            <div className="space-y-4 pt-2">
+                <div className="space-y-1">
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">Trade Outcome</h3>
+                    <p className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-wider">Categorize the quality of this trade</p>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    {[
+                        { value: 'GOOD_WIN', label: 'Good Win', colorClass: 'bg-long/10 hover:bg-long/20 border-long/20 text-long' },
+                        { value: 'BAD_WIN', label: 'Bad Win', colorClass: 'bg-warning/10 hover:bg-warning/20 border-warning/20 text-warning' },
+                        { value: 'BREAKEVEN', label: 'Breakeven', colorClass: 'bg-muted/10 hover:bg-muted/20 border-border/40 text-muted-foreground' },
+                        { value: 'GOOD_LOSS', label: 'Good Loss', colorClass: 'bg-primary/10 hover:bg-primary/20 border-primary/20 text-primary' },
+                        { value: 'BAD_LOSS', label: 'Bad Loss', colorClass: 'bg-short/10 hover:bg-short/20 border-short/20 text-short' },
+                    ].map(({ value, label, colorClass }) => (
+                        <button
+                            key={value}
+                            type="button"
+                            onClick={() => setTradeOutcome(value as TradeOutcome)}
+                            className={cn(
+                                "py-2 px-2 border rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all",
+                                tradeOutcome === value
+                                    ? colorClass.replace('hover:', '').replace('/10', '/20').replace('/20', '/40') // more opaque when active
+                                    : 'bg-muted/5 hover:bg-muted/10 border-border/20 text-muted-foreground/50'
                             )}
                         >
                             {label}
@@ -131,6 +170,19 @@ export function TradeStrategyTab({
                         )}>
                             Compliance: {compliance.toFixed(0)}%
                         </span>
+                    </div>
+
+                    <div className="flex items-center space-x-2 pb-2">
+                        <input
+                            type="checkbox"
+                            id="rule-broken"
+                            checked={ruleBroken}
+                            onChange={(e) => setRuleBroken(e.target.checked)}
+                            className="h-4 w-4 rounded-md border-border/40 bg-muted/20 text-destructive focus:ring-destructive/20 transition-all cursor-pointer"
+                        />
+                        <Label htmlFor="rule-broken" className="text-xs font-bold text-destructive/90 cursor-pointer uppercase tracking-tight">
+                            Rule Broken / Revenge Trade
+                        </Label>
                     </div>
 
                     <div className="space-y-6 border border-border/40 rounded-2xl p-6 bg-muted/5">

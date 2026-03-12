@@ -451,16 +451,18 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   trades.forEach(t => {
     if ((t as any).entryTime) {
       const session = getTradingSession((t as any).entryTime)
-      const netPnL = t.pnl + (t.commission || 0)
-      const isWin = netPnL > BREAK_EVEN_THRESHOLD
+      if (session) {
+        const netPnL = t.pnl + (t.commission || 0)
+        const isWin = netPnL > BREAK_EVEN_THRESHOLD
 
-      if (!sessionStats[session]) {
-        sessionStats[session] = { trades: 0, pnl: 0, wins: 0 }
+        if (!sessionStats[session]) {
+          sessionStats[session] = { trades: 0, pnl: 0, wins: 0 }
+        }
+
+        sessionStats[session].trades++
+        sessionStats[session].pnl += netPnL
+        if (isWin) sessionStats[session].wins++
       }
-
-      sessionStats[session].trades++
-      sessionStats[session].pnl += netPnL
-      if (isWin) sessionStats[session].wins++
     }
   })
 
@@ -472,7 +474,7 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   try {
     const apiKey = process.env.XAI_API_KEY
     const baseUrl = process.env.XAI_BASE_URL || 'https://api.x.ai/v1'
-    const model = process.env.XAI_MODEL || 'grok-beta'
+    const model = process.env.XAI_MODEL || 'grok-4-1-fast-reasoning'
 
     if (!apiKey) {
       // Fallback to rule-based analysis if no API key

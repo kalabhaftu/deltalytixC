@@ -1,12 +1,12 @@
 'use client'
 
-import React from 'react'
-import { formatInTimeZone } from 'date-fns-tz'
-import { cn, formatCurrency, parsePositionTime, formatNumber, formatPrice } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Pencil, Eye, CaretDown, CaretRight, ChartBar } from '@phosphor-icons/react'
+import { getKillzoneBadge, getTradingSession } from '@/lib/time-utils'
+import { cn, formatCurrency, formatNumber, formatPrice, parsePositionTime } from '@/lib/utils'
+import { CaretDown, CaretRight, ChartBar, Eye, Pencil } from '@phosphor-icons/react'
+import { formatInTimeZone } from 'date-fns-tz'
 import { ExtendedTrade } from './trade-table-review'
 
 interface TradeTableMobileCardProps {
@@ -93,6 +93,20 @@ export function TradeTableMobileCard({
               >
                 {trade.side}
               </Badge>
+              {trade.entryTime && (
+                <>
+                  {getTradingSession(trade.entryTime) !== 'Outside Session' && (
+                    <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border-primary/20 bg-primary/5 text-primary">
+                      {getTradingSession(trade.entryTime)}
+                    </Badge>
+                  )}
+                  {getKillzoneBadge(trade.entryTime) && (
+                    <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border-warning/20 bg-warning/5 text-warning">
+                      {getKillzoneBadge(trade.entryTime)}
+                    </Badge>
+                  )}
+                </>
+              )}
             </div>
             <p className="text-sm text-muted-foreground mt-1">{trade.accountNumber}</p>
           </div>

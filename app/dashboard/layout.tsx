@@ -10,6 +10,7 @@ import { SidebarLayout } from "./components/sidebar-layout";
 import { MobileBottomNav } from "@/components/ui/mobile-nav";
 import { QuickAddFAB } from "@/components/quick-add-fab";
 import { CommandPalette } from "@/components/command-palette";
+import { GlobalTradeController } from "./components/global-trade-controller";
 
 export default function RootLayout({ children }: { children: ReactElement }) {
 
@@ -36,6 +37,9 @@ export default function RootLayout({ children }: { children: ReactElement }) {
                 <MobileBottomNav />
                 <QuickAddFAB />
                 <CommandPalette />
+                <Suspense fallback={null}>
+                  <GlobalTradeController />
+                </Suspense>
               </div>
             </AutoRefreshProvider>
           </TemplateProvider>

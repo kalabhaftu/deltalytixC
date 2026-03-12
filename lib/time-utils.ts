@@ -1,57 +1,91 @@
-import { toZonedTime, formatInTimeZone } from 'date-fns-tz'
-import { startOfDay, endOfDay, isWithinInterval } from 'date-fns'
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
-export const DEFAULT_TIMEZONE = 'America/New_York'
+export const DEFAULT_TIMEZONE = 'America/New_York';
 
-export interface TradingSession {
-  name: string
-  start: string // HH:mm
-  end: string // HH:mm
-}
+export type MarketSession = 'Asia' | 'London' | 'New York' | 'Outside Session';
+export type KillzoneBadge = 'London Killzone' | 'NY Killzone' | 'Lunch Time' | 'NY PM';
 
-export const TRADING_SESSIONS: Record<string, TradingSession> = {
-  ASIA: { name: 'Asian', start: '18:00', end: '03:00' }, // 6 PM previous day to 3 AM NY
-  LONDON: { name: 'London', start: '03:00', end: '11:00' }, // 3 AM to 11 AM NY
-  NEW_YORK: { name: 'New York', start: '08:00', end: '17:00' }, // 8 AM to 5 PM NY
+// Sessions (for analysis) - Priority: NY > London > Asia
+export const MARKET_SESSIONS = [
+  { name: 'New York', start: 8, end: 17 },
+  { name: 'London', start: 3, end: 12 },
+  { name: 'Asia', start: 19, end: 4 }, // Crosses midnight
+];
+
+// Killzones (indicators only)
+export const KILLZONE_BADGES = [
+  { name: 'London Killzone', start: 2, end: 5 },
+  { name: 'NY Killzone', start: 7, end: 10 },
+  { name: 'Lunch Time', start: 11, end: 13 },
+  { name: 'NY PM', start: 13, end: 16 }
+];
+
+/**
+ * Returns the analytical market session based on priority: NY > London > Asia.
+ */
+export function getTradingSession(date: Date | string | number): MarketSession {
+  if (!date) return 'Outside Session';
+  const parsedDate = new Date(date);
+  if (isNaN(parsedDate.getTime())) return 'Outside Session';
+
+  const nyDate = toZonedTime(parsedDate, DEFAULT_TIMEZONE);
+  const hour = nyDate.getHours();
+  const minute = nyDate.getMinutes();
+  const time = hour + minute / 60;
+
+  // New York Priority (08:00 - 17:00)
+  if (time >= 8 && time < 17) return 'New York';
+  
+  // London Priority (03:00 - 12:00)
+  if (time >= 3 && time < 12) return 'London';
+  
+  // Asia Priority (19:00 - 04:00) - crosses midnight
+  if (time >= 19 || time < 4) return 'Asia';
+
+  return 'Outside Session';
 }
 
 /**
- * Determines the trading session for a given date.
- * The date is assumed to be in UTC or already handled by the Date object.
- * It converts the date to New York time (or target timezone) to check against session definitions.
+ * Returns a killzone badge if the time falls into one of the designated windows.
  */
-export function getTradingSession(date: Date | string, targetTimezone: string = DEFAULT_TIMEZONE): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-  
-  // Convert the input date to the target timezone (NY)
-  const zonedDate = toZonedTime(d, targetTimezone)
-  
-  // Get hours in the target timezone
-  const hour = zonedDate.getHours()
-  
-  // Check sessions based on NY time definition
-  // Asia: 18:00 - 03:00 (crosses midnight)
-  if (hour >= 18 || hour < 3) return TRADING_SESSIONS.ASIA.name
-  
-  // London: 03:00 - 11:00
-  if (hour >= 3 && hour < 8) return TRADING_SESSIONS.LONDON.name
-  
-  // London/NY Overlap: 08:00 - 11:00
-  if (hour >= 8 && hour < 11) return 'London/NY Overlap'
-  
-  // New York: 08:00 - 17:00 (Overlap handled above, so this captures 11:00 onwards)
-  if (hour >= 11 && hour < 17) return TRADING_SESSIONS.NEW_YORK.name
-  
-  // After NY close but before Asia open: 17:00 - 18:00
-  if (hour >= 17 && hour < 18) return 'Post-Market'
-  
-  return 'Other'
+export function getKillzoneBadge(date: Date | string | number): KillzoneBadge | null {
+  if (!date) return null;
+  const parsedDate = new Date(date);
+  if (isNaN(parsedDate.getTime())) return null;
+
+  const nyDate = toZonedTime(parsedDate, DEFAULT_TIMEZONE);
+  const hour = nyDate.getHours();
+  const minute = nyDate.getMinutes();
+  const time = hour + minute / 60;
+
+  for (const kz of KILLZONE_BADGES) {
+    // Basic range check (no midnight cross expected for these killzones based on these times)
+    if (time >= kz.start && time < kz.end) {
+      return kz.name as KillzoneBadge;
+    }
+  }
+
+  return null;
 }
 
 /**
- * Formats a date in the target timezone for display.
+ * Helper to display time cleanly formatted according to user preferences.
  */
-export function formatTimeInZone(date: Date | string, formatStr: string, timezone: string = DEFAULT_TIMEZONE): string {
-  return formatInTimeZone(date, timezone, formatStr)
+export function formatUserTime(date: Date | string | number, timezone: string = DEFAULT_TIMEZONE, timeFormat: '12h' | '24h' = '24h'): string {
+  if (!date) return 'N/A';
+  const parsedDate = new Date(date);
+  if (isNaN(parsedDate.getTime())) return 'N/A';
+
+  const formatStr = timeFormat === '12h' ? 'MMM d, yyyy h:mm a' : 'MMM d, yyyy HH:mm';
+  return formatInTimeZone(parsedDate, timezone, formatStr);
 }
 
+/**
+ * Helper to display time with a custom format string.
+ */
+export function formatTimeInZone(date: Date | string | number, formatStr: string, timezone: string = DEFAULT_TIMEZONE): string {
+  if (!date) return 'N/A';
+  const parsedDate = new Date(date);
+  if (isNaN(parsedDate.getTime())) return 'N/A';
+  return formatInTimeZone(parsedDate, timezone, formatStr);
+}

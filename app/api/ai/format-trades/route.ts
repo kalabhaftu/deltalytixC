@@ -28,10 +28,10 @@ export async function POST(req: NextRequest) {
     const { headers, rows } = requestSchema.parse(body);
 
     const result = streamObject({
-      model: xai(process.env.XAI_MODEL || "grok-3"),
+      model: xai(process.env.XAI_MODEL || "grok-4-1-fast-reasoning"),
       schema: tradeSchema,
       output: 'array',
-      system:`
+      system: `
       You are a trading expert AI assistant.
       You are given a list of trade data and you need to format it according to the schema.
       Rules for formatting:
@@ -74,16 +74,16 @@ export async function POST(req: NextRequest) {
         - The user selects which account to import trades into
         - Never try to extract account numbers from the CSV
       `,
-      prompt:  `
+      prompt: `
       Format the following ${rows.length} trades data.
       Headers: ${headers.join(", ")}
       Rows:
       ${rows.map((row: string[]) => row.join(", ")).join("\n")}
     `,
-    temperature: 0.1,
-  });
+      temperature: 0.1,
+    });
 
-  return result.toTextStreamResponse();
+    return result.toTextStreamResponse();
   } catch (error) {
     if (error instanceof z.ZodError) {
       return new Response(JSON.stringify({ error: error.errors }), {

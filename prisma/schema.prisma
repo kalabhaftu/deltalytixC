@@ -144,6 +144,7 @@ model LiveAccountTransaction {
   Account     Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
   User        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([accountId])
   @@index([accountId, createdAt])
   @@index([userId])
   @@schema("public")
@@ -260,6 +261,8 @@ model Trade {
   marketBias         MarketBias?
   modelId            String?
   selectedRules      Json?
+  outcome            TradeOutcome?
+  ruleBroken         Boolean?      @default(false)
   newsDay            Boolean?      @default(false)
   selectedNews       String?
   newsTraded         Boolean?      @default(false)
@@ -329,7 +332,8 @@ model User {
   auth_user_id           String                   @unique
   isFirstConnection      Boolean                  @default(true)
   thorToken              String?
-  timezone               String                   @default("UTC")
+  timezone               String                   @default("America/New_York")
+  timeFormat             String                   @default("24h")
   theme                  String                   @default("system")
   firstName              String?
   lastName               String?
@@ -528,6 +532,16 @@ enum WeeklyExpectation {
   BULLISH_EXPANSION
   BEARISH_EXPANSION
   CONSOLIDATION
+
+  @@schema("public")
+}
+
+enum TradeOutcome {
+  GOOD_WIN
+  BAD_WIN
+  BREAKEVEN
+  GOOD_LOSS
+  BAD_LOSS
 
   @@schema("public")
 }

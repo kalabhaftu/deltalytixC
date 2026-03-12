@@ -75,10 +75,10 @@ const COMMON_INSTRUMENTS = [
 
 // Trading sessions
 const TRADING_SESSIONS = [
-  { value: 'asian', label: 'Asian Session' },
-  { value: 'london', label: 'London Session' },
-  { value: 'new-york', label: 'New York Session' },
-  { value: 'overlap', label: 'Session Overlap' },
+  { value: 'london-killzone', label: 'London Killzone' },
+  { value: 'ny-killzone', label: 'NY Killzone' },
+  { value: 'lunch-dead-zone', label: 'Lunch Dead Zone' },
+  { value: 'ny-pm', label: 'NY PM Session' },
 ]
 
 // Market bias options
@@ -133,7 +133,8 @@ const tradeFormSchema = z.object({
 type TradeFormData = z.infer<typeof tradeFormSchema>
 
 interface ManualTradeFormProps {
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>
+  setIsOpen?: React.Dispatch<React.SetStateAction<boolean>>
+  onClose?: () => void
 }
 
 type Step = 1 | 2 | 3 | 4 | 5
@@ -148,7 +149,11 @@ const stepInfo = [
   { step: 5, title: 'Review', icon: SealCheck },
 ]
 
-export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
+export default function ManualTradeForm({ setIsOpen, onClose }: ManualTradeFormProps) {
+  const handleClose = () => {
+    if (onClose) onClose();
+    else if (setIsOpen) setIsOpen(false);
+  }
   const [currentStep, setCurrentStep] = useState<Step>(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [phaseValidationError, setPhaseValidationError] = useState<string | null>(null)
@@ -353,7 +358,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
 
       const { invalidateAccountsCache } = await import("@/hooks/use-accounts")
       invalidateAccountsCache('trade saved')
-      setIsOpen(false)
+      handleClose()
 
     } catch (error) {
       let errorMessage = 'An error occurred while saving the trade.'
@@ -857,7 +862,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => setIsOpen(false)}
+            onClick={handleClose}
           >
             Cancel
           </Button>

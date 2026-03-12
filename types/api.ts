@@ -39,7 +39,6 @@ export interface User {
   avatar?: string
   createdAt: Date
   updatedAt: Date
-  subscription?: Subscription
   preferences: UserPreferences
 }
 
@@ -59,23 +58,6 @@ export interface NotificationSettings {
 }
 
 /**
- * Subscription Types
- */
-export interface Subscription {
-  id: string
-  userId: string
-  plan: SubscriptionPlan
-  status: SubscriptionStatus
-  currentPeriodStart: Date
-  currentPeriodEnd: Date
-  cancelAtPeriodEnd: boolean
-  trialEnd?: Date
-}
-
-export type SubscriptionPlan = 'free' | 'basic' | 'pro' | 'enterprise'
-export type SubscriptionStatus = 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'trialing' | 'unpaid'
-
-/**
  * Trade Types
  */
 export interface Trade {
@@ -83,12 +65,16 @@ export interface Trade {
   userId: string
   accountNumber: string
   instrument: string
+  symbol?: string
   side: 'long' | 'short'
   quantity: number
   entryPrice: number
   exitPrice?: number
-  entryDate: Date
-  exitDate?: Date
+  stopLoss?: number | string
+  takeProfit?: number | string
+  entryDate: string | Date
+  exitDate?: string | Date
+  closeDate?: string | Date
   pnl?: number
   commission?: number
   tags?: string[]
@@ -99,6 +85,8 @@ export interface Trade {
   executionTime?: Date
   tradeGroup?: string
   sessionData?: TradeSessionData
+  outcome?: string
+  ruleBroken?: boolean
 }
 
 export interface TradeSessionData {
@@ -290,9 +278,6 @@ export type EventType =
   | 'import.started'
   | 'import.completed'
   | 'import.failed'
-  | 'subscription.created'
-  | 'subscription.updated'
-  | 'subscription.cancelled'
 
 /**
  * WebSocket Types

@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = streamObject({
-      model: xai(process.env.XAI_MODEL || "grok-3"),
+      model: xai(process.env.XAI_MODEL || "grok-4-1-fast-reasoning"),
       schema: mappingSchema,
       prompt:
         `The following columns are the headings from a CSV import file for a trading system. ` +

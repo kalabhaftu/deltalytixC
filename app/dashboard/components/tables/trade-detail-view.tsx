@@ -1,29 +1,28 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
-import { Trade } from '@prisma/client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { VisuallyHidden } from '@/components/ui/visually-hidden'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import {
-  TrendUp, TrendDown, CurrencyDollar, Clock, CalendarBlank,
-  Target, Minus, X, Download,
-  ChartBar, Newspaper, WarningCircle, Lightning, ShoppingCart, Tag as TagIcon, Play
-} from '@phosphor-icons/react'
-import Link from 'next/link'
-import { cn, formatCurrency, BREAK_EVEN_THRESHOLD, classifyTrade } from '@/lib/utils'
-import Image from 'next/image'
-import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
-import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { VisuallyHidden } from '@/components/ui/visually-hidden'
 import { useTags } from '@/context/tags-provider'
 import { getNewsById } from '@/lib/major-news-events'
-import { getTradingSession, formatTimeInZone, DEFAULT_TIMEZONE } from '@/lib/time-utils'
+import { formatTimeInZone, getKillzoneBadge, getTradingSession } from '@/lib/time-utils'
+import { classifyTrade, cn, formatCurrency } from '@/lib/utils'
 import { useUserStore } from '@/store/user-store'
-import TradeReplay from '../trades/trade-replay'
+import {
+  ChartBar,
+  Download,
+  Lightning,
+  Play,
+  X
+} from '@phosphor-icons/react'
+import { Trade } from '@prisma/client'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useRef, useState } from 'react'
+import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch'
+import { toast } from 'sonner'
 
 interface TradeDetailViewProps {
   isOpen: boolean
@@ -71,15 +70,6 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   const isWin = outcome === 'win'
   const isLoss = outcome === 'loss'
 
-  // Format timeframe for display
-  const formatTimeframe = (tf: string) => {
-    const map: Record<string, string> = {
-      '1m': '1min', '5m': '5min', '15m': '15min', '30m': '30min',
-      '1h': '1H', '4h': '4H', 'd': 'D', 'w': 'W', 'm': 'M',
-    }
-    return map[tf] || tf
-  }
-
   // Get all images - filter out null, undefined, and empty strings
   const images = [
     tradeData.cardPreviewImage,
@@ -107,42 +97,47 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
     ? tradeData.tags.filter(Boolean).map((id: string) => tags.find(t => t.id === id)).filter(Boolean)
     : []
 
-  // Get session
+  // Get session and killzone
   const session = trade.entryTime ? getTradingSession(trade.entryTime) : null
+  const killzone = trade.entryTime ? getKillzoneBadge(trade.entryTime) : null
 
   return (
     <>
-      <Dialog
-        open={isOpen}
-        onOpenChange={(open) => {
-          if (!open && !isImageViewerOpenRef.current) {
-            onClose()
-          }
-        }}
+      <div
+        className="fixed inset-0 z-50 bg-background overflow-y-auto flex items-start justify-center py-4 sm:py-8 layout-content"
       >
-        <DialogContent
-          className="w-full max-w-[95vw] sm:max-w-6xl h-[95vh] sm:h-[90vh] flex flex-col p-0 transition-all"
-          onInteractOutside={(e) => {
-            // Prevent closing when image viewer is open
-            if (isImageViewerOpenRef.current) {
-              e.preventDefault()
-            }
-          }}
+        <div
+          className="w-full max-w-[95vw] sm:max-w-6xl bg-card border shadow-2xl rounded-xl relative flex flex-col p-0 transition-all z-10 mx-auto min-h-[90vh]"
         >
-          <DialogHeader className="px-4 sm:px-6 py-4 border-b shrink-0">
-            <DialogTitle className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <span className="text-xl sm:text-2xl font-bold truncate max-w-[150px] sm:max-w-none">{trade.instrument}</span>
-              <Badge variant={trade.side === 'BUY' ? 'default' : 'destructive'} className="text-xs sm:text-sm">
-                {trade.side}
-              </Badge>
-              <Badge variant={isWin ? 'default' : isLoss ? 'destructive' : 'secondary'} className="text-xs sm:text-sm">
-                {formatCurrency(netPnL)}
-              </Badge>
-            </DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm">
-              Comprehensive view of trade execution, analysis, and supporting materials
-            </DialogDescription>
-          </DialogHeader>
+          <div className="px-4 sm:px-6 py-4 border-b shrink-0 flex items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <span className="text-xl sm:text-2xl font-bold truncate max-w-[150px] sm:max-w-none">{trade.instrument}</span>
+                <Badge variant={trade.side === 'BUY' ? 'default' : 'destructive'} className="text-xs sm:text-sm">
+                  {trade.side}
+                </Badge>
+                <Badge variant={isWin ? 'default' : isLoss ? 'destructive' : 'secondary'} className="text-xs sm:text-sm">
+                  {formatCurrency(netPnL)}
+                </Badge>
+                {session && session !== 'Outside Session' && (
+                  <Badge variant="outline" className="text-xs sm:text-sm border-primary/20 bg-primary/5 text-primary">
+                    {session}
+                  </Badge>
+                )}
+                {killzone && (
+                  <Badge variant="outline" className="text-xs sm:text-sm border-warning/20 bg-warning/5 text-warning">
+                    {killzone}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                Comprehensive view of trade execution, analysis, and supporting materials
+              </p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full shrink-0">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
 
           <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-4 sm:py-6">
             <div className="max-w-4xl mx-auto space-y-8 sm:space-y-12">
@@ -176,41 +171,6 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                 </div>
               </section>
 
-              {/* Multi-Timeframe Analysis */}
-              {(tradeData.biasTimeframe || tradeData.narrativeTimeframe || tradeData.entryTimeframe || tradeData.structureTimeframe) && (
-                <section className="space-y-4 sm:space-y-6 pt-6 sm:pt-8 border-t border-border/40">
-                  <div className="space-y-1">
-                    <h3 className="text-base sm:text-lg font-semibold text-foreground">Multi-Timeframe Analysis</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Analysis stages from bias to execution.</p>
-                  </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {tradeData.biasTimeframe && (
-                      <div className="flex flex-col gap-2 p-3 sm:p-4 rounded-xl bg-muted/20 border border-border/40 transition-colors hover:bg-muted/30">
-                        <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Bias</Label>
-                        <span className="text-sm sm:text-base font-semibold font-mono">{formatTimeframe(tradeData.biasTimeframe)}</span>
-                      </div>
-                    )}
-                    {tradeData.structureTimeframe && (
-                      <div className="flex flex-col gap-2 p-3 sm:p-4 rounded-xl bg-muted/20 border border-border/40 transition-colors hover:bg-muted/30">
-                        <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Structure</Label>
-                        <span className="text-sm sm:text-base font-semibold font-mono">{formatTimeframe(tradeData.structureTimeframe)}</span>
-                      </div>
-                    )}
-                    {tradeData.narrativeTimeframe && (
-                      <div className="flex flex-col gap-2 p-3 sm:p-4 rounded-xl bg-muted/20 border border-border/40 transition-colors hover:bg-muted/30">
-                        <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Narrative</Label>
-                        <span className="text-sm sm:text-base font-semibold font-mono">{formatTimeframe(tradeData.narrativeTimeframe)}</span>
-                      </div>
-                    )}
-                    {tradeData.entryTimeframe && (
-                      <div className="flex flex-col gap-2 p-3 sm:p-4 rounded-xl bg-primary/10 border border-primary/20 transition-colors hover:bg-primary/[0.15]">
-                        <Label className="text-[10px] uppercase font-bold tracking-wider text-primary">Entry</Label>
-                        <span className="text-sm sm:text-base font-semibold font-mono text-primary">{formatTimeframe(tradeData.entryTimeframe)}</span>
-                      </div>
-                    )}
-                  </div>
-                </section>
-              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 pt-6 sm:pt-8 border-t border-border/40">
                 {/* Timing & Session */}
@@ -231,12 +191,17 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                       <Label className="text-muted-foreground text-sm">Duration</Label>
                       <span className="text-sm font-medium">{Math.floor(trade.timeInPosition / 60)}m {Math.floor(trade.timeInPosition % 60)}s</span>
                     </div>
-                    {session && (
-                      <div className="flex justify-between items-center py-2">
-                        <Label className="text-muted-foreground text-sm">Market Session</Label>
-                        <Badge variant="secondary" className="bg-muted/50 font-medium px-2.5 py-0.5">{session}</Badge>
+                    <div className="flex justify-between items-center py-2">
+                      <Label className="text-muted-foreground text-sm">Market Session</Label>
+                      <div className="flex gap-2">
+                        {session && (
+                          <Badge variant="secondary" className="bg-muted/50 font-medium px-2.5 py-0.5">{session}</Badge>
+                        )}
+                        {killzone && (
+                          <Badge variant="outline" className="border-warning/30 bg-warning/5 text-warning font-medium px-2.5 py-0.5">{killzone}</Badge>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </section>
 
@@ -413,9 +378,8 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
               Close View
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-
+        </div>
+      </div>
 
 
       {/* Image Viewer Modal - Separate Dialog to prevent closing parent */}
@@ -470,7 +434,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                 <TransformWrapper>
                   <TransformComponent wrapperClass="!w-full !h-[calc(95vh-8rem)]" contentClass="!w-full !h-full flex items-center justify-center">
                     <Image
-                      src={selectedImage}
+                      src={selectedImage || ''}
                       alt={`Screenshot ${selectedImageIndex}`}
                       width={1920}
                       height={1080}
@@ -484,7 +448,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                   variant="secondary"
                   size="sm"
                   className="absolute bottom-4 right-4"
-                  onClick={() => downloadImage(selectedImage, trade, selectedImageIndex)}
+                  onClick={() => downloadImage(selectedImage!, trade, selectedImageIndex)}
                 >
                   <Download className="h-4 w-4 mr-2" weight="light" />
                   Download

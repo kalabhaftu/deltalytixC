@@ -1,9 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useRef } from "react"
-import { format, startOfWeek, endOfWeek, parseISO } from "date-fns"
-import { enUS } from 'date-fns/locale'
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { CalendarData } from "@/app/dashboard/types/calendar"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,27 +11,29 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { CalendarData } from "@/app/dashboard/types/calendar"
-import { groupTradesByExecution, BREAK_EVEN_THRESHOLD, type GroupedTrade } from '@/lib/utils'
-import { type Trade } from '@prisma/client'
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart } from 'recharts'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { useSupabaseUpload } from "@/hooks/use-supabase-upload"
-import { saveWeeklyReview, getWeeklyReview } from "@/server/weekly-review"
-import { useAuth } from "@/context/auth-provider"
-import { CircleNotch, UploadSimple, Image as ImageIcon, TrendUp, TrendDown, Pulse, CheckCircle, XCircle, X, Trash, ChartBar, Clock, Target, Percent, Calendar as CalendarIcon } from "@phosphor-icons/react"
-import { toast } from "sonner"
-import imageCompression from 'browser-image-compression'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { Textarea } from "@/components/ui/textarea"
-import { getTradingSession } from '@/lib/time-utils'
-import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { useAuth } from "@/context/auth-provider"
+import { useSupabaseUpload } from "@/hooks/use-supabase-upload"
+import { getTradingSession } from '@/lib/time-utils'
+import { BREAK_EVEN_THRESHOLD, cn, groupTradesByExecution, type GroupedTrade } from '@/lib/utils'
+import { getWeeklyReview, saveWeeklyReview } from "@/server/weekly-review"
+import { Calendar as CalendarIcon, ChartBar, CheckCircle, CircleNotch, Clock, Image as ImageIcon, Percent, Pulse, Target, Trash, TrendDown, TrendUp, UploadSimple, XCircle } from "@phosphor-icons/react"
+import { type Trade } from '@prisma/client'
+import imageCompression from 'browser-image-compression'
+import { endOfWeek, format, parseISO, startOfWeek } from "date-fns"
+import { enUS } from 'date-fns/locale'
+import React, { useEffect, useMemo, useRef, useState } from "react"
+import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { toast } from "sonner"
 
 interface WeeklyModalProps {
   isOpen: boolean;
@@ -215,7 +214,7 @@ export function WeeklyModal({
       if (netPnL > BREAK_EVEN_THRESHOLD) pairStats[pair].wins += 1
 
       // Session Stats (proper timezone handling)
-      const session = getTradingSession(trade.entryDate)
+      const session = getTradingSession(trade.entryDate) || 'Outside Session'
       if (!sessionStats[session]) sessionStats[session] = { pnl: 0, trades: 0 }
       sessionStats[session].pnl += netPnL
       sessionStats[session].trades += 1

@@ -77,8 +77,63 @@ export function TradeNewsTab({
                         </div>
 
                         <div className="grid grid-cols-1 gap-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                            {/* High-Impact USD Events Section */}
+                            {(() => {
+                                const highImpactUsdIds = ['us-nfp', 'us-cpi', 'us-core-cpi', 'us-fomc-rate', 'us-fomc-statement', 'us-fed-chair']
+                                const highImpactEvents = filteredNewsEvents.filter(e => highImpactUsdIds.includes(e.id))
+                                
+                                if (highImpactEvents.length === 0) return null
+                                
+                                return (
+                                    <div className="space-y-3">
+                                        <h4 className="flex items-center gap-1.5 text-[10px] font-bold text-destructive uppercase tracking-widest pl-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                                            High-Impact USD Events
+                                        </h4>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {highImpactEvents.map(event => (
+                                                <label
+                                                    key={event.id}
+                                                    className={`flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer group ${selectedNewsEvents.includes(event.id)
+                                                        ? 'bg-destructive/5 border-destructive/30 ring-1 ring-destructive/10'
+                                                        : 'bg-background hover:bg-muted/50 border-destructive/20 hover:border-destructive/40'
+                                                        }`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedNewsEvents.includes(event.id)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setSelectedNewsEvents([...selectedNewsEvents, event.id])
+                                                            } else {
+                                                                setSelectedNewsEvents(selectedNewsEvents.filter(id => id !== event.id))
+                                                            }
+                                                        }}
+                                                        className="h-4 w-4 mt-0.5 rounded border-destructive text-destructive focus:ring-destructive/20"
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`text-sm font-bold transition-colors ${selectedNewsEvents.includes(event.id) ? 'text-destructive' : 'text-foreground'}`}>
+                                                                {event.name}
+                                                            </span>
+                                                            <Badge variant="destructive" className="text-[9px] px-1 py-0 h-3.5 font-bold">
+                                                                {event.country}
+                                                            </Badge>
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 group-hover:line-clamp-none transition-all">
+                                                            {event.description}
+                                                        </p>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )
+                            })()}
+
                             {['employment', 'inflation', 'interest-rate', 'gdp', 'pmi', 'retail', 'housing', 'trade', 'manufacturing', 'bank-holiday', 'other'].map(category => {
-                                const events = filteredNewsEvents.filter(e => e.category === category)
+                                const highImpactUsdIds = ['us-nfp', 'us-cpi', 'us-core-cpi', 'us-fomc-rate', 'us-fomc-statement', 'us-fed-chair']
+                                const events = filteredNewsEvents.filter(e => e.category === category && !highImpactUsdIds.includes(e.id))
                                 if (events.length === 0) return null
 
                                 return (

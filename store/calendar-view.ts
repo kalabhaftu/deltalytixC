@@ -41,16 +41,16 @@ export const useCalendarViewStore = create<CalendarViewState>()(
       setSelectedWeekDate: (date) => set({ selectedWeekDate: date }),
       visibleStats: {
         pnl: true,
-        trades: false,
-        winRate: false,
-        rMultiple: false
+        trades: true,
+        winRate: true,
+        rMultiple: true
       },
       setVisibleStats: (newStats) => set((state) => ({
         visibleStats: { ...state.visibleStats, ...newStats }
       })),
       screenshotWithGradient: false,
       setScreenshotWithGradient: (enabled) => set({ screenshotWithGradient: enabled }),
-      showWeekNumbers: false,
+      showWeekNumbers: true,
       setShowWeekNumbers: (enabled) => set({ showWeekNumbers: enabled })
     }),
     {

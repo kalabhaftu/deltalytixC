@@ -27,7 +27,7 @@ export interface BacktestTrade {
   pnl: number // Profit or Loss amount
   
   // Images
-  images: string[] // Array of image URLs/base64
+  images: string[] // Array of image URLs
   cardPreviewImage?: string
   
   // Metadata

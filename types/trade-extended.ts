@@ -10,3 +10,5 @@ export interface ExtendedTrade extends Trade {
 }
 
 export type MarketBias = 'BULLISH' | 'BEARISH' | 'UNDECIDED'
+
+export type TradeOutcome = 'GOOD_WIN' | 'BAD_WIN' | 'BREAKEVEN' | 'GOOD_LOSS' | 'BAD_LOSS'

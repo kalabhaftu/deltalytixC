@@ -5,9 +5,7 @@ import Image from 'next/image'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ExtendedTrade } from '@/types/trade-extended'
-import { ExtendedTrade as Trade, MarketBias } from '@/types/trade-extended'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
+import { ExtendedTrade, MarketBias, TradeOutcome } from '@/types/trade-extended'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +18,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { CircleNotch } from '@phosphor-icons/react'
+import { CircleNotch, X } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { uploadService } from '@/lib/upload-service'
 import { MAJOR_NEWS_EVENTS } from '@/lib/major-news-events'
@@ -29,7 +27,6 @@ import { useTags } from '@/context/tags-provider'
 import { TradeNotesTab } from './components/trade-notes-tab'
 import { TradeStrategyTab } from './components/trade-strategy-tab'
 import { TradeNewsTab } from './components/trade-news-tab'
-import { TradeTimeframesTab } from './components/trade-timeframes-tab'
 import { TIMEFRAME_OPTIONS, MARKET_BIAS_OPTIONS } from '@/lib/constants'
 
 interface TradeEditDialogProps {
@@ -96,6 +93,8 @@ export default function TradeEditDialog({
   const [selectedNewsEvents, setSelectedNewsEvents] = useState<string[]>([])
   const [newsTraded, setNewsTraded] = useState(false)
   const [marketBias, setMarketBias] = useState<MarketBias | null>(null)
+  const [tradeOutcome, setTradeOutcome] = useState<TradeOutcome | null>(null)
+  const [ruleBroken, setRuleBroken] = useState<boolean>(false)
   const [activeTab, setActiveTab] = useState('details')
   const [uploadingField, setUploadingField] = useState<string | null>(null)
   const [newsSearchQuery, setNewsSearchQuery] = useState('')
@@ -227,6 +226,8 @@ export default function TradeEditDialog({
       })
 
       setComment((trade as any).comment || '')
+      setTradeOutcome((trade as any).outcome || null)
+      setRuleBroken((trade as any).ruleBroken || false)
     }
   }, [trade, isOpen, tradingModels, reset])
 
@@ -325,6 +326,8 @@ export default function TradeEditDialog({
         entryTimeframe: entryTimeframe,
         structureTimeframe: structureTimeframe,
         orderType: orderType,
+        outcome: tradeOutcome,
+        ruleBroken: ruleBroken,
         chartLinks: chartLinks.filter(link => link.trim()).join(',') || null,
       } as any
 
@@ -355,26 +358,30 @@ export default function TradeEditDialog({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={handleCloseAttempt}>
-        <DialogContent className="w-full max-w-[95vw] sm:max-w-5xl h-[95vh] sm:h-[90vh] flex flex-col p-0 transition-all">
+      <div className="fixed inset-0 z-50 bg-background overflow-y-auto flex items-start justify-center py-4 sm:py-8 layout-content">
+        <div className="w-full max-w-[95vw] sm:max-w-5xl bg-card border shadow-2xl rounded-xl relative flex flex-col p-0 transition-all z-10 mx-auto min-h-[90vh]">
           {/* Header */}
-            <DialogHeader className="px-4 sm:px-6 py-4 border-b shrink-0">
-            <DialogTitle className="text-lg sm:text-xl truncate pr-8">
-              Edit Trade - {(trade as any).instrument} {(trade as any).side}
-            </DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm">
-              Enhance your trade with notes, screenshots, strategy, and market context
-            </DialogDescription>
-          </DialogHeader>
+          <div className="px-4 sm:px-6 py-4 border-b shrink-0 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg sm:text-xl font-semibold truncate pr-8">
+                Edit Trade - {(trade as any).instrument} {(trade as any).side}
+              </h2>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                Enhance your trade with notes, screenshots, strategy, and market context
+              </p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => handleCloseAttempt(false)} className="h-8 w-8 rounded-full">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
 
           {/* Tabs Navigation */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             <div className="px-4 sm:px-6 mt-4 shrink-0 overflow-x-auto pb-2 sm:pb-0">
-              <TabsList className="w-full sm:w-auto overflow-x-auto justify-start flex-nowrap sm:grid sm:grid-cols-4 h-auto p-1 gap-1 bg-muted/50">
+              <TabsList className="w-full sm:w-auto overflow-x-auto justify-start flex-nowrap sm:grid sm:grid-cols-3 h-auto p-1 gap-1 bg-muted/50">
                 <TabsTrigger value="details" className="text-xs sm:text-sm px-3 py-1.5 h-auto">Notes & Images</TabsTrigger>
                 <TabsTrigger value="strategy" className="text-xs sm:text-sm px-3 py-1.5 h-auto">Strategy</TabsTrigger>
                 <TabsTrigger value="news" className="text-xs sm:text-sm px-3 py-1.5 h-auto">News</TabsTrigger>
-                <TabsTrigger value="timeframes" className="text-xs sm:text-sm px-3 py-1.5 h-auto">Timeframes</TabsTrigger>
               </TabsList>
             </div>
 
@@ -405,6 +412,8 @@ export default function TradeEditDialog({
                     imageErrors={imageErrors}
                     setImageError={(field, hasError) => setImageErrors(prev => ({ ...prev, [field]: hasError }))}
                     uploadingField={uploadingField}
+                    chartLinks={chartLinks}
+                    setChartLinks={setChartLinks}
                   />
                 </TabsContent>
 
@@ -429,6 +438,10 @@ export default function TradeEditDialog({
                     setSelectedRules={setSelectedRules}
                     selectedTags={selectedTags}
                     setSelectedTags={setSelectedTags}
+                    tradeOutcome={tradeOutcome}
+                    setTradeOutcome={setTradeOutcome}
+                    ruleBroken={ruleBroken}
+                    setRuleBroken={setRuleBroken}
                   />
                 </TabsContent>
 
@@ -452,28 +465,12 @@ export default function TradeEditDialog({
                     setNewsTraded={setNewsTraded}
                   />
                 </TabsContent>
-
-                {/* Tab 4: Timeframes */}
-                <TabsContent value="timeframes" className="mt-0 space-y-6 sm:space-y-8 px-1">
-                  <TradeTimeframesTab
-                    biasTimeframe={biasTimeframe}
-                    setBiasTimeframe={setBiasTimeframe}
-                    structureTimeframe={structureTimeframe}
-                    setStructureTimeframe={setStructureTimeframe}
-                    narrativeTimeframe={narrativeTimeframe}
-                    setNarrativeTimeframe={setNarrativeTimeframe}
-                    entryTimeframe={entryTimeframe}
-                    setEntryTimeframe={setEntryTimeframe}
-                    chartLinks={chartLinks}
-                    setChartLinks={setChartLinks}
-                  />
-                </TabsContent>
-              </div >
-            </div >
-          </Tabs >
+              </div>
+            </div>
+          </Tabs>
 
           {/* Footer */}
-          < DialogFooter className="px-4 sm:px-6 py-4 border-t shrink-0 flex-col-reverse sm:flex-row gap-2 sm:gap-0" >
+          <div className="px-4 sm:px-6 py-4 border-t shrink-0 flex-col-reverse sm:flex-row gap-2 sm:gap-0 flex w-full items-center justify-between bg-muted/20">
             <Button type="button" variant="outline" onClick={() => handleCloseAttempt(false)} disabled={isSubmitting} className="w-full sm:w-auto">
               Cancel
             </Button>
@@ -487,9 +484,9 @@ export default function TradeEditDialog({
                 'Save Changes'
               )}
             </Button>
-          </DialogFooter >
-        </DialogContent >
-      </Dialog >
+          </div>
+        </div>
+      </div>
 
       <AlertDialog open={showUnsavedAlert} onOpenChange={setShowUnsavedAlert}>
         <AlertDialogContent>

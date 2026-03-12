@@ -120,7 +120,8 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
                 card.style.boxShadow = '0 30px 60px -12px hsl(var(--background)/0.7)'
                 card.style.border = '1px solid hsl(var(--border)/0.5)'
                 card.style.background = 'hsl(var(--background))'
-                card.style.height = '700px' // Fix height for nice aspect ratio
+                card.style.height = 'auto' // Dynamic height based on content
+                card.style.minHeight = '700px' // Maintain a minimum professional look
               }
             }
           }

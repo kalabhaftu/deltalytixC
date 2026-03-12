@@ -1,43 +1,33 @@
 'use client'
 
-import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useData } from '@/context/data-provider'
+import { getTradingSession, MarketSession } from '@/lib/time-utils'
+import { classifyTrade, cn } from '@/lib/utils'
+import { useUserStore } from '@/store/user-store'
 import {
     Globe,
-    Sun,
     Moon,
-    SunHorizon,
-    TrendUp,
-    TrendDown
+    Sun,
+    SunHorizon
 } from "@phosphor-icons/react"
-import { cn, classifyTrade } from '@/lib/utils'
-import { parseISO, getHours, format } from 'date-fns'
-import { formatInTimeZone } from 'date-fns-tz'
-import { useUserStore } from '@/store/user-store'
+import { useMemo } from 'react'
 
 interface SessionAnalysisProps {
     size?: string
 }
 
-// Market sessions in UTC
-const SESSIONS = {
-    asia: { start: 0, end: 8, name: 'Asia', icon: Moon, color: 'text-purple-500' },
-    london: { start: 8, end: 14, name: 'London', icon: SunHorizon, color: 'text-blue-500' },
-    newYork: { start: 14, end: 21, name: 'New York', icon: Sun, color: 'text-amber-500' },
-    overlap: { start: 13, end: 17, name: 'Overlap', icon: Globe, color: 'text-long' }
-}
-
-function getSession(hour: number): keyof typeof SESSIONS | null {
-    if (hour >= 0 && hour < 8) return 'asia'
-    if (hour >= 8 && hour < 14) return 'london'
-    if (hour >= 14 && hour < 21) return 'newYork'
-    return null
+// Market sessions in NY time (for display metadata)
+const SESSION_META: Record<MarketSession, { name: string; icon: any; color: string }> = {
+    'New York': { name: 'New York', icon: Sun, color: 'text-amber-500' },
+    'London': { name: 'London', icon: SunHorizon, color: 'text-blue-500' },
+    'Asia': { name: 'Asia', icon: Moon, color: 'text-purple-500' },
+    'Outside Session': { name: 'Outside Session', icon: Globe, color: 'text-muted-foreground' }
 }
 
 export default function SessionAnalysis({ size }: SessionAnalysisProps) {
     const { formattedTrades } = useData()
-    const timezone = useUserStore((state) => state.timezone) || 'UTC'
+    const timezone = useUserStore((state) => state.timezone) || 'America/New_York'
 
     const sessionStats = useMemo(() => {
         if (!formattedTrades || formattedTrades.length === 0) {
@@ -45,18 +35,17 @@ export default function SessionAnalysis({ size }: SessionAnalysisProps) {
         }
 
         const stats: Record<string, { trades: number; wins: number; pnl: number }> = {
-            asia: { trades: 0, wins: 0, pnl: 0 },
-            london: { trades: 0, wins: 0, pnl: 0 },
-            newYork: { trades: 0, wins: 0, pnl: 0 }
+            'New York': { trades: 0, wins: 0, pnl: 0 },
+            'London': { trades: 0, wins: 0, pnl: 0 },
+            'Asia': { trades: 0, wins: 0, pnl: 0 },
+            'Outside Session': { trades: 0, wins: 0, pnl: 0 }
         }
 
         formattedTrades.forEach(trade => {
             if (!trade.entryDate) return
 
             try {
-                const date = parseISO(trade.entryDate)
-                const utcHour = date.getUTCHours()
-                const session = getSession(utcHour)
+                const session = getTradingSession(trade.entryDate)
 
                 if (session && stats[session]) {
                     stats[session].trades++
@@ -92,9 +81,10 @@ export default function SessionAnalysis({ size }: SessionAnalysisProps) {
     }
 
     const sessions = [
-        { key: 'asia', ...SESSIONS.asia, ...sessionStats.asia },
-        { key: 'london', ...SESSIONS.london, ...sessionStats.london },
-        { key: 'newYork', ...SESSIONS.newYork, ...sessionStats.newYork }
+        { key: 'New York', ...SESSION_META['New York'], ...sessionStats['New York'] },
+        { key: 'London', ...SESSION_META['London'], ...sessionStats['London'] },
+        { key: 'Asia', ...SESSION_META['Asia'], ...sessionStats['Asia'] },
+        { key: 'Outside Session', ...SESSION_META['Outside Session'], ...sessionStats['Outside Session'] }
     ]
 
     const bestSession = sessions.reduce((best, current) =>
