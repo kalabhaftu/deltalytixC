@@ -33,7 +33,7 @@ export interface PropFirmAccount extends DatabaseRecord {
   maxDrawdownType: DrawdownType
   drawdownModeMax: DrawdownMode
   
-  // Evaluation Gear
+  // Evaluation Settings
   evaluationType: EvaluationType
   timezone: string
   dailyResetTime: string

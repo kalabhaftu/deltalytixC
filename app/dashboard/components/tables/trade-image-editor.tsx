@@ -1,20 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
-import Image from "next/image"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { MagnifyingGlassPlus, MagnifyingGlassMinus, X, UploadSimple } from "@phosphor-icons/react"
-import { motion, AnimatePresence } from "framer-motion"
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { Dropzone, DropzoneContent, DropzoneEmptyState } from '@/components/ui/dropzone'
-import { useSupabaseUpload } from '@/hooks/use-supabase-upload'
-import { toast } from 'sonner'
-import { useUserStore } from '@/store/user-store'
-import { createClient } from '@/lib/supabase'
-import { useData } from '@/context/data-provider'
-import { STORAGE_BUCKETS } from '@/lib/constants/storage'
 import {
   Carousel,
   CarouselContent,
@@ -22,7 +8,20 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dropzone, DropzoneContent, DropzoneEmptyState } from '@/components/ui/dropzone'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { useData } from '@/context/data-provider'
+import { useSupabaseUpload } from '@/hooks/use-supabase-upload'
+import { STORAGE_BUCKETS } from '@/lib/constants/storage'
+import { createClient } from '@/lib/supabase'
 import { cn } from "@/lib/utils"
+import { useUserStore } from '@/store/user-store'
+import { MagnifyingGlassMinus, MagnifyingGlassPlus, Plus, Trash, UploadSimple, X } from "@phosphor-icons/react"
+import Image from "next/image"
+import { useCallback, useEffect, useState } from "react"
+import { TransformWrapper } from "react-zoom-pan-pinch"
+import { toast } from 'sonner'
 
 const supabase = createClient()
 
@@ -68,7 +67,6 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
   const userId = supabaseUser?.id || user?.id
 
   // Create separate upload instances for first and second images
-  // Use GENERAL bucket for these uploads
   const firstImageUploadProps = useSupabaseUpload({
     bucketName: STORAGE_BUCKETS.GENERAL,
     path: userId + '/' + generatedId,
@@ -91,41 +89,37 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
   const handleRemoveImage = async (isSecondImage: boolean, imageUrl?: string | null) => {
     try {
       const update = {
-        [isSecondImage ? 'imageBase64Second' : 'imageBase64']: null
+        [isSecondImage ? 'imageTwo' : 'imageOne']: null
       }
-      // Update trades
       await updateTrades(tradeIds, update)
       
-      // Remove the image from Supabase storage
       if (imageUrl) {
-        // Extract the path from the full URL
         const path = imageUrl.split('T')[1]
         if (path) {
           await supabase.storage.from(STORAGE_BUCKETS.TRADES).remove([path])
         }
       }
     } catch (error) {
+      console.error("Failed to remove image:", error)
     }
   }
 
   const handleRemoveAllImages = async () => {
     try {
-      // Update both image fields to null in a single operation
       const update: any = {
-        imageBase64: null,
-        imageBase64Second: null
+        imageOne: null,
+        imageTwo: null
       }
       await updateTrades(tradeIds, update)
       
-      // Remove both images from Supabase storage
       const imagesToRemove: string[] = []
       const tradeAny = trade as any
-      if (tradeAny.imageBase64) {
-        const path = tradeAny.imageBase64.split('T')[1]
+      if (tradeAny.imageOne) {
+        const path = tradeAny.imageOne.split('T')[1]
         if (path) imagesToRemove.push(path)
       }
-      if (tradeAny.imageBase64Second) {
-        const path = tradeAny.imageBase64Second.split('T')[1]
+      if (tradeAny.imageTwo) {
+        const path = tradeAny.imageTwo.split('T')[1]
         if (path) imagesToRemove.push(path)
       }
       
@@ -133,65 +127,45 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
         await supabase.storage.from(STORAGE_BUCKETS.TRADES).remove(imagesToRemove)
       }
     } catch (error) {
+      console.error("Failed to remove all images:", error)
     }
   }
 
-  const handleUpdateImage = useCallback(async (imageBase64: string, isSecondImage: boolean) => {
+  const handleUpdateImage = useCallback(async (imageUrl: string, isSecondImage: boolean) => {
     const update = {
-      [isSecondImage ? 'imageBase64Second' : 'imageBase64']: imageBase64
+      [isSecondImage ? 'imageTwo' : 'imageOne']: imageUrl
     }
     await updateTrades(tradeIds, update)
   }, [updateTrades, tradeIds])
 
-  // Listen for successful uploads from first image upload
   useEffect(() => {
     if (firstImageUploadProps.isSuccess && firstImageUploadProps.files.length > 0) {
       const file = firstImageUploadProps.files[0]
       const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKETS.TRADES}/${userId}/${generatedId}/${file.name}`
       handleUpdateImage(imageUrl, false)
       setUploadDialogOpen(false)
-      
-      // Auto-dismiss success toast after 3 seconds
-      const successToast = toast.success("Image uploaded successfully", {
-        duration: 3000
-      })
-      
-      // Reset the upload props after successful upload
+      toast.success("Image uploaded successfully")
       firstImageUploadProps.setFiles([])
       firstImageUploadProps.setErrors([])
     } else if (firstImageUploadProps.errors.length > 0) {
-      const error = firstImageUploadProps.errors[0].message
-      toast.error("Image upload failed", {
-        duration: 5000
-      })
+      toast.error("Image upload failed")
     }
   }, [firstImageUploadProps, handleUpdateImage, userId, generatedId])
 
-  // Listen for successful uploads from second image upload
   useEffect(() => {
     if (secondImageUploadProps.isSuccess && secondImageUploadProps.files.length > 0) {
       const file = secondImageUploadProps.files[0]
       const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKETS.TRADES}/${userId}/${generatedId}/${file.name}`
       handleUpdateImage(imageUrl, true)
       setUploadDialogOpen(false)
-      
-      // Auto-dismiss success toast after 3 seconds
-      toast.success("Second image uploaded successfully", {
-        duration: 3000
-      })
-      
-      // Reset the upload props after successful upload
+      toast.success("Second image uploaded successfully")
       secondImageUploadProps.setFiles([])
       secondImageUploadProps.setErrors([])
     } else if (secondImageUploadProps.errors.length > 0) {
-      const error = secondImageUploadProps.errors[0].message
-      toast.error("Second image upload failed", {
-        duration: 5000
-      })
+      toast.error("Second image upload failed")
     }
   }, [secondImageUploadProps, handleUpdateImage, userId, generatedId])
 
-  // Reset upload state when dialog closes to ensure clean state for next upload
   useEffect(() => {
     if (!uploadDialogOpen) {
       firstImageUploadProps.setFiles([])
@@ -201,238 +175,203 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
     }
   }, [uploadDialogOpen, firstImageUploadProps, secondImageUploadProps])
 
-  const imageArray = [trade.imageBase64, trade.imageBase64Second].filter(Boolean)
+  const tradeImages = [trade.imageOne, trade.imageTwo].filter(Boolean)
 
   const handleUploadClick = () => {
-    // If first image is null, set it as first image, otherwise set as second image
-    setIsSecondImage(!!trade.imageBase64)
-    // Force remount of upload component with new key to ensure clean state
+    setIsSecondImage(tradeImages.length === 1)
     setUploadKey(prev => prev + 1)
     setUploadDialogOpen(true)
-  }
-
-  const handleThumbnailClick = (index: number) => {
-    setSelectedImageIndex(index)
-    setScale(1) // Reset zoom when changing images
   }
 
   return (
     <>
       <div className="flex gap-2">
-        {imageArray.length > 0 ? (
+        {tradeImages.length > 0 ? (
           <div className="relative group">
             <button
               onClick={() => setIsOpen(true)}
-              className="relative w-10 h-10 overflow-hidden rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="relative w-10 h-10 rounded-lg overflow-hidden border border-border/50 hover:border-border transition-all duration-200"
               aria-label="View image"
             >
               <Image
-                src={imageArray[0]}
+                src={tradeImages[0]}
                 alt="Trade image"
                 className="object-cover w-full h-full"
                 width={40}
                 height={40}
               />
-              {imageArray.length > 1 && (
+              {tradeImages.length > 1 && (
                 <span className="absolute bottom-1 right-1 bg-black/50 text-white text-xs px-1 rounded">
-                  {imageArray.length}
+                  {tradeImages.length}
                 </span>
               )}
             </button>
 
-            {/* Add second image button - only show when there's exactly one image */}
-            {imageArray.length === 1 && (
+            {tradeImages.length === 1 && (
               <HoverCard openDelay={200}>
                 <HoverCardTrigger asChild>
                   <button
-                    className="absolute -top-2 -left-2 h-5 w-5 bg-foreground text-background rounded-full hidden group-hover:flex items-center justify-center shadow-sm hover:bg-foreground/90 transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setIsSecondImage(true)
-                      setUploadKey(prev => prev + 1)
-                      setUploadDialogOpen(true)
-                    }}
+                    onClick={handleUploadClick}
+                    className="absolute -top-1 -right-1 bg-background border border-border rounded-full p-0.5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+                    aria-label="Add second image"
                   >
-                    <UploadSimple weight="light" className="h-3 w-3" />
+                    <Plus weight="bold" className="h-2 w-2" />
                   </button>
                 </HoverCardTrigger>
-                <HoverCardContent side="top" align="center" className="text-xs">
-                  Upload second image
+                <HoverCardContent className="w-40 p-2 text-xs">
+                  Add second image to this trade
                 </HoverCardContent>
               </HoverCard>
             )}
-
-            <HoverCard openDelay={200}>
-              <HoverCardTrigger asChild>
-                <button
-                  className="absolute -top-2 -right-2 h-5 w-5 bg-destructive text-destructive-foreground rounded-full hidden group-hover:flex items-center justify-center shadow-sm hover:bg-destructive/90 transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setShowDeleteConfirm(true)
-                  }}
-                >
-                  <X weight="light" className="h-3 w-3" />
-                </button>
-              </HoverCardTrigger>
-              <HoverCardContent side="top" align="center" className="text-xs">
-                Delete image
-              </HoverCardContent>
-            </HoverCard>
           </div>
         ) : (
           <button
             onClick={handleUploadClick}
-            className="relative w-10 h-10 overflow-hidden rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 bg-muted hover:bg-muted/80 transition-colors"
-            aria-label="Upload image"
+            className="w-10 h-10 rounded-lg border border-dashed border-border flex items-center justify-center hover:bg-muted/50 transition-colors"
+            title="Upload image"
           >
-            <UploadSimple weight="light" className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-muted-foreground" />
+            <UploadSimple weight="light" className="h-4 w-4 text-muted-foreground" />
           </button>
         )}
 
-        {imageArray.length > 0 && imageArray.length < 2 && (
+        {tradeImages.length > 0 && tradeImages.length < 2 && (
           <HoverCard>
             <HoverCardTrigger asChild>
               <button
                 onClick={handleUploadClick}
-                className="relative w-10 h-10 overflow-hidden rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 bg-muted hover:bg-muted/80 transition-colors"
-                aria-label="Upload second image"
+                className="w-10 h-10 rounded-lg border border-dashed border-border flex items-center justify-center hover:bg-muted/50 transition-colors"
+                title="Add second image"
               >
-                <UploadSimple weight="light" className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-muted-foreground" />
-                <span className="absolute bottom-1 right-1 bg-primary/10 text-primary text-xs px-1 rounded">
-                  +1
-                </span>
+                <Plus weight="light" className="h-4 w-4 text-muted-foreground" />
               </button>
             </HoverCardTrigger>
-            <HoverCardContent side="top" align="center" className="text-xs">
-              Upload second image
+            <HoverCardContent className="w-40 p-2 text-xs">
+              Add second image
             </HoverCardContent>
           </HoverCard>
         )}
       </div>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[90vw] max-h-[90vh] overflow-hidden p-0">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle>Image Gallery</DialogTitle>
+        <DialogContent className="max-w-[90vw] h-[90vh] p-0 overflow-hidden bg-black/95 border-none">
+          <DialogHeader className="absolute top-4 left-4 right-4 z-50 flex-row items-center justify-between pointer-events-none">
+            <DialogTitle className="text-white drop-shadow-md text-sm font-medium pointer-events-auto">
+              Trade Evidence {tradeImages.length > 1 ? `(${selectedImageIndex + 1}/${tradeImages.length})` : ""}
+            </DialogTitle>
+            <div className="flex items-center gap-2 pointer-events-auto">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/20 h-8 w-8"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                <Trash weight="light" className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/20 h-8 w-8"
+                onClick={() => setIsOpen(false)}
+              >
+                <X weight="light" className="h-4 w-4" />
+              </Button>
+            </div>
           </DialogHeader>
 
-          <div className="relative h-[70vh] sm:h-[70vh] bg-neutral-50 p-4 sm:p-8">
-            <AnimatePresence mode="wait">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="absolute inset-0 p-2 sm:p-4"
+          <div className="relative w-full h-full flex flex-col pt-16">
+            <div className="flex-1 min-h-0">
+              <TransformWrapper
+                initialScale={1}
+                minScale={0.5}
+                maxScale={4}
+                centerOnInit
               >
-                <TransformWrapper
-                  initialScale={1}
-                  minScale={0.5}
-                  maxScale={3}
-                  centerOnInit
-                  limitToBounds
-                  smooth
-                  doubleClick={{
-                    mode: "reset"
-                  }}
-                  onTransformed={(_, state) => {
-                    setScale(state.scale)
-                  }}
-                >
-                  {({ zoomIn, zoomOut }) => (
-                    <>
-                      <TransformComponent
-                        wrapperClass="!w-full !h-full"
-                        contentClass="!w-full !h-full flex items-center justify-center"
-                      >
-                        <div className="flex items-center justify-center w-full h-full">
-                          <Image
-                            src={imageArray[selectedImageIndex]}
-                            alt="Trade image"
-                            width={800}
-                            height={600}
-                            className="max-w-full max-h-full object-contain select-none"
-                            style={{ margin: 'auto' }}
-                          />
-                        </div>
-                      </TransformComponent>
-
-                      <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 rounded-lg bg-black/50 backdrop-blur-sm z-50">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="bg-background hover:bg-muted shadow-sm border border-border h-7 w-7 sm:h-8 sm:w-8"
-                          onClick={() => zoomOut()}
-                          disabled={scale <= 0.5}
-                        >
-                          <MagnifyingGlassMinus weight="light" className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                        </Button>
-                        <span className="min-w-[2.5rem] sm:min-w-[3rem] text-center text-xs sm:text-sm font-medium text-muted-foreground">
-                          {Math.round(scale * 100)}%
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="bg-background hover:bg-muted shadow-sm border border-border h-7 w-7 sm:h-8 sm:w-8"
-                          onClick={() => zoomIn()}
-                          disabled={scale >= 3}
-                        >
-                          <MagnifyingGlassPlus weight="light" className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </TransformWrapper>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          <div className="border-t p-4">
-            <Carousel className="w-full">
-              <CarouselContent className="w-full flex items-center justify-center gap-2">
-                {imageArray.map((image, index) => (
-                  <CarouselItem key={index} className="basis-auto">
-                    <div 
-                      className="relative aspect-square cursor-pointer"
-                      onClick={() => handleThumbnailClick(index)}
-                    >
+                {({ zoomIn, zoomOut, resetTransform }) => (
+                  <div className="relative w-full h-full flex flex-col">
+                    <div className="flex items-center justify-center w-full h-full">
                       <Image
-                        src={image}
-                        alt={`Thumbnail ${index + 1}`}
-                        width={40}
-                        height={40}
-                        className={cn(
-                          "object-cover w-12 h-12 rounded-md transition-all",
-                          selectedImageIndex === index ? "ring-2 ring-primary" : "hover:ring-2 hover:ring-primary/50"
-                        )}
+                        src={tradeImages[selectedImageIndex]}
+                        alt="Trade image"
+                        width={800}
+                        height={600}
+                        className="object-contain max-h-full transition-transform duration-200"
+                        style={{ transform: `scale(${scale})` }}
+                        priority
                       />
                     </div>
-                  </CarouselItem>
-                ))}
-                {imageArray.length < 2 && (
-                  <CarouselItem className="basis-auto">
-                    <Button
-                      size={'icon'}
-                      variant={'secondary'}
-                      onClick={handleUploadClick}
-                      className={cn("w-full aspect-square rounded-md",
-                        "border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50",
-                        "transition-colors flex items-center justify-center",
-                        "h-12 w-12"
-                      )}
-                    >
-                      <UploadSimple weight="light" className="h-6 w-6 text-muted-foreground" />
-                    </Button>
-                  </CarouselItem>
+
+                    <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/50 backdrop-blur-md rounded-full px-4 py-2 border border-white/10 z-50">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-white hover:bg-white/20 h-8 w-8"
+                        onClick={() => zoomOut()}
+                      >
+                        <MagnifyingGlassMinus weight="light" className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-white hover:bg-white/20 h-8 w-8"
+                        onClick={() => zoomIn()}
+                      >
+                        <MagnifyingGlassPlus weight="light" className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-white hover:bg-white/20 text-xs px-2 h-7"
+                        onClick={() => resetTransform()}
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                  </div>
                 )}
-              </CarouselContent>
-              {imageArray.length > 1 && (
-                <>
-                  <CarouselPrevious className="left-2" />
-                  <CarouselNext className="right-2" />
-                </>
-              )}
-            </Carousel>
+              </TransformWrapper>
+            </div>
+
+            <div className="border-t p-4">
+              <Carousel className="w-full">
+                <CarouselContent className="w-full flex items-center justify-center gap-2">
+                  {tradeImages.map((image, index) => (
+                    <CarouselItem key={index} className="basis-auto">
+                      <div 
+                        className={cn(
+                          "relative aspect-square w-12 h-12 cursor-pointer rounded overflow-hidden border-2 transition-all",
+                          selectedImageIndex === index ? "border-white" : "border-transparent opacity-50 hover:opacity-100"
+                        )}
+                        onClick={() => setSelectedImageIndex(index)}
+                      >
+                        <Image
+                          src={image}
+                          alt={`Thumbnail ${index + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    </CarouselItem>
+                  ))}
+                  {tradeImages.length < 2 && (
+                    <CarouselItem className="basis-auto">
+                      <Button
+                        size={'icon'}
+                        className="w-12 h-12 rounded border border-dashed border-white/30 bg-transparent hover:bg-white/10 hover:border-white/50 text-white/50 hover:text-white"
+                        onClick={handleUploadClick}
+                      >
+                        <Plus weight="light" className="h-5 w-5" />
+                      </Button>
+                    </CarouselItem>
+                  )}
+                </CarouselContent>
+                {tradeImages.length > 1 && (
+                  <>
+                    <CarouselPrevious className="left-2" />
+                    <CarouselNext className="right-2" />
+                  </>
+                )}
+              </Carousel>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -446,16 +385,16 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-4">
-            {trade.imageBase64 && (
+            {trade.imageOne && (
               <button
                 onClick={() => {
-                  handleRemoveImage(false, trade.imageBase64)
+                  handleRemoveImage(false, trade.imageOne)
                   setShowDeleteConfirm(false)
                 }}
                 className="relative group aspect-square rounded-lg overflow-hidden border-2 border-destructive/50 hover:border-destructive transition-colors"
               >
                 <Image
-                  src={trade.imageBase64}
+                  src={trade.imageOne}
                   alt="First image"
                   fill
                   className="object-cover"
@@ -465,16 +404,16 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                 </div>
               </button>
             )}
-            {trade.imageBase64Second && (
+            {trade.imageTwo && (
               <button
                 onClick={() => {
-                  handleRemoveImage(true, trade.imageBase64Second)
+                  handleRemoveImage(true, trade.imageTwo)
                   setShowDeleteConfirm(false)
                 }}
                 className="relative group aspect-square rounded-lg overflow-hidden border-2 border-destructive/50 hover:border-destructive transition-colors"
               >
                 <Image
-                  src={trade.imageBase64Second}
+                  src={trade.imageTwo}
                   alt="Second image"
                   fill
                   className="object-cover"
@@ -493,7 +432,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                 setShowDeleteConfirm(false)
                 toast.success("All images deleted successfully")
               }}
-              disabled={!trade.imageBase64 && !trade.imageBase64Second}
+              disabled={!trade.imageOne && !trade.imageTwo}
             >
               Save Changes
             </Button>
@@ -528,4 +467,3 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
     </>
   )
 }
-

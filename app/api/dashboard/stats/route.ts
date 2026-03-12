@@ -42,17 +42,17 @@ export async function GET(request: NextRequest) {
         })
       }
 
-      // Get user's account filter Gear if they exist
+      // Get user's account filter settings if they exist
       // Note: getUserId() returns Supabase auth_user_id, not our internal user.id
       const user = await prisma.user.findUnique({
         where: { auth_user_id: currentUserId },
         select: { id: true, accountFilterSettings: true }
       })
 
-      let accountFilterGear: any = null
+      let accountFilterSettings: any = null
       if (user?.accountFilterSettings) {
         try {
-          accountFilterGear = JSON.parse(user.accountFilterSettings)
+          accountFilterSettings = JSON.parse(user.accountFilterSettings)
         } catch (error) {
           // Parse error, use defaults
         }
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
       }
       const internalUserId = user.id
 
-      // Build account where clause based on user's filter Gear
+      // Build account where clause based on user's filter settings
       // NOTE: The Account model does NOT have a status field - it's only on MasterAccount/PhaseAccount
       // Regular accounts are always "live" trading accounts
       let accountWhereClause: any = {
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      // Also get prop firm phase accounts based on filter Gear
+      // Also get prop firm phase accounts based on filter settings
       let propFirmPhaseNumbers: string[] = []
 
       // Build master account where clause for prop firm filtering
@@ -115,29 +115,29 @@ export async function GET(request: NextRequest) {
       // Apply status filtering to MasterAccount (which DOES have a status field)
       // NOTE: MasterAccountStatus only has: active, funded, failed
       // The 'passed' status exists only on PhaseAccount, not MasterAccount
-      if (!accountFilterGear || accountFilterGear.showMode === 'active-only') {
+      if (!accountFilterSettings || accountFilterSettings.showMode === 'active-only') {
         // Default: only include active and funded prop firm accounts
         masterAccountWhere.status = { in: ['active', 'funded'] }
-      } else if (accountFilterGear.showMode === 'custom') {
+      } else if (accountFilterSettings.showMode === 'custom') {
         // Apply custom filtering logic
         const statusFilters: ('active' | 'funded' | 'failed')[] = []
 
-        if (accountFilterGear.includeStatuses?.includes('active')) {
+        if (accountFilterSettings.includeStatuses?.includes('active')) {
           statusFilters.push('active')
         }
-        if (accountFilterGear.includeStatuses?.includes('funded') || accountFilterGear.showFundedAccounts) {
+        if (accountFilterSettings.includeStatuses?.includes('funded') || accountFilterSettings.showFundedAccounts) {
           statusFilters.push('funded')
         }
         // NOTE: 'passed' is NOT a valid MasterAccount status - it only exists on PhaseAccount
         // For "passed accounts", we should include 'funded' status since passing leads to funded
-        if (accountFilterGear.showPassedAccounts) {
+        if (accountFilterSettings.showPassedAccounts) {
           // Include funded accounts when user wants to see "passed" accounts
           // since MasterAccount transitions to 'funded' when phases are passed
           if (!statusFilters.includes('funded')) {
             statusFilters.push('funded')
           }
         }
-        if (accountFilterGear.showFailedAccounts) {
+        if (accountFilterSettings.showFailedAccounts) {
           statusFilters.push('failed')
         }
 
@@ -337,8 +337,8 @@ export async function GET(request: NextRequest) {
           breakEvenTrades,
           chartData,
           isAuthenticated: true,
-          filterGear: {
-            showMode: accountFilterGear?.showMode || 'active-only',
+          filterSettings: {
+            showMode: accountFilterSettings?.showMode || 'active-only',
             filteredAccountsCount: filteredAccounts.length,
             accountNumbers: filteredAccountNumbers
           },

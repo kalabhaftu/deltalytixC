@@ -13,7 +13,7 @@ import {
     TrendDown,
     Calendar,
     Trophy,
-    Gear,
+    Gear as SettingsIcon,
     Shield,
     Warning,
     CurrencyDollar
@@ -177,7 +177,7 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
     // DATA HOOKS
     // ---------------------------------------------------------------------------
     const { formattedTrades } = useData()
-    const [isGearOpen, setIsGearOpen] = useState(false)
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false)
     const [goalTargets, setGoalTargets] = useState(DEFAULT_GOALS)
     const [tempTargets, setTempTargets] = useState(DEFAULT_GOALS)
     const [isLoading, setIsLoading] = useState(false)
@@ -218,7 +218,7 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
             if (res.ok) {
                 const data = await res.json()
                 setGoalTargets(data.goals)
-                setIsGearOpen(false)
+                setIsSettingsOpen(false)
             }
         } catch (e) {
             console.error('Failed to save goals', e)
@@ -390,11 +390,11 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
                     </div>
                 </div>
 
-                {/* Gear Dialog */}
-                <Dialog open={isGearOpen} onOpenChange={setIsGearOpen}>
+                {/* Settings Dialog */}
+                <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                     <DialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Gear weight="light" className="h-4 w-4" />
+                            <SettingsIcon weight="light" className="h-4 w-4" />
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">
@@ -434,7 +434,7 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsGearOpen(false)}>Cancel</Button>
+                            <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>Cancel</Button>
                             <Button onClick={saveGoals} disabled={isLoading}>
                                 {isLoading ? 'Saving...' : 'Save Goals'}
                             </Button>

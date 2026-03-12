@@ -1,53 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
+import { LinkedAccounts } from "@/components/linked-accounts"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { useUserStore } from '@/store/user-store'
-import { useTheme } from '@/context/theme-provider'
-import {
-  User,
-  Gear,
-  Shield,
-  Moon,
-  Sun,
-  Laptop,
-  Clock,
-  Database,
-  SignOut,
-  Trash,
-  WarningCircle,
-  Check,
-  CaretRight,
-  Palette
-} from "@phosphor-icons/react"
-import { Spinner } from "@/components/ui/spinner"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Slider } from "@/components/ui/slider"
-import { motion } from "framer-motion"
-import { signOut } from "@/server/auth"
-import { createClient } from "@/lib/supabase"
-import Link from 'next/link'
-import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { LinkedAccounts } from "@/components/linked-accounts"
-import { toast } from "sonner"
-import { PrimaryButton, SecondaryButton, DestructiveButton } from "@/components/ui/button-styles"
-import { CacheManagement } from "./components/cache-management"
+import { Button } from "@/components/ui/button"
+import { DestructiveButton, PrimaryButton } from "@/components/ui/button-styles"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -56,7 +14,45 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useTheme } from '@/context/theme-provider'
+import { createClient } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
+import { signOut } from "@/server/auth"
+import { useUserStore } from '@/store/user-store'
+import {
+  CaretRight,
+  Check,
+  Clock,
+  Database,
+  Laptop,
+  Moon,
+  Palette,
+  Gear as SettingsIcon,
+  Shield,
+  SignOut,
+  Sun,
+  Trash,
+  User,
+  WarningCircle
+} from "@phosphor-icons/react"
+import { motion } from "framer-motion"
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { toast } from "sonner"
+import { CacheManagement } from "./components/cache-management"
 
 const timezones = [
   'UTC',
@@ -102,7 +98,7 @@ function SettingRow({
   )
 }
 
-export default function GearPage() {
+export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const user = useUserStore(state => state.supabaseUser)
   const timezone = useUserStore(state => state.timezone)
@@ -251,8 +247,8 @@ export default function GearPage() {
     <div className="w-full max-w-7xl mx-auto py-8 px-4 sm:px-6 pb-20 md:pb-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Gear</h1>
-        <p className="text-muted-foreground mt-1 text-sm">Manage your account Gear and preferences</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-muted-foreground mt-1 text-sm">Manage your account settings and preferences</p>
       </div>
 
       <motion.div
@@ -345,7 +341,7 @@ export default function GearPage() {
           <CardHeader className="pb-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                <Gear className="h-5 w-5 text-muted-foreground" weight="light" />
+                <SettingsIcon className="h-5 w-5 text-muted-foreground" weight="light" />
               </div>
               <div>
                 <CardTitle className="text-base">Preferences</CardTitle>
@@ -492,7 +488,7 @@ export default function GearPage() {
                 <ul className="text-sm list-disc list-inside space-y-1 text-muted-foreground">
                   <li>Your account and profile</li>
                   <li>All trading data and history</li>
-                  <li>Prop firm configurations</li>
+                  <li>Prop firm settings</li>
                   <li>Dashboard layouts and preferences</li>
                   <li>All uploaded files</li>
                 </ul>

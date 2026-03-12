@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useUserStore } from '@/store/user-store'
 import { useRouter } from 'next/navigation'
 
@@ -161,7 +161,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
     try {
       localStorage.removeItem('bundled-data-cache')
       localStorage.removeItem('bundled-data-timestamp')
-      localStorage.removeItem('account-filter-Gear-cache')
+      localStorage.removeItem('settings-cache')
     } catch (e) {
       // Ignore storage errors
     }

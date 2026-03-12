@@ -1,11 +1,5 @@
-import { expect, afterEach, vi } from 'vitest'
-import { cleanup } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-
-// Cleanup after each test
-afterEach(() => {
-  cleanup()
-})
+import { vi } from 'vitest'
 
 // Mock environment variables for tests
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'

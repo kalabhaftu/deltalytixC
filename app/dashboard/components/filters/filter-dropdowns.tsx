@@ -1,18 +1,18 @@
+import { FilterItem } from "@/app/dashboard/types/filter"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useData } from "@/context/data-provider"
-import { FilterItem } from "@/app/dashboard/types/filter"
-import { useState, useEffect } from "react"
 import { CaretDown } from "@phosphor-icons/react"
+import { useEffect, useState } from "react"
 import { PnlRangeFilter } from "./pnl-range-filter"
-// import { AccountFilter } from "./account-filter" // Removed - using persistent Gear instead
+// import { AccountFilter } from "./account-filter" // Removed - using persistent Settings instead
 
 interface FilterDropdownProps {
   type: 'instrument'
@@ -165,7 +165,7 @@ export function FilterDropdowns({ showAccountNumbers }: FilterDropdownsProps) {
 
   return (
     <div className="flex gap-2">
-      {/* AccountFilter removed - using persistent account filtering Gear instead */}
+      {/* AccountFilter removed - using persistent account filtering Settings instead */}
       <FilterDropdown
         type="instrument"
         items={allItems.filter(item => item.type === 'instrument')}

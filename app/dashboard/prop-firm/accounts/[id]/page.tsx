@@ -17,28 +17,18 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   ArrowLeft,
-  TrendUp,
-  TrendDown,
-  Target,
+  TrendUp, Target,
   Warning,
   Shield,
   CurrencyDollar,
-  Gear,
-  ArrowsClockwise,
-  ChartBar,
-  CreditCard,
-  CaretRight,
-  Clock,
-  Calendar,
-  PencilSimple,
+  Gear as SettingsIcon,
+  ArrowsClockwise, CreditCard,
+  CaretRight, PencilSimple,
   Check,
-  X,
-  Trophy,
-  Wallet,
-  Percent
+  X
 } from "@phosphor-icons/react"
-import { cn, formatPercent, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
-import { AccountStatus, PhaseType } from "@/types/prop-firm"
+import { cn, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
+import { AccountStatus } from "@/types/prop-firm"
 import { AccountNotFoundError, ConnectionError } from "@/components/prop-firm/account-error-boundary"
 import { HistoryTab } from "./components/history-tab"
 
@@ -809,7 +799,7 @@ export default function AccountDetailPage() {
               <Card>
                 <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
-                      <Gear className="h-5 w-5" weight="light" />
+                      <SettingsIcon className="h-5 w-5" weight="light" />
                       Account Details
                     </CardTitle>
                 </CardHeader>

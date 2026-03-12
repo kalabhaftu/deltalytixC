@@ -38,10 +38,8 @@ import { toast } from 'sonner'
 import {
   getGridDimensionsFromSize,
   calculateRowSlots,
-  canWidgetFitInSlot,
-  getNextAvailablePosition,
-  groupWidgetsByRow,
-  getSlotSizeDescription,
+  canWidgetFitInSlot, groupWidgetsByRow,
+  getSlotSizeDescription
 } from '../utils/grid-helpers'
 import { WIDGET_DIMENSIONS } from '../config/widget-dimensions'
 import { useMediaQuery } from '@/hooks/use-media-query'
@@ -184,7 +182,7 @@ function SortableWidget({
 export default function WidgetCanvasWithDrag() {
   const { isEditMode, currentLayout, updateLayout } = useTemplateEditStore()
   const { activeTemplate, isLoading } = useTemplates()
-  const { accountNumbers, formattedTrades, isLoadingAccountFilterGear, accountFilterGear } = useData()
+  const { accountNumbers, formattedTrades, isLoadingAccountFilterSettings, accountFilterSettings } = useData()
   const { accounts } = useAccounts()
   const [showWidgetLibrary, setShowWidgetLibrary] = useState(false)
   const [showKpiSelector, setShowKpiSelector] = useState(false)
@@ -390,12 +388,12 @@ export default function WidgetCanvasWithDrag() {
   // 1. Not in edit mode
   // 2. Main data has finished loading
   // 3. No accounts are currently selected
-  // 4. NO saved selections exist in Gear (this prevents flash while useEffect runs)
+  // 4. NO saved selections exist in settings (this prevents flash while useEffect runs)
   // 5. Accounts exist (so we know data is loaded)
   const showEmptyState = !isEditMode &&
     !isLoading &&  // ✅ WAIT for main data to load
     accountNumbers.length === 0 &&
-    (!accountFilterGear?.selectedPhaseAccountIds || accountFilterGear.selectedPhaseAccountIds.length === 0) &&  // ✅ Check if Gear have saved selections
+    (!accountFilterSettings?.selectedPhaseAccountIds || accountFilterSettings.selectedPhaseAccountIds.length === 0) &&  // ✅ Check if settings have saved selections
     accounts && accounts.length > 0
 
   if (showEmptyState) {

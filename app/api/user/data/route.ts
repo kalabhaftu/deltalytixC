@@ -129,7 +129,7 @@ export async function DELETE(request: NextRequest) {
         where: { userId: internalUserId }
       })
 
-      // 12. Reset user Gear (keep account)
+      // 12. Reset user settings (keep account)
       await tx.user.update({
         where: { id: internalUserId },
         data: {

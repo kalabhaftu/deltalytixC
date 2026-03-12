@@ -1,13 +1,12 @@
 'use client'
 
-import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "react"
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, getYear, startOfWeek, endOfWeek } from "date-fns"
-import { formatInTimeZone } from 'date-fns-tz'
+import { useState, useEffect, useRef, memo, useCallback, useMemo } from "react"
+import { format, addMonths, subMonths, getYear } from "date-fns"
 import { enUS } from 'date-fns/locale'
-import { CaretLeft, CaretRight, Camera, TrendUp, TrendDown, Image as ImageIcon } from "@phosphor-icons/react"
+import { CaretLeft, CaretRight, Camera, Image as ImageIcon } from "@phosphor-icons/react"
 import html2canvas from 'html2canvas'
 import { toast } from "sonner"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CalendarModal } from "./daily-modal"
@@ -21,7 +20,7 @@ import { CalendarData } from "@/app/dashboard/types/calendar"
 // New Components
 import MonthlyView from "./monthly-view"
 import YearlyView from "./yearly-view"
-import { CalendarGear } from "./calendar-settings"
+import { CalendarSettings } from "./calendar-settings"
 
 const formatCompact = (value: number) => {
   if (Math.abs(value) >= 1000) return `$${(value / 1000).toFixed(1)}k`
@@ -302,11 +301,11 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
               </Button>
             </div>
 
-            {/* Gear Menu (Stats + Review) - Moved to far right */}
+            {/* Settings Menu (Stats + Review) - Moved to far right */}
             {viewMode === 'daily' && (
               <>
                 <div className="w-px h-4 bg-border/40 mx-1" />
-                <CalendarGear />
+                <CalendarSettings />
               </>
             )}
           </div>

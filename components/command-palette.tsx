@@ -16,7 +16,7 @@ import {
     Table,
     Flask,
     ChartBar,
-    Gear,
+    Gear as SettingsIcon,
     CalendarBlank,
     TrendUp
 } from '@phosphor-icons/react'
@@ -95,11 +95,11 @@ export function CommandPalette() {
             keywords: ['test', 'simulate', 'paper']
         },
         {
-            id: 'Gear',
-            title: 'Gear',
-            description: 'App Gear and preferences',
-            icon: Gear,
-            action: () => router.push('/dashboard/Gear'),
+            id: 'settings',
+            title: 'Settings',
+            description: 'App settings and preferences',
+            icon: SettingsIcon,
+            action: () => router.push('/dashboard/settings'),
             keywords: ['preferences', 'config', 'options']
         },
         {

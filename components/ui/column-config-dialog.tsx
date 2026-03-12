@@ -1,16 +1,3 @@
-import React from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Gear, ArrowCounterClockwise } from "@phosphor-icons/react"
-import { useTableConfigStore, TableColumnConfig } from '@/store/table-config-store'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +9,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { useTableConfigStore } from '@/store/table-config-store'
+import { ArrowCounterClockwise, Gear as SettingsIcon } from "@phosphor-icons/react"
+import React from 'react'
 import { toast } from "sonner"
 
 interface ColumnConfigDialogProps {
@@ -53,7 +53,7 @@ export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps
 
   const defaultTrigger = (
     <Button variant="outline" className="w-[180px] h-10 font-normal">
-      <Gear weight="light" className="h-4 w-4 mr-2" />
+      <SettingsIcon weight="light" className="h-4 w-4 mr-2" />
       Configuration
     </Button>
   )
@@ -105,7 +105,7 @@ export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps
                                                                            {"Reset Table Configuration" as any}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                                                                           {"Are you sure you want to reset the table configuration to default Gear?" as any}
+                                                                           {"Are you sure you want to reset the table configuration to default settings?" as any}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

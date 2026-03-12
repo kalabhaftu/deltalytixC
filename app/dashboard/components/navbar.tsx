@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useData } from "@/context/data-provider"
 import { useAuth } from "@/context/auth-provider"
-import { Database, SignOut, SquaresFour, ArrowsClockwise, Sun, Moon, Gear, Pencil, Plus, BookOpen, Cards, Trash, Users, Funnel } from "@phosphor-icons/react"
+import { Database, SignOut, SquaresFour, ArrowsClockwise, Moon, Gear as SettingsIcon, Pencil, Plus, BookOpen, Cards, Trash, Users, Funnel } from "@phosphor-icons/react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -491,10 +491,10 @@ export default function Navbar() {
                   </div>
 
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/Gear" className="hover:bg-muted/50 transition-colors duration-200">
+                    <Link href="/dashboard/settings" className="hover:bg-muted/50 transition-colors duration-200">
                       <div className="flex w-full">
-                        <Gear weight="light" className="mr-2 h-4 w-4" />
-                        <span>Gear</span>
+                        <SettingsIcon weight="light" className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
                         <DropdownMenuShortcut>⌘,</DropdownMenuShortcut>
                       </div>
                     </Link>

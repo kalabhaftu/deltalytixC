@@ -7,14 +7,14 @@ import { useData } from "@/context/data-provider"
 import { cn } from "@/lib/utils"
 
 export function PhaseViewIndicator() {
-  const { accountFilterGear: Gear, updateAccountFilterGear: updateGear } = useData()
+  const { accountFilterSettings: settings, updateAccountFilterSettings: updateSettings } = useData()
 
-  if (!Gear || !Gear.viewingSpecificPhase || !Gear.selectedMasterAccountId) {
+  if (!settings || !settings.viewingSpecificPhase || !settings.selectedMasterAccountId) {
     return null
   }
 
   const handleClearView = async () => {
-    await updateGear({
+    await updateSettings({
       viewingSpecificPhase: false,
       selectedMasterAccountId: null,
       selectedPhaseId: null,
@@ -23,23 +23,23 @@ export function PhaseViewIndicator() {
   }
 
   const getPhaseText = () => {
-    if (!Gear.selectedPhaseNumber) {
+    if (!settings.selectedPhaseNumber) {
       return "All Phases"
     }
-    return `Phase ${Gear.selectedPhaseNumber}`
+    return `Phase ${settings.selectedPhaseNumber}`
   }
 
   const getStatusBadge = () => {
-    if (!Gear.selectedPhaseNumber) {
+    if (!settings.selectedPhaseNumber) {
       return <Badge variant="secondary" className="text-xs h-5">Combined View</Badge>
     }
     return (
       <Badge 
-        variant={Gear.selectedPhaseNumber === 3 ? "default" : "secondary"} 
+        variant={settings.selectedPhaseNumber === 3 ? "default" : "secondary"} 
         className="text-xs h-5"
       >
-        {Gear.selectedPhaseNumber === 1 ? "Phase 1" : 
-         Gear.selectedPhaseNumber === 2 ? "Phase 2" : "Funded"}
+        {settings.selectedPhaseNumber === 1 ? "Phase 1" : 
+         settings.selectedPhaseNumber === 2 ? "Phase 2" : "Funded"}
       </Badge>
     )
   }

@@ -112,7 +112,7 @@ export function FundedApprovalDialog({
       try {
         localStorage.removeItem('bundled-data-cache')
         localStorage.removeItem('bundled-data-timestamp')
-        localStorage.removeItem('account-filter-Gear-cache')
+        localStorage.removeItem('settings-cache')
       } catch (e) {
         // Ignore storage errors
       }

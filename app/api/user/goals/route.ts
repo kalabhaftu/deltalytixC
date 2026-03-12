@@ -9,7 +9,7 @@ const goalsSchema = z.object({
     weeklyPnl: z.number().default(250),
 })
 
-// GET - Get user's goal Gear
+// GET - Get user's goal settings
 export async function GET(request: NextRequest) {
     try {
         const userId = await getUserId()

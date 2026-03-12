@@ -11,7 +11,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
-import { Tag, Plus, X, Gear } from '@phosphor-icons/react'
+import { Tag, Plus, X, Gear as SettingsIcon } from '@phosphor-icons/react'
 import { TagManager } from './tag-manager'
 import { cn } from '@/lib/utils'
 
@@ -110,7 +110,7 @@ export function TagSelector({ selectedTagIds, onChange, className }: TagSelector
                     setIsPopoverOpen(false)
                   }}
                 >
-                  <Gear className="h-3 w-3" weight="light" />
+                  <SettingsIcon className="h-3 w-3" weight="light" />
                   Manage
                 </Button>
               </div>

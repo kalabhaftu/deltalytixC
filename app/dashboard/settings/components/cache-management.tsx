@@ -4,7 +4,7 @@
  * Cache Management Component
  * 
  * Provides manual cache clearing functionality for users
- * in the Gear page
+ * in the settings page
  */
 
 import { useState, useEffect } from 'react'
@@ -40,7 +40,7 @@ export function CacheManagement() {
 
     try {
       const cleared = clearAccountCaches()
-      invalidateAccountsCache('manual clear from Gear')
+      invalidateAccountsCache('manual clear from settings')
 
       toast.success('Account cache cleared', {
         description: `Cleared ${cleared} cached items. Refresh the page to see updates.`
@@ -68,7 +68,7 @@ export function CacheManagement() {
         clearIndexedDB: false
       })
 
-      invalidateAccountsCache('manual clear all from Gear')
+      invalidateAccountsCache('manual clear all from settings')
 
       const total = result.localStorage + result.sessionStorage + result.serviceWorker + result.indexedDB
 

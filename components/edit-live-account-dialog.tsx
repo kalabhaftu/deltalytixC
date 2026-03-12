@@ -127,7 +127,7 @@ export function EditLiveAccountDialog({
             Edit Account
           </DialogTitle>
           <DialogDescription>
-            Update your live account Gear. Changes will be saved immediately.
+            Update your live account settings. Changes will be saved immediately.
           </DialogDescription>
         </DialogHeader>
 

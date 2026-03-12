@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
 
-interface ConsentGear {
+interface ConsentSettings {
   // Only essential cookies for basic website functionality
   functionality_storage: boolean;
   security_storage: boolean;
@@ -11,7 +11,7 @@ interface ConsentGear {
 
 export function ConsentBanner() {
   const [isVisible, setIsVisible] = useState(false)
-  const [Gear] = useState<ConsentGear>({
+  const [settings] = useState<ConsentSettings>({
     functionality_storage: true, // Always true - essential for website function
     security_storage: true, // Always true - essential for security
   })
@@ -57,8 +57,8 @@ export function ConsentBanner() {
     saveConsent(essentialOnly)
   }
 
-  const saveConsent = (consentGear: ConsentGear) => {
-    localStorage.setItem("cookieConsent", JSON.stringify(consentGear))
+  const saveConsent = (consentSettings: ConsentSettings) => {
+    localStorage.setItem("cookieConsent", JSON.stringify(consentSettings))
     // No gtag consent calls - we don't use Google Analytics or ads
     setIsVisible(false)
   }

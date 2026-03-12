@@ -1,30 +1,24 @@
 "use client"
 
-import { forwardRef } from "react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
   DropdownMenuPortal,
-  DropdownMenuSubContent,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Funnel } from "@phosphor-icons/react"
-import { PnlFilter } from "./pnl-filter"
+import { forwardRef } from "react"
 import { InstrumentFilter } from "./instrument-filter"
-// import { AccountFilter } from "./account-filter" // Removed - using persistent Gear instead
+import { PnlFilter } from "./pnl-filter"
+// import { AccountFilter } from "./account-filter" // Removed - using persistent Settings instead
 import { useData } from "@/context/data-provider"
 import { cn } from "@/lib/utils"
-import { useState, useEffect } from "react"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { useState } from "react"
 export const FilterDropdown = forwardRef<HTMLButtonElement>((props, ref) => {
   const { isMobile } = useData()
   const [open, setOpen] = useState(false)
@@ -57,9 +51,9 @@ export const FilterDropdown = forwardRef<HTMLButtonElement>((props, ref) => {
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent className="w-[300px]">
-                {/* AccountFilter removed - using persistent account filtering Gear instead */}
+                {/* AccountFilter removed - using persistent account filtering Settings instead */}
                 <div className="p-4 text-sm text-muted-foreground">
-                  Account filtering is now managed in Gear → Account Filtering
+                  Account filtering is now managed in Settings → Account Filtering
                 </div>
               </DropdownMenuSubContent>
             </DropdownMenuPortal>

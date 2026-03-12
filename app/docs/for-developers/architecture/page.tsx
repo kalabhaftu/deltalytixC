@@ -1,7 +1,7 @@
 'use client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Code, Database, Lock, Lightning, GitBranch, FileCode, HardDrive, Stack, CheckCircle, Shield, TrendUp, BookOpen, Pulse, GitFork } from '@phosphor-icons/react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CheckCircle, Code, Database, FileCode, GitBranch, HardDrive, Lightning, Lock, Stack } from '@phosphor-icons/react'
 
 export default function ArchitectureDocs() {
   return (
@@ -344,7 +344,7 @@ export async function deleteTrade(tradeId: string) {
 │   │   │   ├── accounts.ts
 │   │   │   └── trades.ts
 │   │   ├── data/                # Data management page
-│   │   ├── Gear/            # User Gear
+│   │   ├── settings/        # User Settings
 │   │   ├── layout.tsx           # Dashboard layout wrapper
 │   │   └── page.tsx             # Main dashboard (Server Component)
 │   ├── api/

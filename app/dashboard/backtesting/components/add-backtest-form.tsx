@@ -1,16 +1,16 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Camera, Plus, X, TrendUp as TrendUp, Gear as Settings2 } from "@phosphor-icons/react"
-import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -18,15 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { toast } from 'sonner'
-import { BacktestDirection, BacktestSession, BacktestModel, BacktestOutcome } from '@/types/backtesting-types'
+import { Textarea } from '@/components/ui/textarea'
+import { BacktestDirection, BacktestModel, BacktestOutcome, BacktestSession } from '@/types/backtesting-types'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Camera, Gear as SettingsIcon, TrendUp, X } from "@phosphor-icons/react"
 import Image from 'next/image'
+import { useEffect, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { z } from 'zod'
 
 // Schema for manual mode
 const manualBacktestSchema = z.object({
@@ -604,7 +604,7 @@ export function AddBacktestForm({ onAdd, onDirtyChange }: AddBacktestFormProps) 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" type="button">
-                  <Settings2 className="w-4 h-4 mr-2" weight="light" />
+                  <SettingsIcon className="w-4 h-4 mr-2" weight="light" />
                   {inputMode === 'manual' ? 'Full Manual' : 'Simple R:R'}
                 </Button>
               </DropdownMenuTrigger>

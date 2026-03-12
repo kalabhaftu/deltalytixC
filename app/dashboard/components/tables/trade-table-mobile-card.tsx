@@ -161,7 +161,7 @@ export function TradeTableMobileCard({
           <Pencil className="h-4 w-4 mr-1" weight="light" />
           Edit
         </Button>
-        {(trade as any).imageBase64 && (
+        {(trade as any).imageOne && (
           <Button
             variant="outline"
             size="sm"

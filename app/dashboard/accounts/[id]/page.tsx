@@ -9,13 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   ArrowLeft,
   ArrowsClockwise as RefreshCw,
-  Gear as Settings,
-  User,
-  CurrencyDollar as DollarSign,
+  Gear as SettingsIcon, CurrencyDollar as DollarSign,
   Pulse as Activity,
-  TrendUp as TrendingUp,
-  CalendarBlank as Calendar,
-  Buildings as Building2,
+  TrendUp as TrendingUp, Buildings as Building2,
   Plus,
   Minus
 } from "@phosphor-icons/react"
@@ -240,7 +236,7 @@ export default function LiveAccountDetailPage() {
               onClick={() => setEditDialogOpen(true)}
               className="w-fit"
             >
-              <Settings className="h-4 w-4 sm:mr-2" weight="light" />
+              <SettingsIcon className="h-4 w-4 sm:mr-2" weight="light" />
               <span className="hidden sm:inline">Settings</span>
             </Button>
           </div>

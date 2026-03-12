@@ -13,19 +13,18 @@ function buildDatabaseUrl(): string {
     return baseUrl
   }
 
-  // Parse URL to add/modify connection pool parameters
+  // Parse URL to add/modify connection pool parameters and higher timeouts
   try {
     const url = new URL(baseUrl)
 
-    // Optimize connection pool for serverless (Vercel free tier)
-    // Increased limits to handle concurrent dashboard requests
-    // Optimized for Vercel serverless environment (Supabase/Prisma)
+    // Higher limits and timeouts to handle slow network/high latency
     url.searchParams.set('connection_limit', '10')
-    url.searchParams.set('pool_timeout', '20')
-    url.searchParams.set('connect_timeout', '10')
-    url.searchParams.set('socket_timeout', '30') // 30 second socket timeout
+    url.searchParams.set('pool_timeout', '60') // Increased from 20 to 60
+    url.searchParams.set('connect_timeout', '30') // Increased from 10 to 30
+    url.searchParams.set('socket_timeout', '60') // Increased from 30 to 60
 
-    // Enable prepared statements for better performance
+    // Enable prepared statements for better performance with pgbouncer
+    // Required for Supabase Transaction mode (port 6543)
     url.searchParams.set('pgbouncer', 'true')
 
     return url.toString()
@@ -45,7 +44,7 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
     }
   },
 
-  // Enhanced error handling and connection Gear
+  // Enhanced error handling and connection logic
   ...(process.env.NODE_ENV === 'development' && {
     errorFormat: 'pretty',
   }),

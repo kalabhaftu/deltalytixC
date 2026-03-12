@@ -12,9 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { cn } from "@/lib/utils"
 import { useData } from "@/context/data-provider"
-import { useAccounts } from "@/hooks/use-accounts"
 import { toast } from "sonner"
 
 interface AccountSelectorProps {
@@ -195,11 +193,11 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
     return filteredAccountsList.filter(account => account.status === 'active')
   }, [filteredAccountsList])
 
-  // Restore saved account selection from Gear and auto-expand parent groups
+  // Restore saved account selection from settings and auto-expand parent groups
   useEffect(() => {
     if (!accounts || accounts.length === 0) return
 
-    // If accountNumbers are already set from saved Gear, find and expand parent groups
+    // If accountNumbers are already set from saved settings, find and expand parent groups
     if (accountNumbers.length > 0 && selectedAccounts.size === 0) {
       const matchingAccounts = accounts.filter(acc =>
         accountNumbers.includes(acc.number) ||
@@ -284,24 +282,24 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         })
         .filter(Boolean)
 
-      // CRITICAL FIX: Fetch current Gear first, then merge with new selections
-      // This prevents overwriting other Gear like showMode, includeStatuses, etc.
-      const currentGearResponse = await fetch('/api/Gear/account-filters', {
+      // CRITICAL FIX: Fetch current settings first, then merge with new selections
+      // This prevents overwriting other settings like showMode, includeStatuses, etc.
+      const currentSettingsResponse = await fetch('/api/settings/account-filters', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       })
 
-      let currentGear = {}
-      if (currentGearResponse.ok) {
-        const data = await currentGearResponse.json()
-        currentGear = data.data || {}
+      let currentSettings = {}
+      if (currentSettingsResponse.ok) {
+        const data = await currentSettingsResponse.json()
+        currentSettings = data.data || {}
       }
 
-      const response = await fetch('/api/Gear/account-filters', {
+      const response = await fetch('/api/settings/account-filters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...currentGear, // Preserve existing Gear
+          ...currentSettings, // Preserve existing settings
           selectedAccounts: Array.from(selectedAccounts),
           selectedPhaseAccountIds: accountNumbersToSave,
           updatedAt: new Date().toISOString()
@@ -309,8 +307,8 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
       })
 
       if (response.ok) {
-        const newGear = {
-          ...currentGear,
+        const newSettings = {
+          ...currentSettings,
           selectedAccounts: Array.from(selectedAccounts),
           selectedPhaseAccountIds: accountNumbersToSave,
           updatedAt: new Date().toISOString()
@@ -318,9 +316,9 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
 
         // Update localStorage cache immediately for fast access on reload
         try {
-          localStorage.setItem('account-filter-Gear-cache', JSON.stringify(newGear))
+          localStorage.setItem('settings-cache', JSON.stringify(newSettings))
           // Also mark that we have pending local changes (prevents server overwrite)
-          localStorage.setItem('account-filter-Gear-pending', 'true')
+          localStorage.setItem('settings-pending', 'true')
         } catch (e) {
           // Ignore storage errors
         }
@@ -333,7 +331,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         refreshTrades().then(() => {
           // Clear pending flag after refresh completes
           try {
-            localStorage.removeItem('account-filter-Gear-pending')
+            localStorage.removeItem('settings-pending')
           } catch (e) { }
         }).catch(() => {
           // Ignore errors - optimistic update already applied
@@ -393,36 +391,36 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
     try {
       setIsSaving(true)
 
-      // CRITICAL FIX: Preserve existing Gear when clearing selections
-      const currentGearResponse = await fetch('/api/Gear/account-filters', {
+      // CRITICAL FIX: Preserve existing settings when clearing selections
+      const currentSettingsResponse = await fetch('/api/settings/account-filters', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       })
 
-      let currentGear = {}
-      if (currentGearResponse.ok) {
-        const data = await currentGearResponse.json()
-        currentGear = data.data || {}
+      let currentSettings = {}
+      if (currentSettingsResponse.ok) {
+        const data = await currentSettingsResponse.json()
+        currentSettings = data.data || {}
       }
 
-      const newGear = {
-        ...currentGear,
+      const newSettings = {
+        ...currentSettings,
         selectedAccounts: [],
         selectedPhaseAccountIds: [],
         updatedAt: new Date().toISOString()
       }
 
-      const response = await fetch('/api/Gear/account-filters', {
+      const response = await fetch('/api/settings/account-filters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newGear)
+        body: JSON.stringify(newSettings)
       })
 
       if (response.ok) {
         // Update localStorage cache with pending flag
         try {
-          localStorage.setItem('account-filter-Gear-cache', JSON.stringify(newGear))
-          localStorage.setItem('account-filter-Gear-pending', 'true')
+          localStorage.setItem('settings-cache', JSON.stringify(newSettings))
+          localStorage.setItem('settings-pending', 'true')
         } catch (e) { }
 
         setAccountNumbers([])
@@ -430,7 +428,7 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         // Refresh data in background
         refreshTrades().then(() => {
           try {
-            localStorage.removeItem('account-filter-Gear-pending')
+            localStorage.removeItem('settings-pending')
           } catch (e) { }
         }).catch(() => { })
 

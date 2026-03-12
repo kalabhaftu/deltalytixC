@@ -1,14 +1,13 @@
 
 'use client'
 
-import { Check, Gear } from "@phosphor-icons/react"
+import { Check, Gear as SettingsIcon } from "@phosphor-icons/react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Command, CommandGroup, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command"
 import { useCalendarViewStore, VisibleStats } from "@/store/calendar-view"
-import { cn } from "@/lib/utils"
 
-export function CalendarGear() {
+export function CalendarSettings() {
     const { visibleStats, setVisibleStats, showWeekNumbers, setShowWeekNumbers } = useCalendarViewStore()
 
     const stats: { key: keyof VisibleStats; label: string }[] = [
@@ -25,10 +24,10 @@ export function CalendarGear() {
                     variant="outline"
                     size="sm"
                     className="h-8 w-8 p-0 sm:w-auto sm:px-2.5 text-[11px] font-bold gap-1.5 border-dashed bg-transparent hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all"
-                    title="Calendar Gear"
+                    title="Calendar Settings"
                 >
-                    <Gear className="h-4 w-4" weight="light" />
-                    <span className="hidden sm:inline">Gear</span>
+                    <SettingsIcon className="h-4 w-4" weight="light" />
+                    <span className="hidden sm:inline">Settings</span>
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[200px] p-0" align="end">

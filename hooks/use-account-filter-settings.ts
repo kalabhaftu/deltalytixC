@@ -1,34 +1,34 @@
-import { useState, useEffect, useCallback } from 'react'
-import { AccountFilterGear, DEFAULT_FILTER_Gear } from '@/types/account-filter-Gear'
+import { useState, useCallback } from 'react'
+import { AccountFilterSettings, DEFAULT_FILTER_SETTINGS } from '@/types/account-filter-settings'
 
-interface UseAccountFilterGearResult {
-  Gear: AccountFilterGear
+export interface UseAccountFilterSettingsResult {
+  settings: AccountFilterSettings
   isLoading: boolean
   isSaving: boolean
   error: string | null
-  updateGear: (newGear: Partial<AccountFilterGear>) => Promise<void>
+  updateSettings: (newSettings: Partial<AccountFilterSettings>) => Promise<void>
   resetToDefaults: () => Promise<void>
 }
 
-export function useAccountFilterGear(): UseAccountFilterGearResult {
-  const [Gear, setGear] = useState<AccountFilterGear>(() => {
+export function useAccountFilterSettings(): UseAccountFilterSettingsResult {
+  const [settings, setSettings] = useState<AccountFilterSettings>(() => {
     // Try to load from bundled data in localStorage first (from getUserData)
     try {
-      const bundled = localStorage.getItem('account-filter-Gear-cache')
+      const bundled = localStorage.getItem('settings-cache')
       if (bundled) {
         const parsed = JSON.parse(bundled)
-        return parsed || DEFAULT_FILTER_Gear
+        return parsed || DEFAULT_FILTER_SETTINGS
       }
     } catch (error) {
       // Ignore parsing errors
     }
-    return DEFAULT_FILTER_Gear
+    return DEFAULT_FILTER_SETTINGS
   })
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchGear = useCallback(async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
@@ -41,32 +41,32 @@ export function useAccountFilterGear(): UseAccountFilterGearResult {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Failed to fetch Gear`)
+        throw new Error(`HTTP ${response.status}: Failed to fetch settings`)
       }
 
       const data = await response.json()
       if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch Gear')
+        throw new Error(data.error || 'Failed to fetch settings')
       }
 
-      setGear(data.data)
-      localStorage.setItem('account-filter-Gear-cache', JSON.stringify(data.data))
+      setSettings(data.data)
+      localStorage.setItem('settings-cache', JSON.stringify(data.data))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
-      setGear(DEFAULT_FILTER_Gear)
+      setSettings(DEFAULT_FILTER_SETTINGS)
     } finally {
       setIsLoading(false)
     }
   }, [])
 
-  const updateGear = useCallback(async (newGear: Partial<AccountFilterGear>) => {
+  const updateSettings = useCallback(async (newSettings: Partial<AccountFilterSettings>) => {
     try {
       setIsSaving(true)
       setError(null)
 
-      const updatedGear = {
-        ...Gear,
-        ...newGear,
+      const updatedSettings = {
+        ...settings,
+        ...newSettings,
         updatedAt: new Date().toISOString()
       }
 
@@ -75,46 +75,46 @@ export function useAccountFilterGear(): UseAccountFilterGearResult {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updatedGear)
+        body: JSON.stringify(updatedSettings)
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Failed to save Gear`)
+        throw new Error(`HTTP ${response.status}: Failed to save settings`)
       }
 
       const data = await response.json()
       if (!data.success) {
-        throw new Error(data.error || 'Failed to save Gear')
+        throw new Error(data.error || 'Failed to save settings')
       }
 
-      setGear(data.data)
-      localStorage.setItem('account-filter-Gear-cache', JSON.stringify(data.data))
+      setSettings(data.data)
+      localStorage.setItem('settings-cache', JSON.stringify(data.data))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
       throw err
     } finally {
       setIsSaving(false)
     }
-  }, [Gear])
+  }, [settings])
 
   const resetToDefaults = useCallback(async () => {
     try {
-      await updateGear(DEFAULT_FILTER_Gear)
+      await updateSettings(DEFAULT_FILTER_SETTINGS)
     } catch (err) {
       throw err
     }
-  }, [updateGear])
+  }, [updateSettings])
 
-  // Don't fetch automatically - Gear are bundled with getUserData
+  // Don't fetch automatically - settings are bundled with getUserData
   // Only fetch if explicitly needed (e.g., after long session)
   // This prevents blocking the main data load
 
   return {
-    Gear,
+    settings,
     isLoading,
     isSaving,
     error,
-    updateGear,
+    updateSettings,
     resetToDefaults
   }
 }

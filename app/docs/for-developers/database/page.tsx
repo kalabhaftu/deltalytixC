@@ -1,7 +1,7 @@
 'use client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Database, Link, Key, GitBranch } from '@phosphor-icons/react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Database, GitBranch, Key, Link } from '@phosphor-icons/react'
 
 export default function DatabaseDocs() {
   return (
@@ -28,7 +28,7 @@ export default function DatabaseDocs() {
               <CardHeader>
                 <CardTitle>User</CardTitle>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Authenticated user with preferences and Gear
+                  Authenticated user with preferences and settings
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">

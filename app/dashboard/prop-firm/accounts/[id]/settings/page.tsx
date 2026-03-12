@@ -16,11 +16,7 @@ import {
   ArrowLeft,
   ArrowsClockwise,
   FloppyDisk,
-  Gear,
-  Warning,
-  CheckCircle,
-  Calendar,
-  CurrencyDollar,
+  CaretLeft, Gear as SettingsIcon, Info, User, Envelope, Calendar, IdentificationCard, ShieldCheck, MapPin, Globe, CreditCard, SketchLogo, Clock, Users, Tag, Warning, CheckCircle, XCircle,
   Target,
   Shield,
   Trash,
@@ -306,7 +302,7 @@ export default function AccountSettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Gear className="h-5 w-5" />
+                  <SettingsIcon weight="fill" className="h-4 w-4" />
                   Account Information
                 </CardTitle>
               </CardHeader>

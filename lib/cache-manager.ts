@@ -53,9 +53,9 @@ export interface LocalStorageCacheItem {
 // All localStorage keys used in the app
 export const LOCAL_STORAGE_KEYS: LocalStorageCacheItem[] = [
   { key: 'accounts-store', description: 'Account list cache' },
-  { key: 'equity-chart-store', description: 'Equity chart Gear' },
+  { key: 'equity-chart-store', description: 'Equity chart settings' },
   { key: 'table-config-store', description: 'Table configuration' },
-  { key: 'calendar-view-store', description: 'Calendar view Gear' },
+  { key: 'calendar-view-store', description: 'Calendar view settings' },
   { key: 'modal-state-store', description: 'Modal state' },
   { key: 'theme', description: 'Theme preference' },
   { key: 'consent-banner-dismissed', description: 'Cookie consent' },

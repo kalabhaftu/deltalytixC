@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 // Middleware for authentication and routing
-const protectedRoutes = ["/dashboard", "/profile", "/Gear", "/api/trades", "/api/Gear"]
+const protectedRoutes = ["/dashboard", "/profile", "/settings", "/api/trades", "/api/settings"]
 const publicRoutes = ["/", "/not-found", "/api/auth"]
 
 export default async function middleware(req: NextRequest) {

@@ -3,14 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
+  AlertDialog, AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogTitle
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,9 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Trash,
-  Warning,
-  WarningCircle,
-  Download,
+  Warning, Download,
   CircleNotch,
   CheckCircle,
   XCircle
@@ -177,7 +173,7 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
                     <li>All prop firm accounts and evaluation progress</li>
                     <li>All groups, tags, and notes</li>
                     <li>All backtest trades</li>
-                    <li>Dashboard layouts and filter Gear</li>
+                    <li>Dashboard layouts and filter settings</li>
                   </ul>
                 </div>
 
@@ -296,7 +292,7 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
                     htmlFor="final-confirm"
                     className="text-sm cursor-pointer leading-relaxed"
                   >
-                    I understand that this will permanently delete all my trading data, accounts, and Gear. This action cannot be reversed.
+                    I understand that this will permanently delete all my trading data, accounts, and settings. This action cannot be reversed.
                   </Label>
                 </div>
               </div>
