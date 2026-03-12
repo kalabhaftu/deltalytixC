@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { BacktestTrade, BacktestDirection, BacktestSession, BacktestModel, BacktestOutcome } from '@/types/backtesting-types'
-import { Edit, Camera, X, Target, Download } from 'lucide-react'
+import { Pencil as Edit, Camera, X, Target, DownloadSimple as Download } from "@phosphor-icons/react"
 import { formatPrice } from '@/lib/utils'
 
 const editBacktestSchema = z.object({
@@ -220,7 +220,7 @@ export function EditBacktestDialog({
         <DialogContent className="w-full max-w-[95vw] sm:max-w-5xl h-[90vh] max-h-[90vh] overflow-y-auto z-[10000] p-4 sm:p-6 bg-background border-border shadow-lg duration-200 flex flex-col gap-0">
           <DialogHeader>
             <DialogTitle className="flex items-center text-base sm:text-lg">
-              <Edit className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              <Edit className="w-4 h-4 sm:w-5 sm:h-5 mr-2" weight="light" />
               Edit Backtest - {backtest.pair} {backtest.direction}
             </DialogTitle>
             <DialogDescription>
@@ -279,7 +279,7 @@ export function EditBacktestDialog({
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center">
-                  <Target className="w-5 h-5 mr-2" />
+                  <Target className="w-5 h-5 mr-2" weight="light" />
                   Trading Model
                 </CardTitle>
               </CardHeader>
@@ -364,7 +364,7 @@ export function EditBacktestDialog({
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center">
-                  <Camera className="w-5 h-5 mr-2" />
+                  <Camera className="w-5 h-5 mr-2" weight="light" />
                   Screenshots & Images
                 </CardTitle>
               </CardHeader>
@@ -390,7 +390,7 @@ export function EditBacktestDialog({
                             onClick={() => setCardPreview('')}
                             className="mr-2"
                           >
-                            <X className="w-4 h-4" />
+                            <X className="w-4 h-4" weight="bold" />
                           </Button>
                           <Button
                             type="button"
@@ -417,7 +417,7 @@ export function EditBacktestDialog({
                           }}
                         />
                         <div className="text-center">
-                          <Camera className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                          <Camera className="w-8 h-8 mx-auto mb-2 text-muted-foreground" weight="light" />
                           <p className="text-sm text-muted-foreground">Upload Card Preview</p>
                         </div>
                       </label>
@@ -453,7 +453,7 @@ export function EditBacktestDialog({
                                   onClick={() => removeImage(idx)}
                                   className="mr-1"
                                 >
-                                  <X className="w-3 h-3" />
+                                  <X className="w-3 h-3" weight="bold" />
                                 </Button>
                                 <Button
                                   type="button"
@@ -480,7 +480,7 @@ export function EditBacktestDialog({
                                 }}
                               />
                               <div className="text-center">
-                                <Camera className="w-6 h-6 mx-auto mb-1 text-muted-foreground" />
+                                <Camera className="w-6 h-6 mx-auto mb-1 text-muted-foreground" weight="light" />
                                 <span className="text-xs text-muted-foreground">Upload</span>
                               </div>
                             </label>
@@ -539,7 +539,7 @@ export function EditBacktestDialog({
               }}
               title="Download image"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4" weight="light" />
             </Button>
             <Button
               variant="destructive"
@@ -550,7 +550,7 @@ export function EditBacktestDialog({
               }}
               title="Close"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" weight="bold" />
             </Button>
           </div>
         </div>

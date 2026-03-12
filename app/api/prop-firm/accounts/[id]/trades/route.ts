@@ -65,8 +65,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Find the current phase (regardless of status)
-    const currentPhase = masterAccount.PhaseAccount.find(phase => 
-      phase.phaseNumber === masterAccount.currentPhase
+    const currentPhase = masterAccount.PhaseAccount.find(
+      (phase: (typeof masterAccount.PhaseAccount)[number]) =>
+        phase.phaseNumber === masterAccount.currentPhase
     )
 
     if (!currentPhase) {
@@ -237,24 +238,30 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     
     if (phaseFilter === 'current') {
       // Only show trades from the current phase (regardless of status: active, passed, or failed)
-      phasesToInclude = masterAccount.PhaseAccount.filter(phase => 
-        phase.phaseNumber === masterAccount.currentPhase
+      phasesToInclude = masterAccount.PhaseAccount.filter(
+        (phase: (typeof masterAccount.PhaseAccount)[number]) =>
+          phase.phaseNumber === masterAccount.currentPhase
       )
     } else if (phaseFilter === 'archived') {
       // Only show trades from archived phases
-      phasesToInclude = masterAccount.PhaseAccount.filter(phase => phase.status === 'archived')
+      phasesToInclude = masterAccount.PhaseAccount.filter(
+        (phase: (typeof masterAccount.PhaseAccount)[number]) => phase.status === 'archived'
+      )
     } else if (phaseFilter !== 'all') {
       // Specific phase number requested
       const requestedPhaseNumber = parseInt(phaseFilter)
       if (!isNaN(requestedPhaseNumber)) {
-        phasesToInclude = masterAccount.PhaseAccount.filter(phase => phase.phaseNumber === requestedPhaseNumber)
+        phasesToInclude = masterAccount.PhaseAccount.filter(
+          (phase: (typeof masterAccount.PhaseAccount)[number]) =>
+            phase.phaseNumber === requestedPhaseNumber
+        )
       }
     }
     // else: phaseFilter === 'all', use all phases
 
     // Flatten trades from filtered phases
-    const trades = phasesToInclude.flatMap(phase => 
-      phase.Trade.map(trade => ({
+    const trades = phasesToInclude.flatMap((phase: (typeof masterAccount.PhaseAccount)[number]) =>
+      phase.Trade.map((trade: (typeof phase.Trade)[number]) => ({
         ...trade,
         phase: {
           id: phase.id,
@@ -275,14 +282,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           currentPhase: masterAccount.currentPhase
         },
         trades,
-        filter: {
-          applied: phaseFilter,
-          availablePhases: masterAccount.PhaseAccount.map(p => ({
-            phaseNumber: p.phaseNumber,
-            status: p.status,
-            tradeCount: p.Trade.length
-          }))
-        }
+          filter: {
+            applied: phaseFilter,
+            availablePhases: masterAccount.PhaseAccount.map(
+              (p: (typeof masterAccount.PhaseAccount)[number]) => ({
+                phaseNumber: p.phaseNumber,
+                status: p.status,
+                tradeCount: p.Trade.length,
+              })
+            ),
+          }
       }
     })
 

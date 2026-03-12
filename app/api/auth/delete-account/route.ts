@@ -71,8 +71,8 @@ export async function DELETE(request: NextRequest) {
         select: { id: true }
       })
 
-      const tradeIds = userTradeIds.map(trade => trade.id)
-      const accountIds = userAccounts.map(acc => acc.id)
+      const tradeIds = userTradeIds.map((trade: { id: string }) => trade.id)
+      const accountIds = userAccounts.map((acc: { id: string }) => acc.id)
 
       if (accountIds.length > 0) {
         await tx.dailyAnchor.deleteMany({

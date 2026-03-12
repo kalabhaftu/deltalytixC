@@ -12,7 +12,9 @@ import {
   Tooltip as RechartsTooltip,
   Dot
 } from "recharts"
-import { Info } from 'lucide-react'
+
+const AnyLineChart = LineChart as any
+import { Info } from '@phosphor-icons/react'
 import {
   Tooltip,
   TooltipContent,
@@ -303,7 +305,7 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
           </CardTitle>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+              <Info weight="light" className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
             </TooltipTrigger>
             <TooltipContent>
               <p>Account balance progression over time</p>
@@ -326,9 +328,9 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
       <CardContent className="flex-1 p-0 relative min-h-[100px]">
         <div className="absolute inset-0">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart
+            <AnyLineChart
               data={chartData}
-              margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
               {/* Subtle Grid - Horizontal Only */}
               <CartesianGrid
@@ -387,7 +389,7 @@ function AccountBalanceChart({ size = 'small-long' }: AccountBalanceChartProps) 
                   stroke: 'hsl(var(--background))'
                 }}
               />
-            </LineChart>
+            </AnyLineChart>
           </ResponsiveContainer>
         </div>
       </CardContent>

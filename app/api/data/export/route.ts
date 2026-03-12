@@ -114,25 +114,27 @@ export async function POST(request: NextRequest) {
       })
     ])
 
-    const modelMap = new Map(tradingModels.map(m => [m.id, m.name]))
+    const modelMap = new Map(
+      tradingModels.map((m: typeof tradingModels[number]) => [m.id, m.name])
+    )
 
     const manifest = {
       version: '2.0',
       exportedAt: new Date().toISOString(),
       filters: filters, // Include metadata about what was filtered
       accounts: accounts.map(sanitizeUser),
-      masterAccounts: masterAccounts.map(ma => ({
+      masterAccounts: masterAccounts.map((ma: typeof masterAccounts[number]) => ({
         ...sanitizeUser(ma),
-        PhaseAccount: ma.PhaseAccount.map(p => {
+        PhaseAccount: ma.PhaseAccount.map((p: typeof ma.PhaseAccount[number]) => {
           const { id, masterAccountId, ...rest } = p
           return rest
-        })
+        }),
       })),
       tradingModels: tradingModels.map(sanitizeUser),
       tradeTags: tradeTags.map(sanitizeUser),
       dailyNotes: dailyNotes.map(sanitizeUser),
       weeklyReviews: weeklyReviews.map(sanitizeUser),
-      trades: trades.map(t => {
+      trades: trades.map((t: typeof trades[number]) => {
         const { id, userId, accountId, phaseAccountId, modelId, ...rest } = t
         return {
           ...rest,
@@ -179,7 +181,16 @@ export async function POST(request: NextRequest) {
 
         // We process trades in chunks to avoid blowing up memory or connections
         const CHUNK_SIZE = 5
-        const allTradesWithImages = trades.filter(t => t.imageOne || t.imageTwo || t.imageThree || t.imageFour || t.imageFive || t.imageSix || t.cardPreviewImage)
+        const allTradesWithImages = trades.filter(
+          (t: typeof trades[number]) =>
+            t.imageOne ||
+            t.imageTwo ||
+            t.imageThree ||
+            t.imageFour ||
+            t.imageFive ||
+            t.imageSix ||
+            t.cardPreviewImage
+        )
 
         // Helper to process a single trade's images
         const processTradeImages = async (trade: any) => {
@@ -212,7 +223,16 @@ export async function POST(request: NextRequest) {
         }
 
         // Process Backtest images
-        const backtestsWithImages = backtestTrades.filter(t => t.imageOne || t.imageTwo || t.imageThree || t.imageFour || t.imageFive || t.imageSix || t.cardPreviewImage)
+        const backtestsWithImages = backtestTrades.filter(
+          (t: typeof backtestTrades[number]) =>
+            t.imageOne ||
+            t.imageTwo ||
+            t.imageThree ||
+            t.imageFour ||
+            t.imageFive ||
+            t.imageSix ||
+            t.cardPreviewImage
+        )
         const processBacktestImages = async (trade: any) => {
           const images = [
             { url: trade.imageOne, suffix: '1' },

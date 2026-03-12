@@ -3,22 +3,22 @@
 import { formatDistanceToNow } from 'date-fns'
 import {
   Check,
-  Trash2,
+  Trash,
   Trophy,
   XCircle,
-  DollarSign,
+  CurrencyDollar,
   Bell,
-  ChevronRight,
-  AlertCircle,
+  CaretRight,
+  WarningCircle,
   ArrowRight,
   X,
-  ShieldAlert,
+  ShieldWarning,
   Download,
-  Activity,
+  TrendUp,
   Megaphone,
-  BarChart,
-  RefreshCw
-} from 'lucide-react'
+  ChartBar,
+  ArrowsClockwise
+} from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Notification, NotificationType } from '@prisma/client'
@@ -31,29 +31,29 @@ interface NotificationItemProps {
 }
 
 const notificationIcons: Record<NotificationType, React.ReactNode> = {
-  FUNDED_PENDING_APPROVAL: <Trophy className="h-4 w-4 text-primary" />,
-  FUNDED_APPROVED: <Trophy className="h-4 w-4 text-long" />,
-  FUNDED_DECLINED: <XCircle className="h-4 w-4 text-short" />,
-  PHASE_TRANSITION_PENDING: <ArrowRight className="h-4 w-4 text-primary" />,
-  PAYOUT_APPROVED: <DollarSign className="h-4 w-4 text-long" />,
-  PAYOUT_REJECTED: <DollarSign className="h-4 w-4 text-short" />,
-  SYSTEM: <Bell className="h-4 w-4 text-muted-foreground" />,
-  RISK_ALERT: <ShieldAlert className="h-4 w-4 text-destructive" />,
-  IMPORT_STATUS: <Download className="h-4 w-4 text-primary" />,
-  WEEKLY_PERFORMANCE: <BarChart className="h-4 w-4 text-long" />,
-  STRATEGY_DEVIATION: <Activity className="h-4 w-4 text-warning" />,
-  SYSTEM_ANNOUNCEMENT: <Megaphone className="h-4 w-4 text-muted-foreground" />,
-  TRADE_STATUS: <RefreshCw className="h-4 w-4 text-muted-foreground" />,
+  FUNDED_PENDING_APPROVAL: <Trophy weight="light" className="h-4 w-4 text-primary" />,
+  FUNDED_APPROVED: <Trophy weight="light" className="h-4 w-4 text-long" />,
+  FUNDED_DECLINED: <XCircle weight="light" className="h-4 w-4 text-short" />,
+  PHASE_TRANSITION_PENDING: <ArrowRight weight="light" className="h-4 w-4 text-primary" />,
+  PAYOUT_APPROVED: <CurrencyDollar weight="light" className="h-4 w-4 text-long" />,
+  PAYOUT_REJECTED: <CurrencyDollar weight="light" className="h-4 w-4 text-short" />,
+  SYSTEM: <Bell weight="light" className="h-4 w-4 text-muted-foreground" />,
+  RISK_ALERT: <ShieldWarning weight="light" className="h-4 w-4 text-destructive" />,
+  IMPORT_STATUS: <Download weight="light" className="h-4 w-4 text-primary" />,
+  WEEKLY_PERFORMANCE: <ChartBar weight="light" className="h-4 w-4 text-long" />,
+  STRATEGY_DEVIATION: <TrendUp weight="light" className="h-4 w-4 text-warning" />,
+  SYSTEM_ANNOUNCEMENT: <Megaphone weight="light" className="h-4 w-4 text-muted-foreground" />,
+  TRADE_STATUS: <ArrowsClockwise weight="light" className="h-4 w-4 text-muted-foreground" />,
   // New granular risk alert types
-  RISK_DAILY_LOSS_80: <ShieldAlert className="h-4 w-4 text-warning" />,
-  RISK_DAILY_LOSS_95: <ShieldAlert className="h-4 w-4 text-destructive" />,
-  RISK_MAX_DRAWDOWN_80: <ShieldAlert className="h-4 w-4 text-warning" />,
-  RISK_MAX_DRAWDOWN_95: <ShieldAlert className="h-4 w-4 text-destructive" />,
+  RISK_DAILY_LOSS_80: <ShieldWarning weight="light" className="h-4 w-4 text-warning" />,
+  RISK_DAILY_LOSS_95: <ShieldWarning weight="light" className="h-4 w-4 text-destructive" />,
+  RISK_MAX_DRAWDOWN_80: <ShieldWarning weight="light" className="h-4 w-4 text-warning" />,
+  RISK_MAX_DRAWDOWN_95: <ShieldWarning weight="light" className="h-4 w-4 text-destructive" />,
   // Import lifecycle types
-  IMPORT_PROCESSING: <Download className="h-4 w-4 text-primary animate-pulse" />,
-  IMPORT_COMPLETE: <Download className="h-4 w-4 text-long" />,
+  IMPORT_PROCESSING: <Download weight="light" className="h-4 w-4 text-primary animate-pulse" />,
+  IMPORT_COMPLETE: <Download weight="light" className="h-4 w-4 text-long" />,
   // Strategy compliance
-  STRATEGY_SESSION_VIOLATION: <Activity className="h-4 w-4 text-warning" />
+  STRATEGY_SESSION_VIOLATION: <TrendUp weight="light" className="h-4 w-4 text-warning" />
 }
 
 const notificationColors: Record<NotificationType, string> = {
@@ -97,7 +97,7 @@ export function NotificationItem({
     <div
       className={cn(
         "p-4 hover:bg-muted/50 transition-colors border-l-4 relative group",
-        notificationColors[notification.type],
+        notificationColors[notification.type as NotificationType],
         !notification.isRead && "bg-muted/30"
       )}
     >
@@ -112,12 +112,12 @@ export function NotificationItem({
         }}
         title="Delete notification"
       >
-        <X className="h-3.5 w-3.5" />
+        <X weight="light" className="h-3.5 w-3.5" />
       </Button>
 
       <div className="flex items-start gap-3 pr-6">
         <div className="shrink-0 mt-0.5">
-          {notificationIcons[notification.type]}
+          {notificationIcons[notification.type as NotificationType]}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -153,7 +153,7 @@ export function NotificationItem({
                   onClick={() => onAction(notification)}
                 >
                   Take Action
-                  <ChevronRight className="h-3 w-3 ml-1" />
+                  <CaretRight weight="light" className="h-3 w-3 ml-1" />
                 </Button>
               ) : (
                 !notification.isRead && (
@@ -163,7 +163,7 @@ export function NotificationItem({
                     className="h-7 text-xs"
                     onClick={() => onMarkAsRead(notification.id)}
                   >
-                    <Check className="h-3 w-3 mr-1" />
+                    <Check weight="light" className="h-3 w-3 mr-1" />
                     Mark read
                   </Button>
                 )
@@ -175,7 +175,7 @@ export function NotificationItem({
           {notification.type === 'FUNDED_DECLINED' && notification.data && (
             <div className="mt-2 p-2 bg-destructive/10 rounded text-xs">
               <div className="flex items-center gap-1 text-destructive">
-                <AlertCircle className="h-3 w-3" />
+                <WarningCircle weight="light" className="h-3 w-3" />
                 <span className="font-medium">Decline reason:</span>
               </div>
               <p className="mt-1 text-muted-foreground">

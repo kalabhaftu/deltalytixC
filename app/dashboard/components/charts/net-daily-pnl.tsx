@@ -1,13 +1,13 @@
 "use client"
 
 import * as React from "react"
+import * as RechartsPrimitive from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useData } from "@/context/data-provider"
 import { cn, formatCurrency, formatNumber, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
 import { getWidgetStyles } from '@/app/dashboard/config/widget-dimensions'
 import {
-  BarChart,
   Bar,
   XAxis,
   YAxis,
@@ -17,7 +17,9 @@ import {
   Cell,
   ReferenceLine
 } from 'recharts'
-import { Info } from 'lucide-react'
+
+const AnyBarChart = (RechartsPrimitive as any).BarChart as React.ComponentType<any>
+import { Info } from "@phosphor-icons/react"
 import {
   Tooltip,
   TooltipContent,
@@ -239,7 +241,7 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
           </CardTitle>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+              <Info weight="light" className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
             </TooltipTrigger>
             <TooltipContent>
               <p>Daily net profit/loss including commissions</p>
@@ -252,7 +254,7 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
       <CardContent className="flex-1 p-0 relative min-h-[100px]">
         <div className="absolute inset-0">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart
+            <AnyBarChart
               data={chartData}
               margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
               barCategoryGap="25%"
@@ -322,7 +324,7 @@ export default function NetDailyPnL({ size = 'small-long' }: NetDailyPnLProps) {
                   />
                 ))}
               </Bar>
-            </BarChart>
+            </AnyBarChart>
           </ResponsiveContainer>
         </div>
       </CardContent>

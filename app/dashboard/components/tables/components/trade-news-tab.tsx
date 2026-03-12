@@ -3,7 +3,7 @@ import React from 'react'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Search } from 'lucide-react'
+import { MagnifyingGlass } from '@phosphor-icons/react'
 
 // Define the event type to avoid relying on a global monolithic type
 export interface NewsEvent {
@@ -66,7 +66,7 @@ export function TradeNewsTab({
                 {isNewsDay && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
                         <div className="relative">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <MagnifyingGlass className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" weight="light" />
                             <Input
                                 type="text"
                                 placeholder="Search news events..."

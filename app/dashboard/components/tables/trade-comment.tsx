@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Trash2, Save, Check } from 'lucide-react'
+import { Trash, FloppyDisk, Check } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import { updateTradeCommentAction } from '@/server/database'
 import {
@@ -109,7 +109,7 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
               )}
               {showSuccess && !isUpdating && (
                 <div className="flex items-center gap-2 text-sm text-long animate-in fade-in zoom-in duration-300">
-                  <Check className="h-3 w-3" />
+                  <Check className="h-3 w-3" weight="light" />
                   Saved
                 </div>
               )}
@@ -130,7 +130,7 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
                 onClick={handleClear}
                 className="text-destructive hover:text-destructive"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
+                <Trash className="h-4 w-4 mr-2" weight="light" />
                 Clear Comment
               </Button>
               <Button
@@ -138,7 +138,7 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
                 disabled={isUpdating}
                 onClick={handleSave}
               >
-                <Save className="h-4 w-4 mr-2" />
+                <FloppyDisk className="h-4 w-4 mr-2" weight="light" />
                 {"Save"}
               </Button>
             </div>

@@ -10,10 +10,10 @@ import { VisuallyHidden } from '@/components/ui/visually-hidden'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
-  TrendingUp, TrendingDown, DollarSign, Clock, Calendar,
-  Target, Minus, X, Download, ExternalLink,
-  BarChart3, Newspaper, AlertCircle, Zap, ShoppingCart, Tag as TagIcon, Play
-} from 'lucide-react'
+  TrendUp, TrendDown, CurrencyDollar, Clock, CalendarBlank,
+  Target, Minus, X, Download,
+  ChartBar, Newspaper, WarningCircle, Lightning, ShoppingCart, Tag as TagIcon, Play
+} from '@phosphor-icons/react'
 import Link from 'next/link'
 import { cn, formatCurrency, BREAK_EVEN_THRESHOLD, classifyTrade } from '@/lib/utils'
 import Image from 'next/image'
@@ -300,9 +300,8 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 hover:border-border transition-all"
                           >
-                            <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+                            <ChartBar className="h-3.5 w-3.5 text-muted-foreground" weight="light" />
                             Chart {index + 1}
-                            <ExternalLink className="h-3 w-3 opacity-40" />
                           </a>
                         ))}
                       </div>
@@ -329,7 +328,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                             ))}
                             {tradeData.newsTraded && (
                               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning/10 border border-warning/20 text-warning">
-                                <Zap className="h-4 w-4 fill-warning text-warning" />
+                                <Lightning className="h-4 w-4 fill-warning text-warning" weight="fill" />
                                 <span className="text-xs font-bold uppercase tracking-tight">Active News Trader</span>
                               </div>
                             )}
@@ -406,7 +405,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                 variant="default"
                 className="gap-2.5 h-10 sm:h-11 px-6 rounded-xl shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all font-semibold w-full sm:w-auto"
               >
-                <Play className="h-4 w-4 fill-current" />
+                <Play className="h-4 w-4" weight="fill" />
                 Launch Trade Replay
               </Button>
             </Link>
@@ -427,7 +426,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
             onOpenChange={(open) => {
               // Capture open state for UI but leave ref alone if closing until timeout
               setIsImageViewerOpen(open)
-              
+
               if (open) {
                 isImageViewerOpenRef.current = true
               } else {
@@ -487,7 +486,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                   className="absolute bottom-4 right-4"
                   onClick={() => downloadImage(selectedImage, trade, selectedImageIndex)}
                 >
-                  <Download className="h-4 w-4 mr-2" />
+                  <Download className="h-4 w-4 mr-2" weight="light" />
                   Download
                 </Button>
               </div>

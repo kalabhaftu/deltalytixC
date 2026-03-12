@@ -13,12 +13,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { 
-  ArrowRight, 
-  Loader2,
-  Sparkles,
+import {
+  CaretRight,
+  CircleNotch,
+  Sparkle,
   Trophy
-} from "lucide-react"
+} from "@phosphor-icons/react"
 import { toast } from "sonner"
 import { Notification } from '@prisma/client'
 import { clearAccountsCache } from '@/hooks/use-accounts'
@@ -57,11 +57,11 @@ function isFundedPhase(evaluationType: string | undefined, phaseNumber: number):
   }
 }
 
-export function PhaseTransitionApprovalDialog({ 
-  open, 
-  onOpenChange, 
+export function PhaseTransitionApprovalDialog({
+  open,
+  onOpenChange,
   notification,
-  onComplete 
+  onComplete
 }: PhaseTransitionApprovalDialogProps) {
   const router = useRouter()
   const { refreshTrades } = useData()
@@ -124,10 +124,10 @@ export function PhaseTransitionApprovalDialog({
 
       // Close modal FIRST for immediate UI feedback
       onOpenChange(false)
-      
+
       // Reset state synchronously before onComplete to ensure callback sees clean state
       resetState()
-      
+
       toast.success(isTransitioningToFunded ? 'Congratulations!' : 'Phase Transition Complete!', {
         description: `Successfully transitioned to ${nextPhaseName}`,
         duration: 5000
@@ -135,22 +135,22 @@ export function PhaseTransitionApprovalDialog({
 
       // Clear all caches to force fresh data
       clearAccountsCache()
-      
+
       // Clear localStorage caches that might contain stale data
       try {
         localStorage.removeItem('bundled-data-cache')
         localStorage.removeItem('bundled-data-timestamp')
-        localStorage.removeItem('account-filter-settings-cache')
+        localStorage.removeItem('account-filter-Gear-cache')
       } catch (e) {
         // Ignore storage errors
       }
-      
+
       // Refresh data
       await refreshTrades()
-      
+
       // Call onComplete callback - state is already reset, so callback sees clean state
       onComplete()
-      
+
       // Force full page refresh after a small delay to allow modal to close
       setTimeout(() => {
         router.refresh()
@@ -171,14 +171,14 @@ export function PhaseTransitionApprovalDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isTransitioningToFunded ? (
-              <Trophy className="h-5 w-5 text-primary" />
+              <Trophy className="h-5 w-5 text-primary" weight="light" />
             ) : (
-              <ArrowRight className="h-5 w-5 text-muted-foreground" />
+              <CaretRight className="h-5 w-5 text-muted-foreground" weight="light" />
             )}
             {isTransitioningToFunded ? 'Ready for Funded Account!' : `Advance to ${nextPhaseName}`}
           </DialogTitle>
           <DialogDescription>
-            {notificationData?.accountName 
+            {notificationData?.accountName
               ? `${notificationData.accountName} has passed Phase ${notificationData.currentPhaseNumber}`
               : 'Your account has passed the evaluation phase'
             }
@@ -187,9 +187,9 @@ export function PhaseTransitionApprovalDialog({
 
         <div className="space-y-4">
           <Alert className={isTransitioningToFunded ? "border-primary/50 bg-primary/10" : "border-muted"}>
-            <Sparkles className={`h-4 w-4 ${isTransitioningToFunded ? 'text-primary' : 'text-muted-foreground'}`} />
+            <Sparkle className={`h-4 w-4 ${isTransitioningToFunded ? 'text-primary' : 'text-muted-foreground'}`} weight="light" />
             <AlertDescription>
-              {isTransitioningToFunded 
+              {isTransitioningToFunded
                 ? "You've completed the evaluation! Enter your funded account ID."
                 : `Enter your ${nextPhaseName} account ID to continue trading.`
               }
@@ -216,8 +216,8 @@ export function PhaseTransitionApprovalDialog({
           </div>
 
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleClose}
               disabled={isSubmitting}
               className="flex-1"
@@ -231,13 +231,13 @@ export function PhaseTransitionApprovalDialog({
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <CircleNotch className="h-4 w-4 mr-2 animate-spin" weight="light" />
                   Processing...
                 </>
               ) : (
                 <>
                   Activate {nextPhaseName}
-                  <ArrowRight className="h-4 w-4 ml-2" />
+                  <CaretRight className="h-4 w-4 ml-2" weight="light" />
                 </>
               )}
             </Button>

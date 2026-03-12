@@ -23,7 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { BarChart3, BookOpen, Edit2, Save, X } from "lucide-react"
+import { ChartBar, BookOpen, PencilSimple, FloppyDisk, X } from "@phosphor-icons/react"
 import { cn, parsePositionTime, formatCurrency } from "@/lib/utils"
 import { Trade } from "@prisma/client"
 import { CalendarEntry } from "@/app/dashboard/types/calendar"
@@ -218,11 +218,11 @@ export function CalendarModal({
             <div className="px-4 border-b">
               <TabsList className="h-10 bg-transparent border-0 p-0 gap-1">
                 <TabsTrigger value="trades" className="data-[state=active]:bg-muted rounded-md px-3 py-1.5 text-sm gap-2">
-                  <BarChart3 className="h-4 w-4" />
+                  <ChartBar className="h-4 w-4" weight="light" />
                   Trades & Stats
                 </TabsTrigger>
                 <TabsTrigger value="journal" className="data-[state=active]:bg-muted rounded-md px-3 py-1.5 text-sm gap-2">
-                  <BookOpen className="h-4 w-4" />
+                  <BookOpen className="h-4 w-4" weight="light" />
                   Journal
                 </TabsTrigger>
               </TabsList>
@@ -276,7 +276,7 @@ export function CalendarModal({
                   ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 border rounded-lg border-dashed bg-muted/5">
                       <div className="p-3 bg-muted rounded-full">
-                        <BarChart3 className="w-6 h-6 text-muted-foreground" />
+                        <ChartBar className="w-6 h-6 text-muted-foreground" weight="light" />
                       </div>
                       <div className="space-y-1">
                         <p className="font-medium">No trades recorded</p>
@@ -318,7 +318,7 @@ export function CalendarModal({
                             size="sm"
                             className="gap-2"
                           >
-                            <Edit2 className="h-3.5 w-3.5" />
+                            <PencilSimple className="h-3.5 w-3.5" weight="light" />
                             Edit
                           </Button>
                         </CardHeader>
@@ -375,7 +375,7 @@ export function CalendarModal({
                               size="sm"
                               className="gap-2"
                             >
-                              <X className="h-3.5 w-3.5" />
+                              <X className="h-3.5 w-3.5" weight="light" />
                               Cancel
                             </Button>
                           )}
@@ -411,7 +411,7 @@ export function CalendarModal({
                               </>
                             ) : (
                               <>
-                                <Save className="h-4 w-4" />
+                                <FloppyDisk className="h-4 w-4" weight="light" />
                                 Save Journal
                               </>
                             )}

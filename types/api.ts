@@ -48,10 +48,10 @@ export interface UserPreferences {
   timezone: string
   currency: string
   dateFormat: string
-  notifications: NotificationSettings
+  notifications: NotificationGear
 }
 
-export interface NotificationSettings {
+export interface NotificationGear {
   email: boolean
   push: boolean
   marketing: boolean

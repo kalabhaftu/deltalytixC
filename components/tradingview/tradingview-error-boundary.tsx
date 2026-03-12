@@ -3,7 +3,7 @@
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { Warning, ArrowsClockwise } from '@phosphor-icons/react'
 
 interface TradingViewErrorBoundaryProps {
   children: React.ReactNode
@@ -46,7 +46,7 @@ export class TradingViewErrorBoundary extends React.Component<
         <Card className="w-full">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
+              <Warning weight="light" className="h-5 w-5" />
               Chart Loading Error
             </CardTitle>
             <CardDescription>
@@ -59,7 +59,7 @@ export class TradingViewErrorBoundary extends React.Component<
             </div>
             <div className="flex gap-2">
               <Button onClick={this.handleRetry} size="sm">
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <ArrowsClockwise weight="light" className="h-4 w-4 mr-2" />
                 Retry
               </Button>
             </div>

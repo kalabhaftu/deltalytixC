@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useData } from '@/context/data-provider'
-import { Flame, Snowflake, TrendingUp, TrendingDown } from 'lucide-react'
+import { Fire, Snowflake, TrendUp, TrendDown } from "@phosphor-icons/react"
 import { cn } from '@/lib/utils'
 import { parseISO } from 'date-fns'
 
@@ -116,19 +116,19 @@ export default function CurrentStreak({ size }: CurrentStreakProps) {
             </div>
           </div>
           {isWinning ? (
-            <Flame className="h-6 w-6 text-chart-4 opacity-80" />
+            <Fire weight="light" className="h-6 w-6 text-chart-4 opacity-80" />
           ) : (
-            <Snowflake className="h-6 w-6 text-chart-1 opacity-80" />
+            <Snowflake weight="light" className="h-6 w-6 text-chart-1 opacity-80" />
           )}
         </div>
 
         <div className="flex items-center gap-4 text-[10px] font-medium text-muted-foreground">
           <div className="flex items-center gap-1.5">
-            <TrendingUp className="h-3 w-3 text-long" />
+            <TrendUp weight="light" className="h-3 w-3 text-long" />
             <span>Best: {longestWinStreak}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <TrendingDown className="h-3 w-3 text-short" />
+            <TrendDown weight="light" className="h-3 w-3 text-short" />
             <span>Worst: {longestLoseStreak}</span>
           </div>
         </div>

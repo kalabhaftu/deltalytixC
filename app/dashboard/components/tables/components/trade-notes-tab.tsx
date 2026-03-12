@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { Control, Controller } from 'react-hook-form'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash2, Plus, X, Loader2 } from 'lucide-react'
+import { Pencil, Trash, Plus, X, CircleNotch } from '@phosphor-icons/react'
 import { FileDropzone } from '@/components/ui/file-dropzone'
 import { TradeImagesGallery, ImageField } from './trade-images-gallery'
 
@@ -72,7 +72,7 @@ export function TradeNotesTab({
                                     />
                                 ) : (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                                        <X className="h-8 w-8 text-destructive/50 mb-2" />
+                                        <X className="h-8 w-8 text-destructive/50 mb-2" weight="light" />
                                         <p className="text-xs text-muted-foreground">Image link broken</p>
                                     </div>
                                 )}
@@ -93,7 +93,7 @@ export function TradeNotesTab({
                                             input.click()
                                         }}
                                     >
-                                        <Pencil className="h-3.5 w-3.5 mr-2" />
+                                        <Pencil className="h-3.5 w-3.5 mr-2" weight="light" />
                                         Replace
                                     </Button>
                                     <Button
@@ -103,7 +103,7 @@ export function TradeNotesTab({
                                         className="h-9 px-4 text-xs font-semibold shadow-xl hover:bg-red-600 transition-all"
                                         onClick={() => onRemove('cardPreviewImage')}
                                     >
-                                        <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                        <Trash className="h-3.5 w-3.5 mr-2" weight="light" />
                                         Remove
                                     </Button>
                                 </div>
@@ -118,13 +118,13 @@ export function TradeNotesTab({
                                 accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'] }}
                                 className="h-full border-none bg-transparent hover:bg-muted/10"
                                 description="Drag & drop or click to upload preview"
-                                icon={<Plus className="h-8 w-8 text-muted-foreground/40 mb-2" />}
+                                icon={<Plus className="h-8 w-8 text-muted-foreground/40 mb-2" weight="light" />}
                                 disabled={uploadingField === 'cardPreviewImage'}
                             />
                         )}
                         {uploadingField === 'cardPreviewImage' && (
                             <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] flex items-center justify-center">
-                                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                                <CircleNotch className="h-5 w-5 animate-spin text-primary" weight="light" />
                             </div>
                         )}
                     </div>

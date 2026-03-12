@@ -5,19 +5,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { 
-  Link, 
-  Unlink, 
-  Mail, 
-  MessageCircle, 
-  Chrome,
-  AlertCircle
-} from "lucide-react"
-import { 
-  linkDiscordAccount, 
-  linkGoogleAccount, 
-  unlinkIdentity, 
-  getUserIdentities 
+import {
+  Link,
+  LinkBreak,
+  Envelope,
+  Chats,
+  Globe,
+  WarningCircle
+} from "@phosphor-icons/react"
+import {
+  linkDiscordAccount,
+  linkGoogleAccount,
+  unlinkIdentity,
+  getUserIdentities
 } from "@/server/auth"
 import { toast } from "sonner"
 import {
@@ -50,10 +50,10 @@ export function LinkedAccounts() {
 
   useEffect(() => {
     loadIdentities()
-    
+
     // Check if user just returned from linking an account
     const urlParams = new URLSearchParams(window.location.search)
-     const linked = urlParams.get('linked')
+    const linked = urlParams.get('linked')
     if (linked) {
       toast.success("Account linked successfully")
       // Clean up the URL
@@ -105,20 +105,20 @@ export function LinkedAccounts() {
       toast.success("Account unlinked successfully")
       await loadIdentities() // Reload the list
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to unlink account")
+      toast.error(error instanceof Error ? error.message : "Failed to LinkBreak account")
     }
   }
 
   const getProviderIcon = (provider: string) => {
     switch (provider) {
       case 'discord':
-        return <MessageCircle className="h-4 w-4" />
+        return <Chats className="h-4 w-4" weight="light" />
       case 'google':
-        return <Chrome className="h-4 w-4" />
+        return <Globe className="h-4 w-4" weight="light" />
       case 'email':
-        return <Mail className="h-4 w-4" />
+        return <Envelope className="h-4 w-4" weight="light" />
       default:
-        return <AlertCircle className="h-4 w-4" />
+        return <WarningCircle className="h-4 w-4" weight="light" />
     }
   }
 
@@ -143,7 +143,7 @@ export function LinkedAccounts() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Link className="h-5 w-5" />
+            <Link weight="light" className="h-5 w-5" />
             Linked Accounts
           </CardTitle>
           <CardDescription>
@@ -163,11 +163,11 @@ export function LinkedAccounts() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Link className="h-5 w-5" />
-            Linked Accounts
+          <Link weight="light" className="h-5 w-5" />
+          Linked Accounts
         </CardTitle>
         <CardDescription>
-            Manage your connected social accounts for authentication
+          Manage your connected social accounts for authentication
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -196,31 +196,31 @@ export function LinkedAccounts() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {identity.provider === 'email' && (
-                       <Badge variant="secondary">Primary</Badge>
+                      <Badge variant="secondary">Primary</Badge>
                     )}
                     {identity.provider !== 'email' && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                            <Unlink className="h-4 w-4 sm:mr-2" />
-                            <span className="hidden sm:inline">Unlink</span>
-                            <span className="sm:hidden">Unlink Account</span>
+                            <LinkBreak className="h-4 w-4 sm:mr-2" weight="light" />
+                            <span className="hidden sm:inline">LinkBreak</span>
+                            <span className="sm:hidden">LinkBreak Account</span>
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                             <AlertDialogTitle>Unlink Account?</AlertDialogTitle>
+                            <AlertDialogTitle>LinkBreak Account?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to unlink this account? You will need to use another linked account to sign in.
+                              Are you sure you want to LinkBreak this account? You will need to use another linked account to sign in.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                             <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleUnlink(identity)}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
-                              Unlink Account
+                              LinkBreak Account
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -237,30 +237,30 @@ export function LinkedAccounts() {
 
         {/* Link New Accounts */}
         <div>
-           <h4 className="text-sm font-medium mb-3">Link New Account</h4>
+          <h4 className="text-sm font-medium mb-3">Link New Account</h4>
           <p className="text-sm text-muted-foreground mb-4">
             Connect additional accounts for easier sign-in
           </p>
           <div className="space-y-2">
             {!isDiscordLinked && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start"
                 onClick={handleLinkDiscord}
                 disabled={linking}
               >
-                <MessageCircle className="mr-2 h-4 w-4" />
+                <Chats className="mr-2 h-4 w-4" weight="light" />
                 Link Discord
               </Button>
             )}
             {!isGoogleLinked && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start"
                 onClick={handleLinkGoogle}
                 disabled={linking}
               >
-                <Chrome className="mr-2 h-4 w-4" />
+                <Globe className="mr-2 h-4 w-4" weight="light" />
                 Link Google
               </Button>
             )}

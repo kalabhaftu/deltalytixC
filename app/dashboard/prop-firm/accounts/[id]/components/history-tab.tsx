@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle2, XCircle, Clock, Trophy, TrendingUp, Calendar, Target, Zap, Award, AlertTriangle, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import { CheckCircle, XCircle, Clock, Trophy, TrendUp, Calendar, Target, Lightning, Medal, Warning, ArrowUpRight, ArrowDownRight } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
 interface PhaseHistoryData {
@@ -74,7 +74,7 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
     switch (status) {
       case 'active': return <Clock className="h-5 w-5 text-primary" />
       case 'archived':
-      case 'passed': return <CheckCircle2 className="h-5 w-5 text-long" />
+      case 'passed': return <CheckCircle className="h-5 w-5 text-long" />
       case 'failed': return <XCircle className="h-5 w-5 text-destructive" />
       default: return <Clock className="h-5 w-5 text-muted-foreground" />
     }
@@ -151,7 +151,7 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
                 <p className="text-xs text-muted-foreground mt-1">Phase{completedPhases.length !== 1 ? 's' : ''} passed</p>
               </div>
               <div className="p-3 bg-long/10 rounded-lg">
-                <CheckCircle2 className="h-8 w-8 text-long" />
+                <CheckCircle className="h-8 w-8 text-long" />
               </div>
             </div>
           </CardContent>
@@ -196,7 +196,7 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingUp className="h-4 w-4" />
+              <TrendUp className="h-4 w-4" />
               Overall Performance
             </CardTitle>
           </CardHeader>
@@ -226,7 +226,7 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Award className="h-4 w-4" />
+              <Medal className="h-4 w-4" />
               Milestones & Records
             </CardTitle>
           </CardHeader>
@@ -250,7 +250,7 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
             {worstDrawdown < 0 && (
               <div className="flex items-start gap-3 p-3 bg-destructive/5 border border-destructive/20 rounded-lg">
                 <div className="p-1.5 bg-destructive/10 rounded">
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  <Warning className="h-4 w-4 text-destructive" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">Highest Drawdown</p>
@@ -265,7 +265,7 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
             {completedPhases.length > 0 && (
               <div className="flex items-start gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
                 <div className="p-1.5 bg-primary/10 rounded">
-                  <Zap className="h-4 w-4 text-primary" />
+                  <Lightning className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">Achievement</p>
@@ -385,7 +385,7 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
                               <div className="flex items-center gap-1">
                                 <p className="text-lg font-semibold">{Math.min(phase.profitProgress, 100).toFixed(0)}%</p>
                                 {phase.profitProgress >= 100 && (
-                                  <CheckCircle2 className="h-4 w-4 text-long" />
+                                  <CheckCircle className="h-4 w-4 text-long" />
                                 )}
                               </div>
                             </div>
@@ -444,7 +444,7 @@ export function HistoryTab({ accountName, propFirmName, accountSize, phases, bre
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
+              <Warning className="h-5 w-5" />
               Breach History
             </CardTitle>
           </CardHeader>

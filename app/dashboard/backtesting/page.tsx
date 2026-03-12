@@ -64,7 +64,7 @@ async function getBacktests(): Promise<BacktestTrade[]> {
       clearTimeout(timeoutId)
 
       // Transform to client format
-      return backtests.map((bt) => ({
+      return backtests.map((bt: typeof backtests[number]) => ({
         id: bt.id,
         pair: bt.pair,
         direction: bt.direction,

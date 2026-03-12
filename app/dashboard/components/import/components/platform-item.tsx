@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { CommandItem } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
-import { AlertTriangle } from "lucide-react"
+import { Warning } from "@phosphor-icons/react"
 import Image from "next/image"
 import { PlatformConfig } from "../config/platforms"
 interface PlatformItemProps {
@@ -62,7 +62,7 @@ export function PlatformItem({
                 <Badge variant="secondary" className="ml-2 transition-transform duration-200 hover:scale-105">
                   Disabled
                 </Badge>
-                <AlertTriangle className="h-4 w-4 text-warning animate-pulse" />
+                <Warning weight="light" className="h-4 w-4 text-warning animate-pulse" />
               </>
             )}
             {platform.isComingSoon && !platform.isDisabled && (
@@ -74,7 +74,7 @@ export function PlatformItem({
             )}
             {!platform.isDisabled && platform.isRithmic && isWeekend && (
               <div className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-warning/15 text-warning hover:bg-warning/25 gap-1.5 ml-2">
-                <AlertTriangle className="h-3 w-3" />
+                <Warning weight="light" className="h-3 w-3" />
                 Weekend Data Warning
               </div>
             )}

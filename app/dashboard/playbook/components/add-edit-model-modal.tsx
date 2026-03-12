@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, X, AlertTriangle } from 'lucide-react'
+import { Plus, X, Warning } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -193,7 +193,7 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
                   onClick={handleAddRule}
                   className="h-8 px-3 font-black uppercase tracking-tighter text-[10px]"
                 >
-                  <Plus className="h-3 w-3 mr-1.5" />
+                  <Plus weight="light" className="h-3 w-3 mr-1.5" />
                   Append Rule
                 </Button>
               </div>
@@ -224,7 +224,7 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
                       onClick={() => handleRemoveRule(index)}
                       className="h-10 w-10 shrink-0 opacity-40 hover:opacity-100 transition-opacity"
                     >
-                      <X className="h-4 w-4" />
+                      <X weight="light" className="h-4 w-4" />
                     </Button>
                   </div>
                 ))}
@@ -269,7 +269,7 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-warning" />
+              <Warning weight="light" className="h-5 w-5 text-warning" />
               Unsaved Changes
             </AlertDialogTitle>
             <AlertDialogDescription>

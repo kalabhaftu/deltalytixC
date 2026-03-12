@@ -4,7 +4,7 @@ import React, { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { BacktestTrade } from '@/types/backtesting-types'
-import { BarChart3, TrendingUp, Calendar, Target } from 'lucide-react'
+import { ChartBar as BarChart3, TrendUp as TrendUp, CalendarBlank as Calendar, Target } from "@phosphor-icons/react"
 
 interface AnalyticsTabProps {
   backtests: BacktestTrade[]
@@ -325,7 +325,7 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5" />
+            <BarChart3 className="w-5 h-5" weight="light" />
             Performance by Trading Model
           </CardTitle>
         </CardHeader>
@@ -370,7 +370,7 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
+            <Calendar className="w-5 h-5" weight="light" />
             Performance by Trading Session
           </CardTitle>
         </CardHeader>
@@ -416,7 +416,7 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
+            <TrendUp className="w-5 h-5" weight="light" />
             Performance by Direction
           </CardTitle>
         </CardHeader>
@@ -460,7 +460,7 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5" />
+            <Target className="w-5 h-5" weight="light" />
             Performance by Pair/Instrument
           </CardTitle>
         </CardHeader>
@@ -519,7 +519,7 @@ export function AnalyticsTab({ backtests }: AnalyticsTabProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
+            <Calendar className="w-5 h-5" weight="light" />
             Performance by Day of Week
           </CardTitle>
         </CardHeader>

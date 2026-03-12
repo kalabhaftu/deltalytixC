@@ -5,7 +5,7 @@ import { Trade } from '@prisma/client'
 import { TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { cn, formatQuantity, formatPrice, classifyTrade } from "@/lib/utils"
-import { TrendingUp, TrendingDown } from "lucide-react"
+import { TrendUp, TrendDown } from "@phosphor-icons/react"
 import { formatTimeInZone } from '@/lib/time-utils'
 import { useUserStore } from '@/store/user-store'
 
@@ -31,7 +31,7 @@ const TradeRow = memo(({ trade, isSelected, onTradeClick, onTradeSelect }: {
     outcome === 'loss' ? 'text-short' :
       'text-muted-foreground'
 
-  const Icon = outcome === 'win' ? TrendingUp : TrendingDown
+  const Icon = outcome === 'win' ? TrendUp : TrendDown
 
   return (
     <div
@@ -99,7 +99,7 @@ const TradeRow = memo(({ trade, isSelected, onTradeClick, onTradeSelect }: {
 
       {/* P&L */}
       <div className={cn("flex-shrink-0 w-32 text-right font-semibold flex items-center justify-end gap-1", pnlColor)}>
-        <Icon className="h-3 w-3" />
+        <Icon weight="light" className="h-3 w-3" />
         ${trade.pnl.toFixed(2)}
       </div>
 

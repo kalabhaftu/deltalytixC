@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { AccountFilterSettings, DEFAULT_FILTER_SETTINGS } from '@/types/account-filter-settings'
+import { AccountFilterGear, DEFAULT_FILTER_Gear } from '@/types/account-filter-Gear'
 import { fetchWithError, handleFetchError } from '@/lib/utils/fetch-with-error'
 import { API_TIMEOUT, CACHE_DURATION_SHORT } from '@/lib/constants'
 
@@ -27,27 +27,27 @@ interface UseDashboardStatsResult {
   refetch: () => Promise<void>
 }
 
-export function useDashboardStats(settings: AccountFilterSettings = DEFAULT_FILTER_SETTINGS): UseDashboardStatsResult {
+export function useDashboardStats(Gear: AccountFilterGear = DEFAULT_FILTER_Gear): UseDashboardStatsResult {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
   // Cache management
   const lastFetchRef = useRef<number>(0)
-  const lastSettingsRef = useRef<string>('')
+  const lastGearRef = useRef<string>('')
 
   const fetchStats = useCallback(async (force = false) => {
-    // Build settings key for cache comparison
-    const settingsKey = JSON.stringify({
-      viewingSpecificPhase: settings.viewingSpecificPhase,
-      selectedMasterAccountId: settings.selectedMasterAccountId,
-      selectedPhaseId: settings.selectedPhaseId,
-      selectedPhaseNumber: settings.selectedPhaseNumber
+    // Build Gear key for cache comparison
+    const GearKey = JSON.stringify({
+      viewingSpecificPhase: Gear.viewingSpecificPhase,
+      selectedMasterAccountId: Gear.selectedMasterAccountId,
+      selectedPhaseId: Gear.selectedPhaseId,
+      selectedPhaseNumber: Gear.selectedPhaseNumber
     })
     
-    // Skip if recently fetched with same settings (unless forced)
+    // Skip if recently fetched with same Gear (unless forced)
     const now = Date.now()
-    if (!force && stats && now - lastFetchRef.current < CACHE_DURATION_SHORT && lastSettingsRef.current === settingsKey) {
+    if (!force && stats && now - lastFetchRef.current < CACHE_DURATION_SHORT && lastGearRef.current === GearKey) {
       return
     }
 
@@ -57,13 +57,13 @@ export function useDashboardStats(settings: AccountFilterSettings = DEFAULT_FILT
 
       // Build URL with phase filter params
       const params = new URLSearchParams()
-      if (settings.viewingSpecificPhase && settings.selectedMasterAccountId) {
-        params.append('masterAccountId', settings.selectedMasterAccountId)
-        if (settings.selectedPhaseId) {
-          params.append('phaseId', settings.selectedPhaseId)
+      if (Gear.viewingSpecificPhase && Gear.selectedMasterAccountId) {
+        params.append('masterAccountId', Gear.selectedMasterAccountId)
+        if (Gear.selectedPhaseId) {
+          params.append('phaseId', Gear.selectedPhaseId)
         }
-        if (settings.selectedPhaseNumber) {
-          params.append('phaseNumber', settings.selectedPhaseNumber.toString())
+        if (Gear.selectedPhaseNumber) {
+          params.append('phaseNumber', Gear.selectedPhaseNumber.toString())
         }
       }
 
@@ -77,7 +77,7 @@ export function useDashboardStats(settings: AccountFilterSettings = DEFAULT_FILT
       if (result.ok && result.data?.success) {
         setStats(result.data.data)
         lastFetchRef.current = now
-        lastSettingsRef.current = settingsKey
+        lastGearRef.current = GearKey
       } else if (result.error) {
         setError(handleFetchError(result.error))
       }
@@ -86,11 +86,11 @@ export function useDashboardStats(settings: AccountFilterSettings = DEFAULT_FILT
     } finally {
       setLoading(false)
     }
-  }, [settings, stats])
+  }, [Gear, stats])
 
   useEffect(() => {
     fetchStats()
-  }, [settings.viewingSpecificPhase, settings.selectedMasterAccountId, settings.selectedPhaseId, settings.selectedPhaseNumber, fetchStats]) // ✅ NEW: Refetch when phase selection changes
+  }, [Gear.viewingSpecificPhase, Gear.selectedMasterAccountId, Gear.selectedPhaseId, Gear.selectedPhaseNumber, fetchStats]) // ✅ NEW: Refetch when phase selection changes
 
   return {
     stats,

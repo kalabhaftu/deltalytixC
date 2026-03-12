@@ -34,7 +34,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
     if (pathname?.startsWith('/dashboard/playbook')) return 'playbook'
     if (pathname?.startsWith('/dashboard/reports')) return 'reports'
 
-    // For other routes (settings, data, prop-firm), return null to show no active tab
+    // For other routes (Gear, data, prop-firm), return null to show no active tab
     return null
   }
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Download, Loader2, Database } from 'lucide-react'
+import { DownloadSimple as Download, CircleNotch as Loader2, Database } from '@phosphor-icons/react'
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { CustomDateRangePicker, DateRange } from "@/components/ui/custom-date-range-picker"
@@ -165,7 +165,7 @@ export function AdvancedExportDialog() {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
-          <Database className="mr-2 h-4 w-4" /> System Backup
+          <Database weight="light" className="mr-2 h-4 w-4" /> System Backup
         </Button>
       </DialogTrigger>
       <DialogContent className="w-full max-w-4xl max-h-[90vh] flex flex-col">
@@ -234,7 +234,7 @@ export function AdvancedExportDialog() {
                   <ScrollArea className="h-[200px] pr-4">
                     {accountsLoading ? (
                       <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        <Loader2 weight="light" className="h-6 w-6 animate-spin text-muted-foreground" />
                       </div>
                     ) : accountsList.length === 0 ? (
                       <div className="text-center py-8 text-sm text-muted-foreground">
@@ -315,13 +315,13 @@ export function AdvancedExportDialog() {
               disabled={(selectedAccounts.length === 0 && !selectAllAccounts) || isExporting}
             >
               {isExporting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                 <>
+                  <Loader2 weight="light" className="mr-2 h-4 w-4 animate-spin" />
                   Generating Archive...
                 </>
               ) : (
                 <>
-                  <Download className="mr-2 h-4 w-4" />
+                  <Download weight="light" className="mr-2 h-4 w-4" />
                   Download Backup
                 </>
               )}

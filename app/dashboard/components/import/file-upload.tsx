@@ -5,7 +5,7 @@ import { useDropzone } from 'react-dropzone'
 import Papa from 'papaparse'
 import { ImportType } from './import-type-selection'
 import { Progress } from "@/components/ui/progress"
-import { XIcon, FileIcon, AlertCircle, ArrowUpCircle } from 'lucide-react'
+import { X, File, WarningCircle, ArrowCircleUp } from '@phosphor-icons/react'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -166,7 +166,8 @@ export default function FileUpload({
       >
         <input {...getInputProps()} />
         <div className="flex flex-col items-center gap-4">
-          <ArrowUpCircle 
+          <ArrowCircleUp 
+            weight="light"
             className={cn(
               "h-14 w-14 transition-all duration-300 ease-bounce",
               isDragActive 
@@ -214,7 +215,7 @@ export default function FileUpload({
             >
               <div className="flex items-center space-x-3">
                 <div className="bg-muted/50 p-2 rounded-md group-hover:bg-muted transition-colors">
-                  <FileIcon className="h-5 w-5 text-foreground" />
+                  <File weight="light" className="h-5 w-5 text-foreground" />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{file.name}</span>
@@ -234,7 +235,7 @@ export default function FileUpload({
                   onClick={() => removeFile(index)}
                   className="opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <XIcon className="h-4 w-4" />
+                  <X weight="light" className="h-4 w-4" />
                   <span className="sr-only">Remove file</span>
                 </Button>
               </div>
@@ -245,7 +246,7 @@ export default function FileUpload({
 
       {uploadedFiles.length > 0 && (
         <Alert className="animate-in slide-in-from-bottom-5 duration-700 w-full max-w-2xl">
-          <AlertCircle className="h-4 w-4" />
+          <WarningCircle weight="light" className="h-4 w-4" />
           <AlertTitle>Note</AlertTitle>
           <AlertDescription>
             All uploaded files will be processed using the selected import type.

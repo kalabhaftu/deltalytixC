@@ -18,21 +18,21 @@ import {
 import { toast } from 'sonner'
 import {
   Calculator,
-  TrendingUp,
-  TrendingDown,
-  AlertCircle,
+  TrendUp,
+  TrendDown,
+  WarningCircle,
   ArrowLeft,
   ArrowRight,
-  CheckCircle2,
-  Loader2,
+  CheckCircle,
+  CircleNotch,
   Wallet,
-  BarChart3,
+  ChartBar,
   Clock,
   Shield,
-  DollarSign,
+  CurrencyDollar,
   Brain,
-  FileCheck
-} from 'lucide-react'
+  SealCheck
+} from '@phosphor-icons/react'
 import { Trade } from '@prisma/client'
 import { generateTradeHash } from '@/lib/utils'
 import { calculatePnL, calculateDuration } from '@/lib/utils/trade-calculations'
@@ -142,10 +142,10 @@ const TOTAL_STEPS = 5
 
 const stepInfo = [
   { step: 1, title: 'Account & Instrument', icon: Wallet },
-  { step: 2, title: 'Execution', icon: BarChart3 },
+  { step: 2, title: 'Execution', icon: ChartBar },
   { step: 3, title: 'Timing', icon: Clock },
   { step: 4, title: 'Risk & Cost', icon: Shield },
-  { step: 5, title: 'Review', icon: FileCheck },
+  { step: 5, title: 'Review', icon: SealCheck },
 ]
 
 export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
@@ -425,7 +425,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
                         className="w-full justify-between h-11 font-normal"
                       >
                         {field.value || "Select or type instrument"}
-                        <BarChart3 className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        <ChartBar weight="light" className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0" align="start">
@@ -468,7 +468,8 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
                                   setInstrumentSearch('')
                                 }}
                               >
-                                <CheckCircle2
+                                <CheckCircle
+                                  weight="light"
                                   className={cn(
                                     "mr-2 h-4 w-4",
                                     field.value === instr.value ? "opacity-100" : "opacity-0"
@@ -513,7 +514,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
                       )}
                       onClick={() => field.onChange('LONG')}
                     >
-                      <TrendingUp className="h-4 w-4 mr-2" />
+                      <TrendUp weight="light" className="h-4 w-4 mr-2" />
                       Long
                     </Button>
                     <Button
@@ -525,7 +526,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
                       )}
                       onClick={() => field.onChange('SHORT')}
                     >
-                      <TrendingDown className="h-4 w-4 mr-2" />
+                      <TrendDown weight="light" className="h-4 w-4 mr-2" />
                       Short
                     </Button>
                   </div>
@@ -717,7 +718,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
             {phaseValidationError && (
               <div className="p-4 rounded-lg border border-destructive/50 bg-destructive/10">
                 <div className="flex items-center gap-2 text-destructive">
-                  <AlertCircle className="h-4 w-4" />
+                  <WarningCircle weight="light" className="h-4 w-4" />
                   <p className="text-sm">{phaseValidationError}</p>
                 </div>
               </div>
@@ -825,9 +826,9 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
                   )}
                 >
                   {currentStep > s.step ? (
-                    <CheckCircle2 className="h-3 w-3" />
+                    <CheckCircle weight="light" className="h-3 w-3" />
                   ) : (
-                    <StepIcon className="h-3 w-3" />
+                    <StepIcon weight="light" className="h-3 w-3" />
                   )}
                   <span className="hidden sm:inline">{s.title}</span>
                 </div>
@@ -869,7 +870,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
                 onClick={handleBack}
                 className="gap-2"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft weight="light" className="h-4 w-4" />
                 Back
               </Button>
             )}
@@ -882,7 +883,7 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
                 className="gap-2"
               >
                 Next
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight weight="light" className="h-4 w-4" />
               </Button>
             ) : (
               <Button
@@ -893,12 +894,12 @@ export default function ManualTradeForm({ setIsOpen }: ManualTradeFormProps) {
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <CircleNotch weight="light" className="h-4 w-4 animate-spin" />
                     Adding...
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="h-4 w-4" />
+                    <CheckCircle weight="light" className="h-4 w-4" />
                     Add Trade
                   </>
                 )}

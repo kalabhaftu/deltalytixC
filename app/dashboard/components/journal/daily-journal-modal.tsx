@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { EmotionPicker, EmotionType, getEmotionIcon } from './emotion-picker'
 import { toast } from 'sonner'
-import { Loader2, BookOpen, Save, X } from 'lucide-react'
+import { CircleNotch, BookOpen, FloppyDisk, X } from '@phosphor-icons/react'
 import { cn, BREAK_EVEN_THRESHOLD } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -204,7 +204,7 @@ export function DailyJournalModal({
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
+              <BookOpen className="h-5 w-5 text-primary" weight="light" />
               <DialogTitle>Daily Journal</DialogTitle>
             </div>
             <DialogDescription className="text-base font-medium">
@@ -214,7 +214,7 @@ export function DailyJournalModal({
 
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <CircleNotch className="h-8 w-8 animate-spin text-muted-foreground" weight="light" />
             </div>
           ) : (
             <div className="space-y-6">
@@ -318,7 +318,7 @@ export function DailyJournalModal({
               onClick={handleClose}
               disabled={isSaving}
             >
-              <X className="h-4 w-4 mr-2" />
+              <X className="h-4 w-4 mr-2" weight="light" />
               Cancel
             </Button>
             <Button
@@ -327,12 +327,12 @@ export function DailyJournalModal({
             >
               {isSaving ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <CircleNotch className="h-4 w-4 mr-2 animate-spin" weight="light" />
                   Saving...
                 </>
               ) : (
                 <>
-                  <Save className="h-4 w-4 mr-2" />
+                  <FloppyDisk className="h-4 w-4 mr-2" weight="light" />
                   Save Journal
                 </>
               )}

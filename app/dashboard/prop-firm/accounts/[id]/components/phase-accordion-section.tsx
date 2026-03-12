@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, DollarSign, Activity, Calendar, CheckCircle2, XCircle, Clock, Trophy } from "lucide-react"
+import { CaretDown, CaretUp, TrendUp, TrendDown, CurrencyDollar, Clock, Calendar, CheckCircle, XCircle, Trophy } from "@phosphor-icons/react"
 import { cn, formatCurrency, formatPercent, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 
 interface PhaseData {
@@ -47,7 +47,7 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
     switch (phase.status) {
       case 'active': return <Clock className="h-5 w-5 text-foreground" />
       case 'archived':
-      case 'passed': return <CheckCircle2 className="h-5 w-5 text-long" />
+      case 'passed': return <CheckCircle className="h-5 w-5 text-long" />
       case 'failed': return <XCircle className="h-5 w-5 text-short" />
       case 'pending': return <Trophy className="h-5 w-5 text-muted-foreground" />
       default: return null
@@ -116,9 +116,9 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
               <div className="flex items-center gap-3">
                 {getStatusBadge()}
                 {isOpen ? (
-                  <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                  <CaretUp className="h-5 w-5 text-muted-foreground" weight="light" />
                 ) : (
-                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                  <CaretDown className="h-5 w-5 text-muted-foreground" weight="light" />
                 )}
               </div>
             </div>
@@ -132,7 +132,7 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-muted-foreground" />
+                    <Clock className="h-4 w-4 text-muted-foreground" weight="light" />
                     <span className="text-sm text-muted-foreground">Total Trades</span>
                   </div>
                   <p className="text-2xl font-bold">{totalTrades}</p>
@@ -140,7 +140,7 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <CurrencyDollar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">Total P&L</span>
                   </div>
                   <p className={cn(
@@ -153,7 +153,7 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    <TrendUp className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">Win Rate</span>
                   </div>
                   <p className="text-2xl font-bold">{formatPercent(winRate, 1)}</p>
@@ -162,7 +162,7 @@ export function PhaseAccordionSection({ phase, accountSize, isExpanded = false }
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <CurrencyDollar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">Balance</span>
                   </div>
                   <p className="text-2xl font-bold">{formatCurrency(currentBalance)}</p>

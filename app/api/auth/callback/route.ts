@@ -57,9 +57,9 @@ export async function GET(request: Request) {
         if (action === 'link') {
           const forwardedHost = request.headers.get('host')
           const baseUrl = isLocalDevelopment()
-            ? `${origin}/dashboard/settings`
-            : `https://${forwardedHost || origin}/dashboard/settings`
-          return NextResponse.redirect(new URL('/dashboard/settings?linked=true', baseUrl))
+            ? `${origin}/dashboard/Gear`
+            : `https://${forwardedHost || origin}/dashboard/Gear`
+          return NextResponse.redirect(new URL('/dashboard/Gear?linked=true', baseUrl))
         }
 
         const baseUrl = isLocalDevelopment() ? 'http://localhost:3000' : origin

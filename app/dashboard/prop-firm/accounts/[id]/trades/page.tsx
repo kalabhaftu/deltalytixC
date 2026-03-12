@@ -11,21 +11,21 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   ArrowLeft,
-  RefreshCw,
+  ArrowsClockwise,
   Plus,
-  Search,
-  Filter,
-  TrendingUp,
-  TrendingDown,
+  MagnifyingGlass,
+  Funnel,
+  TrendUp,
+  TrendDown,
   Calendar,
-  DollarSign,
-  BarChart3,
+  CurrencyDollar,
+  ChartBar,
   FileText,
-  Download,
+  DownloadSimple,
   Check,
-  Zap,
+  Lightning,
   Clock
-} from "lucide-react"
+} from "@phosphor-icons/react"
 import { cn, formatCurrency, formatTradeData, BREAK_EVEN_THRESHOLD } from "@/lib/utils"
 import { AccountStatus, PhaseType } from "@/types/prop-firm"
 
@@ -175,7 +175,7 @@ export default function AccountTradesPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
-          <RefreshCw className="h-8 w-8 animate-spin" />
+          <ArrowsClockwise className="h-8 w-8 animate-spin" />
         </div>
       </div>
     )
@@ -226,7 +226,7 @@ export default function AccountTradesPage() {
             onClick={() => fetchTrades()}
             disabled={isLoading}
           >
-            <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+            <ArrowsClockwise className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
             Refresh
           </Button>
           <Button
@@ -263,7 +263,7 @@ export default function AccountTradesPage() {
                 >
                   Phase {phase.phaseNumber}
                   <Badge variant="secondary" className="ml-2">
-                    {phase.status === 'archived' ? <Check className="h-3 w-3" /> : phase.status === 'active' ? <Zap className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                    {phase.status === 'archived' ? <Check className="h-3 w-3" /> : phase.status === 'active' ? <Lightning className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                     {phase.tradeCount}
                   </Badge>
                 </Button>
@@ -302,7 +302,7 @@ export default function AccountTradesPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Trades</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <ChartBar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalTrades}</div>
@@ -312,7 +312,7 @@ export default function AccountTradesPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{winRate.toFixed(1)}%</div>
@@ -325,7 +325,7 @@ export default function AccountTradesPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total P&L</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CurrencyDollar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className={cn("text-2xl font-bold", totalPnl >= 0 ? "text-long" : "text-short")}>
@@ -337,7 +337,7 @@ export default function AccountTradesPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Account Balance</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CurrencyDollar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(account.currentBalance)}</div>
@@ -348,7 +348,7 @@ export default function AccountTradesPage() {
       {/* Search and Filter */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search trades..."
             value={searchTerm}
@@ -357,11 +357,11 @@ export default function AccountTradesPage() {
           />
         </div>
         <Button variant="outline" size="sm">
-          <Filter className="h-4 w-4 mr-2" />
+          <Funnel className="h-4 w-4 mr-2" />
           Filter
         </Button>
         <Button variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
+          <DownloadSimple className="h-4 w-4 mr-2" />
           Export
         </Button>
       </div>

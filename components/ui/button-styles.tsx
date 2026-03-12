@@ -3,7 +3,7 @@
 import React from 'react'
 import { Button, type ButtonProps } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { Loader2 } from 'lucide-react'
+import { CircleNotch } from '@phosphor-icons/react'
 
 /**
  * Button Style Guide and Standardized Components
@@ -38,7 +38,7 @@ export function PrimaryButton({
       className={cn('min-w-[100px]', className)}
       {...props}
     >
-      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      {loading && <CircleNotch weight="light" className="mr-2 h-4 w-4 animate-spin" />}
       {loading ? loadingText : children}
     </Button>
   )
@@ -62,7 +62,7 @@ export function SecondaryButton({
       className={cn('min-w-[80px]', className)}
       {...props}
     >
-      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      {loading && <CircleNotch weight="light" className="mr-2 h-4 w-4 animate-spin" />}
       {loading ? loadingText : children}
     </Button>
   )
@@ -86,7 +86,7 @@ export function DestructiveButton({
       className={cn('min-w-[80px]', className)}
       {...props}
     >
-      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      {loading && <CircleNotch weight="light" className="mr-2 h-4 w-4 animate-spin" />}
       {loading ? loadingText : children}
     </Button>
   )

@@ -1,9 +1,9 @@
 /**
- * Account filtering settings types
- * These settings persist across devices and control what accounts/data are shown
+ * Account filtering Gear types
+ * These Gear persist across devices and control what accounts/data are shown
  */
 
-export interface AccountFilterSettings {
+export interface AccountFilterGear {
   // Global filtering mode
   showMode: 'active-only' | 'all-accounts' | 'custom'
 
@@ -18,7 +18,7 @@ export interface AccountFilterSettings {
   showLiveAccounts: boolean
   showPropFirmAccounts: boolean
 
-  // Prop firm specific settings
+  // Prop firm specific Gear
   showPhase1Accounts: boolean
   showPhase2Accounts: boolean
   showFundedAccounts: boolean
@@ -72,7 +72,7 @@ export interface ExtendedAccount {
   displayName: string
 }
 
-export const DEFAULT_FILTER_SETTINGS: AccountFilterSettings = {
+export const DEFAULT_FILTER_Gear: AccountFilterGear = {
   showMode: 'active-only',
   selectedAccounts: [],
   selectedPhaseAccountIds: [],

@@ -234,8 +234,22 @@ export function parsePositionTime(timeInSeconds: number): string {
  * Returns array of grouped trades where partials are combined
  */
 export interface GroupedTrade extends Trade {
-  partialTrades?: Trade[]  // Array of all partial closes
-  isGrouped?: boolean      // Flag to indicate this is a grouped trade
+  partialTrades: Trade[]  // Array of all partial closes
+  isGrouped: boolean      // Flag to indicate this is a grouped trade
+  pnl: number
+  commission: number
+  quantity: number
+  timeInPosition: number
+  exitTime: Date | null
+  entryTime: Date | null
+  closeDate: string
+  entryDate: string
+  closePrice: string
+  entryPrice: string
+  accountNumber: string
+  symbol: string | null
+  instrument: string
+  side: string | null
 }
 
 export function groupTradesByExecution(trades: Trade[]): GroupedTrade[] {
@@ -259,14 +273,28 @@ export function groupTradesByExecution(trades: Trade[]): GroupedTrade[] {
       groups.set(key, {
         ...trade,
         partialTrades: [trade],
-        isGrouped: false, // Will be set to true if more trades added
-      })
+        isGrouped: false,
+        pnl: trade.pnl || 0,
+        commission: trade.commission || 0,
+        quantity: trade.quantity || 0,
+        timeInPosition: trade.timeInPosition || 0,
+        exitTime: trade.exitTime || null,
+        entryTime: trade.entryTime || null,
+        closeDate: (trade as any).closeDate || "",
+        entryDate: (trade as any).entryDate || "",
+        closePrice: (trade as any).closePrice || "0",
+        entryPrice: (trade as any).entryPrice || "0",
+        accountNumber: (trade as any).accountNumber || "",
+        symbol: (trade as any).symbol || null,
+        instrument: (trade as any).instrument || "",
+        side: (trade as any).side || null
+      } as GroupedTrade)
     } else {
       // Additional trade in group (partial close) - merge data
       const group = groups.get(key)!
 
       // Add to partial trades array
-      group.partialTrades!.push(trade)
+      group.partialTrades.push(trade)
       group.isGrouped = true
 
       // Sum P&L and commission

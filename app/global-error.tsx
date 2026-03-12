@@ -3,7 +3,7 @@
 
 import React from 'react'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, RefreshCw, Home } from 'lucide-react'
+import { WarningCircle, ArrowsClockwise, House } from "@phosphor-icons/react"
 
 interface GlobalErrorProps {
     error: Error & { digest?: string }
@@ -22,7 +22,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                 <div className="max-w-md w-full text-center space-y-6">
                     <div className="flex justify-center">
                         <div className="p-4 rounded-full bg-destructive/10 text-destructive animate-pulse">
-                            <AlertCircle className="h-12 w-12" />
+                            <WarningCircle weight="light" className="h-12 w-12" />
                         </div>
                     </div>
 
@@ -40,11 +40,11 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
 
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <Button onClick={() => reset()} size="lg" className="w-full sm:w-auto gap-2">
-                            <RefreshCw className="h-4 w-4" />
+                            <ArrowsClockwise weight="light" className="h-4 w-4" />
                             Try Again
                         </Button>
                         <Button onClick={() => window.location.href = '/'} variant="outline" size="lg" className="w-full sm:w-auto gap-2">
-                            <Home className="h-4 w-4" />
+                            <House weight="light" className="h-4 w-4" />
                             Return Home
                         </Button>
                     </div>

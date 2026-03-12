@@ -45,7 +45,7 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
     }
   },
 
-  // Enhanced error handling and connection settings
+  // Enhanced error handling and connection Gear
   ...(process.env.NODE_ENV === 'development' && {
     errorFormat: 'pretty',
   }),

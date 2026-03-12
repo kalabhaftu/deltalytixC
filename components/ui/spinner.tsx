@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { CircleNotch } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -22,7 +22,8 @@ export function Spinner({ className, size = "md", variant = "default", ...props 
 
     return (
         <div className={cn("flex justify-center items-center", className)} {...props}>
-            <Loader2
+            <CircleNotch
+                weight="light"
                 className={cn(
                     "animate-spin",
                     sizeClasses[size],

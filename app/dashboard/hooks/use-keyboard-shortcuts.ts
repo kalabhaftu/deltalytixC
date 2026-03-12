@@ -47,8 +47,8 @@ export function useKeyboardShortcuts() {
 
     hotkeys('ctrl+t, cmd+t', (event) => {
       event.preventDefault();
-      router.push('/dashboard/settings');
-      toast.success('Settings', { description: 'Navigated to settings' });
+      router.push('/dashboard/Gear');
+      toast.success('Gear', { description: 'Navigated to Gear' });
     });
 
     // Keyboard shortcuts help
@@ -60,7 +60,7 @@ export function useKeyboardShortcuts() {
           ⌘+A: Accounts
           ⌘+S: Data Management
           ⌘+P: Prop Firm
-          ⌘+T: Settings
+          ⌘+T: Gear
           ⌘+R: Refresh Page
           ⇧⌘+Q: Logout
         `,

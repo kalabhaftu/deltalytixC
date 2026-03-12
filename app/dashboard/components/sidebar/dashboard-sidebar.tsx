@@ -5,19 +5,18 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import {
-  LayoutDashboard,
+  SquaresFour,
   Table,
   Users,
-  BarChart3,
+  ChartBar,
   Shield,
   BookOpen,
-  TrendingUp,
-  ChevronLeft,
-  ChevronRight,
-  Menu,
-  FlaskConical,
-  MenuSquare
-} from "lucide-react"
+  TrendUp,
+  CaretLeft,
+  CaretRight,
+  List,
+  Flask
+} from "@phosphor-icons/react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { motion } from "framer-motion"
 
@@ -31,19 +30,19 @@ interface SidebarProps {
 interface NavigationItem {
   id: string
   label: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ComponentType<{ className?: string; weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone" }>
 }
 
 const navigationItems: NavigationItem[] = [
   {
     id: 'widgets',
     label: 'Dashboard',
-    icon: LayoutDashboard
+    icon: SquaresFour
   },
   {
     id: 'reports',
     label: 'Reports',
-    icon: BarChart3
+    icon: ChartBar
   },
   {
     id: 'journal',
@@ -63,12 +62,12 @@ const navigationItems: NavigationItem[] = [
   {
     id: 'playbook',
     label: 'Playbook',
-    icon: MenuSquare
+    icon: List
   },
   {
     id: 'backtesting',
     label: 'Backtesting',
-    icon: FlaskConical
+    icon: Flask
   },
 ]
 
@@ -145,7 +144,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
                         }
                       }}
                     >
-                      <Icon className={cn(
+                      <Icon weight="light" className={cn(
                         "h-5 w-5 shrink-0 transition-all duration-300",
                         isCollapsed && !isMobile ? "mr-0" : "mr-3",
                         isActive
@@ -189,10 +188,10 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
             )}
           >
             {isCollapsed ? (
-              <ChevronRight className="h-4 w-4 transition-transform duration-300 hover:scale-110" />
+              <CaretRight weight="light" className="h-4 w-4 transition-transform duration-300 hover:scale-110" />
             ) : (
               <>
-                <ChevronLeft className="h-4 w-4 mr-2 transition-transform duration-300 hover:scale-110" />
+                <CaretLeft weight="light" className="h-4 w-4 mr-2 transition-transform duration-300 hover:scale-110" />
                 <span className="text-sm font-medium">Collapse</span>
               </>
             )}

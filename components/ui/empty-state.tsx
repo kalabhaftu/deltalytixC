@@ -1,11 +1,11 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { LucideIcon } from 'lucide-react'
+import { Icon } from "@phosphor-icons/react"
 import { Button } from '@/components/ui/button'
 
 interface EmptyStateProps {
-    icon: LucideIcon
+    icon: Icon
     title: string
     description: string
     actionLabel?: string
@@ -27,7 +27,7 @@ export function EmptyState({
             className
         )}>
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50 mb-4">
-                <Icon className="h-8 w-8 text-muted-foreground" />
+                <Icon weight="light" className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-semibold mb-2">{title}</h3>
             <p className="text-sm text-muted-foreground max-w-md mb-4">

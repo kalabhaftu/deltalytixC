@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils'
 import { type UseSupabaseUploadReturn } from '@/hooks/use-supabase-upload'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, File, Loader2, Upload, X } from 'lucide-react'
+import { CheckCircle, File, CircleNotch, Upload, X } from "@phosphor-icons/react"
 import { createContext, type PropsWithChildren, useCallback, useContext } from 'react'
 export const formatBytes = (
   bytes: number,
@@ -86,7 +86,7 @@ const DropzoneContent = ({ className }: { className?: string }) => {
   if (isSuccess) {
     return (
       <div className={cn('flex flex-row items-center gap-x-2 justify-center', className)}>
-          <CheckCircle size={16} className="text-profit" />
+          <CheckCircle weight="fill" size={16} className="text-profit" />
           <p className="text-profit text-sm">
            Files uploaded successfully
           </p>
@@ -112,7 +112,7 @@ const DropzoneContent = ({ className }: { className?: string }) => {
               </div>
             ) : (
               <div className="h-10 w-10 rounded border bg-muted flex items-center justify-center">
-                <File size={18} />
+                <File weight="light" size={18} />
               </div>
             )}
 
@@ -148,7 +148,7 @@ const DropzoneContent = ({ className }: { className?: string }) => {
                 className="shrink-0 justify-self-end text-muted-foreground hover:text-foreground"
                 onClick={() => handleRemoveFile(file.name)}
               >
-                <X />
+                <X weight="light" />
               </Button>
             )}
           </div>
@@ -168,7 +168,7 @@ const DropzoneContent = ({ className }: { className?: string }) => {
           >
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <CircleNotch weight="light" className="mr-2 h-4 w-4 animate-spin" />
                 Uploading...
               </>
             ) : (
@@ -190,7 +190,7 @@ const DropzoneEmptyState = ({ className }: { className?: string }) => {
 
   return (
     <div className={cn('flex flex-col items-center gap-y-2', className)}>
-      <Upload size={20} className="text-muted-foreground" />
+      <Upload weight="light" size={20} className="text-muted-foreground" />
       <p className="text-sm">
         Drag and drop files here
       </p>

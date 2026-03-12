@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, getYear, startOfWeek, endOfWeek } from "date-fns"
 import { formatInTimeZone } from 'date-fns-tz'
 import { enUS } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Camera, TrendingUp, TrendingDown, Image as ImageIcon } from "lucide-react"
+import { CaretLeft, CaretRight, Camera, TrendUp, TrendDown, Image as ImageIcon } from "@phosphor-icons/react"
 import html2canvas from 'html2canvas'
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,7 +21,7 @@ import { CalendarData } from "@/app/dashboard/types/calendar"
 // New Components
 import MonthlyView from "./monthly-view"
 import YearlyView from "./yearly-view"
-import { CalendarSettings } from "./calendar-settings"
+import { CalendarGear } from "./calendar-settings"
 
 const formatCompact = (value: number) => {
   if (Math.abs(value) >= 1000) return `$${(value / 1000).toFixed(1)}k`
@@ -204,7 +204,7 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
             {/* Navigation Group */}
             <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-0.5 border border-border/40 font-bold w-full sm:w-auto justify-between sm:justify-start">
               <Button variant="ghost" size="icon" onClick={handlePrev} className="h-7 w-7 hover:bg-background" aria-label="Previous">
-                <ChevronLeft className="h-4 w-4" />
+                <CaretLeft className="h-4 w-4" weight="light" />
               </Button>
               <div className="px-2 min-w-[100px] text-center">
                 <span className="text-sm font-bold capitalize tracking-tight">
@@ -215,7 +215,7 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
                 </span>
               </div>
               <Button variant="ghost" size="icon" onClick={handleNext} className="h-7 w-7 hover:bg-background" aria-label="Next">
-                <ChevronRight className="h-4 w-4" />
+                <CaretRight className="h-4 w-4" weight="light" />
               </Button>
             </div>
 
@@ -243,7 +243,7 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
                 onClick={handleScreenshot}
                 className="h-7 px-2 text-[11px] font-bold gap-1.5 hover:bg-primary/5 hover:text-primary transition-all"
               >
-                <Camera className="h-3.5 w-3.5" />
+                <Camera className="h-3.5 w-3.5" weight="light" />
                 <span className="hidden sm:inline">Snapshot</span>
               </Button>
               <div className="w-px h-3 bg-border/40" />
@@ -257,7 +257,7 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
                 )}
                 title={screenshotWithGradient ? "Gradient background: ON" : "Gradient background: OFF"}
               >
-                <ImageIcon className="h-3.5 w-3.5" />
+                <ImageIcon className="h-3.5 w-3.5" weight="light" />
               </Button>
             </div>
 
@@ -302,11 +302,11 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
               </Button>
             </div>
 
-            {/* Settings Menu (Stats + Review) - Moved to far right */}
+            {/* Gear Menu (Stats + Review) - Moved to far right */}
             {viewMode === 'daily' && (
               <>
                 <div className="w-px h-4 bg-border/40 mx-1" />
-                <CalendarSettings />
+                <CalendarGear />
               </>
             )}
           </div>

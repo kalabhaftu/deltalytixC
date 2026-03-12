@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Camera, Plus, X, TrendingUp, Settings2 } from 'lucide-react'
+import { Camera, Plus, X, TrendUp as TrendUp, Gear as Settings2 } from "@phosphor-icons/react"
 import { Badge } from '@/components/ui/badge'
 import {
   Select,
@@ -447,7 +447,7 @@ export function AddBacktestForm({ onAdd, onDirtyChange }: AddBacktestFormProps) 
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
+            <TrendUp className="w-5 h-5" weight="light" />
             Backtest Setup
           </CardTitle>
         </CardHeader>
@@ -604,7 +604,7 @@ export function AddBacktestForm({ onAdd, onDirtyChange }: AddBacktestFormProps) 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" type="button">
-                  <Settings2 className="w-4 h-4 mr-2" />
+                  <Settings2 className="w-4 h-4 mr-2" weight="light" />
                   {inputMode === 'manual' ? 'Full Manual' : 'Simple R:R'}
                 </Button>
               </DropdownMenuTrigger>

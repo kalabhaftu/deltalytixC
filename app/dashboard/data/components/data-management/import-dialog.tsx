@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Upload, Loader2, FileArchive, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react'
+import { UploadSimple as Upload, CircleNotch as Loader2, FileZip as FileArchive, CheckCircle, WarningCircle as AlertCircle, ArrowsCounterClockwise as ArrowCounterClockwise } from '@phosphor-icons/react'
 import { toast } from "sonner"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useData } from '@/context/data-provider'
@@ -96,7 +96,7 @@ export function ImportDialog() { // Kept name for compatibility
     }}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
-          <RotateCcw className="mr-2 h-4 w-4" /> Restore Backup
+          <ArrowCounterClockwise weight="light" className="mr-2 h-4 w-4" /> Restore Backup
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
@@ -113,7 +113,7 @@ export function ImportDialog() { // Kept name for compatibility
           {!importResults && (
             <>
               <Alert>
-                <AlertCircle className="h-4 w-4" />
+                <AlertCircle weight="light" className="h-4 w-4" />
                 <AlertDescription>
                   <strong>Safe Restore:</strong> This process will <strong>not</strong> overwrite existing data. It only adds missing records. Duplicates are automatically skipped.
                 </AlertDescription>
@@ -147,7 +147,7 @@ export function ImportDialog() { // Kept name for compatibility
           {importResults && (
             <div className="space-y-4">
               <Alert className="border-long/20 bg-long/5">
-                <CheckCircle2 className="h-4 w-4 text-long" />
+                <CheckCircle weight="light" className="h-4 w-4 text-long" />
                 <AlertDescription className="text-long">
                   <strong>Restore operation completed successfully.</strong>
                 </AlertDescription>
@@ -192,12 +192,12 @@ export function ImportDialog() { // Kept name for compatibility
             >
               {isImporting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 weight="light" className="mr-2 h-4 w-4 animate-spin" />
                   Restoring...
                 </>
               ) : (
                 <>
-                  <RotateCcw className="mr-2 h-4 w-4" />
+                  <ArrowCounterClockwise weight="light" className="mr-2 h-4 w-4" />
                   Start Restore
                 </>
               )}

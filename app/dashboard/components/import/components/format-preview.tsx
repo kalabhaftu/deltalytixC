@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, BREAK_EVEN_THRESHOLD } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Play, RotateCcw, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { Play, ArrowCounterClockwise, CheckCircle, CircleNotch, WarningCircle } from "@phosphor-icons/react";
 import { parsePositionTime } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -262,13 +262,13 @@ export function FormatPreview({
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
-        <AlertCircle className="h-12 w-12 text-destructive" />
+        <WarningCircle weight="light" className="h-12 w-12 text-destructive" />
         <div className="text-center">
           <h3 className="font-semibold text-lg">Processing Error</h3>
           <p className="text-sm text-muted-foreground mt-1">{error}</p>
         </div>
         <Button onClick={handleReset} variant="outline" className="gap-2">
-          <RotateCcw className="h-4 w-4" />
+          <ArrowCounterClockwise weight="light" className="h-4 w-4" />
           Try Again
         </Button>
       </div>
@@ -282,9 +282,9 @@ export function FormatPreview({
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             {isProcessing ? (
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <CircleNotch weight="light" className="h-4 w-4 animate-spin text-primary" />
             ) : processedTrades.length === validTrades.length && validTrades.length > 0 ? (
-              <CheckCircle2 className="h-4 w-4 text-long" />
+              <CheckCircle weight="light" className="h-4 w-4 text-long" />
             ) : null}
             <span className="text-sm font-medium">
               {processedTrades.length} / {validTrades.length} trades
@@ -306,9 +306,9 @@ export function FormatPreview({
               className="gap-2"
             >
               {isProcessing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <CircleNotch weight="light" className="h-4 w-4 animate-spin" />
               ) : (
-                <Play className="h-4 w-4" />
+                <Play weight="light" className="h-4 w-4" />
               )}
               {isProcessing ? "Processing..." : "Format Trades"}
             </Button>
@@ -319,7 +319,7 @@ export function FormatPreview({
               disabled={isProcessing}
               className="gap-2"
             >
-              <RotateCcw className="h-4 w-4" />
+              <ArrowCounterClockwise weight="light" className="h-4 w-4" />
               Reset
             </Button>
           )}
@@ -374,7 +374,7 @@ export function FormatPreview({
                     <TableRow>
                       <TableCell colSpan={columns.length} className="h-32 text-center">
                         <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                          <Play className="h-8 w-8" />
+                          <Play weight="light" className="h-8 w-8" />
                           <p>Click "Format Trades" to begin processing</p>
                           <p className="text-xs">{validTrades.length} trades waiting</p>
                         </div>

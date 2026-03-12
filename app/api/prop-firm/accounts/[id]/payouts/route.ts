@@ -69,7 +69,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get current phase
-    const currentPhase = masterAccount.PhaseAccount.find(p => p.phaseNumber === masterAccount.currentPhase)
+    const currentPhase = masterAccount.PhaseAccount.find(
+      (p: (typeof masterAccount.PhaseAccount)[number]) =>
+        p.phaseNumber === masterAccount.currentPhase
+    )
     const isFunded = currentPhase && isFundedPhase(masterAccount.evaluationType, currentPhase.phaseNumber)
 
     let eligibility = null
@@ -80,8 +83,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       const daysSinceFunded = Math.floor((Date.now() - fundedDate.getTime()) / (1000 * 60 * 60 * 24))
       
       // Calculate net profit since funded
-      const netProfit = currentPhase.Trade.reduce((sum, trade) => 
-        sum + (trade.pnl || 0) - (trade.commission || 0), 0
+      const netProfit = currentPhase.Trade.reduce(
+        (sum: number, trade: { pnl: number | null; commission: number | null }) =>
+          sum + (trade.pnl || 0) - (trade.commission || 0),
+        0
       )
       
       // Basic eligibility rules (customize as needed)

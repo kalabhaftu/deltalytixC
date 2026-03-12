@@ -8,18 +8,18 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import {
-    Search,
-    LayoutDashboard,
+    MagnifyingGlass,
+    SquaresFour,
     FileText,
     BookOpen,
     Users,
-    Table2,
-    FlaskConical,
-    BarChart3,
-    Settings,
-    Calendar,
-    TrendingUp
-} from 'lucide-react'
+    Table,
+    Flask,
+    ChartBar,
+    Gear,
+    CalendarBlank,
+    TrendUp
+} from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 
 interface CommandItem {
@@ -42,7 +42,7 @@ export function CommandPalette() {
             id: 'dashboard',
             title: 'Dashboard',
             description: 'Go to main dashboard',
-            icon: LayoutDashboard,
+            icon: SquaresFour,
             action: () => router.push('/dashboard'),
             keywords: ['home', 'main', 'widgets']
         },
@@ -50,7 +50,7 @@ export function CommandPalette() {
             id: 'reports',
             title: 'Reports',
             description: 'View yearly performance reports',
-            icon: BarChart3,
+            icon: ChartBar,
             action: () => router.push('/dashboard/reports'),
             keywords: ['stats', 'analytics', 'yearly', 'performance']
         },
@@ -74,7 +74,7 @@ export function CommandPalette() {
             id: 'trades',
             title: 'Trades',
             description: 'View trade history table',
-            icon: Table2,
+            icon: Table,
             action: () => router.push('/dashboard/table'),
             keywords: ['history', 'list', 'executions']
         },
@@ -90,23 +90,23 @@ export function CommandPalette() {
             id: 'backtesting',
             title: 'Backtesting',
             description: 'Backtest your strategies',
-            icon: FlaskConical,
+            icon: Flask,
             action: () => router.push('/dashboard/backtesting'),
             keywords: ['test', 'simulate', 'paper']
         },
         {
-            id: 'settings',
-            title: 'Settings',
-            description: 'App settings and preferences',
-            icon: Settings,
-            action: () => router.push('/dashboard/settings'),
+            id: 'Gear',
+            title: 'Gear',
+            description: 'App Gear and preferences',
+            icon: Gear,
+            action: () => router.push('/dashboard/Gear'),
             keywords: ['preferences', 'config', 'options']
         },
         {
             id: 'calendar',
             title: 'Calendar View',
             description: 'Open calendar on dashboard',
-            icon: Calendar,
+            icon: CalendarBlank,
             action: () => router.push('/dashboard'),
             keywords: ['dates', 'pnl', 'monthly']
         }
@@ -174,7 +174,7 @@ export function CommandPalette() {
         <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) setSearch('') }}>
             <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
                 <div className="flex items-center border-b px-3">
-                    <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <MagnifyingGlass className="h-4 w-4 text-muted-foreground shrink-0" weight="light" />
                     <Input
                         placeholder="Search pages, actions..."
                         value={search}
@@ -205,7 +205,7 @@ export function CommandPalette() {
                                             : "hover:bg-muted"
                                     )}
                                 >
-                                    <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                                    <Icon weight="light" className="h-4 w-4 text-muted-foreground shrink-0" />
                                     <div className="flex-1 min-w-0">
                                         <p className="font-medium truncate">{cmd.title}</p>
                                         <p className="text-xs text-muted-foreground truncate">{cmd.description}</p>

@@ -42,17 +42,17 @@ export async function GET(request: NextRequest) {
         })
       }
 
-      // Get user's account filter settings if they exist
+      // Get user's account filter Gear if they exist
       // Note: getUserId() returns Supabase auth_user_id, not our internal user.id
       const user = await prisma.user.findUnique({
         where: { auth_user_id: currentUserId },
         select: { id: true, accountFilterSettings: true }
       })
 
-      let accountFilterSettings: any = null
+      let accountFilterGear: any = null
       if (user?.accountFilterSettings) {
         try {
-          accountFilterSettings = JSON.parse(user.accountFilterSettings)
+          accountFilterGear = JSON.parse(user.accountFilterSettings)
         } catch (error) {
           // Parse error, use defaults
         }
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
       }
       const internalUserId = user.id
 
-      // Build account where clause based on user's filter settings
+      // Build account where clause based on user's filter Gear
       // NOTE: The Account model does NOT have a status field - it's only on MasterAccount/PhaseAccount
       // Regular accounts are always "live" trading accounts
       let accountWhereClause: any = {
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      // Also get prop firm phase accounts based on filter settings
+      // Also get prop firm phase accounts based on filter Gear
       let propFirmPhaseNumbers: string[] = []
 
       // Build master account where clause for prop firm filtering
@@ -115,29 +115,29 @@ export async function GET(request: NextRequest) {
       // Apply status filtering to MasterAccount (which DOES have a status field)
       // NOTE: MasterAccountStatus only has: active, funded, failed
       // The 'passed' status exists only on PhaseAccount, not MasterAccount
-      if (!accountFilterSettings || accountFilterSettings.showMode === 'active-only') {
+      if (!accountFilterGear || accountFilterGear.showMode === 'active-only') {
         // Default: only include active and funded prop firm accounts
         masterAccountWhere.status = { in: ['active', 'funded'] }
-      } else if (accountFilterSettings.showMode === 'custom') {
+      } else if (accountFilterGear.showMode === 'custom') {
         // Apply custom filtering logic
         const statusFilters: ('active' | 'funded' | 'failed')[] = []
 
-        if (accountFilterSettings.includeStatuses?.includes('active')) {
+        if (accountFilterGear.includeStatuses?.includes('active')) {
           statusFilters.push('active')
         }
-        if (accountFilterSettings.includeStatuses?.includes('funded') || accountFilterSettings.showFundedAccounts) {
+        if (accountFilterGear.includeStatuses?.includes('funded') || accountFilterGear.showFundedAccounts) {
           statusFilters.push('funded')
         }
         // NOTE: 'passed' is NOT a valid MasterAccount status - it only exists on PhaseAccount
         // For "passed accounts", we should include 'funded' status since passing leads to funded
-        if (accountFilterSettings.showPassedAccounts) {
+        if (accountFilterGear.showPassedAccounts) {
           // Include funded accounts when user wants to see "passed" accounts
           // since MasterAccount transitions to 'funded' when phases are passed
           if (!statusFilters.includes('funded')) {
             statusFilters.push('funded')
           }
         }
-        if (accountFilterSettings.showFailedAccounts) {
+        if (accountFilterGear.showFailedAccounts) {
           statusFilters.push('failed')
         }
 
@@ -171,8 +171,8 @@ export async function GET(request: NextRequest) {
 
       // Combine regular account numbers with prop firm phase IDs
       const filteredAccountNumbers = [
-        ...filteredAccounts.map(acc => acc.number),
-        ...propFirmPhaseNumbers
+        ...filteredAccounts.map((acc: typeof filteredAccounts[number]) => acc.number),
+        ...propFirmPhaseNumbers,
       ]
 
       // Build trade where clause that only includes trades from filtered accounts
@@ -261,7 +261,7 @@ export async function GET(request: NextRequest) {
 
       // Calculate daily PnL for chart (net of commissions)
       const dailyPnL = new Map<string, number>()
-      recentTrades.forEach(trade => {
+      recentTrades.forEach((trade: typeof recentTrades[number]) => {
         const date = trade.createdAt.toISOString().split('T')[0]
         const netPnL = trade.pnl - (trade.commission || 0)
         dailyPnL.set(date, (dailyPnL.get(date) || 0) + netPnL)
@@ -275,7 +275,7 @@ export async function GET(request: NextRequest) {
 
       // CRITICAL: Group trades by execution to handle partial closes correctly
       const { groupTradesByExecution } = await import('@/lib/utils')
-      const groupedTrades = groupTradesByExecution(recentTrades as any[])
+      const groupedTrades = groupTradesByExecution(recentTrades as any[]) as any[]
 
       // Calculate average win/loss from GROUPED trades
       const wins = groupedTrades.filter(t => (t.pnl - (t.commission || 0)) > BREAK_EVEN_THRESHOLD)
@@ -337,8 +337,8 @@ export async function GET(request: NextRequest) {
           breakEvenTrades,
           chartData,
           isAuthenticated: true,
-          filterSettings: {
-            showMode: accountFilterSettings?.showMode || 'active-only',
+          filterGear: {
+            showMode: accountFilterGear?.showMode || 'active-only',
             filteredAccountsCount: filteredAccounts.length,
             accountNumbers: filteredAccountNumbers
           },

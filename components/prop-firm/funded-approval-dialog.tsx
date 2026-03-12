@@ -15,18 +15,18 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { 
-  Trophy, 
-  XCircle, 
-  CheckCircle2, 
-  Loader2,
-  AlertTriangle,
-  PartyPopper
-} from "lucide-react"
+import {
+  Trophy,
+  XCircle,
+  CheckCircle,
+  CircleNotch,
+  WarningCircle,
+  Confetti
+} from "@phosphor-icons/react"
 import { toast } from "sonner"
-import { 
-  handleFundedApprovalAction, 
-  handleFundedDeclineAction 
+import {
+  handleFundedApprovalAction,
+  handleFundedDeclineAction
 } from "@/server/notifications"
 import { Notification } from '@prisma/client'
 import { clearAccountsCache } from '@/hooks/use-accounts'
@@ -48,11 +48,11 @@ const DECLINE_REASONS = [
   { id: 'other', label: 'Other Reason' }
 ]
 
-export function FundedApprovalDialog({ 
-  open, 
-  onOpenChange, 
+export function FundedApprovalDialog({
+  open,
+  onOpenChange,
   notification,
-  onComplete 
+  onComplete
 }: FundedApprovalDialogProps) {
   const router = useRouter()
   const [action, setAction] = useState<Action>(null)
@@ -61,9 +61,9 @@ export function FundedApprovalDialog({
   const [customReason, setCustomReason] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const notificationData = notification?.data as { 
+  const notificationData = notification?.data as {
     masterAccountId?: string
-    accountName?: string 
+    accountName?: string
   } | null
 
   const resetState = () => {
@@ -107,19 +107,19 @@ export function FundedApprovalDialog({
 
       // Clear all caches to force fresh data
       clearAccountsCache()
-      
+
       // Clear localStorage caches that might contain stale data
       try {
         localStorage.removeItem('bundled-data-cache')
         localStorage.removeItem('bundled-data-timestamp')
-        localStorage.removeItem('account-filter-settings-cache')
+        localStorage.removeItem('account-filter-Gear-cache')
       } catch (e) {
         // Ignore storage errors
       }
-      
+
       resetState()
       onComplete()
-      
+
       // Force full page refresh to ensure clean state
       router.refresh()
 
@@ -138,7 +138,7 @@ export function FundedApprovalDialog({
       return
     }
 
-    const reason = declineReason === 'other' 
+    const reason = declineReason === 'other'
       ? customReason.trim() || 'Other reason'
       : DECLINE_REASONS.find(r => r.id === declineReason)?.label || declineReason
 
@@ -179,11 +179,11 @@ export function FundedApprovalDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-primary" />
+            <Trophy className="h-5 w-5 text-primary" weight="light" />
             Firm Approval Status
           </DialogTitle>
           <DialogDescription>
-            {notificationData?.accountName 
+            {notificationData?.accountName
               ? `Update the status for ${notificationData.accountName}`
               : 'Update the firm approval status for your account'
             }
@@ -193,7 +193,7 @@ export function FundedApprovalDialog({
         {!action ? (
           <div className="space-y-4">
             <Alert>
-              <PartyPopper className="h-4 w-4" />
+              <Confetti className="h-4 w-4" weight="light" />
               <AlertDescription>
                 Your account met the profit target! What was the firm's decision?
               </AlertDescription>
@@ -205,7 +205,7 @@ export function FundedApprovalDialog({
                 className="h-24 flex-col gap-2 border-long/50 hover:border-long hover:bg-long/10"
                 onClick={() => setAction('approved')}
               >
-                <CheckCircle2 className="h-8 w-8 text-long" />
+                <CheckCircle className="h-8 w-8 text-long" weight="light" />
                 <span className="text-sm font-medium">Firm Approved</span>
               </Button>
 
@@ -214,7 +214,7 @@ export function FundedApprovalDialog({
                 className="h-24 flex-col gap-2 border-destructive/50 hover:border-destructive hover:bg-destructive/10"
                 onClick={() => setAction('declined')}
               >
-                <XCircle className="h-8 w-8 text-destructive" />
+                <XCircle className="h-8 w-8 text-destructive" weight="light" />
                 <span className="text-sm font-medium">Firm Declined</span>
               </Button>
             </div>
@@ -222,7 +222,7 @@ export function FundedApprovalDialog({
         ) : action === 'approved' ? (
           <div className="space-y-4">
             <Alert className="border-long/50 bg-long/10">
-              <CheckCircle2 className="h-4 w-4 text-long" />
+              <CheckCircle className="h-4 w-4 text-long" weight="light" />
               <AlertDescription>
                 Great news! Enter your funded account ID to activate.
               </AlertDescription>
@@ -243,8 +243,8 @@ export function FundedApprovalDialog({
             </div>
 
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setAction(null)}
                 disabled={isSubmitting}
                 className="flex-1"
@@ -258,7 +258,7 @@ export function FundedApprovalDialog({
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <CircleNotch className="h-4 w-4 mr-2 animate-spin" weight="light" />
                     Activating...
                   </>
                 ) : (
@@ -270,7 +270,7 @@ export function FundedApprovalDialog({
         ) : (
           <div className="space-y-4">
             <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
+              <WarningCircle className="h-4 w-4" weight="light" />
               <AlertDescription>
                 We're sorry to hear that. Please select the reason for decline.
               </AlertDescription>
@@ -278,8 +278,8 @@ export function FundedApprovalDialog({
 
             <div className="space-y-3">
               <Label>Reason for Decline</Label>
-              <RadioGroup 
-                value={declineReason} 
+              <RadioGroup
+                value={declineReason}
                 onValueChange={setDeclineReason}
                 disabled={isSubmitting}
               >
@@ -305,8 +305,8 @@ export function FundedApprovalDialog({
             </div>
 
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setAction(null)}
                 disabled={isSubmitting}
                 className="flex-1"
@@ -321,7 +321,7 @@ export function FundedApprovalDialog({
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <CircleNotch className="h-4 w-4 mr-2 animate-spin" weight="light" />
                     Processing...
                   </>
                 ) : (

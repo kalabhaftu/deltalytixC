@@ -19,7 +19,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Plus, TrendingUp, TrendingDown } from 'lucide-react'
+import { Plus, TrendUp, TrendDown } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -89,7 +89,7 @@ export function QuickAddFAB({ className }: QuickAddFABProps) {
                         className
                     )}
                 >
-                    <Plus className="h-6 w-6" />
+                    <Plus weight="light" className="h-6 w-6" />
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
@@ -123,7 +123,7 @@ export function QuickAddFAB({ className }: QuickAddFABProps) {
                                 )}
                                 onClick={() => setFormData(prev => ({ ...prev, side: 'long' }))}
                             >
-                                <TrendingUp className="h-4 w-4" />
+                                <TrendUp weight="light" className="h-4 w-4" />
                                 Long
                             </Button>
                             <Button
@@ -135,7 +135,7 @@ export function QuickAddFAB({ className }: QuickAddFABProps) {
                                 )}
                                 onClick={() => setFormData(prev => ({ ...prev, side: 'short' }))}
                             >
-                                <TrendingDown className="h-4 w-4" />
+                                <TrendDown weight="light" className="h-4 w-4" />
                                 Short
                             </Button>
                         </div>

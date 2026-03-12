@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { TrendingUp, BarChart3, LineChart, Activity, Zap, Target } from 'lucide-react'
+import { TrendUp, ChartBar, ChartLineUp, Pulse, Lightning, Target } from '@phosphor-icons/react'
 
 const tradingQuotes = [
   {
@@ -67,7 +67,7 @@ const tradingQuotes = [
   }
 ]
 
-const icons = [TrendingUp, BarChart3, LineChart, Activity, Zap, Target]
+const icons = [TrendUp, ChartBar, ChartLineUp, Pulse, Lightning, Target]
 
 export function ImportLoading() {
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0)
@@ -125,7 +125,7 @@ export function ImportLoading() {
           }}
           className="relative z-10 w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-muted/20 backdrop-blur-sm border border-border flex items-center justify-center"
         >
-          <IconComponent className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-foreground" />
+          <IconComponent weight="light" className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-foreground" />
         </motion.div>
       </motion.div>
 

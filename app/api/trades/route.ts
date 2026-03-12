@@ -419,7 +419,19 @@ async function getTradesStatistics(offset: number, limit: number) {
     take: limit
   })
 
-  const stats = trades.reduce((acc, trade) => {
+  const stats = trades.reduce(
+    (
+      acc: {
+        totalPnL: number
+        totalTrades: number
+        totalCommission: number
+        winningTrades: number
+        losingTrades: number
+        totalVolume: number
+        winRate: number
+      },
+      trade: typeof trades[number]
+    ) => {
     const netPnl = trade.pnl + trade.commission
     acc.totalPnL += netPnl
     acc.totalTrades += 1
@@ -428,14 +440,15 @@ async function getTradesStatistics(offset: number, limit: number) {
     acc.losingTrades += netPnl < -BREAK_EVEN_THRESHOLD ? 1 : 0
     acc.totalVolume += Math.abs(trade.quantity)
     return acc
-  }, {
+  },
+  {
     totalPnL: 0,
     totalTrades: 0,
     totalCommission: 0,
     winningTrades: 0,
     losingTrades: 0,
     totalVolume: 0,
-    winRate: 0
+    winRate: 0,
   })
 
   // CRITICAL FIX: Exclude break-even trades from win rate denominator

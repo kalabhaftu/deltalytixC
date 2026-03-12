@@ -9,14 +9,14 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
   ArrowLeft,
-  RefreshCw,
-  DollarSign,
+  ArrowsClockwise,
+  CurrencyDollar,
   Calendar,
   CreditCard,
-  AlertTriangle,
+  Warning,
   CheckCircle,
   Clock
-} from "lucide-react"
+} from "@phosphor-icons/react"
 import { useRouter } from 'next/navigation'
 import { cn } from "@/lib/utils"
 
@@ -91,11 +91,11 @@ export default function PayoutsPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending': return <Clock className="h-4 w-4" />
-      case 'approved': return <CheckCircle className="h-4 w-4" />
-      case 'paid': return <CheckCircle className="h-4 w-4" />
-      case 'rejected': return <AlertTriangle className="h-4 w-4" />
-      default: return <Clock className="h-4 w-4" />
+      case 'pending': return <Clock weight="light" className="h-4 w-4" />
+      case 'approved': return <CheckCircle weight="light" className="h-4 w-4" />
+      case 'paid': return <CheckCircle weight="light" className="h-4 w-4" />
+      case 'rejected': return <Warning weight="light" className="h-4 w-4" />
+      default: return <Clock weight="light" className="h-4 w-4" />
     }
   }
 
@@ -123,7 +123,7 @@ export default function PayoutsPage() {
             size="sm"
             onClick={() => router.push('/dashboard/prop-firm')}
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft weight="light" className="h-4 w-4 mr-2" />
             Back
           </Button>
           <div>
@@ -138,7 +138,7 @@ export default function PayoutsPage() {
             onClick={fetchPayouts}
             disabled={isLoading}
           >
-            <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+            <ArrowsClockwise weight="light" className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
             Refresh
           </Button>
         </div>
@@ -158,12 +158,12 @@ export default function PayoutsPage() {
       {/* Payouts List */}
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <RefreshCw className="h-8 w-8 animate-spin" />
+          <ArrowsClockwise weight="light" className="h-8 w-8 animate-spin" />
         </div>
       ) : filteredPayouts.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center h-64">
-            <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
+            <Warning weight="light" className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">
               {searchTerm ? 'No results found' : 'No payouts found'}
             </h3>
@@ -191,7 +191,7 @@ export default function PayoutsPage() {
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <CurrencyDollar weight="light" className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <p className="text-xs text-muted-foreground">Requested</p>
                           <p className="font-medium">{formatCurrency(payout.amountRequested)}</p>
@@ -199,7 +199,7 @@ export default function PayoutsPage() {
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4 text-muted-foreground" />
+                        <CreditCard weight="light" className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <p className="text-xs text-muted-foreground">Paid</p>
                           <p className="font-medium">{formatCurrency(payout.amountPaid)}</p>
@@ -207,7 +207,7 @@ export default function PayoutsPage() {
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <Calendar weight="light" className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <p className="text-xs text-muted-foreground">Requested Date</p>
                           <p className="font-medium">{formatDate(payout.requestedAt)}</p>
@@ -217,7 +217,7 @@ export default function PayoutsPage() {
                     
                     {payout.paidAt && (
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <Calendar weight="light" className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <p className="text-xs text-muted-foreground">Paid Date</p>
                           <p className="font-medium">{formatDate(payout.paidAt)}</p>

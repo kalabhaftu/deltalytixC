@@ -5,18 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
-    Download,
-    Share2,
+    DownloadSimple,
     Copy,
     Check,
-    TrendingUp,
-    TrendingDown,
-    Target,
     Flame,
-    Calendar,
-    BarChart3,
     Shield
-} from 'lucide-react'
+} from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import html2canvas from 'html2canvas'
@@ -132,7 +126,7 @@ Verified via Deltalytix Intelligence`
 
                     <div className="flex flex-col items-end">
                         <div className="flex items-center gap-2 bg-muted/50 backdrop-blur-md border border-border px-3 py-1.5 rounded-full shadow-inner">
-                            <Shield className="h-3 w-3 text-primary" />
+                            <Shield weight="light" className="h-3 w-3 text-primary" />
                             <span className="text-[10px] font-black uppercase tracking-widest text-foreground">Verified Account</span>
                         </div>
                         <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-2">{userName || 'TRADER_X'}</span>
@@ -152,7 +146,7 @@ Verified via Deltalytix Intelligence`
                             </div>
                             {isProfit && (
                                 <div className="absolute -top-4 -right-8">
-                                    <Flame className="h-8 w-8 text-profit animate-pulse blur-[1px]" />
+                                    <Flame weight="light" className="h-8 w-8 text-profit animate-pulse blur-[1px]" />
                                 </div>
                             )}
                         </div>
@@ -211,7 +205,7 @@ Verified via Deltalytix Intelligence`
                     disabled={isExporting}
                     className="w-full sm:flex-1 h-12 gap-3 bg-primary hover:bg-primary-hover active:bg-primary-press text-primary-foreground font-black uppercase tracking-tighter text-xs rounded-xl shadow-[0_8px_16px_-4px_hsl(var(--chart-profit)/0.3)] transition-all hover:translate-y-[-2px] active:translate-y-[0px]"
                 >
-                    <Download className="h-4 w-4" />
+                    <DownloadSimple weight="light" className="h-4 w-4" />
                     {isExporting ? 'Generating Premium Render...' : 'Export High-Res Image'}
                 </Button>
                 <Button
@@ -219,7 +213,7 @@ Verified via Deltalytix Intelligence`
                     onClick={handleCopyStats}
                     className="w-full sm:w-auto h-12 gap-3 border-border bg-card hover:bg-accent text-card-foreground font-black uppercase tracking-tighter text-xs rounded-xl transition-all"
                 >
-                    {isCopied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+                    {isCopied ? <Check weight="light" className="h-4 w-4 text-primary" /> : <Copy weight="light" className="h-4 w-4" />}
                     {isCopied ? 'Intelligence Copied' : 'Copy Data'}
                 </Button>
             </div>

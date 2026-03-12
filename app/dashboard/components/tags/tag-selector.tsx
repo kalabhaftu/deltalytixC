@@ -11,7 +11,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
-import { Tag, Plus, X, Settings } from 'lucide-react'
+import { Tag, Plus, X, Gear } from '@phosphor-icons/react'
 import { TagManager } from './tag-manager'
 import { cn } from '@/lib/utils'
 
@@ -82,7 +82,7 @@ export function TagSelector({ selectedTagIds, onChange, className }: TagSelector
               onClick={() => handleRemoveTag(tag.id)}
               className="ml-1 hover:bg-black/20 rounded-full p-0.5"
             >
-              <X className="h-3 w-3" />
+              <X className="h-3 w-3" weight="light" />
             </button>
           </Badge>
         ))}
@@ -90,7 +90,7 @@ export function TagSelector({ selectedTagIds, onChange, className }: TagSelector
         <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="h-7 gap-1">
-              <Plus className="h-3 w-3" />
+              <Plus className="h-3 w-3" weight="light" />
               <span className="text-xs">Add Tag</span>
             </Button>
           </PopoverTrigger>
@@ -98,7 +98,7 @@ export function TagSelector({ selectedTagIds, onChange, className }: TagSelector
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-semibold flex items-center gap-1">
-                  <Tag className="h-4 w-4" />
+                  <Tag className="h-4 w-4" weight="light" />
                   Select Tags
                 </h4>
                 <Button
@@ -110,7 +110,7 @@ export function TagSelector({ selectedTagIds, onChange, className }: TagSelector
                     setIsPopoverOpen(false)
                   }}
                 >
-                  <Settings className="h-3 w-3" />
+                  <Gear className="h-3 w-3" weight="light" />
                   Manage
                 </Button>
               </div>

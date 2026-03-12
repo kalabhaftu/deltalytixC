@@ -84,8 +84,15 @@ export async function POST(
         where: { accountId }
       })
 
-      const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl - trade.commission), 0)
-      const totalTransactions = transactions.reduce((sum, tx) => sum + tx.amount, 0)
+      const totalPnL = trades.reduce(
+        (sum: number, trade: { pnl: number; commission: number }) =>
+          sum + (trade.pnl - trade.commission),
+        0
+      )
+      const totalTransactions = transactions.reduce(
+        (sum: number, tx: { amount: number }) => sum + tx.amount,
+        0
+      )
       const currentBalance = account.startingBalance + totalPnL + totalTransactions
 
       if (currentBalance < numericAmount) {

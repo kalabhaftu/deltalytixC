@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, Building2, User, AlertCircle, RefreshCw, Target, Clock, AlertTriangle } from 'lucide-react'
+import { CheckCircle, Buildings, User, WarningCircle, ArrowsClockwise, Target, Clock, Warning } from "@phosphor-icons/react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -187,7 +187,7 @@ export default function AccountSelection({
       {accounts.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <Card className="p-8 text-center">
-            <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <WarningCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" weight="light" />
             <h3 className="text-lg font-semibold mb-2">
               {hasError ? "Failed to fetch accounts" : "No accounts found"}
             </h3>
@@ -203,7 +203,7 @@ export default function AccountSelection({
                 disabled={isLoading}
                 className="mb-4"
               >
-                <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+                <ArrowsClockwise className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} weight="light" />
                 {isLoading ? 'Retrying...' : 'Retry'}
               </Button>
             ) : (
@@ -232,9 +232,9 @@ export default function AccountSelection({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       {account.accountType === 'prop-firm' ? (
-                        <Building2 className="h-4 w-4 text-foreground" />
+                        <Buildings className="h-4 w-4 text-foreground" weight="light" />
                       ) : (
-                        <User className="h-4 w-4 text-long" />
+                        <User className="h-4 w-4 text-long" weight="light" />
                       )}
                       <p className="font-medium">{account.displayName}</p>
                     </div>
@@ -264,9 +264,9 @@ export default function AccountSelection({
                               }
                               className="text-xs"
                             >
-                              {phaseStatus === 'active' && <Target className="h-3 w-3 mr-1" />}
-                              {phaseStatus === 'passed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                              {phaseStatus === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                              {phaseStatus === 'active' && <Target className="h-3 w-3 mr-1" weight="light" />}
+                              {phaseStatus === 'passed' && <CheckCircle className="h-3 w-3 mr-1" weight="light" />}
+                              {phaseStatus === 'failed' && <Warning className="h-3 w-3 mr-1" weight="light" />}
                               {getPhaseLabel(evaluationType, phaseNumber)}
                               {phaseId && (
                                 <span className="text-xs font-mono text-muted-foreground ml-1">
@@ -280,7 +280,7 @@ export default function AccountSelection({
                     )}
                   </div>
                   {selectedAccountId === account.id && (
-                    <CheckCircle2 className="h-5 w-5 text-foreground" />
+                    <CheckCircle className="h-5 w-5 text-foreground" weight="light" />
                   )}
                 </div>
               </Card>

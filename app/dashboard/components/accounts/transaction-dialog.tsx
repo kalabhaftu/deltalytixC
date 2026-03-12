@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Plus, Minus, DollarSign } from 'lucide-react'
+import { Plus, Minus, CurrencyDollar } from "@phosphor-icons/react"
 
 const transactionSchema = z.object({
   type: z.enum(['DEPOSIT', 'WITHDRAWAL']),
@@ -111,9 +111,9 @@ export function TransactionDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {watchedType === 'DEPOSIT' ? (
-              <Plus className="w-5 h-5 text-long" />
+              <Plus className="w-5 h-5 text-long" weight="light" />
             ) : (
-              <Minus className="w-5 h-5 text-short" />
+              <Minus className="w-5 h-5 text-short" weight="light" />
             )}
             {watchedType === 'DEPOSIT' ? 'Deposit Funds' : 'Withdraw Funds'}
           </DialogTitle>
@@ -132,13 +132,13 @@ export function TransactionDialog({
               <SelectContent>
                 <SelectItem value="DEPOSIT">
                   <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-long" />
+                    <Plus className="w-4 h-4 text-long" weight="light" />
                     Deposit
                   </div>
                 </SelectItem>
                 <SelectItem value="WITHDRAWAL">
                   <div className="flex items-center gap-2">
-                    <Minus className="w-4 h-4 text-short" />
+                    <Minus className="w-4 h-4 text-short" weight="light" />
                     Withdrawal
                   </div>
                 </SelectItem>
@@ -149,7 +149,7 @@ export function TransactionDialog({
           <div className="space-y-2">
             <Label htmlFor="amount">Amount</Label>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <CurrencyDollar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" weight="light" />
               <Input
                 id="amount"
                 type="number"

@@ -13,7 +13,7 @@ import { Trade, Account, Prisma } from '@prisma/client'
  * More efficient than creating one-by-one
  */
 export async function batchCreateTrades(
-  trades: Prisma.TradeCreateInput[]
+  trades: any[]
 ): Promise<{ count: number; errors: any[] }> {
   const errors: any[] = []
   let count = 0
@@ -37,7 +37,7 @@ export async function batchCreateTrades(
  * Batch update trades with transaction
  */
 export async function batchUpdateTrades(
-  updates: { id: string; data: Prisma.TradeUpdateInput }[]
+  updates: { id: string; data: any }[]
 ): Promise<{ count: number; errors: any[] }> {
   const errors: any[] = []
   let count = 0
@@ -169,7 +169,7 @@ export async function fetchTradesWithRelations(
  * Batch upsert (create or update) trades
  */
 export async function batchUpsertTrades(
-  trades: (Prisma.TradeCreateInput & { entryId?: string })[]
+  trades: (any & { entryId?: string })[]
 ): Promise<{ created: number; updated: number; errors: any[] }> {
   const errors: any[] = []
   let created = 0

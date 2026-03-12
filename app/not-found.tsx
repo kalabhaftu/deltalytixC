@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from "@/components/ui/button"
-import { Home, ArrowLeft } from "lucide-react"
+import { House, ArrowLeft } from "@phosphor-icons/react"
 
 import { useAuth } from "@/context/auth-provider"
 
@@ -67,7 +67,7 @@ export default function NotFound() {
         >
           <Button asChild size="lg" className="gap-2">
             <Link href={isAuthenticated ? "/dashboard" : "/"}>
-              <Home className="w-4 h-4" />
+              <House className="w-4 h-4" weight="light" />
               {isAuthenticated ? "Back to Dashboard" : "Back Home"}
             </Link>
           </Button>

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { Component, ErrorInfo, ReactNode, ReactElement } from 'react'
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { Warning, ArrowsClockwise } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -60,10 +60,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo })
-    
+
     // Call optional error handler
     this.props.onError?.(error, errorInfo)
-    
+
     // Log error for debugging
     console.error('ErrorBoundary caught an error:', error, errorInfo)
   }
@@ -75,9 +75,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   render(): ReactNode {
     const { hasError, error } = this.state
-    const { 
-      children, 
-      fallback, 
+    const {
+      children,
+      fallback,
       errorMessage,
       showRetry = true,
       className = ''
@@ -94,7 +94,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <Card className={`border-destructive/50 ${className}`}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
+              <Warning weight="light" className="h-5 w-5" />
               Something went wrong
             </CardTitle>
           </CardHeader>
@@ -110,13 +110,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           </CardContent>
           {showRetry && (
             <CardFooter>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={this.handleRetry}
                 className="gap-2"
               >
-                <RefreshCw className="h-4 w-4" />
+                <ArrowsClockwise weight="light" className="h-4 w-4" />
                 Try Again
               </Button>
             </CardFooter>
@@ -141,16 +141,16 @@ interface ErrorBoundaryWrapperProps extends Omit<ErrorBoundaryProps, 'onRetry'> 
   showDetails?: boolean
 }
 
-export function ErrorBoundaryWrapper({ 
-  children, 
+export function ErrorBoundaryWrapper({
+  children,
   resetKey,
   context,
   showDetails,
   errorMessage,
-  ...props 
+  ...props
 }: ErrorBoundaryWrapperProps): ReactElement {
   const [key, setKey] = React.useState(0)
-  
+
   // Reset on resetKey change
   React.useEffect(() => {
     setKey(prev => prev + 1)
@@ -160,8 +160,8 @@ export function ErrorBoundaryWrapper({
   const finalErrorMessage = errorMessage || (context ? `Error in ${context}` : undefined)
 
   return (
-    <ErrorBoundary 
-      key={key} 
+    <ErrorBoundary
+      key={key}
       onRetry={() => setKey(prev => prev + 1)}
       errorMessage={finalErrorMessage}
       {...props}
@@ -185,16 +185,16 @@ export function DataError({ error, onRetry, className = '' }: DataErrorProps): R
 
   return (
     <div className={`flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg ${className}`}>
-      <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+      <Warning weight="light" className="h-5 w-5 text-destructive shrink-0" />
       <p className="text-sm text-destructive flex-1">{error}</p>
       {onRetry && (
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onRetry}
           className="shrink-0"
         >
-          <RefreshCw className="h-4 w-4" />
+          <ArrowsClockwise weight="light" className="h-4 w-4" />
         </Button>
       )}
     </div>
@@ -212,12 +212,12 @@ interface LoadingOrErrorProps {
   children: ReactNode
 }
 
-export function LoadingOrError({ 
-  isLoading, 
-  error, 
+export function LoadingOrError({
+  isLoading,
+  error,
   onRetry,
   loadingComponent,
-  children 
+  children
 }: LoadingOrErrorProps): ReactElement {
   if (isLoading) {
     return (
@@ -241,11 +241,11 @@ export function LoadingOrError({
 /**
  * Widget-specific error boundary with compact styling
  */
-export function WidgetErrorBoundary({ 
-  children, 
+export function WidgetErrorBoundary({
+  children,
   widgetId,
   widgetType
-}: { 
+}: {
   children: ReactNode
   widgetId?: string
   widgetType?: string
@@ -262,11 +262,11 @@ export function WidgetErrorBoundary({
 /**
  * Dashboard-level error boundary
  */
-export function DashboardErrorBoundary({ 
+export function DashboardErrorBoundary({
   children,
   context,
   showDetails = false
-}: { 
+}: {
   children: ReactNode
   context?: string
   showDetails?: boolean

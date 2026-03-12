@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Building2 } from "lucide-react"
+import { Building } from "@phosphor-icons/react"
 import { useRegisterDialog } from "@/app/dashboard/components/auto-refresh-provider"
 
 const editAccountSchema = z.object({
@@ -217,7 +217,7 @@ export function EditPropFirmAccountDialog({
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
+              <Building className="h-5 w-5" weight="light" />
               Edit Prop Firm Account
             </DialogTitle>
             <DialogDescription>

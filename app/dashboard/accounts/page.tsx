@@ -17,30 +17,30 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Plus,
-  Search,
-  RefreshCw,
-  TrendingUp,
-  TrendingDown,
-  Building2,
+  MagnifyingGlass as Search,
+  ArrowsClockwise as ArrowClockwise,
+  TrendUp as TrendUp,
+  TrendDown as TrendDown,
+  Buildings as Buildings,
   User,
-  DollarSign,
-  Activity,
-  MoreHorizontal,
-  AlertTriangle,
+  CurrencyDollar as DollarSign,
+  Pulse as Activity,
+  DotsThree as MoreHorizontal,
+  WarningCircle as AlertTriangle,
   Eye,
-  Edit,
-  Trash2,
+  Pencil as Edit,
+  Trash,
   Archive,
-  ArchiveRestore,
+  ArrowCounterClockwise as ArchiveRestore,
   Target,
   Trophy,
   XCircle,
   Wallet,
-  BarChart3,
-  Sparkles,
-  ChevronRight,
+  ChartBar as BarChart3,
+  Sparkle as Sparkles,
+  CaretRight as ChevronRight,
   X
-} from "lucide-react"
+} from "@phosphor-icons/react"
 import { CreateLiveAccountDialog } from "../components/accounts/create-live-account-dialog"
 import { CreatePropFirmDialog } from "../components/prop-firm/create-prop-firm-dialog"
 import { EditLiveAccountDialog } from "@/components/edit-live-account-dialog"
@@ -473,7 +473,7 @@ export default function AccountsPage() {
                       disabled={isRefreshing}
                       className="h-9 w-9"
                     >
-                      <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                      <ArrowClockwise className={cn("h-4 w-4", isRefreshing && "animate-spin")} weight="light" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Refresh accounts</TooltipContent>
@@ -489,7 +489,7 @@ export default function AccountsPage() {
                   <DropdownMenuContent align="end" className="w-52">
                     <DropdownMenuItem onClick={() => setCreateLiveDialogOpen(true)} className="gap-3 py-2.5">
                       <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-                        <User className="h-4 w-4 text-muted-foreground" />
+                        <User weight="light" className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <div>
                         <div className="font-medium">Live Account</div>
@@ -498,7 +498,7 @@ export default function AccountsPage() {
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setCreatePropFirmDialogOpen(true)} className="gap-3 py-2.5">
                       <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <Buildings className="h-4 w-4 text-muted-foreground" weight="light" />
                       </div>
                       <div>
                         <div className="font-medium">Prop Firm</div>
@@ -521,26 +521,26 @@ export default function AccountsPage() {
             <StatCard
               label="Total Equity"
               value={formatCompactCurrency(accountStats.totalEquity)}
-              icon={<Wallet className="h-4 w-4" />}
+              icon={<Wallet weight="light" className="h-4 w-4" />}
               trend={accountStats.pnl >= 0 ? 'up' : 'down'}
               trendValue={`${accountStats.pnl >= 0 ? '+' : ''}${formatCompactCurrency(accountStats.pnl)}`}
             />
             <StatCard
               label="Accounts"
               value={accountStats.total}
-              icon={<Activity className="h-4 w-4" />}
+              icon={<Activity weight="light" className="h-4 w-4" />}
               subtext={`${accountStats.live} live, ${accountStats.propFirm} prop`}
             />
             <StatCard
               label="Funded"
               value={accountStats.funded}
-              icon={<Trophy className="h-4 w-4" />}
+              icon={<Trophy weight="light" className="h-4 w-4" />}
               highlight={accountStats.funded > 0}
             />
             <StatCard
               label="Total Trades"
               value={accountStats.totalTrades.toLocaleString()}
-              icon={<BarChart3 className="h-4 w-4" />}
+              icon={<BarChart3 weight="light" className="h-4 w-4" />}
             />
           </motion.div>
 
@@ -553,7 +553,7 @@ export default function AccountsPage() {
           >
             {/* Search */}
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Search weight="light" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 ref={searchInputRef}
                 placeholder="Search accounts..."
@@ -568,7 +568,7 @@ export default function AccountsPage() {
                   className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
                   onClick={() => setSearchQuery('')}
                 >
-                  <X className="h-3 w-3" />
+                  <X weight="light" className="h-3 w-3" />
                 </Button>
               ) : (
                 <kbd className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
@@ -582,11 +582,11 @@ export default function AccountsPage() {
               <TabsList className="h-9 w-full sm:w-auto grid grid-cols-3">
                 <TabsTrigger value="all" className="text-xs px-3">All</TabsTrigger>
                 <TabsTrigger value="live" className="text-xs px-3 gap-1.5">
-                  <User className="h-3 w-3" />
+                  <User weight="light" className="h-3 w-3" />
                   <span className="hidden sm:inline">Live</span>
                 </TabsTrigger>
                 <TabsTrigger value="prop-firm" className="text-xs px-3 gap-1.5">
-                  <Building2 className="h-3 w-3" />
+                  <Buildings weight="light" className="h-3 w-3" />
                   <span className="hidden sm:inline">Prop</span>
                 </TabsTrigger>
               </TabsList>
@@ -653,7 +653,7 @@ export default function AccountsPage() {
             <AlertDialogHeader>
               <AlertDialogTitle className="flex items-center gap-2">
                 <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
-                  <Trash2 className="h-5 w-5 text-destructive" />
+                  <Trash className="h-5 w-5 text-destructive" weight="light" />
                 </div>
                 <span>Delete Account</span>
               </AlertDialogTitle>
@@ -776,7 +776,7 @@ function StatCard({
               "flex items-center gap-1 text-[10px] font-bold",
               trend === 'up' ? "text-long" : "text-short"
             )}>
-              {trend === 'up' ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
+              {trend === 'up' ? <TrendUp className="h-2.5 w-2.5" weight="light" /> : <TrendDown className="h-2.5 w-2.5" weight="light" />}
               {trendValue}
             </div>
           ) : subtext ? (
@@ -784,7 +784,7 @@ function StatCard({
           ) : null}
         </div>
         {highlight && (
-          <Sparkles className="absolute -right-1 -bottom-1 h-12 w-12 text-primary/5 pointer-events-none" />
+          <Sparkles weight="light" className="absolute -right-1 -bottom-1 h-12 w-12 text-primary/5 pointer-events-none" />
         )}
       </CardContent>
     </Card>
@@ -873,7 +873,7 @@ function AccountCard({
               ) : isFunded ? (
                 <Trophy className="h-4 w-4 text-primary" />
               ) : isPropFirm ? (
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <Buildings className="h-4 w-4 text-muted-foreground" />
               ) : (
                 <User className="h-4 w-4 text-muted-foreground" />
               )}
@@ -928,7 +928,7 @@ function AccountCard({
                 onClick={(e) => { e.stopPropagation(); onDelete() }}
                 className="text-destructive focus:text-destructive"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
+                <Trash className="h-4 w-4 mr-2" weight="light" />
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -946,7 +946,7 @@ function AccountCard({
                 "flex items-center gap-1 text-xs font-medium",
                 pnl >= 0 ? "text-long" : "text-short"
               )}>
-                {pnl >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                {pnl >= 0 ? <TrendUp className="h-3 w-3" /> : <TrendDown className="h-3 w-3" />}
                 <span>{pnl >= 0 ? '+' : ''}{formatCurrency(pnl)}</span>
                 <span className="text-muted-foreground">({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(1)}%)</span>
               </div>
@@ -1062,7 +1062,7 @@ function EmptyState({
             Live Account
           </Button>
           <Button onClick={onCreatePropFirm} variant="outline" className="gap-2">
-            <Building2 className="h-4 w-4" />
+            <Buildings className="h-4 w-4" />
             Prop Firm Account
           </Button>
         </div>

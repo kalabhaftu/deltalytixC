@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react"
 import Image from "next/image"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { ZoomIn, ZoomOut, X, Upload } from "lucide-react"
+import { MagnifyingGlassPlus, MagnifyingGlassMinus, X, UploadSimple } from "@phosphor-icons/react"
 import { motion, AnimatePresence } from "framer-motion"
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
@@ -253,7 +253,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                       setUploadDialogOpen(true)
                     }}
                   >
-                    <Upload className="h-3 w-3" />
+                    <UploadSimple weight="light" className="h-3 w-3" />
                   </button>
                 </HoverCardTrigger>
                 <HoverCardContent side="top" align="center" className="text-xs">
@@ -271,7 +271,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                     setShowDeleteConfirm(true)
                   }}
                 >
-                  <X className="h-3 w-3" />
+                  <X weight="light" className="h-3 w-3" />
                 </button>
               </HoverCardTrigger>
               <HoverCardContent side="top" align="center" className="text-xs">
@@ -285,7 +285,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
             className="relative w-10 h-10 overflow-hidden rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 bg-muted hover:bg-muted/80 transition-colors"
             aria-label="Upload image"
           >
-            <Upload className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-muted-foreground" />
+            <UploadSimple weight="light" className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-muted-foreground" />
           </button>
         )}
 
@@ -297,7 +297,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                 className="relative w-10 h-10 overflow-hidden rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 bg-muted hover:bg-muted/80 transition-colors"
                 aria-label="Upload second image"
               >
-                <Upload className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-muted-foreground" />
+                <UploadSimple weight="light" className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-muted-foreground" />
                 <span className="absolute bottom-1 right-1 bg-primary/10 text-primary text-xs px-1 rounded">
                   +1
                 </span>
@@ -365,7 +365,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                           onClick={() => zoomOut()}
                           disabled={scale <= 0.5}
                         >
-                          <ZoomOut className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                          <MagnifyingGlassMinus weight="light" className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                         </Button>
                         <span className="min-w-[2.5rem] sm:min-w-[3rem] text-center text-xs sm:text-sm font-medium text-muted-foreground">
                           {Math.round(scale * 100)}%
@@ -377,7 +377,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                           onClick={() => zoomIn()}
                           disabled={scale >= 3}
                         >
-                          <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                          <MagnifyingGlassPlus weight="light" className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                         </Button>
                       </div>
                     </>
@@ -421,7 +421,7 @@ export function TradeImageEditor({ trade, tradeIds }: TradeImageEditorProps) {
                         "h-12 w-12"
                       )}
                     >
-                      <Upload className="h-6 w-6 text-muted-foreground" />
+                      <UploadSimple weight="light" className="h-6 w-6 text-muted-foreground" />
                     </Button>
                   </CarouselItem>
                 )}

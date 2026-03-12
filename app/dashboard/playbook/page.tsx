@@ -22,7 +22,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { BREAK_EVEN_THRESHOLD, cn } from '@/lib/utils'; // Assuming cn utility is imported from here
 import { motion } from 'framer-motion'
-import { Eye, FileText, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Eye, FileText, DotsThreeVertical, Pencil, Plus, Trash } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { AddEditModelModal } from './components/add-edit-model-modal'
@@ -81,7 +81,7 @@ function StrategyBlock({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 opacity-40 group-hover:opacity-100 transition-opacity">
-              <MoreVertical className="h-4 w-4" />
+              <DotsThreeVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-background/95 backdrop-blur-xl border-border/40">
@@ -93,7 +93,7 @@ function StrategyBlock({
             </DropdownMenuItem>
             <DropdownMenuSeparator className="opacity-40" />
             <DropdownMenuItem onClick={() => onDelete(model.id)} className="text-xs font-bold uppercase text-short focus:text-short">
-              <Trash2 className="mr-2 h-3.5 w-3.5" /> Remove Model
+              <Trash className="mr-2 h-3.5 w-3.5" /> Remove Model
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

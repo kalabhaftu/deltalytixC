@@ -4,7 +4,7 @@ import React from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { useTradeStatistics } from '@/hooks/use-trade-statistics'
 import { cn } from '@/lib/utils'
-import { Info } from 'lucide-react'
+import { Info } from "@phosphor-icons/react"
 import {
   Tooltip,
   TooltipContent,
@@ -54,7 +54,7 @@ const AvgWinLoss = React.memo(function AvgWinLoss({ size }: AvgWinLossProps) {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="w-3 h-3 rounded-full bg-muted flex items-center justify-center cursor-help">
-                    <Info className="h-3 w-3 text-muted-foreground" />
+                    <Info weight="light" className="h-3 w-3 text-muted-foreground" />
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" sideOffset={5} className="max-w-[200px]">

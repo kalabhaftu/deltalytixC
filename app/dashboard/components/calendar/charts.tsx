@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import { BarChart, Bar, Cell, Tooltip, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Line, ComposedChart, ReferenceLine, Area, AreaChart } from "recharts"
+import { ChartBar, Bar, Cell, Tooltip, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Line, ComposedChart, ReferenceLine, Area, AreaChart } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { CalendarEntry } from "@/app/dashboard/types/calendar"
@@ -118,9 +118,10 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
     }, {} as Record<string, number>)
 
     // Distribution data
-    const distributionData = Object.entries(accountPnL)
-      .map(([account, pnl]) => ({ name: account, value: pnl, account }))
-      .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+    const distributionData: { name: string; value: number; account: string }[] =
+      Object.entries(accountPnL)
+        .map(([account, pnl]) => ({ name: account, value: Number(pnl), account }))
+        .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
 
     const totalPnL = distributionData.reduce((sum, item) => sum + item.value, 0)
 
@@ -271,7 +272,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
           <CardContent className="h-[200px] pt-2">
             <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
+                <ChartBar
                   data={chartData.distributionData}
                   margin={{ top: 10, right: 10, left: 0, bottom: 50 }}
                   barCategoryGap={8}
@@ -320,7 +321,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
                       />
                     ))}
                   </Bar>
-                </BarChart>
+                </ChartBar>
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>

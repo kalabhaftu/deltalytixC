@@ -17,7 +17,7 @@ import {
   Table as ReactTableInstance,
 } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
-import { ChevronRight, ChevronDown, ChevronLeft, Info, ChevronRight as ArrowRight, BarChart3 } from 'lucide-react'
+import { CaretRight, CaretDown, CaretLeft, Info, ChartBar, ArrowRight } from '@phosphor-icons/react'
 import { Trade, TradingModel } from '@prisma/client'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
@@ -232,7 +232,7 @@ const useTradeTableColumns = ({
         if ((row.original.trades?.length || 0) <= 1) return null
         return (
           <Button variant="ghost" size="sm" onClick={row.getToggleExpandedHandler()} className="hover:bg-transparent">
-            {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            {row.getIsExpanded() ? <CaretDown className="h-4 w-4" weight="light" /> : <CaretRight className="h-4 w-4" weight="light" />}
           </Button>
         )
       },
@@ -247,7 +247,7 @@ const useTradeTableColumns = ({
       cell: ({ row }) => {
         const accounts = row.original.accountNumber
           ?.split(',')
-          .map((account) => account.trim())
+          .map((account: string) => account.trim())
           .filter(Boolean) ?? []
 
         return (
@@ -264,13 +264,13 @@ const useTradeTableColumns = ({
                 </div>
               </PopoverTrigger>
               <PopoverContent className="w-fit p-0" align="start" side="right">
-                <ScrollArea className="h-36 rounded-md border">
-                  {accounts.map((account) => (
-                    <div key={account} className="px-3 py-2 text-sm hover:bg-muted/50 cursor-default">
-                      {account}
-                    </div>
-                  ))}
-                </ScrollArea>
+                  <ScrollArea className="h-36 rounded-md border">
+                    {accounts.map((account: string) => (
+                      <div key={account} className="px-3 py-2 text-sm hover:bg-muted/50 cursor-default">
+                        {account}
+                      </div>
+                    ))}
+                  </ScrollArea>
               </PopoverContent>
             </Popover>
             {(row.original.trades?.length || 0) > 1 && (
@@ -607,7 +607,7 @@ export function TradeTableReview() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors cursor-help" />
+                  <Info className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors cursor-help" weight="light" />
                 </TooltipTrigger>
                 <TooltipContent side="top">
                   <p>Review every execution, grouping, and adjustment in one view.</p>
@@ -657,7 +657,7 @@ export function TradeTableReview() {
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
                 <div className="p-4 bg-muted/30 rounded-full">
-                  <BarChart3 className="h-8 w-8 opacity-40" />
+                  <ChartBar className="h-8 w-8 opacity-40" weight="light" />
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-semibold">No trades found</p>
@@ -777,7 +777,7 @@ export function TradeTableReview() {
               disabled={!table.getCanPreviousPage()}
               className="h-7 px-2 sm:px-3 text-xs"
             >
-              <ChevronLeft className="h-3.5 w-3.5 sm:mr-1" />
+              <CaretLeft className="h-3.5 w-3.5 sm:mr-1" weight="light" />
               <span className="hidden sm:inline">Previous</span>
             </Button>
             <span className="text-xs sm:text-sm px-1 sm:px-2 whitespace-nowrap">
@@ -791,7 +791,7 @@ export function TradeTableReview() {
               className="h-7 px-2 sm:px-3 text-xs"
             >
               <span className="hidden sm:inline">Next</span>
-              <ArrowRight className="h-3.5 w-3.5 sm:ml-1" />
+              <ArrowRight className="h-3.5 w-3.5 sm:ml-1" weight="light" />
             </Button>
           </div>
         </div>

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useDropzone, DropzoneOptions } from 'react-dropzone'
-import { Upload, FileUp, X, FileType, AlertCircle } from 'lucide-react'
+import { Upload, FileArrowUp, X, FileText, WarningCircle } from "@phosphor-icons/react"
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
@@ -49,7 +49,7 @@ export function FileDropzone({
             >
                 <input {...getInputProps()} />
                 <div className="flex flex-col items-center justify-center p-2 text-center space-y-1">
-                    {icon || <Upload className={cn("h-4 w-4", isDragActive ? "text-primary" : "text-muted-foreground/40")} />}
+                    {icon || <Upload weight="light" className={cn("h-4 w-4", isDragActive ? "text-primary" : "text-muted-foreground/40")} />}
                     {isDragActive && (
                         <span className="text-[10px] font-medium text-primary">Drop</span>
                     )}
@@ -80,7 +80,7 @@ export function FileDropzone({
                     <div className="flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-200">
                         <div className="p-3 bg-background rounded-full shadow-sm mb-3 relative group">
                             {/* File Icon */}
-                            <FileType className="h-8 w-8 text-primary" />
+                            <FileText weight="light" className="h-8 w-8 text-primary" />
 
                             {/* Remove Button Overlay */}
                             {onClear && (
@@ -91,7 +91,7 @@ export function FileDropzone({
                                     }}
                                     className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 shadow-md cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
-                                    <X className="h-3 w-3" />
+                                    <X weight="light" className="h-3 w-3" />
                                 </div>
                             )}
                         </div>
@@ -111,9 +111,9 @@ export function FileDropzone({
                             "p-4 rounded-full mb-4 transition-colors",
                             isDragActive ? "bg-primary/20" : "bg-muted/40"
                         )}>
-                            {icon || (
-                                isDragActive ? <FileUp className="h-8 w-8 text-primary animate-bounce" /> : <Upload className="h-8 w-8 text-muted-foreground/60" />
-                            )}
+                                icon || (
+                                isDragActive ? <FileArrowUp weight="light" className="h-8 w-8 text-primary animate-bounce" /> : <Upload weight="light" className="h-8 w-8 text-muted-foreground/60" />
+                            )
                         </div>
 
                         {isDragActive ? (
@@ -138,7 +138,7 @@ export function FileDropzone({
             {/* Error Feedback */}
             {fileRejections.length > 0 && (
                 <div className="flex items-start gap-2 text-destructive text-xs bg-destructive/10 p-2 rounded-md">
-                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <WarningCircle weight="light" className="h-4 w-4 shrink-0 mt-0.5" />
                     <div className="space-y-0.5">
                         <span className="font-semibold">File not accepted:</span>
                         <ul className="list-disc pl-4 space-y-0.5">

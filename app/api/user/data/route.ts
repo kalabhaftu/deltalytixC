@@ -59,7 +59,7 @@ export async function DELETE(request: NextRequest) {
         where: { userId: internalUserId },
         select: { id: true }
       })
-      const masterIds = masterAccountIds.map(m => m.id)
+      const masterIds = masterAccountIds.map((m: typeof masterAccountIds[number]) => m.id)
 
       if (masterIds.length > 0) {
         // Get phase account IDs
@@ -67,7 +67,7 @@ export async function DELETE(request: NextRequest) {
           where: { masterAccountId: { in: masterIds } },
           select: { id: true }
         })
-        const phaseIds = phaseAccounts.map(p => p.id)
+        const phaseIds = phaseAccounts.map((p: typeof phaseAccounts[number]) => p.id)
 
         if (phaseIds.length > 0) {
           await tx.breachRecord.deleteMany({
@@ -129,7 +129,7 @@ export async function DELETE(request: NextRequest) {
         where: { userId: internalUserId }
       })
 
-      // 12. Reset user settings (keep account)
+      // 12. Reset user Gear (keep account)
       await tx.user.update({
         where: { id: internalUserId },
         data: {

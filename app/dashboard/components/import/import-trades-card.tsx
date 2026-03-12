@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
 import { useUserStore } from '@/store/user-store'
 import { useTradesStore } from '@/store/trades-store'
 import { Button } from "@/components/ui/button"
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@phosphor-icons/react'
 import { useRouter } from 'next/navigation'
 import { useParams } from 'next/navigation'
 

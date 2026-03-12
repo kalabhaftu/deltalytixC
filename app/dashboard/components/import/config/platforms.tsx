@@ -10,7 +10,7 @@ import MatchTraderProcessor from '../match-trader/match-trader-processor'
 import ExnessProcessor from '../exness/exness-processor'
 import ManualTradeForm from '../manual-trade-entry/manual-trade-form'
 import { Step } from '../import-button'
-import { Sparkles, Plus } from 'lucide-react'
+import { Sparkle, Plus } from '@phosphor-icons/react'
 
 type StepText = string
 
@@ -128,7 +128,7 @@ export const platforms: PlatformConfig[] = [
     videoUrl: '',
     details: 'Perfect for manual journal entries with all trade context and analysis',
     logo: {
-      component: () => <Plus className="w-4 h-4" />,
+      component: () => <Plus weight="light" className="w-4 h-4" />,
     },
     customComponent: ManualTradeForm,
     steps: [
@@ -149,7 +149,7 @@ export const platforms: PlatformConfig[] = [
     videoUrl: '',
     details: '',
     logo: {
-      component: () => <Sparkles className="w-4 h-4" />,
+      component: () => <Sparkle weight="light" className="w-4 h-4" />,
     },
     requiresAccountSelection: true,
     processFile: processStandardCsv,

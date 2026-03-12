@@ -1,6 +1,7 @@
+'use client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Code, Database, Lock, Zap, GitBranch, FileCode, Server, Layers, CheckCircle2, Shield, TrendingUp, BookOpen, Activity, Workflow } from 'lucide-react'
+import { Code, Database, Lock, Lightning, GitBranch, FileCode, HardDrive, Stack, CheckCircle, Shield, TrendUp, BookOpen, Pulse, GitFork } from '@phosphor-icons/react'
 
 export default function ArchitectureDocs() {
   return (
@@ -17,7 +18,7 @@ export default function ArchitectureDocs() {
         <section className="space-y-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <Layers className="h-5 w-5 text-primary" />
+              <Stack weight="light" className="h-5 w-5 text-primary" />
             </div>
             <h2>Technology Stack</h2>
           </div>
@@ -26,7 +27,7 @@ export default function ArchitectureDocs() {
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2 mb-2">
-                  <FileCode className="h-5 w-5 text-primary" />
+                  <FileCode weight="light" className="h-5 w-5 text-primary" />
                   <CardTitle className="text-base">Frontend</CardTitle>
                 </div>
               </CardHeader>
@@ -81,7 +82,7 @@ export default function ArchitectureDocs() {
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2 mb-2">
-                  <Server className="h-5 w-5 text-primary" />
+                  <HardDrive weight="light" className="h-5 w-5 text-primary" />
                   <CardTitle className="text-base">Backend</CardTitle>
                 </div>
               </CardHeader>
@@ -129,7 +130,7 @@ export default function ArchitectureDocs() {
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2 mb-2">
-                  <GitBranch className="h-5 w-5 text-primary" />
+                  <GitBranch weight="light" className="h-5 w-5 text-primary" />
                   <CardTitle className="text-base">State Management</CardTitle>
                 </div>
               </CardHeader>
@@ -163,7 +164,7 @@ export default function ArchitectureDocs() {
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2 mb-2">
-                  <Zap className="h-5 w-5 text-primary" />
+                  <Lightning weight="light" className="h-5 w-5 text-primary" />
                   <CardTitle className="text-base">Infrastructure</CardTitle>
                 </div>
               </CardHeader>
@@ -199,7 +200,7 @@ export default function ArchitectureDocs() {
         <section className="space-y-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <GitBranch className="h-5 w-5 text-primary" />
+              <GitBranch weight="light" className="h-5 w-5 text-primary" />
             </div>
             <h2>Data Flow Architecture</h2>
           </div>
@@ -319,7 +320,7 @@ export async function deleteTrade(tradeId: string) {
         <section className="space-y-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <FileCode className="h-5 w-5 text-primary" />
+              <FileCode weight="light" className="h-5 w-5 text-primary" />
             </div>
             <h2>Project Structure</h2>
           </div>
@@ -343,7 +344,7 @@ export async function deleteTrade(tradeId: string) {
 │   │   │   ├── accounts.ts
 │   │   │   └── trades.ts
 │   │   ├── data/                # Data management page
-│   │   ├── settings/            # User settings
+│   │   ├── Gear/            # User Gear
 │   │   ├── layout.tsx           # Dashboard layout wrapper
 │   │   └── page.tsx             # Main dashboard (Server Component)
 │   ├── api/
@@ -404,7 +405,7 @@ export async function deleteTrade(tradeId: string) {
         <section className="space-y-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <Code className="h-5 w-5 text-primary" />
+              <Code weight="light" className="h-5 w-5 text-primary" />
             </div>
             <h2>Key Design Decisions</h2>
           </div>
@@ -549,7 +550,7 @@ export function groupTradesByExecution(trades: Trade[]) {
         <section className="space-y-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <Zap className="h-5 w-5 text-primary" />
+              <Lightning weight="light" className="h-5 w-5 text-primary" />
             </div>
             <h2>Performance Optimizations</h2>
           </div>
@@ -558,9 +559,7 @@ export function groupTradesByExecution(trades: Trade[]) {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg h-fit">
-                    <Server className="h-5 w-5 text-primary" />
-                  </div>
+                    <HardDrive weight="light" className="h-5 w-5 text-primary" />
                   <div className="space-y-2">
                     <h4 className="font-semibold text-foreground">Server Components</h4>
                     <p className="text-sm text-muted-foreground">
@@ -576,7 +575,7 @@ export function groupTradesByExecution(trades: Trade[]) {
               <CardContent className="pt-6">
                 <div className="flex gap-3">
                   <div className="p-2 bg-primary/10 rounded-lg h-fit">
-                    <Code className="h-5 w-5 text-primary" />
+                    <Code weight="light" className="h-5 w-5 text-primary" />
                   </div>
                   <div className="space-y-2">
                     <h4 className="font-semibold text-foreground">Dynamic Imports</h4>
@@ -593,7 +592,7 @@ export function groupTradesByExecution(trades: Trade[]) {
               <CardContent className="pt-6">
                 <div className="flex gap-3">
                   <div className="p-2 bg-primary/10 rounded-lg h-fit">
-                    <Lock className="h-5 w-5 text-primary" />
+                    <Lock weight="light" className="h-5 w-5 text-primary" />
                   </div>
                   <div className="space-y-2">
                     <h4 className="font-semibold text-foreground">Rate Limiting</h4>
@@ -610,7 +609,7 @@ export function groupTradesByExecution(trades: Trade[]) {
               <CardContent className="pt-6">
                 <div className="flex gap-3">
                   <div className="p-2 bg-primary/10 rounded-lg h-fit">
-                    <Database className="h-5 w-5 text-primary" />
+                    <Database weight="light" className="h-5 w-5 text-primary" />
                   </div>
                   <div className="space-y-2">
                     <h4 className="font-semibold text-foreground">Database Indexes</h4>
@@ -627,7 +626,7 @@ export function groupTradesByExecution(trades: Trade[]) {
               <CardContent className="pt-6">
                 <div className="flex gap-3">
                   <div className="p-2 bg-primary/10 rounded-lg h-fit">
-                    <FileCode className="h-5 w-5 text-primary" />
+                    <FileCode weight="light" className="h-5 w-5 text-primary" />
                   </div>
                   <div className="space-y-2">
                     <h4 className="font-semibold text-foreground">ISR Caching</h4>
@@ -643,9 +642,7 @@ export function groupTradesByExecution(trades: Trade[]) {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg h-fit">
-                    <Layers className="h-5 w-5 text-primary" />
-                  </div>
+                    <Stack weight="light" className="h-5 w-5 text-primary" />
                   <div className="space-y-2">
                     <h4 className="font-semibold text-foreground">Structured Logging</h4>
                     <p className="text-sm text-muted-foreground">
@@ -662,7 +659,7 @@ export function groupTradesByExecution(trades: Trade[]) {
         <section className="space-y-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <Lock className="h-5 w-5 text-primary" />
+              <Lock weight="light" className="h-5 w-5 text-primary" />
             </div>
             <h2>Security Measures</h2>
           </div>
@@ -733,7 +730,7 @@ export function groupTradesByExecution(trades: Trade[]) {
         <Card className="border-primary bg-primary/5">
           <CardContent className="pt-6">
             <div className="flex gap-4">
-              <FileCode className="h-6 w-6 text-primary shrink-0 mt-1" />
+              <FileCode weight="light" className="h-6 w-6 text-primary shrink-0 mt-1" />
               <div className="space-y-3">
                 <h3 className="text-lg font-semibold text-foreground">Testing Strategy</h3>
                 <p className="text-sm text-muted-foreground">
@@ -741,19 +738,19 @@ export function groupTradesByExecution(trades: Trade[]) {
                 </p>
                 <ul className="text-sm text-muted-foreground space-y-2">
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-primary mt-1 shrink-0" />
+                    <CheckCircle weight="light" className="h-4 w-4 text-primary mt-1 shrink-0" />
                     <div>
                       <strong className="text-foreground">Vitest</strong> for unit tests (financial calculations, utility functions)
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-primary mt-1 shrink-0" />
+                    <CheckCircle weight="light" className="h-4 w-4 text-primary mt-1 shrink-0" />
                     <div>
                       <strong className="text-foreground">Playwright</strong> for E2E tests (user flows, critical paths)
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-primary mt-1 shrink-0" />
+                    <CheckCircle weight="light" className="h-4 w-4 text-primary mt-1 shrink-0" />
                     <div>
                       <strong className="text-foreground">100% coverage target</strong> for financial logic (win rate, profit factor, drawdown)
                     </div>

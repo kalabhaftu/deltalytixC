@@ -7,7 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Filter, X } from 'lucide-react'
+import { Funnel, X } from "@phosphor-icons/react"
 import { cn } from '@/lib/utils'
 
 interface RangeFilterProps {
@@ -53,9 +53,9 @@ export function RangeFilter({ column, title, placeholder }: RangeFilterProps) {
             isFiltered && "bg-accent"
           )}
         >
-          <Filter className="h-4 w-4" />
+          <Funnel weight="light" className="h-4 w-4" />
           {isFiltered && (
-            <X className="ml-1 h-3 w-3" />
+            <X weight="light" className="ml-1 h-3 w-3" />
           )}
         </Button>
       </PopoverTrigger>

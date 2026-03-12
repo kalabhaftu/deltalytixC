@@ -4,21 +4,21 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TradeCard } from './trade-card'
 import {
-  Search,
-  Filter,
-  AlertTriangle,
-  RefreshCw,
-  ChevronLeft,
-  ChevronRight,
+  MagnifyingGlass,
+  Funnel,
+  WarningCircle,
+  ArrowsClockwise,
+  CaretLeft,
+  CaretRight,
   X,
-  Sparkles,
+  Sparkle,
   Tag,
-  TrendingUp,
-  TrendingDown,
-  BarChart3,
+  TrendUp,
+  TrendDown,
+  ChartBar,
   Clock,
   BookOpen
-} from 'lucide-react'
+} from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -91,7 +91,7 @@ function JournalStats({ trades }: { trades: Trade[] }) {
             <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
               Total Trades
             </span>
-            <BarChart3 className="h-3.5 w-3.5 text-muted-foreground/50" />
+            <ChartBar className="h-3.5 w-3.5 text-muted-foreground/50" weight="light" />
           </div>
           <p className="text-2xl font-bold tracking-tight">{stats.totalTrades}</p>
         </CardContent>
@@ -104,9 +104,9 @@ function JournalStats({ trades }: { trades: Trade[] }) {
               Win Rate
             </span>
             {stats.winRate >= 50 ? (
-              <TrendingUp className="h-3.5 w-3.5 text-long/50" />
+              <TrendUp className="h-3.5 w-3.5 text-long/50" weight="light" />
             ) : (
-              <TrendingDown className="h-3.5 w-3.5 text-short/50" />
+              <TrendDown className="h-3.5 w-3.5 text-short/50" weight="light" />
             )}
           </div>
           <p className="text-2xl font-bold tracking-tight">{stats.winRate.toFixed(1)}%</p>
@@ -120,9 +120,9 @@ function JournalStats({ trades }: { trades: Trade[] }) {
               Total P&L
             </span>
             {stats.totalPnl >= 0 ? (
-              <TrendingUp className="h-3.5 w-3.5 text-long/50" />
+              <TrendUp className="h-3.5 w-3.5 text-long/50" weight="light" />
             ) : (
-              <TrendingDown className="h-3.5 w-3.5 text-short/50" />
+              <TrendDown className="h-3.5 w-3.5 text-short/50" weight="light" />
             )}
           </div>
           <p className={cn("text-2xl font-bold tracking-tight", stats.totalPnl >= 0 ? "text-long" : "text-short")}>
@@ -137,7 +137,7 @@ function JournalStats({ trades }: { trades: Trade[] }) {
             <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
               Avg Duration
             </span>
-            <Clock className="h-3.5 w-3.5 text-muted-foreground/50" />
+            <Clock className="h-3.5 w-3.5 text-muted-foreground/50" weight="light" />
           </div>
           <p className="text-2xl font-bold tracking-tight">{stats.avgDuration}m</p>
         </CardContent>
@@ -229,7 +229,7 @@ function EmptyState({
     <Card className="border-dashed">
       <CardContent className="flex flex-col items-center justify-center py-16">
         <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-          <BookOpen className="h-8 w-8 text-muted-foreground" />
+          <BookOpen className="h-8 w-8 text-muted-foreground" weight="light" />
         </div>
         <h3 className="text-lg font-semibold mb-2">No trades found</h3>
         <p className="text-sm text-muted-foreground text-center max-w-sm">
@@ -283,13 +283,14 @@ export function JournalClient() {
 
       if (termLength <= 2) {
         trades = trades.filter(trade => {
-          const instrument = (trade.instrument || '').toLowerCase()
-          const symbol = (trade.symbol || '').toLowerCase()
-          const comment = (trade.comment || '').toLowerCase()
+          const t = trade as any
+          const instrument = (t.instrument || '').toLowerCase()
+          const symbol = (t.symbol || '').toLowerCase()
+          const comment = (t.comment || '').toLowerCase()
 
           if (instrument.startsWith(term) || symbol.startsWith(term)) return true
 
-          const aliases = getAssetSearchTerms(trade.instrument || trade.symbol || '')
+          const aliases = getAssetSearchTerms(t.instrument || t.symbol || '')
           const aliasMatch = aliases.some(alias => alias.toLowerCase().startsWith(term))
           if (aliasMatch) return true
 
@@ -298,10 +299,13 @@ export function JournalClient() {
           return false
         })
       } else if (termLength <= 4) {
-        const tradesWithAliases = trades.map(trade => ({
-          ...trade,
-          searchableInstrument: getAssetSearchTerms(trade.instrument || trade.symbol || '').join(' '),
-        }))
+        const tradesWithAliases = trades.map(trade => {
+          const t = trade as any
+          return {
+            ...trade,
+            searchableInstrument: getAssetSearchTerms(t.instrument || t.symbol || '').join(' '),
+          }
+        })
 
         const fuse = new Fuse(tradesWithAliases, {
           keys: [
@@ -319,10 +323,13 @@ export function JournalClient() {
         const results = fuse.search(term)
         trades = results.map(result => result.item)
       } else {
-        const tradesWithAliases = trades.map(trade => ({
-          ...trade,
-          searchableInstrument: getAssetSearchTerms(trade.instrument || trade.symbol || '').join(' '),
-        }))
+        const tradesWithAliases = trades.map(trade => {
+          const t = trade as any
+          return {
+            ...trade,
+            searchableInstrument: getAssetSearchTerms(t.instrument || t.symbol || '').join(' '),
+          }
+        })
 
         const fuse = new Fuse(tradesWithAliases, {
           keys: [
@@ -344,12 +351,13 @@ export function JournalClient() {
 
     // Apply additional filters
     return trades.filter(trade => {
+      const t = trade as any
       const matchesFilter =
         filterBy === 'all' ||
-        (filterBy === 'wins' && trade.pnl > BREAK_EVEN_THRESHOLD) ||
-        (filterBy === 'losses' && trade.pnl < -BREAK_EVEN_THRESHOLD) ||
-        (filterBy === 'buys' && trade.side?.toUpperCase() === 'BUY') ||
-        (filterBy === 'sells' && trade.side?.toUpperCase() === 'SELL')
+        (filterBy === 'wins' && t.pnl > BREAK_EVEN_THRESHOLD) ||
+        (filterBy === 'losses' && t.pnl < -BREAK_EVEN_THRESHOLD) ||
+        (filterBy === 'buys' && t.side?.toUpperCase() === 'BUY') ||
+        (filterBy === 'sells' && t.side?.toUpperCase() === 'SELL')
 
       if (selectedTagIds.length > 0) {
         const tradeTagIds = Array.isArray((trade as any).tags) ? (trade as any).tags : []
@@ -469,7 +477,7 @@ export function JournalClient() {
             onClick={() => setShowAIAnalysis(true)}
             className="gap-2"
           >
-            <Sparkles className="h-4 w-4" />
+            <Sparkle className="h-4 w-4" weight="light" />
             <span className="hidden sm:inline">AI Analysis</span>
             <span className="sm:hidden">AI</span>
           </Button>
@@ -480,7 +488,7 @@ export function JournalClient() {
             disabled={isRefreshing}
             className="gap-2"
           >
-            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+            <ArrowsClockwise className={cn("h-4 w-4", isRefreshing && "animate-spin")} weight="light" />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
         </div>
@@ -503,7 +511,7 @@ export function JournalClient() {
         className="flex flex-col sm:flex-row gap-3"
       >
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" weight="light" />
           <Input
             ref={searchInputRef}
             placeholder="Search by symbol, alias, or notes..."
@@ -518,7 +526,7 @@ export function JournalClient() {
               onClick={() => setSearchTerm('')}
               className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-3.5 w-3.5" weight="light" />
             </Button>
           )}
         </div>
@@ -526,7 +534,7 @@ export function JournalClient() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="gap-2 h-9 whitespace-nowrap">
-              <Filter className="h-4 w-4" />
+              <Funnel className="h-4 w-4" weight="light" />
               <span>
                 {filterBy === 'all' ? 'All' : filterBy === 'wins' ? 'Wins' : filterBy === 'losses' ? 'Losses' : filterBy === 'buys' ? 'Buys' : 'Sells'}
               </span>
@@ -555,7 +563,7 @@ export function JournalClient() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="gap-2 h-9 whitespace-nowrap">
-              <Tag className="h-4 w-4" />
+              <Tag className="h-4 w-4" weight="light" />
               <span>
                 {selectedTagIds.length === 0 ? 'Tags' : `${selectedTagIds.length} Selected`}
               </span>
@@ -629,7 +637,7 @@ export function JournalClient() {
                 onClick={() => setSelectedTagIds(prev => prev.filter(id => id !== tagId))}
               >
                 {tag.name}
-                <X className="h-3 w-3" />
+                <X className="h-3 w-3" weight="light" />
               </Badge>
             ) : null
           })}
@@ -662,7 +670,7 @@ export function JournalClient() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {paginatedTrades.map((trade, index) => (
                 <motion.div
-                  key={trade.id}
+                  key={(trade as any).id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.03, duration: 0.2 }}
@@ -696,7 +704,7 @@ export function JournalClient() {
                     disabled={currentPage === 1}
                     className="gap-1"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <CaretLeft className="h-4 w-4" weight="light" />
                     <span className="hidden sm:inline">Previous</span>
                   </Button>
                   <div className="flex items-center gap-1">
@@ -732,7 +740,7 @@ export function JournalClient() {
                     className="gap-1"
                   >
                     <span className="hidden sm:inline">Next</span>
-                    <ChevronRight className="h-4 w-4" />
+                    <CaretRight className="h-4 w-4" weight="light" />
                   </Button>
                 </div>
               </motion.div>
@@ -765,7 +773,7 @@ export function JournalClient() {
         <AlertDialogContent className="z-[10002]">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
+              <WarningCircle className="w-5 h-5 text-destructive" weight="light" />
               Delete Trade?
             </AlertDialogTitle>
             <AlertDialogDescription>

@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertTriangle, ArrowLeft } from 'lucide-react'
+import { WarningCircle, ArrowLeft } from '@phosphor-icons/react'
 
 export function RedirectToAccounts() {
   const router = useRouter()
@@ -23,7 +23,7 @@ export function RedirectToAccounts() {
       <Card className="max-w-md w-full">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 p-3 rounded-full bg-warning/10 w-fit">
-            <AlertTriangle className="h-6 w-6 text-warning" />
+            <WarningCircle className="h-6 w-6 text-warning" weight="light" />
           </div>
           <CardTitle>Account Not Found</CardTitle>
         </CardHeader>
@@ -31,12 +31,12 @@ export function RedirectToAccounts() {
           <p className="text-muted-foreground">
             The requested account could not be found. It may have been deleted or you may not have access to it.
           </p>
-          
+
           <div className="text-sm text-muted-foreground">
             Redirecting to accounts list in <span className="font-mono">3</span> seconds...
           </div>
 
-          <Button 
+          <Button
             onClick={() => router.push('/dashboard/prop-firm/accounts')}
             className="w-full"
           >

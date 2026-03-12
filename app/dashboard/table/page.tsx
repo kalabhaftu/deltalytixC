@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useData } from '@/context/data-provider'
 import TradeReplay from '../components/trades/trade-replay'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@phosphor-icons/react'
 import { Suspense } from 'react'
 import { cn, classifyTrade } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -44,7 +44,7 @@ function TableView() {
                 onClick={() => router.push('/dashboard/table')}
                 className="h-8 px-2 text-xs hover:bg-accent/50"
               >
-                <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+                <ArrowLeft className="mr-1.5 h-3.5 w-3.5" weight="light" />
                 <span className="hidden sm:inline">Back</span>
               </Button>
               <div className="h-4 w-px bg-border/60 hidden sm:block" />

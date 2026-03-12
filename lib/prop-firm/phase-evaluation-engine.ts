@@ -111,7 +111,7 @@ export class PhaseEvaluationEngine {
 
     // CRITICAL FIX: Calculate current metrics using NET P&L (after commission)
     // Commission is stored as NEGATIVE in DB (e.g., -4.5), so we ADD it to pnl
-    const currentPnL = trades.reduce((sum, trade) => {
+    const currentPnL = trades.reduce((sum: number, trade: any) => {
       const netPnl = (trade.pnl || 0) + (trade.commission || 0)
       return sum + netPnl
     }, 0)
@@ -810,7 +810,7 @@ export class PhaseEvaluationEngine {
       }
 
       // STEP 3: Calculate current equity for anchor using NET P&L
-      const tradesPnL = phaseAccount.Trade.reduce((sum, trade) => {
+      const tradesPnL = phaseAccount.Trade.reduce((sum: number, trade: any) => {
         const netPnl = (trade.pnl || 0) + (trade.commission || 0)
         return sum + netPnl
       }, 0)

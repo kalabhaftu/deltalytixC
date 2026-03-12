@@ -62,7 +62,7 @@ const SUPPRESS_PATTERNS = [
   /\[AccountsPage\] Accounts details:/,
   /\[AccountsPage\] Filtering accounts/,
   /\[AccountsPage\] Input accounts:/,
-  /\[AccountsPage\] Account filter settings:/,
+  /\[AccountsPage\] Account filter Gear:/,
   /\[AccountsPage\] Search query:/,
   /\[AccountsPage\] Filter type:/,
   /\[AccountsPage\] Filter status:/,

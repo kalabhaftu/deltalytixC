@@ -4,7 +4,7 @@ import React, { Component, ReactNode } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertTriangle, RefreshCw, ArrowLeft } from 'lucide-react'
+import { WarningCircle, ArrowsClockwise, ArrowLeft } from '@phosphor-icons/react'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -47,29 +47,29 @@ export class PropFirmErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
           <Card className="max-w-md w-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-5 w-5" />
+                <WarningCircle weight="light" className="h-5 w-5" />
                 Something went wrong
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
+                <WarningCircle weight="light" className="h-4 w-4" />
                 <AlertDescription>
                   {this.state.error?.message || 'An unexpected error occurred while loading the account data.'}
                 </AlertDescription>
               </Alert>
-              
+
               <div className="flex gap-2">
                 <Button onClick={this.handleReset} className="flex-1">
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                <ArrowsClockwise weight="light" className="h-4 w-4 mr-2" />
                   Try Again
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => window.history.back()}
                   className="flex-1"
                 >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  <ArrowLeft weight="light" className="h-4 w-4 mr-2" />
                   Go Back
                 </Button>
               </div>
@@ -83,11 +83,11 @@ export class PropFirmErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
   }
 }
 
-export function AccountNotFoundError({ 
-  accountId, 
-  onRetry, 
-  onGoBack 
-}: { 
+export function AccountNotFoundError({
+  accountId,
+  onRetry,
+  onGoBack
+}: {
   accountId: string
   onRetry?: () => void
   onGoBack?: () => void
@@ -97,30 +97,30 @@ export function AccountNotFoundError({
       <Card className="max-w-md w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
-            <AlertTriangle className="h-5 w-5" />
+            <WarningCircle weight="light" className="h-5 w-5" />
             Account Not Found
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
+            <WarningCircle weight="light" className="h-4 w-4" />
             <AlertDescription>
               Account {accountId} could not be found. It may have been deleted or you may not have permission to view it.
             </AlertDescription>
           </Alert>
-          
+
           <div className="flex gap-2">
             {onRetry && (
               <Button onClick={onRetry} variant="outline" className="flex-1">
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <ArrowsClockwise weight="light" className="h-4 w-4 mr-2" />
                 Retry
               </Button>
             )}
-            <Button 
+            <Button
               onClick={onGoBack || (() => window.history.back())}
               className="flex-1"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft weight="light" className="h-4 w-4 mr-2" />
               Back to Accounts
             </Button>
           </div>
@@ -130,21 +130,21 @@ export function AccountNotFoundError({
   )
 }
 
-export function ConnectionError({ 
-  error, 
-  onRetry 
-}: { 
+export function ConnectionError({
+  error,
+  onRetry
+}: {
   error: string
   onRetry?: () => void
 }) {
   return (
     <Alert variant="destructive">
-      <AlertTriangle className="h-4 w-4" />
+      <WarningCircle weight="light" className="h-4 w-4" />
       <AlertDescription className="flex items-center justify-between">
         <span>Connection Error: {error}</span>
         {onRetry && (
           <Button variant="outline" size="sm" onClick={onRetry}>
-            <RefreshCw className="h-3 w-3 mr-1" />
+            <ArrowsClockwise className="h-3 w-3 mr-1" weight="light" />
             Retry
           </Button>
         )}

@@ -16,18 +16,18 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import {
-  TrendingUp,
+  TrendUp,
   Target,
-  DollarSign,
+  CurrencyDollar,
   ArrowRight,
-  AlertCircle,
+  WarningCircle,
   Trophy,
   CheckCircle,
-  Rocket,
+  RocketLaunch,
   Key,
-  Loader2,
-  Sparkles
-} from "lucide-react"
+  CircleNotch,
+  Sparkle
+} from "@phosphor-icons/react"
 import { cn, formatPercent } from "@/lib/utils"
 
 interface PhaseTransitionDialogProps {
@@ -113,7 +113,7 @@ export function PhaseTransitionDialog({
 
       toast.success("Phase Transition Successful", {
         description: `You've successfully advanced to ${getPhaseDisplayName(nextPhaseNumber)}! Importing trades to the new phase...`,
-        icon: <CheckCircle className="h-4 w-4" />
+        icon: <CheckCircle weight="light" className="h-4 w-4" />
       })
 
       // Close dialog FIRST to prevent re-triggering
@@ -131,7 +131,7 @@ export function PhaseTransitionDialog({
     } catch (error) {
       toast.error("Transition Failed", {
         description: error instanceof Error ? error.message : 'Failed to transition to next phase',
-        icon: <AlertCircle className="h-4 w-4" />
+        icon: <WarningCircle weight="light" className="h-4 w-4" />
       })
     } finally {
       setIsTransitioning(false)
@@ -140,9 +140,9 @@ export function PhaseTransitionDialog({
 
   const getTransitionIcon = () => {
     if (isFundedPhase(nextPhaseNumber)) {
-      return <Trophy className="h-10 w-10" />
+      return <Trophy weight="light" className="h-10 w-10" />
     }
-    return <Sparkles className="h-10 w-10" />
+    return <Sparkle weight="light" className="h-10 w-10" />
   }
 
   const getTransitionTitle = () => {
@@ -204,7 +204,7 @@ export function PhaseTransitionDialog({
                   <span className="text-sm text-muted-foreground">Profit Target</span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{formatPercent(currentPhase.profitTargetPercent)}</span>
-                    <CheckCircle className="h-4 w-4 text-long" />
+                    <CheckCircle weight="light" className="h-4 w-4 text-long" />
                   </div>
                 </div>
               )}
@@ -225,18 +225,18 @@ export function PhaseTransitionDialog({
           <div className="relative flex items-center justify-center gap-4 py-2">
             <div className="text-center">
               <div className="relative w-14 h-14 bg-long/10 rounded-xl flex items-center justify-center mb-2 transition-all hover:scale-105">
-                <CheckCircle className="h-6 w-6 text-long" />
+                <CheckCircle weight="light" className="h-6 w-6 text-long" />
               </div>
               <span className="text-sm font-medium">{getPhaseDisplayName(currentPhase.phaseNumber)}</span>
               <div className="text-xs text-muted-foreground">Completed</div>
             </div>
 
-            <ArrowRight className="h-6 w-6 text-muted-foreground animate-pulse" />
+            <ArrowRight weight="light" className="h-6 w-6 text-muted-foreground animate-pulse" />
 
             <div className="text-center">
               <div className="relative w-14 h-14 bg-muted/30 rounded-xl flex items-center justify-center mb-2 transition-all hover:scale-105">
                 <div className="absolute inset-0 bg-muted/40 rounded-xl animate-pulse" />
-                <Rocket className="h-6 w-6 text-foreground relative z-10" />
+                <RocketLaunch weight="light" className="h-6 w-6 text-foreground relative z-10" />
               </div>
               <span className="text-sm font-medium">{getPhaseDisplayName(nextPhaseNumber)}</span>
               <div className="text-xs text-muted-foreground">Ready</div>
@@ -247,7 +247,7 @@ export function PhaseTransitionDialog({
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-3 bg-muted/50 border border-border rounded-lg">
               <div className="p-2 bg-muted rounded-lg">
-                <Key className="h-5 w-5 text-foreground" />
+                <Key weight="light" className="h-5 w-5 text-foreground" />
               </div>
               <div className="flex-1">
                 <div className="text-sm font-medium">
@@ -295,13 +295,13 @@ export function PhaseTransitionDialog({
             >
               {isTransitioning ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <CircleNotch weight="light" className="h-4 w-4 animate-spin mr-2" />
                   Transitioning...
                 </>
               ) : (
                 <>
                   Start {getPhaseDisplayName(nextPhaseNumber)}
-                  <ArrowRight className="h-4 w-4 ml-2" />
+                  <ArrowRight weight="light" className="h-4 w-4 ml-2" />
                 </>
               )}
             </Button>

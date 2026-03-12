@@ -1,6 +1,6 @@
 'use client'
 
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun } from '@phosphor-icons/react'
 import { useTheme } from '@/context/theme-provider'
 import { Button } from '@/components/ui/button'
 
@@ -15,9 +15,9 @@ export function ThemeSwitcher() {
       aria-label={effectiveTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
     >
       {effectiveTheme === 'dark' ? (
-        <Moon className="h-4 w-4 text-muted-foreground" />
+        <Moon weight="light" className="h-4 w-4 text-muted-foreground" />
       ) : (
-        <Sun className="h-4 w-4 text-muted-foreground" />
+        <Sun weight="light" className="h-4 w-4 text-muted-foreground" />
       )}
     </Button>
   )

@@ -6,7 +6,7 @@ import { cn, formatCurrency, parsePositionTime, formatNumber, formatPrice } from
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Edit, Eye, ChevronDown, ChevronRight, BarChart3 } from 'lucide-react'
+import { Pencil, Eye, CaretDown, CaretRight, ChartBar } from '@phosphor-icons/react'
 import { ExtendedTrade } from './trade-table-review'
 
 interface TradeTableMobileCardProps {
@@ -73,9 +73,9 @@ export function TradeTableMobileCard({
               className="h-6 w-6 p-0"
             >
               {isExpanded ? (
-                <ChevronDown className="h-4 w-4" />
+                <CaretDown className="h-4 w-4" weight="light" />
               ) : (
-                <ChevronRight className="h-4 w-4" />
+                <CaretRight className="h-4 w-4" weight="light" />
               )}
             </Button>
           )}
@@ -149,7 +149,7 @@ export function TradeTableMobileCard({
           onClick={onViewDetails}
           className="flex-1"
         >
-          <Eye className="h-4 w-4 mr-1" />
+          <Eye className="h-4 w-4 mr-1" weight="light" />
           View
         </Button>
         <Button
@@ -158,7 +158,7 @@ export function TradeTableMobileCard({
           onClick={onEdit}
           className="flex-1"
         >
-          <Edit className="h-4 w-4 mr-1" />
+          <Pencil className="h-4 w-4 mr-1" weight="light" />
           Edit
         </Button>
         {(trade as any).imageBase64 && (
@@ -168,7 +168,7 @@ export function TradeTableMobileCard({
             onClick={onViewChart}
             className="flex-1"
           >
-            <BarChart3 className="h-4 w-4 mr-1" />
+            <ChartBar className="h-4 w-4 mr-1" weight="light" />
             Chart
           </Button>
         )}

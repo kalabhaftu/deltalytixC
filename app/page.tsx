@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Moon, LogOut, ArrowRight, LayoutDashboard, LineChart, ShieldCheck } from "lucide-react"
+import { Moon } from "@phosphor-icons/react"
 
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/logo"
@@ -78,7 +78,7 @@ export default function RootPage() {
   // 2. Unauthenticated State - Minimalist Login
   return (
     <div className="min-h-screen bg-background overflow-hidden relative flex flex-col items-center justify-center selection:bg-primary/30">
-      
+
       {/* Subtle Background Prism/Aura */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[120px]" />
@@ -86,7 +86,7 @@ export default function RootPage() {
       </div>
 
       {/* Main Content */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
@@ -101,7 +101,7 @@ export default function RootPage() {
           >
             <Logo className="w-14 h-14 fill-white" />
           </motion.div>
-          
+
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-semibold tracking-tight text-heading-text">
               Welcome Back
@@ -122,22 +122,22 @@ export default function RootPage() {
         </motion.div>
 
         {/* Minimal Footer */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6, duration: 1 }}
           className="mt-12 flex flex-col items-center gap-6"
         >
           <div className="flex items-center gap-4">
-             <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-muted-foreground hover:text-foreground transition-colors h-8 text-[11px] uppercase tracking-widest font-medium"
-                disabled
-              >
-                <Moon className="h-3 w-3 mr-2" />
-                Dark
-             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground transition-colors h-8 text-[11px] uppercase tracking-widest font-medium"
+              disabled
+            >
+              <Moon weight="light" className="h-3 w-3 mr-2" />
+              Dark
+            </Button>
           </div>
           <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.2em] font-medium">
             &copy; {new Date().getFullYear()} Deltalytix &bull; Secure Terminal

@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label'
 import { TIMEFRAME_OPTIONS } from '@/lib/constants'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { X, Plus } from 'lucide-react'
+import { X, Plus } from '@phosphor-icons/react'
 
 interface TradeTimeframesTabProps {
     biasTimeframe: string | null
@@ -139,7 +139,7 @@ export function TradeTimeframesTab({
                                         setChartLinks(newLinks)
                                     }}
                                 >
-                                    <X className="h-4 w-4" />
+                                    <X className="h-4 w-4" weight="light" />
                                 </Button>
                             )}
                         </div>
@@ -152,7 +152,7 @@ export function TradeTimeframesTab({
                             onClick={() => setChartLinks([...chartLinks, ''])}
                             className="w-full h-9 border-dashed border-border/60 hover:border-primary/50 text-muted-foreground hover:text-primary transition-all"
                         >
-                            <Plus className="h-4 w-4 mr-2" />
+                            <Plus className="h-4 w-4 mr-2" weight="light" />
                             Add Analysis Link ({chartLinks.length}/8)
                         </Button>
                     )}

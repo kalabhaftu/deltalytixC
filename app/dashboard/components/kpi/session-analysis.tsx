@@ -7,10 +7,10 @@ import {
     Globe,
     Sun,
     Moon,
-    Sunrise,
-    TrendingUp,
-    TrendingDown
-} from 'lucide-react'
+    SunHorizon,
+    TrendUp,
+    TrendDown
+} from "@phosphor-icons/react"
 import { cn, classifyTrade } from '@/lib/utils'
 import { parseISO, getHours, format } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
@@ -23,7 +23,7 @@ interface SessionAnalysisProps {
 // Market sessions in UTC
 const SESSIONS = {
     asia: { start: 0, end: 8, name: 'Asia', icon: Moon, color: 'text-purple-500' },
-    london: { start: 8, end: 14, name: 'London', icon: Sunrise, color: 'text-blue-500' },
+    london: { start: 8, end: 14, name: 'London', icon: SunHorizon, color: 'text-blue-500' },
     newYork: { start: 14, end: 21, name: 'New York', icon: Sun, color: 'text-amber-500' },
     overlap: { start: 13, end: 17, name: 'Overlap', icon: Globe, color: 'text-long' }
 }
@@ -78,7 +78,7 @@ export default function SessionAnalysis({ size }: SessionAnalysisProps) {
             <Card className="h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <Globe className="h-4 w-4 text-blue-500" />
+                        <Globe weight="light" className="h-4 w-4 text-blue-500" />
                         Session Analysis
                     </CardTitle>
                 </CardHeader>
@@ -105,7 +105,7 @@ export default function SessionAnalysis({ size }: SessionAnalysisProps) {
         <Card className="h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-blue-500" />
+                    <Globe weight="light" className="h-4 w-4 text-blue-500" />
                     Session Analysis
                 </CardTitle>
             </CardHeader>
@@ -125,7 +125,7 @@ export default function SessionAnalysis({ size }: SessionAnalysisProps) {
                             )}
                         >
                             <div className="flex items-center gap-3">
-                                <Icon className={cn("h-5 w-5", session.color)} />
+                                <Icon weight="light" className={cn("h-5 w-5", session.color)} />
                                 <div>
                                     <p className="font-medium text-sm">{session.name}</p>
                                     <p className="text-xs text-muted-foreground">

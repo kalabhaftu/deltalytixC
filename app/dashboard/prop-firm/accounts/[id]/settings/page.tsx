@@ -14,19 +14,19 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   ArrowLeft,
-  RefreshCw,
-  Save,
-  Settings,
-  AlertTriangle,
+  ArrowsClockwise,
+  FloppyDisk,
+  Gear,
+  Warning,
   CheckCircle,
   Calendar,
-  DollarSign,
+  CurrencyDollar,
   Target,
   Shield,
-  Trash2,
-  Upload,
-  Download
-} from "lucide-react"
+  Trash,
+  UploadSimple,
+  DownloadSimple
+} from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 import { AccountStatus, PhaseType } from "@/types/prop-firm"
 
@@ -228,7 +228,7 @@ export default function AccountSettingsPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
-          <RefreshCw className="h-8 w-8 animate-spin" />
+          <ArrowsClockwise className="h-8 w-8 animate-spin" />
         </div>
       </div>
     )
@@ -279,7 +279,7 @@ export default function AccountSettingsPage() {
             onClick={fetchAccount}
             disabled={isLoading}
           >
-            <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+            <ArrowsClockwise className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
             Refresh
           </Button>
           <Button
@@ -287,7 +287,7 @@ export default function AccountSettingsPage() {
             size="sm"
             disabled={isSaving}
           >
-            <Save className="h-4 w-4 mr-2" />
+            <FloppyDisk className="h-4 w-4 mr-2" />
             {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
@@ -306,7 +306,7 @@ export default function AccountSettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
+                  <Gear className="h-5 w-5" />
                   Account Information
                 </CardTitle>
               </CardHeader>
@@ -529,7 +529,7 @@ export default function AccountSettingsPage() {
                   size="sm"
                   onClick={handleDeleteAccount}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Trash className="h-4 w-4 mr-2" />
                   Delete Account
                 </Button>
               </CardContent>
@@ -549,12 +549,12 @@ export default function AccountSettingsPage() {
                 
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
+                    <DownloadSimple className="h-4 w-4 mr-2" />
                     Export as CSV
                   </Button>
                   
                   <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
+                    <DownloadSimple className="h-4 w-4 mr-2" />
                     Export as JSON
                   </Button>
                 </div>

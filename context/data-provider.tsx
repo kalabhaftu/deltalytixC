@@ -62,8 +62,8 @@ import {
 } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 // filterActiveAccounts and filterTradesFromActiveAccounts removed - not used
-import { useAccountFilterSettings } from '@/hooks/use-account-filter-settings';
-import { AccountFilterSettings } from '@/types/account-filter-settings';
+import { useAccountFilterGear } from '@/hooks/use-account-filter-Gear';
+import { AccountFilterGear } from '@/types/account-filter-Gear';
 import { calculateStatistics, formatCalendarData } from '@/lib/utils';
 import { useParams, usePathname } from 'next/navigation';
 import { useRouter } from 'next/navigation';
@@ -927,9 +927,9 @@ interface DataContextType {
   refreshAllData: () => Promise<void>
   isPlusUser: () => boolean
   isLoading: boolean
-  isLoadingAccountFilterSettings: boolean
-  accountFilterSettings: AccountFilterSettings | null
-  updateAccountFilterSettings: (newSettings: Partial<AccountFilterSettings>) => Promise<void>
+  isLoadingAccountFilterGear: boolean
+  accountFilterGear: AccountFilterGear | null
+  updateAccountFilterGear: (newGear: Partial<AccountFilterGear>) => Promise<void>
   isMobile: boolean
   changeIsFirstConnection: (isFirstConnection: boolean) => void
   isFirstConnection: boolean
@@ -1050,8 +1050,8 @@ export const DataProvider: React.FC<{
 
   // Remove unused states that caused dependency issues
 
-  // Account filter settings
-  const { settings: accountFilterSettings, isLoading: isLoadingAccountFilterSettings, updateSettings: updateAccountFilterSettings } = useAccountFilterSettings()
+  // Account filter Gear
+  const { Gear: accountFilterGear, isLoading: isLoadingAccountFilterGear, updateGear: updateAccountFilterGear } = useAccountFilterGear()
 
   // Local states
 
@@ -1066,30 +1066,35 @@ export const DataProvider: React.FC<{
   const [isFirstConnection, setIsFirstConnection] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize account filter from saved settings (CLIENT-SIDE ONLY)
+  // Initialize account filter from saved Gear (CLIENT-SIDE ONLY)
   const selectionInitializedRef = React.useRef(false)
   const lastSyncedSelectionRef = React.useRef<string>('')
 
-  // Initialize account filter from saved settings only (NO AUTO-SELECTION)
+  // Initialize account filter from saved Gear only (NO AUTO-SELECTION)
   // User must explicitly select accounts
   useEffect(() => {
     if (!accounts || accounts.length === 0) {
       return
     }
 
-    // ONLY load from saved settings - no auto-selection
-    const savedSelection = accountFilterSettings?.selectedPhaseAccountIds || []
+    // ONLY load from saved Gear - no auto-selection
+    const savedSelection = accountFilterGear?.selectedPhaseAccountIds || []
     const savedSignature = JSON.stringify(normalizeSelection(savedSelection))
 
     if (!selectionInitializedRef.current) {
-      // Check DB settings first
+      // Check DB Gear first
       if (savedSelection.length > 0) {
         setAccountNumbers(savedSelection)
         selectionInitializedRef.current = true
         lastSyncedSelectionRef.current = savedSignature
 
         try {
-          localStorage.setItem('account-filter-settings-cache', JSON.stringify(accountFilterSettings))
+          localStorage.setItem(
+            'account-filter-Gear-cache',
+            JSON.stringify({
+              selectedPhaseAccountIds: savedSelection,
+            })
+          )
         } catch (error) {
           // Ignore storage errors
         }
@@ -1099,10 +1104,10 @@ export const DataProvider: React.FC<{
       // Check localStorage cache as fallback
       let cachedSelection: string[] | null = null
       try {
-        const cached = localStorage.getItem('account-filter-settings-cache')
+        const cached = localStorage.getItem('account-filter-Gear-cache')
         if (cached) {
-          const settings = JSON.parse(cached)
-          cachedSelection = settings.selectedPhaseAccountIds || null
+          const Gear = JSON.parse(cached)
+          cachedSelection = Gear.selectedPhaseAccountIds || null
         }
       } catch (error) {
         // Ignore parsing errors
@@ -1123,7 +1128,7 @@ export const DataProvider: React.FC<{
       return
     }
 
-    // Sync updates from server settings (e.g., another tab saved settings)
+    // Sync updates from server Gear (e.g., another tab saved settings)
     if (
       savedSelection.length > 0 &&
       savedSignature !== lastSyncedSelectionRef.current &&
@@ -1132,7 +1137,7 @@ export const DataProvider: React.FC<{
       setAccountNumbers(savedSelection)
       lastSyncedSelectionRef.current = savedSignature
     }
-  }, [accounts, accountFilterSettings, accountNumbers, setAccountNumbers])
+  }, [accounts, accountFilterGear, accountNumbers, setAccountNumbers])
 
   // Track active data loading to prevent concurrent calls - MOVED TO useRef FOR PERSISTENCE
   const activeLoadPromiseRef = React.useRef<Promise<void> | null>(null)
@@ -1198,15 +1203,15 @@ export const DataProvider: React.FC<{
       // Check if we're on the accounts page - if so, fetch trades for all visible accounts
       const isAccountsPage = pathname?.startsWith('/dashboard/accounts') || false
       
-      // Get account filter settings for DB-level filtering (only for dashboard/widgets)
+      // Get account filter Gear for DB-level filtering (only for dashboard/widgets)
       let selectedAccounts: string[] = []
       if (!isAccountsPage) {
         // Only apply account filter for dashboard/widgets, not accounts page
         try {
-          const cached = localStorage.getItem('account-filter-settings-cache')
+          const cached = localStorage.getItem('account-filter-Gear-cache')
           if (cached) {
-            const settings = JSON.parse(cached)
-            selectedAccounts = settings.selectedPhaseAccountIds || []
+            const Gear = JSON.parse(cached)
+            selectedAccounts = Gear.selectedPhaseAccountIds || []
           }
         } catch (error) {
           // Ignore - will fetch all trades
@@ -1259,14 +1264,14 @@ export const DataProvider: React.FC<{
         localStorage.setItem('calendar-notes-cache', JSON.stringify(calendarNotes))
       }
       
-      // Store account filter settings from bundled data
+      // Store account filter Gear from bundled data
       // But don't overwrite if there are pending local changes (user just saved new settings)
       if (userData?.accountFilterSettings) {
         try {
-          const hasPendingChanges = localStorage.getItem('account-filter-settings-pending')
+          const hasPendingChanges = localStorage.getItem('account-filter-Gear-pending')
           if (!hasPendingChanges) {
-            const settings = JSON.parse(userData.accountFilterSettings)
-            localStorage.setItem('account-filter-settings-cache', JSON.stringify(settings))
+            const Gear = JSON.parse(userData.accountFilterSettings)
+            localStorage.setItem('account-filter-Gear-cache', JSON.stringify(Gear))
           }
         } catch (error) {
           // Ignore parsing errors
@@ -1354,7 +1359,7 @@ export const DataProvider: React.FC<{
       if (!mounted) return;
       
       try {
-        // ✅ Just load main data - account filter settings are handled by the hook
+        // ✅ Just load main data - account filter Gear are handled by the hook
         await loadData()
       } catch (error) {
         // Handle Next.js redirect errors (these are normal and expected)
@@ -1458,7 +1463,7 @@ export const DataProvider: React.FC<{
     
     try {
       // Clear data caches to force fresh fetch
-      // NOTE: We preserve account-filter-settings-cache as it contains user's explicit selection
+      // NOTE: We preserve account-filter-Gear-cache as it contains user's explicit selection
       try {
         localStorage.removeItem('bundled-data-cache')
         localStorage.removeItem('bundled-data-timestamp')
@@ -1554,7 +1559,7 @@ export const DataProvider: React.FC<{
           return false;
         }
 
-        // Account filter - if no accounts selected, show all (unless settings explicitly filter)
+        // Account filter - if no accounts selected, show all (unless Gear explicitly filter)
         if (accountNumbers.length > 0) {
           // Check if trade matches selected account numbers (by accountNumber or phaseAccountId)
           const matchesAccount = accountNumbers.includes(trade.accountNumber) ||
@@ -1636,7 +1641,7 @@ export const DataProvider: React.FC<{
   }, [formattedTrades, accounts]);
 
   // Calendar data uses formattedTrades (filtered by account selection)
-  // This ensures calendar respects the navbar filter settings
+  // This ensures calendar respects the navbar filter Gear
   const calendarData = useMemo(() => formatCalendarData(formattedTrades, accounts), [formattedTrades, accounts]);
 
   const isPlusUser = () => {
@@ -1806,9 +1811,9 @@ export const DataProvider: React.FC<{
   const contextValue: DataContextType = {
     isPlusUser,
     isLoading,
-    isLoadingAccountFilterSettings,
-    accountFilterSettings,
-    updateAccountFilterSettings,
+    isLoadingAccountFilterGear,
+    accountFilterGear,
+    updateAccountFilterGear,
     isMobile,
     refreshTrades,
     refreshAllData,

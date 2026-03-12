@@ -222,7 +222,7 @@ async function calculateStatisticsCore(
   ])
 
   // Group trades by execution for accurate counting
-  const groupedTrades = groupTradesByExecution(trades as any[])
+  const groupedTrades = groupTradesByExecution(trades as any[]) as any[]
 
   // Calculate win/loss counts
   const winningTrades = groupedTrades.filter(
@@ -245,7 +245,7 @@ async function calculateStatisticsCore(
     : 0
 
   // Calculate P&L metrics
-  const grossProfits = groupedTrades.reduce((sum, t) => {
+  const grossProfits = groupedTrades.reduce((sum: number, t: any) => {
     const netPnL = t.pnl + (t.commission || 0)
     return netPnL > 0 ? sum + netPnL : sum
   }, 0)
@@ -258,7 +258,7 @@ async function calculateStatisticsCore(
   )
 
   const totalPnL = groupedTrades.reduce(
-    (sum, t) => sum + (t.pnl + (t.commission || 0)),
+    (sum: number, t: any) => sum + (t.pnl + (t.commission || 0)),
     0
   )
 

@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Trade } from '@prisma/client'
-import { TrendingUp, TrendingDown, Calendar, Clock, Target, DollarSign, MoreHorizontal, Eye, Edit, Trash2, AlertTriangle } from 'lucide-react'
+import { TrendUp, TrendDown, CalendarBlank, Clock, Target, CurrencyDollar, DotsThreeVertical, Eye, Pencil, Trash, WarningCircle } from '@phosphor-icons/react'
 import { cn, formatCurrency, formatQuantity, formatTradeData, formatPrice, BREAK_EVEN_THRESHOLD, classifyTrade } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -197,21 +197,21 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <MoreHorizontal className="h-4 w-4" />
+                  <DotsThreeVertical className="h-4 w-4" weight="light" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={onView}>
-                  <Eye className="h-4 w-4 mr-2" />
+                  <Eye className="h-4 w-4 mr-2" weight="light" />
                   View Details
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={onEdit}>
-                  <Edit className="h-4 w-4 mr-2" />
+                  <Pencil className="h-4 w-4 mr-2" weight="light" />
                   Edit Trade
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onDelete} className="text-destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Trash className="h-4 w-4 mr-2" weight="light" />
                   Delete Trade
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -255,7 +255,7 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground mb-1">P&L</p>
             <div className="flex items-center gap-1">
-              {isWin ? <TrendingUp className="h-3 w-3 text-long flex-shrink-0" /> : isLoss ? <TrendingDown className="h-3 w-3 text-short flex-shrink-0" /> : <div className="h-3 w-3 rounded-full border border-muted-foreground flex-shrink-0" />}
+              {isWin ? <TrendUp className="h-3 w-3 text-long flex-shrink-0" weight="light" /> : isLoss ? <TrendDown className="h-3 w-3 text-short flex-shrink-0" weight="light" /> : <div className="h-3 w-3 rounded-full border border-muted-foreground flex-shrink-0" />}
               <p className={cn(
                 "font-semibold truncate",
                 isWin ? 'text-long' : isLoss ? 'text-short' : 'text-muted-foreground'
@@ -307,7 +307,7 @@ export function TradeCard({ trade, onClick, onEdit, onDelete, onView }: TradeCar
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <AlertTriangle className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                      <WarningCircle className="h-3 w-3 text-muted-foreground flex-shrink-0" weight="light" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="text-xs">Trade has incomplete SL or TP data</p>

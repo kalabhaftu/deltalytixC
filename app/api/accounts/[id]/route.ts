@@ -63,13 +63,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     // Calculate profitLoss (net of commissions)
-    const profitLoss = trades.reduce((sum, trade) => {
-      const netPnL = trade.pnl - (trade.commission || 0)
-      return sum + netPnL
-    }, 0)
+    const profitLoss = trades.reduce(
+      (sum: number, trade: { pnl: number; commission: number | null }) => {
+        const netPnL = trade.pnl - (trade.commission || 0)
+        return sum + netPnL
+      },
+      0
+    )
 
     // Calculate total transactions (deposits are positive, withdrawals are negative)
-    const totalTransactions = transactions.reduce((sum, tx) => sum + tx.amount, 0)
+    const totalTransactions = transactions.reduce(
+      (sum: number, tx: { amount: number }) => sum + tx.amount,
+      0
+    )
 
     // Calculate current equity including transactions
     const currentEquity = account.startingBalance + profitLoss + totalTransactions
@@ -134,12 +140,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Build update data object
     const updateData: any = {}
-    
+
     // If archiving/unarchiving (isArchived is explicitly provided)
     if (typeof isArchived === 'boolean') {
       updateData.isArchived = isArchived
     }
-    
+
     // If updating name/broker (for edit account)
     if (name !== undefined || broker !== undefined) {
       // Validate required fields for account edit

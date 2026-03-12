@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { X, Plus, GripVertical } from "lucide-react"
+import { X, Plus, DotsSixVertical } from "@phosphor-icons/react"
 import { WIDGET_REGISTRY } from '../config/widget-registry-lazy'
 import { useTemplateEditStore } from '@/store/template-edit-store'
 import { useTemplates } from '@/context/template-provider'
@@ -160,7 +160,7 @@ function SortableWidget({
           {...listeners}
           className="absolute top-2 left-2 cursor-move z-10 bg-background/80 backdrop-blur-sm rounded p-1 hover:bg-muted/50 transition-colors"
         >
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
+          <DotsSixVertical weight="light" className="h-4 w-4 text-muted-foreground" />
         </div>
       )}
 
@@ -174,7 +174,7 @@ function SortableWidget({
           className="absolute top-2 right-2 h-6 w-6 rounded-full p-0 shadow-lg z-10"
           onClick={onRemove}
         >
-          <X className="h-3 w-3" />
+          <X weight="light" className="h-3 w-3" />
         </Button>
       )}
     </div>
@@ -184,7 +184,7 @@ function SortableWidget({
 export default function WidgetCanvasWithDrag() {
   const { isEditMode, currentLayout, updateLayout } = useTemplateEditStore()
   const { activeTemplate, isLoading } = useTemplates()
-  const { accountNumbers, formattedTrades, isLoadingAccountFilterSettings, accountFilterSettings } = useData()
+  const { accountNumbers, formattedTrades, isLoadingAccountFilterGear, accountFilterGear } = useData()
   const { accounts } = useAccounts()
   const [showWidgetLibrary, setShowWidgetLibrary] = useState(false)
   const [showKpiSelector, setShowKpiSelector] = useState(false)
@@ -390,12 +390,12 @@ export default function WidgetCanvasWithDrag() {
   // 1. Not in edit mode
   // 2. Main data has finished loading
   // 3. No accounts are currently selected
-  // 4. NO saved selections exist in settings (this prevents flash while useEffect runs)
+  // 4. NO saved selections exist in Gear (this prevents flash while useEffect runs)
   // 5. Accounts exist (so we know data is loaded)
   const showEmptyState = !isEditMode &&
     !isLoading &&  // ✅ WAIT for main data to load
     accountNumbers.length === 0 &&
-    (!accountFilterSettings?.selectedPhaseAccountIds || accountFilterSettings.selectedPhaseAccountIds.length === 0) &&  // ✅ Check if settings have saved selections
+    (!accountFilterGear?.selectedPhaseAccountIds || accountFilterGear.selectedPhaseAccountIds.length === 0) &&  // ✅ Check if Gear have saved selections
     accounts && accounts.length > 0
 
   if (showEmptyState) {
@@ -440,7 +440,7 @@ export default function WidgetCanvasWithDrag() {
                           onClick={() => handleAddWidget({ slotIndex: index })}
                         >
                           <CardContent className="h-full flex flex-col items-center justify-center p-4">
-                            <Plus className="h-6 w-6 text-muted-foreground mb-2" />
+                            <Plus weight="light" className="h-6 w-6 text-muted-foreground mb-2" />
                             <span className="text-xs text-muted-foreground text-center">
                               Add KPI
                             </span>
@@ -499,7 +499,7 @@ export default function WidgetCanvasWithDrag() {
                                   onClick={() => handleAddWidget({ x: currentX, y: rowY, width: slotWidth })}
                                 >
                                   <CardContent className="h-full flex flex-col items-center justify-center p-4">
-                                    <Plus className="h-8 w-8 text-muted-foreground mb-2" />
+                                    <Plus weight="light" className="h-8 w-8 text-muted-foreground mb-2" />
                                     <span className="text-xs text-muted-foreground text-center">
                                       Add widget ({getSlotSizeDescription(slotWidth)})
                                     </span>
@@ -543,7 +543,7 @@ export default function WidgetCanvasWithDrag() {
                                 onClick={() => handleAddWidget({ x: currentX, y: rowY, width: slotWidth })}
                               >
                                 <CardContent className="h-full flex flex-col items-center justify-center p-4">
-                                  <Plus className="h-8 w-8 text-muted-foreground mb-2" />
+                                  <Plus weight="light" className="h-8 w-8 text-muted-foreground mb-2" />
                                   <span className="text-xs text-muted-foreground text-center">
                                     Add widget ({getSlotSizeDescription(slotWidth)})
                                   </span>
@@ -570,7 +570,7 @@ export default function WidgetCanvasWithDrag() {
             onClick={() => handleAddWidget()}
           >
             <CardContent className="h-full flex flex-col items-center justify-center p-4">
-              <Plus className="h-8 w-8 text-muted-foreground mb-2" />
+              <Plus weight="light" className="h-8 w-8 text-muted-foreground mb-2" />
               <span className="text-sm text-muted-foreground text-center">
                 Add new row
               </span>

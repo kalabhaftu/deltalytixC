@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@phosphor-icons/react'
 import ImportTradesCard from '@/app/dashboard/components/import/import-trades-card'
 
 interface AccountData {
@@ -88,11 +88,11 @@ export default function NewTradePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <ArrowLeft className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <ArrowLeft className="h-12 w-12 text-muted-foreground mx-auto mb-4" weight="light" />
           <h3 className="text-lg font-semibold mb-2">Account Not Found</h3>
           <p className="text-muted-foreground">The account you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.</p>
           <Button onClick={() => router.back()} className="mt-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="h-4 w-4 mr-2" weight="light" />
             Go Back
           </Button>
         </div>
@@ -111,7 +111,7 @@ export default function NewTradePage() {
               size="sm"
               onClick={() => router.push(`/dashboard/prop-firm/accounts/${accountId}/trades`)}
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-4 w-4 mr-2" weight="light" />
               Back to Trades
             </Button>
             <div>

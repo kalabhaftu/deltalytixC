@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { XIcon, AlertTriangleIcon, InfoIcon, RefreshCwIcon, SparklesIcon } from 'lucide-react'
+import { X, Warning, Info, ArrowsClockwise, Sparkle } from '@phosphor-icons/react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { experimental_useObject as useObject } from '@ai-sdk/react'
 import { ImportType } from './import-type-selection'
@@ -117,7 +117,7 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <SparklesIcon className="h-6 w-6 text-warning animate-pulse" />
+                  <Sparkle weight="light" className="h-6 w-6 text-warning animate-pulse" />
                   <div className="absolute -inset-1 bg-warning/30 rounded-full blur-sm opacity-50 animate-ping" />
                 </div>
                 <div>
@@ -131,7 +131,7 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
                 onClick={() => submit({ fieldColumns: headers, firstRows: csvData.slice(1, 6) })}
                 className="flex items-center gap-2 bg-warning/10 hover:bg-warning/20 text-warning border-warning/20 transition-colors"
               >
-                <RefreshCwIcon className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                <ArrowsClockwise weight="light" className={cn("h-4 w-4", isLoading && "animate-spin")} />
                 Use AI for mapping
               </Button>
             </div>
@@ -145,7 +145,7 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
-                      {columnConfig[field].required ? <AlertTriangleIcon className="h-4 w-4 ml-1 text-destructive inline" /> : <InfoIcon className="h-4 w-4 ml-1 text-warning inline" />}
+                      {columnConfig[field].required ? <Warning weight="light" className="h-4 w-4 ml-1 text-destructive inline" /> : <Info weight="light" className="h-4 w-4 ml-1 text-warning inline" />}
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>{columnConfig[field].required ? "Required field" : "Optional field"}</p>
@@ -218,7 +218,7 @@ export default function ColumnMapping({ headers, csvData, mappings, setMappings,
                       size="sm"
                       onClick={() => handleRemoveMapping(header)}
                     >
-                      <XIcon className="h-4 w-4" />
+                      <X weight="light" className="h-4 w-4" />
                     </Button>
                   )}
                 </TableCell>

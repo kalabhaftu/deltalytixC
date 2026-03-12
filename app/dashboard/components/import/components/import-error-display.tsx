@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertCircle, RefreshCw, Home } from 'lucide-react'
+import { WarningCircle, ArrowsClockwise, House } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
@@ -19,7 +19,7 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
       return {
         title: 'Duplicate Trades Detected',
         description: 'The trades you\'re trying to import have already been added to this account.',
-        icon: AlertCircle,
+        icon: WarningCircle,
         color: 'text-warning'
       }
     }
@@ -28,7 +28,7 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
       return {
         title: 'No Active Phase',
         description: 'This account doesn\'t have an active phase set up. Please configure account phases first.',
-        icon: AlertCircle,
+        icon: WarningCircle,
         color: 'text-chart-4'
       }
     }
@@ -37,7 +37,7 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
       return {
         title: 'Account Not Found',
         description: 'The selected account could not be found. It may have been deleted.',
-        icon: AlertCircle,
+        icon: WarningCircle,
         color: 'text-destructive'
       }
     }
@@ -46,7 +46,7 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
       return {
         title: 'Connection Error',
         description: 'Unable to connect to the server. Please check your internet connection.',
-        icon: AlertCircle,
+        icon: WarningCircle,
         color: 'text-destructive'
       }
     }
@@ -55,7 +55,7 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
       return {
         title: 'Authentication Error',
         description: 'Your session has expired. Please log in again.',
-        icon: AlertCircle,
+        icon: WarningCircle,
         color: 'text-destructive'
       }
     }
@@ -65,7 +65,7 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
       description: errorMessage.length > 150 
         ? 'An unexpected error occurred. Please try again or contact support if the issue persists.'
         : errorMessage,
-      icon: AlertCircle,
+      icon: WarningCircle,
       color: 'text-destructive'
     }
   }
@@ -81,14 +81,14 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
           <div className="w-24 h-24 rounded-full bg-destructive" />
         </div>
         <div className="relative z-10 w-24 h-24 rounded-full bg-destructive/10 backdrop-blur-sm border-2 border-destructive/30 flex items-center justify-center">
-          <Icon className={`w-12 h-12 ${errorInfo.color}`} />
+          <Icon weight="light" className={`w-12 h-12 ${errorInfo.color}`} />
         </div>
       </div>
 
       {/* Error Message */}
       <div className="max-w-md w-full space-y-4">
         <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
-          <AlertCircle className="h-4 w-4" />
+          <WarningCircle weight="light" className="h-4 w-4" />
           <AlertTitle className="text-lg font-semibold">{errorInfo.title}</AlertTitle>
           <AlertDescription className="mt-2">
             {errorInfo.description}
@@ -110,13 +110,13 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
       <div className="flex gap-3">
         {onRetry && (
           <Button onClick={onRetry} variant="default" className="gap-2">
-            <RefreshCw className="w-4 h-4" />
+            <ArrowsClockwise weight="light" className="w-4 h-4" />
             Try Again
           </Button>
         )}
         {onClose && (
           <Button onClick={onClose} variant="outline" className="gap-2">
-            <Home className="w-4 h-4" />
+            <House weight="light" className="w-4 h-4" />
             Close
           </Button>
         )}

@@ -89,9 +89,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Find the current phase (can be 'active' or 'pending_approval' if profit target was met)
-    const currentPhase = masterAccount.PhaseAccount.find(phase => 
-      phase.phaseNumber === masterAccount.currentPhase && 
-      (phase.status === 'active' || phase.status === 'pending_approval')
+    const currentPhase = masterAccount.PhaseAccount.find(
+      (phase: (typeof masterAccount.PhaseAccount)[number]) =>
+        phase.phaseNumber === masterAccount.currentPhase &&
+        (phase.status === 'active' || phase.status === 'pending_approval')
     )
 
     if (!currentPhase) {
@@ -105,8 +106,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const nextPhaseNumber = masterAccount.currentPhase + 1
     
     // Find the next phase
-    const nextPhase = masterAccount.PhaseAccount.find(phase => 
-      phase.phaseNumber === nextPhaseNumber
+    const nextPhase = masterAccount.PhaseAccount.find(
+      (phase: (typeof masterAccount.PhaseAccount)[number]) =>
+        phase.phaseNumber === nextPhaseNumber
     )
 
     if (!nextPhase) {

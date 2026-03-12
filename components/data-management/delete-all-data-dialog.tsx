@@ -17,14 +17,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { 
-  Trash2, 
-  AlertTriangle, 
-  Download, 
-  Loader2,
-  CheckCircle2,
+import {
+  Trash,
+  Warning,
+  WarningCircle,
+  Download,
+  CircleNotch,
+  CheckCircle,
   XCircle
-} from "lucide-react"
+} from "@phosphor-icons/react"
 import { toast } from "sonner"
 
 interface DeleteAllDataDialogProps {
@@ -60,9 +61,9 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
   const handleDownloadBackup = async () => {
     try {
       setIsDownloadingBackup(true)
-      
+
       const response = await fetch('/api/user/data/backup')
-      
+
       if (!response.ok) {
         throw new Error('Failed to generate backup')
       }
@@ -72,12 +73,12 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      
+
       // Extract filename from Content-Disposition header or use default
       const contentDisposition = response.headers.get('Content-Disposition')
       const filenameMatch = contentDisposition?.match(/filename="(.+)"/)
       a.download = filenameMatch?.[1] || 'deltalytix-backup.json'
-      
+
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -133,7 +134,7 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
 
       // Close dialog and refresh
       handleClose()
-      
+
       // Force reload to reset all state
       window.location.href = '/dashboard'
 
@@ -151,7 +152,7 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
       <AlertDialogContent className="max-w-lg">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-            <AlertTriangle className="h-5 w-5" />
+            <Warning weight="light" className="h-5 w-5" />
             Delete All Data
           </AlertDialogTitle>
         </AlertDialogHeader>
@@ -161,7 +162,7 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
             <AlertDialogDescription asChild>
               <div className="space-y-4">
                 <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
+                  <Warning weight="light" className="h-4 w-4" />
                   <AlertTitle>This action cannot be undone</AlertTitle>
                   <AlertDescription>
                     All your trading data will be permanently deleted. Your user account will remain active.
@@ -176,7 +177,7 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
                     <li>All prop firm accounts and evaluation progress</li>
                     <li>All groups, tags, and notes</li>
                     <li>All backtest trades</li>
-                    <li>Dashboard layouts and filter settings</li>
+                    <li>Dashboard layouts and filter Gear</li>
                   </ul>
                 </div>
 
@@ -190,17 +191,17 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
                   >
                     {isDownloadingBackup ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <CircleNotch weight="light" className="h-4 w-4 mr-2 animate-spin" />
                         Generating backup...
                       </>
                     ) : backupDownloaded ? (
                       <>
-                        <CheckCircle2 className="h-4 w-4 mr-2 text-profit" />
+                        <CheckCircle weight="light" className="h-4 w-4 mr-2 text-profit" />
                         Backup downloaded
                       </>
                     ) : (
                       <>
-                        <Download className="h-4 w-4 mr-2" />
+                        <Download weight="light" className="h-4 w-4 mr-2" />
                         Download Backup
                       </>
                     )}
@@ -228,7 +229,7 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
                 <p className="text-sm text-muted-foreground">
                   To confirm deletion, type <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-xs">DELETE ALL DATA</code> below:
                 </p>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="confirm-text" className="sr-only">
                     Confirmation text
@@ -243,13 +244,13 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
                   />
                   {confirmText && confirmText !== 'DELETE ALL DATA' && (
                     <p className="text-xs text-destructive flex items-center gap-1">
-                      <XCircle className="h-3 w-3" />
+                      <XCircle weight="light" className="h-3 w-3" />
                       Text does not match
                     </p>
                   )}
                   {confirmText === 'DELETE ALL DATA' && (
                     <p className="text-xs text-profit flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
+                      <CheckCircle weight="light" className="h-3 w-3" />
                       Confirmation matches
                     </p>
                   )}
@@ -277,7 +278,7 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
             <AlertDialogDescription asChild>
               <div className="space-y-4">
                 <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
+                  <Warning weight="light" className="h-4 w-4" />
                   <AlertTitle>Final Warning</AlertTitle>
                   <AlertDescription>
                     You are about to permanently delete all your data. This action is irreversible.
@@ -291,11 +292,11 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
                     onCheckedChange={(checked) => setFinalConfirm(checked === true)}
                     className="mt-1"
                   />
-                  <Label 
-                    htmlFor="final-confirm" 
+                  <Label
+                    htmlFor="final-confirm"
                     className="text-sm cursor-pointer leading-relaxed"
                   >
-                    I understand that this will permanently delete all my trading data, accounts, and settings. This action cannot be reversed.
+                    I understand that this will permanently delete all my trading data, accounts, and Gear. This action cannot be reversed.
                   </Label>
                 </div>
               </div>
@@ -312,12 +313,12 @@ export function DeleteAllDataDialog({ open, onOpenChange }: DeleteAllDataDialogP
               >
                 {isDeleting ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <CircleNotch weight="light" className="h-4 w-4 mr-2 animate-spin" />
                     Deleting...
                   </>
                 ) : (
                   <>
-                    <Trash2 className="h-4 w-4 mr-2" />
+                    <Trash weight="light" className="h-4 w-4 mr-2" />
                     Delete All My Data
                   </>
                 )}

@@ -8,17 +8,17 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   ArrowLeft,
-  RefreshCw,
-  Settings,
+  ArrowsClockwise as RefreshCw,
+  Gear as Settings,
   User,
-  DollarSign,
-  Activity,
-  TrendingUp,
-  Calendar,
-  Building2,
+  CurrencyDollar as DollarSign,
+  Pulse as Activity,
+  TrendUp as TrendingUp,
+  CalendarBlank as Calendar,
+  Buildings as Building2,
   Plus,
   Minus
-} from "lucide-react"
+} from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 import { EditLiveAccountDialog } from "@/components/edit-live-account-dialog"
 import { TransactionDialog } from "@/app/dashboard/components/accounts/transaction-dialog"
@@ -152,7 +152,7 @@ export default function LiveAccountDetailPage() {
               onClick={() => router.push('/dashboard/accounts')}
               className="p-2"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft weight="light" className="h-4 w-4" />
             </Button>
             <div>
               <div className="h-8 bg-muted/40 rounded w-64 animate-pulse"></div>
@@ -202,7 +202,7 @@ export default function LiveAccountDetailPage() {
               onClick={() => router.push('/dashboard/accounts')}
               className="w-fit"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft weight="light" className="h-4 w-4 mr-2" />
               Back
             </Button>
             <div className="flex flex-wrap items-center gap-2">
@@ -231,7 +231,7 @@ export default function LiveAccountDetailPage() {
               }}
               className="w-fit"
             >
-              <RefreshCw className="h-4 w-4 sm:mr-2" />
+              <RefreshCw className="h-4 w-4 sm:mr-2" weight="light" />
               <span className="hidden sm:inline">Refresh</span>
             </Button>
             <Button
@@ -240,7 +240,7 @@ export default function LiveAccountDetailPage() {
               onClick={() => setEditDialogOpen(true)}
               className="w-fit"
             >
-              <Settings className="h-4 w-4 sm:mr-2" />
+              <Settings className="h-4 w-4 sm:mr-2" weight="light" />
               <span className="hidden sm:inline">Settings</span>
             </Button>
           </div>
@@ -251,27 +251,27 @@ export default function LiveAccountDetailPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Account Number</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <Building2 weight="light" className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold font-mono">{account.number}</div>
             </CardContent>
           </Card>
-
+ 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Starting Balance</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <DollarSign weight="light" className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatCurrency(account.startingBalance)}</div>
             </CardContent>
           </Card>
-
+ 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Current Equity</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <DollarSign weight="light" className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className={cn(
@@ -282,21 +282,21 @@ export default function LiveAccountDetailPage() {
               </div>
             </CardContent>
           </Card>
-
+ 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Trades</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+              <Activity weight="light" className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{account.tradeCount}</div>
             </CardContent>
           </Card>
-
+ 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Net P&L</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp weight="light" className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className={cn(
@@ -356,7 +356,7 @@ export default function LiveAccountDetailPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="w-5 h-5" />
+                    <DollarSign weight="light" className="w-5 h-5" />
                     Account Management
                   </CardTitle>
                 </CardHeader>
@@ -372,11 +372,11 @@ export default function LiveAccountDetailPage() {
                       }}
                     >
                       <Button className="w-full bg-long hover:bg-long/90 text-long-foreground">
-                        <Plus className="w-4 h-4 mr-2" />
+                        <Plus weight="light" className="w-4 h-4 mr-2" />
                         Deposit
                       </Button>
                     </TransactionDialog>
-
+ 
                     <TransactionDialog
                       accountId={account.id}
                       accountNumber={account.number}
@@ -387,7 +387,7 @@ export default function LiveAccountDetailPage() {
                       }}
                     >
                       <Button variant="outline" className="w-full border-short/20 text-short hover:bg-short/10">
-                        <Minus className="w-4 h-4 mr-2" />
+                        <Minus weight="light" className="w-4 h-4 mr-2" />
                         Withdraw
                       </Button>
                     </TransactionDialog>

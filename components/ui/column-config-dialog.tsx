@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Settings, RotateCcw } from "lucide-react"
+import { Gear, ArrowCounterClockwise } from "@phosphor-icons/react"
 import { useTableConfigStore, TableColumnConfig } from '@/store/table-config-store'
 import {
   AlertDialog,
@@ -53,7 +53,7 @@ export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps
 
   const defaultTrigger = (
     <Button variant="outline" className="w-[180px] h-10 font-normal">
-      <Settings className="h-4 w-4 mr-2" />
+      <Gear weight="light" className="h-4 w-4 mr-2" />
       Configuration
     </Button>
   )
@@ -95,7 +95,7 @@ export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="w-[180px] h-10">
-                <RotateCcw className="h-4 w-4 mr-2" />
+                <ArrowCounterClockwise weight="light" className="h-4 w-4 mr-2" />
                                                                    {"Reset to Default" as any}
               </Button>
             </AlertDialogTrigger>
@@ -105,7 +105,7 @@ export function ColumnConfigDialog({ tableId, trigger }: ColumnConfigDialogProps
                                                                            {"Reset Table Configuration" as any}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                                                                           {"Are you sure you want to reset the table configuration to default settings?" as any}
+                                                                           {"Are you sure you want to reset the table configuration to default Gear?" as any}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useData } from "@/context/data-provider"
 import { useAuth } from "@/context/auth-provider"
-import { Database, LogOut, LayoutDashboard, RefreshCw, Sun, Moon, Settings, Pencil, Plus, BookOpen, LayoutTemplate, Trash2, Users, Filter } from "lucide-react"
+import { Database, SignOut, SquaresFour, ArrowsClockwise, Sun, Moon, Gear, Pencil, Plus, BookOpen, Cards, Trash, Users, Funnel } from "@phosphor-icons/react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -200,7 +200,7 @@ export default function Navbar() {
   }
 
   const getThemeIcon = () => {
-    return <Moon className="h-4 w-4" />;
+    return <Moon weight="light" className="h-4 w-4" />;
   }
 
   // Count unique master accounts (prop-firm grouped by masterAccountId, live counted individually)
@@ -314,7 +314,7 @@ export default function Navbar() {
                         onClick={() => setIsLogoPopoverOpen(false)}
                       >
                         <div className="flex-shrink-0 w-4 h-4">
-                          <LayoutDashboard className="h-full w-full" />
+                          <SquaresFour weight="light" className="h-full w-full" />
                         </div>
                         Dashboard
                       </Link>
@@ -329,7 +329,7 @@ export default function Navbar() {
             <Popover open={accountPopoverOpen} onOpenChange={setAccountPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-muted/50 transition-all duration-200 border border-border/50 bg-card/50">
-                  <Users className="mr-2 h-4 w-4" />
+                  <Users weight="light" className="mr-2 h-4 w-4" />
                   <span className="text-sm">{getAccountButtonText()}</span>
                   {accountNumbers.length > 0 && (
                     <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
@@ -362,7 +362,7 @@ export default function Navbar() {
                   className="hidden md:flex h-9 w-9 hover:bg-muted/50 transition-all duration-200 hover:scale-105 hover:shadow-md"
                   title="Templates"
                 >
-                  <LayoutTemplate className="h-4 w-4" />
+                  <Cards weight="light" className="h-4 w-4" />
                   <span className="sr-only">Templates</span>
                 </Button>
               </PopoverTrigger>
@@ -376,7 +376,7 @@ export default function Navbar() {
                       className="h-8 px-2"
                       onClick={() => setCreateTemplateDialogOpen(true)}
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus weight="light" className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="space-y-1">
@@ -413,7 +413,7 @@ export default function Navbar() {
                               disabled={!template.isActive}
                               title="Edit template"
                             >
-                              <Pencil className="h-3 w-3 text-muted-foreground" />
+                              <Pencil weight="light" className="h-3 w-3 text-muted-foreground" />
                             </Button>
                           )}
 
@@ -424,7 +424,7 @@ export default function Navbar() {
                               className="h-6 w-6 p-0 hover:bg-destructive/20 hover:text-destructive"
                               onClick={(e) => openDeleteDialog(template.id, e)}
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash weight="light" className="h-3 w-3" />
                             </Button>
                           )}
                         </div>
@@ -463,7 +463,7 @@ export default function Navbar() {
                   {/* Mobile-only quick actions */}
                   <div className="md:hidden">
                     <DropdownMenuItem onClick={() => setAccountPopoverOpen(true)} className="hover:bg-muted/50 transition-colors duration-200">
-                      <Users className="mr-2 h-4 w-4" />
+                      <Users weight="light" className="mr-2 h-4 w-4" />
                       <span>{getAccountButtonText()}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
@@ -473,7 +473,7 @@ export default function Navbar() {
                       }}
                       className="hover:bg-muted/50 transition-colors duration-200"
                     >
-                      <Filter className="mr-2 h-4 w-4" />
+                      <Funnel weight="light" className="mr-2 h-4 w-4" />
                       <span>Filters</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -481,7 +481,7 @@ export default function Navbar() {
                       onClick={() => setMobileTemplateDialogOpen(true)}
                       className="hover:bg-muted/50 transition-colors duration-200"
                     >
-                      <LayoutTemplate className="mr-2 h-4 w-4" />
+                      <Cards weight="light" className="mr-2 h-4 w-4" />
                       <span>Templates</span>
                       {activeTemplate && (
                         <span className="ml-auto text-xs text-muted-foreground">{activeTemplate.name}</span>
@@ -491,10 +491,10 @@ export default function Navbar() {
                   </div>
 
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/settings" className="hover:bg-muted/50 transition-colors duration-200">
+                    <Link href="/dashboard/Gear" className="hover:bg-muted/50 transition-colors duration-200">
                       <div className="flex w-full">
-                        <Settings className="mr-2 h-4 w-4" />
-                        <span>Settings</span>
+                        <Gear weight="light" className="mr-2 h-4 w-4" />
+                        <span>Gear</span>
                         <DropdownMenuShortcut>⌘,</DropdownMenuShortcut>
                       </div>
                     </Link>
@@ -502,7 +502,7 @@ export default function Navbar() {
 
                   <Link href={"/dashboard/data"}>
                     <DropdownMenuItem className="hover:bg-muted/50 transition-colors duration-200">
-                      <Database className="mr-2 h-4 w-4" />
+                      <Database weight="light" className="mr-2 h-4 w-4" />
                       <span>Data</span>
                       <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
                     </DropdownMenuItem>
@@ -510,14 +510,14 @@ export default function Navbar() {
 
                   <Link href={"/docs"}>
                     <DropdownMenuItem className="hover:bg-muted/50 transition-colors duration-200">
-                      <BookOpen className="mr-2 h-4 w-4" />
+                      <BookOpen weight="light" className="mr-2 h-4 w-4" />
                       <span>Documentation</span>
                       <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
                     </DropdownMenuItem>
                   </Link>
 
                   <DropdownMenuItem onClick={async () => await refreshTrades()} className="hover:bg-muted/50 transition-colors duration-200">
-                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <ArrowsClockwise weight="light" className="mr-2 h-4 w-4" />
                     <span>Refresh Data</span>
                     <DropdownMenuShortcut>⌘R</DropdownMenuShortcut>
                   </DropdownMenuItem>
@@ -534,7 +534,7 @@ export default function Navbar() {
                     // Sign out from Supabase and redirect
                     await signOut()
                   }} className="hover:bg-destructive/20 transition-colors duration-200">
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <SignOut weight="light" className="mr-2 h-4 w-4" />
                     <span>Log Out</span>
                     <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
                   </DropdownMenuItem>

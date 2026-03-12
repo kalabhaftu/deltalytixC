@@ -10,19 +10,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
-  DollarSign,
+import {
+  TrendUp,
+  TrendDown,
+  WarningCircle,
+  CheckCircle,
+  Clock,
+  CurrencyDollar,
   Target,
-  Calendar,
-  Activity,
-  Zap,
-  RefreshCw
-} from 'lucide-react'
+  CalendarBlank,
+  Lightning,
+  ArrowsClockwise
+} from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 // PropFirmEngine import removed - no longer used
 // PropFirmAccountFilters import removed - no longer used
@@ -96,14 +95,14 @@ export function RealtimeStatusIndicator({
 
     try {
       if (showRefreshing) setIsRefreshing(true)
-      
+
       const response = await fetch(`/api/prop-firm/accounts/${accountId}`)
       if (!response.ok) {
         throw new Error('Failed to fetch account status')
       }
 
       const data = await response.json()
-      
+
       // Transform API response to component format
       const status: PropFirmAccountStatus = {
         id: data.account.id,
@@ -151,7 +150,7 @@ export function RealtimeStatusIndicator({
 
     // PERFORMANCE FIX: Disable automatic polling that was causing constant requests
     // Users can manually refresh if needed
-    
+
   }, [accountId, fetchAccountStatus]) // fetchAccountStatus is stable via useCallback
 
   // Render loading state
@@ -160,7 +159,7 @@ export function RealtimeStatusIndicator({
       <Card className={cn('w-full', className)}>
         <CardContent className="p-6">
           <div className="flex items-center justify-center space-x-2">
-            <RefreshCw className="h-4 w-4 animate-spin" />
+            <ArrowsClockwise className="h-4 w-4 animate-spin" weight="light" />
             <span className="text-sm text-muted-foreground">Loading account status...</span>
           </div>
         </CardContent>
@@ -174,13 +173,13 @@ export function RealtimeStatusIndicator({
       <Card className={cn('w-full border-destructive', className)}>
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <AlertTriangle className="h-4 w-4 text-destructive" />
+          <div className="flex items-center space-x-2">
+            <WarningCircle className="h-4 w-4 text-destructive" weight="light" />
               <span className="text-sm text-destructive">{error || 'Account not found'}</span>
             </div>
             {showActions && (
               <Button size="sm" variant="outline" onClick={handleRefresh}>
-                <RefreshCw className="h-3 w-3 mr-1" />
+                <ArrowsClockwise className="h-3 w-3 mr-1" weight="light" />
                 Retry
               </Button>
             )}
@@ -203,11 +202,11 @@ export function RealtimeStatusIndicator({
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'active': return <Activity className="h-3 w-3" />
-      case 'passed': return <CheckCircle className="h-3 w-3" />
-      case 'funded': return <DollarSign className="h-3 w-3" />
-      case 'failed': return <AlertTriangle className="h-3 w-3" />
-      default: return <Clock className="h-3 w-3" />
+      case 'active': return <Clock className="h-3 w-3" weight="light" />
+      case 'passed': return <CheckCircle className="h-3 w-3" weight="light" />
+      case 'funded': return <CurrencyDollar className="h-3 w-3" weight="light" />
+      case 'failed': return <WarningCircle className="h-3 w-3" weight="light" />
+      default: return <Clock className="h-3 w-3" weight="light" />
     }
   }
 
@@ -220,19 +219,19 @@ export function RealtimeStatusIndicator({
   }
 
   // Calculate key metrics
-  const currentProfit = accountStatus.currentPhase ? 
+  const currentProfit = accountStatus.currentPhase ?
     accountStatus.currentPhase.currentEquity - accountStatus.currentPhase.startingBalance : 0
-  
-  const profitPercent = accountStatus.currentPhase && accountStatus.currentPhase.startingBalance > 0 ? 
+
+  const profitPercent = accountStatus.currentPhase && accountStatus.currentPhase.startingBalance > 0 ?
     (currentProfit / accountStatus.currentPhase.startingBalance) * 100 : 0
 
-  const profitTargetProgress = accountStatus.progress ? 
+  const profitTargetProgress = accountStatus.progress ?
     accountStatus.progress.profitProgressPercent : 0
 
-  const dailyDrawdownPercent = accountStatus.drawdown && accountStatus.drawdown.dailyDrawdownLimit > 0 ? 
+  const dailyDrawdownPercent = accountStatus.drawdown && accountStatus.drawdown.dailyDrawdownLimit > 0 ?
     (accountStatus.drawdown.dailyDrawdownUsed / accountStatus.drawdown.dailyDrawdownLimit) * 100 : 0
 
-  const maxDrawdownPercent = accountStatus.drawdown && accountStatus.drawdown.maxDrawdownLimit > 0 ? 
+  const maxDrawdownPercent = accountStatus.drawdown && accountStatus.drawdown.maxDrawdownLimit > 0 ?
     (accountStatus.drawdown.maxDrawdownUsed / accountStatus.drawdown.maxDrawdownLimit) * 100 : 0
 
   // Compact view
@@ -250,8 +249,8 @@ export function RealtimeStatusIndicator({
                 <p className="text-sm font-medium">{accountStatus.name}</p>
                 <p className="text-xs text-muted-foreground">
                   {(accountStatus.currentPhase?.phaseNumber ?? 1) >= 3 ? 'FUNDED' :
-                   (accountStatus.currentPhase?.phaseNumber ?? 1) === 2 ? 'PHASE 2' :
-                   'PHASE 1'}
+                    (accountStatus.currentPhase?.phaseNumber ?? 1) === 2 ? 'PHASE 2' :
+                      'PHASE 1'}
                 </p>
               </div>
             </div>
@@ -287,18 +286,18 @@ export function RealtimeStatusIndicator({
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               {accountStatus.firmType} • {(accountStatus.currentPhase?.phaseNumber ?? 1) >= 3 ? 'FUNDED' :
-               (accountStatus.currentPhase?.phaseNumber ?? 1) === 2 ? 'PHASE 2' :
-               'PHASE 1'}
+                (accountStatus.currentPhase?.phaseNumber ?? 1) === 2 ? 'PHASE 2' :
+                  'PHASE 1'}
             </p>
           </div>
           {showActions && (
-            <Button 
-              size="sm" 
-              variant="outline" 
+            <Button
+              size="sm"
+              variant="outline"
               onClick={handleRefresh}
               disabled={isRefreshing}
             >
-              <RefreshCw className={cn('h-3 w-3 mr-1', isRefreshing && 'animate-spin')} />
+              <ArrowsClockwise className={cn('h-3 w-3 mr-1', isRefreshing && 'animate-spin')} weight="light" />
               Refresh
             </Button>
           )}
@@ -310,7 +309,7 @@ export function RealtimeStatusIndicator({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <div className="flex items-center space-x-1 mb-1">
-              <DollarSign className="h-3 w-3 text-muted-foreground" />
+              <CurrencyDollar className="h-3 w-3 text-muted-foreground" weight="light" />
               <span className="text-xs text-muted-foreground">Current Equity</span>
             </div>
             <p className="text-lg font-bold">
@@ -319,7 +318,7 @@ export function RealtimeStatusIndicator({
           </div>
           <div>
             <div className="flex items-center space-x-1 mb-1">
-              <TrendingUp className="h-3 w-3 text-muted-foreground" />
+              <TrendUp className="h-3 w-3 text-muted-foreground" weight="light" />
               <span className="text-xs text-muted-foreground">Profit/Loss</span>
             </div>
             <p className={cn(
@@ -336,7 +335,7 @@ export function RealtimeStatusIndicator({
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-1">
-                <Target className="h-3 w-3 text-muted-foreground" />
+                <Target className="h-3 w-3 text-muted-foreground" weight="light" />
                 <span className="text-xs text-muted-foreground">Profit Target</span>
               </div>
               <span className="text-xs font-medium">
@@ -364,8 +363,8 @@ export function RealtimeStatusIndicator({
                   {formatPercent(dailyDrawdownPercent)} used
                 </span>
               </div>
-              <Progress 
-                value={dailyDrawdownPercent} 
+              <Progress
+                value={dailyDrawdownPercent}
                 className={cn(
                   'h-1',
                   dailyDrawdownPercent > 60 ? '[&>div]:bg-destructive' : ''
@@ -384,8 +383,8 @@ export function RealtimeStatusIndicator({
                   {formatPercent(maxDrawdownPercent)} used
                 </span>
               </div>
-              <Progress 
-                value={maxDrawdownPercent} 
+              <Progress
+                value={maxDrawdownPercent}
                 className={cn(
                   'h-1',
                   maxDrawdownPercent > 60 ? '[&>div]:bg-destructive' : ''
@@ -396,7 +395,7 @@ export function RealtimeStatusIndicator({
             {/* Breach Warning */}
             {accountStatus.drawdown.isBreached && (
               <div className="flex items-center space-x-2 p-2 bg-destructive/10 border border-destructive/20 rounded-md">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <WarningCircle className="h-4 w-4 text-destructive" weight="light" />
                 <span className="text-sm font-medium text-destructive">
                   {accountStatus.drawdown.breachType?.replace('_', ' ').toUpperCase()} BREACH
                 </span>
@@ -427,7 +426,7 @@ export function RealtimeStatusIndicator({
         {/* Ready to Advance */}
         {accountStatus.progress?.readyToAdvance && (
           <div className="flex items-center space-x-2 p-2 bg-long/10 border border-long/20 rounded-md">
-            <CheckCircle className="h-4 w-4 text-long" />
+            <CheckCircle className="h-4 w-4 text-long" weight="light" />
             <span className="text-sm font-medium text-long">
               Ready to advance to next phase!
             </span>
@@ -438,7 +437,7 @@ export function RealtimeStatusIndicator({
         <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
           <span>Last updated: {lastRefresh.toLocaleTimeString()}</span>
           <div className="flex items-center space-x-1">
-            <Zap className="h-3 w-3" />
+            <Lightning className="h-3 w-3" weight="light" />
             <span>Live</span>
           </div>
         </div>

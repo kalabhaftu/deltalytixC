@@ -16,10 +16,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { 
-  Save,
+import {
+  FloppyDisk,
   User
-} from "lucide-react"
+} from "@phosphor-icons/react"
 
 const editAccountSchema = z.object({
   name: z.string().min(1, 'Account name is required').max(100, 'Name too long'),
@@ -123,11 +123,11 @@ export function EditLiveAccountDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+            <User className="h-5 w-5" weight="light" />
             Edit Account
           </DialogTitle>
           <DialogDescription>
-            Update your live account settings. Changes will be saved immediately.
+            Update your live account Gear. Changes will be saved immediately.
           </DialogDescription>
         </DialogHeader>
 
@@ -173,7 +173,7 @@ export function EditLiveAccountDialog({
           <div className="space-y-2">
             <Label>Starting Balance</Label>
             <Input
-              value={`$${(account.startingBalance || 0).toLocaleString()}`}    
+              value={`$${(account.startingBalance || 0).toLocaleString()}`}
               disabled
               className="bg-muted"
             />
@@ -192,7 +192,7 @@ export function EditLiveAccountDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isSaving}>
-              {isSaving && <Save className="mr-2 h-4 w-4 animate-spin" />}
+              {isSaving && <FloppyDisk className="mr-2 h-4 w-4 animate-spin" weight="light" />}
               Save Changes
             </Button>
           </DialogFooter>

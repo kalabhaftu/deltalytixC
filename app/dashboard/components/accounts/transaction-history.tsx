@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, Minus, Calendar, DollarSign } from 'lucide-react'
+import { Plus, Minus, Calendar, CurrencyDollar } from "@phosphor-icons/react"
 import { format } from 'date-fns'
 
 interface Transaction {
@@ -53,7 +53,7 @@ export function TransactionHistory({ accountId }: TransactionHistoryProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
+            <Calendar className="w-5 h-5" weight="light" />
             Transaction History
           </CardTitle>
         </CardHeader>
@@ -82,7 +82,7 @@ export function TransactionHistory({ accountId }: TransactionHistoryProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
+            <Calendar className="w-5 h-5" weight="light" />
             Transaction History
           </CardTitle>
         </CardHeader>
@@ -107,13 +107,13 @@ export function TransactionHistory({ accountId }: TransactionHistoryProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
+            <Calendar className="w-5 h-5" weight="light" />
             Transaction History
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" weight="light" />
             <p className="text-muted-foreground">No transactions yet</p>
             <p className="text-sm text-muted-foreground">
               Deposits and withdrawals will appear here
@@ -128,7 +128,7 @@ export function TransactionHistory({ accountId }: TransactionHistoryProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Calendar className="w-5 h-5" />
+          <Calendar className="w-5 h-5" weight="light" />
           Transaction History
         </CardTitle>
       </CardHeader>
@@ -145,9 +145,9 @@ export function TransactionHistory({ accountId }: TransactionHistoryProps) {
                   : 'bg-short/10 text-short'
                   }`}>
                   {transaction.type === 'DEPOSIT' ? (
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-4 h-4" weight="light" />
                   ) : (
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-4 h-4" weight="light" />
                   )}
                 </div>
                 <div>
@@ -160,7 +160,7 @@ export function TransactionHistory({ accountId }: TransactionHistoryProps) {
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="w-3 h-3" />
+                    <Calendar className="w-3 h-3" weight="light" />
                     {format(new Date(transaction.createdAt), 'MMM dd, yyyy HH:mm')}
                   </div>
                   {transaction.description && (

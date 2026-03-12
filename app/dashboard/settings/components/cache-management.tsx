@@ -4,20 +4,20 @@
  * Cache Management Component
  * 
  * Provides manual cache clearing functionality for users
- * in the settings page
+ * in the Gear page
  */
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { 
-  clearAllCaches, 
-  clearAccountCaches, 
-  getCacheStats 
+import {
+  clearAllCaches,
+  clearAccountCaches,
+  getCacheStats
 } from '@/lib/cache-manager'
 import { invalidateAccountsCache } from '@/hooks/use-accounts'
-import { Trash2, RefreshCw, Info, CheckCircle2 } from 'lucide-react'
+import { Trash, ArrowsClockwise, Info, CheckCircle } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 
 export function CacheManagement() {
@@ -29,7 +29,7 @@ export function CacheManagement() {
     localStorageKeys: 0,
     sessionStorageKeys: 0
   })
-  
+
   // Load cache stats only on client side to avoid hydration mismatch
   useEffect(() => {
     setStats(getCacheStats())
@@ -37,15 +37,15 @@ export function CacheManagement() {
 
   const handleClearAccountCache = async () => {
     setIsClearing(true)
-    
+
     try {
       const cleared = clearAccountCaches()
-      invalidateAccountsCache('manual clear from settings')
-      
+      invalidateAccountsCache('manual clear from Gear')
+
       toast.success('Account cache cleared', {
         description: `Cleared ${cleared} cached items. Refresh the page to see updates.`
       })
-      
+
       setLastCleared(new Date())
       setStats(getCacheStats())
     } catch (error) {
@@ -59,7 +59,7 @@ export function CacheManagement() {
 
   const handleClearAllCache = async () => {
     setIsClearing(true)
-    
+
     try {
       const result = await clearAllCaches({
         keepTheme: true,
@@ -67,17 +67,17 @@ export function CacheManagement() {
         clearServiceWorker: false,
         clearIndexedDB: false
       })
-      
-      invalidateAccountsCache('manual clear all from settings')
-      
+
+      invalidateAccountsCache('manual clear all from Gear')
+
       const total = result.localStorage + result.sessionStorage + result.serviceWorker + result.indexedDB
-      
+
       toast.success('All caches cleared', {
         description: `Cleared ${total} cached items. Page will reload to apply changes.`
       })
-      
+
       setLastCleared(new Date())
-      
+
       // Reload page after a short delay
       setTimeout(() => {
         window.location.reload()
@@ -132,9 +132,9 @@ export function CacheManagement() {
 
         {/* Information Alert */}
         <Alert>
-          <Info className="h-4 w-4" />
+          <Info weight="light" className="h-4 w-4" />
           <AlertDescription>
-            The app automatically clears stale caches when detecting version changes. 
+            The app automatically clears stale caches when detecting version changes.
             Only use manual clearing if you&apos;re experiencing issues with outdated data.
           </AlertDescription>
         </Alert>
@@ -142,7 +142,7 @@ export function CacheManagement() {
         {/* Last Cleared */}
         {lastCleared && (
           <div className="flex items-center gap-2 text-sm text-profit">
-            <CheckCircle2 className="h-4 w-4" />
+            <CheckCircle weight="light" className="h-4 w-4" />
             <span>
               Cache cleared at {lastCleared.toLocaleTimeString()}
             </span>
@@ -165,9 +165,9 @@ export function CacheManagement() {
               disabled={isClearing}
             >
               {isClearing ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
+                <ArrowsClockwise weight="light" className="h-4 w-4 animate-spin" />
               ) : (
-                <Trash2 className="h-4 w-4" />
+                <Trash weight="light" className="h-4 w-4" />
               )}
               <span className="ml-2">Clear</span>
             </Button>
@@ -187,9 +187,9 @@ export function CacheManagement() {
               disabled={isClearing}
             >
               {isClearing ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
+                <ArrowsClockwise weight="light" className="h-4 w-4 animate-spin" />
               ) : (
-                <Trash2 className="h-4 w-4" />
+                <Trash weight="light" className="h-4 w-4" />
               )}
               <span className="ml-2">Clear All</span>
             </Button>

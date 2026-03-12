@@ -10,9 +10,9 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useData } from "@/context/data-provider"
 import { FilterItem } from "@/app/dashboard/types/filter"
 import { useState, useEffect } from "react"
-import { ChevronDown } from "lucide-react"
+import { CaretDown } from "@phosphor-icons/react"
 import { PnlRangeFilter } from "./pnl-range-filter"
-// import { AccountFilter } from "./account-filter" // Removed - using persistent settings instead
+// import { AccountFilter } from "./account-filter" // Removed - using persistent Gear instead
 
 interface FilterDropdownProps {
   type: 'instrument'
@@ -54,7 +54,7 @@ function FilterDropdown({
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className={`flex items-center ${className || ''}`}>
           <span className="flex-1 text-left">{buttonText[type]}</span>
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0" />
+          <CaretDown weight="light" className="ml-2 h-4 w-4 shrink-0" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-[300px]" align="start">
@@ -165,7 +165,7 @@ export function FilterDropdowns({ showAccountNumbers }: FilterDropdownsProps) {
 
   return (
     <div className="flex gap-2">
-      {/* AccountFilter removed - using persistent account filtering settings instead */}
+      {/* AccountFilter removed - using persistent account filtering Gear instead */}
       <FilterDropdown
         type="instrument"
         items={allItems.filter(item => item.type === 'instrument')}

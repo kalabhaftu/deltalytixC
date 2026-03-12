@@ -114,7 +114,9 @@ export async function POST(request: NextRequest) {
 
     // Refresh Model Map (Name -> ID)
     const currentModels = await prisma.tradingModel.findMany({ where: { userId: internalUserId } })
-    const modelNameMap = new Map(currentModels.map(m => [m.name, m.id]))
+    const modelNameMap = new Map(
+      currentModels.map((m: typeof currentModels[number]) => [m.name, m.id])
+    )
 
     // 3. Accounts (Live)
     // Map: AccountNumber -> AccountId

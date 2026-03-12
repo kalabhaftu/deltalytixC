@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
         })
 
         // Convert decimals and map TradingModel
-        return rawTrades.map(trade => ({
+        return rawTrades.map((trade: typeof rawTrades[number]) => ({
           ...trade,
           entryPrice: convertDecimal(trade.entryPrice),
           closePrice: convertDecimal(trade.closePrice),
@@ -153,13 +153,13 @@ export async function GET(request: NextRequest) {
           select: { date: true, note: true }
         })
 
-        return notes.reduce((acc, note) => {
+        return notes.reduce<Record<string, string>>((acc: Record<string, string>, note: { date: Date | string; note: string }) => {
           const dateKey = typeof note.date === 'string'
             ? note.date
             : note.date.toISOString().split('T')[0]
           acc[dateKey] = note.note
           return acc
-        }, {} as Record<string, string>)
+        }, {})
       })(),
 
       // 6. Prop firm accounts with phase data
@@ -195,10 +195,15 @@ export async function GET(request: NextRequest) {
       where: { userId: internalUserId },
       _count: { id: true }
     })
-    const tradeCountMap = new Map(tradeCounts.map(tc => [tc.accountNumber, tc._count.id]))
+    const tradeCountMap = new Map(
+      tradeCounts.map((tc: { accountNumber: string | null; _count: { id: number } }) => [
+        tc.accountNumber,
+        tc._count.id,
+      ])
+    )
 
     // Process regular (live) accounts
-    const processedLiveAccounts = accounts.map(acc => ({
+    const processedLiveAccounts = accounts.map((acc: typeof accounts[number]) => ({
       ...acc,
       propfirm: '',
       tradeCount: tradeCountMap.get(acc.number) || 0,
@@ -301,7 +306,7 @@ export async function GET(request: NextRequest) {
         })
 
         // Convert decimals
-        finalTrades = rawTrades.map(trade => ({
+        finalTrades = rawTrades.map((trade: typeof rawTrades[number]) => ({
           ...trade,
           entryPrice: convertDecimal(trade.entryPrice),
           closePrice: convertDecimal(trade.closePrice),

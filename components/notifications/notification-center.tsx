@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Bell, Check, CheckCheck, Trash2, Loader2, X } from 'lucide-react'
+import { Bell, Check, Checks, Trash, CircleNotch, X } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -255,7 +255,7 @@ export function NotificationCenter() {
             className="relative h-8 w-8"
             aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
           >
-            <Bell className="h-4 w-4" />
+            <Bell className="h-4 w-4" weight="light" />
             {unreadCount > 0 && (
               <Badge
                 variant="destructive"
@@ -281,7 +281,7 @@ export function NotificationCenter() {
                   className="h-7 text-xs px-2"
                   onClick={handleMarkAllAsRead}
                 >
-                  <CheckCheck className="h-3 w-3 mr-1" />
+                  <Checks className="h-3 w-3 mr-1" weight="light" />
                   Read all
                 </Button>
               )}
@@ -292,7 +292,7 @@ export function NotificationCenter() {
                   className="h-7 text-xs px-2 text-muted-foreground hover:text-destructive"
                   onClick={handleClearAll}
                 >
-                  <Trash2 className="h-3 w-3 mr-1" />
+                  <Trash className="h-3 w-3 mr-1" weight="light" />
                   Clear all
                 </Button>
               )}
@@ -302,11 +302,11 @@ export function NotificationCenter() {
           <ScrollArea className="h-[400px]">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <CircleNotch className="h-6 w-6 animate-spin text-muted-foreground" weight="light" />
               </div>
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Bell className="h-10 w-10 text-muted-foreground/50 mb-3" />
+                <Bell className="h-10 w-10 text-muted-foreground/50 mb-3" weight="light" />
                 <p className="text-sm text-muted-foreground">All caught up!</p>
                 <p className="text-xs text-muted-foreground/70 mt-1">
                   We'll let you know when something happens

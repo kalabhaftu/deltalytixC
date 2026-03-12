@@ -101,7 +101,7 @@ export async function DELETE(
     })
 
     for (const trade of trades) {
-      const updatedTags = (trade.tags || []).filter((tagId) => tagId !== id)
+      const updatedTags = (trade.tags || []).filter((tagId: string) => tagId !== id)
       await prisma.trade.update({
         where: { id: trade.id },
         data: { tags: updatedTags }

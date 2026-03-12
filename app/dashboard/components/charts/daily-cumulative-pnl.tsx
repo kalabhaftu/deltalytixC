@@ -9,9 +9,12 @@ import {
   YAxis,
   ResponsiveContainer,
   ReferenceLine,
-  Tooltip as RechartsTooltip
+  Tooltip as RechartsTooltip,
+  Dot
 } from "recharts"
-import { Info } from 'lucide-react'
+
+const AnyAreaChart = AreaChart as any
+import { Info } from "@phosphor-icons/react"
 import {
   Tooltip,
   TooltipContent,
@@ -201,7 +204,7 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
           </CardTitle>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+              <Info weight="light" className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
             </TooltipTrigger>
             <TooltipContent>
               <p>Running total of daily profit/loss over time</p>
@@ -214,7 +217,7 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
       <CardContent className="flex-1 p-0 relative min-h-[100px]">
         <div className="absolute inset-0">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
+            <AnyAreaChart
               data={chartData}
               margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
             >
@@ -300,7 +303,7 @@ export default function DailyCumulativePnL({ size = 'small-long' }: DailyCumulat
                   stroke: 'hsl(var(--background))'
                 }}
               />
-            </AreaChart>
+            </AnyAreaChart>
           </ResponsiveContainer>
         </div>
       </CardContent>

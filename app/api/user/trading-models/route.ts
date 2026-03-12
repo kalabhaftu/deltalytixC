@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Parse rules from JSON to array and calculate stats
-    const formattedModels = models.map(model => {
+    const formattedModels = models.map((model: (typeof models)[number]) => {
       const trades = model.Trade || []
       const tradeCount = trades.length
 
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       let lossCount = 0
       let breakEvenCount = 0
 
-      trades.forEach(trade => {
+      trades.forEach((trade: (typeof trades)[number]) => {
         const netPnL = (trade.pnl || 0) + (trade.commission || 0)
         totalPnL += netPnL
 

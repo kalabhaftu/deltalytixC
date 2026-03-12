@@ -9,15 +9,15 @@ import { Label } from '@/components/ui/label'
 import { useData } from '@/context/data-provider'
 import {
     Target,
-    TrendingUp,
-    TrendingDown,
+    TrendUp,
+    TrendDown,
     Calendar,
     Trophy,
-    Settings,
+    Gear,
     Shield,
-    AlertTriangle,
-    DollarSign
-} from 'lucide-react'
+    Warning,
+    CurrencyDollar
+} from "@phosphor-icons/react"
 import { cn } from '@/lib/utils'
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, startOfWeek, endOfWeek } from 'date-fns'
 import {
@@ -156,7 +156,7 @@ function StatCard({ metric }: { metric: RiskMetric }) {
             statusStyles[metric.status]
         )}>
             <div className="flex items-center gap-2 mb-1">
-                <Icon className={cn("h-3.5 w-3.5", iconStyles[metric.status])} />
+                <Icon weight="light" className={cn("h-3.5 w-3.5", iconStyles[metric.status])} />
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
                     {metric.label}
                 </span>
@@ -177,7 +177,7 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
     // DATA HOOKS
     // ---------------------------------------------------------------------------
     const { formattedTrades } = useData()
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+    const [isGearOpen, setIsGearOpen] = useState(false)
     const [goalTargets, setGoalTargets] = useState(DEFAULT_GOALS)
     const [tempTargets, setTempTargets] = useState(DEFAULT_GOALS)
     const [isLoading, setIsLoading] = useState(false)
@@ -218,7 +218,7 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
             if (res.ok) {
                 const data = await res.json()
                 setGoalTargets(data.goals)
-                setIsSettingsOpen(false)
+                setIsGearOpen(false)
             }
         } catch (e) {
             console.error('Failed to save goals', e)
@@ -277,7 +277,7 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
             current: currentStats.monthWinRate,
             type: 'winrate' as const,
             period: 'monthly' as const,
-            icon: TrendingUp,
+            icon: TrendUp,
             color: 'hsl(var(--chart-profit))' // Green
         },
         {
@@ -348,19 +348,19 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
         {
             label: 'Max Drawdown',
             value: `$${riskStats.maxDrawdown.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
-            icon: TrendingDown,
+            icon: TrendDown,
             status: (riskStats.maxDrawdown > 1000 ? 'danger' : riskStats.maxDrawdown > 500 ? 'warning' : 'safe') as 'danger' | 'warning' | 'safe'
         },
         {
             label: 'Largest Loss',
             value: `$${riskStats.largestLoss.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
-            icon: AlertTriangle,
+            icon: Warning,
             status: (riskStats.largestLoss > 500 ? 'danger' : riskStats.largestLoss > 200 ? 'warning' : 'safe') as 'danger' | 'warning' | 'safe'
         },
         {
             label: 'Avg Loss',
             value: `$${riskStats.avgLoss.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
-            icon: DollarSign,
+            icon: CurrencyDollar,
             status: 'neutral' as const
         },
         {
@@ -382,7 +382,7 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
             <CardHeader className="flex flex-row items-center justify-between shrink-0 border-b border-border/50 px-6 py-4">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-warning/10 rounded-lg">
-                        <Trophy className="h-5 w-5 text-warning" />
+                        <Trophy weight="light" className="h-5 w-5 text-warning" />
                     </div>
                     <div>
                         <CardTitle className="text-lg font-bold tracking-tight">Command Center</CardTitle>
@@ -390,11 +390,11 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
                     </div>
                 </div>
 
-                {/* Settings Dialog */}
-                <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                {/* Gear Dialog */}
+                <Dialog open={isGearOpen} onOpenChange={setIsGearOpen}>
                     <DialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Settings className="h-4 w-4" />
+                            <Gear weight="light" className="h-4 w-4" />
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">
@@ -434,7 +434,7 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>Cancel</Button>
+                            <Button variant="outline" onClick={() => setIsGearOpen(false)}>Cancel</Button>
                             <Button onClick={saveGoals} disabled={isLoading}>
                                 {isLoading ? 'Saving...' : 'Save Goals'}
                             </Button>
@@ -450,7 +450,7 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
                         {/* Goals Section */}
                         <div className="space-y-4">
                             <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-2">
-                                <Target className="h-3.5 w-3.5" />
+                                <Target weight="light" className="h-3.5 w-3.5" />
                                 Goals Progress
                             </h3>
                             <div className="grid grid-cols-3 gap-4">
@@ -490,7 +490,7 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
                         {/* Risk Metrics Section */}
                         <div className="space-y-4">
                             <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-2">
-                                <Shield className="h-3.5 w-3.5" />
+                                <Shield weight="light" className="h-3.5 w-3.5" />
                                 Risk Metrics
                             </h3>
                             <div className="grid grid-cols-2 gap-3">
@@ -502,7 +502,7 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
                             {/* Warning Alert */}
                             {riskStats.lossStreak >= 3 && (
                                 <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
-                                    <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                                    <Warning weight="light" className="h-4 w-4 text-warning shrink-0" />
                                     <p className="text-xs text-warning">
                                         Consider taking a break - {riskStats.lossStreak} losses in a row
                                     </p>
@@ -514,7 +514,7 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
                     /* Empty State */
                     <div className="flex-1 flex items-center justify-center h-full">
                         <div className="text-center space-y-2">
-                            <Trophy className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+                            <Trophy weight="light" className="h-12 w-12 text-muted-foreground/30 mx-auto" />
                             <p className="text-sm text-muted-foreground">No trading data available</p>
                             <p className="text-xs text-muted-foreground">Import trades to see your goals and risk metrics</p>
                         </div>

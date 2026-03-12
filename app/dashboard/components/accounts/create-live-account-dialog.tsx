@@ -32,7 +32,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Loader2, User, AlertCircle, CheckCircle2, Building2, DollarSign } from "lucide-react"
+import { CircleNotch, User, WarningCircle, CheckCircle, Buildings, CurrencyDollar } from "@phosphor-icons/react"
 import { toast } from "sonner"
 import { clearAccountsCache } from "@/hooks/use-accounts"
 import { useRegisterDialog } from "@/app/dashboard/components/auto-refresh-provider"
@@ -188,7 +188,7 @@ export function CreateLiveAccountDialog({ open, onOpenChange, onSuccess }: LiveA
         <DialogContent className="w-full max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
+              <User className="h-5 w-5" weight="light" />
               Create Live Account
             </DialogTitle>
             <DialogDescription>
@@ -249,7 +249,7 @@ export function CreateLiveAccountDialog({ open, onOpenChange, onSuccess }: LiveA
                           {POPULAR_BROKERS.map(broker => (
                             <SelectItem key={broker} value={broker}>
                               <div className="flex items-center gap-2">
-                                <Building2 className="h-4 w-4" />
+                                <Buildings className="h-4 w-4" weight="light" />
                                 {broker}
                               </div>
                             </SelectItem>
@@ -280,7 +280,7 @@ export function CreateLiveAccountDialog({ open, onOpenChange, onSuccess }: LiveA
                 <div>
                   <Label htmlFor="startingBalance">Starting Balance ($) *</Label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <CurrencyDollar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" weight="light" />
                     <Input
                       id="startingBalance"
                       type="number"
@@ -331,7 +331,7 @@ export function CreateLiveAccountDialog({ open, onOpenChange, onSuccess }: LiveA
               <Card className="border-destructive">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+                    <WarningCircle className="h-5 w-5 text-destructive mt-0.5" weight="light" />
                     <div>
                       <p className="font-medium text-destructive">Please fix the following errors:</p>
                       <ul className="list-disc list-inside text-sm text-muted-foreground mt-2">
@@ -358,12 +358,12 @@ export function CreateLiveAccountDialog({ open, onOpenChange, onSuccess }: LiveA
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <CircleNotch className="h-4 w-4 animate-spin mr-2" weight="light" />
                     Creating...
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    <CheckCircle className="h-4 w-4 mr-2" weight="light" />
                     Create Account
                   </>
                 )}

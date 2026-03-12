@@ -10,12 +10,14 @@ import {
   ResponsiveContainer,
   Tooltip
 } from "recharts"
+
+const AnyRadarChart = RadarChart as any
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useData } from "@/context/data-provider"
 import { cn } from "@/lib/utils"
 import { WidgetSize } from '@/app/dashboard/types/dashboard'
 import { getWidgetStyles } from '@/app/dashboard/config/widget-dimensions'
-import { TrendingUp, TrendingDown, Trophy, Info } from 'lucide-react'
+import { TrendUp as TrendUp, TrendDown as TrendDown, Trophy, Info } from "@phosphor-icons/react"
 import { calculateZellaScore, calculateMetricsFromTrades } from "@/lib/zella-score"
 import {
   Tooltip as UiTooltip,
@@ -126,9 +128,9 @@ function ScoreBadge({ score, hasData }: { score: number; hasData: boolean }) {
       getScoreColor(score)
     )}>
       {score >= 60 ? (
-        <TrendingUp className="h-3.5 w-3.5" />
+        <TrendUp weight="light" className="h-3.5 w-3.5" />
       ) : (
-        <TrendingDown className="h-3.5 w-3.5" />
+        <TrendDown weight="light" className="h-3.5 w-3.5" />
       )}
       <span className="text-sm font-bold">{score}</span>
     </div>
@@ -258,7 +260,7 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
       {/* Header */}
       <CardHeader className="flex flex-row items-center justify-between shrink-0 border-b border-border/50 h-12 px-5">
         <div className="flex items-center gap-2">
-          <Trophy className={cn("text-amber-500", isCompact ? "h-4 w-4" : "h-5 w-5")} />
+          <Trophy weight="light" className={cn("text-amber-500", isCompact ? "h-4 w-4" : "h-5 w-5")} />
           <CardTitle className={cn(
             "font-semibold tracking-tight",
             isCompact ? "text-sm" : "text-base"
@@ -267,7 +269,7 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
           </CardTitle>
           <UiTooltip>
             <UiTooltipTrigger asChild>
-              <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+              <Info weight="light" className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
             </UiTooltipTrigger>
             <UiTooltipContent>
               <p>Overall trading performance score based on 6 key metrics</p>
@@ -286,7 +288,7 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
             <div className="flex-1 relative min-h-[200px]">
               <div className="absolute inset-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart
+                  <AnyRadarChart
                     data={chartData}
                     margin={{ top: 30, right: 40, bottom: 30, left: 40 }}
                   >
@@ -318,7 +320,7 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
                       fillOpacity={0.25}
                       strokeWidth={2}
                     />
-                  </RadarChart>
+                  </AnyRadarChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -347,7 +349,7 @@ export default function PerformanceScore({ size = 'small-long' }: PerformanceSco
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center space-y-2">
-              <Trophy className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+              <Trophy weight="light" className="h-12 w-12 text-muted-foreground/30 mx-auto" />
               <p className="text-sm text-muted-foreground">No trading data available</p>
               <p className="text-xs text-muted-foreground">Import trades to see your score</p>
             </div>

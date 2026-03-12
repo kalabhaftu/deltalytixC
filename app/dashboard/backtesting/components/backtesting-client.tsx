@@ -8,7 +8,7 @@ import { EditBacktestDialog } from './edit-backtest-dialog'
 import { ViewBacktestDialog } from './view-backtest-dialog'
 import { AnalyticsTab } from './analytics-tab'
 import { BacktestTrade, BacktestStats } from '@/types/backtesting-types'
-import { Search, Filter, TrendingUp, BarChart3, Plus, AlertTriangle } from 'lucide-react'
+import { MagnifyingGlass as Search, Funnel as Filter, TrendUp as TrendUp, ChartBar as BarChart3, Plus, WarningCircle as AlertTriangle } from "@phosphor-icons/react"
 import { toast } from 'sonner'
 import {
   DropdownMenu,
@@ -179,12 +179,12 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
           </div>
           <TabsList className="grid w-full sm:w-fit grid-cols-2 flex-shrink-0">
             <TabsTrigger value="backtests" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
+              <BarChart3 className="h-4 w-4" weight="light" />
               <span className="hidden sm:inline">Backtests</span>
               <span className="sm:hidden">Tests</span>
             </TabsTrigger>
             <TabsTrigger value="analytics" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
+              <TrendUp className="h-4 w-4" weight="light" />
               <span>Analytics</span>
             </TabsTrigger>
           </TabsList>
@@ -193,7 +193,7 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
         <TabsContent value="backtests" className="space-y-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" weight="light" />
               <Input
                 placeholder="Search by pair, model, or tags..."
                 value={searchTerm}
@@ -206,7 +206,7 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-2">
-                    <Filter className="h-4 w-4" />
+                    <Filter className="h-4 w-4" weight="light" />
                     {filterBy === 'all' ? 'All' : filterBy === 'wins' ? 'Wins' : filterBy === 'losses' ? 'Losses' : filterBy === 'longs' ? 'Longs' : 'Shorts'}
                   </Button>
                 </DropdownMenuTrigger>
@@ -230,7 +230,7 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
               </DropdownMenu>
 
               <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4" weight="light" />
                 Add Backtest
               </Button>
             </div>
@@ -243,7 +243,7 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
                   <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
                     Total
                   </span>
-                  <BarChart3 className="h-3.5 w-3.5 text-muted-foreground/50" />
+                  <BarChart3 className="h-3.5 w-3.5 text-muted-foreground/50" weight="light" />
                 </div>
                 <p className="text-2xl font-bold tracking-tight">{stats.totalBacktests}</p>
               </CardContent>
@@ -256,9 +256,9 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
                     Win Rate
                   </span>
                   {stats.winRate >= 50 ? (
-                    <TrendingUp className="h-3.5 w-3.5 text-long/50" />
+                    <TrendUp className="h-3.5 w-3.5 text-long/50" weight="light" />
                   ) : (
-                    <TrendingUp className="h-3.5 w-3.5 text-short/50 rotate-180" />
+                    <TrendUp className="h-3.5 w-3.5 text-short/50 rotate-180" weight="light" />
                   )}
                 </div>
                 <p className="text-2xl font-bold tracking-tight">{stats.winRate}%</p>
@@ -272,9 +272,9 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
                     Points/Pips
                   </span>
                   {stats.totalPnL >= 0 ? (
-                    <TrendingUp className="h-3.5 w-3.5 text-long/50" />
+                    <TrendUp className="h-3.5 w-3.5 text-long/50" weight="light" />
                   ) : (
-                    <TrendingUp className="h-3.5 w-3.5 text-short/50 rotate-180" />
+                    <TrendUp className="h-3.5 w-3.5 text-short/50 rotate-180" weight="light" />
                   )}
                 </div>
                 <p className={cn("text-2xl font-bold tracking-tight", stats.totalPnL >= 0 ? "text-long" : "text-short")}>
@@ -289,7 +289,7 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
                   <span className="text-[11px] uppercase tracking-wide font-bold text-muted-foreground/80">
                     Avg R:R
                   </span>
-                  <TrendingUp className="h-3.5 w-3.5 text-muted-foreground/50" />
+                  <TrendUp className="h-3.5 w-3.5 text-muted-foreground/50" weight="light" />
                 </div>
                 <p className="text-2xl font-bold tracking-tight">1:{stats.averageRR.toFixed(2)}</p>
               </CardContent>
@@ -299,7 +299,7 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
           {filteredBacktests.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16">
-                <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
+                <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" weight="light" />
                 <h3 className="text-lg font-semibold mb-2">No backtests found</h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   {searchTerm || filterBy !== 'all'
@@ -308,7 +308,7 @@ export function BacktestingClient({ initialBacktests }: BacktestingClientProps) 
                 </p>
                 {!searchTerm && filterBy === 'all' && (
                   <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-4 w-4" weight="light" />
                     Add Backtest
                   </Button>
                 )}

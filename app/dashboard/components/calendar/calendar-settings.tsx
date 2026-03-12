@@ -1,14 +1,14 @@
 
 'use client'
 
-import { Check, Settings2 } from "lucide-react"
+import { Check, Gear } from "@phosphor-icons/react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Command, CommandGroup, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command"
 import { useCalendarViewStore, VisibleStats } from "@/store/calendar-view"
 import { cn } from "@/lib/utils"
 
-export function CalendarSettings() {
+export function CalendarGear() {
     const { visibleStats, setVisibleStats, showWeekNumbers, setShowWeekNumbers } = useCalendarViewStore()
 
     const stats: { key: keyof VisibleStats; label: string }[] = [
@@ -25,10 +25,10 @@ export function CalendarSettings() {
                     variant="outline"
                     size="sm"
                     className="h-8 w-8 p-0 sm:w-auto sm:px-2.5 text-[11px] font-bold gap-1.5 border-dashed bg-transparent hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all"
-                    title="Calendar Settings"
+                    title="Calendar Gear"
                 >
-                    <Settings2 className="h-4 w-4" />
-                    <span className="hidden sm:inline">Settings</span>
+                    <Gear className="h-4 w-4" weight="light" />
+                    <span className="hidden sm:inline">Gear</span>
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[200px] p-0" align="end">
@@ -41,7 +41,7 @@ export function CalendarSettings() {
                             >
                                 <span className="text-sm">Week Numbers</span>
                                 {showWeekNumbers && (
-                                    <Check className="h-4 w-4 text-primary" />
+                                    <Check className="h-4 w-4 text-primary" weight="light" />
                                 )}
                             </CommandItem>
                         </CommandGroup>
@@ -57,7 +57,7 @@ export function CalendarSettings() {
                                 >
                                     <span className="text-sm">{stat.label}</span>
                                     {visibleStats[stat.key] && (
-                                        <Check className="h-4 w-4 text-primary" />
+                                        <Check className="h-4 w-4 text-primary" weight="light" />
                                     )}
                                 </CommandItem>
                             ))}

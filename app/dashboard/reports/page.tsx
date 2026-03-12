@@ -3,14 +3,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
-    BarChart3,
-    FileUp,
-    Share2,
-    TrendingUp,
+    ChartBar,
+    ShareNetwork,
+    TrendUp,
     Target,
     Clock,
-    Activity
-} from 'lucide-react'
+    Lightning
+} from '@phosphor-icons/react'
 import {
     startOfYear,
     endOfYear,
@@ -57,13 +56,15 @@ function MetricBlock({
     value,
     subValue,
     color = 'neutral',
-    info
+    info,
+    className
 }: {
     label: string
     value: string | number
     subValue?: string | React.ReactNode
     color?: 'long' | 'short' | 'neutral' | 'info'
     info?: string
+    className?: string
 }) {
     const colorClasses = {
         long: 'text-long',
@@ -82,7 +83,7 @@ function MetricBlock({
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger>
-                                <Activity className="h-2.5 w-2.5 text-muted-foreground/40" />
+                                <Lightning weight="light" className="h-2.5 w-2.5 text-muted-foreground/40" />
                             </TooltipTrigger>
                             <TooltipContent className="text-[10px]">{info}</TooltipContent>
                         </Tooltip>
@@ -92,7 +93,8 @@ function MetricBlock({
             <div className="flex flex-col">
                 <span className={cn(
                     "text-xl font-bold tracking-tight leading-none mb-1",
-                    colorClasses[color]
+                    colorClasses[color],
+                    className
                 )}>
                     {value}
                 </span>
@@ -145,7 +147,7 @@ function SessionBlock({
                 <div className="flex justify-between text-[11px] pt-1 border-t border-border/40 mt-1">
                     <span className="text-muted-foreground font-bold">P/L:</span>
                     <span className={cn(
-                        "font-bold",
+                        "font-bold tabular-nums",
                         isProfit ? "text-long" : isLoss ? "text-short" : "text-muted-foreground"
                     )}>
                         {isProfit ? '+' : isLoss ? '' : ''}${pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -369,7 +371,7 @@ export default function ReportsPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10 pb-6 border-b border-border/50">
                     <div className="flex items-center gap-4">
                         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                            <BarChart3 className="h-6 w-6" />
+                            <ChartBar weight="light" className="h-6 w-6" />
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold tracking-tight">Performance Reports</h1>
@@ -392,14 +394,14 @@ export default function ReportsPage() {
                         </Select>
 
                         <Button variant="outline" size="sm" onClick={handleDownloadReport} disabled={isExporting} className="h-9 font-black uppercase tracking-tighter text-[10px] border-border/40 hover:bg-muted/10 transition-all">
-                            <FileUp className="h-3.5 w-3.5 mr-2 opacity-60" />
+                            <TrendUp weight="light" className="h-3.5 w-3.5 mr-2 opacity-60" />
                             Render Report
                         </Button>
 
                         <Dialog>
                             <DialogTrigger asChild>
                                 <Button variant="outline" size="sm" className="h-9 font-black uppercase tracking-tighter text-[10px] border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all">
-                                    <Share2 className="h-3.5 w-3.5 mr-2" />
+                                    <ShareNetwork weight="light" className="h-3.5 w-3.5 mr-2" />
                                     Share Intelligence
                                 </Button>
                             </DialogTrigger>
@@ -440,7 +442,7 @@ export default function ReportsPage() {
                     </div>
                 ) : !tradingActivity || !psychMetrics || filteredTrades.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 border border-dashed border-border/60 rounded-2xl bg-muted/5">
-                        <Activity className="h-10 w-10 text-muted-foreground/30 mb-4" />
+                        <Lightning weight="light" className="h-10 w-10 text-muted-foreground/30 mb-4" />
                         <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/50">Journal is empty for this period</h3>
                     </div>
                 ) : (tradingActivity && psychMetrics && filteredTrades.length > 0) ? (
@@ -448,7 +450,7 @@ export default function ReportsPage() {
                         {/* Section: General Metrics */}
                         <div>
                             <div className="flex items-center gap-2 mb-4">
-                                <TrendingUp className="h-4 w-4 text-primary" />
+                                <TrendUp weight="light" className="h-4 w-4 text-primary" />
                                 <h2 className="text-[11px] uppercase tracking-[0.2em] font-black text-muted-foreground">General Metrics</h2>
                             </div>
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -461,14 +463,15 @@ export default function ReportsPage() {
                                     label="Total P/L"
                                     value={`$${psychMetrics.totalNetPnL.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
                                     color={psychMetrics.totalNetPnL >= 0 ? 'long' : 'short'}
+                                    className="tabular-nums"
                                 />
-                                <MetricBlock label="Avg Win" value={`$${psychMetrics.avgWin}`} color="long" />
-                                <MetricBlock label="Avg Loss" value={`$${psychMetrics.avgLoss}`} color="short" />
-                                <MetricBlock label="Max Drawdown" value={`$${psychMetrics.maxDrawdown}`} color="short" info="Largest peak-to-trough decline in cumulative P/L" />
+                                <MetricBlock label="Avg Win" value={`$${psychMetrics.avgWin}`} color="long" className="tabular-nums" />
+                                <MetricBlock label="Avg Loss" value={`$${psychMetrics.avgLoss}`} color="short" className="tabular-nums" />
+                                <MetricBlock label="Max Drawdown" value={`$${psychMetrics.maxDrawdown}`} color="short" info="Largest peak-to-trough decline in cumulative P/L" className="tabular-nums" />
 
-                                <MetricBlock label="Best Trade" value={`$${Math.max(...filteredTrades.map(t => t.pnl || 0)).toFixed(2)}`} color="long" />
-                                <MetricBlock label="Worst Trade" value={`$${Math.min(...filteredTrades.map(t => t.pnl || 0)).toFixed(2)}`} color="short" />
-                                <MetricBlock label="Peak Equity" value={`$${psychMetrics.peakEquity}`} color="long" />
+                                <MetricBlock label="Best Trade" value={`$${Math.max(...filteredTrades.map(t => t.pnl || 0)).toFixed(2)}`} color="long" className="tabular-nums" />
+                                <MetricBlock label="Worst Trade" value={`$${Math.min(...filteredTrades.map(t => t.pnl || 0)).toFixed(2)}`} color="short" className="tabular-nums" />
+                                <MetricBlock label="Peak Equity" value={`$${psychMetrics.peakEquity}`} color="long" className="tabular-nums" />
                                 <MetricBlock label="Avg Holding Time" value={psychMetrics.avgHoldingTime} color="info" />
 
                                 <MetricBlock
@@ -483,7 +486,7 @@ export default function ReportsPage() {
                         {/* Section: SL/TP Metrics */}
                         <div>
                             <div className="flex items-center gap-2 mb-4">
-                                <Target className="h-4 w-4 text-primary" />
+                                <Target weight="light" className="h-4 w-4 text-primary" />
                                 <h2 className="text-[11px] uppercase tracking-[0.2em] font-black text-muted-foreground">SL/TP Metrics</h2>
                             </div>
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 bg-muted/10 p-4 border border-border/40 rounded-xl">
@@ -501,7 +504,7 @@ export default function ReportsPage() {
                                 </div>
                                 <div className="text-center">
                                     <p className="text-[9px] uppercase font-black text-muted-foreground/60 mb-1">Account Growth</p>
-                                    <p className={cn("font-mono font-bold", psychMetrics.totalNetPnL >= 0 ? "text-long" : "text-short")}>
+                                    <p className={cn("font-mono font-bold tabular-nums", psychMetrics.totalNetPnL >= 0 ? "text-long" : "text-short")}>
                                         {psychMetrics.totalNetPnL >= 0 ? '+' : ''}{((psychMetrics.totalNetPnL / Math.max(1, (accounts?.[0]?.startingBalance || 10000))) * 100).toFixed(2)}%
                                     </p>
                                 </div>
@@ -512,7 +515,7 @@ export default function ReportsPage() {
                         {sessionPerformance && (
                             <div>
                                 <div className="flex items-center gap-2 mb-4">
-                                    <Clock className="h-4 w-4 text-primary" />
+                                    <Clock weight="light" className="h-4 w-4 text-primary" />
                                     <h2 className="text-[11px] uppercase tracking-[0.2em] font-black text-muted-foreground">Trading Session Performance</h2>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -527,7 +530,7 @@ export default function ReportsPage() {
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-24 border border-dashed border-border/60 rounded-2xl bg-muted/5">
-                        <Activity className="h-10 w-10 text-muted-foreground/30 mb-4" />
+                        <Lightning weight="light" className="h-10 w-10 text-muted-foreground/30 mb-4" />
                         <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/50">Journal is empty for this period</h3>
                     </div>
                 )}

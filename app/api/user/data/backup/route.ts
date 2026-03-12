@@ -117,10 +117,16 @@ export async function GET(request: NextRequest) {
         totalPropFirmAccounts: masterAccounts.length,
         totalBacktestTrades: backtestTrades.length,
         totalTags: tags.length,
-        totalPnL: trades.reduce((sum, t) => sum + (t.pnl || 0), 0),
-        totalFees: trades.reduce((sum, t) => sum + (t.commission || 0), 0)
+        totalPnL: trades.reduce(
+          (sum: number, t: typeof trades[number]) => sum + (t.pnl || 0),
+          0
+        ),
+        totalFees: trades.reduce(
+          (sum: number, t: typeof trades[number]) => sum + (t.commission || 0),
+          0
+        ),
       },
-      accounts: accounts.map(acc => ({
+      accounts: accounts.map((acc: typeof accounts[number]) => ({
         id: acc.id,
         number: acc.number,
         name: acc.name,
@@ -130,7 +136,7 @@ export async function GET(request: NextRequest) {
         createdAt: acc.createdAt,
         isArchived: acc.isArchived
       })),
-      propFirmAccounts: masterAccounts.map(master => ({
+      propFirmAccounts: masterAccounts.map((master: typeof masterAccounts[number]) => ({
         id: master.id,
         accountName: master.accountName,
         propFirmName: master.propFirmName,
@@ -139,29 +145,31 @@ export async function GET(request: NextRequest) {
         status: master.status,
         currentPhase: master.currentPhase,
         createdAt: master.createdAt,
-        phases: master.PhaseAccount.map(phase => ({
-          phaseNumber: phase.phaseNumber,
-          phaseId: phase.phaseId,
-          status: phase.status,
-          profitTargetPercent: phase.profitTargetPercent,
-          dailyDrawdownPercent: phase.dailyDrawdownPercent,
-          maxDrawdownPercent: phase.maxDrawdownPercent,
-          profitSplitPercent: phase.profitSplitPercent,
-          tradeCount: phase.Trade.length,
-          breaches: phase.BreachRecord.map(b => ({
-            type: b.breachType,
-            amount: b.breachAmount,
-            date: b.breachTime
-          })),
-          payouts: phase.Payout.map(p => ({
-            amount: p.amount,
-            status: p.status,
-            requestDate: p.requestDate,
-            paidDate: p.paidDate
-          }))
-        }))
+        phases: master.PhaseAccount.map(
+          (phase: (typeof master.PhaseAccount)[number]) => ({
+            phaseNumber: phase.phaseNumber,
+            phaseId: phase.phaseId,
+            status: phase.status,
+            profitTargetPercent: phase.profitTargetPercent,
+            dailyDrawdownPercent: phase.dailyDrawdownPercent,
+            maxDrawdownPercent: phase.maxDrawdownPercent,
+            profitSplitPercent: phase.profitSplitPercent,
+            tradeCount: phase.Trade.length,
+            breaches: phase.BreachRecord.map((b: (typeof phase.BreachRecord)[number]) => ({
+              type: b.breachType,
+              amount: b.breachAmount,
+              date: b.breachTime,
+            })),
+            payouts: phase.Payout.map((p: (typeof phase.Payout)[number]) => ({
+              amount: p.amount,
+              status: p.status,
+              requestDate: p.requestDate,
+              paidDate: p.paidDate,
+            })),
+          })
+        ),
       })),
-      trades: trades.map(t => ({
+      trades: trades.map((t: typeof trades[number]) => ({
         id: t.id,
         accountNumber: t.accountNumber,
         instrument: t.instrument,
@@ -178,18 +186,18 @@ export async function GET(request: NextRequest) {
         tags: t.tags || []
       })),
       groups: [], // Groups removed - no longer used
-      tags: tags.map(t => ({
+      tags: tags.map((t: typeof tags[number]) => ({
         id: t.id,
         name: t.name,
         color: t.color,
         createdAt: t.createdAt
       })),
-      dailyNotes: dailyNotes.map(n => ({
+      dailyNotes: dailyNotes.map((n: typeof dailyNotes[number]) => ({
         date: n.date,
         note: n.note,
         emotion: n.emotion
       })),
-      backtestTrades: backtestTrades.map(bt => ({
+      backtestTrades: backtestTrades.map((bt: typeof backtestTrades[number]) => ({
         id: bt.id,
         pair: bt.pair,
         direction: bt.direction,
@@ -201,7 +209,7 @@ export async function GET(request: NextRequest) {
         dateExecuted: bt.dateExecuted,
         notes: bt.notes
       })),
-      transactions: liveAccountTransactions.map(t => ({
+      transactions: liveAccountTransactions.map((t: typeof liveAccountTransactions[number]) => ({
         accountId: t.accountId,
         type: t.type,
         amount: t.amount,

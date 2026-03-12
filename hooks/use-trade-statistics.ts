@@ -97,7 +97,7 @@ export function useTradeStatistics() {
   }, [accountNumbers.join(',')]) // Only refetch when account selection changes
 
   // CRITICAL: Group trades by execution first for accurate counting
-  const groupedTrades = useMemo(() => groupTradesByExecution(formattedTrades), [formattedTrades])
+  const groupedTrades = useMemo(() => groupTradesByExecution(formattedTrades) as any[], [formattedTrades])
 
   // Core statistics from the centralized calculation (client-side fallback)
   const coreStats = useMemo(() => {
@@ -185,7 +185,7 @@ export function useTradeStatistics() {
       }
     }
     
-    const tradesByDay = groupedTrades.reduce((acc, trade) => {
+    const tradesByDay = groupedTrades.reduce((acc: Record<string, any[]>, trade: any) => {
       const date = new Date(trade.entryDate).toDateString()
       if (!acc[date]) acc[date] = []
       acc[date].push(trade)
@@ -199,7 +199,7 @@ export function useTradeStatistics() {
     let tempDayStreak = 0
     for (let i = 0; i < sortedDays.length; i++) {
       const dayTrades = tradesByDay[sortedDays[i]]
-      const dayPnl = dayTrades.reduce((sum, t) => sum + (t.pnl - (t.commission || 0)), 0)
+      const dayPnl = dayTrades.reduce((sum: number, t: any) => sum + (t.pnl - (t.commission || 0)), 0)
       const isWinDay = dayPnl > 0
       
       if (isWinDay) {

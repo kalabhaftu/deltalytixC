@@ -161,7 +161,7 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
     try {
       localStorage.removeItem('bundled-data-cache')
       localStorage.removeItem('bundled-data-timestamp')
-      localStorage.removeItem('account-filter-settings-cache')
+      localStorage.removeItem('account-filter-Gear-cache')
     } catch (e) {
       // Ignore storage errors
     }

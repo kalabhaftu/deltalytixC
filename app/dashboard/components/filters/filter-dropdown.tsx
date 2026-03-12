@@ -12,10 +12,10 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { Filter } from "lucide-react"
+import { Funnel } from "@phosphor-icons/react"
 import { PnlFilter } from "./pnl-filter"
 import { InstrumentFilter } from "./instrument-filter"
-// import { AccountFilter } from "./account-filter" // Removed - using persistent settings instead
+// import { AccountFilter } from "./account-filter" // Removed - using persistent Gear instead
 import { useData } from "@/context/data-provider"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
@@ -42,7 +42,7 @@ export const FilterDropdown = forwardRef<HTMLButtonElement>((props, ref) => {
               isMobile ? "w-8 p-0" : "min-w-[100px] gap-2 px-3"
             )}
           >
-            <Filter className="h-4 w-4 shrink-0" />
+            <Funnel weight="light" className="h-4 w-4 shrink-0" />
             {!isMobile && (
               <span className="text-sm font-medium">
                 {"Filters"}
@@ -57,9 +57,9 @@ export const FilterDropdown = forwardRef<HTMLButtonElement>((props, ref) => {
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent className="w-[300px]">
-                {/* AccountFilter removed - using persistent account filtering settings instead */}
+                {/* AccountFilter removed - using persistent account filtering Gear instead */}
                 <div className="p-4 text-sm text-muted-foreground">
-                  Account filtering is now managed in Settings → Account Filtering
+                  Account filtering is now managed in Gear → Account Filtering
                 </div>
               </DropdownMenuSubContent>
             </DropdownMenuPortal>

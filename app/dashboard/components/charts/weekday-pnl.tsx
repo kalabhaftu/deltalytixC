@@ -1,9 +1,9 @@
 "use client"
 
 import * as React from "react"
+import * as RechartsPrimitive from "recharts"
 import {
   Bar,
-  BarChart,
   CartesianGrid,
   XAxis,
   YAxis,
@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
   ReferenceLine
 } from "recharts"
-import { Info } from 'lucide-react'
+import { Info } from "@phosphor-icons/react"
 import {
   Tooltip,
   TooltipContent,
@@ -43,6 +43,8 @@ interface WeekdayData {
   losses: number
   winRate: number
 }
+
+const AnyBarChart = (RechartsPrimitive as any).BarChart as React.ComponentType<any>
 
 // ============================================================================
 // CONSTANTS - Tradezella Premium Styling
@@ -214,7 +216,7 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
           </CardTitle>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+              <Info weight="light" className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
             </TooltipTrigger>
             <TooltipContent>
               <p>Profit and Loss performance by day of the week</p>
@@ -243,7 +245,7 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
       <CardContent className="flex-1 p-0 relative min-h-[100px]">
         <div className="absolute inset-0">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart
+            <AnyBarChart
               data={chartData}
               margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
               barGap={4}
@@ -304,7 +306,7 @@ const WeekdayPnL = React.memo(function WeekdayPnL({ size = 'small-long' }: Weekd
                   />
                 ))}
               </Bar>
-            </BarChart>
+            </AnyBarChart>
           </ResponsiveContainer>
         </div>
       </CardContent>

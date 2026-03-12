@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowUpDown, Trash, ChevronLeft, ChevronRight, Edit, Loader2, X, Filter, TrendingUp, TrendingDown } from "lucide-react"
+import { ArrowsDownUp, Trash, CaretLeft, CaretRight, PencilSimple, CircleNotch, X, Funnel, TrendUp, TrendDown } from "@phosphor-icons/react"
 import { toast } from "sonner"
 import { deleteTradesByIdsAction } from '@/server/accounts'
 import { useData } from '@/context/data-provider'
@@ -233,7 +233,7 @@ export default function TradeTable() {
         {/* Quick Filters Row */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Funnel className="h-4 w-4 text-muted-foreground" weight="light" />
             <span className="text-sm font-medium">Filters</span>
             {activeFiltersCount > 0 && (
               <Badge variant="secondary" className="h-5 px-1.5">
@@ -286,7 +286,7 @@ export default function TradeTable() {
               onClick={() => setPnlFilter('wins')}
               className="h-7 px-3 text-long"
             >
-              <TrendingUp className="h-3 w-3 mr-1" />
+              <TrendUp className="h-3 w-3 mr-1" weight="light" />
               Wins
             </Button>
             <Button
@@ -295,7 +295,7 @@ export default function TradeTable() {
               onClick={() => setPnlFilter('losses')}
               className="h-7 px-3 text-short"
             >
-              <TrendingDown className="h-3 w-3 mr-1" />
+              <TrendDown className="h-3 w-3 mr-1" weight="light" />
               Losses
             </Button>
           </div>
@@ -387,7 +387,7 @@ export default function TradeTable() {
               onClick={clearAllFilters}
               className="h-9"
             >
-              <X className="h-4 w-4 mr-1" />
+              <X className="h-4 w-4 mr-1" weight="light" />
               Clear Filters
             </Button>
           )}
@@ -405,7 +405,7 @@ export default function TradeTable() {
               variant="destructive"
               size="sm"
             >
-              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash className="mr-2 h-4 w-4" />}
+              {isDeleting ? <CircleNotch className="mr-2 h-4 w-4 animate-spin" weight="light" /> : <Trash className="mr-2 h-4 w-4" weight="light" />}
               {isDeleting ? 'Deleting...' : `Delete (${selectedTrades.size})`}
             </Button>
           )}
@@ -418,6 +418,7 @@ export default function TradeTable() {
               <Badge key={instrument} variant="secondary" className="gap-1">
                 {instrument}
                 <X
+                  weight="light"
                   className="h-3 w-3 cursor-pointer hover:text-destructive"
                   onClick={() => setSelectedInstruments(prev => prev.filter(i => i !== instrument))}
                 />
@@ -428,6 +429,7 @@ export default function TradeTable() {
                 {account}
                 <X
                   className="h-3 w-3 cursor-pointer hover:text-destructive"
+                  weight="light"
                   onClick={() => setSelectedAccounts(prev => prev.filter(a => a !== account))}
                 />
               </Badge>
@@ -449,55 +451,55 @@ export default function TradeTable() {
               <TableHead className="w-[100px]">
                 <Button variant="ghost" onClick={() => handleSort('instrument')}>
                   Instrument
-                  {sortConfig.key === 'instrument' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                  {sortConfig.key === 'instrument' && <ArrowsDownUp className="ml-2 h-4 w-4" weight="light" />}
                 </Button>
               </TableHead>
               <TableHead>
                 <Button variant="ghost" onClick={() => handleSort('accountNumber')}>
                   Account
-                  {sortConfig.key === 'accountNumber' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                  {sortConfig.key === 'accountNumber' && <ArrowsDownUp className="ml-2 h-4 w-4" weight="light" />}
                 </Button>
               </TableHead>
               <TableHead>
                 <Button variant="ghost" onClick={() => handleSort('side')}>
                   Side
-                  {sortConfig.key === 'side' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                  {sortConfig.key === 'side' && <ArrowsDownUp className="ml-2 h-4 w-4" weight="light" />}
                 </Button>
               </TableHead>
               <TableHead>
                 <Button variant="ghost" onClick={() => handleSort('quantity')}>
                   Quantity
-                  {sortConfig.key === 'quantity' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                  {sortConfig.key === 'quantity' && <ArrowsDownUp className="ml-2 h-4 w-4" weight="light" />}
                 </Button>
               </TableHead>
               <TableHead>
                 <Button variant="ghost" onClick={() => handleSort('entryPrice')}>
                   Entry Price
-                  {sortConfig.key === 'entryPrice' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                  {sortConfig.key === 'entryPrice' && <ArrowsDownUp className="ml-2 h-4 w-4" weight="light" />}
                 </Button>
               </TableHead>
               <TableHead>
                 <Button variant="ghost" onClick={() => handleSort('closePrice')}>
                   Close Price
-                  {sortConfig.key === 'closePrice' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                  {sortConfig.key === 'closePrice' && <ArrowsDownUp className="ml-2 h-4 w-4" weight="light" />}
                 </Button>
               </TableHead>
               <TableHead>
                 <Button variant="ghost" onClick={() => handleSort('entryDate')}>
                   Entry Date
-                  {sortConfig.key === 'entryDate' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                  {sortConfig.key === 'entryDate' && <ArrowsDownUp className="ml-2 h-4 w-4" weight="light" />}
                 </Button>
               </TableHead>
               <TableHead>
                 <Button variant="ghost" onClick={() => handleSort('closeDate')}>
                   Close Date
-                  {sortConfig.key === 'closeDate' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                  {sortConfig.key === 'closeDate' && <ArrowsDownUp className="ml-2 h-4 w-4" weight="light" />}
                 </Button>
               </TableHead>
               <TableHead>
                 <Button variant="ghost" onClick={() => handleSort('pnl')}>
                   PNL
-                  {sortConfig.key === 'pnl' && <ArrowUpDown className="ml-2 h-4 w-4" />}
+                  {sortConfig.key === 'pnl' && <ArrowsDownUp className="ml-2 h-4 w-4" weight="light" />}
                 </Button>
               </TableHead>
               <TableHead>Actions</TableHead>
@@ -510,9 +512,9 @@ export default function TradeTable() {
                   <div className="flex flex-col items-center justify-center space-y-4">
                     <div className="rounded-full bg-muted/30 p-6">
                       {activeFiltersCount > 0 ? (
-                        <Filter className="h-10 w-10 text-muted-foreground" />
+                        <Funnel className="h-10 w-10 text-muted-foreground" weight="light" />
                       ) : (
-                        <TrendingUp className="h-10 w-10 text-muted-foreground" />
+                        <TrendUp className="h-10 w-10 text-muted-foreground" weight="light" />
                       )}
                     </div>
                     <div className="space-y-1">
@@ -585,7 +587,7 @@ export default function TradeTable() {
                             setIsEnhancedEditOpen(true)
                           }}
                         >
-                          <Edit className="w-4 h-4 mr-1" />
+                          <PencilSimple className="w-4 h-4 mr-1" weight="light" />
                           Edit
                         </Button>
                       </div>
@@ -629,7 +631,7 @@ export default function TradeTable() {
             onClick={handlePreviousPage}
             disabled={currentPage === 1}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <CaretLeft className="h-4 w-4" weight="light" />
             Previous
           </Button>
           <span className="text-sm">
@@ -642,7 +644,7 @@ export default function TradeTable() {
             disabled={currentPage === totalPages}
           >
             Next
-            <ChevronRight className="h-4 w-4" />
+            <CaretRight className="h-4 w-4" weight="light" />
           </Button>
         </div>
       </div>

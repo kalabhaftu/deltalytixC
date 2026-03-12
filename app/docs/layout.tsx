@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { Logo } from '@/components/logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Home, Search, Menu, ChevronRight, Book, Rocket, Code, FileText, Terminal, Database as DatabaseIcon, Zap } from 'lucide-react'
+import { House, MagnifyingGlass, List, CaretRight, BookOpenText, Rocket, Code, FileText, Terminal, Database as DatabaseIcon, Lightning } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
@@ -22,7 +22,7 @@ const navigation = [
   },
   {
     title: 'Features',
-    icon: Book,
+    icon: BookOpenText,
     items: [
       { title: 'Trade Import', href: '/docs/features/importing' },
       { title: 'Dashboard', href: '/docs/features/dashboard' },
@@ -47,7 +47,7 @@ function Sidebar({ className }: { className?: string }) {
       {navigation.map((section) => (
         <div key={section.title}>
           <h4 className="mb-3 px-3 text-sm font-semibold flex items-center gap-2 text-foreground">
-            <section.icon className="h-4 w-4 text-primary" />
+            <section.icon className="h-4 w-4 text-primary" weight="light" />
             {section.title}
           </h4>
           <div className="space-y-1">
@@ -65,7 +65,7 @@ function Sidebar({ className }: { className?: string }) {
                   )}
                 >
                   {item.title}
-                  {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
+                  {isActive && <CaretRight className="ml-auto h-4 w-4" weight="light" />}
                 </Link>
               )
             })}
@@ -88,7 +88,7 @@ export default function DocsLayout({ children }: { children: ReactNode }) {
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild className="md:hidden">
               <Button variant="ghost" size="icon">
-                <Menu className="h-5 w-5" />
+                <List className="h-5 w-5" weight="light" />
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-80 pr-0">
@@ -110,7 +110,7 @@ export default function DocsLayout({ children }: { children: ReactNode }) {
 
           <div className="flex-1 max-w-md ml-auto">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" weight="light" />
               <Input
                 placeholder="Search documentation..."
                 className="pl-10 h-10"
@@ -122,7 +122,7 @@ export default function DocsLayout({ children }: { children: ReactNode }) {
 
           <Button asChild variant="ghost" size="sm" className="h-9">
             <Link href="/dashboard">
-              <Home className="h-4 w-4 mr-2" />
+              <House className="h-4 w-4 mr-2" weight="light" />
               <span className="hidden sm:inline">Dashboard</span>
             </Link>
           </Button>

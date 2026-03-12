@@ -3,19 +3,18 @@
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from "@/lib/utils"
 import {
-  LayoutDashboard,
+  SquaresFour,
   Table,
   Users,
   BookOpen,
-  BarChart3,
-  MenuSquare,
-  FlaskConical
-} from "lucide-react"
+  ChartBar,
+  Flask
+} from "@phosphor-icons/react"
 
 interface MobileNavItem {
   id: string
   label: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ComponentType<{ className?: string; weight?: any }>
   href: string
 }
 
@@ -23,13 +22,13 @@ const mobileNavItems: MobileNavItem[] = [
   {
     id: 'widgets',
     label: 'Dashboard',
-    icon: LayoutDashboard,
+    icon: SquaresFour,
     href: '/dashboard'
   },
   {
     id: 'reports',
     label: 'Reports',
-    icon: BarChart3,
+    icon: ChartBar,
     href: '/dashboard/reports'
   },
   {
@@ -41,7 +40,7 @@ const mobileNavItems: MobileNavItem[] = [
   {
     id: 'playbook',
     label: 'Playbook',
-    icon: MenuSquare,
+    icon: BookOpen,
     href: '/dashboard/playbook'
   },
   {
@@ -90,7 +89,9 @@ export function MobileBottomNav() {
                 "p-1.5 rounded-lg transition-all duration-200",
                 isActive && "bg-primary/10"
               )}>
-                <Icon className={cn(
+                <Icon 
+                  weight={isActive ? "fill" : "light"}
+                  className={cn(
                   "h-5 w-5 transition-transform duration-200",
                   isActive && "scale-110"
                 )} />

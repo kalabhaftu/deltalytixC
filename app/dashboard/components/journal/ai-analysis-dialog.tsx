@@ -14,9 +14,9 @@ import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { toast } from 'sonner'
-import { Loader2, Sparkles, Calendar as CalendarIcon, TrendingUp, Brain, AlertTriangle, Target, Lightbulb } from 'lucide-react'
+import { CircleNotch, Sparkle, Calendar as CalendarIcon, TrendUp, Brain, Warning, Target, Lightbulb } from "@phosphor-icons/react"
+import { Card, CardContent } from "@/components/ui/card"
+import { toast } from "sonner"
 import { cn } from '@/lib/utils'
 
 import { CustomDateRangePicker } from '@/components/ui/custom-date-range-picker'
@@ -145,7 +145,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
       <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="p-6 pb-4 border-b shrink-0">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+            <Sparkle className="h-5 w-5 text-primary" weight="light" />
             <DialogTitle>AI Trading Psychology Analysis</DialogTitle>
           </div>
           <DialogDescription>
@@ -184,7 +184,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                 >
                   <PopoverTrigger asChild>
                     <Button variant="outline" size="sm" className="text-xs gap-2">
-                      <CalendarIcon className="h-3 w-3" />
+                      <CalendarIcon className="h-3 w-3" weight="light" />
                       Custom Range
                     </Button>
                   </PopoverTrigger>
@@ -213,7 +213,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
 
               {/* Selected Range Display */}
               <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50">
-                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" weight="light" />
                 <span className="text-sm font-medium">{formatDateRange()}</span>
               </div>
             </div>
@@ -225,7 +225,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                 <Card>
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <Brain className="h-5 w-5 text-primary mt-0.5" />
+                      <Brain className="h-5 w-5 text-primary mt-0.5" weight="light" />
                       <div className="space-y-2 flex-1">
                         <h3 className="font-semibold text-sm">Summary</h3>
                         <p className="text-sm text-muted-foreground leading-relaxed">
@@ -241,7 +241,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                   <Card>
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <TrendingUp className="h-5 w-5 text-blue-400 mt-0.5" />
+                        <TrendUp className="h-5 w-5 text-blue-400 mt-0.5" weight="light" />
                         <div className="space-y-2 flex-1">
                           <h3 className="font-semibold text-sm">Emotional Patterns</h3>
                           <ul className="space-y-2">
@@ -263,7 +263,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                   <Card>
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <Target className="h-5 w-5 text-green-400 mt-0.5" />
+                        <Target className="h-5 w-5 text-green-400 mt-0.5" weight="light" />
                         <div className="space-y-2 flex-1">
                           <h3 className="font-semibold text-sm">Performance Insights</h3>
                           <ul className="space-y-2">
@@ -312,7 +312,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                           <ul className="space-y-1.5">
                             {analysis.weaknesses.map((weakness, index) => (
                               <li key={index} className="text-xs text-muted-foreground flex items-start gap-2">
-                                <AlertTriangle className="h-3 w-3 text-orange-400 mt-0.5" />
+                                <Warning className="h-3 w-3 text-orange-400 mt-0.5" weight="light" />
                                 <span className="flex-1">{weakness}</span>
                               </li>
                             ))}
@@ -328,7 +328,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                   <Card>
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <Lightbulb className="h-5 w-5 text-yellow-400 mt-0.5" />
+                        <Lightbulb className="h-5 w-5 text-yellow-400 mt-0.5" weight="light" />
                         <div className="space-y-2 flex-1">
                           <h3 className="font-semibold text-sm">Recommendations</h3>
                           <ul className="space-y-2">
@@ -349,7 +349,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
               <div className="flex-1 flex items-center justify-center min-h-[300px]">
                 <div className="text-center space-y-4">
                   <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                    <Sparkles className="h-8 w-8 text-primary" />
+                    <Sparkle className="h-8 w-8 text-primary" weight="light" />
                   </div>
                   <div className="space-y-2">
                     <p className="text-sm font-medium">Ready to Analyze</p>
@@ -371,12 +371,12 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
             <Button onClick={handleAnalyze} disabled={isAnalyzing}>
               {isAnalyzing ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <CircleNotch className="h-4 w-4 mr-2 animate-spin" weight="light" />
                   Analyzing...
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-4 w-4 mr-2" />
+                  <Sparkle className="h-4 w-4 mr-2" weight="light" />
                   Generate Analysis
                 </>
               )}

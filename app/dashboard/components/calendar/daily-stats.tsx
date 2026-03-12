@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import { TrendingUp, TrendingDown, Clock, BarChart3 } from 'lucide-react'
+import { TrendUp, TrendDown, Clock, ChartBar } from "@phosphor-icons/react"
 import { CalendarEntry } from "@/app/dashboard/types/calendar"
 import { groupTradesByExecution } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -50,7 +50,7 @@ function StatCard({ icon: Icon, label, value, subtext, trend = 'neutral', classN
           trend === 'positive' && 'text-long',
           trend === 'negative' && 'text-short',
           trend === 'neutral' && 'text-muted-foreground',
-        )} />
+        )} weight="light" />
       </div>
 
       <div className="flex-1 min-w-0">
@@ -81,22 +81,29 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
 
     // Calculate P&L for each account
     const accountPnL = groupedTrades.reduce((acc, trade) => {
-      const accountNumber = trade.accountNumber || 'Unknown'
-      const totalPnL = trade.pnl - (trade.commission || 0)
+      const grouped = trade as any
+      const accountNumber = grouped.accountNumber || 'Unknown'
+      const totalPnL = grouped.pnl - (grouped.commission || 0)
       acc[accountNumber] = (acc[accountNumber] || 0) + totalPnL
       return acc
     }, {} as Record<string, number>)
 
     const totalPnL = Object.values(accountPnL).reduce((sum, pnl) => sum + pnl, 0)
-    const avgTimeInPosition = groupedTrades.reduce((sum, trade) => sum + trade.timeInPosition, 0) / groupedTrades.length
+    const avgTimeInPosition =
+      groupedTrades.reduce((sum, trade) => sum + (trade as any).timeInPosition, 0) /
+      groupedTrades.length
     const accountCount = Object.keys(accountPnL).length
 
     // Equity curve calculation
-    const sortedTrades = groupedTrades.sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
+    const sortedTrades = groupedTrades.sort(
+      (a, b) =>
+        new Date((a as any).entryDate).getTime() - new Date((b as any).entryDate).getTime()
+    );
     const equity = [0];
     let cumulative = 0;
     sortedTrades.forEach(trade => {
-      cumulative += trade.pnl - (trade.commission || 0);
+      const grouped = trade as any
+      cumulative += grouped.pnl - (grouped.commission || 0);
       equity.push(cumulative);
     });
 
@@ -135,7 +142,7 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <StatCard
-        icon={stats.totalPnL >= 0 ? TrendingUp : TrendingDown}
+        icon={stats.totalPnL >= 0 ? TrendUp : TrendDown}
         label="Net P&L"
         value={formatCurrency(stats.totalPnL)}
         subtext={`${stats.accountCount} ${stats.accountCount > 1 ? "accounts" : "account"}`}
@@ -151,14 +158,14 @@ export function DailyStats({ dayData, isWeekly = false }: DailyStatsProps) {
       />
 
       <StatCard
-        icon={TrendingDown}
+        icon={TrendDown}
         label="Max Drawdown"
         value={`-${formatCurrency(stats.maxDrawdown)}`}
         trend={stats.maxDrawdown > 0 ? 'negative' : 'neutral'}
       />
 
       <StatCard
-        icon={BarChart3}
+        icon={ChartBar}
         label="Max Profit"
         value={formatCurrency(stats.maxProfit)}
         trend={stats.maxProfit > 0 ? 'positive' : 'neutral'}

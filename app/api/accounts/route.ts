@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
         })
 
         // Transform accounts with minimal processing
-        return accounts.map(account => ({
+        return accounts.map((account: typeof accounts[number]) => ({
           id: account.id,
           number: account.number,
           name: account.name,

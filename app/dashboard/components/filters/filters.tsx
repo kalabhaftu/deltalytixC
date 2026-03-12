@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ChevronsUpDown } from "lucide-react"
+import { CaretUpDown } from "@phosphor-icons/react"
 import { useData } from '@/context/data-provider'
 
 interface FilterItem {
@@ -132,7 +132,7 @@ export default function NavbarFilters() {
             className="w-[200px] justify-between"
           >
             {label}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <CaretUpDown weight="light" className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[200px] p-0">

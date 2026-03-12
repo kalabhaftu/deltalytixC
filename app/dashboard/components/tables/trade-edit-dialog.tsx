@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Loader2 } from 'lucide-react'
+import { CircleNotch } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { uploadService } from '@/lib/upload-service'
 import { MAJOR_NEWS_EVENTS } from '@/lib/major-news-events'
@@ -167,30 +167,30 @@ export default function TradeEditDialog({
       setSelectedTags(tagIds)
 
       // News
-      const newsIds = trade.selectedNews ? trade.selectedNews.split(',').filter(Boolean) : []
+      const newsIds = (trade as any).selectedNews ? (trade as any).selectedNews.split(',').filter(Boolean) : []
       setSelectedNewsEvents(newsIds)
-      setIsNewsDay(trade.newsDay || false)
-      setNewsTraded(trade.newsTraded || false)
+      setIsNewsDay((trade as any).newsDay || false)
+      setNewsTraded((trade as any).newsTraded || false)
 
       // Market Bias
       // @ts-ignore - MarketBias type mismatch fix
       setMarketBias(trade.marketBias || null)
 
       // Timeframes
-      setBiasTimeframe(trade.biasTimeframe || null)
-      setNarrativeTimeframe(trade.narrativeTimeframe || null)
-      setEntryTimeframe(trade.entryTimeframe || null)
-      setStructureTimeframe(trade.structureTimeframe || null)
+      setBiasTimeframe((trade as any).biasTimeframe || null)
+      setNarrativeTimeframe((trade as any).narrativeTimeframe || null)
+      setEntryTimeframe((trade as any).entryTimeframe || null)
+      setStructureTimeframe((trade as any).structureTimeframe || null)
 
       // Order Type
-      setOrderType(trade.orderType || null)
+      setOrderType((trade as any).orderType || null)
 
       // Chart Links
-      const links = trade.chartLinks ? trade.chartLinks.split(',').filter(Boolean) : []
+      const links = (trade as any).chartLinks ? (trade as any).chartLinks.split(',').filter(Boolean) : []
       setChartLinks(links.length > 0 ? links : ['', '', '', ''])
 
       // Model
-      const modelId = trade.modelId
+      const modelId = (trade as any).modelId
       if (modelId) {
         const model = tradingModels.find(m => m.id === modelId)
         setSelectedModel(model || null)
@@ -199,34 +199,34 @@ export default function TradeEditDialog({
 
       // Form values
       const imageFields = {
-        cardPreviewImage: trade.cardPreviewImage || '',
-        imageOne: trade.imageOne || '',
-        imageTwo: trade.imageTwo || '',
-        imageThree: trade.imageThree || '',
-        imageFour: trade.imageFour || '',
-        imageFive: trade.imageFive || '',
-        imageSix: trade.imageSix || '',
+        cardPreviewImage: (trade as any).cardPreviewImage || '',
+        imageOne: (trade as any).imageOne || '',
+        imageTwo: (trade as any).imageTwo || '',
+        imageThree: (trade as any).imageThree || '',
+        imageFour: (trade as any).imageFour || '',
+        imageFive: (trade as any).imageFive || '',
+        imageSix: (trade as any).imageSix || '',
       }
 
       reset({
-        comment: trade.comment || '',
+        comment: (trade as any).comment || '',
         ...imageFields,
         modelId: modelId || null,
-        selectedRules: trade.selectedRules || [],
+        selectedRules: (trade as any).selectedRules || [],
         // @ts-ignore
-        marketBias: trade.marketBias || null,
-        newsDay: trade.newsDay || false,
+        marketBias: (trade as any).marketBias || null,
+        newsDay: (trade as any).newsDay || false,
         selectedNews: newsIds,
-        newsTraded: trade.newsTraded || false,
-        biasTimeframe: trade.biasTimeframe || null,
-        narrativeTimeframe: trade.narrativeTimeframe || null,
-        entryTimeframe: trade.entryTimeframe || null,
-        structureTimeframe: trade.structureTimeframe || null,
-        orderType: trade.orderType || null,
+        newsTraded: (trade as any).newsTraded || false,
+        biasTimeframe: (trade as any).biasTimeframe || null,
+        narrativeTimeframe: (trade as any).narrativeTimeframe || null,
+        entryTimeframe: (trade as any).entryTimeframe || null,
+        structureTimeframe: (trade as any).structureTimeframe || null,
+        orderType: (trade as any).orderType || null,
         chartLinks: links,
       })
 
-      setComment(trade.comment || '')
+      setComment((trade as any).comment || '')
     }
   }, [trade, isOpen, tradingModels, reset])
 
@@ -277,7 +277,7 @@ export default function TradeEditDialog({
       const result = await uploadService.uploadImage(fileToUpload, {
         userId: currentUser.id,
         folder: 'trades',
-        tradeId: trade?.id,
+        tradeId: (trade as any)?.id,
       })
 
       if (!result.success || !result.url) {
@@ -358,9 +358,9 @@ export default function TradeEditDialog({
       <Dialog open={isOpen} onOpenChange={handleCloseAttempt}>
         <DialogContent className="w-full max-w-[95vw] sm:max-w-5xl h-[95vh] sm:h-[90vh] flex flex-col p-0 transition-all">
           {/* Header */}
-          <DialogHeader className="px-4 sm:px-6 py-4 border-b shrink-0">
+            <DialogHeader className="px-4 sm:px-6 py-4 border-b shrink-0">
             <DialogTitle className="text-lg sm:text-xl truncate pr-8">
-              Edit Trade - {trade.instrument} {trade.side}
+              Edit Trade - {(trade as any).instrument} {(trade as any).side}
             </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
               Enhance your trade with notes, screenshots, strategy, and market context
@@ -480,7 +480,7 @@ export default function TradeEditDialog({
             <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="w-full sm:w-auto">
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <CircleNotch className="mr-2 h-4 w-4 animate-spin" weight="light" />
                   Saving...
                 </>
               ) : (

@@ -1,4 +1,4 @@
-import { X, ChevronRight } from "lucide-react"
+import { X, CaretRight } from "@phosphor-icons/react"
 import { Badge } from "@/components/ui/badge"
 import { useData } from "@/context/data-provider"
 import { format } from "date-fns"
@@ -116,6 +116,7 @@ export function ActiveFilterTags({ showAccountNumbers }: { showAccountNumbers: b
                   <Badge variant="secondary" className="gap-1 shrink-0 badge">
                     {anonymizeAccount(account)}
                     <X 
+                      weight="light"
                       className="h-3.5 w-3.5 cursor-pointer" 
                       onClick={() => handleRemoveFilter('account', account)}
                     />
@@ -134,6 +135,7 @@ export function ActiveFilterTags({ showAccountNumbers }: { showAccountNumbers: b
                   <Badge variant="secondary" className="gap-1 shrink-0 badge">
                     {instrument}
                     <X 
+                      weight="light"
                       className="h-3.5 w-3.5 cursor-pointer" 
                       onClick={() => handleRemoveFilter('instrument', instrument)}
                     />
@@ -156,7 +158,7 @@ export function ActiveFilterTags({ showAccountNumbers }: { showAccountNumbers: b
               className="h-full w-8 p-0"
               onClick={scrollToNext}
             >
-              <ChevronRight className="h-4 w-4" />
+              <CaretRight weight="light" className="h-4 w-4" />
             </Button>
           </motion.div>
         </div>

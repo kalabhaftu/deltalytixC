@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Calculator, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
+import { Calculator, TrendUp, TrendDown, WarningCircle } from '@phosphor-icons/react'
 import { Trade } from '@prisma/client'
 import { generateTradeHash } from '@/lib/utils'
 import { calculatePnL, calculateDuration } from '@/lib/utils/trade-calculations'
@@ -345,7 +345,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
           <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <AlertCircle className="h-4 w-4 text-destructive" />
+                <WarningCircle weight="light" className="h-4 w-4 text-destructive" />
               </div>
               <div className="ml-3">
                 <p className="text-sm text-destructive">{phaseValidationError}</p>
@@ -433,13 +433,13 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
                     <SelectContent>
                       <SelectItem value="LONG">
                         <div className="flex items-center">
-                          <TrendingUp className="w-4 h-4 mr-2 text-long" />
+                          <TrendUp weight="light" className="w-4 h-4 mr-2 text-long" />
                           Long
                         </div>
                       </SelectItem>
                       <SelectItem value="SHORT">
                         <div className="flex items-center">
-                          <TrendingDown className="w-4 h-4 mr-2 text-short" />
+                          <TrendDown weight="light" className="w-4 h-4 mr-2 text-short" />
                           Short
                         </div>
                       </SelectItem>
@@ -547,7 +547,7 @@ export default function ManualTradeFormCard({ accountId, accountNumber: propFirm
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center">
-              <Calculator className="w-4 h-4 mr-2" />
+              <Calculator weight="light" className="w-4 h-4 mr-2" />
               Financial Results
             </CardTitle>
           </CardHeader>

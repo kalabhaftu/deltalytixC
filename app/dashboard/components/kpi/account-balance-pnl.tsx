@@ -6,7 +6,7 @@ import { useData } from '@/context/data-provider'
 import { useAccounts } from '@/hooks/use-accounts'
 import { useTradeStatistics } from '@/hooks/use-trade-statistics'
 import { cn } from '@/lib/utils'
-import { Info } from 'lucide-react'
+import { Info } from "@phosphor-icons/react"
 import {
   Tooltip,
   TooltipContent,
@@ -78,7 +78,7 @@ const AccountBalancePnl = React.memo(function AccountBalancePnl({ size }: Accoun
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="w-3 h-3 rounded-full bg-muted flex items-center justify-center cursor-help flex-shrink-0">
-                  <Info className="h-3 w-3 text-muted-foreground" />
+                  <Info weight="light" className="h-3 w-3 text-muted-foreground" />
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom" sideOffset={5} className="max-w-[200px]">

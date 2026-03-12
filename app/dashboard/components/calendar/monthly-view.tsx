@@ -5,7 +5,7 @@ import React, { memo, useMemo } from "react"
 import { format, isSameMonth, isToday, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, addDays, getDay, isSameDay, getISOWeek } from "date-fns"
 import { formatInTimeZone } from 'date-fns-tz'
 import { cn, formatCurrency } from "@/lib/utils"
-import { Notebook } from "lucide-react"
+import { Notebook } from "@phosphor-icons/react"
 import { CalendarData } from "@/app/dashboard/types/calendar"
 import { useCalendarViewStore } from "@/store/calendar-view"
 import { useUserStore } from "@/store/user-store"
@@ -90,7 +90,7 @@ const DayCell = memo(function DayCell({
 
                     {/* Notebook Icon (Outlined - Matching Secondary Metrics) */}
                     {hasNotes && (
-                        <Notebook className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Notebook className="h-3.5 w-3.5 text-muted-foreground" weight="light" />
                     )}
                 </div>
 
