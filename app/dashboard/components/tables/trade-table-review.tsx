@@ -1,10 +1,24 @@
-import React from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { ColumnConfigDialog } from '@/components/ui/column-config-dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useData } from '@/context/data-provider'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import { cn, formatCurrency, formatQuantity, parsePositionTime } from '@/lib/utils'
+import { useTableConfigStore } from '@/store/table-config-store'
+import { useUserStore } from '@/store/user-store'
+import { ArrowRight, CaretDown, CaretLeft, CaretRight, ChartBar, Info } from '@phosphor-icons/react'
+import { Trade } from '@prisma/client'
 import {
   ColumnDef,
   ColumnFiltersState,
   ExpandedState,
   OnChangeFn,
+  Table as ReactTableInstance,
   SortingState,
   VisibilityState,
   flexRender,
@@ -14,29 +28,13 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-  Table as ReactTableInstance,
 } from '@tanstack/react-table'
-import { Button } from '@/components/ui/button'
-import { CaretRight, CaretDown, CaretLeft, Info, ChartBar, ArrowRight } from '@phosphor-icons/react'
-import { Trade, TradingModel } from '@prisma/client'
-import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn, parsePositionTime, formatCurrency, formatQuantity } from '@/lib/utils'
-import { Checkbox } from '@/components/ui/checkbox'
 import { formatInTimeZone } from 'date-fns-tz'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useRouter, useSearchParams } from 'next/navigation'
+import React from 'react'
 import { DataTableColumnHeader } from './column-header'
-import { ColumnConfigDialog } from '@/components/ui/column-config-dialog'
-import TradeEditDialog from './trade-edit-dialog'
-import { TradeDetailView } from './trade-detail-view'
 import TradeChartModal from './trade-chart-modal'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { TradeTableMobileCard } from './trade-table-mobile-card'
-import { useMediaQuery } from '@/hooks/use-media-query'
-import { useUserStore } from '@/store/user-store'
-import { useTableConfigStore } from '@/store/table-config-store'
 
 export interface ExtendedTrade extends Omit<Trade, 'tags'> {
   tags: string[]
@@ -402,6 +400,9 @@ export function TradeTableReview() {
   const timezone = useUserStore((state) => state.timezone)
   const isMobile = useMediaQuery('(max-width: 768px)')
 
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   const tableConfig = useTableConfigStore((state) => state.tables['trade-table'])
   const updateSorting = useTableConfigStore((state) => state.updateSorting)
   const updateColumnFilters = useTableConfigStore((state) => state.updateColumnFilters)
@@ -416,11 +417,6 @@ export function TradeTableReview() {
   const [pageSize, setPageSize] = React.useState(tableConfig?.pageSize ?? 10)
   const [pageIndex, setPageIndex] = React.useState(tableConfig?.pageIndex ?? 0)
   const [selectedTrades, setSelectedTrades] = React.useState<string[]>([])
-
-  const [isEnhancedEditOpen, setIsEnhancedEditOpen] = React.useState(false)
-  const [selectedTradeForEdit, setSelectedTradeForEdit] = React.useState<ExtendedTrade | null>(null)
-  const [isDetailViewOpen, setIsDetailViewOpen] = React.useState(false)
-  const [selectedTradeForView, setSelectedTradeForView] = React.useState<ExtendedTrade | null>(null)
   const [isChartModalOpen, setIsChartModalOpen] = React.useState(false)
   const [selectedTradeForChart, setSelectedTradeForChart] = React.useState<ExtendedTrade | null>(null)
 
@@ -500,14 +496,12 @@ export function TradeTableReview() {
   )
 
   const handleViewDetails = React.useCallback((trade: ExtendedTrade) => {
-    setSelectedTradeForView(trade)
-    setIsDetailViewOpen(true)
-  }, [])
+    router.push(`/dashboard/table?view=details&tradeId=${trade.id}`)
+  }, [router])
 
   const handleEditTrade = React.useCallback((trade: Trade | ExtendedTrade) => {
-    setSelectedTradeForEdit(trade as ExtendedTrade)
-    setIsEnhancedEditOpen(true)
-  }, [])
+    router.push(`/dashboard/table?view=edit&tradeId=${trade.id}`)
+  }, [router])
 
   const handleViewChart = React.useCallback((trade: ExtendedTrade) => {
     setSelectedTradeForChart(trade)
@@ -589,14 +583,6 @@ export function TradeTableReview() {
     tableRef.current?.resetRowSelection()
     setSelectedTrades([])
   }, [selectedTrades, updateTrades])
-
-  const handleEnhancedEditSave = React.useCallback(
-    async (updatedData: Partial<Trade>) => {
-      if (!selectedTradeForEdit) return
-      await updateTrades([selectedTradeForEdit.id], updatedData)
-    },
-    [selectedTradeForEdit, updateTrades]
-  )
 
   return (
     <section className="w-full max-w-full space-y-6 py-4">
@@ -796,25 +782,6 @@ export function TradeTableReview() {
           </div>
         </div>
       </div>
-
-      <TradeDetailView
-        isOpen={isDetailViewOpen}
-        onClose={() => {
-          setIsDetailViewOpen(false)
-          setSelectedTradeForView(null)
-        }}
-        trade={selectedTradeForView as any}
-      />
-
-      <TradeEditDialog
-        isOpen={isEnhancedEditOpen}
-        onClose={() => {
-          setIsEnhancedEditOpen(false)
-          setSelectedTradeForEdit(null)
-        }}
-        trade={selectedTradeForEdit as any}
-        onSave={handleEnhancedEditSave}
-      />
 
       <TradeChartModal
         isOpen={isChartModalOpen}

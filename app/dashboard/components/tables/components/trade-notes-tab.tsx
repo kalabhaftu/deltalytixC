@@ -54,9 +54,8 @@ export function TradeNotesTab({
                                     size="sm"
                                     className="h-7 text-[10px] uppercase font-bold tracking-tight bg-muted/20 shrink-0"
                                     onClick={() => {
-                                        // Only override if empty to prevent accidental loss
-                                        if (!field.value || field.value === '<p></p>') {
-                                            field.onChange('<p><strong>What did I see?</strong></p><p></p><p><strong>What did I do?</strong></p><p></p><p><strong>What did I learn?</strong></p><p></p>')
+                                        if (!field.value || field.value.trim() === '') {
+                                            field.onChange('<h3>What did I see?</h3><p></p><h3>What did I do?</h3><p></p><h3>What did I learn?</h3><p></p>')
                                         }
                                     }}
                                 >
@@ -68,7 +67,7 @@ export function TradeNotesTab({
                                     size="sm"
                                     className="h-7 text-[10px] uppercase font-bold tracking-tight bg-muted/20 shrink-0"
                                     onClick={() => {
-                                        if (!field.value || field.value === '<p></p>') {
+                                        if (!field.value || field.value.trim() === '') {
                                             field.onChange('<p><strong>Emotional State:</strong></p><p></p><p><strong>Focus Level (1-10):</strong></p><p></p><p><strong>Mistakes Made:</strong></p><p></p>')
                                         }
                                     }}
@@ -81,8 +80,8 @@ export function TradeNotesTab({
                                     size="sm"
                                     className="h-7 text-[10px] uppercase font-bold tracking-tight bg-muted/20 shrink-0"
                                     onClick={() => {
-                                        if (!field.value || field.value === '<p></p>') {
-                                            field.onChange('<p><strong>Higher Timeframe Context:</strong></p><p></p><p><strong>Execution Trigger:</strong></p><p></p><p><strong>Trade Management:</strong></p><p></p>')
+                                        if (!field.value || field.value.trim() === '') {
+                                            field.onChange('<p><strong>HTF Context:</strong></p><p></p><p><strong>Execution Trigger:</strong></p><p></p><p><strong>Management:</strong></p><p></p>')
                                         }
                                     }}
                                 >
@@ -97,7 +96,7 @@ export function TradeNotesTab({
                     control={control}
                     render={({ field }) => (
                         <RichTextEditor
-                            value={field.value}
+                            value={field.value || ''}
                             onChange={field.onChange}
                             placeholder="What did you see? What did you learn?"
                         />

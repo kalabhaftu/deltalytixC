@@ -10,9 +10,9 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useData } from '@/context/data-provider'
-import { formatTimeInZone, getTradingSession } from '@/lib/time-utils'
+import { formatTimeInZone, getKillzoneBadge, getTradingSession } from '@/lib/time-utils'
 import { BREAK_EVEN_THRESHOLD, classifyTrade, cn } from '@/lib/utils'
-import { useTradesStore } from '@/store/trades-store'
+import { getTradesAction } from '@/server/database'
 import {
     ChartBar,
     Lightning,
@@ -54,6 +54,7 @@ import {
     TooltipProvider,
     TooltipTrigger
 } from '@/components/ui/tooltip'
+import { DiverseCharts } from './components/diverse-charts'
 import { PerformanceCard } from './components/performance-card'
 
 // Dense Metric Block component
@@ -182,7 +183,6 @@ function SessionBlock({
 }
 
 export default function ReportsPage() {
-    const { trades: allTrades } = useTradesStore()
     const { accounts } = useData()
     
     // Independent Filter State
@@ -195,6 +195,63 @@ export default function ReportsPage() {
     
     const [isExporting, setIsExporting] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
+    const [fetchedTrades, setFetchedTrades] = useState<any[]>([])
+
+    // Advanced Filters State
+    const [advancedFilters, setAdvancedFilters] = useState({
+        symbol: 'all',
+        session: 'all',
+        outcome: 'all',
+        strategy: 'all',
+        ruleBroken: 'all'
+    })
+
+    const [tradingModels, setTradingModels] = useState<any[]>([])
+
+    // Fetch Trading Models
+    useEffect(() => {
+        const fetchModels = async () => {
+            try {
+                const response = await fetch('/api/user/trading-models')
+                if (response.ok) {
+                    const data = await response.json()
+                    setTradingModels(data.models || [])
+                }
+            } catch (error) {
+                console.error('Failed to fetch trading models:', error)
+            }
+        }
+        fetchModels()
+    }, [])
+
+    // Independent Data Fetching for Reports
+    useEffect(() => {
+        const fetchReportData = async () => {
+            setIsLoading(true)
+            try {
+                const filters: any = {}
+                if (dateRange?.from && dateRange?.to) {
+                    filters.dateRange = { from: startOfDay(dateRange.from), to: endOfDay(dateRange.to) }
+                } else if (dateRange?.from) {
+                    filters.dateRange = { from: startOfDay(dateRange.from), to: endOfDay(dateRange.from) }
+                }
+                
+                if (selectedAccountId) {
+                    filters.accountNumbers = [selectedAccountId]
+                }
+                
+                const trades = await getTradesAction(null, { limit: 50000, filters })
+                setFetchedTrades(trades || [])
+            } catch (err) {
+                console.error('Error fetching report trades:', err)
+                setFetchedTrades([])
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchReportData()
+    }, [selectedAccountId, dateRange])
 
     const handlePresetSelect = (preset: string) => {
         const today = new Date()
@@ -253,8 +310,8 @@ export default function ReportsPage() {
     }
 
     const filteredTrades = useMemo(() => {
-        if (!allTrades) return []
-        return allTrades.filter(trade => {
+        if (!fetchedTrades) return []
+        return fetchedTrades.filter(trade => {
             // Filter by Account
             if (selectedAccountId && trade.accountId !== selectedAccountId) return false
             
@@ -265,10 +322,61 @@ export default function ReportsPage() {
             
             if (dateRange?.from && tradeDate < startOfDay(dateRange.from)) return false
             if (dateRange?.to && tradeDate > endOfDay(dateRange.to)) return false
+
+            // Symbol Filter
+            if (advancedFilters.symbol !== 'all' && trade.symbol !== advancedFilters.symbol) return false
+
+            // Session Filter
+            if (advancedFilters.session !== 'all') {
+                const session = getKillzoneBadge(trade.entryDate, trade.symbol || undefined) || 'Outside Session'
+                if (session !== advancedFilters.session) return false
+            }
+
+            // Outcome Filter
+            if (advancedFilters.outcome !== 'all' && (trade as any).tradeOutcome !== advancedFilters.outcome) return false
+
+            // Strategy Filter
+            if (advancedFilters.strategy !== 'all' && (trade as any).modelId !== advancedFilters.strategy) return false
+
+            // Rule Broken Filter
+            if (advancedFilters.ruleBroken !== 'all') {
+                const isBrokenFilter = advancedFilters.ruleBroken === 'broken'
+                if ((trade as any).ruleBroken !== isBrokenFilter) return false
+            }
             
             return true
         })
-    }, [allTrades, selectedAccountId, dateRange])
+    }, [fetchedTrades, selectedAccountId, dateRange, advancedFilters])
+
+    const handleFilterChange = (key: string, value: string) => {
+        setAdvancedFilters(prev => ({ ...prev, [key]: value }))
+    }
+
+    const filterOptions = useMemo(() => {
+        const symbols = Array.from(new Set(fetchedTrades.map(t => t.symbol).filter(Boolean))).sort() as string[]
+        const strategies = tradingModels.map(m => ({ id: m.id, name: m.name }))
+        
+        return {
+            symbols,
+            sessions: [
+                'London Killzone',
+                'NY Killzone',
+                'London Close Killzone',
+                'Lunch Time',
+                'NY PM',
+                'Asian Killzone',
+                'Outside Session'
+            ],
+            outcomes: [
+                { value: 'GOOD_WIN', label: 'Good Win' },
+                { value: 'BAD_WIN', label: 'Bad Win' },
+                { value: 'GOOD_LOSS', label: 'Good Loss' },
+                { value: 'BAD_LOSS', label: 'Bad Loss' },
+                { value: 'BREAKEVEN', label: 'Breakeven' }
+            ],
+            strategies
+        }
+    }, [fetchedTrades, tradingModels])
 
     const tradingActivity = useMemo(() => {
         if (filteredTrades.length === 0) return null
@@ -466,10 +574,6 @@ export default function ReportsPage() {
         return distribution
     }, [filteredTrades])
 
-    useEffect(() => {
-        setIsLoading(true); const timer = setTimeout(() => setIsLoading(false), 500); return () => clearTimeout(timer)
-    }, [selectedAccountId, dateRange])
-
     const periodLabel = dateRange?.from && dateRange?.to 
         ? `${format(dateRange.from, 'MMM d')} - ${format(dateRange.to, 'MMM d, yyyy')}`
         : 'Select Period'
@@ -539,6 +643,9 @@ export default function ReportsPage() {
                     dateRange={dateRange}
                     onDateRangeChange={setDateRange}
                     onPresetSelect={handlePresetSelect}
+                    filters={advancedFilters}
+                    options={filterOptions}
+                    onFilterChange={handleFilterChange}
                 />
 
                 {isLoading ? (
@@ -561,29 +668,33 @@ export default function ReportsPage() {
                         </TabsList>
                         <TabsContent value="overview" className="space-y-12 focus-visible:outline-none">
                             <div className="space-y-10">
-                                {/* Main KPI Bar - High Density */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-[1px] bg-border/20 border border-border/40 rounded-2xl overflow-hidden shadow-sm">
-                                    <div className="bg-card p-5">
-                                        <p className="text-[8px] uppercase font-black text-muted-foreground/50 mb-1">Total P/L</p>
-                                        <p className={cn("text-xl font-black font-mono tracking-tighter", psychMetrics.totalNetPnL >= 0 ? "text-long" : "text-short")}>
+                                {/* Main KPI Bar - Clean Layout (No Rounded Boxes) */}
+                                <div className="flex flex-wrap items-stretch justify-between gap-6 py-6 border-y border-border/40">
+                                    <div className="flex flex-col min-w-[120px]">
+                                        <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-2">Total P/L</p>
+                                        <p className={cn("text-3xl font-black font-mono tracking-tighter", psychMetrics.totalNetPnL >= 0 ? "text-long" : "text-short")}>
                                             ${psychMetrics.totalNetPnL.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                         </p>
                                     </div>
-                                    <div className="bg-card p-5">
-                                        <p className="text-[8px] uppercase font-black text-muted-foreground/50 mb-1">Win Rate</p>
-                                        <p className="text-xl font-black font-mono tracking-tighter">{tradingActivity.winRate}%</p>
+                                    <div className="w-px bg-border/40 hidden md:block" />
+                                    <div className="flex flex-col min-w-[120px]">
+                                        <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-2">Win Rate</p>
+                                        <p className="text-3xl font-black font-mono tracking-tighter text-foreground">{tradingActivity.winRate}%</p>
                                     </div>
-                                    <div className="bg-card p-5">
-                                        <p className="text-[8px] uppercase font-black text-muted-foreground/50 mb-1">Profit Factor</p>
-                                        <p className="text-xl font-black font-mono tracking-tighter text-primary">{psychMetrics.profitFactor}</p>
+                                    <div className="w-px bg-border/40 hidden lg:block" />
+                                    <div className="flex flex-col min-w-[120px]">
+                                        <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-2">Profit Factor</p>
+                                        <p className="text-3xl font-black font-mono tracking-tighter text-primary">{psychMetrics.profitFactor}</p>
                                     </div>
-                                    <div className="bg-card p-5">
-                                        <p className="text-[8px] uppercase font-black text-muted-foreground/50 mb-1">Expectancy</p>
-                                        <p className="text-xl font-black font-mono tracking-tighter">${psychMetrics.expectancy}</p>
+                                    <div className="w-px bg-border/40 hidden lg:block" />
+                                    <div className="flex flex-col min-w-[120px]">
+                                        <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-2">Expectancy</p>
+                                        <p className="text-3xl font-black font-mono tracking-tighter text-foreground">${psychMetrics.expectancy}</p>
                                     </div>
-                                    <div className="bg-card p-5 col-span-2 md:col-span-1">
-                                        <p className="text-[8px] uppercase font-black text-muted-foreground/50 mb-1">Max Drawdown</p>
-                                        <p className="text-xl font-black font-mono tracking-tighter text-short">${psychMetrics.maxDrawdown}</p>
+                                    <div className="w-px bg-border/40 hidden xl:block" />
+                                    <div className="flex flex-col min-w-[120px]">
+                                        <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-2">Max Drawdown</p>
+                                        <p className="text-3xl font-black font-mono tracking-tighter text-short">${psychMetrics.maxDrawdown}</p>
                                     </div>
                                 </div>
 
@@ -679,6 +790,9 @@ export default function ReportsPage() {
                                         </div>
                                     </div>
                                 </div>
+                                
+                                {/* Rich Visualizations */}
+                                <DiverseCharts trades={filteredTrades} />
                             </div>
                         </TabsContent>
 

@@ -1,11 +1,5 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import Image from 'next/image'
-import { useForm, Controller } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { ExtendedTrade, MarketBias, TradeOutcome } from '@/types/trade-extended'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,16 +12,20 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { CircleNotch, X } from '@phosphor-icons/react'
-import { toast } from 'sonner'
-import { uploadService } from '@/lib/upload-service'
-import { MAJOR_NEWS_EVENTS } from '@/lib/major-news-events'
-import { useUserStore } from '@/store/user-store'
 import { useTags } from '@/context/tags-provider'
+import { MAJOR_NEWS_EVENTS } from '@/lib/major-news-events'
+import { uploadService } from '@/lib/upload-service'
+import { useUserStore } from '@/store/user-store'
+import { ExtendedTrade, MarketBias, TradeOutcome } from '@/types/trade-extended'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { CircleNotch, X } from '@phosphor-icons/react'
+import React, { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { z } from 'zod'
+import { TradeNewsTab } from './components/trade-news-tab'
 import { TradeNotesTab } from './components/trade-notes-tab'
 import { TradeStrategyTab } from './components/trade-strategy-tab'
-import { TradeNewsTab } from './components/trade-news-tab'
-import { TIMEFRAME_OPTIONS, MARKET_BIAS_OPTIONS } from '@/lib/constants'
 
 interface TradeEditDialogProps {
   isOpen: boolean
@@ -358,8 +356,8 @@ export default function TradeEditDialog({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-background overflow-y-auto flex items-start justify-center py-4 sm:py-8 layout-content">
-        <div className="w-full max-w-[95vw] sm:max-w-5xl bg-card border shadow-2xl rounded-xl relative flex flex-col p-0 transition-all z-10 mx-auto min-h-[90vh]">
+      <div className="fixed inset-0 z-[60] bg-background overflow-y-auto flex flex-col layout-content">
+        <div className="w-full max-w-7xl mx-auto flex flex-col flex-1 relative transition-all z-10 p-0">
           {/* Header */}
           <div className="px-4 sm:px-6 py-4 border-b shrink-0 flex items-center justify-between">
             <div>
@@ -470,11 +468,11 @@ export default function TradeEditDialog({
           </Tabs>
 
           {/* Footer */}
-          <div className="px-4 sm:px-6 py-4 border-t shrink-0 flex-col-reverse sm:flex-row gap-2 sm:gap-0 flex w-full items-center justify-between bg-muted/20">
-            <Button type="button" variant="outline" onClick={() => handleCloseAttempt(false)} disabled={isSubmitting} className="w-full sm:w-auto">
+          <div className="px-4 sm:px-6 py-4 border-t shrink-0 flex-col-reverse sm:flex-row gap-2 sm:gap-0 flex w-full items-center justify-between bg-muted/20 mt-auto">
+            <Button type="button" variant="outline" onClick={() => handleCloseAttempt(false)} disabled={isSubmitting} className="w-full sm:w-auto h-10 sm:h-11 px-6 rounded-xl">
               Cancel
             </Button>
-            <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="w-full sm:w-auto">
+            <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="w-full sm:w-auto h-10 sm:h-11 px-6 rounded-xl shadow-lg shadow-primary/10 transition-all font-semibold">
               {isSubmitting ? (
                 <>
                   <CircleNotch className="mr-2 h-4 w-4 animate-spin" weight="light" />

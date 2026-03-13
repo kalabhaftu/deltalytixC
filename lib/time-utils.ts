@@ -3,7 +3,7 @@ import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 export const DEFAULT_TIMEZONE = 'America/New_York';
 
 export type MarketSession = 'Asia' | 'London' | 'New York' | 'Outside Session';
-export type KillzoneBadge = 'London Killzone' | 'NY Killzone' | 'Lunch Time' | 'NY PM';
+export type KillzoneBadge = 'London Killzone' | 'NY Killzone' | 'Lunch Time' | 'NY PM Session';
 
 // Sessions (for analysis) - Priority: NY > London > Asia
 export const MARKET_SESSIONS = [
@@ -14,10 +14,10 @@ export const MARKET_SESSIONS = [
 
 // Killzones (indicators only)
 export const KILLZONE_BADGES = [
-  { name: 'London Killzone', start: 2, end: 5 },
-  { name: 'NY Killzone', start: 7, end: 10 },
-  { name: 'Lunch Time', start: 11, end: 13 },
-  { name: 'NY PM', start: 13, end: 16 }
+  { name: 'London Killzone', start: 2, end: 5 }, // (02:00 - 05:00)
+  { name: 'NY Killzone', start: 7, end: 10 },    // Forex (07:00 - 10:00)
+  { name: 'Lunch Time', start: 11.5, end: 13 },  // (11:30 - 13:00)
+  { name: 'NY PM Session', start: 13, end: 16 }, // (13:00 - 16:00)
 ];
 
 /**
@@ -45,10 +45,7 @@ export function getTradingSession(date: Date | string | number): MarketSession {
   return 'Outside Session';
 }
 
-/**
- * Returns a killzone badge if the time falls into one of the designated windows.
- */
-export function getKillzoneBadge(date: Date | string | number): KillzoneBadge | null {
+export function getKillzoneBadge(date: Date | string | number, symbol?: string): KillzoneBadge | string | null {
   if (!date) return null;
   const parsedDate = new Date(date);
   if (isNaN(parsedDate.getTime())) return null;
@@ -58,10 +55,29 @@ export function getKillzoneBadge(date: Date | string | number): KillzoneBadge | 
   const minute = nyDate.getMinutes();
   const time = hour + minute / 60;
 
+  // NY Killzone has special logic for Indices
+  const isIndex = symbol && (
+    symbol.includes('US30') || 
+    symbol.includes('NAS100') || 
+    symbol.includes('SPX500') || 
+    symbol.includes('GER30') || 
+    symbol.includes('DAX') ||
+    ['NQ', 'ES', 'YM'].some(s => symbol.startsWith(s))
+  );
+
+  if (isIndex) {
+    if (time >= 8.5 && time < 11) return 'NY Killzone';
+  } else {
+    // Forex NY AM
+    if (time >= 7 && time < 10) return 'NY Killzone';
+  }
+
+  // Check other killzones
   for (const kz of KILLZONE_BADGES) {
-    // Basic range check (no midnight cross expected for these killzones based on these times)
+    if (kz.name === 'NY Killzone') continue; // already handled
+    
     if (time >= kz.start && time < kz.end) {
-      return kz.name as KillzoneBadge;
+      return kz.name;
     }
   }
 
@@ -71,12 +87,12 @@ export function getKillzoneBadge(date: Date | string | number): KillzoneBadge | 
 /**
  * Helper to display time cleanly formatted according to user preferences.
  */
-export function formatUserTime(date: Date | string | number, timezone: string = DEFAULT_TIMEZONE, timeFormat: '12h' | '24h' = '24h'): string {
+export function formatUserTime(date: Date | string | number, timezone: string = DEFAULT_TIMEZONE, use24HourFormat: boolean = true): string {
   if (!date) return 'N/A';
   const parsedDate = new Date(date);
   if (isNaN(parsedDate.getTime())) return 'N/A';
 
-  const formatStr = timeFormat === '12h' ? 'MMM d, yyyy h:mm a' : 'MMM d, yyyy HH:mm';
+  const formatStr = use24HourFormat ? 'MMM d, yyyy HH:mm' : 'MMM d, yyyy h:mm a';
   return formatInTimeZone(parsedDate, timezone, formatStr);
 }
 

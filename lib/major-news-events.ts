@@ -293,6 +293,75 @@ export const MAJOR_NEWS_EVENTS: NewsEvent[] = [
     description: 'Regional manufacturing survey',
     impact: 'medium'
   },
+  {
+    id: 'us-jolts',
+    name: 'JOLTS Job Openings',
+    category: 'employment',
+    country: 'US',
+    description: 'Job Openings and Labor Turnover Survey',
+    isRedFolder: true,
+    impact: 'high'
+  },
+  {
+    id: 'us-michigan-sentiment',
+    name: 'UoM Consumer Sentiment',
+    category: 'retail',
+    country: 'US',
+    description: 'University of Michigan Consumer Sentiment Index',
+    isRedFolder: true,
+    impact: 'high'
+  },
+  {
+    id: 'us-cb-consumer-confidence',
+    name: 'CB Consumer Confidence',
+    category: 'retail',
+    country: 'US',
+    description: 'Conference Board Consumer Confidence',
+    isRedFolder: true,
+    impact: 'high'
+  },
+  {
+    id: 'us-empire-state',
+    name: 'Empire State Manufacturing',
+    category: 'pmi',
+    country: 'US',
+    description: 'NY Fed manufacturing survey',
+    impact: 'medium'
+  },
+  {
+    id: 'us-core-pce',
+    name: 'Core PCE Price Index',
+    category: 'inflation',
+    country: 'US',
+    description: 'Fed\'s primary inflation metric',
+    isRedFolder: true,
+    impact: 'high'
+  },
+  {
+    id: 'us-avg-hourly-earnings',
+    name: 'Average Hourly Earnings',
+    category: 'employment',
+    country: 'US',
+    description: 'Wage inflation indicator',
+    isRedFolder: true,
+    impact: 'high'
+  },
+  {
+    id: 'us-crude-oil',
+    name: 'Crude Oil Inventories',
+    category: 'other',
+    country: 'US',
+    description: 'Weekly change in barrels of crude oil held by US firms',
+    impact: 'medium'
+  },
+  {
+    id: 'us-pending-home-sales',
+    name: 'Pending Home Sales',
+    category: 'housing',
+    country: 'US',
+    description: 'Signed contracts for existing homes',
+    impact: 'medium'
+  },
   
   // ========== EUROZONE EVENTS ==========
   {

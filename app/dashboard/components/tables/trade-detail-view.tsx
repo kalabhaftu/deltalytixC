@@ -14,12 +14,14 @@ import {
   ChartBar,
   Download,
   Lightning,
+  PencilSimple,
   Play,
   X
 } from '@phosphor-icons/react'
 import { Trade } from '@prisma/client'
 import Image from 'next/image'
 import Link from 'next/link'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch'
 import { toast } from 'sonner'
@@ -60,8 +62,17 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false)
   const isImageViewerOpenRef = useRef(false)
   const [showReplay, setShowReplay] = useState(false)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
 
   if (!trade) return null
+
+  const handleEdit = () => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('action', 'edit')
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+  }
 
   // Parse trade data
   const tradeData = trade as any
@@ -104,10 +115,10 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   return (
     <>
       <div
-        className="fixed inset-0 z-50 bg-background overflow-y-auto flex items-start justify-center py-4 sm:py-8 layout-content"
+        className="fixed inset-0 z-[60] bg-background overflow-y-auto flex flex-col layout-content"
       >
         <div
-          className="w-full max-w-[95vw] sm:max-w-6xl bg-card border shadow-2xl rounded-xl relative flex flex-col p-0 transition-all z-10 mx-auto min-h-[90vh]"
+          className="w-full max-w-7xl mx-auto flex flex-col flex-1 relative transition-all z-10 p-0"
         >
           <div className="px-4 sm:px-6 py-4 border-b shrink-0 flex items-center justify-between">
             <div className="flex flex-col gap-1">
@@ -134,9 +145,15 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                 Comprehensive view of trade execution, analysis, and supporting materials
               </p>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full shrink-0">
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-2 items-center">
+              <Button variant="secondary" onClick={handleEdit} className="h-9 px-4 rounded-lg text-foreground transition-all font-semibold hidden sm:flex">
+                <PencilSimple className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full shrink-0">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-4 sm:py-6">
@@ -316,10 +333,11 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                     <div className="space-y-1">
                       <h3 className="text-base sm:text-lg font-semibold text-foreground">Trade Journal</h3>
                     </div>
-                    <div className="relative p-4 sm:p-6 rounded-2xl bg-muted/10 border border-border/40">
-                      <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
-                        {trade.comment}
-                      </p>
+                    <div className="relative p-4 sm:p-6 rounded-2xl bg-muted/10 border border-border/40 overflow-hidden">
+                      <div 
+                        className="text-sm text-foreground/80 prose prose-sm dark:prose-invert max-w-none break-words" 
+                        dangerouslySetInnerHTML={{ __html: trade.comment || '' }} 
+                      />
                     </div>
                   </section>
                 )}
@@ -364,7 +382,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
             </div>
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row justify-between items-center px-4 sm:px-8 py-4 sm:py-5 border-t border-border/40 bg-muted/5 shrink-0 gap-3 sm:gap-0">
+          <div className="flex flex-col-reverse sm:flex-row justify-between items-center px-4 sm:px-8 py-4 sm:py-5 border-t border-border/40 bg-muted/5 shrink-0 gap-3 sm:gap-0 mt-auto">
             <Link href={`/dashboard/table?view=replay&tradeId=${trade.id}`} className="w-full sm:w-auto">
               <Button
                 variant="default"
@@ -374,9 +392,16 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                 Launch Trade Replay
               </Button>
             </Link>
-            <Button variant="ghost" onClick={onClose} className="h-10 sm:h-11 px-6 rounded-xl text-muted-foreground hover:text-foreground w-full sm:w-auto">
-              Close View
-            </Button>
+            
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button variant="secondary" onClick={handleEdit} className="h-10 sm:h-11 px-6 rounded-xl text-foreground w-full sm:w-auto transition-all font-semibold sm:hidden">
+                <PencilSimple className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button variant="ghost" onClick={onClose} className="h-10 sm:h-11 px-6 rounded-xl text-muted-foreground hover:text-foreground w-full sm:w-auto">
+                Close View
+              </Button>
+            </div>
           </div>
         </div>
       </div>

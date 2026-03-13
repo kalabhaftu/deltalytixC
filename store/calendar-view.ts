@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { persist, createJSONStorage } from "zustand/middleware"
+import { createJSONStorage, persist } from "zustand/middleware"
 
 type ViewMode = "daily" | "weekly"
 type DisplayMetric = "pnl" | "rMultiple" | "ticks" | "percent"
@@ -48,7 +48,7 @@ export const useCalendarViewStore = create<CalendarViewState>()(
       setVisibleStats: (newStats) => set((state) => ({
         visibleStats: { ...state.visibleStats, ...newStats }
       })),
-      screenshotWithGradient: false,
+      screenshotWithGradient: true,
       setScreenshotWithGradient: (enabled) => set({ screenshotWithGradient: enabled }),
       showWeekNumbers: true,
       setShowWeekNumbers: (enabled) => set({ showWeekNumbers: enabled })

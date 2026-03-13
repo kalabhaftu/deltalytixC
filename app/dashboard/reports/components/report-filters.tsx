@@ -32,6 +32,21 @@ interface ReportFiltersProps {
     dateRange: DateRange | undefined
     onDateRangeChange: (range: DateRange | undefined) => void
     onPresetSelect: (range: string) => void
+    // Advanced Filters
+    filters: {
+        symbol: string
+        session: string
+        outcome: string
+        strategy: string
+        ruleBroken: string
+    }
+    options: {
+        symbols: string[]
+        sessions: string[]
+        outcomes: { value: string; label: string }[]
+        strategies: { id: string; name: string }[]
+    }
+    onFilterChange: (key: string, value: string) => void
 }
 
 export function ReportFilters({
@@ -40,7 +55,10 @@ export function ReportFilters({
     onAccountChange,
     dateRange,
     onDateRangeChange,
-    onPresetSelect
+    onPresetSelect,
+    filters,
+    options,
+    onFilterChange
 }: ReportFiltersProps) {
     const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 
@@ -126,10 +144,77 @@ export function ReportFilters({
                 </PopoverContent>
             </Popover>
 
+            {/* Advanced Filters */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                {/* Symbol */}
+                <Select value={filters.symbol} onValueChange={(v) => onFilterChange('symbol', v)}>
+                    <SelectTrigger className="w-[110px] h-8 text-[10px] font-black uppercase tracking-widest border-border/20 bg-background/50">
+                        <SelectValue placeholder="Symbol" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all" className="text-[10px] font-bold uppercase">All Symbols</SelectItem>
+                        {options.symbols.map(s => (
+                            <SelectItem key={s} value={s} className="text-[10px] font-bold uppercase">{s}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {/* Session */}
+                <Select value={filters.session} onValueChange={(v) => onFilterChange('session', v)}>
+                    <SelectTrigger className="w-[110px] h-8 text-[10px] font-black uppercase tracking-widest border-border/20 bg-background/50">
+                        <SelectValue placeholder="Session" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all" className="text-[10px] font-bold uppercase">All Sessions</SelectItem>
+                        {options.sessions.map(s => (
+                            <SelectItem key={s} value={s} className="text-[10px] font-bold uppercase">{s}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {/* Outcome */}
+                <Select value={filters.outcome} onValueChange={(v) => onFilterChange('outcome', v)}>
+                    <SelectTrigger className="w-[110px] h-8 text-[10px] font-black uppercase tracking-widest border-border/20 bg-background/50">
+                        <SelectValue placeholder="Outcome" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all" className="text-[10px] font-bold uppercase">All Outcomes</SelectItem>
+                        {options.outcomes.map(o => (
+                            <SelectItem key={o.value} value={o.value} className="text-[10px] font-bold uppercase">{o.label}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {/* Strategy */}
+                <Select value={filters.strategy} onValueChange={(v) => onFilterChange('strategy', v)}>
+                    <SelectTrigger className="w-[110px] h-8 text-[10px] font-black uppercase tracking-widest border-border/20 bg-background/50">
+                        <SelectValue placeholder="Strategy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all" className="text-[10px] font-bold uppercase">All Systems</SelectItem>
+                        {options.strategies.map(s => (
+                            <SelectItem key={s.id} value={s.id} className="text-[10px] font-bold uppercase">{s.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {/* Rule Broken */}
+                <Select value={filters.ruleBroken} onValueChange={(v) => onFilterChange('ruleBroken', v)}>
+                    <SelectTrigger className="w-[120px] h-8 text-[10px] font-black uppercase tracking-widest border-border/20 bg-background/50">
+                        <SelectValue placeholder="Rule Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all" className="text-[10px] font-bold uppercase">Rule Status</SelectItem>
+                        <SelectItem value="broken" className="text-[10px] font-bold uppercase text-short">Broken</SelectItem>
+                        <SelectItem value="followed" className="text-[10px] font-bold uppercase text-long">Followed</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
             <div className="flex-1" />
 
             {/* Quick Filter Status Indicator */}
-            <div className="hidden lg:flex items-center gap-2 px-4 py-1.5 bg-primary/5 rounded-full border border-primary/10">
+            <div className="hidden xl:flex items-center gap-2 px-4 py-1.5 bg-primary/5 rounded-full border border-primary/10">
                 <Funnel weight="fill" className="h-3 w-3 text-primary animate-pulse" />
                 <span className="text-[9px] font-black text-primary uppercase tracking-widest">
                     Live Analysis Active

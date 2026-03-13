@@ -103,6 +103,8 @@ export default function SettingsPage() {
   const user = useUserStore(state => state.supabaseUser)
   const timezone = useUserStore(state => state.timezone)
   const setTimezone = useUserStore(state => state.setTimezone)
+  const use24HourFormat = useUserStore(state => state.use24HourFormat)
+  const setUse24HourFormat = useUserStore(state => state.setUse24HourFormat)
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
@@ -409,6 +411,37 @@ export default function SettingsPage() {
                         ))}
                       </DropdownMenuRadioGroup>
                     </ScrollArea>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              }
+            />
+
+            <Separator />
+
+            {/* Time Format */}
+            <SettingRow
+              icon={Clock}
+              label="Time Format"
+              description={use24HourFormat ? "24-hour" : "12-hour"}
+              action={
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      Change
+                      <CaretRight className="h-3.5 w-3.5" weight="light" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuRadioGroup value={use24HourFormat ? "24h" : "12h"} onValueChange={(v) => {
+                      setUse24HourFormat(v === "24h")
+                      toast.success("Time format updated", {
+                        description: `Time format changed to ${v === "24h" ? "24-hour" : "12-hour"}.`,
+                        duration: 2000
+                      })
+                    }}>
+                      <DropdownMenuRadioItem value="24h">24-hour (14:30)</DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="12h">12-hour (2:30 PM)</DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
                   </DropdownMenuContent>
                 </DropdownMenu>
               }

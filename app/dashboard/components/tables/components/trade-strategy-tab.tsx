@@ -1,9 +1,8 @@
-import React from 'react'
+import { TagSelector } from '@/app/dashboard/components/tags/tag-selector'
 import { Label } from '@/components/ui/label'
 import { MARKET_BIAS_OPTIONS } from '@/lib/constants'
-import { TagSelector } from '@/app/dashboard/components/tags/tag-selector'
-import { MarketBias, TradeOutcome } from '@/types/trade-extended'
 import { cn } from '@/lib/utils'
+import { MarketBias, TradeOutcome } from '@/types/trade-extended'
 
 interface Rule {
     text: string
@@ -97,7 +96,8 @@ export function TradeStrategyTab({
                     {[
                         { value: 'GOOD_WIN', label: 'Good Win', colorClass: 'bg-long/10 hover:bg-long/20 border-long/20 text-long' },
                         { value: 'BAD_WIN', label: 'Bad Win', colorClass: 'bg-warning/10 hover:bg-warning/20 border-warning/20 text-warning' },
-                        { value: 'BREAKEVEN', label: 'Breakeven', colorClass: 'bg-muted/10 hover:bg-muted/20 border-border/40 text-muted-foreground' },
+                        { value: 'GOOD_BE', label: 'Good BE', colorClass: 'bg-muted/10 hover:bg-muted/20 border-border/40 text-foreground' },
+                        { value: 'BAD_BE', label: 'Bad BE', colorClass: 'bg-warning/10 hover:bg-warning/20 border-warning/20 text-warning' },
                         { value: 'GOOD_LOSS', label: 'Good Loss', colorClass: 'bg-primary/10 hover:bg-primary/20 border-primary/20 text-primary' },
                         { value: 'BAD_LOSS', label: 'Bad Loss', colorClass: 'bg-short/10 hover:bg-short/20 border-short/20 text-short' },
                     ].map(({ value, label, colorClass }) => (

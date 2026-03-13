@@ -16,10 +16,20 @@ const TradeTableReview = dynamic(
   { ssr: false }
 )
 
+const TradeDetailView = dynamic<any>(
+  () => import('../components/tables/trade-detail-view').then(mod => mod.TradeDetailView),
+  { ssr: false }
+)
+
+const TradeEditDialog = dynamic<any>(
+  () => import('../components/tables/trade-edit-dialog'),
+  { ssr: false }
+)
+
 function TableView() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { formattedTrades = [] } = useData()
+  const { formattedTrades = [], updateTrades } = useData()
 
   const view = searchParams.get('view')
   const tradeId = searchParams.get('tradeId')
@@ -83,6 +93,35 @@ function TableView() {
             <TradeReplay trade={trade} />
           </div>
         </div>
+      )
+    }
+  }
+
+  if (view === 'details' && tradeId) {
+    const trade = formattedTrades.find((t: any) => t.id === tradeId)
+    if (trade) {
+      return (
+        <TradeDetailView
+          isOpen={true}
+          onClose={() => router.push('/dashboard/table')}
+          trade={trade}
+        />
+      )
+    }
+  }
+
+  if (view === 'edit' && tradeId) {
+    const trade = formattedTrades.find((t: any) => t.id === tradeId)
+    if (trade) {
+      return (
+        <TradeEditDialog
+          isOpen={true}
+          onClose={() => router.push(`/dashboard/table?view=details&tradeId=${tradeId}`)}
+          trade={trade as any}
+          onSave={async (data: any) => {
+            await updateTrades([tradeId], data)
+          }}
+        />
       )
     }
   }

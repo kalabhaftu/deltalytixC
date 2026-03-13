@@ -1,7 +1,7 @@
-import { create } from 'zustand'
+import { Account } from '@/context/data-provider'
 import { User } from '@prisma/client'
 import { User as SupabaseUser } from '@supabase/supabase-js'
-import { Account } from '@/context/data-provider'
+import { create } from 'zustand'
 
 type UserStore = {
   user: User | null
@@ -18,7 +18,9 @@ type UserStore = {
   isLoading: boolean
   isMobile: boolean
   timezone: string
+  use24HourFormat: boolean
   setTimezone: (timezone: string) => void
+  setUse24HourFormat: (value: boolean) => void
   setUser: (user: User | null) => void
   setSupabaseUser: (supabaseUser: SupabaseUser | null) => void
   setAccounts: (accounts: Account[]) => void
@@ -41,7 +43,9 @@ export const useUserStore = create<UserStore>()((
       isLoading: false,
       isMobile: false,
       timezone: 'America/New_York',
+      use24HourFormat: true,
       setTimezone: (timezone: string) => set({ timezone }),
+      setUse24HourFormat: (use24HourFormat: boolean) => set({ use24HourFormat }),
       setUser: (user) => set({ user }),
       setSupabaseUser: (supabaseUser) => set({ supabaseUser }),
       setAccounts: (accounts) => set({ accounts }),

@@ -264,7 +264,6 @@ export function JournalClient() {
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [tradeToDelete, setTradeToDelete] = useState<Trade | null>(null)
   const [showAIAnalysis, setShowAIAnalysis] = useState(false)
@@ -401,9 +400,8 @@ export function JournalClient() {
   }, [])
 
   const handleViewTrade = useCallback((trade: Trade) => {
-    setSelectedTrade(trade)
-    setIsViewDialogOpen(true)
-  }, [])
+    router.push(`/dashboard/trades/${trade.id}`)
+  }, [router])
 
   const handleDeleteTrade = useCallback((trade: Trade) => {
     setTradeToDelete(trade)
@@ -760,14 +758,7 @@ export function JournalClient() {
         onSave={handleSaveTrade}
       />
 
-      <TradeDetailView
-        isOpen={isViewDialogOpen}
-        onClose={() => {
-          setIsViewDialogOpen(false)
-          setSelectedTrade(null)
-        }}
-        trade={selectedTrade}
-      />
+
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent className="z-[10002]">

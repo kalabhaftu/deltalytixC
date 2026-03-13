@@ -539,6 +539,8 @@ enum WeeklyExpectation {
 enum TradeOutcome {
   GOOD_WIN
   BAD_WIN
+  GOOD_BE
+  BAD_BE
   BREAKEVEN
   GOOD_LOSS
   BAD_LOSS

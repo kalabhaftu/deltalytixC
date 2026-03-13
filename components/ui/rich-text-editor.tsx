@@ -3,7 +3,8 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Link from '@tiptap/extension-link'
 import { Button } from '@/components/ui/button'
-import { TextB, TextItalic, TextStrikethrough, ListBullets, ListNumbers } from '@phosphor-icons/react'
+import { TextB, TextItalic, TextStrikethrough, TextUnderline, ListBullets, ListNumbers, TextHOne, TextHTwo, TextHThree } from '@phosphor-icons/react'
+import Underline from '@tiptap/extension-underline'
 import { cn } from '@/lib/utils'
 import { useEffect } from 'react'
 
@@ -17,7 +18,12 @@ interface RichTextEditorProps {
 export function RichTextEditor({ value, onChange, placeholder = 'Write something...', className }: RichTextEditorProps) {
     const editor = useEditor({
         extensions: [
-            StarterKit,
+            StarterKit.configure({
+                heading: {
+                    levels: [1, 2, 3],
+                },
+            }),
+            Underline,
             Placeholder.configure({
                 placeholder,
                 emptyEditorClass: 'is-editor-empty',
@@ -78,10 +84,47 @@ export function RichTextEditor({ value, onChange, placeholder = 'Write something
                     type="button"
                     variant="ghost"
                     size="icon"
+                    onClick={() => editor.chain().focus().toggleUnderline().run()}
+                    className={cn("h-8 w-8 rounded-md transition-all", editor.isActive('underline') && 'bg-primary/20 text-primary')}
+                >
+                    <TextUnderline className="h-4 w-4" weight={editor.isActive('underline') ? "bold" : "regular"} />
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => editor.chain().focus().toggleStrike().run()}
                     className={cn("h-8 w-8 rounded-md transition-all", editor.isActive('strike') && 'bg-primary/20 text-primary')}
                 >
                     <TextStrikethrough className="h-4 w-4" weight={editor.isActive('strike') ? "bold" : "regular"} />
+                </Button>
+                <div className="w-[1px] h-4 bg-border/50 mx-1" />
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                    className={cn("h-8 w-8 rounded-md transition-all", editor.isActive('heading', { level: 1 }) && 'bg-primary/20 text-primary')}
+                >
+                    <TextHOne className="h-4 w-4" weight={editor.isActive('heading', { level: 1 }) ? "bold" : "regular"} />
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                    className={cn("h-8 w-8 rounded-md transition-all", editor.isActive('heading', { level: 2 }) && 'bg-primary/20 text-primary')}
+                >
+                    <TextHTwo className="h-4 w-4" weight={editor.isActive('heading', { level: 2 }) ? "bold" : "regular"} />
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                    className={cn("h-8 w-8 rounded-md transition-all", editor.isActive('heading', { level: 3 }) && 'bg-primary/20 text-primary')}
+                >
+                    <TextHThree className="h-4 w-4" weight={editor.isActive('heading', { level: 3 }) ? "bold" : "regular"} />
                 </Button>
                 <div className="w-[1px] h-4 bg-border/50 mx-1" />
                 <Button

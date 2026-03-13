@@ -100,9 +100,9 @@ export function TradeTableMobileCard({
                       {getTradingSession(trade.entryTime)}
                     </Badge>
                   )}
-                  {getKillzoneBadge(trade.entryTime) && (
+                   {getKillzoneBadge(trade.entryTime, trade.symbol || undefined) && (
                     <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border-warning/20 bg-warning/5 text-warning">
-                      {getKillzoneBadge(trade.entryTime)}
+                      {getKillzoneBadge(trade.entryTime, trade.symbol || undefined)}
                     </Badge>
                   )}
                 </>

@@ -20,7 +20,6 @@ import { CalendarData } from "@/app/dashboard/types/calendar"
 // New Components
 import MonthlyView from "./monthly-view"
 import YearlyView from "./yearly-view"
-import { CalendarSettings } from "./calendar-settings"
 
 const formatCompact = (value: number) => {
   if (Math.abs(value) >= 1000) return `$${(value / 1000).toFixed(1)}k`
@@ -302,13 +301,7 @@ const CalendarPnl = memo(function CalendarPnl({ className }: CalendarPnlProps) {
               </Button>
             </div>
 
-            {/* Settings Menu (Stats + Review) - Moved to far right */}
-            {viewMode === 'daily' && (
-              <>
-                <div className="w-px h-4 bg-border/40 mx-1" />
-                <CalendarSettings />
-              </>
-            )}
+            {/* Settings Menu (Stats + Review) - Removed as per user request */}
           </div>
         </CardHeader>
 
