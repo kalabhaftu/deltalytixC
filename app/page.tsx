@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { UserAuthForm } from "@/components/user-auth-form"
 import { useAuth } from "@/context/auth-provider"
 import { signOut } from "@/server/auth"
+import { useTheme } from "@/context/theme-provider"
 
 export default function RootPage() {
   const { isAuthenticated, isLoading, forceClearAuth } = useAuth()
@@ -55,6 +56,8 @@ export default function RootPage() {
   }
 
 
+
+  const { theme, toggleTheme } = useTheme()
 
   // --- RENDERING ---
 
@@ -133,10 +136,10 @@ export default function RootPage() {
               variant="ghost"
               size="sm"
               className="text-muted-foreground hover:text-foreground transition-colors h-8 text-[11px] uppercase tracking-widest font-medium"
-              disabled
+              onClick={() => toggleTheme()}
             >
               <Moon weight="light" className="h-3 w-3 mr-2" />
-              Dark
+              {theme === 'dark' ? 'Light' : 'Dark'}
             </Button>
           </div>
           <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.2em] font-medium">

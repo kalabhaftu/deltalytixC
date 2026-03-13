@@ -10,6 +10,9 @@ import { ExtendedTrade, MarketBias } from "@/types/trade-extended"
 // Threshold for considering a trade break-even (e.g. +/- $5.00)
 export const BREAK_EVEN_THRESHOLD = 10.0;
 
+// Centralized timezone source
+export const DEFAULT_TIMEZONE = "America/New_York";
+
 export function ensureExtendedTrade(trade: Trade): ExtendedTrade {
   return {
     ...trade,
@@ -147,7 +150,7 @@ export function formatPrice(price: string | number | { toString(): string }, ins
 }
 
 // Unified trade data formatter - single source of truth for all trade displays
-export function formatTradeData(trade: Trade) {
+export function formatTradeData(trade: Trade, timezone?: string) {
   const instrument = trade.instrument || ''
 
   return {
@@ -175,10 +178,10 @@ export function formatTradeData(trade: Trade) {
     // Dates and times
     entryDate: trade.entryDate ? new Date(trade.entryDate) : null,
     closeDate: trade.closeDate ? new Date(trade.closeDate) : null,
-    entryDateFormatted: trade.entryDate ? new Date(trade.entryDate).toLocaleString() : 'N/A',
-    closeDateFormatted: trade.closeDate ? new Date(trade.closeDate).toLocaleString() : 'Open',
-    entryDateShort: trade.entryDate ? new Date(trade.entryDate).toLocaleDateString() : 'N/A',
-    closeDateShort: trade.closeDate ? new Date(trade.closeDate).toLocaleDateString() : 'Open',
+    entryDateFormatted: trade.entryDate ? formatInTimeZone(new Date(trade.entryDate), timezone || 'America/New_York', 'MMM d, yyyy HH:mm:ss') : 'N/A',
+    closeDateFormatted: trade.closeDate ? formatInTimeZone(new Date(trade.closeDate), timezone || 'America/New_York', 'MMM d, yyyy HH:mm:ss') : 'Open',
+    entryDateShort: trade.entryDate ? formatInTimeZone(new Date(trade.entryDate), timezone || 'America/New_York', 'MMM d, yyyy') : 'N/A',
+    closeDateShort: trade.closeDate ? formatInTimeZone(new Date(trade.closeDate), timezone || 'America/New_York', 'MMM d, yyyy') : 'Open',
 
     // Time in position
     timeInPosition: trade.timeInPosition || 0,
@@ -208,6 +211,34 @@ export function formatTradeData(trade: Trade) {
     // Raw data for custom formatting
     raw: trade
   }
+}
+
+/**
+ * Sanitize content by removing colorful emojis while preserving specific symbols.
+ * Removes symbols like ⚠️, ⏳ and other colorful keyboard emojis.
+ * Preserves "innocent" symbols like ⌘, →, ←, ↑, ↓.
+ */
+export function cleanContent(content: any): any {
+  if (content === null || content === undefined) return content;
+
+  if (typeof content === 'string') {
+    // Remove colorful emojis using regex, but preserve innocent symbols like ⌘ and →
+    return content.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]|[\u{2300}-\u{23FF}]/gu, (match) => {
+      // Preserve standard symbols we want to keep (innocent symbols)
+      // Including ⌘, →, ←, ↑, ↓, ⚡, and other non-colorful symbols
+      if (['⌘', '→', '←', '↑', '↓', '⚡', '✓', '✔', '✖', '✗', '©', '®', '™'].includes(match)) return match;
+      return '';
+    }).trim()
+  } else if (Array.isArray(content)) {
+    return content.map(item => cleanContent(item))
+  } else if (typeof content === 'object') {
+    const cleaned: any = {}
+    for (const key in content) {
+      cleaned[key] = cleanContent(content[key])
+    }
+    return cleaned
+  }
+  return content
 }
 
 export function parsePositionTime(timeInSeconds: number): string {
@@ -527,7 +558,7 @@ export function calculateStatistics(trades: Trade[], accounts: Account[] = []): 
   return statistics;
 }
 
-export function formatCalendarData(trades: Trade[], accounts: Account[] = []) {
+export function formatCalendarData(trades: Trade[], accounts: Account[] = [], timezone: string = 'UTC') {
   // CRITICAL: Group trades by execution to handle partial closes correctly
   const groupedTrades = groupTradesByExecution(trades)
 
@@ -538,8 +569,8 @@ export function formatCalendarData(trades: Trade[], accounts: Account[] = []) {
   const filteredTrades = groupedTrades;
 
   return filteredTrades.reduce((acc: any, trade: Trade) => {
-    // Parse the date and format it in UTC to ensure consistency across timezones
-    const date = formatInTimeZone(new Date(trade.entryDate), 'UTC', 'yyyy-MM-dd')
+    // Parse the date and format it in the specified timezone to ensure consistency
+    const date = formatInTimeZone(new Date(trade.entryDate), timezone, 'yyyy-MM-dd')
 
     if (!acc[date]) {
       acc[date] = { pnl: 0, tradeNumber: 0, longNumber: 0, shortNumber: 0, trades: [] }

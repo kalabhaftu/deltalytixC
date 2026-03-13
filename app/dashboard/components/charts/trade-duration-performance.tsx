@@ -86,7 +86,7 @@ function ChartTooltip({ active, payload }: any) {
   const isLoss = data.pnl < -BREAK_EVEN_THRESHOLD
 
   return (
-    <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl min-w-[180px]">
+    <div className="bg-card border border-border/50 rounded-xl p-4 shadow-md min-w-[180px]">
       {/* Duration Header */}
       <p className="text-sm font-bold mb-2">{data.bucket}</p>
 

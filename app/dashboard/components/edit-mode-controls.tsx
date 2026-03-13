@@ -72,7 +72,7 @@ export default function EditModeControls() {
 
   return (
     <>
-      <div className="fixed top-16 right-6 z-50 flex items-center gap-2 bg-background/95 backdrop-blur-xl border border-border/50 rounded-lg shadow-2xl p-2">
+      <div className="fixed top-16 right-6 z-50 flex items-center gap-2 bg-background border border-border/50 rounded-lg shadow-lg p-2">
         <div className="px-3 py-1.5 text-sm text-muted-foreground">
           Edit Mode
           {hasUnsavedChanges && (

@@ -152,10 +152,10 @@ function MiniCalendar({ calendarData }: MiniCalendarProps) {
 
   return (
     <div ref={calendarRef} data-screenshot-wrap className="w-full">
-      <Card className="lg:h-[580px] min-h-[400px] flex flex-col w-full rounded-xl border shadow-sm overflow-hidden bg-card/50 backdrop-blur-sm">
+      <Card className="lg:h-[580px] min-h-[400px] flex flex-col w-full rounded-xl border shadow-sm overflow-hidden bg-card">
         {/* Header */}
         {/* Header */}
-        <CardHeader className="flex flex-row items-center justify-between border-b shrink-0 px-3 sm:px-4 py-2 sm:py-3 bg-card/50">
+        <CardHeader className="flex flex-row items-center justify-between border-b shrink-0 px-3 sm:px-4 py-2 sm:py-3 bg-muted/50">
           <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
             <div className="flex items-center gap-0.5 sm:gap-1 bg-muted/30 rounded-lg p-0.5 border border-border/40 font-bold shrink-0">
               <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-6 w-6 sm:h-7 sm:w-7 hover:bg-background" aria-label="Previous month">

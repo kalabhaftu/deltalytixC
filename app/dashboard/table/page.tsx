@@ -45,7 +45,7 @@ function TableView() {
 
       return (
         <div className="flex flex-col h-[calc(100vh-120px)] bg-background border border-border/40 rounded-xl overflow-hidden shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between px-3 py-2 border-b shrink-0 bg-muted/30 backdrop-blur gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between px-3 py-2 border-b shrink-0 bg-muted gap-2">
             {/* Left: Back + Symbol */}
             <div className="flex items-center gap-3">
               <Button

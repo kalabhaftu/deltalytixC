@@ -55,18 +55,18 @@ export function TradeImagesGallery({
                                             <X className="h-4 w-4 text-destructive/40" weight="light" />
                                         </div>
                                     )}
-                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-2 backdrop-blur-[1px]">
+                                    <div className="absolute inset-0 bg-background/90 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-2">
                                         <InputButton
                                             icon={<Pencil className="h-3.5 w-3.5" weight="light" />}
                                             onClick={(file) => onUpload(field, file)}
-                                            className="bg-white/20 border-white/20 hover:bg-white hover:text-black text-white"
+                                            className="bg-secondary border-border hover:bg-accent"
                                             title="Edit"
                                         />
                                         <Button
                                             type="button"
                                             variant="destructive"
                                             size="icon"
-                                            className="h-8 w-8 rounded-full bg-destructive/40 border-destructive/20 hover:bg-destructive transition-all scale-90 group-hover:scale-100"
+                                            className="h-8 w-8 rounded-full hover:bg-destructive/90 transition-all scale-90 group-hover:scale-100"
                                             title="Delete"
                                             onClick={() => onRemove(field)}
                                         >
@@ -82,14 +82,14 @@ export function TradeImagesGallery({
                                         if (file) onUpload(field, file)
                                     }}
                                     accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'] }}
-                                    className="h-full w-full bg-muted/10 hover:bg-muted/30 border-dashed"
+                                    className="h-full w-full bg-muted/30 hover:bg-muted/50 border-dashed"
                                     icon={<Upload className="h-4 w-4 text-muted-foreground/40 mb-1" weight="light" />}
                                     description="Drag or Click"
                                     disabled={uploadingField === field}
                                 />
                             )}
                             {uploadingField === field && (
-                                <div className="absolute inset-0 bg-background/40 flex items-center justify-center">
+                                <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
                                     <CircleNotch className="h-4 w-4 animate-spin text-primary" weight="light" />
                                 </div>
                             )}

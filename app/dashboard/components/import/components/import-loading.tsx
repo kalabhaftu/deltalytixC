@@ -123,7 +123,7 @@ export function ImportLoading() {
             repeat: Infinity, 
             ease: "linear" 
           }}
-          className="relative z-10 w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-muted/20 backdrop-blur-sm border border-border flex items-center justify-center"
+          className="relative z-10 w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-muted/20 border border-border flex items-center justify-center"
         >
           <IconComponent weight="light" className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-foreground" />
         </motion.div>

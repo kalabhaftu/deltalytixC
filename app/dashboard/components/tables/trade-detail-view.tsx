@@ -8,7 +8,7 @@ import { VisuallyHidden } from '@/components/ui/visually-hidden'
 import { useTags } from '@/context/tags-provider'
 import { getNewsById } from '@/lib/major-news-events'
 import { formatTimeInZone, getKillzoneBadge, getTradingSession } from '@/lib/time-utils'
-import { classifyTrade, cn, formatCurrency } from '@/lib/utils'
+import { classifyTrade, cn, formatCurrency, cleanContent } from '@/lib/utils'
 import { useUserStore } from '@/store/user-store'
 import {
   ChartBar,
@@ -336,7 +336,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                     <div className="relative p-4 sm:p-6 rounded-2xl bg-muted/10 border border-border/40 overflow-hidden">
                       <div 
                         className="text-sm text-foreground/80 prose prose-sm dark:prose-invert max-w-none break-words" 
-                        dangerouslySetInnerHTML={{ __html: trade.comment || '' }} 
+                        dangerouslySetInnerHTML={{ __html: cleanContent(trade.comment || '') }} 
                       />
                     </div>
                   </section>
@@ -365,12 +365,12 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
                             unoptimized
                             loading={index === 0 ? "eager" : "lazy"}
                           />
-                          <div className="absolute inset-x-0 bottom-0 p-4 bg-background/80 backdrop-blur-sm translate-y-full group-hover:translate-y-0 transition-transform">
-                            <span className="text-[10px] text-white/90 font-bold uppercase tracking-widest">
+                          <div className="absolute inset-x-0 bottom-0 p-4 bg-background translate-y-full group-hover:translate-y-0 transition-transform">
+                            <span className="text-[10px] text-foreground font-bold uppercase tracking-widest">
                               {index === 0 ? 'Featured Preview' : `Supporting View #${index}`}
                             </span>
                           </div>
-                          <Badge className="absolute top-3 right-3 bg-white/10 backdrop-blur-md border border-white/20 text-white text-[10px] pointer-events-none">
+                          <Badge className="absolute top-3 right-3 bg-black border border-white/20 text-white text-[10px] pointer-events-none">
                             View HD
                           </Badge>
                         </div>

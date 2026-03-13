@@ -92,24 +92,30 @@ export function TradeStrategyTab({
                     <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">Trade Outcome</h3>
                     <p className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-wider">Categorize the quality of this trade</p>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
                     {[
-                        { value: 'GOOD_WIN', label: 'Good Win', colorClass: 'bg-long/10 hover:bg-long/20 border-long/20 text-long' },
-                        { value: 'BAD_WIN', label: 'Bad Win', colorClass: 'bg-warning/10 hover:bg-warning/20 border-warning/20 text-warning' },
-                        { value: 'GOOD_BE', label: 'Good BE', colorClass: 'bg-muted/10 hover:bg-muted/20 border-border/40 text-foreground' },
-                        { value: 'BAD_BE', label: 'Bad BE', colorClass: 'bg-warning/10 hover:bg-warning/20 border-warning/20 text-warning' },
-                        { value: 'GOOD_LOSS', label: 'Good Loss', colorClass: 'bg-primary/10 hover:bg-primary/20 border-primary/20 text-primary' },
-                        { value: 'BAD_LOSS', label: 'Bad Loss', colorClass: 'bg-short/10 hover:bg-short/20 border-short/20 text-short' },
+                        { value: 'GOOD_WIN', label: 'A Good Win', colorClass: 'bg-long/10 hover:bg-long/20 border-long/20 text-long' },
+                        { value: 'BAD_WIN', label: 'A Bad Win', colorClass: 'bg-warning/10 hover:bg-warning/20 border-warning/20 text-warning' },
+                        { value: 'GOOD_BE', label: 'A Good BE', colorClass: 'bg-muted/10 hover:bg-muted/20 border-border/40 text-foreground' },
+                        { value: 'BAD_BE', label: 'A Bad BE', colorClass: 'bg-warning/10 hover:bg-warning/20 border-warning/20 text-warning' },
+                        { value: 'GOOD_LOSS', label: 'A Good Loss', colorClass: 'bg-primary/10 hover:bg-primary/20 border-primary/20 text-primary' },
+                        { value: 'BAD_LOSS', label: 'A Bad Loss', colorClass: 'bg-short/10 hover:bg-short/20 border-short/20 text-short' },
                     ].map(({ value, label, colorClass }) => (
                         <button
                             key={value}
                             type="button"
-                            onClick={() => setTradeOutcome(value as TradeOutcome)}
+                            onClick={() => {
+                                setTradeOutcome(value as TradeOutcome)
+                                // Automatically check 'Rule Broken' for bad outcomes
+                                if (value.includes('BAD_')) {
+                                    setRuleBroken(true)
+                                }
+                            }}
                             className={cn(
-                                "py-2 px-2 border rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all",
+                                "py-2 px-1 border rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all text-center leading-tight",
                                 tradeOutcome === value
-                                    ? colorClass.replace('hover:', '').replace('/10', '/20').replace('/20', '/40') // more opaque when active
-                                    : 'bg-muted/5 hover:bg-muted/10 border-border/20 text-muted-foreground/50'
+                                    ? colorClass.replace('hover:', '').replace('/10', '/30').replace('/20', '/40') // more opaque when active
+                                    : 'bg-muted/5 hover:bg-muted/10 border-border/20 text-muted-foreground/30'
                             )}
                         >
                             {label}

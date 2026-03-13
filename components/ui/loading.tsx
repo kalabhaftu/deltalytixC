@@ -63,11 +63,11 @@ export function LoadingOverlay({ text = 'Loading...', position = 'absolute', cla
 
   return (
     <div className={cn(
-      'z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm',
+      'z-50 flex items-center justify-center bg-background/95',
       positionClasses[position],
       className
     )}>
-      <div className="flex flex-col items-center gap-3 rounded-lg bg-background/95 p-6 shadow-lg border">
+      <div className="flex flex-col items-center gap-3 rounded-lg bg-background p-6 shadow-lg border">
         <CircleNotch weight="light" className="h-8 w-8 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">{text}</p>
       </div>
@@ -81,7 +81,7 @@ export function LoadingOverlay({ text = 'Loading...', position = 'absolute', cla
 export function LoadingToast({ text = 'Loading...', className }: { text?: string; className?: string }) {
   return (
     <div className={cn(
-      'fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-md bg-background/95 px-3 py-2 shadow-lg border backdrop-blur-sm',
+      'fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-md bg-background px-3 py-2 shadow-lg border',
       className
     )}>
       <CircleNotch weight="light" className="h-4 w-4 animate-spin text-primary" />

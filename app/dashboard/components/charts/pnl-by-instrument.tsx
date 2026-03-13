@@ -61,7 +61,7 @@ const CHART_CONFIG = {
 } as const
 
 // ============================================================================
-// TOOLTIP COMPONENT - Glassmorphism Style
+// TOOLTIP COMPONENT - Standard Style
 // ============================================================================
 
 function ChartTooltip({ active, payload }: any) {

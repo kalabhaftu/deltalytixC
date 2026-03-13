@@ -200,7 +200,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // ID is pure masterAccountId (UUID), not composite
     const { searchParams } = new URL(request.url)
     
-    // ✅ NEW: Support phase filtering via query params
+    // NEW: Support phase filtering via query params
     // ?phase=current (default) - only active phase
     // ?phase=all - all phases
     // ?phase=1 - specific phase number
@@ -233,7 +233,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // ✅ FIXED: Filter phases based on query parameter
+    // FIXED: Filter phases based on query parameter
     let phasesToInclude = masterAccount.PhaseAccount
     
     if (phaseFilter === 'current') {

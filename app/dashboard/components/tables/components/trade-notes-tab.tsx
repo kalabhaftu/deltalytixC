@@ -54,8 +54,20 @@ export function TradeNotesTab({
                                     size="sm"
                                     className="h-7 text-[10px] uppercase font-bold tracking-tight bg-muted/20 shrink-0"
                                     onClick={() => {
-                                        if (!field.value || field.value.trim() === '') {
-                                            field.onChange('<h3>What did I see?</h3><p></p><h3>What did I do?</h3><p></p><h3>What did I learn?</h3><p></p>')
+                                        if (!field.value || field.value.trim() === '' || field.value === '<p></p>') {
+                                            field.onChange(`
+                                                <h3>Trade Thesis</h3>
+                                                <p>Why did I take this trade? What was the higher timeframe context?</p>
+                                                
+                                                <h3>Execution & Logic</h3>
+                                                <p>Specific entry trigger, stop loss placement logic, and initial target reasoning.</p>
+                                                
+                                                <h3>Results & Management</h3>
+                                                <p>How did the trade play out? Did I manage it according to plan?</p>
+                                                
+                                                <h3>Key Takeaways</h3>
+                                                <p>One thing I did well and one thing I could improve for next time.</p>
+                                            `)
                                         }
                                     }}
                                 >
@@ -67,8 +79,13 @@ export function TradeNotesTab({
                                     size="sm"
                                     className="h-7 text-[10px] uppercase font-bold tracking-tight bg-muted/20 shrink-0"
                                     onClick={() => {
-                                        if (!field.value || field.value.trim() === '') {
-                                            field.onChange('<p><strong>Emotional State:</strong></p><p></p><p><strong>Focus Level (1-10):</strong></p><p></p><p><strong>Mistakes Made:</strong></p><p></p>')
+                                        if (!field.value || field.value.trim() === '' || field.value === '<p></p>') {
+                                            field.onChange(`
+                                                <p><strong>Emotional State:</strong> Calm / Anxious / Greedy / FOMO</p>
+                                                <p><strong>⚡ Focus Level (1-10):</strong> </p>
+                                                <p><strong>Self-Discipline:</strong> Did I follow my routine? Did I wait for my setup?</p>
+                                                <p><strong>Mental Notes:</strong> Any external factors affecting my trading today?</p>
+                                            `)
                                         }
                                     }}
                                 >
@@ -80,8 +97,13 @@ export function TradeNotesTab({
                                     size="sm"
                                     className="h-7 text-[10px] uppercase font-bold tracking-tight bg-muted/20 shrink-0"
                                     onClick={() => {
-                                        if (!field.value || field.value.trim() === '') {
-                                            field.onChange('<p><strong>HTF Context:</strong></p><p></p><p><strong>Execution Trigger:</strong></p><p></p><p><strong>Management:</strong></p><p></p>')
+                                        if (!field.value || field.value.trim() === '' || field.value === '<p></p>') {
+                                            field.onChange(`
+                                                <p><strong>HTF Bias:</strong> Monthly/Weekly/Daily directional bias.</p>
+                                                <p><strong>Entry Framework:</strong> (e.g., MSS + FVG, Turtle Soup, etc.)</p>
+                                                <p><strong>Risk Management:</strong> RR ratio, position sizing logic.</p>
+                                                <p><strong>Correlation Check:</strong> USDX, ES/NQ correlation at time of entry.</p>
+                                            `)
                                         }
                                     }}
                                 >
@@ -130,12 +152,12 @@ export function TradeNotesTab({
                                         <p className="text-xs text-muted-foreground">Image link broken</p>
                                     </div>
                                 )}
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-4 px-4 backdrop-blur-[2px]">
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-4 px-4">
                                     <Button
                                         type="button"
                                         variant="secondary"
                                         size="sm"
-                                        className="h-9 px-4 text-xs font-semibold shadow-xl border-white/20 hover:bg-white hover:text-black transition-all"
+                                        className="h-9 px-4 text-xs font-semibold border-border bg-background/95 hover:bg-accent transition-all"
                                         onClick={() => {
                                             const input = document.createElement('input')
                                             input.type = 'file'
@@ -154,7 +176,7 @@ export function TradeNotesTab({
                                         type="button"
                                         variant="destructive"
                                         size="sm"
-                                        className="h-9 px-4 text-xs font-semibold shadow-xl hover:bg-red-600 transition-all"
+                                        className="h-9 px-4 text-xs font-semibold hover:bg-destructive/90 transition-all"
                                         onClick={() => onRemove('cardPreviewImage')}
                                     >
                                         <Trash className="h-3.5 w-3.5 mr-2" weight="light" />
@@ -170,14 +192,14 @@ export function TradeNotesTab({
                                     if (file) onUpload('cardPreviewImage', file)
                                 }}
                                 accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'] }}
-                                className="h-full border-none bg-transparent hover:bg-muted/10"
+                                className="h-full border-none bg-muted/50 hover:bg-muted/80"
                                 description="Drag & drop or click to upload preview"
                                 icon={<Plus className="h-8 w-8 text-muted-foreground/40 mb-2" weight="light" />}
                                 disabled={uploadingField === 'cardPreviewImage'}
                             />
                         )}
                         {uploadingField === 'cardPreviewImage' && (
-                            <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] flex items-center justify-center">
+                            <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
                                 <CircleNotch className="h-5 w-5 animate-spin text-primary" weight="light" />
                             </div>
                         )}

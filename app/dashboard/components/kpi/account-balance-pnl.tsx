@@ -36,7 +36,7 @@ const AccountBalancePnl = React.memo(function AccountBalancePnl({ size }: Accoun
     return accounts.filter(acc => accountNumbers.includes(acc.number))
   }, [accounts, accountNumbers])
 
-  // ✅ USE UNIFIED CALCULATOR - Single source of truth for all balance calculations
+  // USE UNIFIED CALCULATOR - Single source of truth for all balance calculations
   // This replaces the old custom logic (lines 39-71) with centralized, tested functions
   const balanceInfo = React.useMemo(() => {
     return calculateBalanceInfo(filteredAccounts, formattedTrades)

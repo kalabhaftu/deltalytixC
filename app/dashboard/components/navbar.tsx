@@ -290,7 +290,7 @@ export default function Navbar() {
   return (
     <>
       <motion.nav
-        className="fixed py-3 top-0 left-0 right-0 z-50 flex flex-col text-foreground bg-background border-b border-border/50 shadow-md w-full transition-colors duration-200 ease-out"
+        className="fixed py-3 top-0 left-0 right-0 z-50 flex flex-col text-foreground bg-background border-b border-border shadow-sm w-full transition-colors duration-200 ease-out"
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
@@ -304,13 +304,13 @@ export default function Navbar() {
                     <Logo className='h-7 w-7 transition-transform duration-200 group-hover:rotate-3' />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-48 bg-background border border-border/50 shadow-md" align="start">
+                <PopoverContent className="w-48 bg-background border border-border shadow-sm" align="start">
                   <div className="space-y-2">
                     <h4 className="font-medium leading-none mb-3">Navigation</h4>
                     <div className="grid gap-2">
                       <Link
                         href="/dashboard"
-                        className="flex items-center gap-2 text-sm hover:bg-muted/50 p-3 rounded-lg transition-colors duration-200 hover:scale-[1.02] hover:shadow-sm"
+                        className="flex items-center gap-2 text-sm hover:bg-muted/50 p-3 rounded-lg transition-colors duration-200 hover:scale-[1.02]"
                         onClick={() => setIsLogoPopoverOpen(false)}
                       >
                         <div className="flex-shrink-0 w-4 h-4">
@@ -328,7 +328,7 @@ export default function Navbar() {
             {/* All Accounts Dropdown (moved here, dynamic name) - Hidden on mobile */}
             <Popover open={accountPopoverOpen} onOpenChange={setAccountPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-muted/50 transition-colors duration-200 border border-border/50 bg-card/50">
+                <Button variant="ghost" size="sm" className="hidden md:flex h-8 px-3 hover:bg-muted/50 transition-colors duration-200 border border-border bg-card">
                   <Users weight="light" className="mr-2 h-4 w-4" />
                   <span className="text-sm">{getAccountButtonText()}</span>
                   {accountNumbers.length > 0 && (
@@ -359,14 +359,14 @@ export default function Navbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="hidden md:flex h-9 w-9 hover:bg-muted/50 transition-colors duration-200 hover:scale-105 hover:shadow-md"
+                  className="hidden md:flex h-9 w-9 hover:bg-muted/50 transition-colors duration-200 hover:scale-105"
                   title="Templates"
                 >
                   <Cards weight="light" className="h-4 w-4" />
                   <span className="sr-only">Templates</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-4 bg-background border border-border/50 shadow-md" align="end" sideOffset={8}>
+              <PopoverContent className="w-80 p-4 bg-background border border-border shadow-sm" align="end" sideOffset={8}>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">Templates</h4>
@@ -445,7 +445,7 @@ export default function Navbar() {
                 <DropdownMenuTrigger asChild>
                   <div>
                     <SeasonalAvatarBadge>
-                      <Avatar className="cursor-pointer h-9 w-9 ring-2 ring-transparent hover:ring-border transition-colors duration-200 hover:scale-105 hover:shadow-md">
+                      <Avatar className="cursor-pointer h-9 w-9 ring-2 ring-transparent hover:ring-border transition-colors duration-200 hover:scale-105">
                         <AvatarImage src={user?.user_metadata?.avatar_url} className="transition-transform duration-200" />
                         <AvatarFallback className="uppercase text-xs bg-muted text-foreground font-medium">
                           {user?.email?.[0] || 'U'}
@@ -454,7 +454,7 @@ export default function Navbar() {
                     </SeasonalAvatarBadge>
                   </div>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-background border border-border/50 shadow-md">
+                <DropdownMenuContent className="w-56 bg-background border border-border shadow-sm">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <div className="px-2 py-1.5 text-sm text-muted-foreground">
                     {user?.email || <Skeleton className="h-4 w-32" />}

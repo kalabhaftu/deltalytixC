@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUserId } from '@/server/auth'
-import { BREAK_EVEN_THRESHOLD } from '@/lib/utils'
+import { BREAK_EVEN_THRESHOLD, cleanContent } from '@/lib/utils'
 
 // GET - Generate AI analysis of journals and trades
 export async function GET(request: Request) {
@@ -734,8 +734,8 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
       const jsonMatch = content.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0])
-        // Remove emojis from all strings
-        return removeEmojis(parsed)
+        // Remove emojis from all strings using shared utility
+        return cleanContent(parsed)
       }
       return generateRuleBasedAnalysis(journalSummary, tradeStats, emotionCounts, emotionPerformance, tradeNotes)
     } catch (parseError) {
@@ -746,22 +746,6 @@ async function generateAnalysis(journals: any[], trades: any[], propFirmAccounts
   }
 }
 
-// Remove emojis from analysis
-function removeEmojis(obj: any): any {
-  if (typeof obj === 'string') {
-    // Remove emojis using regex
-    return obj.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]/gu, '').trim()
-  } else if (Array.isArray(obj)) {
-    return obj.map(item => removeEmojis(item))
-  } else if (typeof obj === 'object' && obj !== null) {
-    const cleaned: any = {}
-    for (const key in obj) {
-      cleaned[key] = removeEmojis(obj[key])
-    }
-    return cleaned
-  }
-  return obj
-}
 
 function generateRuleBasedAnalysis(
   journals: any[],

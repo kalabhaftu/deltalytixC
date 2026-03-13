@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { useTags } from '@/context/tags-provider'
 import { getNewsById } from '@/lib/major-news-events'
 import { formatTimeInZone, getKillzoneBadge, getTradingSession } from '@/lib/time-utils'
-import { classifyTrade, cn, formatCurrency } from '@/lib/utils'
+import { classifyTrade, cn, formatCurrency, cleanContent } from '@/lib/utils'
 import { useUserStore } from '@/store/user-store'
 import {
   ChartBar,
@@ -101,8 +101,8 @@ export function TradeDetailContent({ trade, onClose }: TradeDetailContentProps) 
 
   return (
     <>
-      <div className="w-full bg-card sm:border sm:shadow-2xl sm:rounded-2xl relative flex flex-col p-0 transition-all mx-auto min-h-screen sm:min-h-[90vh]">
-        <div className="px-4 sm:px-8 py-6 border-b shrink-0 flex items-center justify-between bg-muted/5">
+      <div className="w-full bg-card sm:border sm:shadow-md sm:rounded-2xl relative flex flex-col p-0 transition-all mx-auto min-h-screen sm:min-h-[90vh]">
+        <div className="px-4 sm:px-8 py-6 border-b shrink-0 flex items-center justify-between bg-muted/20">
           <div className="flex flex-col gap-1.5">
             <div className="flex flex-wrap items-center gap-2 sm:gap-4">
               <span className="text-2xl sm:text-3xl font-black tracking-tighter uppercase">{trade.instrument}</span>
@@ -244,9 +244,9 @@ export function TradeDetailContent({ trade, onClose }: TradeDetailContentProps) 
                     <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-foreground">Post-Trade Review</h3>
                     <div className="h-1 w-12 bg-primary rounded-full" />
                   </div>
-                  <div className="relative p-6 sm:p-8 rounded-3xl bg-muted/10 border border-border/40 shadow-inner">
+                  <div className="relative p-6 sm:p-8 rounded-3xl bg-muted/30 border border-border shadow-sm">
                     <p className="text-sm sm:text-base text-foreground/90 whitespace-pre-wrap leading-relaxed font-medium">
-                      {trade.comment}
+                      {cleanContent(trade.comment)}
                     </p>
                   </div>
                 </section>
@@ -261,7 +261,7 @@ export function TradeDetailContent({ trade, onClose }: TradeDetailContentProps) 
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
                     {images.map((img, index) => (
-                      <div key={index} className="group relative aspect-video rounded-3xl overflow-hidden border border-border/40 bg-muted/20 cursor-pointer shadow-sm hover:shadow-xl transition-all active:scale-[0.98]" onClick={(e) => {
+                      <div key={index} className="group relative aspect-video rounded-3xl overflow-hidden border border-border bg-muted/20 cursor-pointer shadow-sm hover:shadow-md transition-all active:scale-[0.98]" onClick={(e) => {
                         e.stopPropagation()
                         setSelectedImage(img)
                         setSelectedImageIndex(index + 1)
@@ -278,7 +278,7 @@ export function TradeDetailContent({ trade, onClose }: TradeDetailContentProps) 
                             {index === 0 ? 'Featured Preview' : `Detailed View #${index}`}
                           </span>
                         </div>
-                        <Badge className="absolute top-4 right-4 bg-white/10 backdrop-blur-xl border border-white/20 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Badge className="absolute top-4 right-4 bg-zinc-900 border border-white/10 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           Open HD
                         </Badge>
                       </div>
@@ -290,11 +290,11 @@ export function TradeDetailContent({ trade, onClose }: TradeDetailContentProps) 
           </div>
         </div>
 
-        <div className="flex flex-col-reverse sm:flex-row justify-between items-center px-4 sm:px-10 py-6 sm:py-8 border-t border-border/40 bg-muted/5 shrink-0 gap-4 sm:gap-0 mt-auto">
+        <div className="flex flex-col-reverse sm:flex-row justify-between items-center px-4 sm:px-10 py-6 sm:py-8 border-t border-border bg-muted/20 shrink-0 gap-4 sm:gap-0 mt-auto">
           <Link href={`/dashboard/table?view=replay&tradeId=${trade.id}`} className="w-full sm:w-auto">
             <Button
               variant="default"
-              className="gap-3 h-12 sm:h-14 px-8 rounded-2xl shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all font-black uppercase tracking-widest text-[11px] w-full sm:w-auto"
+              className="gap-3 h-12 sm:h-14 px-8 rounded-2xl shadow-md transition-all font-black uppercase tracking-widest text-[11px] w-full sm:w-auto"
             >
               <Play className="h-4 w-4" weight="fill" />
               Launch Trade Replay
@@ -344,22 +344,18 @@ export function TradeDetailContent({ trade, onClose }: TradeDetailContentProps) 
                 </TransformComponent>
               </TransformWrapper>
               <div className="absolute top-6 right-6 flex gap-3">
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="rounded-full h-12 w-12 bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20"
+                <button
+                  className="rounded-full h-12 w-12 bg-zinc-900 border border-white/10 flex items-center justify-center hover:bg-zinc-800 transition-colors"
                   onClick={() => downloadImage(selectedImage!, trade, selectedImageIndex)}
                 >
                   <Download className="h-5 w-5 text-white" />
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="rounded-full h-12 w-12 bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20"
+                </button>
+                <button
+                  className="rounded-full h-12 w-12 bg-zinc-900 border border-white/10 flex items-center justify-center hover:bg-zinc-800 transition-colors"
                   onClick={() => setSelectedImage(null)}
                 >
                   <X className="h-5 w-5 text-white" />
-                </Button>
+                </button>
               </div>
             </div>
           </DialogContent>

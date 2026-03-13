@@ -467,7 +467,7 @@ export default function ImportTradesCard({ accountId }: ImportTradesCardProps) {
           {renderStep()}
         </div>
 
-        <div className="p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="p-4 border-t bg-background">
           <div className="flex justify-end items-center gap-4">
             {step !== 'select-import-type' && (
               <Button 

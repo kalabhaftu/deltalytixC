@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Trash, FloppyDisk, Check } from '@phosphor-icons/react'
-import { cn } from '@/lib/utils'
+import { cn, cleanContent } from '@/lib/utils'
 import { updateTradeCommentAction } from '@/server/database'
 import {
   Popover,
@@ -91,7 +91,7 @@ export function TradeComment({ tradeIds, comment: initialComment, onCommentChang
             >
               {localComment ? (
                 <div className="truncate">
-                  {localComment}
+                  {cleanContent(localComment)}
                 </div>
               ) : "Add comment"}
             </Button>

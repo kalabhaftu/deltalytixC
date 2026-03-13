@@ -49,7 +49,7 @@ export default function RecentTradesWidget() {
       <CardContent className="p-4 pt-0 flex-1 flex flex-col min-h-0">
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="grid grid-cols-12 gap-2 pb-2 border-b border-border/50 text-xs font-medium text-muted-foreground shrink-0">
+          <div className="grid grid-cols-12 gap-2 pb-2 border-b border-border text-xs font-medium text-muted-foreground shrink-0">
             <div className="col-span-5">Date</div>
             <div className="col-span-4">Symbol</div>
             <div className="col-span-3 text-right">P&L</div>

@@ -68,8 +68,8 @@ export default function AccountTradesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [activeTab, setActiveTab] = useState('trades')
-  const [phaseFilter, setPhaseFilter] = useState<string>('current') // ✅ NEW: Phase filter state
-  const [availablePhases, setAvailablePhases] = useState<PhaseInfo[]>([]) // ✅ NEW: Available phases
+  const [phaseFilter, setPhaseFilter] = useState<string>('current') // NEW: Phase filter state
+  const [availablePhases, setAvailablePhases] = useState<PhaseInfo[]>([]) // NEW: Available phases
 
   const accountId = params.id as string
 
@@ -99,7 +99,7 @@ export default function AccountTradesPage() {
   const fetchTrades = async (filter: string = phaseFilter) => {
     try {
       setIsLoading(true)
-      // ✅ FIXED: Add phase filter to API call
+      // FIXED: Add phase filter to API call
       const response = await fetch(`/api/prop-firm/accounts/${accountId}/trades?phase=${filter}`)
 
       if (!response.ok) {
@@ -239,7 +239,7 @@ export default function AccountTradesPage() {
         </div>
       </div>
 
-      {/* ✅ NEW: Phase Filter */}
+      {/* NEW: Phase Filter */}
       {availablePhases.length > 1 && (
         <Card>
           <CardHeader>

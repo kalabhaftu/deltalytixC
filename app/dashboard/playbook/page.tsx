@@ -84,7 +84,7 @@ function StrategyBlock({
               <DotsThreeVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-background/95 backdrop-blur-xl border-border/40">
+          <DropdownMenuContent align="end" className="bg-background border-border/40">
             <DropdownMenuItem onClick={() => onView(model)} className="text-xs font-bold uppercase">
               <Eye className="mr-2 h-3.5 w-3.5" /> View Strategy
             </DropdownMenuItem>
@@ -279,7 +279,7 @@ export default function PlaybookPage() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteModelId} onOpenChange={() => setDeleteModelId(null)}>
-        <AlertDialogContent className="bg-background/95 backdrop-blur-2xl border-border/40">
+        <AlertDialogContent className="bg-background border-border/40">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-black uppercase tracking-tighter">Remove Strategy Model</AlertDialogTitle>
             <AlertDialogDescription className="text-xs font-bold">
@@ -300,7 +300,7 @@ export default function PlaybookPage() {
 
       {/* View Model Dialog */}
       <AlertDialog open={!!viewModel} onOpenChange={() => setViewModel(null)}>
-        <AlertDialogContent className="max-w-2xl bg-background/95 backdrop-blur-2xl border-border/40">
+        <AlertDialogContent className="max-w-2xl bg-background border-border/40">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-2xl font-black tracking-tighter uppercase">{viewModel?.name}</AlertDialogTitle>
             <div className="flex items-center gap-4 mt-2">

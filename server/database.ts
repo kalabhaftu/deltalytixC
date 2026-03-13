@@ -154,7 +154,7 @@ export async function getTradesAction(userId: string | null = null, options?: {
   limit?: number
   offset?: number
   filters?: {
-    dateRange?: { from: Date; to: Date }
+    dateRange?: { from: Date | string; to: Date | string }
     instruments?: string[]
     accountNumbers?: string[]
   }
@@ -192,9 +192,13 @@ export async function getTradesAction(userId: string | null = null, options?: {
 
       // Apply additional filters if provided
       if (options?.filters?.dateRange?.from && options?.filters?.dateRange?.to) {
+        // Ensure we pass strings to Prisma if the field is a string
+        const fromDate = options.filters.dateRange.from
+        const toDate = options.filters.dateRange.to
+        
         whereClause.entryDate = {
-          gte: options.filters.dateRange.from,
-          lte: options.filters.dateRange.to
+          gte: fromDate instanceof Date ? fromDate.toISOString() : fromDate,
+          lte: toDate instanceof Date ? toDate.toISOString() : toDate
         }
       }
 

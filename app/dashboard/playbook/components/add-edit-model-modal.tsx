@@ -153,7 +153,7 @@ export function AddEditModelModal({ isOpen, onClose, onSave, model, mode }: AddE
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-2xl border-border/40">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto bg-background border-border/40">
           <DialogHeader className="mb-8">
             <DialogTitle className="text-2xl font-black tracking-tighter uppercase">
               {mode === 'add' ? 'INITIALIZE STRATEGY' : 'REFINE STRATEGY'}

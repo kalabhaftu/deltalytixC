@@ -39,7 +39,7 @@ export const AXIS_STYLE = {
 
 // Tooltip styling
 export const TOOLTIP_STYLE = {
-    container: "bg-card/95 backdrop-blur-sm p-3 border border-border/50 rounded-lg shadow-xl",
+    container: "bg-card p-3 border border-border/50 rounded-lg shadow-xl",
     title: "font-semibold text-sm mb-2",
     value: "font-bold text-base",
     subtitle: "text-xs text-muted-foreground",

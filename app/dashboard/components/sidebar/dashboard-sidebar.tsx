@@ -133,8 +133,8 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
                         isCollapsed && !isMobile ? "px-2" : "px-3",
                         isMobile ? "h-12 text-base" : "h-10",
                         isActive
-                          ? "bg-muted text-foreground shadow-lg scale-[1.02]"
-                          : "hover:bg-muted/50 hover:shadow-md hover:scale-[1.02] hover:translate-x-1"
+                          ? "bg-muted text-foreground shadow-sm scale-[1.02]"
+                          : "hover:bg-muted/50 hover:shadow-sm hover:scale-[1.02] hover:translate-x-1"
                       )}
                       onClick={() => {
                         onTabChange(item.id)
@@ -158,7 +158,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
                   </motion.div>
                 </TooltipTrigger>
                 {isCollapsed && !isMobile && (
-                  <TooltipContent side="right" className="font-medium bg-background/95 backdrop-blur-xl border border-border/50 shadow-xl">
+                  <TooltipContent side="right" className="font-medium bg-background border border-border shadow-md">
                     {item.label}
                   </TooltipContent>
                 )}
@@ -173,7 +173,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
       {/* Collapse Toggle - Desktop Only */}
       {!isMobile && (
         <motion.div
-          className="p-4 border-t border-border/50"
+          className="p-4 border-t border-border"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
@@ -183,7 +183,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
             size="sm"
             onClick={toggleCollapsed}
             className={cn(
-              "w-full transition-all duration-300 hover:bg-muted/50 hover:shadow-md",
+              "w-full transition-all duration-300 hover:bg-muted/50 hover:shadow-sm",
               isCollapsed ? "px-2" : "px-3"
             )}
           >
@@ -211,7 +211,7 @@ export function DashboardSidebar({ activeTab, onTabChange, onCollapsedChange, cl
   return (
     <motion.div
       className={cn(
-        "fixed left-0 top-0 z-30 h-full bg-background/95 backdrop-blur-xl border-r border-border/50 shadow-xl transition-all duration-300 ease-in-out",
+        "fixed left-0 top-0 z-30 h-full bg-background border-r border-border shadow-md transition-all duration-300 ease-in-out",
         // Prevent layout shift during hydration
         !isHydrated ? "w-64" : isCollapsed ? "w-16" : "w-64",
         className

@@ -131,7 +131,7 @@ export function ReportFilters({
                         <CaretDown weight="bold" className="h-3 w-3 opacity-30" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 border-border/10 rounded-[24px] shadow-2xl" align="end">
+                <PopoverContent className="w-auto p-0 border-border/10 rounded-[24px] shadow-lg" align="end">
                     <Calendar
                         initialFocus
                         mode="range"

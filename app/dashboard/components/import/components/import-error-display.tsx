@@ -80,7 +80,7 @@ export function ImportErrorDisplay({ error, onRetry, onClose }: ImportErrorDispl
         <div className="absolute inset-0 blur-2xl opacity-30">
           <div className="w-24 h-24 rounded-full bg-destructive" />
         </div>
-        <div className="relative z-10 w-24 h-24 rounded-full bg-destructive/10 backdrop-blur-sm border-2 border-destructive/30 flex items-center justify-center">
+        <div className="relative z-10 w-24 h-24 rounded-full bg-destructive/10 border-2 border-destructive/30 flex items-center justify-center">
           <Icon weight="light" className={`w-12 h-12 ${errorInfo.color}`} />
         </div>
       </div>

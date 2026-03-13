@@ -73,7 +73,7 @@ function ChartTooltip({ active, payload }: any) {
   const isWinning = data.winRate >= 50
 
   return (
-    <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl min-w-[200px]">
+    <div className="bg-card border border-border/50 rounded-xl p-4 shadow-md min-w-[200px]">
       {/* Strategy Header */}
       <p className="text-sm font-bold mb-2 truncate max-w-[180px]">{data.strategy}</p>
 

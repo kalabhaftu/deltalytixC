@@ -330,7 +330,7 @@ export function FormatPreview({
       <div className="flex-1 min-h-0 overflow-hidden border rounded-lg">
         <div className="flex flex-col h-full">
           <Table>
-            <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
+            <TableHeader className="sticky top-0 z-10 bg-muted">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="hover:bg-transparent">
                   {headerGroup.headers.map((header) => (

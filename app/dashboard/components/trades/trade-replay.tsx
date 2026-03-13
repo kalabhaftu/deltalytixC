@@ -237,7 +237,7 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
             <div ref={chartContainerRef} className="absolute inset-0 w-full h-full" />
 
             {isLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 z-20 transition-opacity duration-500 backdrop-blur-sm">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background z-20 transition-opacity duration-500">
                     <div className="w-full h-full p-4 space-y-2">
                         <Skeleton className="h-3 w-20 mb-4" />
                         <Skeleton className="h-full w-full rounded" />

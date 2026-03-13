@@ -82,7 +82,7 @@ export function ConsentBanner() {
           filter: 'drop-shadow(0 -4px 6px hsl(var(--background) / 0.1))',
         }}
       >
-        <div className="bg-background/80 backdrop-blur-lg border-t border-border/50 p-4 shadow-lg">
+        <div className="bg-background border-t border-border p-4 shadow-lg">
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex-1">

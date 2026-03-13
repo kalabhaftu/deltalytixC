@@ -103,7 +103,7 @@ Verified via Deltalytix Intelligence`
             <div
                 ref={cardRef}
                 data-performance-card
-                className="relative overflow-hidden rounded-3xl bg-card p-8 text-card-foreground shadow-md border border-border w-full aspect-[4/5] sm:aspect-[1.91/1] max-w-2xl flex flex-col justify-between"
+                className="relative overflow-hidden rounded-3xl bg-card p-8 text-card-foreground shadow-sm border border-border w-full aspect-[4/5] sm:aspect-[1.91/1] max-w-2xl flex flex-col justify-between"
             >
                 {/* Visual Texture & Glows */}
                 <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full pointer-events-none" />
@@ -116,7 +116,7 @@ Verified via Deltalytix Intelligence`
                 <div className="relative z-10 flex items-start justify-between">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                            <div className="h-6 w-1 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--primary),0.8)]" />
+                            <div className="h-6 w-1 bg-primary rounded-full" />
                             <h3 className="text-xxs font-black uppercase tracking-[0.4em] text-muted-foreground">Performance Intelligence</h3>
                         </div>
                         <h2 className="text-2xl font-black tracking-tighter uppercase leading-none mt-1 text-heading-text">
@@ -140,7 +140,7 @@ Verified via Deltalytix Intelligence`
                         <div className="relative">
                             <div className={cn(
                                 "text-7xl font-black tracking-[calc(-0.05em)] leading-none",
-                                isProfit ? "text-profit shadow-[0_0_40px_-10px_hsl(var(--chart-profit)/0.3)]" : "text-loss"
+                                isProfit ? "text-profit" : "text-loss"
                             )}>
                                 {isProfit ? '+' : ''}${Math.abs(stats.totalPnL).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                             </div>
@@ -155,12 +155,12 @@ Verified via Deltalytix Intelligence`
 
                 {/* High Density Grid */}
                 <div className="relative z-10 grid grid-cols-3 gap-3">
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-border backdrop-blur-sm flex flex-col justify-center items-center group hover:bg-muted/40 transition-colors">
+                    <div className="p-4 rounded-2xl bg-muted/20 border border-border flex flex-col justify-center items-center group hover:bg-muted/40 transition-colors">
                         <span className="text-xxxs font-black uppercase tracking-widest text-muted-foreground mb-1">Execution</span>
                         <div className="text-xl font-black tracking-tighter text-heading-text">{stats.totalTrades}</div>
                         <span className="text-xxxs font-bold text-muted-foreground/60 uppercase">Total Trades</span>
                     </div>
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-border backdrop-blur-sm flex flex-col justify-center items-center">
+                    <div className="p-4 rounded-2xl bg-muted/20 border border-border flex flex-col justify-center items-center">
                         <span className="text-xxxs font-black uppercase tracking-widest text-muted-foreground mb-1">Edge Accuracy</span>
                         <div className={cn(
                             "text-xl font-black tracking-tighter",
@@ -168,7 +168,7 @@ Verified via Deltalytix Intelligence`
                         )}>{stats.winRate}%</div>
                         <span className="text-xxxs font-bold text-muted-foreground/60 uppercase">Win Rate</span>
                     </div>
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-border backdrop-blur-sm flex flex-col justify-center items-center">
+                    <div className="p-4 rounded-2xl bg-muted/20 border border-border flex flex-col justify-center items-center">
                          <span className="text-xxxs font-black uppercase tracking-widest text-muted-foreground mb-1">Consistency</span>
                         <div className="text-xl font-black tracking-tighter text-chart-1">{stats.longestWinStreak}</div>
                         <span className="text-xxxs font-bold text-muted-foreground/60 uppercase">Max Streak</span>
@@ -203,7 +203,7 @@ Verified via Deltalytix Intelligence`
                 <Button
                     onClick={handleDownload}
                     disabled={isExporting}
-                    className="w-full sm:flex-1 h-12 gap-3 bg-primary hover:bg-primary-hover active:bg-primary-press text-primary-foreground font-black uppercase tracking-tighter text-xs rounded-xl shadow-[0_8px_16px_-4px_hsl(var(--chart-profit)/0.3)] transition-all hover:translate-y-[-2px] active:translate-y-[0px]"
+                    className="w-full sm:flex-1 h-12 gap-3 bg-primary hover:bg-primary-hover active:bg-primary-press text-primary-foreground font-black uppercase tracking-tighter text-xs rounded-xl shadow-md transition-all hover:translate-y-[-2px] active:translate-y-[0px]"
                 >
                     <DownloadSimple weight="light" className="h-4 w-4" />
                     {isExporting ? 'Generating Premium Render...' : 'Export High-Res Image'}

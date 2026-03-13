@@ -5,7 +5,11 @@ import { useRouter } from 'next/navigation'
 import {
     Dialog,
     DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog'
+import { VisuallyHidden } from '@/components/ui/visually-hidden'
 import { Input } from '@/components/ui/input'
 import {
     MagnifyingGlass,
@@ -18,8 +22,12 @@ import {
     ChartBar,
     Gear as SettingsIcon,
     CalendarBlank,
-    TrendUp
+    TrendUp,
+    Plus,
+    Sun,
+    Moon
 } from '@phosphor-icons/react'
+import { useTheme } from '@/context/theme-provider'
 import { cn } from '@/lib/utils'
 
 interface CommandItem {
@@ -36,7 +44,8 @@ export function CommandPalette() {
     const [search, setSearch] = useState('')
     const [selectedIndex, setSelectedIndex] = useState(0)
     const router = useRouter()
-
+    const { theme, toggleTheme, setTheme } = useTheme()
+    
     const commands: CommandItem[] = [
         {
             id: 'dashboard',
@@ -109,6 +118,38 @@ export function CommandPalette() {
             icon: CalendarBlank,
             action: () => router.push('/dashboard'),
             keywords: ['dates', 'pnl', 'monthly']
+        },
+        {
+            id: 'toggle-theme',
+            title: 'Toggle Theme',
+            description: `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`,
+            icon: theme === 'dark' ? Sun : Moon,
+            action: () => toggleTheme(),
+            keywords: ['theme', 'dark', 'light', 'mode', 'color']
+        },
+        {
+            id: 'set-light',
+            title: 'Light Mode',
+            description: 'Set application theme to light',
+            icon: Sun,
+            action: () => setTheme('light'),
+            keywords: ['theme', 'light', 'day']
+        },
+        {
+            id: 'set-dark',
+            title: 'Dark Mode',
+            description: 'Set application theme to dark',
+            icon: Moon,
+            action: () => setTheme('dark'),
+            keywords: ['theme', 'dark', 'night']
+        },
+        {
+            id: 'add-trade',
+            title: 'Add New Trade',
+            description: 'Create a new trade entry',
+            icon: Plus,
+            action: () => router.push('/dashboard/journal?action=new'),
+            keywords: ['new', 'create', 'entry', 'order']
         }
     ]
 
@@ -173,6 +214,12 @@ export function CommandPalette() {
     return (
         <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) setSearch('') }}>
             <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
+                <VisuallyHidden>
+                    <DialogHeader>
+                        <DialogTitle>Command Palette</DialogTitle>
+                        <DialogDescription>Search pages and actions across the application</DialogDescription>
+                    </DialogHeader>
+                </VisuallyHidden>
                 <div className="flex items-center border-b px-3">
                     <MagnifyingGlass className="h-4 w-4 text-muted-foreground shrink-0" weight="light" />
                     <Input

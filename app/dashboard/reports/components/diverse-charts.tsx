@@ -95,7 +95,7 @@ export function DiverseCharts({ trades }: DiverseChartsProps) {
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-card border border-border/50 p-3 rounded-lg shadow-xl !backdrop-blur-md">
+                <div className="bg-card border border-border p-3 rounded-lg shadow-md">
                     <p className="text-[10px] uppercase font-bold text-muted-foreground/70 mb-2">{label}</p>
                     {payload.map((entry: any, index: number) => (
                         <div key={index} className="flex items-center justify-between gap-4 mb-1 border-b border-border/20 pb-1 last:border-0 last:pb-0 last:mb-0">

@@ -145,7 +145,7 @@ function SessionBlock({
         <div className="flex flex-col p-5 bg-card border border-border/40 rounded-2xl hover:border-primary/30 transition-all group">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
+                    <div className="w-2 h-2 rounded-full bg-primary" />
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-foreground">{name}</h3>
                 </div>
                 <span className="text-[9px] font-bold text-muted-foreground/50 tabular-nums">{range}</span>
@@ -231,9 +231,13 @@ export default function ReportsPage() {
             try {
                 const filters: any = {}
                 if (dateRange?.from && dateRange?.to) {
-                    filters.dateRange = { from: startOfDay(dateRange.from), to: endOfDay(dateRange.to) }
+                    filters.dateRange = { 
+                        from: startOfDay(dateRange.from).toISOString(), 
+                        to: endOfDay(dateRange.to).toISOString() 
+                    }
                 } else if (dateRange?.from) {
-                    filters.dateRange = { from: startOfDay(dateRange.from), to: endOfDay(dateRange.from) }
+                    const isoDate = startOfDay(dateRange.from).toISOString()
+                    filters.dateRange = { from: isoDate, to: isoDate }
                 }
                 
                 if (selectedAccountId) {
@@ -608,7 +612,7 @@ export default function ReportsPage() {
                                     Share Intelligence
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-2xl bg-card/95 backdrop-blur-3xl border border-border/10 p-0 overflow-hidden rounded-[32px]">
+                            <DialogContent className="sm:max-w-2xl bg-card border border-border/10 p-0 overflow-hidden rounded-[32px]">
                                 <div className="p-8">
                                     <DialogHeader className="mb-6">
                                         <DialogTitle className="text-xl font-black tracking-tighter uppercase">Generate Performance Asset</DialogTitle>
@@ -805,7 +809,7 @@ export default function ReportsPage() {
                         </TabsContent>
 
                         <TabsContent value="spreadsheet" className="focus-visible:outline-none">
-                            <div className="border border-border/40 rounded-xl overflow-hidden bg-card/30 backdrop-blur-md">
+                             <div className="border border-border/40 rounded-xl overflow-hidden bg-card/50">
                                 <Table>
                                     <TableHeader className="bg-muted/30">
                                         <TableRow className="border-border/40 hover:bg-transparent">
@@ -859,7 +863,7 @@ export default function ReportsPage() {
                         </TabsContent>
                     </Tabs>
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-32 border border-dashed border-border/40 rounded-3xl bg-muted/5 backdrop-blur-sm">
+                    <div className="flex flex-col items-center justify-center py-32 border border-dashed border-border/40 rounded-3xl bg-muted/5">
                         <Lightning weight="light" className="h-12 w-12 text-muted-foreground/20 mb-4 animate-pulse" />
                         <h3 className="text-sm font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">
                             Neural Journal is empty<br/>

@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { CircleNotch, Sparkle, Calendar as CalendarIcon, TrendUp, Brain, Warning, Target, Lightbulb } from "@phosphor-icons/react"
 import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
-import { cn } from '@/lib/utils'
+import { cn, cleanContent } from '@/lib/utils'
 
 import { CustomDateRangePicker } from '@/components/ui/custom-date-range-picker'
 
@@ -212,7 +212,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
               </div>
 
               {/* Selected Range Display */}
-              <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50">
+              <div className="flex items-center gap-2 p-3 rounded-md bg-muted">
                 <CalendarIcon className="h-4 w-4 text-muted-foreground" weight="light" />
                 <span className="text-sm font-medium">{formatDateRange()}</span>
               </div>
@@ -229,7 +229,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                       <div className="space-y-2 flex-1">
                         <h3 className="font-semibold text-sm">Summary</h3>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                          {analysis.summary}
+                          {cleanContent(analysis.summary)}
                         </p>
                       </div>
                     </div>
@@ -248,7 +248,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                             {analysis.emotionalPatterns.map((pattern, index) => (
                               <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                                 <span className="text-blue-400 mt-0.5">•</span>
-                                <span className="flex-1">{pattern}</span>
+                                <span className="flex-1">{cleanContent(pattern)}</span>
                               </li>
                             ))}
                           </ul>
@@ -270,7 +270,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                             {analysis.performanceInsights.map((insight, index) => (
                               <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                                 <span className="text-green-400 mt-0.5">•</span>
-                                <span className="flex-1">{insight}</span>
+                                <span className="flex-1">{cleanContent(insight)}</span>
                               </li>
                             ))}
                           </ul>
@@ -293,7 +293,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                             {analysis.strengths.map((strength, index) => (
                               <li key={index} className="text-xs text-muted-foreground flex items-start gap-2">
                                 <span className="text-green-400">✓</span>
-                                <span className="flex-1">{strength}</span>
+                                <span className="flex-1">{cleanContent(strength)}</span>
                               </li>
                             ))}
                           </ul>
@@ -313,7 +313,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                             {analysis.weaknesses.map((weakness, index) => (
                               <li key={index} className="text-xs text-muted-foreground flex items-start gap-2">
                                 <Warning className="h-3 w-3 text-orange-400 mt-0.5" weight="light" />
-                                <span className="flex-1">{weakness}</span>
+                                <span className="flex-1">{cleanContent(weakness)}</span>
                               </li>
                             ))}
                           </ul>
@@ -335,7 +335,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
                             {analysis.recommendations.map((rec, index) => (
                               <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                                 <span className="text-yellow-400 mt-0.5">→</span>
-                                <span className="flex-1">{rec}</span>
+                                <span className="flex-1">{cleanContent(rec)}</span>
                               </li>
                             ))}
                           </ul>
@@ -363,7 +363,7 @@ export function AIAnalysisDialog({ isOpen, onClose, accountId }: AIAnalysisDialo
           </div>
         </div>
 
-        <DialogFooter className="p-6 pt-4 border-t shrink-0 bg-muted/10">
+        <DialogFooter className="p-6 pt-4 border-t shrink-0 bg-muted/30">
           <div className="flex items-center justify-between w-full">
             <Button variant="outline" onClick={onClose} disabled={isAnalyzing}>
               Close

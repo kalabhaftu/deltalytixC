@@ -334,7 +334,7 @@ export function NotificationCenter() {
 
                   return (
                     <div key={group}>
-                      <div className="bg-muted/50 px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider sticky top-0 z-10 backdrop-blur-sm">
+                      <div className="bg-muted px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider sticky top-0 z-10">
                         {group}
                       </div>
                       {groupedNotifications.map((notification) => (

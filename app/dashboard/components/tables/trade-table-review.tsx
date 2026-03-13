@@ -618,7 +618,7 @@ export function TradeTableReview() {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-border/60 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/50 shadow-[0_20px_70px_hsl(var(--background)/0.35)]">
+      <div className="rounded-3xl border border-border bg-background shadow-md">
         {isMobile ? (
           <div className="p-4 space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto">
             {table.getRowModel().rows.length > 0 ? (
@@ -657,7 +657,7 @@ export function TradeTableReview() {
         ) : (
           <div className="relative w-full overflow-x-auto rounded-3xl">
             <table className="w-full min-w-[1100px] lg:min-w-full text-sm">
-              <thead className="sticky top-0 z-20 bg-background/90 backdrop-blur border-b border-border/60">
+              <thead className="sticky top-0 z-20 bg-background border-b border-border">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (

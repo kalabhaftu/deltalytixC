@@ -73,7 +73,7 @@ function ChartTooltip({ active, payload }: any) {
   const isDailyLoss = data.dailyPnL < -BREAK_EVEN_THRESHOLD
 
   return (
-    <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-xl p-4 shadow-2xl">
+    <div className="bg-card border border-border/50 rounded-xl p-4 shadow-md">
       {/* Date Header */}
       <p className="text-xs font-medium text-muted-foreground mb-1">
         {date.toLocaleDateString("en-US", {

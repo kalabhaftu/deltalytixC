@@ -489,7 +489,7 @@ export function WeeklyModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleCloseAttempt}>
-        <DialogContent className="w-full max-w-[95vw] sm:max-w-6xl h-[90vh] p-0 flex flex-col overflow-hidden bg-background border-border shadow-2xl">
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-6xl h-[90vh] p-0 flex flex-col overflow-hidden bg-background border-border shadow-lg">
           <DialogTitle className="sr-only">Weekly Review for {dateRange}</DialogTitle>
 
           {/* Hidden file input for replacement */}
@@ -632,7 +632,7 @@ export function WeeklyModal({
                               if (active && payload && payload.length) {
                                 const data = payload[0].payload
                                 return (
-                                  <div className="rounded-lg border bg-background p-3 shadow-lg">
+                                  <div className="rounded-lg border border-border/50 bg-card p-3 shadow-md">
                                     <div className="text-xs text-muted-foreground mb-1">
                                       {format(new Date(data.date + 'T00:00:00Z'), 'EEEE, MMM d', { locale: enUS })}
                                     </div>

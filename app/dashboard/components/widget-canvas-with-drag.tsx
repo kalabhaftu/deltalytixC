@@ -156,7 +156,7 @@ function SortableWidget({
         <div
           {...attributes}
           {...listeners}
-          className="absolute top-2 left-2 cursor-move z-10 bg-background/80 backdrop-blur-sm rounded p-1 hover:bg-muted/50 transition-colors"
+          className="absolute top-2 left-2 cursor-move z-10 bg-background rounded p-1 hover:bg-muted/50 transition-colors"
         >
           <DotsSixVertical weight="light" className="h-4 w-4 text-muted-foreground" />
         </div>
@@ -169,7 +169,7 @@ function SortableWidget({
         <Button
           variant="destructive"
           size="sm"
-          className="absolute top-2 right-2 h-6 w-6 rounded-full p-0 shadow-lg z-10"
+          className="absolute top-2 right-2 h-6 w-6 rounded-full p-0 shadow-md z-10"
           onClick={onRemove}
         >
           <X weight="light" className="h-3 w-3" />
@@ -391,9 +391,9 @@ export default function WidgetCanvasWithDrag() {
   // 4. NO saved selections exist in settings (this prevents flash while useEffect runs)
   // 5. Accounts exist (so we know data is loaded)
   const showEmptyState = !isEditMode &&
-    !isLoading &&  // ✅ WAIT for main data to load
+    !isLoading &&  // WAIT for main data to load
     accountNumbers.length === 0 &&
-    (!accountFilterSettings?.selectedPhaseAccountIds || accountFilterSettings.selectedPhaseAccountIds.length === 0) &&  // ✅ Check if settings have saved selections
+    (!accountFilterSettings?.selectedPhaseAccountIds || accountFilterSettings.selectedPhaseAccountIds.length === 0) &&  // Check if settings have saved selections
     accounts && accounts.length > 0
 
   if (showEmptyState) {
@@ -407,7 +407,7 @@ export default function WidgetCanvasWithDrag() {
         <div
           className={cn(
             "relative",
-            isEditMode && "border-2 border-dashed border-border/50 rounded-lg p-2"
+            isEditMode && "border-2 border-dashed border-border rounded-lg p-2"
           )}
         >
           <DndContext
@@ -434,7 +434,7 @@ export default function WidgetCanvasWithDrag() {
                       /* Empty Slot Placeholder */
                       isEditMode && (
                         <Card
-                          className="h-24 border-2 border-dashed border-border/50 bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
+                          className="h-24 border-2 border-dashed border-border bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
                           onClick={() => handleAddWidget({ slotIndex: index })}
                         >
                           <CardContent className="h-full flex flex-col items-center justify-center p-4">
@@ -493,7 +493,7 @@ export default function WidgetCanvasWithDrag() {
                                 style={getGridColumnStyle(slotWidth)}
                               >
                                 <Card
-                                  className="h-32 border-2 border-dashed border-border/50 bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
+                                  className="h-32 border-2 border-dashed border-border bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
                                   onClick={() => handleAddWidget({ x: currentX, y: rowY, width: slotWidth })}
                                 >
                                   <CardContent className="h-full flex flex-col items-center justify-center p-4">
@@ -537,7 +537,7 @@ export default function WidgetCanvasWithDrag() {
                               style={getGridColumnStyle(slotWidth)}
                             >
                               <Card
-                                className="h-32 border-2 border-dashed border-border/50 bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
+                                className="h-32 border-2 border-dashed border-border bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
                                 onClick={() => handleAddWidget({ x: currentX, y: rowY, width: slotWidth })}
                               >
                                 <CardContent className="h-full flex flex-col items-center justify-center p-4">
@@ -564,7 +564,7 @@ export default function WidgetCanvasWithDrag() {
         {/* Add new row at bottom in edit mode */}
         {isEditMode && (
           <Card
-            className="h-32 mt-4 border-2 border-dashed border-border/50 bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
+            className="h-32 mt-4 border-2 border-dashed border-border bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
             onClick={() => handleAddWidget()}
           >
             <CardContent className="h-full flex flex-col items-center justify-center p-4">
