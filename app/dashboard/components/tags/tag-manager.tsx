@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -16,12 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
 import { CircleNotch, Plus, Trash, PencilSimple, Check, X, Tag } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
-
-interface TradeTag {
-  id: string
-  name: string
-  color: string
-}
+import { useTags } from '@/hooks/use-tags'
 
 interface TagManagerProps {
   isOpen: boolean
@@ -43,34 +38,13 @@ const DEFAULT_COLORS = [
 ]
 
 export function TagManager({ isOpen, onClose, onRefresh }: TagManagerProps) {
-  const [tags, setTags] = useState<TradeTag[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { tags, isLoading, createTag, updateTag, deleteTag } = useTags()
   const [newTagName, setNewTagName] = useState('')
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLORS[0])
   const [isCreating, setIsCreating] = useState(false)
   const [editingTagId, setEditingTagId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
   const [editingColor, setEditingColor] = useState('')
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchTags()
-    }
-  }, [isOpen])
-
-  const fetchTags = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch('/api/tags')
-      if (!response.ok) throw new Error('Failed to fetch tags')
-      const data = await response.json()
-      setTags(data.tags || [])
-    } catch (error) {
-      toast.error('Failed to load tags')
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const handleCreateTag = async () => {
     if (!newTagName.trim()) {
@@ -80,22 +54,7 @@ export function TagManager({ isOpen, onClose, onRefresh }: TagManagerProps) {
 
     setIsCreating(true)
     try {
-      const response = await fetch('/api/tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newTagName.trim(),
-          color: selectedColor,
-        }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to create tag')
-      }
-
-      const data = await response.json()
-      setTags([...tags, data.tag])
+      await createTag(newTagName, selectedColor)
       setNewTagName('')
       setSelectedColor(DEFAULT_COLORS[0])
       toast.success('Tag created successfully')
@@ -107,7 +66,7 @@ export function TagManager({ isOpen, onClose, onRefresh }: TagManagerProps) {
     }
   }
 
-  const handleStartEdit = (tag: TradeTag) => {
+  const handleStartEdit = (tag: { id: string; name: string; color: string }) => {
     setEditingTagId(tag.id)
     setEditingName(tag.name)
     setEditingColor(tag.color)
@@ -121,22 +80,7 @@ export function TagManager({ isOpen, onClose, onRefresh }: TagManagerProps) {
     }
 
     try {
-      const response = await fetch(`/api/tags/${editingTagId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: editingName.trim(),
-          color: editingColor,
-        }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to update tag')
-      }
-
-      const data = await response.json()
-      setTags(tags.map((t) => (t.id === editingTagId ? data.tag : t)))
+      await updateTag(editingTagId, editingName, editingColor)
       setEditingTagId(null)
       toast.success('Tag updated successfully')
       onRefresh?.()
@@ -157,13 +101,7 @@ export function TagManager({ isOpen, onClose, onRefresh }: TagManagerProps) {
     }
 
     try {
-      const response = await fetch(`/api/tags/${tagId}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) throw new Error('Failed to delete tag')
-
-      setTags(tags.filter((t) => t.id !== tagId))
+      await deleteTag(tagId)
       toast.success('Tag deleted successfully')
       onRefresh?.()
     } catch (error) {
@@ -343,4 +281,3 @@ export function TagManager({ isOpen, onClose, onRefresh }: TagManagerProps) {
     </Dialog>
   )
 }
-

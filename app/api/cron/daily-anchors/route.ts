@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { validateCronRequest } from '@/lib/cron-auth'
 
 /**
  * Create daily anchor for a specific phase account
@@ -68,6 +69,9 @@ async function createDailyAnchor(phaseAccountId: string, timezone: string, force
  * Should be called daily via cron job (e.g., Vercel Cron at 00:01 UTC)
  */
 export async function GET(request: NextRequest) {
+  const authError = validateCronRequest(request)
+  if (authError) return authError
+
   try {
     // Get all active phase accounts
     const activePhases = await prisma.phaseAccount.findMany({
@@ -137,6 +141,9 @@ export async function GET(request: NextRequest) {
  * Allows manual execution with optional date override
  */
 export async function POST(request: NextRequest) {
+  const authError = validateCronRequest(request)
+  if (authError) return authError
+
   try {
     const body = await request.json().catch(() => ({}))
     const { forceDate, phaseAccountId } = body

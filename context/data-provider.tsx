@@ -7,6 +7,7 @@ import React, {
   useCallback,
   useMemo
 } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import {
   Trade as PrismaTrade,
@@ -65,10 +66,12 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { useAccountFilterSettings } from '@/hooks/use-account-filter-settings';
 import { AccountFilterSettings } from '@/types/account-filter-settings';
 import { calculateStatistics, formatCalendarData } from '@/lib/utils';
+import { useFilteredTrades, type TradeFilters } from '@/hooks/use-filtered-trades';
 import { useParams, usePathname } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { handleServerActionError } from '@/lib/utils/server-action-error-handler';
 import { useDatabaseRealtime } from '@/lib/realtime/database-realtime';
+import { defaultLayouts, defaultLayoutsWithKPI } from '@/lib/dashboard/default-layouts';
 
 // Types from trades-data.tsx
 type StatisticsProps = {
@@ -85,8 +88,13 @@ type StatisticsProps = {
   profitFactor: number
   grossLosses: number
   grossWin: number
+  biggestWin: number
+  biggestLoss: number
+  averageWin: number
+  averageLoss: number
   totalPayouts: number
   nbPayouts: number
+  totalPnL: number
 }
 
 type CalendarData = {
@@ -137,791 +145,8 @@ export interface Account extends Omit<PrismaAccount, 'payouts'> {
   accountType?: 'live' | 'prop-firm'
 }
 
-// Original default layouts (without KPI widgets) - used for existing users to prevent flash
-export const defaultLayouts: PrismaDashboardLayout = {
-  id: '',
-  userId: '',
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  desktop: [
-    // Row 1 - KPI widgets
-    {
-      "i": "widget-net-pnl-kpi",
-      "type": "netPnlKpi",
-      "size": "kpi",
-      "x": 0,
-      "y": 0,
-      "w": 2.4,
-      "h": 1.8
-    },
-    {
-      "i": "widget-win-rate-kpi",
-      "type": "winRateKpi",
-      "size": "kpi",
-      "x": 2.4,
-      "y": 0,
-      "w": 2.4,
-      "h": 1.8
-    },
-    {
-      "i": "widget-profit-factor-kpi",
-      "type": "profitFactorKpi",
-      "size": "kpi",
-      "x": 4.8,
-      "y": 0,
-      "w": 2.4,
-      "h": 1.8
-    },
-    {
-      "i": "widget-day-win-rate-kpi",
-      "type": "dayWinRateKpi",
-      "size": "kpi",
-      "x": 7.2,
-      "y": 0,
-      "w": 2.4,
-      "h": 1.8
-    },
-    {
-      "i": "widget-avg-win-loss-kpi",
-      "type": "avgWinLossKpi",
-      "size": "kpi",
-      "x": 9.6,
-      "y": 0,
-      "w": 2.4,
-      "h": 1.8
-    },
-    
-    // Row 2 - Statistics and Trade Distribution
-    {
-      "i": "widget1752135396857",
-      "type": "statisticsWidget",
-      "size": "medium",
-      "x": 0,
-      "y": 3,
-      "w": 6,
-      "h": 4
-    },
-    {
-      "i": "widget1752135370000",
-      "type": "tradeDistribution",
-      "size": "medium",
-      "x": 6,
-      "y": 3,
-      "w": 6,
-      "h": 4
-    },
-    
-    // Row 3 - Chart widgets
-    {
-      "i": "widget1752135357688",
-      "type": "weekdayPnlChart",
-      "size": "medium",
-      "x": 0,
-      "y": 7,
-      "w": 6,
-      "h": 4
-    },
-    {
-      "i": "widget1752135361015",
-      "type": "timeInPositionChart",
-      "size": "medium",
-      "x": 6,
-      "y": 7,
-      "w": 6,
-      "h": 4
-    },
-    
-    // Row 4 - Calendar (full width)
-    {
-      "i": "widget1751403095730",
-      "type": "calendarAdvanced",
-      "size": "extra-large",
-      "x": 0,
-      "y": 11,
-      "w": 12,
-      "h": 6
-    },
 
-    // Row 4 - Equity Chart and P&L Chart
-    {
-      "i": "widget1752135363430",
-      "type": "equityChart",
-      "size": "large",
-      "x": 0,
-      "y": 14,
-      "w": 6,
-      "h": 8
-    },
-    {
-      "i": "widget1751741589330",
-      "type": "pnlChart",
-      "size": "medium",
-      "x": 6,
-      "y": 14,
-      "w": 6,
-      "h": 4
-    },
 
-    // Row 5 - Time charts
-    {
-      "i": "widget1752135359621",
-      "type": "timeOfDayChart",
-      "size": "medium",
-      "x": 6,
-      "y": 18,
-      "w": 6,
-      "h": 4
-    },
-
-    // Row 7 - Side charts (shifted from row 6)
-    {
-      "i": "widget1752135365730",
-      "type": "pnlBySideChart",
-      "size": "medium",
-      "x": 0,
-      "y": 23,
-      "w": 6,
-      "h": 4
-    },
-    {
-      "i": "widget1752135368429",
-      "type": "radarChart",
-      "size": "medium",
-      "x": 6,
-      "y": 23,
-      "w": 6,
-      "h": 4
-    },
-    // Row 8 - Commission and Time Range (shifted from row 7)
-    {
-      "i": "widget1752135370579",
-      "type": "commissionsPnl",
-      "size": "medium",
-      "x": 0,
-      "y": 27,
-      "w": 6,
-      "h": 4
-    },
-    {
-      "i": "widget1752135378584",
-      "type": "timeRangePerformance",
-      "size": "medium",
-      "x": 6,
-      "y": 27,
-      "w": 6,
-      "h": 4
-    },
-
-    // Row 9 - Small widgets (tiny sizes) (shifted from row 8)
-    {
-      "i": "widget1752135435916",
-      "type": "riskRewardRatio",
-      "size": "tiny",
-      "x": 0,
-      "y": 31,
-      "w": 3,
-      "h": 1
-    },
-    {
-      "i": "widget1752135437611",
-      "type": "profitFactor",
-      "size": "tiny",
-      "x": 3,
-      "y": 31,
-      "w": 3,
-      "h": 1
-    },
-    {
-      "i": "widget1752135441717",
-      "type": "cumulativePnl",
-      "size": "tiny",
-      "x": 6,
-      "y": 31,
-      "w": 3,
-      "h": 1
-    },
-    {
-      "i": "widget1752135443857",
-      "type": "tradePerformance",
-      "size": "tiny",
-      "x": 9,
-      "y": 31,
-      "w": 3,
-      "h": 1
-    },
-
-    // Row 10 - More small widgets (shifted from row 9)
-    {
-      "i": "widget1752135445916",
-      "type": "winningStreak",
-      "size": "tiny",
-      "x": 0,
-      "y": 32,
-      "w": 3,
-      "h": 1
-    },
-    {
-      "i": "widget1752135449717",
-      "type": "averagePositionTime",
-      "size": "tiny",
-      "x": 3,
-      "y": 32,
-      "w": 3,
-      "h": 1
-    },
-    {
-      "i": "widget1752135451857",
-      "type": "longShortPerformance",
-      "size": "tiny",
-      "x": 6,
-      "y": 32,
-      "w": 3,
-      "h": 1
-    },
-    {
-      "i": "widget1752135448000",
-      "type": "advancedMetrics",
-      "size": "tiny",
-      "x": 9,
-      "y": 32,
-      "w": 3,
-      "h": 1
-    },
-    
-    // Row 10 - Other widgets
-  ],
-  mobile: [
-    // KPI widgets
-    {
-      i: "mobile-net-pnl-kpi",
-      type: "netPnlKpi" as WidgetType,
-      size: "kpi" as WidgetSize,
-      x: 0,
-      y: 0,
-      w: 12,
-      h: 3
-    },
-    {
-      i: "mobile-win-rate-kpi",
-      type: "winRateKpi" as WidgetType,
-      size: "kpi" as WidgetSize,
-      x: 0,
-      y: 3,
-      w: 12,
-      h: 3
-    },
-    {
-      i: "mobile-profit-factor-kpi",
-      type: "profitFactorKpi" as WidgetType,
-      size: "kpi" as WidgetSize,
-      x: 0,
-      y: 6,
-      w: 12,
-      h: 3
-    },
-    {
-      i: "mobile-day-win-rate-kpi",
-      type: "dayWinRateKpi" as WidgetType,
-      size: "kpi" as WidgetSize,
-      x: 0,
-      y: 9,
-      w: 12,
-      h: 3
-    },
-    {
-      i: "mobile-avg-win-loss-kpi",
-      type: "avgWinLossKpi" as WidgetType,
-      size: "kpi" as WidgetSize,
-      x: 0,
-      y: 12,
-      w: 12,
-      h: 3
-    },
-    
-    // Core widgets
-    {
-      i: "statisticsWidget",
-      type: "statisticsWidget" as WidgetType,
-      size: "medium" as WidgetSize,
-      x: 0,
-      y: 15,
-      w: 12,
-      h: 4
-    },
-    {
-      i: "calendarWidget",
-      type: "calendarAdvanced" as WidgetType,
-      size: "extra-large" as WidgetSize,
-      x: 0,
-      y: 19,
-      w: 12,
-      h: 6
-    },
-    {
-      i: "equityChart",
-      type: "equityChart" as WidgetType,
-      size: "medium" as WidgetSize,
-      x: 0,
-      y: 25,
-      w: 12,
-      h: 6
-    },
-
-    // Important small widgets
-    {
-      i: "cumulativePnl",
-      type: "cumulativePnl" as WidgetType,
-      size: "tiny" as WidgetSize,
-      x: 0,
-      y: 31,
-      w: 12,
-      h: 1
-    },
-    {
-      i: "tradePerformance",
-      type: "tradePerformance" as WidgetType,
-      size: "tiny" as WidgetSize,
-      x: 0,
-      y: 17,
-      w: 12,
-      h: 1
-    },
-    {
-      i: "profitFactor",
-      type: "profitFactor" as WidgetType,
-      size: "tiny" as WidgetSize,
-      x: 0,
-      y: 23,
-      w: 12,
-      h: 1
-    },
-
-    // Chart widgets
-    {
-      i: "pnlChart",
-      type: "pnlChart" as WidgetType,
-      size: "medium" as WidgetSize,
-      x: 0,
-      y: 24,
-      w: 12,
-      h: 4
-    },
-    {
-      i: "weekdayPnlChart",
-      type: "weekdayPnlChart" as WidgetType,
-      size: "medium" as WidgetSize,
-      x: 0,
-      y: 28,
-      w: 12,
-      h: 4
-    },
-    {
-      i: "timeOfDayChart",
-      type: "timeOfDayChart" as WidgetType,
-      size: "medium" as WidgetSize,
-      x: 0,
-      y: 32,
-      w: 12,
-      h: 4
-    },
-    
-    // Other essential widgets
-  ]
-};
-
-// New default layouts with KPI widgets - used only for new users and reset functionality
-export const defaultLayoutsWithKPI: PrismaDashboardLayout = {
-  id: '',
-  userId: '',
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  desktop: [
-    // Row 1 - KPI Widgets (Top row with 5 KPI cards)
-    {
-      "i": "kpi-net-pnl",
-      "type": "netPnlKpi",
-      "size": "kpi",
-      "x": 0,
-      "y": 0,
-      "w": 2.4,
-      "h": 1.8
-    },
-    {
-      "i": "kpi-win-rate",
-      "type": "winRateKpi",
-      "size": "kpi",
-      "x": 2.4,
-      "y": 0,
-      "w": 2.4,
-      "h": 1.8
-    },
-    {
-      "i": "kpi-profit-factor",
-      "type": "profitFactorKpi",
-      "size": "kpi",
-      "x": 4.8,
-      "y": 0,
-      "w": 2.4,
-      "h": 1.8
-    },
-    {
-      "i": "kpi-day-win-rate",
-      "type": "dayWinRateKpi",
-      "size": "kpi",
-      "x": 7.2,
-      "y": 0,
-      "w": 2.4,
-      "h": 1.8
-    },
-    {
-      "i": "kpi-avg-win-loss",
-      "type": "avgWinLossKpi",
-      "size": "kpi",
-      "x": 9.6,
-      "y": 0,
-      "w": 2.4,
-      "h": 1.8
-    },
-    
-    // Row 2 - Statistics and Trade Distribution  
-    {
-      "i": "widget1752135396857",
-      "type": "statisticsWidget",
-      "size": "medium",
-      "x": 0,
-      "y": 3,
-      "w": 6,
-      "h": 4
-    },
-    {
-      "i": "widget1752135370000",
-      "type": "tradeDistribution",
-      "size": "medium",
-      "x": 6,
-      "y": 3,
-      "w": 6,
-      "h": 4
-    },
-    
-    // Row 3 - Chart widgets
-    {
-      "i": "widget1752135357688",
-      "type": "weekdayPnlChart",
-      "size": "medium",
-      "x": 0,
-      "y": 7,
-      "w": 6,
-      "h": 4
-    },
-    {
-      "i": "widget1752135361015",
-      "type": "timeInPositionChart",
-      "size": "medium",
-      "x": 6,
-      "y": 7,
-      "w": 6,
-      "h": 4
-    },
-    
-    // Row 4 - Calendar (full width)
-    {
-      "i": "widget1751403095730",
-      "type": "calendarAdvanced",
-      "size": "extra-large",
-      "x": 0,
-      "y": 11,
-      "w": 12,
-      "h": 6
-    },
-
-    // Row 5 - Equity Chart and P&L Chart
-    {
-      "i": "widget1752135363430",
-      "type": "equityChart",
-      "size": "large",
-      "x": 0,
-      "y": 17,
-      "w": 6,
-      "h": 8
-    },
-    {
-      "i": "widget1751741589330",
-      "type": "pnlChart",
-      "size": "medium",
-      "x": 6,
-      "y": 17,
-      "w": 6,
-      "h": 4
-    },
-
-    // Row 6 - Time charts
-    {
-      "i": "widget1752135359621",
-      "type": "timeOfDayChart",
-      "size": "medium",
-      "x": 6,
-      "y": 21,
-      "w": 6,
-      "h": 4
-    },
-
-    // Row 7 - Side charts
-    {
-      "i": "widget1752135365730",
-      "type": "pnlBySideChart",
-      "size": "medium",
-      "x": 0,
-      "y": 25,
-      "w": 6,
-      "h": 4
-    },
-    {
-      "i": "widget1752135368429",
-      "type": "tickDistribution",
-      "size": "medium",
-      "x": 6,
-      "y": 25,
-      "w": 6,
-      "h": 4
-    },
-    // Row 8 - Commission and Time Range
-    {
-      "i": "widget1752135370579",
-      "type": "commissionsPnl",
-      "size": "medium",
-      "x": 0,
-      "y": 29,
-      "w": 6,
-      "h": 4
-    },
-    {
-      "i": "widget1752135378584",
-      "type": "timeRangePerformance",
-      "size": "medium",
-      "x": 6,
-      "y": 29,
-      "w": 6,
-      "h": 4
-    },
-
-    // Row 9 - Small widgets (tiny sizes)
-    {
-      "i": "widget1752135435916",
-      "type": "riskRewardRatio",
-      "size": "tiny",
-      "x": 0,
-      "y": 33,
-      "w": 3,
-      "h": 1
-    },
-    {
-      "i": "widget1752135437611",
-      "type": "profitFactor",
-      "size": "tiny",
-      "x": 3,
-      "y": 33,
-      "w": 3,
-      "h": 1
-    },
-    {
-      "i": "widget1752135441717",
-      "type": "cumulativePnl",
-      "size": "tiny",
-      "x": 6,
-      "y": 33,
-      "w": 3,
-      "h": 1
-    },
-    {
-      "i": "widget1752135443857",
-      "type": "tradePerformance",
-      "size": "tiny",
-      "x": 9,
-      "y": 33,
-      "w": 3,
-      "h": 1
-    },
-
-    // Row 10 - More small widgets
-    {
-      "i": "widget1752135445916",
-      "type": "winningStreak",
-      "size": "tiny",
-      "x": 0,
-      "y": 34,
-      "w": 3,
-      "h": 1
-    },
-    {
-      "i": "widget1752135449717",
-      "type": "averagePositionTime",
-      "size": "tiny",
-      "x": 3,
-      "y": 34,
-      "w": 3,
-      "h": 1
-    },
-    {
-      "i": "widget1752135451857",
-      "type": "longShortPerformance",
-      "size": "tiny",
-      "x": 6,
-      "y": 34,
-      "w": 3,
-      "h": 1
-    },
-    {
-      "i": "widget1752135448000",
-      "type": "advancedMetrics",
-      "size": "tiny",
-      "x": 9,
-      "y": 34,
-      "w": 3,
-      "h": 1
-    },
-    
-    // Row 10 - Other widgets
-  ],
-  mobile: [
-    // KPI widgets (stacked vertically on mobile)
-    {
-      i: "kpi-net-pnl-mobile",
-      type: "netPnlKpi" as WidgetType,
-      size: "kpi" as WidgetSize,
-      x: 0,
-      y: 0,
-      w: 12,
-      h: 3
-    },
-    {
-      i: "kpi-win-rate-mobile",
-      type: "winRateKpi" as WidgetType,
-      size: "kpi" as WidgetSize,
-      x: 0,
-      y: 3,
-      w: 12,
-      h: 3
-    },
-    {
-      i: "kpi-profit-factor-mobile",
-      type: "profitFactorKpi" as WidgetType,
-      size: "kpi" as WidgetSize,
-      x: 0,
-      y: 6,
-      w: 12,
-      h: 3
-    },
-    {
-      i: "kpi-day-win-rate-mobile",
-      type: "dayWinRateKpi" as WidgetType,
-      size: "kpi" as WidgetSize,
-      x: 0,
-      y: 9,
-      w: 12,
-      h: 3
-    },
-    {
-      i: "kpi-avg-win-loss-mobile",
-      type: "avgWinLossKpi" as WidgetType,
-      size: "kpi" as WidgetSize,
-      x: 0,
-      y: 12,
-      w: 12,
-      h: 3
-    },
-    
-    // Core widgets
-    {
-      i: "statisticsWidget",
-      type: "statisticsWidget" as WidgetType,
-      size: "medium" as WidgetSize,
-      x: 0,
-      y: 15,
-      w: 12,
-      h: 4
-    },
-    {
-      i: "calendarWidget",
-      type: "calendarAdvanced" as WidgetType,
-      size: "extra-large" as WidgetSize,
-      x: 0,
-      y: 19,
-      w: 12,
-      h: 6
-    },
-    {
-      i: "equityChart",
-      type: "equityChart" as WidgetType,
-      size: "medium" as WidgetSize,
-      x: 0,
-      y: 25,
-      w: 12,
-      h: 6
-    },
-
-    // Important small widgets
-    {
-      i: "cumulativePnl",
-      type: "cumulativePnl" as WidgetType,
-      size: "tiny" as WidgetSize,
-      x: 0,
-      y: 31,
-      w: 12,
-      h: 1
-    },
-    {
-      i: "tradePerformance",
-      type: "tradePerformance" as WidgetType,
-      size: "tiny" as WidgetSize,
-      x: 0,
-      y: 32,
-      w: 12,
-      h: 1
-    },
-    {
-      i: "profitFactor",
-      type: "profitFactor" as WidgetType,
-      size: "tiny" as WidgetSize,
-      x: 0,
-      y: 33,
-      w: 12,
-      h: 1
-    },
-
-    // Chart widgets
-    {
-      i: "pnlChart",
-      type: "pnlChart" as WidgetType,
-      size: "medium" as WidgetSize,
-      x: 0,
-      y: 34,
-      w: 12,
-      h: 4
-    },
-    {
-      i: "weekdayPnlChart",
-      type: "weekdayPnlChart" as WidgetType,
-      size: "medium" as WidgetSize,
-      x: 0,
-      y: 38,
-      w: 12,
-      h: 4
-    },
-    {
-      i: "timeOfDayChart",
-      type: "timeOfDayChart" as WidgetType,
-      size: "medium" as WidgetSize,
-      x: 0,
-      y: 42,
-      w: 12,
-      h: 4
-    },
-    
-    // Other essential widgets
-  ]
-};
-
-// Combined Context Type
 interface DataContextType {
   refreshTrades: () => Promise<void>
   refreshAllData: () => Promise<void>
@@ -1143,199 +368,130 @@ export const DataProvider: React.FC<{
   const activeLoadPromiseRef = React.useRef<Promise<void> | null>(null)
   const hasLoadedDataRef = React.useRef(false)
 
-  // Load data from the server
+  // Load initial data (user + accounts) from /api/v1/init
   const loadData = useCallback(async () => {
-    // PERFORMANCE FIX: Prevent multiple simultaneous loads
-    if (isLoading) {
-      return
-    }
-
-    // Prevent concurrent data loading - reuse in-flight promise
-    if (activeLoadPromiseRef.current) {
-      return activeLoadPromiseRef.current
-    }
+    if (isLoading) return
+    if (activeLoadPromiseRef.current) return activeLoadPromiseRef.current
     
-    // Create the load promise with proper error handling
     activeLoadPromiseRef.current = (async () => {
       try {
         setIsLoading(true);
 
-      // Step 1: Get user from AuthProvider (no API call needed - already checked)
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user?.id) {
-        setIsLoading(false)
-        hasLoadedDataRef.current = false
-        return;
-      }
-
-      setSupabaseUser(user);
-
-      // Set default dashboard layout if none exists
-      if (!dashboardLayout) {
-        const freshDefaultLayout = { 
-          ...defaultLayouts,
-          id: `default-${user.id}`,
-          userId: user.id,
-          createdAt: new Date(),
-          updatedAt: new Date()
+        // Step 1: Get supabase user for session
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.id) {
+          setIsLoading(false)
+          hasLoadedDataRef.current = false
+          return;
         }
+        setSupabaseUser(user);
 
-        try {
-          const cachedLayout = localStorage.getItem(`dashboard-layout-${user.id}`)
-          if (cachedLayout) {
-            const parsedLayout = JSON.parse(cachedLayout)
-            if (parsedLayout.desktop && parsedLayout.mobile) {
-              setDashboardLayout(parsedLayout)
+        // Set default dashboard layout if none exists
+        if (!dashboardLayout) {
+          const freshDefaultLayout = { 
+            ...defaultLayouts,
+            id: `default-${user.id}`,
+            userId: user.id,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+          try {
+            const cachedLayout = localStorage.getItem(`dashboard-layout-${user.id}`)
+            if (cachedLayout) {
+              const parsedLayout = JSON.parse(cachedLayout)
+              if (parsedLayout.desktop && parsedLayout.mobile) {
+                setDashboardLayout(parsedLayout)
+              } else {
+                setDashboardLayout(freshDefaultLayout)
+                localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(freshDefaultLayout))
+              }
             } else {
               setDashboardLayout(freshDefaultLayout)
               localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(freshDefaultLayout))
             }
-          } else {
+          } catch (error) {
             setDashboardLayout(freshDefaultLayout)
-            localStorage.setItem(`dashboard-layout-${user.id}`, JSON.stringify(freshDefaultLayout))
           }
-        } catch (error) {
-          setDashboardLayout(freshDefaultLayout)
         }
-      }
 
-      // Check if we're on the accounts page - if so, fetch trades for all visible accounts
-      const isAccountsPage = pathname?.startsWith('/dashboard/accounts') || false
-      
-      // Get account filter settings for DB-level filtering (only for dashboard/widgets)
-      let selectedAccounts: string[] = []
-      if (!isAccountsPage) {
-        // Only apply account filter for dashboard/widgets, not accounts page
-        try {
-          const cached = localStorage.getItem('settings-cache')
-          if (cached) {
-            const settings = JSON.parse(cached)
-            selectedAccounts = settings.selectedPhaseAccountIds || []
-          }
-        } catch (error) {
-          // Ignore - will fetch all trades
-        }
-      }
-
-      // PERFORMANCE OPTIMIZATION: Use bundled API endpoint for single-request data fetch
-      const params = new URLSearchParams()
-      if (isAccountsPage) {
-        // For accounts page, fetch trades for all visible accounts (not filtered)
-        params.append('forAccountsPage', 'true')
-      } else if (selectedAccounts.length > 0) {
-        // For dashboard/widgets, use account filter
-        params.append('selectedAccounts', selectedAccounts.join(','))
-      }
-      params.append('tradesLimit', '5000')
-      // Add cache-busting timestamp to ensure fresh data after realtime events
-      params.append('_t', Date.now().toString())
-      
-      const bundledResponse = await fetch(`/api/bundled-data?${params.toString()}`, {
-        cache: 'no-store', // Bypass HTTP cache to ensure fresh data
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      })
-      
-      if (!bundledResponse.ok) {
-        throw new Error('Failed to fetch bundled data')
-      }
-      
-      const bundledData = await bundledResponse.json()
-      
-      if (!bundledData.success || !bundledData.data.isAuthenticated) {
-        try {
-          await signOut();
-        } catch (error) {
-        }
-        setIsLoading(false)
-        hasLoadedDataRef.current = false
-        return;
-      }
-
-      const { user: userData, accounts: rawAccounts, trades: allTrades, calendarNotes } = bundledData.data
-
-      setUser(userData);
-      setIsFirstConnection(userData?.isFirstConnection || false)
-      
-      // Store bundled data in localStorage for hooks to use
-      if (calendarNotes) {
-        localStorage.setItem('calendar-notes-cache', JSON.stringify(calendarNotes))
-      }
-      
-      // Store account filter settings from bundled data
-      // But don't overwrite if there are pending local changes (user just saved new settings)
-      if (userData?.accountFilterSettings) {
-        try {
-          const hasPendingChanges = localStorage.getItem('settings-pending')
-          if (!hasPendingChanges) {
-            const settings = JSON.parse(userData.accountFilterSettings)
-            localStorage.setItem('settings-cache', JSON.stringify(settings))
-          }
-        } catch (error) {
-          // Ignore parsing errors
-        }
-      }
-      
-      setTrades(allTrades || [])
-
-      // Calculate balanceToDate for each account using the trades we just loaded
-      // Using .map() ensures a new array reference, which Zustand's shallow equality will detect
-      const accountsWithBalance = (rawAccounts || []).map((account: any) => ({
-        ...account,
-        balanceToDate: calcBalance(account, allTrades || [], [], {
-          excludeFailedAccounts: false,
-          includePayouts: true
+        // Step 2: Fetch initial data from v1 init endpoint (NO trades — those come via React Query)
+        const initResponse = await fetch('/api/v1/init', {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
         })
-      }));
-      
-      // Zustand automatically triggers re-renders when the store updates
-      // No need for manual broadcast - Zustand's reactivity handles this
-      setAccounts(accountsWithBalance);
-
-    } catch (error) {
-      // Error loading data
-      
-      // Handle Next.js redirect errors (these are normal and expected)
-      if (error instanceof Error && (
-        error.message === 'NEXT_REDIRECT' || 
-        error.message.includes('NEXT_REDIRECT') ||
-        ('digest' in error && typeof error.digest === 'string' && error.digest.startsWith('NEXT_REDIRECT'))
-      )) {
-        // Don't log redirect errors as they are expected behavior
-        throw error; // Re-throw to let Next.js handle the redirect
-      }
-
-      // Handle authentication errors by redirecting to auth page
-      if (error instanceof Error && (
-        error.message.includes('User not authenticated') ||
-        error.message.includes('User not found') ||
-        error.message.includes('Unauthorized')
-      )) {
-        // Authentication error, signing out
-        try {
-          await signOut();
-        } catch (signOutError) {
+        
+        if (!initResponse.ok) throw new Error('Failed to fetch initial data')
+        const initData = await initResponse.json()
+        
+        if (!initData.isAuthenticated) {
+          try { await signOut(); } catch (error) {}
+          setIsLoading(false)
+          hasLoadedDataRef.current = false
+          return;
         }
-        return;
+
+        const { user: userData, accounts: rawAccounts, calendarNotes } = initData
+
+        setUser(userData);
+        setIsFirstConnection(userData?.isFirstConnection || false)
+        
+        // Cache calendar notes for hooks
+        if (calendarNotes) {
+          localStorage.setItem('calendar-notes-cache', JSON.stringify(calendarNotes))
+        }
+        
+        // Persist account filter settings
+        if (userData?.accountFilterSettings) {
+          try {
+            const hasPendingChanges = localStorage.getItem('settings-pending')
+            if (!hasPendingChanges) {
+              const settings = JSON.parse(userData.accountFilterSettings)
+              localStorage.setItem('settings-cache', JSON.stringify(settings))
+            }
+          } catch (error) {}
+        }
+
+        // NOTE: Trades are NO LONGER fetched here.
+        // They come via useFilteredTrades() React Query hook below.
+        // Set empty trades in store — legacy consumers will get data from context.formattedTrades
+        setTrades([])
+
+        // Calculate balanceToDate for accounts (without trades, uses trade count from API)
+        const accountsWithBalance = (rawAccounts || []).map((account: any) => ({
+          ...account,
+          balanceToDate: calcBalance(account, [], [], {
+            excludeFailedAccounts: false,
+            includePayouts: true
+          })
+        }));
+        
+        setAccounts(accountsWithBalance);
+
+      } catch (error) {
+        if (error instanceof Error && (
+          error.message === 'NEXT_REDIRECT' || 
+          error.message.includes('NEXT_REDIRECT') ||
+          ('digest' in error && typeof error.digest === 'string' && error.digest.startsWith('NEXT_REDIRECT'))
+        )) {
+          throw error;
+        }
+        if (error instanceof Error && (
+          error.message.includes('User not authenticated') ||
+          error.message.includes('User not found') ||
+          error.message.includes('Unauthorized')
+        )) {
+          try { await signOut(); } catch (signOutError) {}
+          return;
+        }
+        hasLoadedDataRef.current = false;
+      } finally {
+        setIsLoading(false);
+        setTimeout(() => { activeLoadPromiseRef.current = null; }, 0);
       }
+    })();
 
-      // CRITICAL FIX: Reset flag on error to allow retry
-      hasLoadedDataRef.current = false;
-    } finally {
-      setIsLoading(false);
-      // CRITICAL FIX: Always clear the active load promise to prevent stuck state
-      // Use setTimeout to ensure this happens even if there's an error in finally block
-      setTimeout(() => {
-        activeLoadPromiseRef.current = null;
-      }, 0);
-    }
-  })();
-
-  // Return the promise for any waiting calls
-  return activeLoadPromiseRef.current
-  }, [dashboardLayout, isLoading, setAccounts, setDashboardLayout, setIsLoading, setSupabaseUser, setTrades, setUser, pathname]);
+    return activeLoadPromiseRef.current
+  }, [dashboardLayout, isLoading, setAccounts, setDashboardLayout, setIsLoading, setSupabaseUser, setTrades, setUser]);
 
   // Load data on mount only - ONCE
   useEffect(() => {
@@ -1397,56 +553,70 @@ export const DataProvider: React.FC<{
   }, [supabaseUser, loadData, setIsLoading]); // ONLY depend on supabaseUser, run once when it's set
 
   // ============================================
+  // REACT QUERY: Server-filtered trades + stats + calendar
+  // ============================================
+  const queryClient = useQueryClient()
+  
+  // Build filters from current DataProvider state
+  const tradeFilters: TradeFilters = useMemo(() => ({
+    accounts: accountNumbers.length > 0 ? accountNumbers : undefined,
+    dateFrom: dateRange?.from?.toISOString(),
+    dateTo: dateRange?.to?.toISOString(),
+    instruments: instruments.length > 0 ? instruments : undefined,
+    pnlMin: pnlRange.min,
+    pnlMax: pnlRange.max,
+    timeRange: timeRange.range,
+    weekday: weekdayFilter.day,
+    hour: hourFilter.hour,
+    limit: 5000,
+    includeStats: true,
+    includeCalendar: true,
+    timezone: timezone || 'UTC',
+  }), [accountNumbers, dateRange, instruments, pnlRange, timeRange, weekdayFilter, hourFilter, timezone])
+
+  const { data: serverTradeData } = useFilteredTrades(tradeFilters, !!user?.id && !isLoading)
+
+  // ============================================
   // REALTIME SUBSCRIPTIONS (Server-push, no polling)
   // ============================================
-  // Supabase postgres_changes - server pushes updates when DB changes
-  // This replaces the old 30-second polling mechanism
   const lastRealtimeRefreshRef = React.useRef<number>(0)
   const realtimeRefreshTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
   
-  // Debounced refresh to prevent too many calls
-  // Includes delay to ensure DB transaction commits and cache invalidation completes
+  // Debounced refresh — invalidates React Query cache instead of full reload
   const debouncedRefresh = useCallback(() => {
     const now = Date.now()
     const timeSinceLastRefresh = now - lastRealtimeRefreshRef.current
-    
-    // 800ms cooldown: 300ms for DB commit + 500ms debounce
-    // This ensures the database transaction is fully committed and cache invalidation completes
-    // before we fetch fresh data
     const cooldown = 800
+    
     if (timeSinceLastRefresh < cooldown) {
-      // Schedule a refresh after the cooldown
       if (realtimeRefreshTimeoutRef.current) {
         clearTimeout(realtimeRefreshTimeoutRef.current)
       }
       realtimeRefreshTimeoutRef.current = setTimeout(() => {
         lastRealtimeRefreshRef.current = Date.now()
-        loadData()
+        // Invalidate React Query cache — triggers fresh server fetch
+        queryClient.invalidateQueries({ queryKey: ['v1', 'trades'] })
+        queryClient.invalidateQueries({ queryKey: ['v1', 'reports'] })
+        loadData() // Still reload accounts/user for account balance updates
       }, cooldown - timeSinceLastRefresh)
       return
     }
     
-    // If enough time has passed, add a small delay to ensure DB commit completes
-    // then fetch fresh data
     setTimeout(() => {
       lastRealtimeRefreshRef.current = Date.now()
+      queryClient.invalidateQueries({ queryKey: ['v1', 'trades'] })
+      queryClient.invalidateQueries({ queryKey: ['v1', 'reports'] })
       loadData()
-    }, 300) // 300ms delay ensures DB transaction is committed
-  }, [loadData])
+    }, 300)
+  }, [loadData, queryClient])
   
-  // Subscribe to database changes via Supabase Realtime
   useDatabaseRealtime({
     userId: user?.id,
     enabled: !!user?.id && !isLoading,
-    onTradeChange: () => {
-      debouncedRefresh()
-    },
-    onAccountChange: () => {
-      debouncedRefresh()
-    }
+    onTradeChange: () => debouncedRefresh(),
+    onAccountChange: () => debouncedRefresh()
   })
   
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (realtimeRefreshTimeoutRef.current) {
@@ -1457,51 +627,34 @@ export const DataProvider: React.FC<{
 
   const refreshTrades = useCallback(async () => {
     if (!user?.id) return
-    
-    // Explicitly set loading state before cache invalidation
     setIsLoading(true)
     
     try {
-      // Clear data caches to force fresh fetch
-      // NOTE: We preserve settings-cache as it contains user's explicit selection
+      // Clear legacy caches
       try {
-        localStorage.removeItem('bundled-data-cache')
-        localStorage.removeItem('bundled-data-timestamp')
         localStorage.removeItem('calendar-notes-cache')
         localStorage.removeItem('last-refresh-timestamp')
-      } catch (e) {
-        // Ignore storage errors
-      }
+      } catch (e) {}
       
-      // CRITICAL: Reset the loaded flag to allow re-fetching
       hasLoadedDataRef.current = false
       activeLoadPromiseRef.current = null
       
-      // DO NOT reset selection refs - preserve user's explicit account selection
-      // selectionInitializedRef and lastSyncedSelectionRef should persist
-      
-      // Force cache invalidation
       await revalidateCache([`trades-${user.id}`, `user-data-${user.id}-${locale}`])
       
-      // Add delay to ensure cache invalidation and DB commit complete
-      // This is critical for realtime updates to fetch fresh data
-      await new Promise(resolve => setTimeout(resolve, 200))
+      // Invalidate React Query caches for fresh data
+      await queryClient.invalidateQueries({ queryKey: ['v1'] })
       
-      // Reload data
+      await new Promise(resolve => setTimeout(resolve, 200))
       await loadData()
     } catch (error) {
-      // Handle Next.js redirect errors (these are normal and expected)
       if (error instanceof Error && (
         error.message === 'NEXT_REDIRECT' || 
         error.message.includes('NEXT_REDIRECT') ||
         ('digest' in error && typeof error.digest === 'string' && error.digest.startsWith('NEXT_REDIRECT'))
       )) {
-        // Don't log redirect errors as they are expected behavior
-        setIsLoading(false); // Ensure loading is set to false before redirect
-        throw error; // Re-throw to let Next.js handle the redirect
+        setIsLoading(false);
+        throw error;
       }
-
-      // Handle authentication errors
       if (error instanceof Error && (
         error.message.includes('User not authenticated') ||
         error.message.includes('User not found') ||
@@ -1510,17 +663,11 @@ export const DataProvider: React.FC<{
         setIsLoading(false);
         return;
       }
-      
-      // Silently handle other errors to avoid console spam
       setIsLoading(false)
     } finally {
-      // Ensure loading is always set to false, even if loadData() doesn't handle it properly
-      // Add a small delay to prevent flickering
-      setTimeout(() => {
-        setIsLoading(false)
-      }, 200)
+      setTimeout(() => { setIsLoading(false) }, 200)
     }
-  }, [user?.id, loadData, setIsLoading, locale])
+  }, [user?.id, loadData, setIsLoading, locale, queryClient])
 
   // Expose refreshAllData as an alias for refreshTrades (it refreshes everything including accounts)
   const refreshAllData = refreshTrades
@@ -1532,117 +679,31 @@ export const DataProvider: React.FC<{
       .map(a => a.number);
   }, [accounts]);
 
+  // SERVER-COMPUTED: formattedTrades, statistics, calendarData
+  // Previously 110+ lines of client-side useMemo filtering — now all server-side via /api/v1/trades
   const formattedTrades = useMemo(() => {
-    // Early return if no trades
-    if (!trades || !Array.isArray(trades) || trades.length === 0) {
-      return [];
+    if (serverTradeData?.trades && serverTradeData.trades.length > 0) {
+      return serverTradeData.trades;
     }
-
-    // SIMPLE FILTERING: Only by selected accounts and hidden accounts
-    const result = trades
-      .filter((trade) => {
-        // Skip trades from hidden accounts
-        if (hiddenAccountNumbers.includes(trade.accountNumber)) {
-          return false;
-        }
-
-        // Validate entry date
-        const entryDate = new Date(formatInTimeZone(
-          new Date(trade.entryDate),
-          timezone,
-          'yyyy-MM-dd HH:mm:ssXXX'
-        ));
-        if (!isValid(entryDate)) return false;
-
-        // Instrument filter
-        if (instruments.length > 0 && !instruments.includes(trade.instrument)) {
-          return false;
-        }
-
-        // Account filter - if no accounts selected, show all (unless settings explicitly filter)
-        if (accountNumbers.length > 0) {
-          // Check if trade matches selected account numbers (by accountNumber or phaseAccountId)
-          const matchesAccount = accountNumbers.includes(trade.accountNumber) ||
-                                (trade.phaseAccountId && accountNumbers.includes(trade.phaseAccountId));
-
-          if (!matchesAccount) {
-            return false;
-          }
-        }
-        // If accountNumbers is empty, show all trades (don't filter by account)
-
-        // Date range filter
-        if (dateRange?.from && dateRange?.to) {
-          const tradeDate = startOfDay(entryDate);
-          const fromDate = startOfDay(dateRange.from);
-          const toDate = endOfDay(dateRange.to);
-
-          if (fromDate.getTime() === startOfDay(toDate).getTime()) {
-            // Single day selection
-            if (tradeDate.getTime() !== fromDate.getTime()) {
-              return false;
-            }
-          } else {
-            // Date range selection
-            if (entryDate < fromDate || entryDate > toDate) {
-              return false;
-            }
-          }
-        }
-
-        // PnL range filter
-        if ((pnlRange.min !== undefined && trade.pnl < pnlRange.min) ||
-          (pnlRange.max !== undefined && trade.pnl > pnlRange.max)) {
-          return false;
-        }
-
-        // Time range filter
-        if (timeRange.range && getTimeRangeKey(trade.timeInPosition) !== timeRange.range) {
-          return false;
-        }
-
-        // Weekday filter
-        if (weekdayFilter?.day !== null) {
-          const dayOfWeek = entryDate.getDay();
-          if (dayOfWeek !== weekdayFilter.day) {
-            return false;
-          }
-        }
-
-        // Hour filter
-        if (hourFilter?.hour !== null) {
-          const hour = entryDate.getHours();
-          if (hour !== hourFilter.hour) {
-            return false;
-          }
-        }
-
-
-        return true;
-      });
-    
-    return result;
-  }, [
-    trades,
-    accountNumbers,
-    dateRange,
-    pnlRange,
-    timeRange,
-    weekdayFilter,
-    hourFilter,
-    timezone,
-    instruments,
-    hiddenAccountNumbers
-  ]);
+    // Fallback to Zustand trades for backward compatibility during migration
+    if (!trades || !Array.isArray(trades) || trades.length === 0) return [];
+    // Filter out hidden accounts only
+    return trades.filter(trade => !hiddenAccountNumbers.includes(trade.accountNumber));
+  }, [serverTradeData?.trades, trades, hiddenAccountNumbers]);
 
   const statistics = useMemo(() => {
-    // Use centralized statistics calculation
+    // Use server-computed statistics when available
+    if (serverTradeData?.statistics) return serverTradeData.statistics;
+    // Fallback to client-side calculation
     return calculateStatistics(formattedTrades, accounts);
-  }, [formattedTrades, accounts]);
+  }, [serverTradeData?.statistics, formattedTrades, accounts]);
 
-  // Calendar data uses formattedTrades (filtered by account selection)
-  // This ensures calendar respects the navbar filter settings
-  const calendarData = useMemo(() => formatCalendarData(formattedTrades, accounts), [formattedTrades, accounts]);
+  const calendarData = useMemo(() => {
+    // Use server-computed calendar data when available
+    if (serverTradeData?.calendarData) return serverTradeData.calendarData;
+    // Fallback to client-side calculation
+    return formatCalendarData(formattedTrades, accounts);
+  }, [serverTradeData?.calendarData, formattedTrades, accounts]);
 
   const isPlusUser = () => {
     return true; // All users now have full access

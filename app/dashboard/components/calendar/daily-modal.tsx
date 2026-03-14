@@ -172,7 +172,7 @@ export function CalendarModal({
       setInitialNote(note)
       setInitialEmotion(selectedEmotion)
     }
-  }, [hasLoadedJournal]) // Only on load. For saves, we handle in handleSaveJournal
+  }, [hasLoadedJournal, note, selectedEmotion])
 
   const handleCloseAttempt = (open: boolean) => {
     if (!open) {

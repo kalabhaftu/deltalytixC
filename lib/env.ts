@@ -23,6 +23,9 @@ const envSchema = z.object({
   VERCEL: z.string().optional(),
   VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
   VERCEL_URL: z.string().optional(),
+
+  // Cron job authentication (required in production for /api/cron/*)
+  CRON_SECRET: z.string().optional(),
 })
 
 // Parse and validate environment variables

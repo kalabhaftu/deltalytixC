@@ -7,9 +7,15 @@ import { calculateAccountBalances } from '@/lib/utils/balance-calculator'
 import { CacheHeaders } from '@/lib/api-cache-headers'
 import { API_TIMEOUT_LONG } from '@/lib/constants'
 import { BREAK_EVEN_THRESHOLD } from '@/lib/utils'
+import { applyRateLimit, apiLimiter } from '@/lib/rate-limiter'
+import { logger } from '@/lib/logger'
 
 // GET /api/dashboard/stats - Fast dashboard statistics for charts
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await applyRateLimit(request, apiLimiter)
+  if (rateLimitRes) return rateLimitRes
+
+  const start = Date.now()
   try {
     // Add timeout for the entire operation using centralized constant
     const timeoutPromise = new Promise((_, reject) => {
@@ -321,6 +327,7 @@ export async function GET(request: NextRequest) {
         (grossProfits > 0 ? Number.POSITIVE_INFINITY : 0) :
         grossProfits / grossLosses
 
+      logger.info('GET /api/dashboard/stats', { latencyMs: Date.now() - start, totalTrades: groupedTrades.length }, 'api')
       return NextResponse.json({
         success: true,
         data: {
@@ -353,7 +360,7 @@ export async function GET(request: NextRequest) {
     return await Promise.race([operationPromise(), timeoutPromise])
 
   } catch (error) {
-
+    logger.error('GET /api/dashboard/stats failed', { error: error instanceof Error ? error.message : 'Unknown', latencyMs: Date.now() - start }, 'api')
     if (error instanceof Error && error.message === 'Request timeout') {
       return NextResponse.json(
         { success: false, error: 'Request timeout - please try again' },

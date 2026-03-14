@@ -293,6 +293,10 @@ model Trade {
   @@index([userId, entryDate(sort: Desc)])
   @@index([userId, entryId])
   @@index([userId])
+  // Composite indexes for server-side filtering (/api/v1/trades)
+  @@index([userId, instrument])
+  @@index([userId, accountNumber, entryDate])
+  @@index([userId, pnl])
   @@schema("public")
 }
 

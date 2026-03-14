@@ -10,9 +10,8 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useData } from '@/context/data-provider'
-import { formatTimeInZone, getKillzoneBadge, getTradingSession } from '@/lib/time-utils'
-import { BREAK_EVEN_THRESHOLD, classifyTrade, cn } from '@/lib/utils'
-import { getTradesAction } from '@/server/database'
+import { formatTimeInZone } from '@/lib/time-utils'
+import { classifyTrade, cn } from '@/lib/utils'
 import {
     ChartBar,
     Lightning,
@@ -21,22 +20,19 @@ import {
     TrendUp
 } from '@phosphor-icons/react'
 import {
-    differenceInDays,
-    endOfDay,
     endOfYear,
     format,
-    parseISO,
-    startOfDay,
     startOfYear,
     subDays,
     subMonths
 } from 'date-fns'
 import { motion } from 'framer-motion'
 import html2canvas from 'html2canvas'
-import { useEffect, useMemo, useState } from 'react'
-import { DateRange } from 'react-day-picker'
+import { useState } from 'react'
+import { DateRange } from '@/components/ui/custom-date-range-picker'
 import { toast } from 'sonner'
 import { ReportFilters } from './components/report-filters'
+import { useReportStats } from '@/hooks/use-report-stats'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -81,41 +77,19 @@ function MetricBlock({
     }
 
     return (
-        <div className="flex flex-col p-4 bg-muted/20 border border-border/50 rounded-lg hover:bg-muted/30 transition-colors">
-            <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-[10px] uppercase tracking-wider font-extrabold text-muted-foreground/60">
-                    {label}
-                </span>
-                {info && (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger>
-                                <Lightning weight="light" className="h-2.5 w-2.5 text-muted-foreground/40" />
-                            </TooltipTrigger>
-                            <TooltipContent className="text-[10px]">{info}</TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                )}
-            </div>
-            <div className="flex flex-col">
-                <span className={cn(
-                    "text-xl font-bold tracking-tight leading-none mb-1",
-                    colorClasses[color],
-                    className
-                )}>
-                    {value}
-                </span>
-                {subValue && (
-                    <div className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-tighter">
-                        {subValue}
-                    </div>
-                )}
-            </div>
+        <div className={cn("space-y-1", className)}>
+            <p className="text-[8px] uppercase font-black text-muted-foreground/60 tracking-widest">{label}</p>
+            <p className={cn("text-lg font-black font-mono tracking-tighter", colorClasses[color])}>
+                {value}
+            </p>
+            {subValue && (
+                <p className="text-[9px] text-muted-foreground/40 font-medium">{subValue}</p>
+            )}
         </div>
     )
 }
 
-// Session Block component
+// Session Block for session metrics tab
 function SessionBlock({
     name,
     range,
@@ -123,6 +97,7 @@ function SessionBlock({
     wins,
     pnl,
     totalHoldMs,
+    peak,
     maxDD
 }: {
     name: string
@@ -131,32 +106,32 @@ function SessionBlock({
     wins: number
     pnl: number
     totalHoldMs: number
+    peak: number
     maxDD: number
 }) {
-    const winRate = trades > 0 ? (wins / trades * 100).toFixed(0) : '0'
-    const isProfit = pnl > BREAK_EVEN_THRESHOLD
-    const isLoss = pnl < -BREAK_EVEN_THRESHOLD
-    
+    const winRate = trades > 0 ? ((wins / trades) * 100).toFixed(1) : '0.0'
     const avgHoldMs = trades > 0 ? totalHoldMs / trades : 0
     const h = Math.floor(avgHoldMs / (1000 * 60 * 60))
     const m = Math.floor((avgHoldMs % (1000 * 60 * 60)) / (1000 * 60))
 
     return (
-        <div className="flex flex-col p-5 bg-card border border-border/40 rounded-2xl hover:border-primary/30 transition-all group">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-primary" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-foreground">{name}</h3>
-                </div>
-                <span className="text-[9px] font-bold text-muted-foreground/50 tabular-nums">{range}</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className={cn(
+            "p-5 rounded-2xl border bg-card/50 space-y-3",
+            trades === 0 ? "opacity-40" : "border-border/40"
+        )}>
+            <div className="flex items-center justify-between">
                 <div>
-                    <p className="text-[8px] uppercase font-black text-muted-foreground/40 mb-1">Session P/L</p>
-                    <p className={cn("text-lg font-black font-mono", isProfit ? "text-long" : isLoss ? "text-short" : "text-foreground")}>
-                        ${pnl.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </p>
+                    <h3 className="text-xs font-black uppercase tracking-widest">{name}</h3>
+                    <p className="text-[8px] font-bold text-muted-foreground/50 tracking-wider mt-0.5">{range}</p>
+                </div>
+                <div className={cn("text-lg font-black font-mono", pnl >= 0 ? "text-long" : "text-short")}>
+                    ${pnl.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </div>
+            </div>
+            <div className="flex items-center gap-4">
+                <div>
+                    <p className="text-[8px] uppercase font-black text-muted-foreground/40 mb-1">Trades</p>
+                    <p className="text-lg font-black font-mono">{trades}</p>
                 </div>
                 <div>
                     <p className="text-[8px] uppercase font-black text-muted-foreground/40 mb-1">Win Rate</p>
@@ -185,17 +160,14 @@ function SessionBlock({
 export default function ReportsPage() {
     const { accounts } = useData()
     
-    // Independent Filter State
+    // Filter State
     const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
         from: startOfYear(new Date()),
         to: endOfYear(new Date())
     })
     const [selectedTab, setSelectedTab] = useState('overview')
-    
     const [isExporting, setIsExporting] = useState(false)
-    const [isLoading, setIsLoading] = useState(true)
-    const [fetchedTrades, setFetchedTrades] = useState<any[]>([])
 
     // Advanced Filters State
     const [advancedFilters, setAdvancedFilters] = useState({
@@ -206,61 +178,30 @@ export default function ReportsPage() {
         ruleBroken: 'all'
     })
 
-    const [tradingModels, setTradingModels] = useState<any[]>([])
+    // SERVER-SIDE: Use React Query hook instead of client-side fetching + useMemo
+    const { data: reportData, isLoading } = useReportStats({
+        accountId: selectedAccountId || undefined,
+        dateFrom: dateRange?.from?.toISOString(),
+        dateTo: dateRange?.to?.toISOString(),
+        symbol: advancedFilters.symbol !== 'all' ? advancedFilters.symbol : undefined,
+        session: advancedFilters.session !== 'all' ? advancedFilters.session : undefined,
+        outcome: advancedFilters.outcome !== 'all' ? advancedFilters.outcome : undefined,
+        strategy: advancedFilters.strategy !== 'all' ? advancedFilters.strategy : undefined,
+        ruleBroken: advancedFilters.ruleBroken !== 'all' ? advancedFilters.ruleBroken : undefined,
+    })
 
-    // Fetch Trading Models
-    useEffect(() => {
-        const fetchModels = async () => {
-            try {
-                const response = await fetch('/api/user/trading-models')
-                if (response.ok) {
-                    const data = await response.json()
-                    setTradingModels(data.models || [])
-                }
-            } catch (error) {
-                console.error('Failed to fetch trading models:', error)
-            }
-        }
-        fetchModels()
-    }, [])
-
-    // Independent Data Fetching for Reports
-    useEffect(() => {
-        const fetchReportData = async () => {
-            setIsLoading(true)
-            try {
-                const filters: any = {}
-                if (dateRange?.from) {
-                    // Fetch a wider window from the server to avoid timezone cutoff issues
-                    // The client-side filter will properly trim it to the exact local day boundaries
-                    const fromDate = subDays(dateRange.from, 1).toISOString()
-                    const toDate = dateRange.to 
-                        ? dateRange.to 
-                        : dateRange.from
-                    const toDateISO = new Date(toDate.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString() // add 2 days
-                    
-                    filters.dateRange = { 
-                        from: fromDate, 
-                        to: toDateISO 
-                    }
-                }
-                
-                if (selectedAccountId) {
-                    filters.accountNumbers = [selectedAccountId]
-                }
-                
-                const trades = await getTradesAction(null, { limit: 50000, filters })
-                setFetchedTrades(trades || [])
-            } catch (err) {
-                console.error('Error fetching report trades:', err)
-                setFetchedTrades([])
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
-        fetchReportData()
-    }, [selectedAccountId, dateRange])
+    // Extract server-computed data
+    const tradingActivity = reportData?.tradingActivity ?? null
+    const psychMetrics = reportData?.psychMetrics ?? null
+    const sessionPerformance = reportData?.sessionPerformance ?? null
+    const rMultipleDistribution = reportData?.rMultipleDistribution ?? null
+    const filteredTrades = reportData?.filteredTrades ?? []
+    const filterOptions = reportData?.filterOptions ?? {
+        symbols: [],
+        sessions: [],
+        outcomes: [],
+        strategies: []
+    }
 
     const handlePresetSelect = (preset: string) => {
         const today = new Date()
@@ -291,7 +232,7 @@ export default function ReportsPage() {
         try {
             const canvas = await html2canvas(element, {
                 scale: 2,
-                backgroundColor: 'hsl(var(--background))', // Force the dark background color
+                backgroundColor: 'hsl(var(--background))',
                 useCORS: true,
                 onclone: (clonedDoc) => {
                     const clonedContent = clonedDoc.getElementById('report-content') as HTMLElement
@@ -318,270 +259,9 @@ export default function ReportsPage() {
         }
     }
 
-    const filteredTrades = useMemo(() => {
-        if (!fetchedTrades) return []
-        return fetchedTrades.filter(trade => {
-            // Filter by Account
-            if (selectedAccountId && trade.accountId !== selectedAccountId) return false
-            
-            // Filter by Date
-            if (!trade.entryDate) return false
-            const tradeDate = parseISO(trade.entryDate)
-            if (!tradeDate) return false
-            
-            if (dateRange?.from && tradeDate < startOfDay(dateRange.from)) return false
-            if (dateRange?.to && tradeDate > endOfDay(dateRange.to)) return false
-
-            // Symbol Filter
-            if (advancedFilters.symbol !== 'all' && trade.symbol !== advancedFilters.symbol) return false
-
-            // Session Filter
-            if (advancedFilters.session !== 'all') {
-                const session = getKillzoneBadge(trade.entryDate, trade.symbol || undefined) || 'Outside Session'
-                if (session !== advancedFilters.session) return false
-            }
-
-            // Outcome Filter
-            if (advancedFilters.outcome !== 'all' && (trade as any).outcome !== advancedFilters.outcome) return false
-
-            // Strategy Filter
-            if (advancedFilters.strategy !== 'all' && (trade as any).modelId !== advancedFilters.strategy) return false
-
-            // Rule Broken Filter
-            if (advancedFilters.ruleBroken !== 'all') {
-                const isBrokenFilter = advancedFilters.ruleBroken === 'broken'
-                if ((trade as any).ruleBroken !== isBrokenFilter) return false
-            }
-            
-            return true
-        })
-    }, [fetchedTrades, selectedAccountId, dateRange, advancedFilters])
-
     const handleFilterChange = (key: string, value: string) => {
         setAdvancedFilters(prev => ({ ...prev, [key]: value }))
     }
-
-    const filterOptions = useMemo(() => {
-        const symbols = Array.from(new Set(fetchedTrades.map(t => t.symbol).filter(Boolean))).sort() as string[]
-        const strategies = tradingModels.map(m => ({ id: m.id, name: m.name }))
-        
-        return {
-            symbols,
-            sessions: [
-                'London Killzone',
-                'NY Killzone',
-                'London Close Killzone',
-                'Lunch Time',
-                'NY PM',
-                'Asian Killzone',
-                'Outside Session'
-            ],
-            outcomes: [
-                { value: 'GOOD_WIN', label: 'Good Win' },
-                { value: 'BAD_WIN', label: 'Bad Win' },
-                { value: 'GOOD_LOSS', label: 'Good Loss' },
-                { value: 'BAD_LOSS', label: 'Bad Loss' },
-                { value: 'BREAKEVEN', label: 'Breakeven' }
-            ],
-            strategies
-        }
-    }, [fetchedTrades, tradingModels])
-
-    const tradingActivity = useMemo(() => {
-        if (filteredTrades.length === 0) return null
-        const tradeDates = filteredTrades
-            .map(t => t.entryDate ? format(parseISO(t.entryDate), 'yyyy-MM-dd') : null)
-            .filter(Boolean) as string[]
-        const uniqueDays = new Set(tradeDates)
-        const daysInRange = dateRange?.from && dateRange?.to ? Math.max(1, differenceInDays(dateRange.to, dateRange.from)) : 30
-        const monthsInRange = Math.max(1, Math.ceil(daysInRange / 30))
-
-        // Use standardized win rate
-        const wins = filteredTrades.filter(t => classifyTrade((t.pnl || 0) + (t.commission || 0)) === 'win').length
-        const losses = filteredTrades.filter(t => classifyTrade((t.pnl || 0) + (t.commission || 0)) === 'loss').length
-        const tradableCount = wins + losses
-        const winRate = tradableCount > 0 ? (wins / tradableCount) * 100 : 0
-
-        return {
-            totalTrades: filteredTrades.length,
-            winRate: winRate.toFixed(1),
-            avgTradesPerMonth: Math.round(filteredTrades.length / monthsInRange),
-            tradingDaysActive: uniqueDays.size
-        }
-    }, [filteredTrades, dateRange])
-
-    const psychMetrics = useMemo(() => {
-        if (filteredTrades.length === 0) return null
-        const sorted = [...filteredTrades].sort((a, b) => {
-            const dateA = a.entryDate ? new Date(a.entryDate).getTime() : 0
-            const dateB = b.entryDate ? new Date(b.entryDate).getTime() : 0
-            return dateA - dateB
-        })
-
-        let cumulativePnL = 0; let maxDD = 0; let peakEquity = 0
-
-        // First pass: Calculate cumulative metrics needed for expectancy and others
-        sorted.forEach(trade => {
-            cumulativePnL += ((trade.pnl || 0) + (trade.commission || 0))
-            if (cumulativePnL > peakEquity) peakEquity = cumulativePnL
-            const dd = peakEquity - cumulativePnL
-            if (dd > maxDD) maxDD = dd
-        })
-
-        const wins = sorted.filter(t => classifyTrade((t.pnl || 0) + (t.commission || 0)) === 'win')
-        const losses = sorted.filter(t => classifyTrade((t.pnl || 0) + (t.commission || 0)) === 'loss')
-
-        const totalGrossProfit = wins.reduce((sum, t) => sum + ((t.pnl || 0) + (t.commission || 0)), 0)
-        const totalGrossLoss = Math.abs(losses.reduce((sum, t) => sum + ((t.pnl || 0) + (t.commission || 0)), 0))
-
-        const avgWin = wins.length > 0 ? totalGrossProfit / wins.length : 0
-        const avgLoss = losses.length > 0 ? totalGrossLoss / losses.length : 0
-
-        // Expectancy: Average PnL per trade (Total Net PnL / Total Trades)
-        const expectancy = sorted.length > 0 ? cumulativePnL / sorted.length : 0
-
-        const profitFactor = totalGrossLoss > 0 ? totalGrossProfit / totalGrossLoss : totalGrossProfit > 0 ? 99 : 0
-
-        let maxWinStreak = 0; let maxLoseStreak = 0; let tempStreak = 0; let lastWasWin: boolean | null = null
-
-        sorted.forEach(trade => {
-            const outcome = classifyTrade((trade.pnl || 0) + (trade.commission || 0))
-            if (outcome === 'breakeven') {
-                if (lastWasWin !== null) {
-                    if (lastWasWin) maxWinStreak = Math.max(maxWinStreak, tempStreak)
-                    else maxLoseStreak = Math.max(maxLoseStreak, tempStreak)
-                }
-                tempStreak = 0
-                lastWasWin = null
-                return
-            }
-            const isWin = outcome === 'win'
-            if (lastWasWin === null) { tempStreak = 1; lastWasWin = isWin }
-            else if (isWin === lastWasWin) { tempStreak++ }
-            else {
-                if (lastWasWin) { maxWinStreak = Math.max(maxWinStreak, tempStreak) }
-                else { maxLoseStreak = Math.max(maxLoseStreak, tempStreak) }
-                tempStreak = 1; lastWasWin = isWin
-            }
-        })
-        if (lastWasWin !== null) {
-            if (lastWasWin) { maxWinStreak = Math.max(maxWinStreak, tempStreak) }
-            else { maxLoseStreak = Math.max(maxLoseStreak, tempStreak) }
-        }
-
-        // Calculate average holding time
-        let totalHoldingTimeMs = 0
-        let tradesWithDuration = 0
-        sorted.forEach(trade => {
-            if (trade.entryDate && trade.closeDate) {
-                const entryTime = parseISO(trade.entryDate).getTime()
-                const exitTime = parseISO(trade.closeDate).getTime()
-                if (!isNaN(entryTime) && !isNaN(exitTime) && exitTime > entryTime) {
-                    totalHoldingTimeMs += (exitTime - entryTime)
-                    tradesWithDuration++
-                }
-            }
-        })
-        const avgHoldingTimeMs = tradesWithDuration > 0 ? totalHoldingTimeMs / tradesWithDuration : 0
-        const hours = Math.floor(avgHoldingTimeMs / (1000 * 60 * 60))
-        const minutes = Math.floor((avgHoldingTimeMs % (1000 * 60 * 60)) / (1000 * 60))
-
-        return {
-            longestWinStreak: maxWinStreak,
-            longestLoseStreak: maxLoseStreak,
-            avgWin: avgWin.toFixed(2),
-            avgLoss: avgLoss.toFixed(2),
-            totalNetPnL: cumulativePnL,
-            expectancy: expectancy.toFixed(2),
-            profitFactor: profitFactor.toFixed(2),
-            avgHoldingTime: `${hours}h ${minutes}m`,
-            maxDrawdown: maxDD.toFixed(2),
-            peakEquity: peakEquity.toFixed(2)
-        }
-    }, [filteredTrades])
-
-    const sessionPerformance = useMemo(() => {
-        if (filteredTrades.length === 0) return null
-        
-        const sessions: Record<string, { name: string; range: string; trades: number; wins: number; pnl: number; totalHoldMs: number; peak: number; maxDD: number }> = {
-            'New York': { name: 'New York Session', range: '08:00 - 17:00', trades: 0, wins: 0, pnl: 0, totalHoldMs: 0, peak: 0, maxDD: 0 },
-            'London': { name: 'London Session', range: '03:00 - 12:00', trades: 0, wins: 0, pnl: 0, totalHoldMs: 0, peak: 0, maxDD: 0 },
-            'Asia': { name: 'Asia Session', range: '19:00 - 04:00', trades: 0, wins: 0, pnl: 0, totalHoldMs: 0, peak: 0, maxDD: 0 },
-            'Outside Session': { name: 'Outside Session', range: 'N/A', trades: 0, wins: 0, pnl: 0, totalHoldMs: 0, peak: 0, maxDD: 0 }
-        }
-
-        filteredTrades.forEach(trade => {
-            if (!trade.entryDate) return
-            const netPnL = (trade.pnl || 0) + (trade.commission || 0)
-            const outcome = classifyTrade(netPnL)
-            const entryDateStr = trade.entryDate || ''
-            const date = entryDateStr.includes('Z') ? entryDateStr : `${entryDateStr}Z`
-            
-            const sessionName = getTradingSession(new Date(date)) || 'Outside Session'
-            
-            if (sessions[sessionName]) {
-                const s = sessions[sessionName]
-                s.trades++
-                if (outcome === 'win') s.wins++
-                s.pnl += (trade.pnl || 0)
-                
-                // Track hold time
-                if (trade.entryDate && trade.closeDate) {
-                    const entry = new Date(trade.entryDate).getTime()
-                    const exit = new Date(trade.closeDate).getTime()
-                    if (!isNaN(entry) && !isNaN(exit) && exit > entry) {
-                        s.totalHoldMs += (exit - entry)
-                    }
-                }
-
-                // Simple peak/DD per session
-                const currentPnL = s.pnl
-                if (currentPnL > s.peak) s.peak = currentPnL
-                const dd = s.peak - currentPnL
-                if (dd > s.maxDD) s.maxDD = dd
-            }
-        })
-        return sessions
-    }, [filteredTrades])
-
-    const rMultipleDistribution = useMemo(() => {
-        if (filteredTrades.length === 0) return null
-        
-        const distribution = {
-            '<-1R': 0,
-            '-1R to 0R': 0,
-            '0R to 1R': 0,
-            '1R to 2R': 0,
-            '2R to 3R': 0,
-            '>3R': 0
-        }
-
-        filteredTrades.forEach(trade => {
-            const pnl = (trade.pnl || 0) + (trade.commission || 0)
-            const entry = typeof trade.entryPrice === 'string' ? parseFloat(trade.entryPrice) : trade.entryPrice
-            const sl = typeof trade.stopLoss === 'string' ? parseFloat(trade.stopLoss) : (trade.stopLoss || 0)
-            const qty = trade.quantity || 0
-
-            if (sl > 0 && entry > 0 && qty > 0) {
-                const risk = Math.abs(entry - sl) * qty
-                if (risk > 0) {
-                    const r = pnl / risk
-                    if (r < -1) distribution['<-1R']++
-                    else if (r < 0) distribution['-1R to 0R']++
-                    else if (r < 1) distribution['0R to 1R']++
-                    else if (r < 2) distribution['1R to 2R']++
-                    else if (r < 3) distribution['2R to 3R']++
-                    else distribution['>3R']++
-                }
-            } else {
-                const outcome = classifyTrade(pnl)
-                if (outcome === 'win') distribution['1R to 2R']++
-                else if (outcome === 'loss') distribution['-1R to 0R']++
-                else distribution['0R to 1R']++
-            }
-        })
-        return distribution
-    }, [filteredTrades])
 
     const periodLabel = dateRange?.from && dateRange?.to 
         ? `${format(dateRange.from, 'MMM d')} - ${format(dateRange.to, 'MMM d, yyyy')}`
@@ -677,7 +357,7 @@ export default function ReportsPage() {
                         </TabsList>
                         <TabsContent value="overview" className="space-y-12 focus-visible:outline-none">
                             <div className="space-y-10">
-                                {/* Main KPI Bar - Clean Layout (No Rounded Boxes) */}
+                                {/* Main KPI Bar */}
                                 <div className="flex flex-wrap items-stretch justify-between gap-6 py-6 border-y border-border/40">
                                     <div className="flex flex-col min-w-[120px]">
                                         <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-2">Total P/L</p>
@@ -827,7 +507,7 @@ export default function ReportsPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredTrades.sort((a,b) => new Date(b.entryDate!).getTime() - new Date(a.entryDate!).getTime()).map((trade) => {
+                                        {[...filteredTrades].sort((a,b) => new Date(b.entryDate!).getTime() - new Date(a.entryDate!).getTime()).map((trade: any) => {
                                             const netPnL = (trade.pnl || 0) + (trade.commission || 0)
                                             const outcome = classifyTrade(netPnL)
                                             return (

@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { useTags } from '@/context/tags-provider'
-import { getNewsById } from '@/lib/major-news-events'
+import { useNewsEvents } from '@/hooks/use-news-events'
 import { formatTimeInZone, getKillzoneBadge, getTradingSession } from '@/lib/time-utils'
 import { classifyTrade, cn, formatCurrency, cleanContent } from '@/lib/utils'
 import { useUserStore } from '@/store/user-store'
@@ -53,6 +53,7 @@ async function downloadImage(imageUrl: string, trade: Trade, imageIndex: number)
 
 export function TradeDetailContent({ trade, onClose }: TradeDetailContentProps) {
   const { tags } = useTags()
+  const { getNewsById } = useNewsEvents()
   const timezone = useUserStore((state) => state.timezone)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)

@@ -23,9 +23,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { BREAK_EVEN_THRESHOLD, cn } from '@/lib/utils'; // Assuming cn utility is imported from here
 import { motion } from 'framer-motion'
 import { Eye, FileText, DotsThreeVertical, Pencil, Plus, Trash } from '@phosphor-icons/react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { AddEditModelModal } from './components/add-edit-model-modal'
+import { useTradingModels } from '@/hooks/use-trading-models'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface TradingModel {
   id: string
@@ -141,31 +143,14 @@ function StrategyBlock({
 }
 
 export default function PlaybookPage() {
-  const [models, setModels] = useState<TradingModel[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const queryClient = useQueryClient()
+  const { tradingModels: fetchedModels, isLoading } = useTradingModels()
+  const models = (fetchedModels || []) as TradingModel[]
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add')
   const [selectedModel, setSelectedModel] = useState<TradingModel | null>(null)
   const [deleteModelId, setDeleteModelId] = useState<string | null>(null)
   const [viewModel, setViewModel] = useState<TradingModel | null>(null)
-
-  const fetchModels = async () => {
-    try {
-      setIsLoading(true)
-      const response = await fetch('/api/user/trading-models')
-      if (!response.ok) throw new Error('Failed to fetch models')
-      const data = await response.json()
-      setModels(data.models || [])
-    } catch (error) {
-      toast.error('Failed to load trading models')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchModels()
-  }, [])
 
   const handleAddModel = () => {
     setModalMode('add')
@@ -195,7 +180,7 @@ export default function PlaybookPage() {
       throw new Error(error.error || 'Failed to save model')
     }
 
-    await fetchModels()
+    await queryClient.invalidateQueries({ queryKey: ['trading-models'] })
   }
 
   const handleDeleteModel = async () => {
@@ -209,7 +194,7 @@ export default function PlaybookPage() {
         throw new Error(error.error || 'Failed to delete model')
       }
       toast.success('Model removed from playbook')
-      await fetchModels()
+      await queryClient.invalidateQueries({ queryKey: ['trading-models'] })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to delete model')
     } finally {

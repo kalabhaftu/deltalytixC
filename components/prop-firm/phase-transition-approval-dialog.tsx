@@ -138,8 +138,6 @@ export function PhaseTransitionApprovalDialog({
 
       // Clear localStorage caches that might contain stale data
       try {
-        localStorage.removeItem('bundled-data-cache')
-        localStorage.removeItem('bundled-data-timestamp')
         localStorage.removeItem('settings-cache')
       } catch (e) {
         // Ignore storage errors

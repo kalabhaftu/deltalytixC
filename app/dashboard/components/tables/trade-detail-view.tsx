@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Label } from '@/components/ui/label'
 import { VisuallyHidden } from '@/components/ui/visually-hidden'
 import { useTags } from '@/context/tags-provider'
-import { getNewsById } from '@/lib/major-news-events'
+import { useNewsEvents } from '@/hooks/use-news-events'
 import { formatTimeInZone, getKillzoneBadge, getTradingSession } from '@/lib/time-utils'
 import { classifyTrade, cn, formatCurrency, cleanContent } from '@/lib/utils'
 import { useUserStore } from '@/store/user-store'
@@ -56,6 +56,7 @@ async function downloadImage(imageUrl: string, trade: Trade, imageIndex: number)
 
 export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps) {
   const { tags } = useTags()
+  const { getNewsById } = useNewsEvents()
   const timezone = useUserStore((state) => state.timezone)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)

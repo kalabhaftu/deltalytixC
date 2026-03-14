@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useData } from '@/context/data-provider'
+import { useFilteredTrades } from '@/hooks/use-filtered-trades'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn, formatCurrency, formatQuantity, parsePositionTime } from '@/lib/utils'
 import { useTableConfigStore } from '@/store/table-config-store'
@@ -25,7 +26,6 @@ import {
   getCoreRowModel,
   getExpandedRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
@@ -396,7 +396,16 @@ const useTradeTableColumns = ({
 }
 
 export function TradeTableReview() {
-  const { formattedTrades = [], updateTrades } = useData()
+  const {
+    updateTrades,
+    accountNumbers,
+    dateRange,
+    instruments,
+    pnlRange,
+    timeRange,
+    weekdayFilter,
+    hourFilter,
+  } = useData() as any
   const timezone = useUserStore((state) => state.timezone)
   const isMobile = useMediaQuery('(max-width: 768px)')
 
@@ -495,6 +504,28 @@ export function TradeTableReview() {
     [updatePageIndex]
   )
 
+  // Server-paginated trades (prevents multi-MB payloads on \"All time\")
+  const { data: pagedTradesData, isLoading: isTradesLoading } = useFilteredTrades({
+    accounts: accountNumbers?.length ? accountNumbers : undefined,
+    dateFrom: dateRange?.from?.toISOString?.(),
+    dateTo: dateRange?.to?.toISOString?.(),
+    instruments: instruments?.length ? instruments : undefined,
+    pnlMin: pnlRange?.min,
+    pnlMax: pnlRange?.max,
+    timeRange: timeRange?.range,
+    weekday: weekdayFilter?.day,
+    hour: hourFilter?.hour,
+    includeStats: false,
+    includeCalendar: false,
+    timezone: timezone || 'UTC',
+    pageLimit: pageSize,
+    pageOffset: pageIndex * pageSize,
+  }, true)
+
+  const formattedTrades = React.useMemo(() => pagedTradesData?.trades ?? [], [pagedTradesData?.trades])
+  const totalTrades = pagedTradesData?.total ?? 0
+  const pageCount = pageSize > 0 ? Math.max(1, Math.ceil(totalTrades / pageSize)) : 1
+
   const handleViewDetails = React.useCallback((trade: ExtendedTrade) => {
     router.push(`/dashboard/table?view=details&tradeId=${trade.id}`)
   }, [router])
@@ -546,6 +577,8 @@ export function TradeTableReview() {
         pageSize,
       },
     },
+    manualPagination: true,
+    pageCount,
     enableRowSelection: true,
     paginateExpandedRows: false,
     onExpandedChange: setExpanded,
@@ -562,7 +595,6 @@ export function TradeTableReview() {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
   })
 

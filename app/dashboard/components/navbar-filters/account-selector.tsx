@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { MagnifyingGlass, CaretDown, CaretRight } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useData } from "@/context/data-provider"
+import { useAccountFilterSettings } from "@/hooks/use-account-filter-settings"
 import { toast } from "sonner"
 
 interface AccountSelectorProps {
@@ -20,63 +21,28 @@ interface AccountSelectorProps {
 }
 
 export function AccountSelector({ onSave }: AccountSelectorProps) {
-  const { accountNumbers, setAccountNumbers, refreshTrades } = useData()
-  // Account filter needs individual trade counts, not aggregated
-  // Fetch accounts independently with forAccountFilter=true to ensure individual counts
-  const [accounts, setAccounts] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  // Fetch accounts independently for account filter (always individual counts)
-  useEffect(() => {
-    const fetchAccountsForFilter = async () => {
-      try {
-        setIsLoading(true)
-        const response = await fetch(`/api/bundled-data?forAccountFilter=true&tradesLimit=5000&_t=${Date.now()}`, {
-          cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache' }
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch accounts')
-        }
-
-        const data = await response.json()
-        if (data.success && data.data?.accounts) {
-          // Include all phases (active, passed, failed) - don't filter by status
-          setAccounts(data.data.accounts)
-        }
-      } catch (error) {
-        console.error('Failed to fetch accounts for filter:', error)
-        setAccounts([])
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchAccountsForFilter()
-  }, [])
+  const { accountNumbers, setAccountNumbers, refreshTrades, accounts: contextAccounts } = useData()
+  const { updateSettings, isSaving } = useAccountFilterSettings()
+  // Use accounts from the data provider context (fetched from /api/v1/init)
+  // Cast to any[] since processed accounts include extra fields (propfirm, tradeCount, etc.)
+  const accounts: any[] = useMemo(
+    () => ((contextAccounts as any[]) || []).map((a) => ({ ...a })),
+    [contextAccounts]
+  )
+  const isLoading = accounts.length === 0
 
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set())
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set())
-  const [isSaving, setIsSaving] = useState(false)
 
   // Track previous accountNumbers to detect external changes
   const prevAccountNumbersRef = React.useRef<string[]>([])
 
-  // Sync selectedAccounts when accountNumbers context changes (including external updates)
-  useEffect(() => {
-    if (!accounts || accounts.length === 0) return
+  // Memoized helper to sync from context into local selection
+  const syncSelectedFromContext = useCallback(
+    (currentNumbers: string[]) => {
+      if (!accounts || accounts.length === 0) return
 
-    // Check if accountNumbers actually changed from external source (bidirectional check)
-    const prevNumbers = prevAccountNumbersRef.current
-    const currentNumbers = accountNumbers || []
-    const hasChanged = prevNumbers.length !== currentNumbers.length ||
-      !prevNumbers.every(n => currentNumbers.includes(n)) ||
-      !currentNumbers.every(n => prevNumbers.includes(n))
-
-    if (hasChanged && currentNumbers.length > 0) {
-      // Find all accounts that match the saved account numbers BY number field
       const matchingAccountIds = accounts
         .filter(acc => currentNumbers.includes(acc.number))
         .map(acc => acc.id)
@@ -92,19 +58,36 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         // accountNumbers has values but no matching accounts found - clear selection
         // This can happen when account data is stale
         setSelectedAccounts(new Set())
+      } else {
+        // accountNumbers was cleared - clear selection
+        setSelectedAccounts(new Set())
       }
-    } else if (hasChanged && currentNumbers.length === 0) {
-      // accountNumbers was cleared - clear selection
-      setSelectedAccounts(new Set())
-    }
+    },
+    [accounts]
+  )
 
-    prevAccountNumbersRef.current = currentNumbers
-  }, [accountNumbers, accounts])
+  // Sync selectedAccounts when accountNumbers context changes (including external updates)
+  useEffect(() => {
+    if (!accounts || accounts.length === 0) return
+
+    const prevNumbers = prevAccountNumbersRef.current
+    const currentNumbers = accountNumbers || []
+    const hasChanged =
+      prevNumbers.length !== currentNumbers.length ||
+      !prevNumbers.every(n => currentNumbers.includes(n)) ||
+      !currentNumbers.every(n => prevNumbers.includes(n))
+
+    if (hasChanged) {
+      syncSelectedFromContext(currentNumbers)
+      prevAccountNumbersRef.current = currentNumbers
+    }
+  }, [accountNumbers, accounts, syncSelectedFromContext])
 
   // Server now returns clean data without master account duplicates
   const filteredAccountsList = useMemo(() => {
     if (!accounts || !Array.isArray(accounts)) return []
-    return accounts
+    // Freeze a simple snapshot so hook deps are stable
+    return accounts.map((a) => ({ ...a }))
   }, [accounts])
 
   // Group accounts by master account name (hierarchical structure)
@@ -272,9 +255,6 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
     }
 
     try {
-      setIsSaving(true)
-
-      // Get all selected account numbers (phaseIds) for filtering
       const accountNumbersToSave = Array.from(selectedAccounts)
         .map(accountId => {
           const account = accounts?.find(acc => acc.id === accountId)
@@ -282,70 +262,17 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
         })
         .filter(Boolean)
 
-      // CRITICAL FIX: Fetch current settings first, then merge with new selections
-      // This prevents overwriting other settings like showMode, includeStatuses, etc.
-      const currentSettingsResponse = await fetch('/api/settings/account-filters', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+      await updateSettings({
+        selectedAccounts: Array.from(selectedAccounts),
+        selectedPhaseAccountIds: accountNumbersToSave,
       })
 
-      let currentSettings = {}
-      if (currentSettingsResponse.ok) {
-        const data = await currentSettingsResponse.json()
-        currentSettings = data.data || {}
-      }
-
-      const response = await fetch('/api/settings/account-filters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...currentSettings, // Preserve existing settings
-          selectedAccounts: Array.from(selectedAccounts),
-          selectedPhaseAccountIds: accountNumbersToSave,
-          updatedAt: new Date().toISOString()
-        })
-      })
-
-      if (response.ok) {
-        const newSettings = {
-          ...currentSettings,
-          selectedAccounts: Array.from(selectedAccounts),
-          selectedPhaseAccountIds: accountNumbersToSave,
-          updatedAt: new Date().toISOString()
-        }
-
-        // Update localStorage cache immediately for fast access on reload
-        try {
-          localStorage.setItem('settings-cache', JSON.stringify(newSettings))
-          // Also mark that we have pending local changes (prevents server overwrite)
-          localStorage.setItem('settings-pending', 'true')
-        } catch (e) {
-          // Ignore storage errors
-        }
-
-        // Set accountNumbers immediately for instant filtering
-        setAccountNumbers(accountNumbersToSave)
-
-        // Trigger data refresh to fetch trades for the new selection
-        // This runs in background while UI updates optimistically
-        refreshTrades().then(() => {
-          // Clear pending flag after refresh completes
-          try {
-            localStorage.removeItem('settings-pending')
-          } catch (e) { }
-        }).catch(() => {
-          // Ignore errors - optimistic update already applied
-        })
-
-        toast.success(`${selectedAccounts.size} account(s) selected`)
-        onSave?.()
-      } else {
-        toast.error("Failed to save account selection")
-      }
-    } catch (error) {
+      setAccountNumbers(accountNumbersToSave)
+      refreshTrades().catch(() => {})
+      toast.success(`${selectedAccounts.size} account(s) selected`)
+      onSave?.()
+    } catch {
       toast.error("Failed to save account selection")
-    } finally {
-      setIsSaving(false)
     }
   }
 
@@ -384,60 +311,15 @@ export function AccountSelector({ onSave }: AccountSelectorProps) {
   }
 
   const handleClearAll = async () => {
-    // Clear all selections
     setSelectedAccounts(new Set())
-
-    // Also clear from the data provider and save to backend
     try {
-      setIsSaving(true)
-
-      // CRITICAL FIX: Preserve existing settings when clearing selections
-      const currentSettingsResponse = await fetch('/api/settings/account-filters', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      })
-
-      let currentSettings = {}
-      if (currentSettingsResponse.ok) {
-        const data = await currentSettingsResponse.json()
-        currentSettings = data.data || {}
-      }
-
-      const newSettings = {
-        ...currentSettings,
-        selectedAccounts: [],
-        selectedPhaseAccountIds: [],
-        updatedAt: new Date().toISOString()
-      }
-
-      const response = await fetch('/api/settings/account-filters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSettings)
-      })
-
-      if (response.ok) {
-        // Update localStorage cache with pending flag
-        try {
-          localStorage.setItem('settings-cache', JSON.stringify(newSettings))
-          localStorage.setItem('settings-pending', 'true')
-        } catch (e) { }
-
-        setAccountNumbers([])
-
-        // Refresh data in background
-        refreshTrades().then(() => {
-          try {
-            localStorage.removeItem('settings-pending')
-          } catch (e) { }
-        }).catch(() => { })
-
-        toast.success("Selection cleared")
-        onSave?.()
-      }
-    } catch (error) {
-    } finally {
-      setIsSaving(false)
+      await updateSettings({ selectedAccounts: [], selectedPhaseAccountIds: [] })
+      setAccountNumbers([])
+      refreshTrades().catch(() => {})
+      toast.success("Selection cleared")
+      onSave?.()
+    } catch {
+      toast.error("Failed to clear selection")
     }
   }
 

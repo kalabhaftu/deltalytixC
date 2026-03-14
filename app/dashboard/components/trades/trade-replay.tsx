@@ -90,7 +90,7 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
                 chartRef.current = null
             }
         }
-    }, [trade.id, trade.instrument, trade.entryDate, trade.closeDate, isLong])
+    }, [trade.id, trade.instrument, trade.entryDate, trade.closeDate, isLong, initChart])
 
     const initChart = async (force: boolean = false) => {
         if (!chartContainerRef.current) return

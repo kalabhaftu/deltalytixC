@@ -153,6 +153,13 @@ export default function ArchitectureDocs() {
                   <li className="flex items-start gap-2">
                     <span className="text-primary mt-1">•</span>
                     <div>
+                      <strong className="text-foreground">React Query (TanStack Query)</strong>
+                      <p className="text-muted-foreground">Canonical client data layer. Use hooks (useQuery, useMutation) for all API fetches. SWR is not used.</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary mt-1">•</span>
+                    <div>
                       <strong className="text-foreground">React Context</strong>
                       <p className="text-muted-foreground">Auth provider, theme provider, data provider</p>
                     </div>
@@ -235,37 +242,32 @@ export default function ArchitectureDocs() {
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <span className="bg-primary/10 text-primary px-2 py-1 rounded text-sm font-mono">2</span>
-                  Data Fetching Flow (Reads)
+                  90/10 Server-Client Split (Data Fetching)
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <pre className="bg-accent/50 border p-4 rounded-lg text-sm overflow-x-auto">
-                    {`Server Component (async) 
-  → Extract userId from headers
-  → Call Prisma query (e.g., prisma.trade.findMany)
-  → PostgreSQL executes with indexes
-  → Return data directly to component
-  → React serializes and streams to client
-  → Client Component hydrates with data`}
+                    {`Client Component (React Query)
+  → Fetch unified endpoint (e.g., /api/v1/trades)
+  → Server performs heavy calculations/filtering
+  → Accelerated by Prisma composite indexes
+  → Returns tightly calculated metrics + raw trades
+  → React Query caches on client (staleTime: 5m)`}
                   </pre>
                   <p className="text-sm text-muted-foreground">
-                    No client-side fetching for initial data. Server Components fetch directly
-                    from the database, leveraging Next.js caching (force-cache, revalidate: 60).
+                    Dashboard data relies heavily on the server to do the heavy lifting.
+                    React Query is the canonical client data layer: use <code>useQuery</code> / <code>useMutation</code> hooks
+                    for all API fetches. Do not use direct <code>fetch()</code> in components; wrap fetches in React Query hooks.
+                    SWR is not used in this project.
                   </p>
                   <div className="bg-accent/30 border rounded-lg p-3 mt-3">
-                    <p className="text-sm font-mono text-foreground">Example:</p>
-                    <pre className="text-xs mt-2 overflow-x-auto">
-                      {`// app/dashboard/page.tsx
-export default async function DashboardPage() {
-  const userId = headers().get('x-user-id')
-  const trades = await prisma.trade.findMany({
-    where: { userId },
-    orderBy: { exitTime: 'desc' }
-  })
-  return <Dashboard trades={trades} />
-}`}
-                    </pre>
+                    <p className="text-sm font-mono text-foreground">Core API Endpoints:</p>
+                    <ul className="text-sm text-muted-foreground space-y-2 mt-2">
+                      <li><strong>/api/v1/init:</strong> Lightweight initial payload (accounts, calendar notes).</li>
+                      <li><strong>/api/v1/trades:</strong> Primary engine for dashboard metrics, filtering, and trades list.</li>
+                      <li><strong>/api/v1/reports/stats:</strong> Deep aggregations strictly for the Reports page.</li>
+                    </ul>
                   </div>
                 </div>
               </CardContent>
@@ -311,6 +313,43 @@ export async function deleteTrade(tradeId: string) {
 }`}
                     </pre>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/30">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className="bg-primary/10 text-primary px-2 py-1 rounded text-sm font-mono">3</span>
+                  Statistics Ownership (90/10 Analytics)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 text-sm text-muted-foreground">
+                  <p>
+                    Analytics are split across three server-side layers to avoid duplication while keeping behavior stable:
+                  </p>
+                  <ul className="space-y-2 list-disc pl-5">
+                    <li>
+                      <code>lib/statistics/report-statistics.ts</code> is the <strong>single source of truth</strong> for deep
+                      report analytics (trading activity, psych metrics, session performance, R-multiple distribution)
+                      and is consumed by <code>/api/v1/reports/stats</code>.
+                    </li>
+                    <li>
+                      <code>lib/statistics/server-statistics.ts</code> owns <strong>generic trade/account statistics</strong> that
+                      can be safely reused (e.g. grouped trade stats, basic streaks, equity) without changing per-page UX.
+                    </li>
+                    <li>
+                      <code>app/api/dashboard/stats/route.ts</code> is the <strong>canonical source</strong> for dashboard summary
+                      metrics and intentionally keeps some bespoke logic (account filters, prop-firm integration) instead
+                      of forcing everything through the generic module, to preserve existing behavior while still keeping
+                      all heavy work on the server.
+                    </li>
+                  </ul>
+                  <p>
+                    Client components never recompute these analytics: they use React Query to call the appropriate
+                    endpoint and only render the pre-computed DTOs.
+                  </p>
                 </div>
               </CardContent>
             </Card>

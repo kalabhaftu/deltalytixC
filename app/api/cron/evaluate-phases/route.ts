@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PhaseEvaluationEngine } from '@/lib/prop-firm/phase-evaluation-engine'
 import { prisma } from '@/lib/prisma'
+import { validateCronRequest } from '@/lib/cron-auth'
 
 /**
  * GET /api/cron/evaluate-phases - Background evaluation for all active phases
@@ -121,6 +122,9 @@ export async function GET(request: NextRequest) {
  * POST /api/cron/evaluate-phases - Manual trigger for testing
  */
 export async function POST(request: NextRequest) {
+  const authError = validateCronRequest(request)
+  if (authError) return authError
+
   try {
     const body = await request.json().catch(() => ({}))
     const { phaseAccountId, masterAccountId } = body

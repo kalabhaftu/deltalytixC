@@ -8,6 +8,7 @@ import { AuthProvider } from "@/context/auth-provider";
 import { ConsentBanner } from "@/components/consent-banner";
 import { ConsoleFilterWrapper } from "@/components/console-filter-wrapper";
 import { ThemeProvider } from "@/context/theme-provider";
+import { QueryProvider } from "@/lib/query/query-provider";
 import { DeploymentMonitor } from "@/components/deployment-monitor";
 import { ErrorBoundaryWrapper } from "@/components/error-boundary";
 import { SeasonalManager } from "@/app/dashboard/components/seasonal/seasonal-manager";
@@ -248,17 +249,19 @@ export default async function RootLayout({
       <body className={`${inter.variable} font-sans min-h-screen overflow-x-hidden w-full`}>
         <ErrorBoundaryWrapper showDetails={process.env.NODE_ENV === 'development'}>
           <ThemeProvider>
-            <ConsoleFilterWrapper>
-              <AuthProvider>
-                <TooltipProvider>
-                  <DeploymentMonitor />
-                  <ConsentBanner />
-                  <SafeToaster />
-                  <SeasonalManager />
-                  {children}
-                </TooltipProvider>
-              </AuthProvider>
-            </ConsoleFilterWrapper>
+            <QueryProvider>
+              <ConsoleFilterWrapper>
+                <AuthProvider>
+                  <TooltipProvider>
+                    <DeploymentMonitor />
+                    <ConsentBanner />
+                    <SafeToaster />
+                    <SeasonalManager />
+                    {children}
+                  </TooltipProvider>
+                </AuthProvider>
+              </ConsoleFilterWrapper>
+            </QueryProvider>
           </ThemeProvider>
         </ErrorBoundaryWrapper>
       </body>

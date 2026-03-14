@@ -29,7 +29,8 @@
     "fix-db": "node scripts/migrate-database.js",
     "setup": "npm run setup-env && npm run fix-db && npx prisma generate",
     "fix-prisma": "node scripts/fix-prisma-studio.js",
-    "migrate:images": "tsx scripts/migrate-images-prisma.ts"
+    "migrate:images": "tsx scripts/migrate-images-prisma.ts",
+    "test:api": "node scripts/test-api-routes.js http://localhost:3000"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.52",

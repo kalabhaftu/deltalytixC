@@ -159,8 +159,6 @@ export function useAccounts(options: UseAccountsOptions = {}): UseAccountsResult
   const refetch = useCallback(async () => {
     // Clear localStorage caches to force fresh data fetch
     try {
-      localStorage.removeItem('bundled-data-cache')
-      localStorage.removeItem('bundled-data-timestamp')
       localStorage.removeItem('settings-cache')
     } catch (e) {
       // Ignore storage errors

@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import { ChartBar, Bar, Cell, Tooltip, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Line, ComposedChart, ReferenceLine, Area, AreaChart } from "recharts"
+import * as Recharts from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { CalendarEntry } from "@/app/dashboard/types/calendar"
@@ -205,8 +205,8 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
         </CardHeader>
         <CardContent className="h-[220px] pt-2">
           <ChartContainer config={chartConfig} className="h-full w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
+            <Recharts.ResponsiveContainer width="100%" height="100%">
+              <Recharts.ComposedChart
                 data={chartData.equityChartData}
                 margin={{ top: 10, right: 10, left: 0, bottom: 30 }}
               >
@@ -216,8 +216,8 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
                     <stop offset="95%" stopColor={primaryColor} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} vertical={false} />
-                <XAxis
+                <Recharts.CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} vertical={false} />
+                <Recharts.XAxis
                   dataKey={isWeekly ? "date" : "time"}
                   angle={-45}
                   textAnchor="end"
@@ -226,7 +226,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
                   tickLine={false}
                   axisLine={false}
                 />
-                <YAxis
+                <Recharts.YAxis
                   tickFormatter={formatCompact}
                   domain={chartData.domain}
                   tick={{ fontSize: 10, fill: mutedColor }}
@@ -234,17 +234,17 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
                   axisLine={false}
                   width={50}
                 />
-                <Tooltip content={<CustomTooltip isWeekly={isWeekly} />} />
-                <ReferenceLine y={0} stroke={mutedColor} strokeDasharray="3 3" opacity={0.5} />
-                <Bar dataKey="pnl" name="P&L" opacity={0.9} radius={[2, 2, 0, 0]}>
+                <Recharts.Tooltip content={<CustomTooltip isWeekly={isWeekly} />} />
+                <Recharts.ReferenceLine y={0} stroke={mutedColor} strokeDasharray="3 3" opacity={0.5} />
+                <Recharts.Bar dataKey="pnl" name="P&L" opacity={0.9} radius={[2, 2, 0, 0]}>
                   {chartData.equityChartData.map((entry, index) => (
-                    <Cell
+                    <Recharts.Cell
                       key={`cell-${index}`}
                       fill={entry.pnl >= 0 ? profitColor : lossColor}
                     />
                   ))}
-                </Bar>
-                <Line
+                </Recharts.Bar>
+                <Recharts.Line
                   type="monotone"
                   dataKey="balance"
                   stroke={primaryColor}
@@ -252,8 +252,8 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
                   dot={false}
                   name="Equity"
                 />
-              </ComposedChart>
-            </ResponsiveContainer>
+              </Recharts.ComposedChart>
+            </Recharts.ResponsiveContainer>
           </ChartContainer>
         </CardContent>
       </Card>
@@ -271,14 +271,14 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
           </CardHeader>
           <CardContent className="h-[200px] pt-2">
             <ChartContainer config={chartConfig} className="h-full w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <ChartBar
+              <Recharts.ResponsiveContainer width="100%" height="100%">
+                <Recharts.ComposedChart
                   data={chartData.distributionData}
                   margin={{ top: 10, right: 10, left: 0, bottom: 50 }}
                   barCategoryGap={8}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} vertical={false} />
-                  <XAxis
+                  <Recharts.CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} vertical={false} />
+                  <Recharts.XAxis
                     type="category"
                     dataKey="name"
                     axisLine={false}
@@ -302,7 +302,7 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
                       )
                     }}
                   />
-                  <YAxis
+                  <Recharts.YAxis
                     type="number"
                     tickFormatter={formatCompact}
                     domain={chartData.domain}
@@ -311,18 +311,18 @@ export function Charts({ dayData, isWeekly = false }: ChartsProps) {
                     axisLine={false}
                     width={50}
                   />
-                  <ReferenceLine y={0} stroke={mutedColor} />
-                  <Tooltip content={<DistributionTooltip totalPnL={chartData.totalPnL} />} />
-                  <Bar dataKey="value" name="P&L" radius={[4, 4, 0, 0]}>
+                  <Recharts.ReferenceLine y={0} stroke={mutedColor} />
+                  <Recharts.Tooltip content={<DistributionTooltip totalPnL={chartData.totalPnL} />} />
+                  <Recharts.Bar dataKey="value" name="P&L" radius={[4, 4, 0, 0]}>
                     {chartData.distributionData.map((entry, index) => (
-                      <Cell
+                      <Recharts.Cell
                         key={`cell-${index}`}
                         fill={entry.value >= 0 ? distributionColors[index % distributionColors.length] : lossColor}
                       />
                     ))}
-                  </Bar>
-                </ChartBar>
-              </ResponsiveContainer>
+                  </Recharts.Bar>
+                </Recharts.ComposedChart>
+              </Recharts.ResponsiveContainer>
             </ChartContainer>
           </CardContent>
         </Card>

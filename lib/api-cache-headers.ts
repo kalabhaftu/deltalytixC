@@ -16,6 +16,13 @@ export const CacheHeaders = {
   },
 
   /**
+   * Private short cache (30s) - For user-specific data that can be briefly cached
+   */
+  privateShort: {
+    'Cache-Control': 'private, s-maxage=30, stale-while-revalidate=60',
+  },
+
+  /**
    * Short cache (60 seconds) - For frequently changing data
    * Uses stale-while-revalidate for better UX
    */

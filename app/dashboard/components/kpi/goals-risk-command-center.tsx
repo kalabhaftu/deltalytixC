@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -177,35 +178,28 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
     // DATA HOOKS
     // ---------------------------------------------------------------------------
     const { formattedTrades } = useData()
+    const queryClient = useQueryClient()
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-    const [goalTargets, setGoalTargets] = useState(DEFAULT_GOALS)
     const [tempTargets, setTempTargets] = useState(DEFAULT_GOALS)
     const [isLoading, setIsLoading] = useState(false)
 
-    // ---------------------------------------------------------------------------
-    // LOAD SAVED GOALS
-    // ---------------------------------------------------------------------------
-    useEffect(() => {
-        const fetchGoals = async () => {
-            try {
-                const res = await fetch('/api/user/goals')
-                if (res.ok) {
-                    const data = await res.json()
-                    if (data.goals) {
-                        setGoalTargets(data.goals)
-                        setTempTargets(data.goals)
-                    }
-                }
-            } catch (e) {
-                console.error('Failed to load goals', e)
-            }
-        }
-        fetchGoals()
-    }, [])
+    // React Query for goals
+    const { data: goalTargets = DEFAULT_GOALS } = useQuery({
+        queryKey: ['user-goals'],
+        queryFn: async () => {
+            const res = await fetch('/api/user/goals')
+            if (!res.ok) return DEFAULT_GOALS
+            const data = await res.json()
+            return data.goals || DEFAULT_GOALS
+        },
+        staleTime: 5 * 60 * 1000,
+    })
 
-    // ---------------------------------------------------------------------------
-    // SAVE GOALS
-    // ---------------------------------------------------------------------------
+    // Sync tempTargets when goalTargets loads
+    useMemo(() => {
+        setTempTargets(goalTargets)
+    }, [goalTargets])
+
     const saveGoals = async () => {
         try {
             setIsLoading(true)
@@ -214,10 +208,9 @@ export default function GoalsRiskCommandCenter({ size = 'large' }: GoalsRiskComm
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(tempTargets)
             })
-
             if (res.ok) {
                 const data = await res.json()
-                setGoalTargets(data.goals)
+                queryClient.setQueryData(['user-goals'], data.goals)
                 setIsSettingsOpen(false)
             }
         } catch (e) {

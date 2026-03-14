@@ -13,7 +13,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useTags } from '@/context/tags-provider'
-import { MAJOR_NEWS_EVENTS } from '@/lib/major-news-events'
+import { useNewsEvents } from '@/hooks/use-news-events'
+import { useTradingModels } from '@/hooks/use-trading-models'
 import { uploadService } from '@/lib/upload-service'
 import { useUserStore } from '@/store/user-store'
 import { ExtendedTrade, MarketBias, TradeOutcome } from '@/types/trade-extended'
@@ -68,7 +69,7 @@ interface Rule {
   category: 'entry' | 'exit' | 'risk' | 'general'
 }
 
-interface TradingModel {
+interface LocalTradingModel {
   id: string
   name: string
   rules: (string | Rule)[]
@@ -83,8 +84,17 @@ export default function TradeEditDialog({
 }: TradeEditDialogProps) {
   // State
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [tradingModels, setTradingModels] = useState<TradingModel[]>([])
-  const [selectedModel, setSelectedModel] = useState<TradingModel | null>(null)
+  const { tradingModels: fetchedModels } = useTradingModels()
+  const stableTradingModels = React.useMemo(
+    () => (Array.isArray(fetchedModels) ? fetchedModels.map((m) => ({ ...m })) : []),
+    [fetchedModels]
+  )
+  const { newsEvents: allNewsEvents } = useNewsEvents()
+  const tradingModels = React.useMemo(
+    () => (stableTradingModels || []) as LocalTradingModel[],
+    [stableTradingModels]
+  )
+  const [selectedModel, setSelectedModel] = useState<LocalTradingModel | null>(null)
   const [selectedRules, setSelectedRules] = useState<string[]>([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [isNewsDay, setIsNewsDay] = useState(false)
@@ -138,21 +148,7 @@ export default function TradeEditDialog({
 
   const watchedValues = watch()
 
-  // Fetch trading models
-  useEffect(() => {
-    const fetchModels = async () => {
-      try {
-        const response = await fetch('/api/user/trading-models')
-        if (response.ok) {
-          const data = await response.json()
-          setTradingModels(data.models || [])
-        }
-      } catch (error) {
-        // Error fetching models
-      }
-    }
-    fetchModels()
-  }, [])
+  // Trading models now come from useTradingModels() React Query hook
 
   // Initialize form when trade changes
   useEffect(() => {
@@ -227,20 +223,20 @@ export default function TradeEditDialog({
       setTradeOutcome((trade as any).outcome || null)
       setRuleBroken((trade as any).ruleBroken || false)
     }
-  }, [trade, isOpen, tradingModels, reset])
+  }, [trade, isOpen, reset, tradingModels])
 
   // Filter news events based on search query
   const filteredNewsEvents = React.useMemo(() => {
-    if (!newsSearchQuery.trim()) return MAJOR_NEWS_EVENTS
+    if (!newsSearchQuery.trim()) return allNewsEvents
 
     const query = newsSearchQuery.toLowerCase()
-    return MAJOR_NEWS_EVENTS.filter(event =>
+    return allNewsEvents.filter(event =>
       event.name.toLowerCase().includes(query) ||
       event.country.toLowerCase().includes(query) ||
       event.category.toLowerCase().includes(query) ||
       (event.description && event.description.toLowerCase().includes(query))
     )
-  }, [newsSearchQuery])
+  }, [newsSearchQuery, allNewsEvents])
 
   // Handle image upload
   const handleImageUpload = async (

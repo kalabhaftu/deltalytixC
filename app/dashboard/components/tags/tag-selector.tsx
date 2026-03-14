@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,16 +10,10 @@ import {
 } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { toast } from 'sonner'
 import { Tag, Plus, X, Gear as SettingsIcon } from '@phosphor-icons/react'
 import { TagManager } from './tag-manager'
 import { cn } from '@/lib/utils'
-
-interface TradeTag {
-  id: string
-  name: string
-  color: string
-}
+import { useTags } from '@/hooks/use-tags'
 
 interface TagSelectorProps {
   selectedTagIds: string[]
@@ -28,28 +22,9 @@ interface TagSelectorProps {
 }
 
 export function TagSelector({ selectedTagIds, onChange, className }: TagSelectorProps) {
-  const [tags, setTags] = useState<TradeTag[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { tags, isLoading } = useTags()
   const [showManager, setShowManager] = useState(false)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
-
-  useEffect(() => {
-    fetchTags()
-  }, [])
-
-  const fetchTags = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch('/api/tags')
-      if (!response.ok) throw new Error('Failed to fetch tags')
-      const data = await response.json()
-      setTags(data.tags || [])
-    } catch (error) {
-      toast.error('Failed to load tags')
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const handleToggleTag = (tagId: string) => {
     if (selectedTagIds.includes(tagId)) {
@@ -160,9 +135,7 @@ export function TagSelector({ selectedTagIds, onChange, className }: TagSelector
       <TagManager
         isOpen={showManager}
         onClose={() => setShowManager(false)}
-        onRefresh={fetchTags}
       />
     </div>
   )
 }
-

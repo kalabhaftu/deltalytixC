@@ -35,6 +35,10 @@ const navigation = [
     items: [
       { title: 'Architecture', href: '/docs/for-developers/architecture' },
       { title: 'Database Schema', href: '/docs/for-developers/database' },
+      { title: 'Prisma Optimization', href: '/docs/for-developers/prisma-optimization' },
+      { title: 'Performance Baseline', href: '/docs/for-developers/performance-baseline' },
+      { title: 'TradeZella Comparison', href: '/docs/for-developers/tradezella-comparison' },
+      { title: 'Architecture Divergences', href: '/docs/for-developers/architecture-divergences' },
     ],
   },
 ]
