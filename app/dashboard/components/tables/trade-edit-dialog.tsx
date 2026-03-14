@@ -148,6 +148,16 @@ export default function TradeEditDialog({
 
   const watchedValues = watch()
 
+  // Lock body scroll when dialog is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = ''
+      }
+    }
+  }, [isOpen])
+
   // Trading models now come from useTradingModels() React Query hook
 
   // Initialize form when trade changes
@@ -352,8 +362,8 @@ export default function TradeEditDialog({
 
   return (
     <>
-      <div className="fixed inset-0 z-[60] bg-background overflow-y-auto flex flex-col layout-content">
-        <div className="w-full max-w-7xl mx-auto flex flex-col flex-1 relative transition-all z-10 p-0">
+      <div className="fixed inset-0 z-[60] bg-background overflow-hidden flex flex-col layout-content">
+        <div className="w-full h-full max-w-7xl mx-auto flex flex-col flex-1 relative transition-all z-10 p-0">
           {/* Header */}
           <div className="px-4 sm:px-6 py-4 border-b shrink-0 flex items-center justify-between">
             <div>

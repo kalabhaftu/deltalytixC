@@ -51,7 +51,7 @@ function TableView() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push('/dashboard/table')}
+                onClick={() => router.back()}
                 className="h-8 px-2 text-xs hover:bg-accent/50"
               >
                 <ArrowLeft className="mr-1.5 h-3.5 w-3.5" weight="light" />

@@ -98,8 +98,8 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
                     textColor: 'black',
                 },
                 grid: {
-                    vertLines: { color: 'hsl(var(--muted)/0.03)' },
-                    horzLines: { color: 'hsl(var(--muted)/0.03)' },
+                    vertLines: { visible: false },
+                    horzLines: { visible: false },
                 },
                 width: chartContainerRef.current.clientWidth,
                 height: chartContainerRef.current.clientHeight,
@@ -120,15 +120,15 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
             })
 
             const candleSeries = chart.addSeries(CandlestickSeries, {
-                upColor: 'hsl(var(--chart-profit))',
-                downColor: 'black',
+                upColor: '#83b885',
+                downColor: '#000000',
                 borderVisible: true,
-                borderColor: 'black',
+                borderColor: '#000000',
                 wickVisible: true,
-                wickUpColor: 'black',
-                wickDownColor: 'black',
-                borderUpColor: 'hsl(var(--chart-profit))',
-                borderDownColor: 'black',
+                wickUpColor: '#83b885',
+                wickDownColor: '#000000',
+                borderUpColor: '#83b885',
+                borderDownColor: '#000000',
             })
 
             candleSeries.setData(adjustedData as any)

@@ -45,7 +45,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useData } from '@/context/data-provider'
 import { useModalStateStore } from '@/store/modal-state-store'
 import TradeEditDialog from '@/app/dashboard/components/tables/trade-edit-dialog'
@@ -252,6 +252,7 @@ function EmptyState({
 
 export function JournalClient() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { formattedTrades, refreshTrades, updateTrades, isLoading } = useData()
   const { tags } = useTags()
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -262,11 +263,18 @@ export function JournalClient() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [tradeToDelete, setTradeToDelete] = useState<Trade | null>(null)
   const [showAIAnalysis, setShowAIAnalysis] = useState(false)
+
+  // URL State
+  const view = searchParams.get('view')
+  const tradeIdParam = searchParams.get('tradeId')
+
+  const matchedTrade = useMemo(() => {
+    if (!tradeIdParam || !formattedTrades) return null
+    return formattedTrades.find((t: any) => t.id === tradeIdParam) || null
+  }, [tradeIdParam, formattedTrades])
 
   // Group trades
   const groupedTrades = useMemo(() => groupTradesByExecution(formattedTrades), [formattedTrades])
@@ -395,12 +403,11 @@ export function JournalClient() {
   }, [refreshTrades])
 
   const handleEditTrade = useCallback((trade: Trade) => {
-    setSelectedTrade(trade)
-    setIsEditDialogOpen(true)
-  }, [])
+    router.push(`/dashboard/journal?view=edit&tradeId=${trade.id}`)
+  }, [router])
 
   const handleViewTrade = useCallback((trade: Trade) => {
-    router.push(`/dashboard/trades/${trade.id}`)
+    router.push(`/dashboard/journal?view=details&tradeId=${trade.id}`)
   }, [router])
 
   const handleDeleteTrade = useCallback((trade: Trade) => {
@@ -423,23 +430,20 @@ export function JournalClient() {
   }, [tradeToDelete, refreshTrades])
 
   const handleSaveTrade = useCallback(async (updatedTrade: Partial<Trade>) => {
-    if (!selectedTrade) return
+    if (!matchedTrade) return
 
     try {
-      await updateTrades([selectedTrade.id], updatedTrade)
+      await updateTrades([matchedTrade.id], updatedTrade)
       toast.success('Trade updated successfully')
-      setIsEditDialogOpen(false)
-
-      setSelectedTrade({
-        ...selectedTrade,
-        ...updatedTrade
-      } as Trade)
+      
+      // Close dialog and go back to details
+      router.push(`/dashboard/journal?view=details&tradeId=${matchedTrade.id}`)
 
       await refreshTrades()
     } catch (error) {
       toast.error('Failed to update trade')
     }
-  }, [selectedTrade, updateTrades, refreshTrades])
+  }, [matchedTrade, updateTrades, refreshTrades, router])
 
   const handleClearFilters = useCallback(() => {
     setSearchTerm('')
@@ -747,16 +751,23 @@ export function JournalClient() {
         )}
       </AnimatePresence>
 
-      {/* Dialogs */}
-      <TradeEditDialog
-        isOpen={isEditDialogOpen}
-        onClose={() => {
-          setIsEditDialogOpen(false)
-          setSelectedTrade(null)
-        }}
-        trade={selectedTrade ? ensureExtendedTrade(selectedTrade) : null}
-        onSave={handleSaveTrade}
-      />
+      {/* URL-based Dialogs & Views */}
+      {view === 'edit' && matchedTrade && (
+        <TradeEditDialog
+          isOpen={true}
+          onClose={() => router.push('/dashboard/journal', { scroll: false })}
+          trade={ensureExtendedTrade(matchedTrade as Trade)}
+          onSave={handleSaveTrade}
+        />
+      )}
+
+      {view === 'details' && matchedTrade && (
+        <TradeDetailView
+          isOpen={true}
+          onClose={() => router.push('/dashboard/journal')}
+          trade={matchedTrade as Trade}
+        />
+      )}
 
 
 

@@ -22,7 +22,7 @@ import { Trade } from '@prisma/client'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch'
 import { toast } from 'sonner'
 
@@ -66,6 +66,14 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   const router = useRouter()
   const searchParams = useSearchParams()
   const pathname = usePathname()
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = ''
+      }
+    }
+  }, [isOpen])
 
   if (!trade) return null
 
@@ -116,10 +124,10 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   return (
     <>
       <div
-        className="fixed inset-0 z-[60] bg-background overflow-y-auto flex flex-col layout-content"
+        className="fixed inset-0 z-[60] bg-background overflow-hidden flex flex-col layout-content"
       >
         <div
-          className="w-full max-w-7xl mx-auto flex flex-col flex-1 relative transition-all z-10 p-0"
+          className="w-full h-full max-w-7xl mx-auto flex flex-col flex-1 relative transition-all z-10 p-0"
         >
           <div className="px-4 sm:px-6 py-4 border-b shrink-0 flex items-center justify-between">
             <div className="flex flex-col gap-1">

@@ -111,9 +111,9 @@ export function FileDropzone({
                             "p-4 rounded-full mb-4 transition-colors",
                             isDragActive ? "bg-primary/20" : "bg-muted/40"
                         )}>
-                                icon || (
+                            {icon || (
                                 isDragActive ? <FileArrowUp weight="light" className="h-8 w-8 text-primary animate-bounce" /> : <Upload weight="light" className="h-8 w-8 text-muted-foreground/60" />
-                            )
+                            )}
                         </div>
 
                         {isDragActive ? (
