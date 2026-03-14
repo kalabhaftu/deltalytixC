@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -50,49 +50,7 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
     const formattedDate = trade.entryDate ? format(parseISO(trade.entryDate), 'MMM d, yyyy') : 'Unknown'
     const formattedTime = trade.entryDate ? format(parseISO(trade.entryDate), 'h:mm a') : ''
 
-    useEffect(() => {
-        // Prevent race conditions with strict mode/fast unmounts
-        let isMounted = true;
-
-        const runInit = async () => {
-            if (!chartContainerRef.current) return;
-
-            // Cleanup existing chart if any
-            if (chartRef.current) {
-                chartRef.current.remove();
-                chartRef.current = null;
-            }
-
-            await initChart();
-        };
-
-        runInit();
-
-        // Robust ResizeObserver that handles exact container dimensions
-        const resizeObserver = new ResizeObserver((entries) => {
-            if (!isMounted || !entries[0].contentRect || !chartRef.current) return
-            const { width, height } = entries[0].contentRect
-            // Only resize if dimensions are valid and changed
-            if (width > 0 && height > 0) {
-                chartRef.current.applyOptions({ width, height })
-            }
-        })
-
-        if (chartContainerRef.current) {
-            resizeObserver.observe(chartContainerRef.current)
-        }
-
-        return () => {
-            isMounted = false;
-            resizeObserver.disconnect()
-            if (chartRef.current) {
-                chartRef.current.remove()
-                chartRef.current = null
-            }
-        }
-    }, [trade.id, trade.instrument, trade.entryDate, trade.closeDate, isLong, initChart])
-
-    const initChart = async (force: boolean = false) => {
+    const initChart = useCallback(async (force: boolean = false) => {
         if (!chartContainerRef.current) return
 
         setIsLoading(true)
@@ -229,7 +187,49 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
             setError('Failed to load chart')
             setIsLoading(false)
         }
-    }
+    }, [trade.id, trade.instrument, trade.entryDate, trade.closeDate, isLong])
+
+    useEffect(() => {
+        // Prevent race conditions with strict mode/fast unmounts
+        let isMounted = true;
+
+        const runInit = async () => {
+            if (!chartContainerRef.current) return;
+
+            // Cleanup existing chart if any
+            if (chartRef.current) {
+                chartRef.current.remove();
+                chartRef.current = null;
+            }
+
+            await initChart();
+        };
+
+        runInit();
+
+        // Robust ResizeObserver that handles exact container dimensions
+        const resizeObserver = new ResizeObserver((entries) => {
+            if (!isMounted || !entries[0].contentRect || !chartRef.current) return
+            const { width, height } = entries[0].contentRect
+            // Only resize if dimensions are valid and changed
+            if (width > 0 && height > 0) {
+                chartRef.current.applyOptions({ width, height })
+            }
+        })
+
+        if (chartContainerRef.current) {
+            resizeObserver.observe(chartContainerRef.current)
+        }
+
+        return () => {
+            isMounted = false;
+            resizeObserver.disconnect()
+            if (chartRef.current) {
+                chartRef.current.remove()
+                chartRef.current = null
+            }
+        }
+    }, [trade.id, trade.instrument, trade.entryDate, trade.closeDate, isLong, initChart])
 
 
     return (
