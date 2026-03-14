@@ -230,14 +230,19 @@ export default function ReportsPage() {
             setIsLoading(true)
             try {
                 const filters: any = {}
-                if (dateRange?.from && dateRange?.to) {
+                if (dateRange?.from) {
+                    // Fetch a wider window from the server to avoid timezone cutoff issues
+                    // The client-side filter will properly trim it to the exact local day boundaries
+                    const fromDate = subDays(dateRange.from, 1).toISOString()
+                    const toDate = dateRange.to 
+                        ? dateRange.to 
+                        : dateRange.from
+                    const toDateISO = new Date(toDate.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString() // add 2 days
+                    
                     filters.dateRange = { 
-                        from: startOfDay(dateRange.from).toISOString(), 
-                        to: endOfDay(dateRange.to).toISOString() 
+                        from: fromDate, 
+                        to: toDateISO 
                     }
-                } else if (dateRange?.from) {
-                    const isoDate = startOfDay(dateRange.from).toISOString()
-                    filters.dateRange = { from: isoDate, to: isoDate }
                 }
                 
                 if (selectedAccountId) {
@@ -337,7 +342,7 @@ export default function ReportsPage() {
             }
 
             // Outcome Filter
-            if (advancedFilters.outcome !== 'all' && (trade as any).tradeOutcome !== advancedFilters.outcome) return false
+            if (advancedFilters.outcome !== 'all' && (trade as any).outcome !== advancedFilters.outcome) return false
 
             // Strategy Filter
             if (advancedFilters.strategy !== 'all' && (trade as any).modelId !== advancedFilters.strategy) return false
