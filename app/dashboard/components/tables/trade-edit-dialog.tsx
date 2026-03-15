@@ -151,9 +151,12 @@ export default function TradeEditDialog({
   // Lock body scroll when dialog is open
   useEffect(() => {
     if (isOpen) {
+      const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth
       document.body.style.overflow = 'hidden'
+      document.body.style.paddingRight = `${scrollBarWidth}px`
       return () => {
         document.body.style.overflow = ''
+        document.body.style.paddingRight = ''
       }
     }
   }, [isOpen])
@@ -362,7 +365,7 @@ export default function TradeEditDialog({
 
   return (
     <>
-      <div className="fixed inset-0 z-[60] bg-background overflow-hidden flex flex-col layout-content">
+      <div className="fixed inset-0 z-[60] bg-background flex flex-col overflow-hidden overscroll-none">
         <div className="w-full h-full max-w-7xl mx-auto flex flex-col flex-1 relative transition-all z-10 p-0">
           {/* Header */}
           <div className="px-4 sm:px-6 py-4 border-b shrink-0 flex items-center justify-between">

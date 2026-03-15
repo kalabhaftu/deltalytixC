@@ -122,7 +122,10 @@ export async function calculateReportStatistics(
   }
 
   if (filters.symbol && filters.symbol !== 'all') {
-    whereClause.symbol = filters.symbol
+    whereClause.OR = [
+      { symbol: filters.symbol },
+      { instrument: filters.symbol }
+    ]
   }
 
   if (filters.outcome && filters.outcome !== 'all') {
@@ -138,7 +141,8 @@ export async function calculateReportStatistics(
   }
 
   // Fetch trades with fields needed for computations + spreadsheet display
-  const [rawTrades, tradingModels] = await Promise.all([
+  // Fetch filter options separately to ensure they are always populated regardless of current filters
+  const [rawTrades, tradingModels, allPossibleSymbols] = await Promise.all([
     prisma.trade.findMany({
       where: whereClause,
       select: {
@@ -172,7 +176,26 @@ export async function calculateReportStatistics(
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     }),
+    prisma.trade.findMany({
+      where: { 
+        userId,
+        // When fetching options, we only filter by account if one is selected, 
+        // ensuring the list adapts to the selected account but not the date range.
+        ...(accountId && accountId !== 'all' ? { accountId } : {}),
+        ...(accountNumbers && accountNumbers.length > 0 ? { accountNumber: { in: accountNumbers } } : {})
+      },
+      select: { symbol: true, instrument: true },
+    }),
   ])
+
+  // Extract unique symbols from the separate query for filter options
+  // Extract unique symbols from the separate query for filter options
+  // Use a Case-Insensitive Set to deduplicate instrument vs symbol
+  const symbols = [...new Set(
+    allPossibleSymbols.map(t => (t.symbol || t.instrument || '').trim())
+      .filter(Boolean)
+  )].sort() as string[]
+  const strategies = tradingModels.map(m => ({ id: m.id, name: m.name }))
 
   // Group by execution for accurate counting
   const trades = groupTradesByExecution(rawTrades as any[]) as any[]
@@ -185,10 +208,6 @@ export async function calculateReportStatistics(
       return session === filters.session
     })
     : trades
-
-  // Extract unique symbols from unfiltered trades for filter options
-  const symbols = [...new Set(rawTrades.map(t => (t as any).symbol || (t as any).instrument).filter(Boolean))].sort() as string[]
-  const strategies = tradingModels.map(m => ({ id: m.id, name: m.name }))
 
   if (filteredTrades.length === 0) {
     return {

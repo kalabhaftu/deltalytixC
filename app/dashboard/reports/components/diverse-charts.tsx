@@ -23,6 +23,12 @@ interface DiverseChartsProps {
     trades: any[]
 }
 
+const COLORS = {
+    bullish: 'hsl(var(--chart-bullish))',
+    bearish: 'hsl(var(--chart-bearish))',
+    muted: 'hsl(var(--muted-foreground))'
+}
+
 export function DiverseCharts({ trades }: DiverseChartsProps) {
     const equityData = useMemo(() => {
         if (!trades || trades.length === 0) return []
@@ -59,9 +65,9 @@ export function DiverseCharts({ trades }: DiverseChartsProps) {
         })
 
         return [
-            { name: 'Wins', value: wins, color: 'hsl(var(--long))' },
-            { name: 'Losses', value: losses, color: 'hsl(var(--short))' },
-            { name: 'Breakeven', value: breakevens, color: 'hsl(var(--muted-foreground))' }
+            { name: 'Wins', value: wins, color: COLORS.bullish },
+            { name: 'Losses', value: losses, color: COLORS.bearish },
+            { name: 'Breakeven', value: breakevens, color: COLORS.muted }
         ].filter(d => d.value > 0)
     }, [trades])
 
@@ -131,11 +137,10 @@ export function DiverseCharts({ trades }: DiverseChartsProps) {
                             <AreaChart data={equityData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorEquity" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                                        <stop offset="5%" stopColor={COLORS.bullish} stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor={COLORS.bullish} stopOpacity={0}/>
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.4} />
                                 <XAxis 
                                     dataKey="name" 
                                     axisLine={false} 
@@ -144,17 +149,16 @@ export function DiverseCharts({ trades }: DiverseChartsProps) {
                                     minTickGap={30}
                                 />
                                 <YAxis 
+                                    hide
                                     axisLine={false} 
                                     tickLine={false} 
-                                    tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                                    tickFormatter={(val) => `$${val}`}
                                 />
                                 <RechartsTooltip content={<CustomTooltip />} />
                                 <Area 
                                     type="monotone" 
                                     dataKey="equity" 
                                     name="Equity"
-                                    stroke="hsl(var(--primary))" 
+                                    stroke={COLORS.bullish} 
                                     strokeWidth={3}
                                     fillOpacity={1} 
                                     fill="url(#colorEquity)" 
@@ -211,7 +215,6 @@ export function DiverseCharts({ trades }: DiverseChartsProps) {
                 <div className="flex-1 w-full min-h-0">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={dayOfWeekData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.4} />
                             <XAxis 
                                 dataKey="name" 
                                 axisLine={false} 
@@ -219,14 +222,13 @@ export function DiverseCharts({ trades }: DiverseChartsProps) {
                                 tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                             />
                             <YAxis 
+                                hide
                                 axisLine={false} 
                                 tickLine={false} 
-                                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                                tickFormatter={(val) => `$${Math.abs(val)}`}
                             />
                             <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted)/0.2)' }} />
-                            <Bar dataKey="Win" name="Gross Win" fill="hsl(var(--long))" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                            <Bar dataKey="Loss" name="Gross Loss" fill="hsl(var(--short))" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                            <Bar dataKey="Win" name="Win" fill={COLORS.bullish} radius={[4, 4, 0, 0]} maxBarSize={40} />
+                            <Bar dataKey="Loss" name="Loss" fill={COLORS.bearish} radius={[4, 4, 0, 0]} maxBarSize={40} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

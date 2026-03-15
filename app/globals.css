@@ -114,6 +114,8 @@
     /* 3. LAYER 3: SEMANTICS & CHARTS */
     --chart-profit: 160 84% 31%;        /* #059669 */
     --chart-loss: 0 72% 51%;            /* #DC2626 */
+    --chart-bullish: 123 27% 62%;       /* #83b885 */
+    --chart-bearish: 0 0% 0%;           /* #000000 */
 
     --chart-1: 217 91% 53%;             /* #2563EB - Blue */
     --chart-2: 263 70% 58%;             /* #7C3AED - Purple */
@@ -182,6 +184,8 @@
     /* 3. LAYER 3: SEMANTICS & CHARTS */
     --chart-profit: 160 84% 39%;        /* #10B981 */
     --chart-loss: 0 84% 60%;            /* #EF4444 */
+    --chart-bullish: 123 27% 62%;       /* #83b885 */
+    --chart-bearish: 0 0% 0%;           /* #000000 */
 
     --chart-1: 213 97% 68%;             /* #60A5FA - Blue */
     --chart-2: 255 92% 76%;             /* #A78BFA - Purple */

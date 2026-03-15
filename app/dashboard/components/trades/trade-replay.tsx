@@ -187,7 +187,7 @@ export default function TradeReplay({ trade, onClose }: TradeReplayProps) {
             setError('Failed to load chart')
             setIsLoading(false)
         }
-    }, [trade.id, trade.instrument, trade.entryDate, trade.closeDate, isLong])
+    }, [trade.id, trade.instrument, trade.entryDate, trade.closeDate, trade.entryPrice, trade.closePrice, isLong])
 
     useEffect(() => {
         // Prevent race conditions with strict mode/fast unmounts

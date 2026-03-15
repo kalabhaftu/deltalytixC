@@ -33,6 +33,7 @@ function TableView() {
 
   const view = searchParams.get('view')
   const tradeId = searchParams.get('tradeId')
+  const backUrl = searchParams.get('backUrl')
 
   if (view === 'replay' && tradeId) {
     const trade = formattedTrades.find((t: any) => t.id === tradeId)
@@ -51,7 +52,13 @@ function TableView() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.back()}
+                onClick={() => {
+                  if (backUrl) {
+                    router.push(backUrl)
+                  } else {
+                    router.back()
+                  }
+                }}
                 className="h-8 px-2 text-xs hover:bg-accent/50"
               >
                 <ArrowLeft className="mr-1.5 h-3.5 w-3.5" weight="light" />

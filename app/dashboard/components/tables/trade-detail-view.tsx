@@ -68,9 +68,12 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   const pathname = usePathname()
   useEffect(() => {
     if (isOpen) {
+      const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth
       document.body.style.overflow = 'hidden'
+      document.body.style.paddingRight = `${scrollBarWidth}px`
       return () => {
         document.body.style.overflow = ''
+        document.body.style.paddingRight = ''
       }
     }
   }, [isOpen])
@@ -124,7 +127,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
   return (
     <>
       <div
-        className="fixed inset-0 z-[60] bg-background overflow-hidden flex flex-col layout-content"
+        className="fixed inset-0 z-[60] bg-background flex flex-col overflow-hidden overscroll-none"
       >
         <div
           className="w-full h-full max-w-7xl mx-auto flex flex-col flex-1 relative transition-all z-10 p-0"
@@ -392,7 +395,7 @@ export function TradeDetailView({ isOpen, onClose, trade }: TradeDetailViewProps
           </div>
 
           <div className="flex flex-col-reverse sm:flex-row justify-between items-center px-4 sm:px-8 py-4 sm:py-5 border-t border-border/40 bg-muted/5 shrink-0 gap-3 sm:gap-0 mt-auto">
-            <Link href={`/dashboard/table?view=replay&tradeId=${trade.id}`} className="w-full sm:w-auto">
+            <Link href={`/dashboard/table?view=replay&tradeId=${trade.id}&backUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`} className="w-full sm:w-auto">
               <Button
                 variant="default"
                 className="gap-2.5 h-10 sm:h-11 px-6 rounded-xl shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all font-semibold w-full sm:w-auto"

@@ -20,11 +20,11 @@ import {
     TrendUp
 } from '@phosphor-icons/react'
 import {
-    endOfYear,
     format,
     startOfYear,
     subDays,
-    subMonths
+    subMonths,
+    endOfDay
 } from 'date-fns'
 import { motion } from 'framer-motion'
 import html2canvas from 'html2canvas'
@@ -163,8 +163,8 @@ export default function ReportsPage() {
     // Filter State
     const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
-        from: startOfYear(new Date()),
-        to: endOfYear(new Date())
+        from: subDays(new Date(), 90),
+        to: new Date()
     })
     const [selectedTab, setSelectedTab] = useState('overview')
     const [isExporting, setIsExporting] = useState(false)
@@ -346,7 +346,15 @@ export default function ReportsPage() {
                 ) : !tradingActivity || !psychMetrics || filteredTrades.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 border border-dashed border-border/60 rounded-2xl bg-muted/5">
                         <Lightning weight="light" className="h-10 w-10 text-muted-foreground/30 mb-4" />
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/50">Journal is empty for this period</h3>
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/50 mb-4">Journal is empty for this period</h3>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handlePresetSelect('ALL')}
+                            className="text-[10px] font-black uppercase tracking-widest"
+                        >
+                            View All Time
+                        </Button>
                     </div>
                 ) : (tradingActivity && psychMetrics && filteredTrades.length > 0) ? (
                     <Tabs defaultValue="overview" className="w-full" onValueChange={setSelectedTab}>
